@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
-        protected virtual async Task SasProvisionEdgeAsync()
+        protected virtual async Task SasProvisionEdgeAsync(bool withCerts = false)
         {
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
@@ -51,9 +51,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.OptimizeForPerformance,
                     this.iotHub);
 
+                if (Context.Current.NestedEdge || withCerts)
+                {
+                    await this.SetUpCertificatesAsync(token, startTime);
+                }
+
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
+                        if (Context.Current.NestedEdge || withCerts)
+                        {
+                            config.SetCertificates(this.ca.EdgeCertificates);
+                        }
+
                         config.SetDeviceConnectionString(device.ConnectionString);
                         config.Update();
                         return Task.FromResult((
@@ -63,65 +73,38 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     device,
                     startTime,
                     token);
-
-                if (Context.Current.NestedEdge)
-                {
-                    await this.SetUpCertificatesAsync();
-                }
             }
         }
 
-        public async Task SetUpCertificatesAsync()
+        public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime)
         {
-            await Profiler.Run(
-                async () =>
-                {
-                    (string, string, string) rootCa =
-                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
-                    string caCertScriptPath =
-                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
+            (string, string, string) rootCa =
+                Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+            string caCertScriptPath =
+                Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
+            string deviceId = this.runtime.DeviceId;
 
-                    using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
-                    {
-                        DateTime startTime = DateTime.Now;
-                        CancellationToken token = cts.Token;
-                        string deviceId = this.runtime.DeviceId;
+            try
+            {
+                this.ca = await CertificateAuthority.CreateAsync(
+                    deviceId,
+                    rootCa,
+                    caCertScriptPath,
+                    token);
 
-                        try
-                        {
-                            this.ca = await CertificateAuthority.CreateAsync(
-                                deviceId,
-                                rootCa,
-                                caCertScriptPath,
-                                token);
+                CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(deviceId, token);
+                this.ca.EdgeCertificates = caCert;
+            }
 
-                            CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(deviceId, token);
-                            this.ca.EdgeCertificates = caCert;
-
-                            await this.daemon.ConfigureAsync(
-                                config =>
-                                {
-                                    config.SetCertificates(caCert);
-                                    config.Update();
-                                    return Task.FromResult(("with edge certificates", Array.Empty<object>()));
-                                },
-                                token);
-
-                            await this.runtime.DeployConfigurationAsync(token);
-                        }
-
-                        // ReSharper disable once RedundantCatchClause
-                        catch
-                        {
-                            throw;
-                        }
-                        finally
-                        {
-                            await NUnitLogs.CollectAsync(startTime, token);
-                        }
-                    }
-                },
-                "Completed custom certificate setup");
+            // ReSharper disable once RedundantCatchClause
+            catch
+            {
+                throw;
+            }
+            finally
+            {
+                await NUnitLogs.CollectAsync(startTime, token);
+            }
         }
 
         [OneTimeTearDown]

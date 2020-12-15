@@ -18,12 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public async Task SetUpCustomCertificatesAsync()
         {
             await Profiler.Run(
-                () => this.SasProvisionEdgeAsync(),
+                () => this.SasProvisionEdgeAsync(true),
                 "Completed edge manual provisioning with SAS token");
-
-            await Profiler.Run(
-                async () => await this.SetUpCertificatesAsync(),
-                "Completed setting up certificates");
         }
     }
 }
