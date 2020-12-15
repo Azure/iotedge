@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -13,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
-    using System.Text.RegularExpressions;
 
     [SetUpFixture]
     public class SetupFixture
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
 
-                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(""), @"\$upstream", parentHostname);
+                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
                                 config.SetEdgeAgentImage(edgeAgent);
                             });
 

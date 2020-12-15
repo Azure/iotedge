@@ -110,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.Verbose = context.GetValue<bool>("verbose");
             this.ParentHostname = Option.Maybe(Get("parentHostname"));
             this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
+            this.NestedEdge = context.GetValue("nestededge", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -185,5 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> ParentHostname { get; }
 
         public Option<string> BlobSasUrl { get; }
+
+        public bool NestedEdge { get; }
     }
 }
