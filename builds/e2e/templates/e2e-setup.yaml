@@ -136,8 +136,8 @@ steps:
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
       caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = $rootCaCertificatePath;
-      rootCaPrivateKeyPath = $rootCaPrivateKeyPath;
+      rootCaCertificatePath = "$rootCaCertificatePath";
+      rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
