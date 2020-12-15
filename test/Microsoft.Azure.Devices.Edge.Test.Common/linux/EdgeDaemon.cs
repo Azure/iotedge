@@ -106,11 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return Profiler.Run(
                 async () =>
                 {
-                    string configYamlPath =
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
-
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration(configYamlPath, this.bootstrapAgentImage, this.bootstrapRegistry);
+                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml", this.bootstrapAgentImage, this.bootstrapRegistry);
                     (string msg, object[] props) = await config(yaml);
 
                     message += $" {msg}";
