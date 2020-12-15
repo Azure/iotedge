@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         IotEdge = true
                     },
-                    ParentScopes = new[] { parentDevice.Scope }
+                    ParentScopes = new[] { parentDeviceScope }
                 };
             },
             () =>
