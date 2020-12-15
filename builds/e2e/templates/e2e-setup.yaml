@@ -87,6 +87,11 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
+    $imageId = Get-Content -Encoding Utf8 `
+      '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
+    $imageId = ($imageId -split '=')[1]
+    $imageTag = "$imageId-$(os)-$(arch)"
+
     if ('$(nestededge)' -eq 'true')
     {
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
@@ -95,12 +100,7 @@ steps:
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     }
 
-    echo "Edge agent image: $imagePrefix-agent:$imageTag"
-
-    $imageId = Get-Content -Encoding Utf8 `
-      '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
-    $imageId = ($imageId -split '=')[1]
-    $imageTag = "$imageId-$(os)-$(arch)"
+    echo "Edge agent image: $imagePrefix-agent:$imageTag"    
 
     $context = @{
       dpsIdScope = "$(dps.idScope)";
