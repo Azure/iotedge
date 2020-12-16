@@ -143,7 +143,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 },
                 result => result,
                 //Ignore key not found Exception. There can e a delay between deployement on device and reported state, especially in nested configuration
-                e => true, 
+                e => {
+                    Log.Information("Exception: " + e);
+                    return true;
+                }, 
                 TimeSpan.FromSeconds(5),
                 token);
 
