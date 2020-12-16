@@ -17,10 +17,10 @@ steps:
       TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
-      TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
-      TestRootCaPassword
+      TestRootCaPassword,
+      TestBlobStoreSas
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
@@ -66,13 +66,19 @@ steps:
     artifactName: $(artifactName)
 
 - pwsh: |
-    $github_headers = @{'Accept' = 'application/vnd.github.v3+json'; 'Authorization' = 'token $(TestGitHubAccessToken)'}
+    $github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization" = "token $(TestGitHubAccessToken)"}'
     $aziot_commit = git submodule | awk '{print $1;}'
+
+    $proxy = ''
+    if(![string]::IsNullOrEmpty('$(Agent.ProxyUrl)'))
+    {
+      $proxy = '-Proxy $(Agent.ProxyUrl)'
+    }
 
     for($page = 1; ; $page++)
     {
       $url = "https://api.github.com/repos/azure/iot-identity-service/actions/runs?per_page=100&page=$page"
-      $actions_runs = Invoke-WebRequest -Headers $github_headers $url | ConvertFrom-JSON
+      $actions_runs = Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$url'" | ConvertFrom-JSON
       $actions_size = $actions_runs.workflow_runs | Measure-Object
 
       if($actions_size.Count -eq 0)
@@ -91,10 +97,10 @@ steps:
         continue
       }
 
-      $artifacts = Invoke-WebRequest -Headers $github_headers $artifacts_link | ConvertFrom-JSON
+      $artifacts = Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$artifacts_link'" | ConvertFrom-JSON
       $download_link = $artifacts.artifacts | where {$_.name -eq '$(identityServiceArtifactName)'} | `
         Select-Object -ExpandProperty archive_download_url
-      Invoke-WebRequest -Headers $github_headers $download_link -OutFile iot-identity-service.zip
+      Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$download_link' -OutFile iot-identity-service.zip"
       Expand-Archive -Path iot-identity-service.zip -DestinationPath iot-identity-service
 
       $packages = Get-ChildItem -Recurse iot-identity-service -Filter $(identityServicePackageFilter)
@@ -122,6 +128,9 @@ steps:
     $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
+  env:
+    http_proxy: $(Agent.ProxyUrl)
+    https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
     $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
@@ -165,6 +174,11 @@ steps:
       $context['setupTimeoutMinutes'] = 10
       $context['teardownTimeoutMinutes'] = 10
       $context['testTimeoutMinutes'] = 10
+    }
+
+    if ($env:AGENT_PROXYURL)
+    {
+      $context['proxy'] = $env:AGENT_PROXYURL
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'

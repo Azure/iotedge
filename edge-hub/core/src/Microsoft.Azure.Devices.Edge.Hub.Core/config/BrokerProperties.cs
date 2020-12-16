@@ -1,10 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 {
-    using System;
-    using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -16,8 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         [JsonConstructor]
         public BrokerProperties(BridgeConfig bridges, AuthorizationProperties authorizations)
         {
-            this.Bridges = bridges;
-            this.Authorizations = authorizations;
+            this.Bridges = bridges ?? new BridgeConfig();
+            this.Authorizations = authorizations ?? new AuthorizationProperties();
         }
 
         [JsonProperty(PropertyName = "bridges")]

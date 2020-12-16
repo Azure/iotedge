@@ -36,29 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         private Dictionary<Service, Config> config;
 
-        public DaemonConfiguration(ConfigFilePaths configFiles, Option<string> agentImage, Option<Registry> agentRegistry)
+        public DaemonConfiguration(ConfigFilePaths configFiles)
         {
             this.config = new Dictionary<Service, Config>();
             this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true);
             this.InitServiceConfig(Service.Certd, configFiles.Certd, true);
             this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true);
             this.InitServiceConfig(Service.Edged, configFiles.Edged, false);
-
-            this.UpdateAgentImage(
-                agentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.0"),
-                agentRegistry);
-        }
-
-        public void UpdateAgentImage(string agentImage, Option<Registry> agentRegistry)
-        {
-            this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", agentImage);
-            agentRegistry.ForEach(
-                r =>
-                {
-                    this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.serveraddress", r.Address);
-                    this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.username", r.Username);
-                    this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.password", r.Password);
-                });
         }
 
         public void AddHttpsProxy(Uri proxy)

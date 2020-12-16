@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         static readonly string[] subscriptions = new[] { TopicDeviceConnected };
 
         readonly Task<IConnectionProvider> connectionProviderGetter;
+        readonly Task<IAuthenticator> authenticatorGetter;
         readonly IIdentityProvider identityProvider;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
         readonly DeviceProxy.Factory deviceProxyFactory;
@@ -37,9 +38,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // this class is auto-registered so no way to implement an async activator.
         // hence this one needs to get a Task<T> which is suboptimal, but that is the way
         // IConnectionProvider is registered
-        public ConnectionHandler(Task<IConnectionProvider> connectionProviderGetter, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
+        public ConnectionHandler(Task<IConnectionProvider> connectionProviderGetter, Task<IAuthenticator> authenticatorGetter, IIdentityProvider identityProvider, ISystemComponentIdProvider systemComponentIdProvider, DeviceProxy.Factory deviceProxyFactory)
         {
             this.connectionProviderGetter = Preconditions.CheckNotNull(connectionProviderGetter);
+            this.authenticatorGetter = Preconditions.CheckNotNull(authenticatorGetter);
             this.identityProvider = Preconditions.CheckNotNull(identityProvider);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
             this.deviceProxyFactory = Preconditions.CheckNotNull(deviceProxyFactory);
@@ -148,6 +150,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             foreach (var identity in identitiesRemoved)
             {
+                if (this.knownConnections.TryGetValue(identity, out IDeviceListener container))
+                {
+                    if (container is IDeviceProxy proxy)
+                    {
+                        // Clients connected indirectly (through a child edge device) will not be reported
+                        // by broker events and appear in the 'identitiesRemoved' list as missing identities.
+                        // Ignore those:
+                        if (!proxy.IsDirectClient)
+                        {
+                            continue;
+                        }
+                    }
+                }
+
                 if (this.knownConnections.TryRemove(identity, out var deviceListener))
                 {
                     await deviceListener.CloseAsync();
@@ -261,6 +277,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 Events.FailedToObtainConnectionProvider();
                 return Option.None<IDeviceListener>();
+            }
+
+            if (!directOnCreation)
+            {
+                var clientCredentials = new ImplicitCredentials(identity, string.Empty, Option.None<string>()); // TODO obtain prod info/model id
+                var authenticator = await this.authenticatorGetter;
+                await authenticator.AuthenticateAsync(clientCredentials);
             }
 
             var deviceListener = await this.AddConnectionAsync(identity, directOnCreation, connectionProvider);

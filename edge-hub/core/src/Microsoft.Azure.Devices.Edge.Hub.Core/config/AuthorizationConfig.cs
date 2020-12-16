@@ -4,7 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.Serialization;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
 
     /// <summary>
     /// Domain object that represents Authorization configuration for Edge Hub Module (MQTT Broker).
@@ -19,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     /// </remarks>
     public class AuthorizationConfig : IEquatable<AuthorizationConfig>
     {
+        [JsonProperty("statements")]
         public IList<Statement> Statements { get; }
 
         public AuthorizationConfig(IList<Statement> statements)
@@ -64,17 +68,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             IList<string> resources)
         {
             this.Effect = effect;
-            this.Identities = identities;
-            this.Operations = operations;
-            this.Resources = resources;
+            this.Identities = Preconditions.CheckNotNull(identities, nameof(identities));
+            this.Operations = Preconditions.CheckNotNull(operations, nameof(operations));
+            this.Resources = Preconditions.CheckNotNull(resources, nameof(resources));
         }
 
+        [JsonProperty("effect")]
         public Effect Effect { get; }
 
+        [JsonProperty("identities")]
         public IList<string> Identities { get; }
 
+        [JsonProperty("operations")]
         public IList<string> Operations { get; }
 
+        [JsonProperty("resources")]
         public IList<string> Resources { get; }
 
         public bool Equals(Statement other)
@@ -110,9 +118,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         }
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Effect
     {
+        [EnumMember(Value = "allow")]
         Allow = 0,
+
+        [EnumMember(Value = "deny")]
         Deny = 1,
     }
 }

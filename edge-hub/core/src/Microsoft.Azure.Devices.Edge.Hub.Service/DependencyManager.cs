@@ -208,8 +208,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
+            int messageCleanupIntervalSecs = this.configuration.GetValue("MessageCleanupIntervalSecs", 1800);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool isLegacyUpstream = this.configuration.GetValue("mqttBrokerSettings:legacyUpstream", true);
+
+            bool isLegacyUpstream = !experimentalFeatures.Enabled
+                                 || !experimentalFeatures.EnableMqttBroker
+                                 || !experimentalFeatures.EnableNestedEdge
+                                 || !this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -240,6 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     encryptTwinStore,
                     configUpdateFrequency,
                     checkEntireQueueOnCleanup,
+                    messageCleanupIntervalSecs,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
                     experimentalFeatures.EnableNestedEdge,
