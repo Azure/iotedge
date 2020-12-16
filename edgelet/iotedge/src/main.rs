@@ -2,10 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(
-    clippy::let_unit_value,
-    clippy::similar_names,
-)]
+#![allow(clippy::let_unit_value, clippy::similar_names)]
 
 use std::io;
 use std::process;
@@ -386,7 +383,8 @@ fn run() -> Result<(), Error> {
                     .value_of_os("config-file")
                     .expect("arg has a default value");
                 let old_config_file = std::path::Path::new(old_config_file);
-                let () = iotedge::init::import::execute(old_config_file).map_err(ErrorKind::Init)?;
+                let () =
+                    iotedge::init::import::execute(old_config_file).map_err(ErrorKind::Init)?;
                 Ok(())
             }
             (command, _) => {

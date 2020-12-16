@@ -303,7 +303,10 @@ where
                 "Could not find system logs for {}. Including error in bundle.\nError message: {}",
                 name, err_message
             );
-            (format!("logs/{}_err.txt", name), err_message.as_bytes().to_vec())
+            (
+                format!("logs/{}_err.txt", name),
+                err_message.as_bytes().to_vec(),
+            )
         };
 
         self.zip_writer
