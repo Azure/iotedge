@@ -259,6 +259,10 @@ namespace LeafDeviceTest
 
         protected async Task VerifyDataOnIoTHubAsync()
         {
+            //Leaf device without parent not expected to send messages
+            if (!this.edgeDeviceId.HasValue)
+                return;
+
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
             {
                 TransportType = this.eventHubClientTransportType
@@ -309,6 +313,10 @@ namespace LeafDeviceTest
 
         protected async Task VerifyDirectMethodAsync()
         {
+            //Leaf device without parent not expected to succed dm
+            if (!this.edgeDeviceId.HasValue)
+                return;
+
             // User Service SDK to invoke Direct Method on the device.
             var settings = new ServiceClientTransportSettings();
             this.proxy.ForEach(p => settings.HttpProxy = p);
