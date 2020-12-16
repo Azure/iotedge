@@ -172,6 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // normalize stringized JSON inside "createOptions"
                 foreach (var key in otherKeys)
                 {
+                    Log.Information((string)result[key].Value);
+
                     result[key].Value = JObject
                         .Parse((string)result[key].Value)
                         .ToString(Formatting.None);
@@ -183,6 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // edge agent and iotedged for internal use; they're not related to the deployment.
                 foreach (var key in agentKeys)
                 {
+                    Log.Information((string)result[key].Value);
+
                     JObject createOptions = JObject.Parse((string)result[key].Value);
                     if (createOptions.TryGetValue("Labels", out JToken labels))
                     {
@@ -209,7 +213,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Where(k => k.EndsWith("settings.image"));
                 foreach (var imageKeys in imagesKeys)
                 {
-                    result[imageKeys].Value = new JValue(Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value));
+                    Log.Information(imageKeys.ToString());
+                    Log.Information((string)result[imageKeys].Value);
+                    Log.Information(Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value));
+
+                    result[imageKeys].Value = JObject
+                        .Parse("test")
+                        .ToString(Formatting.None);
                 }
 
                 return result;
