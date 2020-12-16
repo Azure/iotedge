@@ -184,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 foreach (var key in agentKeys)
                 {
                     Log.Information(key.ToString());
+                    Log.Information((string)result[key].Value);
                     JObject createOptions = JObject.Parse((string)result[key].Value);
                     if (createOptions.TryGetValue("Labels", out JToken labels))
                     {
