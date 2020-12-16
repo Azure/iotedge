@@ -1,9 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::use_self)]
-
 use std::sync::Arc;
 
 use failure::Fail;

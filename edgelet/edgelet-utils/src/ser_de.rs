@@ -119,10 +119,10 @@ where
 
     let map: StdResult<HashMap<K, Option<V>>, D::Error> =
         deserializer.deserialize_map(OptionalValueVisitor::new());
-    map.map(|mut hashmap| {
+    map.map(|hashmap| {
         hashmap
-            .drain()
-            .map(|(k, v)| (k, v.unwrap_or_else(V::default)))
+            .into_iter()
+            .map(|(k, v)| (k, v.unwrap_or_default()))
             .collect()
     })
 }
