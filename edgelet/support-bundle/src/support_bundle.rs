@@ -656,16 +656,25 @@ mod tests {
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).unwrap();
-            let outpath = PathBuf::from(destination).join(file.sanitized_name());
 
-            if (&*file.name()).ends_with('/') {
+            let filename = {
+                let filename = std::path::Path::new(file.name());
+                // Assert that the path has no components other than Normal
+                let mut components = filename.components();
+                assert!(components
+                    .all(|component| matches!(component, std::path::Component::Normal(_))));
+                filename
+            };
+
+            let outpath = PathBuf::from(destination).join(filename);
+
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(&parent).unwrap();
+            }
+
+            if file.is_dir() {
                 fs::create_dir_all(&outpath).unwrap();
-            } else {
-                if let Some(p) = outpath.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(&p).unwrap();
-                    }
-                }
+            } else if file.is_file() {
                 let mut outfile = fs::File::create(&outpath).unwrap();
                 io::copy(&mut file, &mut outfile).unwrap();
             }
