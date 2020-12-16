@@ -1,5 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+// TODO:
+//
+// error: use of deprecated associated function `zip::ZipWriter::<W>::start_file_from_path`:
+//        by stripping `..`s from the path, the meaning of paths can change. Use `start_file` // instead.
+//    --> support-bundle/src/support_bundle.rs:261:14
+//     |
+// 261 |             .start_file_from_path(&Path::new("logs").join(file_name), file_options)
+//     |              ^^^^^^^^^^^^^^^^^^^^
+//     |
+#![allow(deprecated)]
+
 use std::env;
 use std::ffi::OsString;
 use std::fs::File;
@@ -47,7 +58,7 @@ where
                 )
             });
 
-            let bundle = state.and_then(|state| state.bundle_all());
+            let bundle = state.and_then(BundleState::bundle_all);
 
             let read =
                 bundle.and_then(|mut bundle| -> Result<(Box<dyn Read + Send>, u64), Error> {
@@ -76,7 +87,7 @@ where
                 )
             });
 
-            let bundle = state.and_then(|state| state.bundle_all());
+            let bundle = state.and_then(BundleState::bundle_all);
 
             let read =
                 bundle.and_then(|mut bundle| -> Result<(Box<dyn Read + Send>, u64), Error> {

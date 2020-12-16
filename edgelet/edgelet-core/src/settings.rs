@@ -12,8 +12,8 @@ use crate::module::ModuleSpec;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Connect {
-    workload_uri: Url,
-    management_uri: Url,
+    pub workload_uri: Url,
+    pub management_uri: Url,
 }
 
 impl Connect {
@@ -28,10 +28,10 @@ impl Connect {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Listen {
-    workload_uri: Url,
-    management_uri: Url,
+    pub workload_uri: Url,
+    pub management_uri: Url,
     #[serde(default = "Protocol::default")]
-    min_tls_version: Protocol,
+    pub min_tls_version: Protocol,
 }
 
 impl Listen {
@@ -128,7 +128,7 @@ impl Default for RetryLimit {
 #[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct WatchdogSettings {
     #[serde(default)]
-    max_retries: RetryLimit,
+    pub max_retries: RetryLimit,
 }
 
 impl WatchdogSettings {
@@ -153,17 +153,17 @@ pub trait RuntimeSettings {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings<T> {
-    agent: ModuleSpec<T>,
-    hostname: String,
-    parent_hostname: Option<String>,
-    connect: Connect,
-    listen: Listen,
-    homedir: PathBuf,
+    pub agent: ModuleSpec<T>,
+    pub hostname: String,
+    pub parent_hostname: Option<String>,
+    pub connect: Connect,
+    pub listen: Listen,
+    pub homedir: PathBuf,
     #[serde(default)]
-    watchdog: WatchdogSettings,
+    pub watchdog: WatchdogSettings,
     #[serde(default)]
     #[cfg_attr(not(debug_assertions), serde(skip))]
-    endpoints: Endpoints,
+    pub endpoints: Endpoints,
 }
 
 impl<T> RuntimeSettings for Settings<T>

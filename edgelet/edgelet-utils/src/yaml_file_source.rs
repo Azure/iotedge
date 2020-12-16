@@ -17,7 +17,7 @@ use yaml_rust::{Yaml, YamlLoader};
 #[derive(Clone, Debug)]
 pub enum YamlFileSource {
     File(PathBuf),
-    String(&'static str),
+    String(Cow<'static, str>),
 }
 
 impl Source for YamlFileSource {
@@ -42,7 +42,7 @@ impl Source for YamlFileSource {
                 Cow::Owned(contents)
             }
 
-            YamlFileSource::String(s) => Cow::Borrowed(*s),
+            YamlFileSource::String(s) => Cow::Borrowed(&**s),
         };
 
         let docs = YamlLoader::load_from_str(&*contents)

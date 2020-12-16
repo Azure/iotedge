@@ -28,9 +28,9 @@ const UNIX_SCHEME: &str = "unix";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
-    uri: Url,
-    network: MobyNetwork,
-    content_trust: Option<ContentTrust>,
+    pub uri: Url,
+    pub network: MobyNetwork,
+    pub content_trust: Option<ContentTrust>,
 }
 
 impl MobyRuntime {
@@ -49,7 +49,7 @@ impl MobyRuntime {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct ContentTrust {
-    ca_certs: Option<HashMap<String, PathBuf>>,
+    pub ca_certs: Option<HashMap<String, PathBuf>>,
 }
 
 impl ContentTrust {
@@ -66,14 +66,14 @@ impl ContentTrust {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
-    base: BaseSettings<DockerConfig>,
-    moby_runtime: MobyRuntime,
+    pub base: BaseSettings<DockerConfig>,
+    pub moby_runtime: MobyRuntime,
 }
 
 impl Settings {
     pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
         let mut config = Config::default();
-        config.merge(YamlFileSource::String(DEFAULTS))?;
+        config.merge(YamlFileSource::String(DEFAULTS.into()))?;
         config.merge(YamlFileSource::File(filename.into()))?;
         config.merge(Environment::with_prefix("iotedge"))?;
 
