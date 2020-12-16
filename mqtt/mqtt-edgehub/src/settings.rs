@@ -1,4 +1,8 @@
-use std::{collections::HashMap, env, path::{Path, PathBuf}};
+use std::{
+    collections::HashMap,
+    env,
+    path::{Path, PathBuf},
+};
 use tracing::debug;
 
 use config::{Config, ConfigError, File, FileFormat};
@@ -33,22 +37,22 @@ impl config::Source for BrokerEnvironment {
         Box::new((*self).clone())
     }
 
-    // Currently, BrokerEnvironment allows only the following four environment variables to be set externally. 
+    // Currently, BrokerEnvironment allows only the following four environment variables to be set externally.
     // Otherwise, all values must come from the default.json file
     fn collect(&self) -> Result<HashMap<String, config::Value>, ConfigError> {
         let mut result: HashMap<String, config::Value> = HashMap::new();
         if let Ok(val) = env::var("mqttBroker__max_queued_messages") {
             result.insert("broker.session.max_queued_messages".into(), val.into());
         }
-    
+
         if let Ok(val) = env::var("mqttBroker__max_queued_bytes") {
             result.insert("broker.session.max_queued_size".into(), val.into());
         }
-    
+
         if let Ok(val) = env::var("mqttBroker__max_inflight_messages") {
             result.insert("broker.session.max_inflight_messages".into(), val.into());
         }
-    
+
         if let Ok(val) = env::var("mqttBroker__when_full") {
             result.insert("broker.session.when_full".into(), val.into());
         }
@@ -241,10 +245,7 @@ mod tests {
     };
     use mqtt_broker_tests_util::env;
 
-    use super::{
-        AuthConfig, ListenerConfig, Settings, TcpTransportConfig,
-        TlsTransportConfig,
-    };
+    use super::{AuthConfig, ListenerConfig, Settings, TcpTransportConfig, TlsTransportConfig};
 
     const DAYS: u64 = 24 * 60 * 60;
 
@@ -275,17 +276,18 @@ mod tests {
     #[test]
     #[serial(env_settings)]
     fn check_other_env_vars_cant_be_overridden() {
-        let _broker_session_max_inflight_messages = env::set_var("broker__session__max_inflight_messages", "17");
+        let _broker_session_max_inflight_messages =
+            env::set_var("broker__session__max_inflight_messages", "17");
         let _max_queued_messages = env::set_var("broker__session__max_queued_messages", "1001");
         let _max_queued_bytes = env::set_var("broker__session__max_queued_bytes", "1");
         let _when_full = env::set_var("broker__session__when_full", "drop_old");
 
-        let _tcp  = env::set_var("listener__tcp__address", "0.0.0.0:1880");
-        let _tls  = env::set_var("listener__tls__address", "0.0.0.0:1880");
-        let _system  = env::set_var("listener__system__address", "0.0.0.0:1880");
+        let _tcp = env::set_var("listener__tcp__address", "0.0.0.0:1880");
+        let _tls = env::set_var("listener__tls__address", "0.0.0.0:1880");
+        let _system = env::set_var("listener__system__address", "0.0.0.0:1880");
         let _port = env::set_var("auth__port", "7121");
         let _base_url = env::set_var("auth__base_url", "/authWRONGticate");
-        
+
         let settings = Settings::new().unwrap();
 
         let listener = &ListenerConfig::new(
@@ -296,7 +298,10 @@ mod tests {
         let auth = &AuthConfig::new(7120, "/authenticate/");
 
         assert_eq!(settings.broker().session(), &SessionConfig::default());
-        assert_eq!(settings.broker().persistence(), &SessionPersistenceConfig::default());
+        assert_eq!(
+            settings.broker().persistence(),
+            &SessionPersistenceConfig::default()
+        );
         assert_eq!(settings.listener(), listener);
         assert_eq!(settings.auth(), auth);
     }
