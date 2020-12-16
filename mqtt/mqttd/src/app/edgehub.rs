@@ -51,6 +51,8 @@ impl Bootstrap for EdgeHubBootstrap {
 
     fn load_config<P: AsRef<Path>>(&self, path: P) -> Result<Self::Settings> {
         info!("loading settings from a file {}", path.as_ref().display());
+        let settings = Self::Settings::from_file(path);
+        debug!("broker settings are: {:?}", settings);
         Ok(Self::Settings::from_file(path)?)
     }
 

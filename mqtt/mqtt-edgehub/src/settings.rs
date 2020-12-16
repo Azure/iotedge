@@ -23,10 +23,8 @@ lazy_static! {
         s.merge(File::from_str(DEFAULTS, FileFormat::Json)).expect(
             "Unable to load default broker config. Check default.json has invalid json format.",
         );
-        let settings = s.try_into()
-            .expect("Unable to load default broker config. Check default.json to match BrokerConfig structure.");
-        debug!("broker config settings: {:?}", settings);
-        settings
+        s.try_into()
+            .expect("Unable to load default broker config. Check default.json to match BrokerConfig structure.")
     };
 }
 
