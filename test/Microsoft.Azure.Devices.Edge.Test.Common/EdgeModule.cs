@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .OfType<JValue>()
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
 
-                Log.Information(result.ToString());
+                Log.Information(JObject.FromObject(obj).ToString());
 
                 var agentKeys = result.Keys
                     .Where(k => k.EndsWith("edgeAgent.settings.createOptions"));
