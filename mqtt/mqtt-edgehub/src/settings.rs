@@ -29,6 +29,7 @@ lazy_static! {
 
 #[derive(Debug, Clone)]
 pub struct BrokerEnvironment;
+
 impl config::Source for BrokerEnvironment {
     fn clone_into_box(&self) -> Box<dyn config::Source + Send + Sync> {
         Box::new((*self).clone())
