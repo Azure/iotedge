@@ -1,6 +1,6 @@
-pub(crate) mod import;
+pub mod import;
 
-pub(crate) fn execute() -> Result<(), std::borrow::Cow<'static, str>> {
+pub fn execute() -> Result<(), std::borrow::Cow<'static, str>> {
     Err("\
         This feature has not yet been implemented.\n\
         \n\

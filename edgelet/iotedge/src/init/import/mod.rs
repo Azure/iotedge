@@ -28,7 +28,7 @@ const AZIOT_EDGED_MANAGEMENT_URI: &str = "unix:///var/lib/aziot/edged/aziot-edge
 /// The default value of the edged connect and listen workload URIs.
 const AZIOT_EDGED_WORKLOAD_URI: &str = "unix:///var/lib/aziot/edged/aziot-edged.workload.sock";
 
-pub(crate) fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
+pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
     // have the package installed and the users created, and it's easier to have the config files owned by the current user anyway.
