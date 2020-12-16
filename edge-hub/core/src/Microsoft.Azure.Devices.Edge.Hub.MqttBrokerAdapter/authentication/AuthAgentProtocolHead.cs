@@ -55,17 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     Events.StartedWhenAlreadyRunning();
                     throw new InvalidOperationException("Cannot start AuthAgentProtocolHead twice");
                 }
-                else
-                {
-                    this.host = Option.Some(
-                                    CreateWebHostBuilder(
-                                        this.authenticator,
-                                        this.metadataStore,
-                                        this.usernameParser,
-                                        this.clientCredentialsFactory,
-                                        this.systemComponentIdProvider,
-                                        this.config));
-                }
+
+                this.host = Option.Some(
+                    CreateWebHostBuilder(
+                        this.authenticator,
+                        this.metadataStore,
+                        this.usernameParser,
+                        this.clientCredentialsFactory,
+                        this.systemComponentIdProvider,
+                        this.config));
             }
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
@@ -86,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             await hostToStop.Match(
-                async h => await h.StopAsync(),
+                async h => await h.StopAsync(token),
                 () =>
                 {
                     Events.ClosedWhenNotRunning();
@@ -100,7 +98,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             if (this.host.HasValue)
             {
-                this.CloseAsync(CancellationToken.None).Wait();
+                // FIXES a bug when the the process is stuck on WebHost.StopAsync() method call https://github.com/dotnet/extensions/issues/1363
+                // lets not wait forever but cancel after a timeout
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                this.CloseAsync(cts.Token).Wait();
             }
         }
 
