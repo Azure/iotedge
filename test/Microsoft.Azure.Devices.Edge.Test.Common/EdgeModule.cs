@@ -209,6 +209,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Where(k => k.EndsWith("settings.image"));
                 foreach (var imageKeys in imagesKeys)
                 {
+                    Log.Information(imageKeys.ToString());
+                    Log.Information((string)result[imageKeys].Value);
+                    Log.Information(Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value));
+
                     result[imageKeys].Value = JObject
                         .Parse(Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value));
                 }
