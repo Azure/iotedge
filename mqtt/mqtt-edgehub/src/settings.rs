@@ -1,4 +1,5 @@
 use std::{collections::HashMap, env, path::{Path, PathBuf}};
+use tracing::debug;
 
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
@@ -18,8 +19,10 @@ lazy_static! {
         s.merge(File::from_str(DEFAULTS, FileFormat::Json)).expect(
             "Unable to load default broker config. Check default.json has invalid json format.",
         );
-        s.try_into()
-            .expect("Unable to load default broker config. Check default.json to match BrokerConfig structure.")
+        let settings = s.try_into()
+            .expect("Unable to load default broker config. Check default.json to match BrokerConfig structure.");
+        debug!("broker config settings: {:?}", settings);
+        settings
     };
 }
 
