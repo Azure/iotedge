@@ -95,7 +95,7 @@ fn compute_validity(expiration: &str, max_duration_sec: i64, context: ErrorKind)
 }
 
 fn refresh_cert(
-    key_connector: &http_common::Connector,
+    key_client: &Arc<aziot_key_client::Client>,
     cert_client: Arc<Mutex<CertificateClient>>,
     alias: String,
     new_cert_props: &CertificateProperties,
@@ -103,7 +103,7 @@ fn refresh_cert(
     context: &ErrorKind,
 ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
     let context = context.clone();
-    let key_connector = key_connector.clone();
+    let key_client = key_client.clone();
 
     let response = generate_local_keypair()
         .map(|(privkey, pubkey)| {
@@ -117,16 +117,9 @@ fn refresh_cert(
         .and_then(move |(new_cert_privkey, new_cert_csr)| {
             let edge_ca = edge_ca.clone();
             let context_copy = context.clone();
-            prepare_edge_ca(&key_connector, &cert_client, &edge_ca, &context)
+            prepare_edge_ca(&key_client, &cert_client, &edge_ca, &context)
                 .map_err(move |e| Error::from(e.context(context_copy)))
                 .and_then(move |_| {
-                    let key_client = {
-                        let key_client = aziot_key_client::Client::new(
-                            aziot_key_common_http::ApiVersion::V2020_09_01,
-                            key_connector,
-                        );
-                        Arc::new(key_client)
-                    };
                     key_client
                         .load_key_pair(edge_ca.key_id.as_str())
                         .map_err(|e| Error::from(e.context(context.clone())))
@@ -284,12 +277,12 @@ fn create_csr(
 }
 
 fn prepare_edge_ca(
-    key_connector: &http_common::Connector,
+    key_client: &Arc<aziot_key_client::Client>,
     cert_client: &Arc<Mutex<CertificateClient>>,
     ca: &EdgeCaCertificate,
     context: &ErrorKind,
 ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
-    let key_connector_copy = key_connector.clone();
+    let key_client = key_client.clone();
     let cert_client_copy = cert_client.clone();
     let context = context.clone();
     let ca = ca.clone();
@@ -317,7 +310,7 @@ fn prepare_edge_ca(
                         // Recursively call generate_key_and_csr to renew CA cert
                         future::Either::A(future::Either::A(
                             create_edge_ca_certificate(
-                                &key_connector_copy,
+                                &key_client,
                                 &cert_client_copy,
                                 &ca,
                                 &context,
@@ -333,14 +326,9 @@ fn prepare_edge_ca(
                 Err(_e) => {
                     // Recursively call generate_key_and_csr to renew CA cert
                     future::Either::B(
-                        create_edge_ca_certificate(
-                            &key_connector_copy,
-                            &cert_client_copy,
-                            &ca,
-                            &context,
-                        )
-                        .map_err(move |e| Error::from(e.context(context)))
-                        .map(|_| ()),
+                        create_edge_ca_certificate(&key_client, &cert_client_copy, &ca, &context)
+                            .map_err(move |e| Error::from(e.context(context)))
+                            .map(|_| ()),
                     )
                 }
             };
@@ -353,19 +341,13 @@ fn prepare_edge_ca(
 }
 
 fn create_key_engine(
-    key_connector: &http_common::Connector,
+    key_client: &Arc<aziot_key_client::Client>,
 ) -> std::result::Result<openssl2::FunctionalEngine, openssl2::Error> {
-    let key_client = aziot_key_client::Client::new(
-        aziot_key_common_http::ApiVersion::V2020_09_01,
-        key_connector.clone(),
-    );
-    let key_client = Arc::new(key_client);
-
-    aziot_key_openssl_engine::load(key_client)
+    aziot_key_openssl_engine::load(key_client.clone())
 }
 
 fn create_edge_ca_certificate(
-    key_connector: &http_common::Connector,
+    key_client: &Arc<aziot_key_client::Client>,
     cert_client: &Arc<Mutex<CertificateClient>>,
     ca: &EdgeCaCertificate,
     context: &ErrorKind,
@@ -381,16 +363,8 @@ fn create_edge_ca_certificate(
         IOTEDGED_CA_ALIAS.to_string(),
     );
 
-    let key_client = {
-        let key_client = aziot_key_client::Client::new(
-            aziot_key_common_http::ApiVersion::V2020_09_01,
-            key_connector.clone(),
-        );
-        Arc::new(key_client)
-    };
-
     //generate new key in Key Service, generate csr for Edge CA certificate, import into Cert Service
-    let fut = create_key_engine(&key_connector)
+    let fut = create_key_engine(&key_client)
         .map_err(|e| Error::from(e.context(context.clone())))
         .and_then(|mut key_engine| {
             key_client

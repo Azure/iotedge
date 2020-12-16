@@ -649,6 +649,10 @@ where
     let identityd_url = settings.endpoints().aziot_identityd_url().clone();
 
     let key_connector = http_common::Connector::new(&keyd_url).expect("Connector");
+    let key_client = Arc::new(aziot_key_client::Client::new(
+        aziot_key_common_http::ApiVersion::V2020_09_01,
+        key_connector,
+    ));
 
     let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(
         aziot_cert_common_http::ApiVersion::V2020_09_01,
@@ -659,7 +663,7 @@ where
         &identityd_url,
     )));
 
-    WorkloadService::new(runtime, identity_client, cert_client, key_connector, config)
+    WorkloadService::new(runtime, identity_client, cert_client, key_client, config)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::WorkloadService,

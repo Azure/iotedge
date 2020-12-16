@@ -18,19 +18,19 @@ use crate::IntoResponse;
 
 pub struct IdentityCertHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
-    key_connector: http_common::Connector,
+    key_client: Arc<aziot_key_client::Client>,
     config: W,
 }
 
 impl<W: WorkloadConfig> IdentityCertHandler<W> {
     pub fn new(
+        key_client: Arc<aziot_key_client::Client>,
         cert_client: Arc<Mutex<CertificateClient>>,
-        key_connector: http_common::Connector,
         config: W,
     ) -> Self {
         IdentityCertHandler {
+            key_client,
             cert_client,
-            key_connector,
             config,
         }
     }
@@ -47,7 +47,7 @@ where
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let cfg = self.config.clone();
         let cert_client = self.cert_client.clone();
-        let key_connector = self.key_connector.clone();
+        let key_client = self.key_client.clone();
 
         let response = params
             .name("name")
@@ -99,7 +99,7 @@ where
             })
             .and_then(move |(alias, props, cfg)| {
                 let response = refresh_cert(
-                    &key_connector,
+                    &key_client,
                     cert_client,
                     alias,
                     &props,
