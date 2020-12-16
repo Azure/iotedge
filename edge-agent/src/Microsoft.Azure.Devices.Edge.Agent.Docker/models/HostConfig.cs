@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         public bool? OomKillDisable { get; set; }
 
         [JsonProperty("PidsLimit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long PidsLimit { get; set; }
+        public long? PidsLimit { get; set; }
 
         [JsonProperty("Ulimits", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IList<Ulimit> Ulimits { get; set; }
@@ -126,6 +126,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
         [JsonProperty("Sysctls", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IDictionary<string, string> Sysctls { get; set; }
+
+        [JsonProperty("ContainerIDFile", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string ContainerIDFile { get; set; }
 
         [JsonProperty("RestartPolicy", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public RestartPolicy RestartPolicy { get; set; }
