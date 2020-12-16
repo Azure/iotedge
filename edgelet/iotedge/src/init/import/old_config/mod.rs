@@ -63,7 +63,7 @@ pub(crate) struct DeviceCertificate {
     pub(crate) trusted_ca_certs: String,
 }
 
-fn default_auto_generated_ca_lifetime_days() -> u16 {
+const fn default_auto_generated_ca_lifetime_days() -> u16 {
     90
 }
 
