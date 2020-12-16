@@ -13,7 +13,7 @@ use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 use serde::Deserialize;
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream};
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use mqtt3::IoSource;
@@ -147,12 +147,9 @@ impl ClientIoSource {
                 })?;
             }
 
-            info!("Ssl connector");
             let config = SslConnector::builder(SslMethod::tls())
                 .map(|mut builder| {
-                    info!("Ssl connector built for tls");
                     if let Some(trust_bundle) = server_root_certificate {
-                        info!("Ssl connector detected trust bundle {:?}", trust_bundle);
                         X509::stack_from_pem(trust_bundle.as_bytes())
                             .map(|mut certs| {
                                 while let Some(ca) = certs.pop() {
