@@ -3,7 +3,6 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-use tracing::debug;
 
 use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
