@@ -191,7 +191,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("experimentalFeatures__enabled", "true"),
                             ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                            ("experimentalFeatures__nestedEdgeEnabled", "true"),
                         })
                         .WithDesiredProperties(new Dictionary<string, object>
                         {

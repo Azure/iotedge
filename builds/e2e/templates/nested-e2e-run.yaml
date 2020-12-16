@@ -9,7 +9,8 @@ steps:
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx
+      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName~EdgeAgentDirectMethods.TestPing'   
+#sudo --preserve-env dotnet vstest $testFile --logger:trx
     }
   displayName: Run tests
   env:
