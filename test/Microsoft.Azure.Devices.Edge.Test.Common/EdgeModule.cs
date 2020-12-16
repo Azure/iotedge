@@ -138,15 +138,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
-                    return JsonEquals((expected, "properties.reported"), (twin, string.Empty));
+                    return twin.Properties.Reported;
 
                 },
-                result => result,
+                reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
                 //Ignore key not found Exception. There can e a delay between deployement on device and reported state, especially in nested configuration
                 e => {
                     Log.Information("Exception: " + e);
                     return true;
-                }, 
+                },
                 TimeSpan.FromSeconds(5),
                 token);
 
