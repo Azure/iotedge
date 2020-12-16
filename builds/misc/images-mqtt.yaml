@@ -31,7 +31,7 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os alpine --arch amd64 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
-      - template: templates/move-rust-artifacts.yaml
+      - template: templates/copy-rust-binaries.yaml
         parameters:
           should.publish.amd64: 'true'
           artifact.folder.path: 'mqtt/target'
@@ -80,7 +80,7 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
-      - template: templates/move-rust-artifacts.yaml
+      - template: templates/copy-rust-binaries.yaml
         parameters:
           should.publish.arm32v7: 'true'
           artifact.folder.path: 'mqtt/target'
