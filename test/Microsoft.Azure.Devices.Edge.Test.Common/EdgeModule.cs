@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     Log.Information(Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value));
 
                     result[imageKeys].Value = JObject
-                        .Parse("{test}")
+                        .Parse("{\"test\"}")
                         .ToString(Formatting.None);
                 }
 
