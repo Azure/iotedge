@@ -58,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
-            Thread.Sleep(200000);
             await edgeConfiguration.VerifyAsync(this.iotHub, token);
             return new EdgeDeployment(deployTime, modules);
         }
