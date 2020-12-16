@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // normalize stringized JSON inside "createOptions"
                 foreach (var key in otherKeys)
                 {
-                    Log.Information((string)result[key].Value);
+                    Log.Information("Regular Key: "+ key  +" value: "+ (string)result[key].Value);
 
                     result[key].Value = JObject
                         .Parse((string)result[key].Value)
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // edge agent and iotedged for internal use; they're not related to the deployment.
                 foreach (var key in agentKeys)
                 {
-                    Log.Information((string)result[key].Value);
+                    Log.Information("Agent Key: " + key +" value: "+ (string)result[key].Value);
 
                     JObject createOptions = JObject.Parse((string)result[key].Value);
                     if (createOptions.TryGetValue("Labels", out JToken labels))
@@ -213,9 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Where(k => k.EndsWith("settings.image"));
                 foreach (var imageKeys in imagesKeys)
                 {
-                    Log.Information(imageKeys.ToString());
-                    Log.Information((string)result[imageKeys].Value);
-                    Log.Information(Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value));
+                    Log.Information("Agent Key: " + imageKeys + " value: " + (string)result[imageKeys].Value);
 
                     result[imageKeys].Value = Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value);
                 }
@@ -230,8 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // - comparand has a json value with the same path
             // - the json values match
             bool match = referenceValues.All(kvp => {
-                Log.Information(kvp.Key.ToString());
-                Log.Information(kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
+                Log.Information("Comparing: " + kvp.Key.ToString());
+                Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
                 return comparandValues.ContainsKey(kvp.Key) &&
                     kvp.Value.Equals(comparandValues[kvp.Key]);
                 }
