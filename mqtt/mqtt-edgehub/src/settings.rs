@@ -56,7 +56,7 @@ impl config::Source for BrokerEnvironment {
         if let Ok(val) = env::var("mqttBroker__when_full") {
             result.insert("broker.session.when_full".into(), val.into());
         }
-        return Ok(result);
+        Ok(result)
     }
 }
 
