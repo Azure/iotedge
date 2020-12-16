@@ -34,14 +34,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            // TODO: Fix PriorityQueue E2E tests for ARM
-            if (OsPlatform.IsArm())
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Arm until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -59,14 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Unstable")]
         public async Task PriorityQueueModuleToHubMessages()
         {
-            // TODO: Add ARM.
-            if (OsPlatform.IsArm())
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Arm until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -96,14 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
-            // TODO: Fix PriorityQueue TTL E2E tests for ARM
-            if (OsPlatform.IsArm())
-            {
-                Assert.Ignore("Priority Queue time to live test has been disabled for Arm until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));

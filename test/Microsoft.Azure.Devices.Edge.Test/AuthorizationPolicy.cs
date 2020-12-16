@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Validate that new device can connect.
         /// </summary>
         [Test]
+        [Category("UnstableOnArm")]
         public async Task AuthorizationPolicyUpdateTest()
         {
             CancellationToken token = this.TestToken;
