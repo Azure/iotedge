@@ -531,7 +531,7 @@ pub(crate) fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'st
                             let old_config::Network { name, ipv6, ipam } = network;
                             edgelet_core::Network {
                                 name: name.clone(),
-                                ipv6: ipv6.clone(),
+                                ipv6: *ipv6,
                                 ipam: ipam.as_ref().map(|ipam| {
                                     let old_config::Ipam { config } = ipam;
                                     edgelet_core::Ipam {

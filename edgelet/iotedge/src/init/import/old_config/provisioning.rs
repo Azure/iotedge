@@ -90,11 +90,6 @@ impl std::str::FromStr for ManualDeviceConnectionString {
         const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
         const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 
-        let device_id_regex =
-            Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
-        let hostname_regex =
-            Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
-
         fn missing_parameter(parameter_name: &str) -> String {
             format!(
                 "the connection string is missing required parameter {}",
@@ -108,6 +103,11 @@ impl std::str::FromStr for ManualDeviceConnectionString {
                 parameter_name, err
             )
         }
+
+        let device_id_regex =
+            Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
+        let hostname_regex =
+            Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
 
         let mut device_id = None;
         let mut hostname = None;
