@@ -214,6 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // - comparand has a json value with the same path
             // - the json values match
             bool match = referenceValues.All(kvp => {
+                Log.Information(kvp.Key.ToString());
                 Log.Information(kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
                 return comparandValues.ContainsKey(kvp.Key) &&
                     kvp.Value.Equals(comparandValues[kvp.Key]);
