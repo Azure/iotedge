@@ -53,11 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
             await edgeConfiguration.DeployAsync(this.iotHub, token);
+
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
-            //await edgeConfiguration.VerifyAsync(this.iotHub, token);
+            await edgeConfiguration.VerifyAsync(this.iotHub, token);
             return new EdgeDeployment(deployTime, modules);
         }
 
