@@ -1,16 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-// TODO:
-//
-// error: use of deprecated associated function `zip::ZipWriter::<W>::start_file_from_path`:
-//        by stripping `..`s from the path, the meaning of paths can change. Use `start_file` // instead.
-//    --> support-bundle/src/support_bundle.rs:261:14
-//     |
-// 261 |             .start_file_from_path(&Path::new("logs").join(file_name), file_options)
-//     |              ^^^^^^^^^^^^^^^^^^^^
-//     |
-#![allow(deprecated)]
-
 use std::env;
 use std::ffi::OsString;
 use std::fs::File;
@@ -255,9 +244,8 @@ where
             mut zip_writer,
         } = state;
 
-        let file_name = format!("{}_log.txt", module_name);
         zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), file_options)
+            .start_file(format!("logs/{}_log.txt", module_name), file_options)
             .into_future()
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))
             .and_then(move |_| {
@@ -305,9 +293,9 @@ where
 
         let (file_name, output) = if let Ok(result) = command {
             if result.status.success() {
-                (format!("{}.txt", name), result.stdout)
+                (format!("logs/{}.txt", name), result.stdout)
             } else {
-                (format!("{}_err.txt", name), result.stderr)
+                (format!("logs/{}_err.txt", name), result.stderr)
             }
         } else {
             let err_message = command.err().unwrap().to_string();
@@ -315,11 +303,11 @@ where
                 "Could not find system logs for {}. Including error in bundle.\nError message: {}",
                 name, err_message
             );
-            (format!("{}_err.txt", name), err_message.as_bytes().to_vec())
+            (format!("logs/{}_err.txt", name), err_message.as_bytes().to_vec())
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -350,7 +338,7 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
-            .start_file_from_path(&Path::new("check.json"), self.file_options)
+            .start_file("check.json", self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -400,7 +388,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -477,7 +465,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
