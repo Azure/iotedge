@@ -163,6 +163,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .OfType<JValue>()
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
 
+                Log.Information(result.ToString());
+
                 var agentKeys = result.Keys
                     .Where(k => k.EndsWith("edgeAgent.settings.createOptions"));
                 var otherKeys = result.Keys
@@ -229,6 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // - the json values match
             bool match = referenceValues.All(kvp => {
                 Log.Information("Comparing: " + kvp.Key.ToString());
+                Log.Information("ref: " + kvp.Value.ToString());
                 Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
                 return comparandValues.ContainsKey(kvp.Key) &&
                     kvp.Value.Equals(comparandValues[kvp.Key]);
