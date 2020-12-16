@@ -306,6 +306,7 @@ where
 
                 // send a message back to broker
                 if let Some(message) = message {
+                    debug!("ANCAN send message back to broker {:?}", message);
                     if let Err(e) = broker.send(message) {
                         warn!(message = "error occurred while sending QoS ack to broker", error = %e);
                         return Err((messages, e));

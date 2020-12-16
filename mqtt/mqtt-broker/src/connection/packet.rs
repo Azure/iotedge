@@ -177,6 +177,7 @@ impl OutgoingPacketProcessor for MqttOutgoingPacketProcessor {
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
                     let message = Message::Client(self.client_id.clone(), ClientEvent::PubAck0(id));
+                    debug!("ANCAN action with message id {}", id);
                     PacketAction::Continue(Some((Packet::Publish(publish), Some(message))))
                 }
                 ClientEvent::PubAck(puback) => {
