@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 var timeoutTask = Task.Delay(timeout);
                 if (Task.WhenAny(closingTask, timeoutTask).Result == timeoutTask)
                 {
-                    Events.ClosingTaskTimeoutOut(timeout);
+                    Events.ClosingTaskTimeoutElapsed(timeout);
                 }
             }
         }
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Closed,
                 ClosedWhenNotRunning,
                 StartedWhenAlreadyRunning,
-                ClosingTaskTimeoutOut
+                ClosingTaskTimeoutElapsed
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting AUTH head");
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void Closed() => Log.LogInformation((int)EventIds.Closed, "Closed AUTH head");
             public static void ClosedWhenNotRunning() => Log.LogInformation((int)EventIds.ClosedWhenNotRunning, "Closed AUTH head when it was not running");
             public static void StartedWhenAlreadyRunning() => Log.LogWarning((int)EventIds.StartedWhenAlreadyRunning, "Started AUTH head when it was already running");
-            public static void ClosingTaskTimeoutOut(TimeSpan timeout) => Log.LogWarning((int)EventIds.ClosingTaskTimeoutOut, $"Unable to close AUTH head within {timeout} interval");
+            public static void ClosingTaskTimeoutElapsed(TimeSpan timeout) => Log.LogWarning((int)EventIds.ClosingTaskTimeoutElapsed, $"Unable to close AUTH head within {timeout} interval");
         }
     }
 }
