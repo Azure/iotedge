@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using System.Linq;
     using System.Net;
-    using System.Reflection.Metadata.Ecma335;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading;
