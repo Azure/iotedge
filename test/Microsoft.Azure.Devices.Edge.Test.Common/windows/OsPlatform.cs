@@ -33,10 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public Task<IEdgeDaemon> CreateEdgeDaemonAsync(
             Option<string> installerPath,
-            Option<string> bootstrapAgentImage,
-            Option<Registry> bootstrapRegistry,
             CancellationToken _) =>
-            Task.FromResult(new EdgeDaemon(installerPath, bootstrapAgentImage, bootstrapRegistry) as IEdgeDaemon);
+            Task.FromResult(new EdgeDaemon(installerPath) as IEdgeDaemon);
 
         public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {

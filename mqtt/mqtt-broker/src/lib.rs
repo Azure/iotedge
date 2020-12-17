@@ -38,6 +38,7 @@ use std::{
     sync::Arc,
 };
 
+use chrono::{DateTime, Utc};
 use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
@@ -385,6 +386,10 @@ pub enum SystemEvent {
     /// The main difference is `ClientEvent::Publish` it doesn't require
     /// ClientId of sender to be passed along with the event.
     Publish(Publication),
+
+    /// An event for a broker to go through offline sessions
+    /// and clean up ones that past provided expiration time.
+    SessionCleanup(DateTime<Utc>),
 }
 
 impl Debug for SystemEvent {
@@ -397,6 +402,9 @@ impl Debug for SystemEvent {
             }
             SystemEvent::Publish(publication) => {
                 f.debug_tuple("Publish").field(&publication).finish()
+            }
+            SystemEvent::SessionCleanup(instant) => {
+                f.debug_tuple("SessionCleanup").field(&instant).finish()
             }
         }
     }

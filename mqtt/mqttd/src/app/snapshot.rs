@@ -1,6 +1,6 @@
 use tokio::{
     task::JoinHandle,
-    time::{Duration, Instant},
+    time::{self, Duration, Instant},
 };
 use tracing::{info, warn};
 
@@ -41,12 +41,12 @@ pub async fn start_snapshotter(
 
 async fn tick_snapshot(
     period: Duration,
-    mut broker_handle: BrokerHandle,
+    broker_handle: BrokerHandle,
     snapshot_handle: StateSnapshotHandle,
 ) {
     info!("persisting state every {:?}", period);
     let start = Instant::now() + period;
-    let mut interval = tokio::time::interval_at(start, period);
+    let mut interval = time::interval_at(start, period);
     loop {
         interval.tick().await;
         if let Err(e) = broker_handle.send(Message::System(SystemEvent::StateSnapshot(
@@ -66,7 +66,7 @@ mod imp {
 
     #[cfg(unix)]
     pub(super) async fn snapshot(
-        mut broker_handle: BrokerHandle,
+        broker_handle: BrokerHandle,
         snapshot_handle: StateSnapshotHandle,
     ) {
         let mut stream = match signal(SignalKind::user_defined1()) {
