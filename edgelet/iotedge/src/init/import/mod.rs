@@ -147,8 +147,8 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
         agent,
         hostname,
         parent_hostname,
-        connect: _,
-        listen: _,
+        connect,
+        listen,
         homedir: _,
         certificates,
         watchdog,
@@ -483,22 +483,31 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
             hostname: hostname.clone(),
             parent_hostname: parent_hostname.clone(),
 
-            connect: edgelet_core::Connect {
-                workload_uri: AZIOT_EDGED_WORKLOAD_URI
-                    .parse()
-                    .expect("hard-coded URI should parse successfully"),
-                management_uri: AZIOT_EDGED_MANAGEMENT_URI
-                    .parse()
-                    .expect("hard-coded URI should parse successfully"),
+            connect: {
+                let old_config::Connect {
+                    workload_uri,
+                    management_uri,
+                } = connect;
+                edgelet_core::Connect {
+                    workload_uri: workload_uri.clone(),
+                    management_uri: management_uri.clone(),
+                }
             },
-            listen: edgelet_core::Listen {
-                workload_uri: AZIOT_EDGED_WORKLOAD_URI
-                    .parse()
-                    .expect("hard-coded URI should parse successfully"),
-                management_uri: AZIOT_EDGED_MANAGEMENT_URI
-                    .parse()
-                    .expect("hard-coded URI should parse successfully"),
-                min_tls_version: Default::default(),
+            listen: {
+                let old_config::Listen {
+                    workload_uri,
+                    management_uri,
+                    min_tls_version,
+                } = listen;
+                edgelet_core::Listen {
+                    workload_uri: workload_uri.clone(),
+                    management_uri: management_uri.clone(),
+                    min_tls_version: match min_tls_version {
+                        old_config::Protocol::Tls10 => edgelet_core::Protocol::Tls10,
+                        old_config::Protocol::Tls11 => edgelet_core::Protocol::Tls11,
+                        old_config::Protocol::Tls12 => edgelet_core::Protocol::Tls12,
+                    },
+                }
             },
 
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),

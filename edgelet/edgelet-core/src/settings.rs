@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 
 use crate::module::ModuleSpec;
@@ -89,8 +89,26 @@ impl<'de> Deserialize<'de> for Protocol {
     where
         D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        s.parse().map_err(de::Error::custom)
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = Protocol;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, r#"one of "tls1.0", "tls1.1", "tls1.2""#)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(v.parse().map_err(|_err| {
+                    serde::de::Error::invalid_value(serde::de::Unexpected::Str(v), &self)
+                })?)
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
     }
 }
 
@@ -99,7 +117,11 @@ impl Serialize for Protocol {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{}", self))
+        serializer.serialize_str(match self {
+            Protocol::Tls10 => "tls1.0",
+            Protocol::Tls11 => "tls1.1",
+            Protocol::Tls12 => "tls1.2",
+        })
     }
 }
 
