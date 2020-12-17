@@ -128,8 +128,7 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
         }
     };
 
-    // Ignore the old config's `homedir`, `connect` and `listen` values and use the new edged defaults.
-    // We want to use a fresh directory and have the right ACLs.
+    // Ignore the old config's `homedir` value and use the new edged default. We want to use a fresh directory and have the right ACLs.
     let old_config::Config {
         provisioning,
         agent,
