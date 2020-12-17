@@ -64,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
 
-            //MetricsV0.MessageCount(identity, 1);
             IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
             Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
             Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
@@ -315,10 +314,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };
-
-            //public static void MessageCount(IIdentity identity, long count) => Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EdgeHubMessageReceivedCountOptions, count);
-
-            //public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
 
             static MetricTags GetTags(IIdentity identity)
             {
