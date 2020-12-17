@@ -33,9 +33,6 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"615m\",\"max-file\":\"2\"}},\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
-                "value": "true"
-              },
               "NestedEdgeEnabled": {
                 "value": "false"
               }
