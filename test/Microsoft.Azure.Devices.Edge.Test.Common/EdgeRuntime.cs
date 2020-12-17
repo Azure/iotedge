@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistries(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
-                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures", "nestedEdgeEnabled") })
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
