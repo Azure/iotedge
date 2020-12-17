@@ -105,7 +105,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                     return m;
                 });
 
-
             try
             {
                 long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
