@@ -1,9 +1,10 @@
 use std::{
+    collections::HashMap,
     env,
     path::{Path, PathBuf},
 };
 
-use config::{Config, ConfigError, Environment, File, FileFormat};
+use config::{Config, ConfigError, File, FileFormat};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
@@ -26,6 +27,37 @@ lazy_static! {
     };
 }
 
+#[derive(Debug, Clone)]
+pub struct BrokerEnvironment;
+
+impl config::Source for BrokerEnvironment {
+    fn clone_into_box(&self) -> Box<dyn config::Source + Send + Sync> {
+        Box::new((*self).clone())
+    }
+
+    // Currently, BrokerEnvironment allows only the following four environment variables to be set externally.
+    // Otherwise, all values must come from the default.json file
+    fn collect(&self) -> Result<HashMap<String, config::Value>, ConfigError> {
+        let mut result: HashMap<String, config::Value> = HashMap::new();
+        if let Ok(val) = env::var("mqttBroker__max_queued_messages") {
+            result.insert("broker.session.max_queued_messages".into(), val.into());
+        }
+
+        if let Ok(val) = env::var("mqttBroker__max_queued_bytes") {
+            result.insert("broker.session.max_queued_size".into(), val.into());
+        }
+
+        if let Ok(val) = env::var("mqttBroker__max_inflight_messages") {
+            result.insert("broker.session.max_inflight_messages".into(), val.into());
+        }
+
+        if let Ok(val) = env::var("mqttBroker__when_full") {
+            result.insert("broker.session.when_full".into(), val.into());
+        }
+        Ok(result)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Settings {
@@ -36,11 +68,9 @@ pub struct Settings {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        convert_to_old_env_variable();
-
         let mut config = Config::new();
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::new().separator("__"))?;
+        config.merge(BrokerEnvironment)?;
 
         config.try_into()
     }
@@ -49,12 +79,10 @@ impl Settings {
     where
         P: AsRef<Path>,
     {
-        convert_to_old_env_variable();
-
         let mut config = Config::new();
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::new().separator("__"))?;
+        config.merge(BrokerEnvironment)?;
 
         config.try_into()
     }
@@ -75,24 +103,6 @@ impl Settings {
 impl Default for Settings {
     fn default() -> Self {
         DEFAULT_CONFIG.clone()
-    }
-}
-
-fn convert_to_old_env_variable() {
-    if let Ok(val) = env::var("mqttBroker__max_queued_messages") {
-        env::set_var("BROKER__SESSION__max_queued_messages", val);
-    }
-
-    if let Ok(val) = env::var("mqttBroker__max_queued_bytes") {
-        env::set_var("BROKER__SESSION__max_queued_size", val);
-    }
-
-    if let Ok(val) = env::var("mqttBroker__max_inflight_messages") {
-        env::set_var("BROKER__SESSION__max_inflight_messages", val);
-    }
-
-    if let Ok(val) = env::var("mqttBroker__when_full") {
-        env::set_var("BROKER__SESSION__when_full", val);
     }
 }
 
@@ -233,11 +243,7 @@ mod tests {
     };
     use mqtt_broker_tests_util::env;
 
-    use super::{
-        AuthConfig, CertificateConfig, ListenerConfig, Settings, TcpTransportConfig,
-        TlsTransportConfig,
-    };
-    use config::ConfigError;
+    use super::{AuthConfig, ListenerConfig, Settings, TcpTransportConfig, TlsTransportConfig};
 
     const DAYS: u64 = 24 * 60 * 60;
 
@@ -263,6 +269,39 @@ mod tests {
                 QueueFullAction::DropOld,
             )
         );
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn check_other_env_vars_cant_be_overridden() {
+        let _broker_session_max_inflight_messages =
+            env::set_var("broker__session__max_inflight_messages", "17");
+        let _max_queued_messages = env::set_var("broker__session__max_queued_messages", "1001");
+        let _max_queued_bytes = env::set_var("broker__session__max_queued_bytes", "1");
+        let _when_full = env::set_var("broker__session__when_full", "drop_old");
+
+        let _tcp = env::set_var("listener__tcp__address", "0.0.0.0:1880");
+        let _tls = env::set_var("listener__tls__address", "0.0.0.0:1880");
+        let _system = env::set_var("listener__system__address", "0.0.0.0:1880");
+        let _port = env::set_var("auth__port", "7121");
+        let _base_url = env::set_var("auth__base_url", "/authWRONGticate");
+
+        let settings = Settings::new().unwrap();
+
+        let listener = &ListenerConfig::new(
+            Some(TcpTransportConfig::new("0.0.0.0:1883")),
+            Some(TlsTransportConfig::new("0.0.0.0:8883", None)),
+            TcpTransportConfig::new("0.0.0.0:1882"),
+        );
+        let auth = &AuthConfig::new(7120, "/authenticate/");
+
+        assert_eq!(settings.broker().session(), &SessionConfig::default());
+        assert_eq!(
+            settings.broker().persistence(),
+            &SessionPersistenceConfig::default()
+        );
+        assert_eq!(settings.listener(), listener);
+        assert_eq!(settings.auth(), auth);
     }
 
     #[test]
@@ -302,59 +341,5 @@ mod tests {
     fn it_verifies_broker_config_defaults() {
         let settings = Settings::default();
         assert_eq!(settings.broker(), &BrokerConfig::default());
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn new_overrides_settings_from_env() {
-        it_overrides_settings_from_env(Settings::new);
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_overrides_settings_from_env() {
-        it_overrides_settings_from_env(|| Settings::from_file("config/default.json"));
-    }
-
-    fn it_overrides_settings_from_env<F>(make_settings: F)
-    where
-        F: FnOnce() -> Result<Settings, ConfigError>,
-    {
-        let _tcp_address = env::set_var("LISTENER__TCP__ADDRESS", "10.0.0.1:1883");
-        let _tls_address = env::set_var("LISTENER__TLS__ADDRESS", "10.0.0.1:8883");
-        let _tls_certificate = env::set_var("LISTENER__TLS__CERTIFICATE", "/tmp/edgehub/cert.pem");
-        let _tls_private_key = env::set_var("LISTENER__TLS__PRIVATE_KEY", "/tmp/edgehub/pkey.pem");
-        let _auth_base_url = env::set_var("AUTH__BASE_URL", "/auth/");
-
-        let settings = make_settings().unwrap();
-
-        assert_eq!(settings.listener().tcp().unwrap().addr(), "10.0.0.1:1883");
-
-        assert_eq!(
-            settings.listener().tls(),
-            Some(&TlsTransportConfig::new(
-                "10.0.0.1:8883",
-                Some(CertificateConfig::new(
-                    "/tmp/edgehub/cert.pem",
-                    "/tmp/edgehub/pkey.pem",
-                )),
-            ))
-        );
-        assert_eq!(settings.auth().url(), "http://localhost:7120/auth/");
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn it_can_disable_default_options() {
-        let settings = Settings::new().unwrap();
-        assert!(settings.listener().tcp().is_some());
-        assert!(settings.listener().tls().is_some());
-
-        let _tcp_enabled = env::set_var("LISTENER__TCP__ENABLED", "false");
-        let _tls_enabled = env::set_var("LISTENER__TLS__ENABLED", "false");
-
-        let settings = Settings::new().unwrap();
-        assert!(!settings.listener().tcp().is_some());
-        assert!(!settings.listener().tls().is_some());
     }
 }
