@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             IDictionary<string, RouteConfiguration> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             BrokerProperties brokerConfiguration,
-            TwinIntegrity integrity)
+            ManifestIntegrity integrity)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
@@ -42,8 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public BrokerProperties BrokerConfiguration { get; }
 
         [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<TwinIntegrity>))]
-        public Option<TwinIntegrity> Integrity { get; }
+        [JsonConverter(typeof(OptionConverter<ManifestIntegrity>))]
+        public Option<ManifestIntegrity> Integrity { get; }
 
         void ValidateSchemaVersion()
         {

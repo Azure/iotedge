@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     try
                     {
                         Events.LogDesiredPropertiesAfterFullTwin(twin.Properties.Desired);
-                        if (!LogTwinSignatureEventsAndReportIfFailed(twin.Properties.Desired))
+                        if (!CheckTwinSignature(twin.Properties.Desired))
                         {
                             this.desiredProperties = Option.Some(twin.Properties.Desired);
                             await this.UpdateDeploymentConfig(twin.Properties.Desired);
@@ -318,7 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
                 desiredProperties = new TwinCollection(mergedJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
-                if (!LogTwinSignatureEventsAndReportIfFailed(desiredProperties))
+                if (!CheckTwinSignature(desiredProperties))
                 {
                     this.desiredProperties = Option.Some(desiredProperties);
                     await this.UpdateDeploymentConfig(desiredProperties);
@@ -385,7 +385,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return JObject.Parse(twinDesiredProperties.ToString())["integrity"] != null;
         }
 
-        public static bool LogTwinSignatureEventsAndReportIfFailed(TwinCollection twinDesiredProperties)
+        private static bool CheckTwinSignature(TwinCollection twinDesiredProperties)
         {
             if (!CheckIfTwinPropertiesAreSigned(twinDesiredProperties))
             {
@@ -430,10 +430,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // Extract Signature and algorithm
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
-                KeyValuePair<string, HashAlgorithmName> algoResult = VerifyTwinSignature.CheckIfAlgorithmIsSupported(algo.ToString());
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
                 Events.ExtractAgentTwinSucceeded();
 
-                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
             }
             catch (Exception ex)
             {

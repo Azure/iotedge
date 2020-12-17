@@ -5,10 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using Newtonsoft.Json;
 
-    public class TwinIntegrity : IEquatable<TwinIntegrity>
+    public class ManifestIntegrity : IEquatable<ManifestIntegrity>
     {
         [JsonConstructor]
-        public TwinIntegrity(TwinHeader header, TwinSignature signature)
+        public ManifestIntegrity(TwinHeader header, TwinSignature signature)
         {
             this.Header = header;
             this.Signature = signature;
@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TwinIntegrity);
+            return this.Equals(obj as ManifestIntegrity);
         }
 
-        public bool Equals(TwinIntegrity other)
+        public bool Equals(ManifestIntegrity other)
         {
             return other != null &&
                    Equals(this.Header, other.Header) &&
@@ -34,12 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return HashCode.Combine(this.Header, this.Signature);
         }
 
-        public static bool operator ==(TwinIntegrity left, TwinIntegrity right)
+        public static bool operator ==(ManifestIntegrity left, ManifestIntegrity right)
         {
-            return EqualityComparer<TwinIntegrity>.Default.Equals(left, right);
+            return EqualityComparer<ManifestIntegrity>.Default.Equals(left, right);
         }
 
-        public static bool operator !=(TwinIntegrity left, TwinIntegrity right)
+        public static bool operator !=(ManifestIntegrity left, ManifestIntegrity right)
         {
             return !(left == right);
         }

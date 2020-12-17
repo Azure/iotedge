@@ -254,10 +254,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 // Extract Signature and algorithm
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
-                KeyValuePair<string, HashAlgorithmName> algoResult = VerifyTwinSignature.CheckIfAlgorithmIsSupported(algo.ToString());
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
                 Events.ExtractHubTwinSucceeded();
 
-                return VerifyTwinSignature.VerifyModuleTwinSignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
             }
             catch (Exception ex)
             {

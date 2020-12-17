@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IRuntimeInfo runtime,
             SystemModules systemModules,
             IDictionary<string, IModule> modules,
-            TwinIntegrity integrity)
+            ManifestIntegrity integrity)
         {
             this.SchemaVersion = Preconditions.CheckNotNull(schemaVersion, nameof(schemaVersion));
             this.SystemModules = Preconditions.CheckNotNull(systemModules, nameof(this.SystemModules));
@@ -48,8 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public IImmutableDictionary<string, IModule> Modules { get; }
 
         [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<TwinIntegrity>))]
-        public Option<TwinIntegrity> Integrity { get; }
+        [JsonConverter(typeof(OptionConverter<ManifestIntegrity>))]
+        public Option<ManifestIntegrity> Integrity { get; }
 
         public ModuleSet GetModuleSet()
         {

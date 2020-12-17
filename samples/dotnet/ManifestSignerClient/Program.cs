@@ -18,6 +18,7 @@ namespace ManifestSignerClient
         static readonly string SignedDeploymentManifestFilePath = Environment.GetEnvironmentVariable("SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH");
         static readonly string UseTestingCA = Environment.GetEnvironmentVariable("USE_TESTING_CA");
         static readonly string DeviceRootCaPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_DEVICE_ROOT_CA_PATH");
+        static readonly string IntermediateCaPath = Environment.GetEnvironmentVariable("INTERMEDIATE_CA_PATH");
         static readonly string SignerPrivateKeyPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH");
         static readonly string SignerCertPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_CERT_PATH");
 
@@ -71,6 +72,15 @@ namespace ManifestSignerClient
                 Console.WriteLine($"Device Root CA path is {DeviceRootCaPath}");
             }
 
+            if (string.IsNullOrEmpty(IntermediateCaPath))
+            {
+                Console.WriteLine("No Intermdiate CA support in Manifest file. If needed, please update it in launchSettings.json");
+            }
+            else
+            {
+                Console.WriteLine($"Device Root CA path is {DeviceRootCaPath}");
+            }
+
             if (string.IsNullOrEmpty(SignerPrivateKeyPath))
             {
                 throw new Exception("Signer Private key path is empty. Please update it in launchSettings.json");
@@ -97,11 +107,25 @@ namespace ManifestSignerClient
             var signerCert = CertificateUtil.GetBase64CertContent(SignerCertPath);
             var signerCert1 = signerCert.Substring(0, signerCert.Length / 2);
             var signerCert2 = signerCert.Substring(signerCert.Length / 2);
-            object headerObject = new
+            object headerObject;
+            if (string.IsNullOrEmpty(IntermediateCaPath))
             {
-                cert1 = signerCert1,
-                cert2 = signerCert2
-            };
+                headerObject = new
+                {
+                    signercert = new string[] { signerCert1, signerCert2 }
+                };
+            }
+            else
+            {
+                var intermediatecacert = CertificateUtil.GetBase64CertContent(IntermediateCaPath);
+                var intermediatecacert1 = intermediatecacert.Substring(0, intermediatecacert.Length / 2);
+                var intermediatecacert2 = intermediatecacert.Substring(intermediatecacert.Length / 2);
+                headerObject = new
+                {
+                    signercert = new string[] { signerCert1, signerCert2 },
+                    intermediatecacert = new string[] { intermediatecacert1, intermediatecacert2 },
+                };
+            }
 
             return JObject.FromObject(headerObject);
         }
@@ -154,10 +178,17 @@ namespace ManifestSignerClient
             }
         }
 
-        static bool VerifyCertificate(X509Certificate2 signerCertificate, X509Certificate2 rootCertificate)
+        static bool VerifyCertificate()
         {
+            var signerCertificate = new X509Certificate2(SignerCertPath);
+            var rootCertificate = new X509Certificate2(DeviceRootCaPath);
             var chain = new X509Chain();
             chain.ChainPolicy.ExtraStore.Add(rootCertificate);
+            if (!string.IsNullOrEmpty(IntermediateCaPath))
+            {
+                var intermediateCertificate = new X509Certificate2(IntermediateCaPath);
+                chain.ChainPolicy.ExtraStore.Add(intermediateCertificate);
+            }
 
             if (UseTestingCA == "true")
             {
@@ -179,10 +210,8 @@ namespace ManifestSignerClient
             {
                 // Check launch settings and display it
                 CheckInputAndDisplayLaunchSettings();
-                var signerCertificate = new X509Certificate2(SignerCertPath);
-                var rootCertificate = new X509Certificate2(DeviceRootCaPath);
-                var result = VerifyCertificate(signerCertificate, rootCertificate);
-                if (!result)
+                // Verify certificate chaining
+                if (!VerifyCertificate())
                 {
                     throw new Exception("Please provide a signer cert issued by the given root CA");
                 }
@@ -201,7 +230,7 @@ namespace ManifestSignerClient
                 if (deploymentManifestContentJson["modulesContent"] != null)
                 {
                     // Get the DSA and SHA algorithm
-                    KeyValuePair<string, HashAlgorithmName> algoResult = VerifyTwinSignature.CheckIfAlgorithmIsSupported(DsaAlgorithm.ToString());
+                    KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(DsaAlgorithm.ToString());
 
                     // Read the signer certificate and manifest version number and create integrity header object
                     var header = GetIntegrityHeader(SignerCertPath);

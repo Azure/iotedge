@@ -5,35 +5,25 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
-
     using Org.Webpki.JsonCanonicalizer;
-    public class VerifyTwinSignature
+    public class SignatureValidator
     {
-        public static bool VerifyModuleTwinSignature(string desiredProperties, string header, byte[] signatureBytes, X509Certificate2 signerCert, string algorithmScheme, HashAlgorithmName hashAlgorithm)
+        public static bool VerifySignature(string payload, string header, byte[] signatureBytes, X509Certificate2 signerCert, string algorithmScheme, HashAlgorithmName hashAlgorithm)
         {
             try
             {
-                JsonCanonicalizer canonicalizerDesiredProperties = new JsonCanonicalizer(desiredProperties);
-                byte[] canonicalizedDesiredProperties = canonicalizerDesiredProperties.GetEncodedUTF8();
-
-                JsonCanonicalizer canonicalizerHeader = new JsonCanonicalizer(header);
-                byte[] canonicalizedHeader = canonicalizerHeader.GetEncodedUTF8();
-
-                byte[] canonicalizedCombinedDesiredProperties = new byte[canonicalizedHeader.Length + canonicalizedDesiredProperties.Length];
-
-                Array.Copy(canonicalizedHeader, 0, canonicalizedCombinedDesiredProperties, 0, canonicalizedHeader.Length);
-                Array.Copy(canonicalizedDesiredProperties, 0, canonicalizedCombinedDesiredProperties, canonicalizedHeader.Length, canonicalizedDesiredProperties.Length);
+                byte[] canonicalizedFinalData = GetCanonicalizedInputBytes(payload, header);
 
                 if (algorithmScheme == "ES")
                 {
                     ECDsa eCDsa = signerCert.GetECDsaPublicKey();
-                    return eCDsa.VerifyData(canonicalizedCombinedDesiredProperties, signatureBytes, hashAlgorithm);
+                    return eCDsa.VerifyData(canonicalizedFinalData, signatureBytes, hashAlgorithm);
                 }
                 else if (algorithmScheme == "RS")
                 {
                     RSA rsa = signerCert.GetRSAPublicKey();
                     RSASignaturePadding rsaSignaturePadding = RSASignaturePadding.Pkcs1;
-                    return rsa.VerifyData(canonicalizedCombinedDesiredProperties, signatureBytes, hashAlgorithm, rsaSignaturePadding);
+                    return rsa.VerifyData(canonicalizedFinalData, signatureBytes, hashAlgorithm, rsaSignaturePadding);
                 }
                 else
                 {
@@ -46,7 +36,28 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public static KeyValuePair<string, HashAlgorithmName> CheckIfAlgorithmIsSupported(string dsaAlgorithm)
+        public static byte[] GetCanonicalizedInputBytes(string payload, string header)
+        {
+            // Json Canonicalization of JSON data needs to be done as we separate the signature from the payload
+            // First Canonicalization of payload and extract its byte data
+            JsonCanonicalizer canonicalizerPayload = new JsonCanonicalizer(payload);
+            byte[] canonicalizedPayload = canonicalizerPayload.GetEncodedUTF8();
+
+            // Next Canonicalization of the header part and extract its byte data
+            JsonCanonicalizer canonicalizerHeader = new JsonCanonicalizer(header);
+            byte[] canonicalizedHeader = canonicalizerHeader.GetEncodedUTF8();
+
+            // Create a new byte array with the combination of the payload and the header
+            byte[] canonicalizedFinalData = new byte[canonicalizedHeader.Length + canonicalizedPayload.Length];
+
+            // Copy the header and payload into the final array
+            Array.Copy(canonicalizedHeader, 0, canonicalizedFinalData, 0, canonicalizedHeader.Length);
+            Array.Copy(canonicalizedPayload, 0, canonicalizedFinalData, canonicalizedHeader.Length, canonicalizedPayload.Length);
+
+            return canonicalizedFinalData;
+        }
+
+        public static KeyValuePair<string, HashAlgorithmName> ParseAlgorithm(string dsaAlgorithm)
         {
             SupportedTwinSigningAlgorithm result;
             if (Enum.TryParse(dsaAlgorithm, true, out result))

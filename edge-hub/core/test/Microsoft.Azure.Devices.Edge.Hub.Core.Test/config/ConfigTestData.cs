@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 deny: new List<AuthorizationProperties.Rule>());
 
             var authzProperties = new AuthorizationProperties { statement1, statement2 };
-            var integrity = new TwinIntegrity(new TwinHeader("cert1", "cert2"), new TwinSignature("bytes", "algo"));
+            var integrity = new ManifestIntegrity(new TwinHeader(new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }), new TwinSignature("bytes", "algo"));
 
             var brokerProperties = new BrokerProperties(new BridgeConfig(), authzProperties);
             var properties = new EdgeHubDesiredProperties(

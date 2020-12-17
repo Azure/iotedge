@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             IReadOnlyDictionary<string, RouteConfig> routes,
             StoreAndForwardConfiguration storeAndForwardConfiguration,
             Option<BrokerConfig> brokerConfiguration,
-            Option<TwinIntegrity> integrity)
+            Option<ManifestIntegrity> integrity)
         {
             this.SchemaVersion = Preconditions.CheckNonWhiteSpace(schemaVersion, nameof(schemaVersion));
             this.Routes = Preconditions.CheckNotNull(routes, nameof(routes));
@@ -38,8 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public Option<BrokerConfig> BrokerConfiguration { get; }
 
         [JsonProperty("integrity", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<TwinIntegrity>))]
-        public Option<TwinIntegrity> Integrity { get; }
+        [JsonConverter(typeof(OptionConverter<ManifestIntegrity>))]
+        public Option<ManifestIntegrity> Integrity { get; }
 
         public static bool operator ==(EdgeHubConfig left, EdgeHubConfig right) => Equals(left, right);
 
