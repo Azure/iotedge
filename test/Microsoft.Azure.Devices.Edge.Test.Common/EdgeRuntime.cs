@@ -37,12 +37,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // receive it and start up all the modules.
         public async Task<EdgeDeployment> DeployConfigurationAsync(
             Action<EdgeConfigBuilder> addConfig,
-            CancellationToken token)
+            CancellationToken token,
+            bool nestedEdge)
         {
+            (string,string)[] agentEnvVar;
+
+            if (nestedEdge == true)
+            {
+                agentEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures_enabled", "true"), ("experimentalFeatures_nestedEdgeEnabled", "true") };
+            }
+            else
+            {
+                agentEnvVar = new[] { ("RuntimeLogLevel", "debug")};
+            }
+
             var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistries(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
-                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures", "nestedEdgeEnabled") })
+                .WithEnvironment()
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
@@ -62,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new EdgeDeployment(deployTime, modules);
         }
 
-        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>
-            this.DeployConfigurationAsync(_ => { }, token);
+        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token, bool nestedEdge) =>
+            this.DeployConfigurationAsync(_ => { }, token, nestedEdge);
     }
 }
