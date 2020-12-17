@@ -8,7 +8,7 @@ steps:
       sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Category=CentOsSafe'
     }
     else
-    {
+    {  
       sudo --preserve-env dotnet vstest $testFile --logger:trx
     }
   displayName: Run tests
