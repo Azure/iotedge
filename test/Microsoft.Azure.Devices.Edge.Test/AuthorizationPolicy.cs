@@ -15,6 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
 
+
+ 
+
     [EndToEnd]
     public class AuthorizationPolicy : SasManualProvisioningFixture
     {
@@ -107,11 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalFeatures__enabled", "true"),
-                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                        })
+                        .WithEnvironment(getHubEnvVar())
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -187,11 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalFeatures__enabled", "true"),
-                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                        })
+                        .WithEnvironment(getHubEnvVar())
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -285,6 +280,26 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
             });
+        }
+
+        protected (string, string)[] getHubEnvVar()
+        {
+            (string, string)[] hubEnvVar;
+            if (Context.Current.NestedEdge == true)
+            {
+                hubEnvVar = new[] {
+                    ("RuntimeLogLevel", "debug"),
+                    ("experimentalFeatures__enabled", "true"),
+                    ("experimentalFeatures__nestedEdgeEnabled", "true"),
+                    ("experimentalFeatures__mqttBrokerEnabled", "true")
+                };
+            }
+            else
+            {
+                hubEnvVar = new[] { ("RuntimeLogLevel", "debug") };
+            }
+
+            return hubEnvVar;
         }
     }
 }
