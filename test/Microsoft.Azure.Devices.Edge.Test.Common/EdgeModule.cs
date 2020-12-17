@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 //Ignore key not found Exception. There can e a delay between deployement on device and reported state, especially in nested configuration
                 e => {
                     Log.Information("Exception: " + e);
-                    if( e.InnerException is KeyNotFoundException)
+                    if( e is KeyNotFoundException)
                     {
                         Log.Information("True Inner Exception: " + e.InnerException);
                     }
