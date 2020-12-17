@@ -137,10 +137,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-
             // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
             // idempotent and cannot be retried reliably.
-            Devices.Device edge = await iotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
+            Devices.Device edge = await this.iotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
             Devices.Device leaf = new Devices.Device(deviceId2)
             {
                 Authentication = new AuthenticationMechanism
@@ -150,9 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Scope = edge.Scope
             };
 
-            leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
+            leaf = await this.iotHub.CreateDeviceIdentityAsync(leaf, token);
             string connectionString =
-                $"HostName={iotHub.Hostname};" +
+                $"HostName={this.iotHub.Hostname};" +
                 $"DeviceId={leaf.Id};" +
                 $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
                 $"GatewayHostName={Dns.GetHostName().ToLower()}";
@@ -168,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await client.OpenAsync();
             }, token);
 
-            await iotHub.DeleteDeviceIdentityAsync(leaf, token);
+            await this.iotHub.DeleteDeviceIdentityAsync(leaf, token);
         }
 
         /// <summary>
