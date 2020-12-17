@@ -16,18 +16,6 @@ const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 /// The ID used for the device ID key (symmetric or X.509 private) and the device ID cert.
 const DEVICE_ID_ID: &str = "device-id";
 
-/// The ID used for the device CA X.509 private key and the device CA cert.
-const DEVICE_CA_ID: &str = "device-ca";
-
-/// The ID used for the trust bundle certs file.
-const TRUST_BUNDLE_ID: &str = "trust-bundle";
-
-/// The default value of the edged connect and listen management URIs.
-const AZIOT_EDGED_MANAGEMENT_URI: &str = "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock";
-
-/// The default value of the edged connect and listen workload URIs.
-const AZIOT_EDGED_WORKLOAD_URI: &str = "unix:///var/lib/aziot/edged/aziot-edged.workload.sock";
-
 pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
@@ -366,9 +354,10 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
             {
                 let device_ca_pk = file_uri_or_path_to_file_uri(device_ca_pk)
                     .map_err(|err| format!("Could not parse certificates.device_ca_pk: {}", err))?;
-                keyd_config
-                    .preloaded_keys
-                    .insert(DEVICE_CA_ID.to_owned(), device_ca_pk.to_string());
+                keyd_config.preloaded_keys.insert(
+                    edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                    device_ca_pk.to_string(),
+                );
             }
         }
 
@@ -405,7 +394,7 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
                         format!("Could not parse certificates.device_ca_cert: {}", err)
                     })?;
                 certd_config.preloaded_certs.insert(
-                    DEVICE_CA_ID.to_owned(),
+                    edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
                     aziot_certd_config::PreloadedCert::Uri(device_ca_cert),
                 );
 
@@ -414,7 +403,7 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
                         format!("Could not parse certificates.trusted_ca_certs: {}", err)
                     })?;
                 certd_config.preloaded_certs.insert(
-                    TRUST_BUNDLE_ID.to_owned(),
+                    edgelet_core::TRUST_BUNDLE_ALIAS.to_owned(),
                     aziot_certd_config::PreloadedCert::Uri(trusted_ca_certs),
                 );
             }
