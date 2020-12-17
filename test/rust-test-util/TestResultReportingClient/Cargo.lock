@@ -614,21 +614,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "swagger"
-version = "1.0.0"
-dependencies = [
- "base64 0.7.0",
- "futures",
- "hyper",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_yaml",
- "tokio-core",
- "url",
-]
-
-[[package]]
 name = "syn"
 version = "1.0.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -644,6 +629,21 @@ name = "take"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b157868d8ac1f56b64604539990685fa7611d8fa9e5476cf0c02cf34d32917c5"
+
+[[package]]
+name = "test-result-reporting-client"
+version = "1.0.0"
+dependencies = [
+ "base64 0.7.0",
+ "futures",
+ "hyper",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_yaml",
+ "tokio-core",
+ "url",
+]
 
 [[package]]
 name = "time"
