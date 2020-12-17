@@ -143,15 +143,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
                 //Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
                 e => {
-                    Log.Information("test: " + e);
-                    if ( e is KeyNotFoundException)
+                    if( e is KeyNotFoundException)
                     {
-                        Log.Information("Retrying exception:" + e);
+                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
                         return true;
                     }
                     else
                     {
-                        Log.Information("Cannot retry exception:" + e);
                         return false;
                     }     
                 },
@@ -235,6 +233,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // - comparand has a json value with the same path
             // - the json values match
             bool match = referenceValues.All(kvp => {
+                Log.Information("Comparing: " + kvp.Key.ToString());
+                Log.Information("ref: " + kvp.Value.ToString());
+                Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
+
                 return comparandValues.ContainsKey(kvp.Key) &&
                     kvp.Value.Equals(comparandValues[kvp.Key]);
                 }
