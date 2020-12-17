@@ -139,21 +139,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
                     return twin.Properties.Reported;
-
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
-                //Ignore key not found Exception. There can e a delay between deployement on device and reported state, especially in nested configuration
+                //Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
                 e => {
-                    Log.Information("Exception: " + e);
                     if( e is KeyNotFoundException)
                     {
-                        Log.Information("True Inner Exception: " + e.InnerException);
+                        Log.Warning("The device has not yet repported all the keys:" + e);
+                        return true;
                     }
                     else
                     {
-                        Log.Information("Inner Exception: " + e.InnerException);
-                    }
-                    return true;
+                        return false;
+                    }     
                 },
                 TimeSpan.FromSeconds(5),
                 token);
@@ -176,8 +174,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .OfType<JValue>()
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
 
-                Log.Information(JObject.FromObject(obj).ToString());
-
                 var agentKeys = result.Keys
                     .Where(k => k.EndsWith("edgeAgent.settings.createOptions"));
                 var otherKeys = result.Keys
@@ -187,8 +183,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // normalize stringized JSON inside "createOptions"
                 foreach (var key in otherKeys)
                 {
-                    Log.Information("Regular Key: "+ key  +" value: "+ (string)result[key].Value);
-
                     result[key].Value = JObject
                         .Parse((string)result[key].Value)
                         .ToString(Formatting.None);
@@ -200,8 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // edge agent and iotedged for internal use; they're not related to the deployment.
                 foreach (var key in agentKeys)
                 {
-                    Log.Information("Agent Key: " + key +" value: "+ (string)result[key].Value);
-
                     JObject createOptions = JObject.Parse((string)result[key].Value);
                     if (createOptions.TryGetValue("Labels", out JToken labels))
                     {
@@ -228,8 +220,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     .Where(k => k.EndsWith("settings.image"));
                 foreach (var imageKeys in imagesKeys)
                 {
-                    Log.Information("Agent Key: " + imageKeys + " value: " + (string)result[imageKeys].Value);
-
                     result[imageKeys].Value = Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value);
                 }
 
@@ -243,9 +233,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // - comparand has a json value with the same path
             // - the json values match
             bool match = referenceValues.All(kvp => {
-                Log.Information("Comparing: " + kvp.Key.ToString());
-                Log.Information("ref: " + kvp.Value.ToString());
-                Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
                 return comparandValues.ContainsKey(kvp.Key) &&
                     kvp.Value.Equals(comparandValues[kvp.Key]);
                 }
