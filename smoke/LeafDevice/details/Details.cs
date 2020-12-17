@@ -259,7 +259,7 @@ namespace LeafDeviceTest
 
         protected async Task VerifyDataOnIoTHubAsync()
         {
-            //Leaf device without parent not expected to send messages
+            // Leaf device without parent not expected to send messages
             if (!this.edgeDeviceId.HasValue)
                 return;
 
@@ -313,7 +313,7 @@ namespace LeafDeviceTest
 
         protected async Task VerifyDirectMethodAsync()
         {
-            //Leaf device without parent not expected to succed dm
+            // Leaf device without parent not expected to succed dm
             if (!this.edgeDeviceId.HasValue)
                 return;
 
