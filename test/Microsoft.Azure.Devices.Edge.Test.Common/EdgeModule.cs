@@ -143,13 +143,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
                 //Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
                 e => {
-                    if( e is KeyNotFoundException)
+                    Log.Information("test: " + e);
+                    if ( e is KeyNotFoundException)
                     {
-                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
+                        Log.Information("Retrying exception:" + e);
                         return true;
                     }
                     else
                     {
+                        Log.Information("Cannot retry exception:" + e);
                         return false;
                     }     
                 },
