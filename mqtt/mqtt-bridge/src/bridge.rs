@@ -13,9 +13,9 @@ use crate::{
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
     settings::{ConnectionSettings, Credentials},
     upstream::{
-        ConnectivityError, LocalUpstreamMqttEventHandler, LocalUpstreamPumpEvent,
-        LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler, RemoteUpstreamPumpEvent,
-        RemoteUpstreamPumpEventHandler, RpcError,
+        ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
+        LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
+        RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
 
@@ -120,11 +120,18 @@ where
     pub async fn run(self) -> Result<(), BridgeError> {
         info!("starting bridge...");
 
-        let shutdown_local_pump = self.local_pump.handle();
+        let mut local_pump_handle = self.local_pump.handle();
         let local_pump = self
             .local_pump
             .run()
             .instrument(info_span!("pump", name = "local"));
+
+        // Send initial state as disconnected
+        local_pump_handle
+            .send(PumpMessage::Event(
+                LocalUpstreamPumpEvent::ConnectivityUpdate(ConnectivityState::Disconnected),
+            ))
+            .await?;
 
         let shutdown_remote_pump = self.remote_pump.handle();
         let remote_pump = self
@@ -161,7 +168,7 @@ where
                 }
 
                 debug!("shutting down local pump...");
-                shutdown_local_pump.shutdown().await;
+                local_pump_handle.shutdown().await;
 
                 if let Err(e) = local_pump.await {
                     error!(error = %e, "local pump exited with error");
