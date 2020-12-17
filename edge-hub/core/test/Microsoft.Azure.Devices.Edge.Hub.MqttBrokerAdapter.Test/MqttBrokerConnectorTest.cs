@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(1, broker.ConnectionCounter);
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong. This test is flaky")]
+        [Fact]
         public async Task WhenStartedThenSubscribesForConsumers()
         {
             using var broker = new MiniMqttServer();
@@ -418,6 +419,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
     class MiniMqttServer : IDisposable
     {
+        CancellationTokenSource cts;
+
         TcpListener listener;
         Task processingTask;
 
@@ -445,7 +448,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 this.listener = TcpListener.Create(port.GetValueOrDefault());
                 this.listener.Start();
 
-                processingTask = ProcessingLoop(listener);
+                this.cts = new CancellationTokenSource();
+                processingTask = ProcessingLoop(listener, this.cts.Token);
             }
             catch (Exception e)
             {
@@ -472,44 +476,57 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         public void Dispose()
         {
+            cts.Cancel();
             this.listener.Stop();
             DropActiveClient();
             this.processingTask.Wait();
         }
 
-        async Task ProcessingLoop(TcpListener listener)
+        async Task ProcessingLoop(TcpListener listener, CancellationToken token)
         {
             var hasStopped = false;
-            do
+            while (!(hasStopped || token.IsCancellationRequested))
             {
                 try
                 {
                     var newClient = await listener.AcceptTcpClientAsync();
-                    _ = ProcessClient(newClient);
+                    _ = ProcessClient(newClient, token);
                 }
                 catch
                 {
                     hasStopped = true;
                 }
-
             }
-            while (!hasStopped);
         }
 
-        async Task ProcessClient(TcpClient client)
+        async Task ProcessClient(TcpClient client, CancellationToken token)
         {
             var clientStream = client.GetStream();
             this.lastClient = clientStream; // so Publish() has something to work with
 
             do
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 var firstTwoBytes = await ReadBytesAsync(clientStream, 2);
+                if (!firstTwoBytes.HasValue)
+                {
+                    break;
+                }
 
-                var type = firstTwoBytes[0];
-                var size = firstTwoBytes[1];
+                var (type, size) = firstTwoBytes.Map(h => (h[0], h[1]))
+                    .Expect(() => new InvalidOperationException("mqtt header"));
 
-                var content = await ReadBytesAsync(clientStream, size);
+                var packet = await ReadBytesAsync(clientStream, size);
+                if (!packet.HasValue)
+                {
+                    break;
+                }
 
+                var content = packet.Expect(() => new InvalidOperationException("mqtt packet"));
                 switch (type)
                 {
                     case 0x10:
@@ -552,7 +569,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return result;
         }
 
-        static async Task<byte[]> ReadBytesAsync(NetworkStream stream, int count)
+        static async Task<Option<byte[]>> ReadBytesAsync(NetworkStream stream, int count)
         {
             var result = new byte[count];
             var toRead = count;
@@ -562,11 +579,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             {
                 var readBytes = await stream.ReadAsync(result, totalRead, toRead);
 
+                // assume the connection was closed by the peer when can read only 0 bytes
+                if (readBytes == 0)
+                {
+                    return Option.None<byte[]>();
+                }
+
                 totalRead += readBytes;
                 toRead -= readBytes;
             }
 
-            return result;
+            return Option.Some(result);
         }
 
         async Task HandleConnect(NetworkStream stream)

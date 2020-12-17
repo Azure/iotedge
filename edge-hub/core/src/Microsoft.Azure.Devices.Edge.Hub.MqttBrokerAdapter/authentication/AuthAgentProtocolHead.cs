@@ -100,8 +100,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 // FIXES a bug when the the process is stuck on WebHost.StopAsync() method call https://github.com/dotnet/extensions/issues/1363
                 // lets not wait forever but cancel after a timeout
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                this.CloseAsync(cts.Token).Wait();
+                var timeout = TimeSpan.FromSeconds(15);
+                var closingTask = this.CloseAsync(new CancellationTokenSource(timeout).Token);
+                var timeoutTask = Task.Delay(timeout);
+                if (Task.WhenAny(closingTask, timeoutTask).Result == timeoutTask)
+                {
+                    Events.ClosingTaskTimeoutOut(timeout);
+                }
             }
         }
 
@@ -140,7 +145,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 Closing,
                 Closed,
                 ClosedWhenNotRunning,
-                StartedWhenAlreadyRunning
+                StartedWhenAlreadyRunning,
+                ClosingTaskTimeoutOut
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting AUTH head");
@@ -149,6 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void Closed() => Log.LogInformation((int)EventIds.Closed, "Closed AUTH head");
             public static void ClosedWhenNotRunning() => Log.LogInformation((int)EventIds.ClosedWhenNotRunning, "Closed AUTH head when it was not running");
             public static void StartedWhenAlreadyRunning() => Log.LogWarning((int)EventIds.StartedWhenAlreadyRunning, "Started AUTH head when it was already running");
+            public static void ClosingTaskTimeoutOut(TimeSpan timeout) => Log.LogWarning((int)EventIds.ClosingTaskTimeoutOut, $"Unable to close AUTH head within {timeout} interval");
         }
     }
 }
