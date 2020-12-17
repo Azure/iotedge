@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 e => {
                     if( e is KeyNotFoundException)
                     {
-                        Log.Warning("The device has not yet repported all the keys:" + e);
+                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
                         return true;
                     }
                     else
