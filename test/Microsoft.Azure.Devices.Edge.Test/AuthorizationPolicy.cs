@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token, Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token, Context.Current.NestedEdge);
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token, Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
