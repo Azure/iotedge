@@ -261,7 +261,7 @@ impl SessionState {
         &mut self,
         id: proto::PacketIdentifier,
     ) -> Result<Option<ClientEvent>, Error> {
-        debug!("discarding QoS 0 packet identifier {}", id);
+        debug!("ANCAN discarding QoS 0 packet identifier {}", id);
         self.waiting_to_be_acked_qos0.remove(&id);
         self.packet_identifiers_qos0.discard(id);
         self.try_publish()
@@ -318,6 +318,7 @@ impl SessionState {
         let publish = match publication.qos {
             proto::QoS::AtMostOnce => {
                 let id = self.packet_identifiers_qos0.reserve()?;
+                debug!("ANCAN prepare to send {}", id);
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: publication.retain,
