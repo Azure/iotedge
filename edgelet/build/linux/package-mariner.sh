@@ -46,5 +46,3 @@ sudo make clean
 
 # TODO: Remove log level trace
 sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
-# TODO: Remove
-cat ${MARINER_BUILD_ROOT}/build/logs/pkggen/rpmbuilding/azure-iotedge-1.0.10.3-2.cm1.src.rpm.log
