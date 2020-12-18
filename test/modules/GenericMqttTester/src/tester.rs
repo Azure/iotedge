@@ -2,7 +2,6 @@ use bytes::Bytes;
 use future::{select_all, Either};
 use futures_util::{future, pin_mut, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
-use test_result_reporting_client::TestResultReportingClient;
 use time::Duration;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
@@ -17,6 +16,7 @@ use mqtt3::{
 };
 use mqtt_broker_tests_util::client;
 use mqtt_util::client_io::ClientIoSource;
+use test_result_reporting_client::TestResultReportingClient;
 
 use crate::{
     message_channel::{

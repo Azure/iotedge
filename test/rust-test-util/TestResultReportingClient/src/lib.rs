@@ -4,8 +4,7 @@ mod client;
 mod models;
 
 pub use client::TestResultReportingClient;
-pub use models::test_result::TestOperationResultDto;
-pub use models::test_result::TestResult;
+pub use models::test_result::{TestOperationResultDto, TestResult};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ReportResultError {

@@ -4,7 +4,6 @@ use futures_util::{
     stream::StreamExt,
 };
 use mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender};
-use test_result_reporting_client::TestResultReportingClient;
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
@@ -12,6 +11,7 @@ use mqtt3::{
     proto::{Publication, QoS},
     PublishHandle, ReceivedPublication,
 };
+use test_result_reporting_client::TestResultReportingClient;
 
 use crate::{MessageTesterError, BACKWARDS_TOPIC};
 

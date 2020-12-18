@@ -5,8 +5,6 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 description = "Http client for the TestResultCoordinator test orchestration module"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 hyper = "0.13"
 thiserror = "1.0"
