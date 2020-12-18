@@ -6,11 +6,12 @@
 * GetModuleLogs works with http endpoints [cf176be](https://github.com/Azure/iotedge/commit/cf176be66bab28b032f0069a445ed21cc9fcdfb9)
 
 ## Edge Hub
+### Features
+* Introduce new metrics [40b2de9](https://github.com/Azure/iotedge/commit/40b2de93787140c52c8baee36860a6eb833e03d5)
 ### Bug Fixes
 * Rebase Edge on K8s [c94bc73](https://github.com/Azure/iotedge/commit/c94bc733c05d91acfd77c87dcaf6b701601985fb)
 * Support SHA256-based for thumbprint authentication [a88c72e](https://github.com/Azure/iotedge/commit/a88c72ebbfbd2ed88c8f6c8b41060b19e129c9d9)
 * Fix `edgehub_queue_length` metric [2861dbc](https://github.com/Azure/iotedge/commit/2861dbc63757787ef52897d9acc732430b46313b)
-* Introduce new metrics [40b2de9](https://github.com/Azure/iotedge/commit/40b2de93787140c52c8baee36860a6eb833e03d5)
 * Fix vulnerability issues in Linux ARM and Windows AMD docker images [73fa197](https://github.com/Azure/iotedge/commit/73fa1976367559d38b6392f86e625906da1117bd)
 
 ## iotedged
