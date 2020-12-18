@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client.Exceptions;
@@ -14,6 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
+
+
+ 
 
     [EndToEnd]
     public class AuthorizationPolicy : SasManualProvisioningFixture
@@ -37,11 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalFeatures__enabled", "true"),
-                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                        })
+                        .WithEnvironment(getHubEnvVar())
                         // deploy with deny policy
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
@@ -95,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     CertificateAuthority.GetQuickstart(),
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;
@@ -107,11 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalFeatures__enabled", "true"),
-                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                        })
+                        .WithEnvironment(getHubEnvVar())
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -151,6 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     CertificateAuthority.GetQuickstart(),
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
             }, token);
@@ -187,11 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalFeatures__enabled", "true"),
-                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                        })
+                        .WithEnvironment(getHubEnvVar())
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -253,6 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>());
 
@@ -279,12 +274,33 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     CertificateAuthority.GetQuickstart(),
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
             });
+        }
+
+        protected (string, string)[] getHubEnvVar()
+        {
+            (string, string)[] hubEnvVar;
+            if (Context.Current.NestedEdge == true)
+            {
+                hubEnvVar = new[] {
+                    ("RuntimeLogLevel", "debug"),
+                    ("experimentalFeatures__enabled", "true"),
+                    ("experimentalFeatures__nestedEdgeEnabled", "true"),
+                    ("experimentalFeatures__mqttBrokerEnabled", "true")
+                };
+            }
+            else
+            {
+                hubEnvVar = new[] { ("RuntimeLogLevel", "debug") };
+            }
+
+            return hubEnvVar;
         }
     }
 }

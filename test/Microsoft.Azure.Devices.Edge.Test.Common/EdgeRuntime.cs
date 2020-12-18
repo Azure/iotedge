@@ -40,15 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             bool nestedEdge)
         {
-            (string,string)[] agentEnvVar;
+            (string,string)[] hubEnvVar;
 
             if (nestedEdge == true)
             {
-                agentEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures_enabled", "true"), ("experimentalFeatures_nestedEdgeEnabled", "true") };
+                hubEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures__enabled", "true"), ("experimentalFeatures__nestedEdgeEnabled", "true") };
             }
             else
             {
-                agentEnvVar = new[] { ("RuntimeLogLevel", "debug")};
+                hubEnvVar = new[] { ("RuntimeLogLevel", "debug")};
             }
 
             var builder = new EdgeConfigBuilder(this.DeviceId);
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithEnvironment()
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
-                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                .WithEnvironment(hubEnvVar)
                 .WithProxy(this.proxy);
 
             addConfig(builder);
