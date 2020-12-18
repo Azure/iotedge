@@ -41,8 +41,10 @@ impl TestResultReportingClient {
             .await
             .map_err(ReportResultError::SendRequest)?;
 
-        // TODO: parse response
-
-        Ok(())
+        match response.status().as_u16() {
+            204 => Ok(()),
+            200 => Ok(()),
+            fail_status => Err(ReportResultError::ResponseStatus(fail_status)),
+        }
     }
 }

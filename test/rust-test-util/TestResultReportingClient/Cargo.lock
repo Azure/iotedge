@@ -420,17 +420,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-result-reporting-client"
-version = "0.1.0"
-dependencies = [
- "hyper",
- "serde",
- "serde_derive",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -516,6 +505,17 @@ checksum = "ab7bb6f14721aa00656086e9335d363c5c8747bae02ebe32ea2c7dece5689b4c"
 dependencies = [
  "pin-project 0.4.27",
  "tracing",
+]
+
+[[package]]
+name = "trc-client"
+version = "0.1.0"
+dependencies = [
+ "hyper",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

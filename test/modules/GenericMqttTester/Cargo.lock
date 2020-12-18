@@ -391,13 +391,13 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "test-result-reporting-client",
  "thiserror",
  "tokio",
  "tokio-signal",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",
+ "trc-client",
 ]
 
 [[package]]
@@ -1337,17 +1337,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-result-reporting-client"
-version = "0.1.0"
-dependencies = [
- "hyper",
- "serde",
- "serde_derive",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1626,6 +1615,17 @@ dependencies = [
  "smallvec",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trc-client"
+version = "0.1.0"
+dependencies = [
+ "hyper",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

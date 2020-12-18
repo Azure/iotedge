@@ -16,7 +16,7 @@ use mqtt3::{
 };
 use mqtt_broker_tests_util::client;
 use mqtt_util::client_io::ClientIoSource;
-use test_result_reporting_client::TestResultReportingClient;
+use trc_client::TestResultReportingClient;
 
 use crate::{
     message_channel::{

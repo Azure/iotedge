@@ -11,7 +11,7 @@ use mqtt3::{
     proto::{Publication, QoS},
     PublishHandle, ReceivedPublication,
 };
-use test_result_reporting_client::TestResultReportingClient;
+use trc_client::TestResultReportingClient;
 
 use crate::{MessageTesterError, BACKWARDS_TOPIC};
 

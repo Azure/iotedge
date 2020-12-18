@@ -1,3 +1,6 @@
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
+
 use hyper::http;
 
 mod client;
@@ -16,4 +19,7 @@ pub enum ReportResultError {
 
     #[error("failed sending request")]
     SendRequest(#[source] hyper::Error),
+
+    #[error("response has failure status {}", 0)]
+    ResponseStatus(u16),
 }

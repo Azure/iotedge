@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, Formatter};
 
 use serde::{
     de::{self, Unexpected, Visitor},
@@ -50,7 +50,7 @@ struct CustomVisitor;
 impl<'de> Visitor<'de> for CustomVisitor {
     type Value = TestResult;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.write_str("semicolon separated array")
     }
 
