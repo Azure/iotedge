@@ -13,7 +13,7 @@ resources:
 stages:
 - stage: SetupVM
   jobs:
-  - job:  SetupVM_level5
+ - job:  SetupVM_level5
    displayName: SettingUp level 5
    condition: ne(variables['agent.group'], '')
    timeoutInMinutes: 180
@@ -39,8 +39,8 @@ stages:
      - template: templates/nested-get-root-ca.yaml       
      - template: templates/nested-create-identity.yaml   
      - template: templates/nested-agent-deploy.yaml
-#
-  - job:  SetupVM_level4
+
+ - job:  SetupVM_level4
    dependsOn: SetupVM_level5
    displayName: SettingUp level 4
    condition: ne(variables['agent.group'], '')
@@ -68,7 +68,7 @@ stages:
      - template: templates/nested-create-identity.yaml          
      - template: templates/nested-agent-deploy.yaml
 
-   - job:  SetupVM_and_RunTest_level3
+  - job:  SetupVM_and_RunTest_level3
 #    dependsOn: SetupVM_level4
     displayName: Set up and run tests
     timeoutInMinutes: 180
