@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -18,13 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
     using Xunit;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-    [Unit]
     public class EdgeDeploymentOperatorTest
     {
         const string DeviceNamespace = "a-namespace";
         const string ExceptionMessage = "ExceptionMessage";
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
 
+        [Unit]
         [Fact]
         public async void WhatDeployModulesReturnsIsWhatIsReported()
         {
@@ -67,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             Mock.Get(client).VerifyAll();
         }
 
+        [Unit]
         [Fact]
         public async void GettingSameStatusTwiceReportsOnce()
         {
@@ -100,6 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             Mock.Get(client).Verify(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
+        [Unit]
         [Fact]
         public async void NoProcessingDeploymentOnError()
         {
@@ -120,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             Mock.Get(client).VerifyAll();
         }
 
+        [Unit]
         [Fact]
         public async void NoProcessingDeploymentIfEdgeDeploymentNameMismatch()
         {
@@ -139,8 +143,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             Mock.Get(client).VerifyAll();
         }
 
+        [Unit]
         [Fact]
-        public async void StatusIsFailedWhenUnexpectedExceptionIsThrown()
+        public async void StatusIsFailedWhenDeploymentControllerThrowsUnexpectedException()
         {
             Exception controllerException = new Exception(ExceptionMessage);
             EdgeDeploymentStatus expectedStatus = EdgeDeploymentStatus.Failure(controllerException);
@@ -172,21 +177,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            Exception ex = await Assert.ThrowsAsync<Exception>(() => edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition));
-            Assert.Equal(controllerException, ex);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(expectedStatus, reportedStatus.OrDefault());
             Mock.Get(controller).VerifyAll();
             Mock.Get(client).VerifyAll();
         }
 
+        [Unit]
         [Fact]
-        public async void StatusIsFailedWithSpecialMessageWhenHttpExceptionIsThrown()
+        public async void StatusIsFailedWhenDeploymentControllerThrowsHttpExceptionIsThrown()
         {
             HttpOperationException controllerException = new HttpOperationException(ExceptionMessage)
-                {
-                    Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Put, new Uri("http://valid-uri")), "content")
-                };
+            {
+                Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Put, new Uri("http://valid-uri")), "content")
+            };
             Option<EdgeDeploymentStatus> reportedStatus = Option.None<EdgeDeploymentStatus>();
             EdgeDeploymentStatus expectedStatus = EdgeDeploymentStatus.Failure($"{controllerException.Request.Method} [{controllerException.Request.RequestUri}]({controllerException.Message})");
             var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
@@ -216,12 +221,96 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            HttpOperationException ex = await Assert.ThrowsAsync<HttpOperationException>(() => edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition));
-            Assert.Equal(controllerException, ex);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(expectedStatus, reportedStatus.OrDefault());
             Mock.Get(controller).VerifyAll();
             Mock.Get(client).VerifyAll();
+        }
+
+        [Integration]
+        [Fact]
+        public async void CommandFailsWhenStatusIsFailedonUnexpectedExceptionThrown()
+        {
+            Exception controllerException = new Exception(ExceptionMessage);
+            Option<EdgeDeploymentStatus> reportedStatus = Option.None<EdgeDeploymentStatus>();
+
+            var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+            var response = new HttpOperationResponse<object>()
+            {
+                Body = edgeDefinition,
+                Response = new HttpResponseMessage(HttpStatusCode.OK)
+            };
+
+            var controller = Mock.Of<IEdgeDeploymentController>();
+            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()))
+                .ThrowsAsync(controllerException);
+
+            var client = Mock.Of<IKubernetes>();
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+                {
+                    Assert.True(o is JObject);
+                    EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
+                    reportedStatus = e.Status;
+                })
+                .ReturnsAsync(response);
+
+            var edgeOperator = new EdgeDeploymentOperator(
+                ResourceName,
+                DeviceNamespace,
+                client,
+                controller);
+
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            EdgeDeploymentStatusCommand commandResult = new EdgeDeploymentStatusCommand(reportedStatus);
+            ConfigOperationFailureException ex = await Assert.ThrowsAsync<ConfigOperationFailureException>(
+                () => commandResult.ExecuteAsync(CancellationToken.None));
+            Assert.Equal(ExceptionMessage, ex.Message);
+        }
+
+        [Integration]
+        [Fact]
+        public async void CommandFailsWhenStatusIsFailedWithSpecialMessageWhenHttpExceptionThrown()
+        {
+            HttpOperationException controllerException = new HttpOperationException(ExceptionMessage)
+            {
+                Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Put, new Uri("http://valid-uri")), "content")
+            };
+            Option<EdgeDeploymentStatus> reportedStatus = Option.None<EdgeDeploymentStatus>();
+            string expectedMessage = $"{controllerException.Request.Method} [{controllerException.Request.RequestUri}]({controllerException.Message})";
+            var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+            var response = new HttpOperationResponse<object>()
+            {
+                Body = edgeDefinition,
+                Response = new HttpResponseMessage(HttpStatusCode.OK)
+            };
+
+            var controller = Mock.Of<IEdgeDeploymentController>();
+            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()))
+                .ThrowsAsync(controllerException);
+
+            var client = Mock.Of<IKubernetes>();
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+                {
+                    Assert.True(o is JObject);
+                    EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
+                    reportedStatus = e.Status;
+                })
+                .ReturnsAsync(response);
+
+            var edgeOperator = new EdgeDeploymentOperator(
+                ResourceName,
+                DeviceNamespace,
+                client,
+                controller);
+
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            EdgeDeploymentStatusCommand commandResult = new EdgeDeploymentStatusCommand(reportedStatus);
+            ConfigOperationFailureException ex = await Assert.ThrowsAsync<ConfigOperationFailureException>(
+                () => commandResult.ExecuteAsync(CancellationToken.None));
+            Assert.Equal(expectedMessage, ex.Message);
         }
     }
 }

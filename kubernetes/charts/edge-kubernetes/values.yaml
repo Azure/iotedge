@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta8
+    tag: 0.1.0-beta12
     pullPolicy: Always
   nodeSelector: {}
   # Volumes which support ownership management are modified to be owned and 
@@ -19,6 +19,11 @@ iotedged:
   data:
     enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
+    # Normally the iotedged is running as a host process, and has access to 
+    # the host's trusted CA certificates.  Use this options to allow the 
+    # iotedged deployment to use the host OS's /etc/ssl/certs 
+    # useHostTrust: false
+    #
     # In order to benefit from HA, at a minimum the data location for iotedged
     # should be backed by a persistent volume. 
     # User may create a PersistentVolumeClaim and provide the name only here. Alternatively.
@@ -40,6 +45,7 @@ iotedged:
     ###############################################################################
     # Set the following if an HTTPS proxy is needed
     # httpsProxy: "<proxy URL>"
+    # noProxy: "<comma separated list of domains>"
     ###############################################################################
     # Watchdog settings
     ###############################################################################
@@ -64,6 +70,31 @@ iotedged:
     #               1 - All other errors.
     ###############################################################################
     #  maxRetries: 2
+    ###############################################################################
+    # Resource limit settings
+    ###############################################################################
+    # 
+    # We want QoS to be "Guaranteed" so we are setting resource requests and limits
+    # to equal values.  Values can be adjusted, or may be set to null to remove.
+    # iotedged:
+    #   Values set here will apply directly to iotedged deployment.
+    # Proxy: 
+    #   Values set in iotedgedProxy section will apply to all proxy containers in deployment.
+    # Agent: 
+    #   Values set in agent section will apply to agent as the bootstrap values.  
+    #   It may be overwritten in the edge deployment on the IoT Hub via $edgeAgent's 
+    #   createOptions.
+    # modules: 
+    #   All module container resources should be set through edge deployment on the 
+    #   IoT Hub via module's createOptions
+    ###############################################################################
+    resources:
+      requests:
+        memory: "100Mi"
+        cpu: "100m"
+      limits:
+        memory: "100Mi"
+        cpu: "100m"
 
   ###############################################################################
   # Certificate settings
@@ -93,16 +124,38 @@ iotedged:
   #   trusted_ca_certs: "<ADD SECRET ITEM NAME FOR CA CERTIFICATES HERE>"
   #   auto_generated_ca_lifetime_days: <value>
 
+# module to iotedged proxy sidecar settings.
+# Available Settings:
+# image:
+#   repository: 
+#   tag: 
+#   pullPolicy:
+# registryCredentials:
+#   username:
+#   password:
+#   serveraddress:
+# resources:  (Set to null to remove.)
+
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta8
+    tag: 0.1.0-beta12
     pullPolicy: Always
+  resources:
+    requests:
+      memory: "25Mi"
+      cpu: "5m"
+    limits:
+      memory: "25Mi"
+      cpu: "5m"
+    
 
 # Edge Agent image configuration
 # Settings:
 #     containerName  - name of the edge agent module. Expected to be "edgeAgent".
 #     image          - Image tag and image pull policy
+#     resources      - cpu and memory limit may be set here for bootstrap agent.
+#                      (Set to null to remove resource requests.)
 #     env            - Any environment variable that needs to be set for edge agent module.
 #                      Some environment variables affect how Edge Agent creates modules in the
 #                      cluster see the descriptions below.
@@ -110,9 +163,16 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta8
+    tag: 0.1.0-beta12
     pullPolicy: Always
   hostname: "localhost"
+  resources:
+    requests:
+      memory: "200Mi"
+      cpu: "50m"
+    limits:
+      memory: "200Mi"
+      cpu: "50m"
   env:
     authScheme: 'sasToken'
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
@@ -126,7 +186,7 @@ edgeAgent:
     enableK8sServiceCallTracing: false
     
     # Configure edge agent log verbosity
-    runtimeLogLevel: 'debug'
+    runtimeLogLevel: 'info'
 
     # Set this to set the upstream protocol for edgeAgent (default: Amqp with AmpqWs as fallback)
     # upstreamProtocol: 'AmqpWs'
@@ -156,10 +216,16 @@ edgeAgent:
     # must be set to "true".
     enableK8sExtensions: true
 
+    # Enables RQT data for IoT Edge Agent (disabled until metadata is finalized)
+    sendRuntimeQualityTelemetry: false
+
     # Configure default pod security context rule. If set true, it will allow kubernetes to run only non-root containers
     # under the user with uid(1000).
     # false dy default.
     # runAsNonRoot: false
+
+    # If an environment variables is required and not defined above, they may be added as needed.
+    # ANOTHER_ENV_VAR: "another env value"
 
 # Optional registry credentials for module images
 # registryCredentials:

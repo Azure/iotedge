@@ -92,7 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 {
                     Events.EdgeDeploymentWatchFailed(ex);
                     await this.ReportDeploymentFailure(ex, item);
-                    throw;
+                    if (ex.IsFatal())
+                    {
+                        throw;
+                    }
                 }
             }
         }

@@ -40,6 +40,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         };
 
+        static readonly HostConfig HostIpcModeHostConfig = new HostConfig
+        {
+            IpcMode = "host"
+        };
+
+        static readonly HostConfig PrivateIpcModeHostConfig = new HostConfig
+        {
+            IpcMode = "private"
+        };
+
+        static readonly HostConfig HostNetworkModeHostConfig = new HostConfig
+        {
+            NetworkMode = "host"
+        };
+
+        static readonly HostConfig BridgeNetworkModeHostConfig = new HostConfig
+        {
+            NetworkMode = "bridge"
+        };
+
         static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
         [Fact]
@@ -373,6 +393,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void AppliesDefaultResourcesForAgent()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
+            var docker = new DockerModule("edgeAgent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var agentResources = new V1ResourceRequirements(
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1500Mi"),
+                    ["cpu"] = new ResourceQuantity("150m"),
+                },
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1500Mi"),
+                    ["cpu"] = new ResourceQuantity("150m"),
+                });
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "edgeagent");
+            Assert.Equal(agentResources.Limits, moduleContainer.Resources.Limits);
+            Assert.Equal(agentResources.Requests, moduleContainer.Resources.Requests);
+        }
+
+        [Fact]
+        public void AppliesDefaultResourcesForProxy()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var proxyResources = new V1ResourceRequirements(
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1000M"),
+                    ["cpu"] = new ResourceQuantity("20m"),
+                },
+                new Dictionary<string, ResourceQuantity>
+                {
+                    ["memory"] = new ResourceQuantity("1000M"),
+                    ["cpu"] = new ResourceQuantity("20m"),
+                });
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "proxy");
+            Assert.Equal(proxyResources.Limits, moduleContainer.Resources.Limits);
+            Assert.Equal(proxyResources.Requests, moduleContainer.Resources.Requests);
+        }
+
+        [Fact]
         public void LeaveResourcesEmptyWhenNothingProvidedInCreateOptions()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
@@ -386,6 +462,65 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "module1");
             Assert.Null(moduleContainer.Resources);
+        }
+
+        [Fact]
+        public void AppliesAgentConfigMapVolumeToContainerSpec()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
+            var docker = new DockerModule("edgeagent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var volumes = new[]
+            {
+                new KubernetesModuleVolumeSpec(
+                    new V1Volume("additional-volume", configMap: new V1ConfigMapVolumeSource(name: "additional-config-map")),
+                    new[] { new V1VolumeMount(name: "additional-volume", mountPath: "/etc") })
+            };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            // Validate module volume mounts
+            var agentContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "edgeagent");
+            Assert.Equal(2, agentContainer.VolumeMounts.Count);
+            Assert.Contains(agentContainer.VolumeMounts, vm => vm.Name.Equals("agentConfigVolume"));
+            Assert.Contains(agentContainer.VolumeMounts, vm => vm.Name.Equals("additional-volume"));
+        }
+
+        [Fact]
+        public void DoesNotApplyAgentConfigMapVolumeToContainerSpecWhenNoSettings()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
+            var docker = new DockerModule("edgeagent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var volumes = new[]
+            {
+                new KubernetesModuleVolumeSpec(
+                    new V1Volume("additional-volume", configMap: new V1ConfigMapVolumeSource(name: "additional-config-map")),
+                    new[] { new V1VolumeMount(name: "additional-volume", mountPath: "/etc") })
+            };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper1 = CreateMapper(agentConfigMapName: null);
+            var mapper2 = CreateMapper(agentConfigPath: null);
+            var mapper3 = CreateMapper(agentConfigVolume: null);
+
+            var deployment1 = mapper1.CreateDeployment(identity, module, labels);
+            var deployment2 = mapper2.CreateDeployment(identity, module, labels);
+            var deployment3 = mapper3.CreateDeployment(identity, module, labels);
+
+            // Validate module volume mounts
+            var agentContainer1 = deployment1.Spec.Template.Spec.Containers.Single(container => container.Name == "edgeagent");
+            Assert.Equal(1, agentContainer1.VolumeMounts.Count);
+            Assert.Contains(agentContainer1.VolumeMounts, vm => vm.Name.Equals("additional-volume"));
+            var agentContainer2 = deployment2.Spec.Template.Spec.Containers.Single(container => container.Name == "edgeagent");
+            Assert.Equal(1, agentContainer2.VolumeMounts.Count);
+            Assert.Contains(agentContainer2.VolumeMounts, vm => vm.Name.Equals("additional-volume"));
+            var agentContainer3 = deployment3.Spec.Template.Spec.Containers.Single(container => container.Name == "edgeagent");
+            Assert.Equal(1, agentContainer3.VolumeMounts.Count);
+            Assert.Contains(agentContainer3.VolumeMounts, vm => vm.Name.Equals("additional-volume"));
         }
 
         [Fact]
@@ -662,6 +797,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void EnvModuleSettingsParseCorrectly()
+        {
+            var env = new List<string>
+            {
+                "a=b",
+                "ALL_EQUALS=====",
+                "HAS_SPACES=this variable has spaces",
+                "B=b=c",
+                "BASE64_TEXT=YmFzZTY0Cg==",
+                "==not a valid env var",
+            };
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(env: env), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var features = new Dictionary<string, bool>
+            {
+                ["feature1"] = true,
+                ["feature2"] = false
+            };
+            var mapper = CreateMapper(runAsNonRoot: true, useMountSourceForVolumeName: true, storageClassName: "scname", proxyImagePullSecretName: "secret name", experimentalFeatures: features);
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var container = deployment.Spec.Template.Spec.Containers.Single(c => c.Name == "module1");
+            Assert.Equal("b", container.Env.Single(e => e.Name == "a").Value);
+            Assert.Equal("====", container.Env.Single(e => e.Name == "ALL_EQUALS").Value);
+            Assert.Equal("this variable has spaces", container.Env.Single(e => e.Name == "HAS_SPACES").Value);
+            Assert.Equal("b=c", container.Env.Single(e => e.Name == "B").Value);
+            Assert.Equal("YmFzZTY0Cg==", container.Env.Single(e => e.Name == "BASE64_TEXT").Value);
+            Assert.Null(container.Env.SingleOrDefault(e => e.Value.EndsWith("valid env var")));
+        }
+
+        [Fact]
         public void EdgeAgentEnvSettingsHaveLotsOfStuff()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
@@ -705,12 +874,128 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal("False", container.Env.Single(e => e.Name == "feature2").Value);
         }
 
+        [Fact]
+        public void NoIpcModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Null(deployment.Spec.Template.Spec.HostIPC);
+        }
+
+        [Fact]
+        public void HostIpcModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: HostIpcModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(true, deployment.Spec.Template.Spec.HostIPC);
+        }
+
+        [Fact]
+        public void PrivateIpcModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: PrivateIpcModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(false, deployment.Spec.Template.Spec.HostIPC);
+        }
+
+        [Fact]
+        public void NoNetworkModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Null(deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
+        }
+
+        [Fact]
+        public void HostNetworkModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: HostNetworkModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(true, deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Equal("ClusterFirstWithHostNet", deployment.Spec.Template.Spec.DnsPolicy);
+        }
+
+        [Fact]
+        public void BridgeNetworkModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: BridgeNetworkModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(false, deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
+        }
+
+        static Dictionary<string, ResourceQuantity> proxyLimits = new Dictionary<string, ResourceQuantity>
+        {
+            ["cpu"] = new ResourceQuantity("20m"),
+            ["memory"] = new ResourceQuantity("1000M"),
+        };
+        static Dictionary<string, ResourceQuantity> agentLimits = new Dictionary<string, ResourceQuantity>
+        {
+            ["cpu"] = new ResourceQuantity("150m"),
+            ["memory"] = new ResourceQuantity("1500Mi"),
+        };
+
+        static V1ResourceRequirements proxyReqs = new V1ResourceRequirements(proxyLimits, proxyLimits);
+        static V1ResourceRequirements agentReqs = new V1ResourceRequirements(agentLimits, agentLimits);
+
         static KubernetesDeploymentMapper CreateMapper(
           bool useMountSourceForVolumeName = false,
           string storageClassName = "",
           string proxyImagePullSecretName = null,
           bool runAsNonRoot = false,
-          IDictionary<string, bool> experimentalFeatures = null)
+          IDictionary<string, bool> experimentalFeatures = null,
+          string agentConfigMapName = "agentConfigMapName",
+          string agentConfigPath = "agentConfigPath",
+          string agentConfigVolume = "agentConfigVolume")
             => new KubernetesDeploymentMapper(
                 "namespace",
                 "edgehub",
@@ -722,6 +1007,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 "trustBundlePath",
                 "trustBundleVolumeName",
                 "trustBundleConfigMapName",
+                Option.Some(proxyReqs),
+                Option.Maybe(agentConfigMapName),
+                Option.Maybe(agentConfigPath),
+                Option.Maybe(agentConfigVolume),
+                Option.Some(agentReqs),
                 PortMapServiceType.ClusterIP,
                 useMountSourceForVolumeName,
                 storageClassName,

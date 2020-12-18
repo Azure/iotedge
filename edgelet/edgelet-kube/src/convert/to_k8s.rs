@@ -21,9 +21,9 @@ use crate::constants::env::{
     PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
 };
 use crate::constants::{
-    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL,
-    EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME,
-    PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
+    EDGE_DEVICE_LABEL, EDGE_EDGE_AGENT_NAME, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
+    PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
+    PROXY_TRUST_BUNDLE_VOLUME_NAME,
 };
 use crate::convert::{sanitize_dns_value, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
@@ -109,6 +109,11 @@ fn spec_to_podspec(
         }
     }
 
+    // Resource requirements:
+    let proxy_resource_requirements = settings.proxy().resources().cloned();
+
+    let module_resource_requirements = settings.resources().cloned();
+
     // Bind/volume mounts
     // ConfigMap volume name is fixed: "config-volume"
     let proxy_config_volume_source = api_core::ConfigMapVolumeSource {
@@ -119,6 +124,19 @@ fn spec_to_podspec(
     let proxy_config_volume = api_core::Volume {
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         config_map: Some(proxy_config_volume_source),
+        ..api_core::Volume::default()
+    };
+
+    // ConfigMap for Agent Settings, set to be optional for backwards compatibility
+    let agent_config_volume_source = api_core::ConfigMapVolumeSource {
+        name: Some(settings.config_map_name().to_string()),
+        optional: Some(true),
+        ..api_core::ConfigMapVolumeSource::default()
+    };
+    // Volume entry for agent's config map
+    let agent_config_volume = api_core::Volume {
+        name: settings.config_map_volume().to_string(),
+        config_map: Some(agent_config_volume_source),
         ..api_core::Volume::default()
     };
 
@@ -134,12 +152,24 @@ fn spec_to_podspec(
         ..api_core::Volume::default()
     };
 
-    let mut volumes = vec![proxy_config_volume, trust_bundle_config_volume];
+    let mut volumes = vec![
+        agent_config_volume,
+        proxy_config_volume,
+        trust_bundle_config_volume,
+    ];
 
     // Where to mount proxy config map
     let proxy_volume_mount = api_core::VolumeMount {
         mount_path: settings.proxy().config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
+        read_only: Some(true),
+        ..api_core::VolumeMount::default()
+    };
+
+    // Where to mount agent config map
+    let agent_volume_mount = api_core::VolumeMount {
+        mount_path: settings.config_path().to_string(),
+        name: settings.config_map_volume().to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
     };
@@ -153,7 +183,7 @@ fn spec_to_podspec(
     };
 
     let proxy_volume_mounts = vec![proxy_volume_mount, trust_bundle_volume_mount];
-    let mut volume_mounts = Vec::new();
+    let mut volume_mounts = vec![agent_volume_mount];
 
     if let Some(binds) = spec
         .config()
@@ -283,6 +313,7 @@ fn spec_to_podspec(
                 image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()), //todo user edgeagent imagepullpolicy instead
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
+                resources: module_resource_requirements,
                 ..api_core::Container::default()
             },
             // proxy
@@ -292,6 +323,7 @@ fn spec_to_podspec(
                 image: Some(settings.proxy().image().to_string()),
                 image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
+                resources: proxy_resource_requirements,
                 ..api_core::Container::default()
             },
         ],
@@ -339,11 +371,6 @@ pub fn spec_to_deployment(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
     let deployment_name = module_label_value.clone();
     let module_image = spec.config().image().to_string();
 
@@ -351,7 +378,6 @@ pub fn spec_to_deployment(
     let mut pod_labels = BTreeMap::new();
     pod_labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
     pod_labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    pod_labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     let deployment_labels = pod_labels.clone();
     let selector_labels = pod_labels.clone();
@@ -411,11 +437,6 @@ pub fn spec_to_service_account(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
 
     let service_account_name = module_label_value.clone();
 
@@ -423,7 +444,6 @@ pub fn spec_to_service_account(
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value);
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     // annotations
     let mut annotations = BTreeMap::new();
@@ -453,11 +473,6 @@ pub fn spec_to_role_binding(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
 
     let role_binding_name = module_label_value.clone();
 
@@ -465,7 +480,6 @@ pub fn spec_to_role_binding(
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     // annotations
     let mut annotations = BTreeMap::new();
@@ -503,16 +517,10 @@ pub fn trust_bundle_to_config_map(
 ) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
         sanitize_label_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?);
-    let hubname_label = sanitize_label_value(
-        settings
-            .iot_hub_hostname()
-            .ok_or(ErrorKind::MissingHubName)?,
-    );
 
     // labels
     let mut labels = BTreeMap::new();
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
-    labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 
     let cert = cert.pem().context(ErrorKind::IdentityCertificate)?;
     let cert = str::from_utf8(cert.as_ref()).context(ErrorKind::IdentityCertificate)?;
@@ -540,6 +548,7 @@ mod tests {
     use std::str;
 
     use k8s_openapi::api::core::v1 as api_core;
+    use k8s_openapi::apimachinery::pkg::api::resource as api_resource;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 
     use docker::models::AuthConfig;
@@ -557,9 +566,8 @@ mod tests {
         PROXY_TRUST_BUNDLE_PATH_KEY, PROXY_TRUST_BUNDLE_VOLUME_KEY,
     };
     use crate::constants::{
-        EDGE_DEVICE_LABEL, EDGE_HUBNAME_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID,
-        PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
-        PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        EDGE_DEVICE_LABEL, EDGE_MODULE_LABEL, EDGE_ORIGINAL_MODULEID, PROXY_CONFIG_VOLUME_NAME,
+        PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME, PROXY_TRUST_BUNDLE_VOLUME_NAME,
     };
     use crate::convert::{
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
@@ -626,7 +634,6 @@ mod tests {
     fn validate_deployment_metadata(
         module: &str,
         device: &str,
-        iothub: &str,
         meta: Option<&api_meta::ObjectMeta>,
     ) {
         assert!(meta.is_some());
@@ -636,7 +643,6 @@ mod tests {
             if let Some(labels) = meta.labels.as_ref() {
                 assert_eq!(labels.get(EDGE_MODULE_LABEL).unwrap(), "edgeagent");
                 assert_eq!(labels.get(EDGE_DEVICE_LABEL).unwrap(), device);
-                assert_eq!(labels.get(EDGE_HUBNAME_LABEL).unwrap(), iothub);
             }
         }
     }
@@ -650,12 +656,7 @@ mod tests {
         let (name, deployment) =
             spec_to_deployment(&make_settings(None), &module_config, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
-        validate_deployment_metadata(
-            "edgeagent",
-            "device1",
-            "iothub",
-            deployment.metadata.as_ref(),
-        );
+        validate_deployment_metadata("edgeagent", "device1", deployment.metadata.as_ref());
 
         assert!(deployment.spec.is_some());
         if let Some(spec) = deployment.spec.as_ref() {
@@ -664,16 +665,17 @@ mod tests {
             if let Some(match_labels) = spec.selector.match_labels.as_ref() {
                 assert_eq!(match_labels.get(EDGE_MODULE_LABEL).unwrap(), "edgeagent");
                 assert_eq!(match_labels.get(EDGE_DEVICE_LABEL).unwrap(), "device1");
-                assert_eq!(match_labels.get(EDGE_HUBNAME_LABEL).unwrap(), "iothub");
             }
             assert!(spec.template.spec.is_some());
             if let Some(podspec) = spec.template.spec.as_ref() {
                 assert_eq!(podspec.containers.len(), 2);
                 if let Some(module) = podspec.containers.iter().find(|c| c.name == "edgeagent") {
                     validate_container_env(module.env.as_ref().unwrap());
-                    assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 6);
+                    assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 7);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
                     assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
+                    assert!(module.resources.is_some());
+                    validate_resources(&module.resources, "300Mi", "200m", "299Mi", "199m");
                 }
                 if let Some(proxy) = podspec
                     .containers
@@ -684,6 +686,8 @@ mod tests {
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 2);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
+                    assert!(proxy.resources.is_some());
+                    validate_resources(&proxy.resources, "50Mi", "20m", "49Mi", "19m");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.security_context.is_some());
@@ -700,8 +704,30 @@ mod tests {
                     );
                 }
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap, 1 trust bundle configmap
-                assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
+                // 1 agent configmap
+                assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 9);
             }
+        }
+    }
+
+    fn validate_resources(
+        resources: &Option<api_core::ResourceRequirements>,
+        mem_limit: &str,
+        cpu_limit: &str,
+        mem_req: &str,
+        cpu_req: &str,
+    ) {
+        if let Some(resources) = &*resources {
+            let mem_limit = api_resource::Quantity(mem_limit.to_string());
+            let cpu_limit = api_resource::Quantity(cpu_limit.to_string());
+            let mem_req = api_resource::Quantity(mem_req.to_string());
+            let cpu_req = api_resource::Quantity(cpu_req.to_string());
+            let limits = resources.limits.as_ref().unwrap();
+            let requests = resources.requests.as_ref().unwrap();
+            assert_eq!(limits.get("memory"), Some(&mem_limit));
+            assert_eq!(limits.get("cpu"), Some(&cpu_limit));
+            assert_eq!(requests.get("memory"), Some(&mem_req));
+            assert_eq!(requests.get("cpu"), Some(&cpu_req));
         }
     }
 
@@ -760,9 +786,8 @@ mod tests {
 
             assert!(metadata.labels.is_some());
             if let Some(labels) = metadata.labels {
-                assert_eq!(labels.len(), 3);
+                assert_eq!(labels.len(), 2);
                 assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
-                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
                 assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
             }
         }
@@ -790,9 +815,8 @@ mod tests {
 
             assert!(metadata.labels.is_some());
             if let Some(labels) = metadata.labels {
-                assert_eq!(labels.len(), 3);
+                assert_eq!(labels.len(), 2);
                 assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
-                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
                 assert_eq!(labels[EDGE_MODULE_LABEL], "edgeagent");
             }
         }
@@ -858,9 +882,8 @@ mod tests {
 
             assert!(metadata.labels.is_some());
             if let Some(labels) = metadata.labels {
-                assert_eq!(labels.len(), 2);
+                assert_eq!(labels.len(), 1);
                 assert_eq!(labels[EDGE_DEVICE_LABEL], "device1");
-                assert_eq!(labels[EDGE_HUBNAME_LABEL], "iothub");
             }
         }
 

@@ -26,13 +26,21 @@ spec:
           imagePullPolicy: {{ .Values.iotedged.image.pullPolicy }}
           command: ["/app/iotedged"]
           args: ["-c", "/etc/iotedged/config.yaml"]
+          {{- if .Values.iotedged.data.resources }}
+          resources:
+{{ toYaml .Values.iotedged.data.resources | indent 12 }}
+          {{- end }}
           env:
           - name: "IOTEDGE_LOG"
             value: "info"
           {{- if .Values.iotedged.data.httpsProxy }}
           - name: "https_proxy"
             value: {{ .Values.iotedged.data.httpsProxy | quote}}
-          {{end}}
+          {{- end}}
+          {{- if .Values.iotedged.data.noProxy }}
+          - name: "no_proxy"
+            value: {{ .Values.iotedged.data.noProxy | quote}}
+          {{- end}}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
@@ -46,6 +54,10 @@ spec:
             readOnly: true
           {{- end}}
           {{- end}}
+          {{- if .Values.iotedged.data.useHostTrust }}
+          - name: ca-edge-host-trust
+            mountPath: "/etc/ssl/certs"
+          {{- end }}
           {{- with .Values.provisioning.authentication }}
           {{- if .identitySecret }}
           - name: edge-authentication
@@ -127,6 +139,12 @@ spec:
             path: identity_pk
       {{- end}}
       {{- end}}
+      {{- if .Values.iotedged.data.useHostTrust }}
+      - name: ca-edge-host-trust
+        hostPath:
+          path: /etc/ssl/certs
+          type: Directory
+      {{- end}}
       {{- with .Values.iotedged.certificates }}
       {{- if .secret }}
       {{- /*
@@ -142,6 +160,7 @@ spec:
             path: device_ca_pk
           - key: {{ .trusted_ca_certs | default "trusted_ca_certs" }}
             path: trusted_ca_certs
+
       {{- end}}
       {{- else}}
       {{- /*

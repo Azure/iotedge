@@ -8,8 +8,6 @@ pub const EDGE_ORIGINAL_MODULEID: &str = "net.azure-devices.edge.original-module
 
 pub const EDGE_DEVICE_LABEL: &str = "net.azure-devices.edge.deviceid";
 
-pub const EDGE_HUBNAME_LABEL: &str = "net.azure-devices.edge.hub";
-
 pub const PROXY_CONTAINER_NAME: &str = "proxy";
 
 pub const PROXY_CONFIG_VOLUME_NAME: &str = "config-volume";

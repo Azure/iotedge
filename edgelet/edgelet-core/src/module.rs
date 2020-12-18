@@ -13,7 +13,7 @@ use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
 use serde_derive::Serialize;
 
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::{deserialize_map_with_default_values, ensure_not_empty_with_context};
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::{Provisioning, RuntimeSettings};
@@ -145,6 +145,7 @@ pub struct ModuleSpec<T> {
     type_: String,
     config: T,
     #[serde(default = "BTreeMap::new")]
+    #[serde(deserialize_with = "deserialize_map_with_default_values")]
     env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
