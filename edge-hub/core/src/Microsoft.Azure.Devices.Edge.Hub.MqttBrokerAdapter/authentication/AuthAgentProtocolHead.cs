@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void Dispose()
         {
-            DisposeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            this.DisposeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public async ValueTask DisposeAsync()
