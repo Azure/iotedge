@@ -104,3 +104,26 @@ impl<'de> Deserialize<'de> for TestResult {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{TestOperationResultDto, TestResult};
+
+    #[test]
+    fn serialize() {
+        let tracking_id = "tracking".to_string();
+        let batch_id = "batch".to_string();
+        let seq_num = 2;
+        let test_result = TestResult::new(tracking_id, batch_id, seq_num);
+
+        let source = "source".to_string();
+        let _type = "2".to_string();
+        let created_at = "11/16/1996".to_string();
+        let test_result_dto = TestOperationResultDto::new(source, test_result, _type, created_at);
+
+        let expected = "{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":\"2\",\"createdAt\":\"11/16/1996\"}";
+        let serialized = serde_json::to_string(&test_result_dto).unwrap();
+
+        assert_eq!(expected, serialized);
+    }
+}
