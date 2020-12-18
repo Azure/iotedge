@@ -38,11 +38,11 @@ sudo make package-toolkit REBUILD_TOOLS=y
 cd ..
 
 # Move toolkit to build root for Mariner flavor
-mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+sudo mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
 
 # Build Mariner RPM packages
 cd ${MARINER_BUILD_ROOT}
-tar xzf toolkit.tar.gz
+sudo tar xzf toolkit.tar.gz
 cd toolkit
 sudo make clean
 sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc)
