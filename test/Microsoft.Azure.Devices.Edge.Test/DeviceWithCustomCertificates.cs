@@ -21,7 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
             CancellationToken token = this.TestToken;
-if(testAuth == TestAuthenticationType.SasOutOfScope)
+//@TODO remove
+if (testAuth == TestAuthenticationType.SasOutOfScope)
 {
     Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
 }
@@ -51,7 +52,6 @@ if(testAuth == TestAuthenticationType.SasOutOfScope)
                 {
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
-                    Thread.Sleep(20000);
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
                     await leaf.InvokeDirectMethodAsync(token);
                 },
