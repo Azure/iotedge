@@ -11,16 +11,19 @@ const APPLICATION_JSON: &str = "application/json";
 #[derive(Debug)]
 pub struct TestResultReportingClient {
     client: Client<HttpConnector>,
+    uri: String,
 }
 
 impl TestResultReportingClient {
-    pub fn new(client: Client<HttpConnector>) -> Self {
-        Self { client }
+    pub fn new(uri: String) -> Self {
+        Self {
+            client: Client::new(),
+            uri,
+        }
     }
 
     pub async fn report_result(
         &self,
-        uri: &str,
         source: String,
         result: TestResult,
         _type: String,
@@ -28,7 +31,7 @@ impl TestResultReportingClient {
     ) -> Result<(), ReportResultError> {
         let body = TestOperationResultDto::new(source, result, _type, created_at);
         let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;
-        let request = Request::post(uri)
+        let request = Request::post(self.uri.clone())
             .header(CONTENT_TYPE, APPLICATION_JSON)
             .body(Body::from(body.clone()))
             .map_err(ReportResultError::ConstructRequest)?;

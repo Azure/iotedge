@@ -2,6 +2,7 @@ use bytes::Bytes;
 use future::{select_all, Either};
 use futures_util::{future, pin_mut, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
+use test_result_reporting_client::TestResultReportingClient;
 use time::Duration;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
@@ -86,8 +87,10 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
+        let test_result_coordinator_url = settings.test_result_coordinator_url().to_string();
+        let reporting_client = TestResultReportingClient::new(test_result_coordinator_url);
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new()),
+            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(reporting_client)),
             TestScenario::Relay => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
         };
         let message_channel = MessageChannel::new(message_handler);

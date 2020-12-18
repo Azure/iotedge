@@ -4,6 +4,7 @@ use futures_util::{
     stream::StreamExt,
 };
 use mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use test_result_reporting_client::TestResultReportingClient;
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
@@ -38,11 +39,13 @@ pub trait MessageHandler {
 }
 
 /// Responsible for receiving publications and reporting result to the Test Result Coordinator.
-pub struct ReportResultMessageHandler {}
+pub struct ReportResultMessageHandler {
+    reporting_client: TestResultReportingClient,
+}
 
 impl ReportResultMessageHandler {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(reporting_client: TestResultReportingClient) -> Self {
+        Self { reporting_client }
     }
 }
 
