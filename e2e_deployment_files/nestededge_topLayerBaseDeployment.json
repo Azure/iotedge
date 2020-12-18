@@ -41,6 +41,9 @@
               },
               "experimentalFeatures__EnableMqttBroker": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }                   
             },
             "status": "running",
@@ -100,6 +103,22 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 7200
+        },
+        "mqttBroker": {
+          "authorizations": [
+              {
+                  "identities": [
+                      "{{iot:identity}}"
+                  ],
+                  "allow": [
+                      {
+                          "operations": [
+                              "mqtt:connect"
+                          ]
+                      }
+                  ]
+              }
+          ]
         }
       }
     }
