@@ -6,6 +6,7 @@ edition = "2018"
 description = "Http client for the TestResultCoordinator test orchestration module"
 
 [dependencies]
+chrono = "0.4"
 hyper = "0.13"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive", "rc"] }

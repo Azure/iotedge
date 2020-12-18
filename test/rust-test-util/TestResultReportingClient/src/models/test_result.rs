@@ -1,34 +1,40 @@
 use std::fmt::{self, Formatter};
 
+use chrono::{DateTime, Utc};
 use serde::{
     de::{self, Unexpected, Visitor},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct TestOperationResultDto {
     #[serde(rename = "source")]
     source: String,
     #[serde(rename = "result")]
     result: TestResult,
     #[serde(rename = "type")]
-    _type: String,
+    _type: u8,
     #[serde(rename = "createdAt")]
     created_at: String,
 }
 
 impl TestOperationResultDto {
-    pub fn new(source: String, result: TestResult, _type: String, created_at: String) -> Self {
+    pub fn new(
+        source: String,
+        result: TestResult,
+        _type: TestType,
+        created_at: DateTime<Utc>,
+    ) -> Self {
         Self {
             source,
             result,
-            _type,
-            created_at,
+            _type: _type as u8,
+            created_at: created_at.to_string(),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TestResult {
     tracking_id: String,
     batch_id: String,
@@ -43,6 +49,21 @@ impl TestResult {
             sequence_number,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum TestType {
+    LegacyDirectMethod,
+    LegacyTwin,
+    Messages,
+    DirectMethod,
+    Twin,
+    Network,
+    Deployment,
+    EdgeHubRestartMessage,
+    EdgeHubRestartDirectMethod,
+    Error,
+    TestInfo,
 }
 
 struct CustomVisitor;
@@ -107,7 +128,11 @@ impl<'de> Deserialize<'de> for TestResult {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+
     use crate::{TestOperationResultDto, TestResult};
+
+    use super::TestType;
 
     #[test]
     fn serialize() {
@@ -117,13 +142,37 @@ mod tests {
         let test_result = TestResult::new(tracking_id, batch_id, seq_num);
 
         let source = "source".to_string();
-        let _type = "2".to_string();
-        let created_at = "11/16/1996".to_string();
-        let test_result_dto = TestOperationResultDto::new(source, test_result, _type, created_at);
+        let _type = TestType::Messages;
+        let created_at = Utc::now();
+        let test_result_dto =
+            TestOperationResultDto::new(source, test_result, _type.clone(), created_at.clone());
 
-        let expected = "{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":\"2\",\"createdAt\":\"11/16/1996\"}";
+        let expected = format!("{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}", created_at);
         let serialized = serde_json::to_string(&test_result_dto).unwrap();
 
         assert_eq!(expected, serialized);
+    }
+
+    #[test]
+    fn deserialize() {
+        let tracking_id = "tracking".to_string();
+        let batch_id = "batch".to_string();
+        let seq_num = 2;
+        let test_result = TestResult::new(tracking_id, batch_id, seq_num);
+
+        let source = "source".to_string();
+        let _type = TestType::Messages;
+        let created_at = Utc::now();
+        let expected =
+            TestOperationResultDto::new(source, test_result, _type.clone(), created_at.clone());
+
+        let serialized = format!(
+            "{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}",
+            created_at
+        );
+        let deserialized: TestOperationResultDto =
+            serde_json::from_str(serialized.as_str()).unwrap();
+
+        assert_eq!(expected, deserialized);
     }
 }

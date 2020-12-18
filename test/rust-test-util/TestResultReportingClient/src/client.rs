@@ -1,7 +1,8 @@
+use chrono::{DateTime, Utc};
 use hyper::{client::HttpConnector, Body, Client, Request};
 
 use crate::{
-    models::test_result::{TestOperationResultDto, TestResult},
+    models::test_result::{TestOperationResultDto, TestResult, TestType},
     ReportResultError,
 };
 
@@ -26,8 +27,8 @@ impl TestResultReportingClient {
         &self,
         source: String,
         result: TestResult,
-        _type: String,
-        created_at: String,
+        _type: TestType,
+        created_at: DateTime<Utc>,
     ) -> Result<(), ReportResultError> {
         let body = TestOperationResultDto::new(source, result, _type, created_at);
         let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;

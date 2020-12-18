@@ -1621,6 +1621,7 @@ dependencies = [
 name = "trc-client"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "hyper",
  "serde",
  "serde_derive",
