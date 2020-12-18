@@ -8,6 +8,7 @@
 ## Edge Hub
 ### Features
 * Introduce new metrics [40b2de9](https://github.com/Azure/iotedge/commit/40b2de93787140c52c8baee36860a6eb833e03d5)
+
 ### Bug Fixes
 * Rebase Edge on K8s [c94bc73](https://github.com/Azure/iotedge/commit/c94bc733c05d91acfd77c87dcaf6b701601985fb)
 * Support SHA256-based for thumbprint authentication [a88c72e](https://github.com/Azure/iotedge/commit/a88c72ebbfbd2ed88c8f6c8b41060b19e129c9d9)
