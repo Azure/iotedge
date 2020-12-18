@@ -29,19 +29,16 @@ cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BU
 mkdir -p "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 
-# Mariner package builds may not touch the internet, so provide Cargo dependencies
-#curl "https://marineriotedge.file.core.windows.net/mariner-build-env/azure-iotedge-1.0.10-cargo.tar.gz?sv=2019-12-12&ss=bfqt&srt=o&sp=rlpx&se=2020-11-13T06:50:00Z&st=2020-11-12T22:50:00Z&spr=https&sig=islDvt5euCCf%2FyhKyAsY18TWepRgPq3pLkV9OQ%2FQbfs%3D" --output azure-iotedge-1.0.10-cargo.tar.gz
-#mv azure-iotedge-1.0.10-cargo.tar.gz "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES/"
-
 # Download Mariner repo and build toolkit
 git clone https://github.com/microsoft/CBL-Mariner.git
 cd CBL-Mariner
 git checkout tags/1.0-stable
 cd toolkit
 sudo make package-toolkit REBUILD_TOOLS=y
+cd ..
 
 # Move toolkit to build root for Mariner flavor
-mv toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
 
 # Build Mariner RPM packages
 cd ${MARINER_BUILD_ROOT}
