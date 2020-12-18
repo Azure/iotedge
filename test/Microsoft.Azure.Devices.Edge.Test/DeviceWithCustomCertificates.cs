@@ -21,6 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
             CancellationToken token = this.TestToken;
+            if (testAuth == TestAuthenticationType.SasOutOfScope)
+            {
+                Assert.Ignore("Out of scope test don't work while nested");
+            }
 
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
