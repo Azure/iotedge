@@ -47,7 +47,9 @@ sudo tar xzf toolkit.tar.gz
 cd toolkit
 sudo make clean
 
-echo "Version is: ${VERSION}"
+echo "Version is: ${VERSION}, Tarball hash is: ${TARBALL_HASH}"
+sed 's/\(azure-iotedge-[0-9.]+.tar.gz": "\)[a-fA-F0-9]+/\1${TARBALL_HASH}/g' "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json"
+sed 's/\(azure-iotedge-[0-9.]+.tar.gz": "\)[a-fA-F0-9]+/\1${TARBALL_HASH}/g' "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json"
 ls ..
 cat ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json
 cat ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json
