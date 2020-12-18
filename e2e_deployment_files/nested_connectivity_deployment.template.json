@@ -31,7 +31,7 @@
                 "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "settings": {
@@ -50,6 +50,12 @@
                 "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
+                "value": "true"
+              },
+              "NestedEdgeEnabled": {
+                "value": "true"
+              },
+              "mqttBrokerSettings:enabled": {
                 "value": "true"
               }
             },
