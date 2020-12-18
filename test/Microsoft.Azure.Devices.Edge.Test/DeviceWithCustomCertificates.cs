@@ -51,6 +51,7 @@ if(testAuth == TestAuthenticationType.SasOutOfScope)
                 {
                     DateTime seekTime = DateTime.Now;
                     await leaf.SendEventAsync(token);
+                    Thread.Sleep(20000);
                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
                     await leaf.InvokeDirectMethodAsync(token);
                 },
