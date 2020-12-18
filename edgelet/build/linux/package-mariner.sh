@@ -53,5 +53,7 @@ cat ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json
 ls ${MARINER_BUILD_ROOT}/SPECS
 ls ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge
 ls ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std
+ls ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES
+ls ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES
 
 sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
