@@ -46,7 +46,7 @@ sudo tar xzf toolkit.tar.gz
 cd toolkit
 sudo make clean
 
-echo "Version is: "${VERSION}"
+echo "Version is: ${VERSION}"
 ls ..
 cat ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json
 cat ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json
