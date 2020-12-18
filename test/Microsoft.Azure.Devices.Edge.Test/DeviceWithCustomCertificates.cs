@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
 Protocol protocol = Protocol.Amqp;
-TestAuthenticationType testAuth = TestAuthenticationType.CertificateAuthority;
+TestAuthenticationType testAuth = TestAuthenticationType.SasOutOfScope;
 
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
