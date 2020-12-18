@@ -16,11 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [Test]
-        public async Task TransparentGateway(
-            [Values] TestAuthenticationType testAuth,
-            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
+        public async Task TransparentGateway()//@TO DO put back original test
         {
             CancellationToken token = this.TestToken;
+
+Protocol protocol = Protocol.Mqtt;
+TestAuthenticationType testAuth = TestAuthenticationType.CertificateAuthority;
 
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
