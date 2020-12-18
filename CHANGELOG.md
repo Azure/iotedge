@@ -13,6 +13,10 @@
 * Introduce new metrics [40b2de9](https://github.com/Azure/iotedge/commit/40b2de93787140c52c8baee36860a6eb833e03d5)
 * Fix vulnerability issues in Linux ARM and Windows AMD docker images [73fa197](https://github.com/Azure/iotedge/commit/73fa1976367559d38b6392f86e625906da1117bd)
 
+## iotedged
+### Bug Fixes
+* Rebase Edge on K8s [c94bc73](https://github.com/Azure/iotedge/commit/c94bc733c05d91acfd77c87dcaf6b701601985fb)
+
 # 1.0.10.3 (2020-11-18)
 ## Edge Agent
 ### Bug Fixes
