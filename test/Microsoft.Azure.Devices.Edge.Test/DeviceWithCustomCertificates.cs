@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-Protocol protocol = Protocol.Mqtt;
+Protocol protocol = Protocol.Amqp;
 TestAuthenticationType testAuth = TestAuthenticationType.CertificateAuthority;
 
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
