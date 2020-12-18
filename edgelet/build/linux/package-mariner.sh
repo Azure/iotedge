@@ -8,10 +8,6 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
-
-#REVISION="${REVISION:-1}"
-#DEFAULT_VERSION="$(cat "$EDGELET_ROOT/version.txt")"
-#VERSION="${VERSION:-$DEFAULT_VERSION}"
 VERSION="$(cat "$EDGELET_ROOT/version.txt")"
 
 # Create source tarball
@@ -21,6 +17,7 @@ popd
 
 # Update expected tarball hash
 TARBALL_HASH=$(sha256sum "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" | awk '{print $1}')
+# TODO: inject version into signatures.json and into the SPEC file definition in order to avoid hard-coding
 sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json"
 sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json"
 
@@ -47,16 +44,7 @@ sudo tar xzf toolkit.tar.gz
 cd toolkit
 sudo make clean
 
-echo "Version is: ${VERSION}, Tarball hash is: ${TARBALL_HASH}"
-sed 's/\(azure-iotedge-[0-9.]+.tar.gz": "\)[a-fA-F0-9]+/\1${TARBALL_HASH}/g' "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json"
-sed 's/\(azure-iotedge-[0-9.]+.tar.gz": "\)[a-fA-F0-9]+/\1${TARBALL_HASH}/g' "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json"
-ls ..
-cat ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json
-cat ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json
-ls ${MARINER_BUILD_ROOT}/SPECS
-ls ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge
-ls ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std
-ls ${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/SOURCES
-ls ${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES
-
+# TODO: Remove log level trace
 sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
+# TODO: Remove
+cat ${MARINER_BUILD_ROOT}/build/logs/pkggen/rpmbuilding/azure-iotedge-1.0.10.3-2.cm1.src.rpm.log
