@@ -26,6 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.Ignore("Out of scope test don't work while nested");
             }
 
+            if (protocol == Protocol.Amqp)
+            {
+                Assert.Ignore("Out of scope test don't work while nested");
+            }
+
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
