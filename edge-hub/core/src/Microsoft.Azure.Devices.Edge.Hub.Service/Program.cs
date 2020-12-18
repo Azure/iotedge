@@ -94,10 +94,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
+            ExperimentalFeatures experimentalFeatures = CreateExperimentalFeatures(configuration);
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
-            _ = configUpdater.Init(configSource).ContinueWith(
-                                                        _ => configUpdaterStartupFailed.SetResult(false),
-                                                        TaskContinuationOptions.OnlyOnFaulted);
+            var configDownloadTask = configUpdater.Init(configSource);
+
+            _ = configDownloadTask.ContinueWith(
+                                            _ => configUpdaterStartupFailed.SetResult(false),
+                                            TaskContinuationOptions.OnlyOnFaulted);
+
+            if (!ExperimentalFeatures.IsViaBrokerUpstream(
+                    experimentalFeatures,
+                    string.IsNullOrEmpty(configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname))))
+            {
+                await configDownloadTask;
+            }
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
@@ -109,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
+            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, experimentalFeatures, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
                 try
@@ -135,6 +145,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return 0;
         }
 
+        static ExperimentalFeatures CreateExperimentalFeatures(IConfigurationRoot configuration)
+        {
+            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
+            return experimentalFeatures;
+        }
+
         static void LogVersionInfo(ILogger logger)
         {
             VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
@@ -144,11 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
         }
 
-        static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
+        static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, ExperimentalFeatures experimentalFeatures, IContainer container, Hosting hosting)
         {
-            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
-
             var protocolHeads = new List<IProtocolHead>();
 
             // MQTT broker overrides the legacy MQTT protocol head
