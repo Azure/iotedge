@@ -47,6 +47,9 @@ jakkDyV11Q==
 -----END CERTIFICATE-----
 ";
 
+        public const string CertificateThumbprintSha1 = "4b763ae53da1f86112acb008cac657b8dd259e76";
+        public const string CertificateThumbprintSha256 = "1826331953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071";
+
         public const string PrivateKeyPem = @"-----BEGIN PRIVATE KEY-----
 MIIJQgIBADANBgkqhkiG9w0BAQEFAASCCSwwggkoAgEAAoICAQDaDQIZm/VDDbUf
 5/qmO6IQiKPteetPdonYo0hYOyfkK+9n99jQWO65ue5f2lU5RubjL8ewL8AtnHqQ

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iotedged-agent-config
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/name: iotedged-agent-config
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  appsettings_k8s.json: |-
+    {{ include "edge-kubernetes.agentconfig" . | fromYaml | toJson }}

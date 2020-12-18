@@ -4,6 +4,7 @@ use std::fs;
 
 use failure::ResultExt;
 use native_tls::{Certificate, TlsConnector};
+use openssl::x509::X509;
 use url::Url;
 
 use crate::{Error, ErrorKind, InitializeErrorReason, ServiceSettings};
@@ -51,10 +52,28 @@ pub fn get_config(settings: &ServiceSettings) -> Result<Config<ValueToken>, Erro
             InitializeErrorReason::ClientConfigReadFile(path.display().to_string()),
         ))?;
 
-        let cert = Certificate::from_pem(file.as_bytes())
-            .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
+        if file.is_empty() {
+            return Err(Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::ClientConfig,
+            )));
+        }
 
-        tls.add_root_certificate(cert);
+        let certs = X509::stack_from_pem(file.as_bytes())
+            .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
+        if certs.is_empty() {
+            // Expect this has at least one usable certificate
+            return Err(Error::from(ErrorKind::Initialize(
+                InitializeErrorReason::ClientConfig,
+            )));
+        }
+        for cert in certs {
+            let der = cert
+                .to_der()
+                .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
+            let cert = Certificate::from_der(&der)
+                .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
+            tls.add_root_certificate(cert);
+        }
     }
 
     Ok(Config::new(
@@ -169,7 +188,33 @@ mod tests {
     }
 
     #[test]
-    fn it_fails_to_load_config_if_cert_is_invalid() {
+    fn it_fails_to_load_config_if_cert_is_empty() {
+        let dir = TempDir::new().unwrap();
+
+        let token = dir.path().join("token");
+        fs::write(&token, "token").unwrap();
+
+        let cert = dir.path().join("cert.pem");
+        fs::write(&cert, "").unwrap();
+
+        let settings = ServiceSettings::new(
+            "management".to_owned(),
+            Url::parse("http://localhost:3000").unwrap(),
+            Url::parse("https://iotedged:30000").unwrap(),
+            Some(&cert),
+            &token,
+        );
+
+        let err = get_config(&settings).err().unwrap();
+
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::ClientConfig)
+        );
+    }
+
+    #[test]
+    fn it_fails_to_load_config_if_no_cert_delimiter() {
         let dir = TempDir::new().unwrap();
 
         let token = dir.path().join("token");
@@ -177,6 +222,32 @@ mod tests {
 
         let cert = dir.path().join("cert.pem");
         fs::write(&cert, "cert").unwrap();
+
+        let settings = ServiceSettings::new(
+            "management".to_owned(),
+            Url::parse("http://localhost:3000").unwrap(),
+            Url::parse("https://iotedged:30000").unwrap(),
+            Some(&cert),
+            &token,
+        );
+
+        let err = get_config(&settings).err().unwrap();
+
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::ClientConfig)
+        );
+    }
+
+    #[test]
+    fn it_fails_to_load_config_if_cert_is_invalid() {
+        let dir = TempDir::new().unwrap();
+
+        let token = dir.path().join("token");
+        fs::write(&token, "token").unwrap();
+
+        let cert = dir.path().join("cert.pem");
+        fs::write(&cert, "cert-----END CERTIFICATE-----").unwrap();
 
         let settings = ServiceSettings::new(
             "management".to_owned(),

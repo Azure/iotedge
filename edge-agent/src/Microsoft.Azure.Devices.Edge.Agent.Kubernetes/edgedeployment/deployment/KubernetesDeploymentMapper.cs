@@ -30,6 +30,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
+        readonly Option<V1ResourceRequirements> proxyResourceRequirements;
+        readonly Option<string> agentConfigMapName;
+        readonly Option<string> agentConfigPath;
+        readonly Option<string> agentConfigVolume;
+        readonly Option<V1ResourceRequirements> agentResourceRequirements;
         readonly PortMapServiceType defaultServiceType;
         readonly bool useMountSourceForVolumeName;
         readonly Option<string> storageClassName;
@@ -52,6 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
+            Option<V1ResourceRequirements> proxyResourceRequirements,
+            Option<string> agentConfigMapName,
+            Option<string> agentConfigPath,
+            Option<string> agentConfigVolume,
+            Option<V1ResourceRequirements> agentResourceRequirements,
             PortMapServiceType defaultServiceType,
             bool useMountSourceForVolumeName,
             string storageClassName,
@@ -73,6 +83,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
+            this.proxyResourceRequirements = proxyResourceRequirements;
+            this.agentConfigMapName = agentConfigMapName;
+            this.agentConfigPath = agentConfigPath;
+            this.agentConfigVolume = agentConfigVolume;
+            this.agentResourceRequirements = agentResourceRequirements;
             this.defaultServiceType = defaultServiceType;
             this.useMountSourceForVolumeName = useMountSourceForVolumeName;
             this.storageClassName = Option.Maybe(storageClassName);
@@ -120,6 +135,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 
+        bool? IsHostIpc(CreatePodParameters config) =>
+            config.HostConfig.FlatMap(h => Option.Maybe(h.IpcMode).Map(ipcMode => string.Compare(ipcMode, KubernetesConstants.HostIPC, true) == 0))
+                             .Match(i => i, () => default(bool?));
+
+        bool? IsHostNetwork(CreatePodParameters config) =>
+            config.HostConfig.FlatMap(h => Option.Maybe(h.NetworkMode).Map(networkMode => string.Compare(networkMode, KubernetesConstants.HostNetwork, true) == 0))
+                             .Match(i => i, () => default(bool?));
+
         V1PodTemplateSpec GetPod(string name, IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
@@ -130,6 +153,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var (proxyContainer, proxyVolumes) = this.PrepareProxyContainer(module);
             var (moduleContainer, moduleVolumes) = this.PrepareModuleContainer(name, identity, module);
+            bool? hostIpc = this.IsHostIpc(module.Config.CreateOptions);
+            bool? hostNetwork = this.IsHostNetwork(module.Config.CreateOptions);
+            string dnsPolicy = (hostNetwork ?? false) ? KubernetesConstants.HostNetworkDnsPolicy : default(string);
 
             var imagePullSecrets = new List<Option<string>> { this.proxyImagePullSecretName, module.Config.AuthConfig.Map(auth => auth.Name) }
                 .FilterMap()
@@ -157,7 +183,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     ImagePullSecrets = imagePullSecrets.Any() ? imagePullSecrets : null,
                     SecurityContext = securityContext,
                     ServiceAccountName = name,
-                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault()
+                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault(),
+                    HostIPC = hostIpc,
+                    HostNetwork = hostNetwork,
+                    DnsPolicy = dnsPolicy,
                 }
             };
         }
@@ -166,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         {
             List<V1EnvVar> env = this.CollectModuleEnv(module, identity);
 
-            (List<V1Volume> volumes, List<V1VolumeMount> volumeMounts) = this.CollectModuleVolumes(module);
+            (List<V1Volume> volumes, List<V1VolumeMount> volumeMounts) = this.CollectModuleVolumes(module, identity);
 
             Option<V1SecurityContext> securityContext = module.Config.CreateOptions.HostConfig
                 .Filter(config => config.Privileged)
@@ -174,6 +203,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             Option<List<V1ContainerPort>> exposedPorts = module.Config.CreateOptions.ExposedPorts
                 .Map(PortExtensions.GetContainerPorts);
+
+            Option<V1ResourceRequirements> resourceRequirements = this.PrepareModuleResourceRequirements(module, identity);
 
             var container = new V1Container
             {
@@ -183,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 VolumeMounts = volumeMounts,
                 SecurityContext = securityContext.OrDefault(),
                 Ports = exposedPorts.OrDefault(),
-                Resources = module.Config.CreateOptions.Resources.OrDefault(),
+                Resources = resourceRequirements.OrDefault(),
                 Command = module.Config.CreateOptions.Entrypoint.Map(list => list.ToList()).OrDefault(),
                 Args = module.Config.CreateOptions.Cmd.Map(list => list.ToList()).OrDefault(),
                 WorkingDir = module.Config.CreateOptions.WorkingDir.OrDefault(),
@@ -201,7 +232,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             envList.Add(new V1EnvVar(CoreConstants.IotHubHostnameVariableName, identity.IotHubHostname));
             envList.Add(new V1EnvVar(CoreConstants.EdgeletAuthSchemeVariableName, "sasToken"));
-            envList.Add(new V1EnvVar(Logger.RuntimeLogLevelEnvKey, Logger.GetLogLevel().ToString()));
+            if (!envList.Exists(e => e.Name == Logger.RuntimeLogLevelEnvKey))
+            {
+                envList.Add(new V1EnvVar(Logger.RuntimeLogLevelEnvKey, Logger.GetLogLevel().ToString()));
+            }
+
             envList.Add(new V1EnvVar(CoreConstants.EdgeletWorkloadUriVariableName, this.workloadUri.ToString()));
             if (identity.Credentials is IdentityProviderServiceCredentials creds)
             {
@@ -253,14 +288,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         }
 
         static IEnumerable<V1EnvVar> ParseEnv(IReadOnlyList<string> env) =>
-            env.Select(hostEnv => hostEnv.Split('='))
+            env.Select(hostEnv =>
+                {
+                    int index = hostEnv.IndexOf('=');
+                    return (index <= 0) ?
+                            Array.Empty<string>() :
+                            new string[] { hostEnv.Substring(0, index), hostEnv.Substring(index + 1) };
+                })
                 .Where(keyValue => keyValue.Length == 2)
                 .Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1]));
 
-        (List<V1Volume>, List<V1VolumeMount>) CollectModuleVolumes(KubernetesModule module)
+        (List<V1Volume>, List<V1VolumeMount>) CollectModuleVolumes(KubernetesModule module, IModuleIdentity identity)
         {
             var volumeList = new List<V1Volume>();
             var volumeMountList = new List<V1VolumeMount>();
+
+            if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
+            {
+                // If iotedged is new enough, edgeAgent now has a config map which needs
+                // to be mounted.
+                if (this.agentConfigMapName.HasValue &&
+                    this.agentConfigPath.HasValue &&
+                    this.agentConfigVolume.HasValue)
+                {
+                    var agentConfigVolume = this.agentConfigVolume.OrDefault();
+                    volumeList.Add(new V1Volume { Name = agentConfigVolume, ConfigMap = new V1ConfigMapVolumeSource(name: this.agentConfigMapName.OrDefault(), optional: true) });
+                    volumeMountList.Add(new V1VolumeMount { MountPath = this.agentConfigPath.OrDefault(), Name = agentConfigVolume, ReadOnlyProperty = true });
+                }
+            }
 
             // collect volumes and volume mounts from HostConfig.Binds section
             var binds = module.Config.CreateOptions.HostConfig
@@ -314,6 +369,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return (volumeList, volumeMountList);
         }
 
+        Option<V1ResourceRequirements> PrepareModuleResourceRequirements(KubernetesModule module, IModuleIdentity identity)
+        {
+            // All modules get their resource requirements from createOptions,
+            // but Agent has default resources to guarantee QoS if the user didn't set it.
+            if (!module.Config.CreateOptions.Resources.HasValue &&
+                string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
+            {
+                return this.agentResourceRequirements;
+            }
+
+            return module.Config.CreateOptions.Resources;
+        }
+
         (V1Container, List<V1Volume>) PrepareProxyContainer(KubernetesModule module)
         {
             var env = new List<V1EnvVar>
@@ -323,7 +391,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var volumeMounts = new List<V1VolumeMount>
             {
-                new V1VolumeMount { MountPath = this.proxyConfigPath, Name = this.proxyConfigVolumeName },
+                new V1VolumeMount { MountPath = this.proxyConfigPath, Name = this.proxyConfigVolumeName, ReadOnlyProperty = true },
                 new V1VolumeMount { MountPath = this.proxyTrustBundlePath, Name = this.proxyTrustBundleVolumeName }
             };
 
@@ -333,11 +401,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 new V1Volume { Name = this.proxyTrustBundleVolumeName, ConfigMap = new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName) }
             };
 
+            var resources = this.proxyResourceRequirements.OrDefault();
+
             var container = new V1Container
             {
                 Name = "proxy",
                 Env = env,
                 Image = this.proxyImage,
+                Resources = resources,
                 VolumeMounts = volumeMounts
             };
 

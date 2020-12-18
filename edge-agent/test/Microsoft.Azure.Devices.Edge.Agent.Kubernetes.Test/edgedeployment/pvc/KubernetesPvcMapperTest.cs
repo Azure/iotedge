@@ -66,7 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
         static readonly Dictionary<string, string> DefaultLabels = new Dictionary<string, string>
         {
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-            [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
         };
 
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
