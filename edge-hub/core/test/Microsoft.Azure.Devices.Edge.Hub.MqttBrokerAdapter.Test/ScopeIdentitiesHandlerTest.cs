@@ -99,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id });
 
             // Assert
+            capture.WhenCaptured().Wait();
+
             Assert.Equal(Topic, capture.Topic);
             brokerServiceIdentities = JsonConvert.DeserializeObject<IList<BrokerServiceIdentity>>(Encoding.UTF8.GetString(capture.Content));
             Assert.Equal(2, brokerServiceIdentities.Count);
