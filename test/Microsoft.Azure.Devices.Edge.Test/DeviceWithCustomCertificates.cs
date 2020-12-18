@@ -21,11 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
             CancellationToken token = this.TestToken;
-
+/*
             if (protocol == Protocol.Mqtt)
             {
                 Assert.Ignore("Out of scope test don't work while nested");
-            }
+            }*/
 
 testAuth = TestAuthenticationType.SasInScope;
 protocol = Protocol.Amqp;
