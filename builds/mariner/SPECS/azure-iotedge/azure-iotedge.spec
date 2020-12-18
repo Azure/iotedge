@@ -14,7 +14,6 @@ Release:        2%{?dist}
 
 #Source0:       https://github.com/Azure/iotedge/archive/%{version}.tar.gz
 Source0:        %{name}-%{version}.tar.gz
-#Source1:        %{name}-%{version}-cargo.tar.gz
 License:        MIT
 Group:          Applications/File
 URL:            https://github.com/azure/iotedge
