@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.Ignore("Out of scope test don't work while nested");
             }
 
-            if (protocol == Protocol.Amqp)
+            if (protocol == Protocol.Mqtt)
             {
                 Assert.Ignore("Out of scope test don't work while nested");
             }
