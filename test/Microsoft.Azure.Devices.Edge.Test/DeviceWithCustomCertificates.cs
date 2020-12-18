@@ -21,11 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
             CancellationToken token = this.TestToken;
-//@TODO remove
-if (testAuth == TestAuthenticationType.SasOutOfScope)
-{
-    Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
-}
 
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
