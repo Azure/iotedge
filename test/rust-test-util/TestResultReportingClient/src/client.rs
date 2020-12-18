@@ -2,7 +2,10 @@ use chrono::{DateTime, Utc};
 use hyper::{client::HttpConnector, Body, Client, Request};
 
 use crate::{
-    models::test_result::{TestOperationResultDto, TestResult, TestType},
+    models::{
+        message_result::MessageTestResult,
+        test_result_dto::{TestOperationResultDto, TestType},
+    },
     ReportResultError,
 };
 
@@ -26,7 +29,7 @@ impl TestResultReportingClient {
     pub async fn report_result(
         &self,
         source: String,
-        result: TestResult,
+        result: MessageTestResult,
         _type: TestType,
         created_at: DateTime<Utc>,
     ) -> Result<(), ReportResultError> {
