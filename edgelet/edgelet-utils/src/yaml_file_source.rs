@@ -116,26 +116,20 @@ fn from_yaml_value(uri: Option<&String>, value: Yaml) -> Result<Value, ConfigErr
 
             Ok(Value::new(uri, l))
         }
-
         // 1. Yaml NULL
         // 2. BadValue – It shouldn't be possible to hit BadValue as this only happens when
         //               using the index trait badly or on a type error but we send back nil.
         // 3. Alias – No idea what to do with this and there is a note in the lib that its
         //            not fully supported yet anyway
-        //
-        // The original function returns `Value::new(uri, ValueKind::Nil)` here.
-        // Since `ValueKind` is private, we have to return Err instead. It shouldn't be a problem for our use case
-        // since we don't expect null / bad value / alias.
-        value => Err(ConfigError::Foreign(Box::new(
-            YamlFileSourceError::UnrecognizedYamlValue(value),
-        ))),
+        // All of these return ValueKind::Nil in original, so use
+        //    Option::None to transform into ValueKind::Nil
+        _ => Ok(Value::new(uri, None::<String>)),
     }
 }
 
 #[derive(Debug)]
 enum YamlFileSourceError {
     MoreThanOneDocument,
-    UnrecognizedYamlValue(Yaml),
 }
 
 impl std::fmt::Display for YamlFileSourceError {
@@ -143,9 +137,6 @@ impl std::fmt::Display for YamlFileSourceError {
         match self {
             YamlFileSourceError::MoreThanOneDocument => {
                 write!(f, "more than one YAML document provided")
-            }
-            YamlFileSourceError::UnrecognizedYamlValue(value) => {
-                write!(f, "unrecognized YAML value {:?}", value)
             }
         }
     }

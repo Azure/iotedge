@@ -47,6 +47,8 @@ objects that will be created.
 | createOptions.HostConfig.Privileged | [Deployment](#podtemplate) |
 | createOptions.HostConfig.Binds | [Deployment](#podtemplate) |
 | createOptions.HostConfig.Mounts | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| createOptions.HostConfig.IpcMode | [Deployment](#podtemplate) |
+| createOptions.HostConfig.NetworkMode | [Deployment](#podtemplate) |
 | createOptions.HostConfig.ExposedPorts | [Service](#service) |
 | createOptions.HostConfig.PortBindings | [Service](#service) |
 
@@ -173,6 +175,9 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
     - volume mounts from `settings.k8s-extensions.volumes[*].volume`. Placed in spec as provided.
 - **serviceAccountName** = The module name, sanitized to be a K8s identifier. See [Module Authentication](rbac.md#module-authentication) for details.
 - **nodeSelector** = `settings.k8s-extensions.nodeSelector` Placed in spec as provided.
+- **hostIPC** = `settings.createOptions.HostConfig.IpcMode` if IpcMode=host, we will set hostIPC to true
+- **hostNetwork** = `settings.createOptions.HostConfig.NetworkMode` if NetworkMode=host, we will set hostNetwork to true
+- **dnsPolicy** = `settings.createOptions.HostConfig.NetworkMode` if NetworkMode=host, we will set hostNetwork to `ClusterFirstWithHostNet`
 
 ## Service
 ### metadata
@@ -184,9 +189,11 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
     - then `settings.createOptions.Lables` will be added to the service's annotations.
 
 ##### spec (ServiceSpec)
-- **type** = ClusterIP if only exposed ports (`settings.createOptions.HostConfig.ExposedPorts`) are 
-  set. If port bindings (`settings.createOptions.HostConfig.PortBindings`) are set, runtime will use
-  the default set by `portMappingServiceType` on runtime startup, default is ClusterIP.
+- **type** = Set according to this priority:
+     1. `type` from `settings.k8s-extensions.serviceOptions.type`. 
+     2. ClusterIP if only exposed ports (`settings.createOptions.HostConfig.ExposedPorts`) are set. 
+     3. If port bindings (`settings.createOptions.HostConfig.PortBindings`) are set, runtime will use the default set by `portMappingServiceType` on runtime startup, default is ClusterIP.
+- **loadBalancerIP** = `loadBalancerIP` from `settings.k8s-extensions.serviceOptions.loadBalancerIP`.
 - **ports** = a list of port bindings
     - **port** = Exposed port if source is `settings.createOptions.HostConfig.ExposedPorts`, 
       host port if source is `settings.createOptions.HostConfig.PortBindings`
@@ -253,3 +260,4 @@ Extensions available:
 - [Setting CPU and Memory limits](create-options.md#cpu-memory-and-device-resources)
 - [Assigning Modules to Nodes](create-options.md#assigning-modules-to-nodes)
 - [Applying Pod Security Context](create-options.md#apply-pod-security-context)
+- [Applying Service Options](create-options.md#apply-service-options)

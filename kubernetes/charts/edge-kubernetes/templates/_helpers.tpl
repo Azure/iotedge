@@ -60,42 +60,41 @@ agent:
   type: "docker"
   {{- if .Values.edgeAgent.env }}
   env:
-    {{- if .Values.edgeAgent.env.portMappingServiceType}}
-    PortMappingServiceType: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.backupConfigFilePath}}
-    BackupConfigFilePath: {{ .Values.edgeAgent.env.backupConfigFilePath | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
-    EnableK8sServiceCallTracing: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.runtimeLogLevel}}
-    RuntimeLogLevel: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
-    {{- $sizeInMb :=  .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb }}
-    PersistentVolumeClaimDefaultSizeInMb: {{- if kindIs "float64" $sizeInMb }} {{ printf "%.0f" $sizeInMb | quote }} {{- else }} {{ $sizeInMb | quote }} {{end}}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.upstreamProtocol}}
-    UpstreamProtocol: {{ .Values.edgeAgent.env.upstreamProtocol | quote }}
-    {{- end }}
     {{- if .Values.iotedged.data.httpsProxy }}
     https_proxy: {{ .Values.iotedged.data.httpsProxy | quote }}
     {{- end}}
-    {{- if .Values.edgeAgent.env.useMountSourceForVolumeName}}
-    UseMountSourceForVolumeName: {{ .Values.edgeAgent.env.useMountSourceForVolumeName | quote }}
+    {{- if .Values.iotedged.data.noProxy }}
+    no_proxy: {{ .Values.iotedged.data.noProxy | quote }}
+    {{- end}}
+    {{- range $envkey, $envval := .Values.edgeAgent.env }}
+    {{- if eq $envkey "portMappingServiceType"}}
+    PortMappingServiceType: {{ $envval | quote }}
+    {{- else if eq $envkey "backupConfigFilePath"}}
+    BackupConfigFilePath: {{ $envval | quote }}
+    {{- else if eq $envkey "enableK8sServiceCallTracing"}}
+    EnableK8sServiceCallTracing: {{ $envval | quote }}
+    {{- else if eq $envkey "runtimeLogLevel"}}
+    RuntimeLogLevel: {{ $envval | quote }}
+    {{- else if eq $envkey "persistentVolumeClaimDefaultSizeInMb"}}
+    {{- $sizeInMb :=  $envval }}
+    PersistentVolumeClaimDefaultSizeInMb: {{- if kindIs "float64" $sizeInMb }} {{ printf "%.0f" $sizeInMb | quote }} {{- else }} {{ $sizeInMb | quote }} {{end}}
+    {{- else if eq $envkey "upstreamProtocol"}}
+    UpstreamProtocol: {{ $envval | quote }}
+    {{- else if eq $envkey "useMountSourceForVolumeName"}}
+    UseMountSourceForVolumeName: {{ $envval | quote }}
+    {{- else if eq $envkey "storageClassName"}}
+    StorageClassName: {{- if (eq "-" $envval) }} "" {{- else }} {{ $envval | quote }} {{- end }}
+    {{- else if eq $envkey "enableExperimentalFeatures" }}
+    ExperimentalFeatures__Enabled: {{ $envval | quote }}
+    {{- else if eq $envkey "enableK8sExtensions" }}
+    ExperimentalFeatures__EnableK8SExtensions: {{ $envval | quote }}
+    {{- else if eq $envkey "sendRuntimeQualityTelemetry" }}
+    SendRuntimeQualityTelemetry: {{ $envval | quote }}
+    {{- else if eq $envkey "runAsNonRoot" }}
+    RunAsNonRoot: {{ $envval | quote }}
+    {{- else }}
+    {{ $envkey }}: {{$envval | quote }}
     {{- end }}
-    {{- if .Values.edgeAgent.env.storageClassName}}
-    StorageClassName: {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }} "" {{- else }} {{ .Values.edgeAgent.env.storageClassName | quote }} {{- end }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.enableExperimentalFeatures }}
-    ExperimentalFeatures__Enabled: {{ .Values.edgeAgent.env.enableExperimentalFeatures | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.enableK8sExtensions }}
-    ExperimentalFeatures__EnableK8SExtensions: {{ .Values.edgeAgent.env.enableK8sExtensions | quote }}
-    {{- end }}
-    {{- if .Values.edgeAgent.env.runAsNonRoot }}
-    RunAsNonRoot: {{ .Values.edgeAgent.env.runAsNonRoot | quote }}
     {{- end }}
   {{ else }}
   env: {}
@@ -123,6 +122,13 @@ listen:
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
 device_hub_selector: ""
+config_map_name: "iotedged-agent-config"
+config_path: "/etc/edgeAgent"
+config_map_volume: "agent-config-volume"
+{{- if .Values.edgeAgent.resources }}
+resources:
+{{ toYaml .Values.edgeAgent.resources | indent 2 }}
+{{- end }}
 proxy:
   image: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
   image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
@@ -138,6 +144,32 @@ proxy:
   config_path: "/etc/iotedge-proxy"
   trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
   trust_bundle_path: "/etc/trust-bundle"
+{{- if .Values.iotedgedProxy.resources }}
+  resources:
+{{ toYaml .Values.iotedgedProxy.resources | indent 4 }}
+{{- end }}
+{{ end }}
+
+{{/* Template for agent's configuration. */}}
+{{- define "edge-kubernetes.agentconfig" }}
+AgentConfigPath: "/etc/edgeAgent"
+AgentConfigMapName: "iotedged-agent-config"
+AgentConfigVolume: "agent-config-volume"
+ProxyImage: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
+ProxyConfigVolume: "config-volume"
+ProxyConfigMapName: "iotedged-proxy-config"
+ProxyConfigPath: "/etc/iotedge-proxy"
+ProxyTrustBundlePath: "/etc/trust-bundle"
+ProxyTrustBundleVolume: "trust-bundle-volume"
+ProxyTrustBundleConfigMapName: "iotedged-proxy-trust-bundle"
+{{- if .Values.iotedgedProxy.resources }}
+ProxyResourceRequests:
+{{ toYaml .Values.iotedgedProxy.resources | indent 2 }}
+{{- end }}
+{{- if .Values.edgeAgent.resources }}
+AgentResourceRequests:
+{{ toYaml .Values.edgeAgent.resources | indent 2 }}
+{{- end }}
 {{ end }}
 
 {{/* Template for rendering registry credentials. */}}

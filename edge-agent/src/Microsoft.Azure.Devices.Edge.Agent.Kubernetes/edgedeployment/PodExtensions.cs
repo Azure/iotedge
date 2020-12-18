@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, "Module Failed with Unknown container status"));
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Reason} with message: {status.Message}"));
                             }
 
                         case "Pending":
@@ -99,23 +99,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                                     {
                                         return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {c.State.Running.StartedAt}");
                                     }
-                                }).GetOrElse(() =>
-                                {
-                                    if (status.Conditions != null)
-                                    {
-                                        var lastTransitionTime = status.Conditions.Where(p => p.LastTransitionTime.HasValue).Max(p => p.LastTransitionTime);
-                                        var podConditions = status.Conditions.Where(p => p.LastTransitionTime == lastTransitionTime).Select(p => p).FirstOrDefault();
-                                        return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: {podConditions.Message} K8s reason: {podConditions.Reason}");
-                                    }
-                                    else
-                                    {
-                                        return new ReportedModuleStatus(ModuleStatus.Failed, "Module Failed with Unknown pod status");
-                                    }
-                                });
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed with container status Unknown More Info: K8s reason: {status.Reason} with message: {status.Message}"));
                             }
 
                         case "Unknown":
-                            return new ReportedModuleStatus(ModuleStatus.Unknown, $"Module status Unknown reason: {status.Reason} with message: {status.Message}");
+                            return new ReportedModuleStatus(ModuleStatus.Unknown, $"Module status Unknown reason: {status.Reason}");
                         case "Succeeded":
                             return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped reason: {status.Reason} with message: {status.Message}");
                         case "Failed":

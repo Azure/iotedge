@@ -237,27 +237,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 ]
 }";
 
+        const string CmdCreateOptionsLC =
+                    @"{
+""cmd"" : [
+  ""argument3"",
+  ""argument4""
+]
+}";
+
         [Fact]
         public void CmdEntryOptionsWillExist()
         {
             var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
-            var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", CmdCreateOptions, Option.None<NotaryContentTrust>()));
-            module.SetupGet(m => m.Name).Returns("mod1");
+            var module1 = new Mock<IModule<DockerConfig>>();
+            module1.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", CmdCreateOptions, Option.None<NotaryContentTrust>()));
+            module1.SetupGet(m => m.Name).Returns("mod1");
+            var module2 = new Mock<IModule<DockerConfig>>();
+            module2.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", CmdCreateOptionsLC, Option.None<NotaryContentTrust>()));
+            module2.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
 
             // Act
-            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config1 = provider.GetCombinedConfig(module1.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config2 = provider.GetCombinedConfig(module2.Object, runtimeInfo.Object);
 
             // Assert
-            Assert.True(config.CreateOptions.Cmd.HasValue);
-            config.CreateOptions.Cmd.ForEach(cmd =>
+            Assert.True(config1.CreateOptions.Cmd.HasValue);
+            config1.CreateOptions.Cmd.ForEach(cmd =>
             {
                 Assert.Equal("argument1", cmd[0]);
                 Assert.Equal("argument2", cmd[1]);
+            });
+            Assert.True(config2.CreateOptions.Cmd.HasValue);
+            config2.CreateOptions.Cmd.ForEach(cmd =>
+            {
+                Assert.Equal("argument3", cmd[0]);
+                Assert.Equal("argument4", cmd[1]);
             });
         }
 
@@ -267,6 +285,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
   ""a-command""
 ]
 }";
+        const string EntryPointCreateOptionsLC =
+            @"{
+""entrypoint"" : [
+  ""a-command2""
+]
+}";
 
         [Fact]
         public void EntrypointOptionsWillExist()
@@ -274,23 +298,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
-            var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", EntryPointCreateOptions, Option.None<NotaryContentTrust>()));
-            module.SetupGet(m => m.Name).Returns("mod1");
+            var module1 = new Mock<IModule<DockerConfig>>();
+            module1.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", EntryPointCreateOptions, Option.None<NotaryContentTrust>()));
+            module1.SetupGet(m => m.Name).Returns("mod1");
+            var module2 = new Mock<IModule<DockerConfig>>();
+            module2.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", EntryPointCreateOptionsLC, Option.None<NotaryContentTrust>()));
+            module2.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
 
             // Act
-            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config1 = provider.GetCombinedConfig(module1.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config2 = provider.GetCombinedConfig(module2.Object, runtimeInfo.Object);
 
             // Assert
-            Assert.True(config.CreateOptions.Entrypoint.HasValue);
-            config.CreateOptions.Entrypoint.ForEach(ep => Assert.Equal("a-command", ep[0]));
+            Assert.True(config1.CreateOptions.Entrypoint.HasValue);
+            config1.CreateOptions.Entrypoint.ForEach(ep => Assert.Equal("a-command", ep[0]));
+            Assert.True(config2.CreateOptions.Entrypoint.HasValue);
+            config2.CreateOptions.Entrypoint.ForEach(ep => Assert.Equal("a-command2", ep[0]));
         }
 
         const string WorkingDirCreateOptions =
     @"{
 ""WorkingDir"" : ""a-directory""
+}";
+        const string WorkingDirCreateOptionsLC =
+    @"{
+""workingdir"" : ""a-directory2""
 }";
 
         [Fact]
@@ -299,18 +333,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
-            var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", WorkingDirCreateOptions, Option.None<NotaryContentTrust>()));
-            module.SetupGet(m => m.Name).Returns("mod1");
+            var module1 = new Mock<IModule<DockerConfig>>();
+            module1.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", WorkingDirCreateOptions, Option.None<NotaryContentTrust>()));
+            module1.SetupGet(m => m.Name).Returns("mod1");
+            var module2 = new Mock<IModule<DockerConfig>>();
+            module2.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", WorkingDirCreateOptionsLC, Option.None<NotaryContentTrust>()));
+            module2.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
 
             // Act
-            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config1 = provider.GetCombinedConfig(module1.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config2 = provider.GetCombinedConfig(module2.Object, runtimeInfo.Object);
 
             // Assert
-            Assert.True(config.CreateOptions.WorkingDir.HasValue);
-            config.CreateOptions.WorkingDir.ForEach(wd => Assert.Equal("a-directory", wd));
+            Assert.True(config1.CreateOptions.WorkingDir.HasValue);
+            config1.CreateOptions.WorkingDir.ForEach(wd => Assert.Equal("a-directory", wd));
+            Assert.True(config2.CreateOptions.WorkingDir.HasValue);
+            config2.CreateOptions.WorkingDir.ForEach(wd => Assert.Equal("a-directory2", wd));
         }
 
         const string InvalidCmdCreateOptions =

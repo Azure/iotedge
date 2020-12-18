@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 new object[]
                 {
                     CreatePodWithPodParametersOnly("Unknown", "Unknown", "Unknown"),
-                    "Module status Unknown reason: Unknown with message: Unknown",
+                    "Module status Unknown reason: Unknown",
                     ModuleStatus.Unknown
                 },
                 new object[]
@@ -282,54 +282,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Assert.NotEqual("unknown:unknown", config.Config.Image);
                 }
             }
-        }
-
-        [Fact]
-        public async Task ReturnModuleStatusWithPodConditionsWhenThereAreNoContainers()
-        {
-            var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
-            V1Pod pod = CreatePodWithPodParametersOnly("Pending", string.Empty, string.Empty);
-            pod.Status.Conditions = new List<V1PodCondition>()
-            {
-                new V1PodCondition
-                {
-                    LastTransitionTime = new DateTime(2020, 02, 05, 10, 10, 10),
-                    Message = "Ready",
-                    Reason = "Scheduling",
-                },
-                new V1PodCondition
-                {
-                    LastTransitionTime = new DateTime(2020, 02, 05, 10, 10, 15),
-                    Message = "persistentvolumeclaim module-a-pvc not found",
-                    Reason = "Unschedulable",
-                }
-            };
-            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
-            string expectedDescription = "Module Failed with container status Unknown More Info: persistentvolumeclaim module-a-pvc not found K8s reason: Unschedulable";
-
-            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
-
-            Assert.Equal(ModuleStatus.Failed, info.ModuleStatus);
-            Assert.Equal(expectedDescription, info.Description);
-        }
-
-        [Fact]
-        public async Task ReturnModuleStatusWithPodConditionsIsEmpty()
-        {
-            var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
-            V1Pod pod = CreatePodWithPodParametersOnly("Pending", string.Empty, string.Empty);
-            pod.Status.Conditions = null;
-            runtimeInfo.CreateOrUpdateAddPodInfo(pod);
-            string expectedDescription = "Module Failed with Unknown pod status";
-
-            ModuleRuntimeInfo info = (await runtimeInfo.GetModules(CancellationToken.None)).Single();
-
-            Assert.Equal(ModuleStatus.Failed, info.ModuleStatus);
-            Assert.Equal(expectedDescription, info.Description);
         }
 
         [Theory]
