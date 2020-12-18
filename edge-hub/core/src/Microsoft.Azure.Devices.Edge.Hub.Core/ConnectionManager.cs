@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
-            Util.Metrics.MetricsV0.RegisterGaugeCallback(() => MetricsV0.SetConnectedClientCountGauge(this));
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
 
@@ -132,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             hasChanged = old != true;
                             return true;
                         });
-                    });
+                });
 
             return hasChanged;
         }
@@ -602,7 +601,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 // Subtract EdgeHub from the list of connected clients
                 int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
-                Util.Metrics.MetricsV0.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
         }
 
