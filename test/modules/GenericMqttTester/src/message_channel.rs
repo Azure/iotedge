@@ -3,7 +3,7 @@ use futures_util::{
     future::{self, Either},
     stream::StreamExt,
 };
-use mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
@@ -13,23 +13,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TestResultReportingClient};
 
-use crate::{MessageTesterError, BACKWARDS_TOPIC, RECEIVE_SOURCE};
-
-#[derive(Debug, Clone)]
-pub struct MessageChannelShutdownHandle(Sender<()>);
-
-impl MessageChannelShutdownHandle {
-    pub fn new(sender: Sender<()>) -> Self {
-        Self(sender)
-    }
-
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
-        self.0
-            .send(())
-            .await
-            .map_err(MessageTesterError::SendShutdownSignal)
-    }
-}
+use crate::{MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, RECEIVE_SOURCE};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -124,7 +108,7 @@ impl MessageHandler for RelayingMessageHandler {
 pub struct MessageChannel<H: ?Sized + MessageHandler + Send> {
     publication_sender: UnboundedSender<ReceivedPublication>,
     publication_receiver: UnboundedReceiver<ReceivedPublication>,
-    shutdown_handle: MessageChannelShutdownHandle,
+    shutdown_handle: ShutdownHandle,
     shutdown_recv: Receiver<()>,
     message_handler: Box<H>,
 }
@@ -137,7 +121,7 @@ where
         let (publication_sender, publication_receiver) =
             mpsc::unbounded_channel::<ReceivedPublication>();
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
-        let shutdown_handle = MessageChannelShutdownHandle::new(shutdown_send);
+        let shutdown_handle = ShutdownHandle::new(shutdown_send);
 
         Self {
             publication_sender,
@@ -181,7 +165,7 @@ where
         self.publication_sender.clone()
     }
 
-    pub fn shutdown_handle(&self) -> MessageChannelShutdownHandle {
+    pub fn shutdown_handle(&self) -> ShutdownHandle {
         self.shutdown_handle.clone()
     }
 }
