@@ -16,16 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [Test]
-        public async Task TransparentGateway(
-            [Values] TestAuthenticationType testAuth,
-            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
+        public async Task TransparentGateway()
         {
             CancellationToken token = this.TestToken;
 
-            if (testAuth == TestAuthenticationType.SasOutOfScope)
-            {
-                Assert.Ignore("Out of scope test don't work while nested");
-            }
+            TestAuthenticationType testAuth = TestAuthenticationType.SasInScope;
+            Protocol protocol = Protocol.Amqp;
 
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
