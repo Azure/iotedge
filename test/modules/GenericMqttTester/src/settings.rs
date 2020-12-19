@@ -9,6 +9,8 @@ pub const DEFAULTS: &str = include_str!("../config/default.json");
 pub struct Settings {
     test_scenario: TestScenario,
     test_result_coordinator_url: String,
+    tracking_id: String,
+    batch_id: String,
 }
 
 impl Settings {
@@ -41,6 +43,14 @@ impl Settings {
     pub fn test_result_coordinator_url(&self) -> &String {
         &self.test_result_coordinator_url
     }
+
+    pub fn tracking_id(&self) -> &String {
+        &self.tracking_id
+    }
+
+    pub fn batch_id(&self) -> &String {
+        &self.batch_id
+    }
 }
 
 impl<'de> serde::Deserialize<'de> for Settings {
@@ -52,15 +62,21 @@ impl<'de> serde::Deserialize<'de> for Settings {
         struct Inner {
             test_scenario: TestScenario,
             test_result_coordinator_url: String,
+            tracking_id: String,
+            batch_id: String,
         }
         let Inner {
             test_scenario,
             test_result_coordinator_url,
+            tracking_id,
+            batch_id,
         } = serde::Deserialize::deserialize(deserializer)?;
 
         Ok(Settings {
             test_scenario,
             test_result_coordinator_url,
+            tracking_id,
+            batch_id,
         })
     }
 }

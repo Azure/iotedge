@@ -382,6 +382,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes 0.5.6",
+ "chrono",
  "config",
  "edgelet-client",
  "futures-util",

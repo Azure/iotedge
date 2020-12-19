@@ -11,9 +11,9 @@ use mqtt3::{
     proto::{Publication, QoS},
     PublishHandle, ReceivedPublication,
 };
-use trc_client::TestResultReportingClient;
+use trc_client::{MessageTestResult, TestResultReportingClient};
 
-use crate::{MessageTesterError, BACKWARDS_TOPIC};
+use crate::{MessageTesterError, BACKWARDS_TOPIC, RECEIVE_SOURCE};
 
 #[derive(Debug, Clone)]
 pub struct MessageChannelShutdownHandle(Sender<()>);
@@ -41,11 +41,21 @@ pub trait MessageHandler {
 /// Responsible for receiving publications and reporting result to the Test Result Coordinator.
 pub struct ReportResultMessageHandler {
     reporting_client: TestResultReportingClient,
+    tracking_id: String,
+    batch_id: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(reporting_client: TestResultReportingClient) -> Self {
-        Self { reporting_client }
+    pub fn new(
+        reporting_client: TestResultReportingClient,
+        tracking_id: String,
+        batch_id: String,
+    ) -> Self {
+        Self {
+            reporting_client,
+            tracking_id,
+            batch_id,
+        }
     }
 }
 
@@ -55,7 +65,21 @@ impl MessageHandler for ReportResultMessageHandler {
         &mut self,
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
-        info!("should send result to TRC, but not implemented yet");
+        let sequence_number: u32 = serde_json::from_slice(&received_publication.payload)
+            .map_err(MessageTesterError::DeserializeMessage)?;
+        let result = MessageTestResult::new(
+            self.tracking_id.clone(),
+            self.batch_id.clone(),
+            sequence_number,
+        );
+
+        let _type = trc_client::TestType::Messages;
+        let created_at = chrono::Utc::now();
+        self.reporting_client
+            .report_result(RECEIVE_SOURCE.to_string(), result, _type, created_at)
+            .await
+            .map_err(MessageTesterError::ReportResult)?;
+
         Ok(())
     }
 }

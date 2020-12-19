@@ -10,6 +10,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 bytes = "0.5"
 config = { version = "0.10", features = ["json"], default-features = false }
+chrono = "0.4"
 futures-util = "0.3"
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["rt-util", "rt-threaded", "macros", "signal"] }

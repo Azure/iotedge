@@ -89,8 +89,14 @@ impl MessageTester {
 
         let test_result_coordinator_url = settings.test_result_coordinator_url().to_string();
         let reporting_client = TestResultReportingClient::new(test_result_coordinator_url);
+        let tracking_id = settings.tracking_id().clone();
+        let batch_id = settings.batch_id().clone();
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(reporting_client)),
+            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(
+                reporting_client,
+                tracking_id,
+                batch_id,
+            )),
             TestScenario::Relay => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
         };
         let message_channel = MessageChannel::new(message_handler);
