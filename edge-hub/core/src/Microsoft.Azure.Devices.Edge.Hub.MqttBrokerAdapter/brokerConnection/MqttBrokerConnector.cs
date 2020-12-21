@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void TriggerReconnect(object sender, EventArgs e)
         {
-            Task.Run(async () =>
+            Task.Factory.StartNew(async () =>
             {
                 if (this.isRetrying.GetAndSet(true))
                 {
@@ -281,12 +281,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     // let's trigger it manually - if started twice, that is not a problem
                     this.TriggerReconnect(this, new EventArgs());
                 }
-            });
+            },
+            TaskCreationOptions.LongRunning);
         }
 
         Task StartForwardingLoop()
         {
-            var loopTask = Task.Run(
+            var loopTask = Task.Factory.StartNew(
                                 async () =>
                                 {
                                     Events.ForwardingLoopStarted();
@@ -330,7 +331,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                     }
 
                                     Events.ForwardingLoopStopped();
-                                });
+                                },
+                                TaskCreationOptions.LongRunning);
 
             return loopTask;
 
