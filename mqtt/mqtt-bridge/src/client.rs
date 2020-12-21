@@ -104,9 +104,9 @@ impl BridgeIoSource {
                 Error::new(ErrorKind::Other, format!("failed to connect: {}", err))
             })?;
 
-            if let Some(pass) = password.as_ref() {
-                validate_length(pass).map_err(|_| {
-                    error!("password too long");
+            if let Some(pass) = &password {
+                validate_length(pass).map_err(|e| {
+                    error!(error = %e, "password too long");
                     ErrorKind::InvalidInput
                 })?;
             }
@@ -148,8 +148,8 @@ impl BridgeIoSource {
                     })?;
 
             if let Some(pass) = password.as_ref() {
-                validate_length(pass).map_err(|_| {
-                    error!("password too long");
+                validate_length(pass).map_err(|e| {
+                    error!(error = %e, "password too long");
                     ErrorKind::InvalidInput
                 })?;
             }

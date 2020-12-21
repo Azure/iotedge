@@ -70,7 +70,7 @@ pub type BrokerReadySignal = ready::BrokerReadySignal<ready::BrokerReadyEvent>;
 pub type BrokerReadyHandle = ready::BrokerReadyHandle<ready::BrokerReadyEvent>;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct ClientId(Arc<String>);
+pub struct ClientId(Arc<str>);
 
 impl ClientId {
     pub fn as_str(&self) -> &str {
@@ -78,9 +78,9 @@ impl ClientId {
     }
 }
 
-impl<T: Into<String>> From<T> for ClientId {
-    fn from(s: T) -> ClientId {
-        ClientId(Arc::new(s.into()))
+impl<T: AsRef<str>> From<T> for ClientId {
+    fn from(id: T) -> Self {
+        Self(id.as_ref().into())
     }
 }
 
