@@ -35,13 +35,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCase(Protocol.Amqp, true)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol, bool brokerOn)
         {
-<<<<<<< HEAD
             if (Context.Current.NestedEdge && protocol == Protocol.Mqtt && brokerOn)
             {
                 Assert.Ignore("MQTT Bridge does not support Plug and Play yet");
             }
-=======
->>>>>>> 0cf329bbd... PlugAndPlay E2E test cleanup (#4064)
+
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -54,7 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                 },
-                token, Context.Current.NestedEdge);
+                token,
+                Context.Current.NestedEdge);
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
@@ -93,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Assert.Ignore("MQTT Bridge does not support Plug and Play yet");
             }
+
             CancellationToken token = this.TestToken;
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -113,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("modelId", TestModelId)
                     });
                 },
-                token, Context.Current.NestedEdge);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);

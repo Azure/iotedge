@@ -141,9 +141,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
-                //Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
-                e => {
-                    if( e is KeyNotFoundException)
+                // Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
+                e =>
+                {
+                    if (e is KeyNotFoundException)
                     {
                         Log.Information("The device has not yet repported all the keys, retrying:" + e);
                         return true;
@@ -151,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     else
                     {
                         return false;
-                    }     
+                    }
                 },
                 TimeSpan.FromSeconds(5),
                 token);
@@ -232,15 +233,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // comparand equals reference if, for each json value in reference:
             // - comparand has a json value with the same path
             // - the json values match
-            bool match = referenceValues.All(kvp => {
-                Log.Information("Comparing: " + kvp.Key.ToString());
-                Log.Information("ref: " + kvp.Value.ToString());
-                Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
+            bool match = referenceValues.All(
+                kvp =>
+                {
+                    Log.Information("Comparing: " + kvp.Key.ToString());
+                    Log.Information("ref: " + kvp.Value.ToString());
+                    Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
 
-                return comparandValues.ContainsKey(kvp.Key) &&
-                    kvp.Value.Equals(comparandValues[kvp.Key]);
-                }
-            );
+                    return comparandValues.ContainsKey(kvp.Key) &&
+                        kvp.Value.Equals(comparandValues[kvp.Key]);
+                });
 
             if (!match)
             {
