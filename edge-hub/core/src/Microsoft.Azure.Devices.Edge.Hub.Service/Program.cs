@@ -122,8 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 try
                 {
                     await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), configDownloadTask);
-                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled(), configUpdaterStartupFailed.Task);
                     await edgeHubProtocolHead.StartAsync();
+                    await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled(), configUpdaterStartupFailed.Task);
                 }
                 catch (Exception ex)
                 {
@@ -161,8 +161,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(ExperimentalFeatures experimentalFeatures, IContainer container)
         {
-            if (!experimentalFeatures.EnableMqttBroker) return EmptyProtocolHead.GetInstance();
-            
+            if (!experimentalFeatures.EnableMqttBroker)
+            {
+                return EmptyProtocolHead.GetInstance();
+            }
+
             var orderedProtocolHeads = new List<IProtocolHead>();
             orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
             orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
