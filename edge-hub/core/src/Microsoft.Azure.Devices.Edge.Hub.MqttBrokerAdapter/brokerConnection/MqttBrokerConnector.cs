@@ -224,39 +224,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void TriggerReconnect(object sender, EventArgs e)
         {
-            Task.Factory.StartNew(async () =>
-            {
-                if (this.isRetrying.GetAndSet(true))
+            Task.Factory.StartNew(
+                async () =>
                 {
-                    return;
-                }
-
-                var client = default(MqttClient);
-
-                try
-                {
-                    lock (this.guard)
+                    if (this.isRetrying.GetAndSet(true))
                     {
-                        if (!this.mqttClient.HasValue)
-                        {
-                            return;
-                        }
-
-                        client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                        return;
                     }
 
-                    // don't trigger it to ourselves while we are trying
-                    client.ConnectionClosed -= this.TriggerReconnect;
+                    var client = default(MqttClient);
 
-                    var isConnected = false;
-
-                    while (!isConnected)
+                    try
                     {
-                        await Task.Delay(ReconnectDelayMs);
-
                         lock (this.guard)
                         {
-                            // seems Disconnect has been called since.
                             if (!this.mqttClient.HasValue)
                             {
                                 return;
@@ -265,24 +246,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
                         }
 
-                        isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                        // don't trigger it to ourselves while we are trying
+                        client.ConnectionClosed -= this.TriggerReconnect;
+
+                        var isConnected = false;
+
+                        while (!isConnected)
+                        {
+                            await Task.Delay(ReconnectDelayMs);
+
+                            lock (this.guard)
+                            {
+                                // seems Disconnect has been called since.
+                                if (!this.mqttClient.HasValue)
+                                {
+                                    return;
+                                }
+
+                                client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                            }
+
+                            isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                        }
+
+                        client.ConnectionClosed += this.TriggerReconnect;
+                    }
+                    finally
+                    {
+                        this.isRetrying.Set(false);
                     }
 
-                    client.ConnectionClosed += this.TriggerReconnect;
-                }
-                finally
-                {
-                    this.isRetrying.Set(false);
-                }
-
-                if (!client.IsConnected)
-                {
-                    // at this point it is not known that 'TriggerReconnect' was subscribed in time,
-                    // let's trigger it manually - if started twice, that is not a problem
-                    this.TriggerReconnect(this, new EventArgs());
-                }
-            },
-            TaskCreationOptions.LongRunning);
+                    if (!client.IsConnected)
+                    {
+                        // at this point it is not known that 'TriggerReconnect' was subscribed in time,
+                        // let's trigger it manually - if started twice, that is not a problem
+                        this.TriggerReconnect(this, new EventArgs());
+                    }
+                },
+                TaskCreationOptions.LongRunning);
         }
 
         Task StartForwardingLoop()
