@@ -264,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             // capabilities will remain lowercase because there is no backward compatibility issue for those properties supported after 1.0.9
             string createOptions = "{\"HostConfig\":{\"portBindings\":{\"8883/tcp\":[{\"hostPort\":\"8883\"}]},\"Devices\":[],\"runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
             var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<string>()));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions, Option.None<NotaryContentTrust>()));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
