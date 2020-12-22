@@ -33,19 +33,19 @@ impl WellFormedConfig {
         //
         // So we first try to open the file for reading ourselves.
         if let Err(err) = File::open(config_file) {
-            if err.kind() == std::io::ErrorKind::PermissionDenied {
-                return Ok(CheckResult::Fatal(
+            return if err.kind() == std::io::ErrorKind::PermissionDenied {
+                Ok(CheckResult::Fatal(
                     err.context(format!(
                         "Could not open file {}. You might need to run this command as root.",
                         config_file.display(),
                     ))
                     .into(),
-                ));
+                ))
             } else {
-                return Err(err
+                Err(err
                     .context(format!("Could not open file {}", config_file.display()))
-                    .into());
-            }
+                    .into())
+            };
         }
 
         let settings = match Settings::new(config_file) {

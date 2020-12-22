@@ -319,6 +319,9 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value"),
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
+                args.value_of_os("aziot-bin")
+                    .expect("arg has a default value")
+                    .to_os_string(),
             );
 
             tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)

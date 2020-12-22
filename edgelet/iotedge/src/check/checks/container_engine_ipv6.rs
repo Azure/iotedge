@@ -55,10 +55,10 @@ impl ContainerEngineIPv6 {
         let daemon_config_file = match daemon_config_file {
             Ok(daemon_config_file) => daemon_config_file,
             Err(err) => {
-                if is_edge_ipv6_configured {
-                    return Err(err.context(MESSAGE).into());
+                return if is_edge_ipv6_configured {
+                    Err(err.context(MESSAGE).into())
                 } else {
-                    return Ok(CheckResult::Ignored);
+                    Ok(CheckResult::Ignored)
                 }
             }
         };

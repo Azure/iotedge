@@ -39,6 +39,7 @@ pub struct Check {
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
+    aziot_bin: std::ffi::OsString,
 
     additional_info: AdditionalInfo,
 
@@ -90,6 +91,7 @@ impl Check {
         output_format: OutputFormat,
         verbose: bool,
         warnings_as_errors: bool,
+        aziot_bin: std::ffi::OsString,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_aziot_edged_version) =
             expected_aziot_edged_version
@@ -195,6 +197,7 @@ impl Check {
                 output_format,
                 verbose,
                 warnings_as_errors,
+                aziot_bin,
 
                 additional_info: AdditionalInfo::new(),
 
@@ -312,9 +315,26 @@ impl Check {
         Ok(())
     }
 
+    fn output_section(&self, section_name: &str) {
+        if self.output_format == OutputFormat::Text {
+            println!();
+            println!("{}", section_name);
+            println!("{}", "-".repeat(section_name.len()));
+        }
+    }
+
     pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
-        let mut checks: BTreeMap<&str, CheckOutputSerializable> = Default::default();
-        let mut check_data = checks::built_in_checks();
+        // heterogeneous type representing the output of a check, regardless of
+        // whether or not it is built-in, or parsed from `aziot check`
+        #[derive(Debug)]
+        struct CheckOutput {
+            id: String,
+            description: String,
+            result: CheckResult,
+            additional_info: serde_json::Value,
+        };
+
+        let mut checks: BTreeMap<String, CheckOutputSerializable> = Default::default();
 
         let mut stdout = Stdout::new(self.output_format);
 
@@ -324,190 +344,319 @@ impl Check {
         let mut num_fatal = 0_usize;
         let mut num_errors = 0_usize;
 
-        for (section_name, section_checks) in &mut check_data {
+        let mut output_check = |check: CheckOutput,
+                                verbose: bool,
+                                warnings_as_errors: bool|
+         -> Result<bool, Error> {
             if num_fatal > 0 {
-                break;
+                return Ok(true);
             }
 
-            if self.output_format == OutputFormat::Text {
-                println!("{}", section_name);
-                println!("{}", "-".repeat(section_name.len()));
-            }
+            let CheckOutput {
+                id: check_id,
+                description: check_name,
+                result: check_result,
+                additional_info,
+                ..
+            } = check;
 
-            for check in section_checks {
-                let check_id = check.id();
-                let check_name = check.description();
+            match check_result {
+                CheckResult::Ok => {
+                    num_successful += 1;
 
-                if num_fatal > 0 {
-                    break;
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Ok,
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_success(|stdout| {
+                        writeln!(stdout, "\u{221a} {} - OK", check_name)?;
+                        Ok(())
+                    });
                 }
 
+                CheckResult::Warning(ref warning) if !warnings_as_errors => {
+                    num_warnings += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Warning {
+                                details: warning.iter_chain().map(ToString::to_string).collect(),
+                            },
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_warning(|stdout| {
+                        writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+
+                        let message = warning.to_string();
+
+                        write_lines(stdout, "    ", "    ", message.lines())?;
+
+                        if verbose {
+                            for cause in warning.iter_causes() {
+                                write_lines(
+                                    stdout,
+                                    "        caused by: ",
+                                    "                   ",
+                                    cause.to_string().lines(),
+                                )?;
+                            }
+                        }
+
+                        Ok(())
+                    });
+                }
+
+                CheckResult::Ignored => {
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Ignored,
+                            additional_info,
+                        },
+                    );
+                }
+
+                CheckResult::Skipped => {
+                    num_skipped += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Skipped,
+                            additional_info,
+                        },
+                    );
+
+                    if verbose {
+                        stdout.write_warning(|stdout| {
+                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+                            writeln!(stdout, "    skipping because of previous failures")?;
+                            Ok(())
+                        });
+                    }
+                }
+
+                CheckResult::Fatal(err) => {
+                    num_fatal += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Fatal {
+                                details: err.iter_chain().map(ToString::to_string).collect(),
+                            },
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_error(|stdout| {
+                        writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+
+                        let message = err.to_string();
+
+                        write_lines(stdout, "    ", "    ", message.lines())?;
+
+                        if verbose {
+                            for cause in err.iter_causes() {
+                                write_lines(
+                                    stdout,
+                                    "        caused by: ",
+                                    "                   ",
+                                    cause.to_string().lines(),
+                                )?;
+                            }
+                        }
+
+                        Ok(())
+                    });
+                }
+
+                CheckResult::Warning(err) | CheckResult::Failed(err) => {
+                    num_errors += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Error {
+                                details: err.iter_chain().map(ToString::to_string).collect(),
+                            },
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_error(|stdout| {
+                        writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+
+                        let message = err.to_string();
+
+                        write_lines(stdout, "    ", "    ", message.lines())?;
+
+                        if verbose {
+                            for cause in err.iter_causes() {
+                                write_lines(
+                                    stdout,
+                                    "        caused by: ",
+                                    "                   ",
+                                    cause.to_string().lines(),
+                                )?;
+                            }
+                        }
+
+                        Ok(())
+                    });
+                }
+            }
+
+            Ok(false)
+        };
+
+        // run the aziot checks first
+        {
+            #[derive(Debug, serde::Deserialize)]
+            #[serde(tag = "kind")]
+            #[serde(rename_all = "snake_case")]
+            enum CheckResultsSerializableStreaming {
+                AdditionalInfo(serde_json::Value),
+                Section {
+                    name: String,
+                },
+                Check {
+                    id: String,
+                    description: String,
+                    result: CheckResultSerializable,
+                    additional_info: serde_json::Value,
+                },
+            }
+
+            fn to_check_result(res: CheckResultSerializable) -> CheckResult {
+                fn vec_to_err(mut v: Vec<String>) -> failure::Error {
+                    let mut err =
+                        failure::err_msg(v.pop().expect("errors always have at least one source"));
+                    while let Some(s) = v.pop() {
+                        err = err.context(s).into();
+                    }
+                    err
+                }
+
+                match res {
+                    CheckResultSerializable::Ok => CheckResult::Ok,
+                    CheckResultSerializable::Warning { details } => {
+                        CheckResult::Warning(vec_to_err(details))
+                    }
+                    CheckResultSerializable::Ignored => CheckResult::Ignored,
+                    CheckResultSerializable::Skipped => CheckResult::Skipped,
+                    CheckResultSerializable::Fatal { details } => {
+                        CheckResult::Fatal(vec_to_err(details))
+                    }
+                    CheckResultSerializable::Error { details } => {
+                        CheckResult::Failed(vec_to_err(details))
+                    }
+                }
+            }
+
+            let mut aziot_check = std::process::Command::new(&self.aziot_bin);
+            aziot_check
+                .arg("check")
+                .arg("-o=json-stream")
+                .stdout(std::process::Stdio::piped());
+
+            if !self.dont_run.is_empty() {
+                aziot_check
+                    .arg("--dont-run")
+                    .arg(self.dont_run.iter().cloned().collect::<Vec<_>>().join(" "));
+            }
+
+            match aziot_check.spawn() {
+                Err(err) => {
+                    // not being able to access aziot is bad... but we shouldn't fail here,
+                    // as the user may still want to run other iotedge specific checks.
+                    //
+                    // nonetheless, we still need to notify the user that the aziot checks
+                    // could not be run.
+                    self.output_section("(aziot)");
+                    output_check(
+                        CheckOutput {
+                            id: "(aziot-error)".into(),
+                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
+                            additional_info: serde_json::Value::Null,
+                        },
+                        self.verbose,
+                        self.warnings_as_errors,
+                    )?;
+                }
+                Ok(child) => {
+                    for val in serde_json::Deserializer::from_reader(child.stdout.unwrap())
+                        .into_iter::<CheckResultsSerializableStreaming>()
+                    {
+                        let val = val.context(ErrorKind::Aziot)?;
+                        match val {
+                            CheckResultsSerializableStreaming::Section { name } => {
+                                self.output_section(&format!("{} (aziot)", name))
+                            }
+                            CheckResultsSerializableStreaming::Check {
+                                id,
+                                description,
+                                result,
+                                additional_info,
+                            } => {
+                                if output_check(
+                                    CheckOutput {
+                                        id,
+                                        description,
+                                        result: to_check_result(result),
+                                        additional_info,
+                                    },
+                                    self.verbose,
+                                    self.warnings_as_errors,
+                                )? {
+                                    break;
+                                }
+                            }
+                            CheckResultsSerializableStreaming::AdditionalInfo(info) => {
+                                // try to extract iothub_hostname from additional_info
+                                self.iothub_hostname = info
+                                    .as_object()
+                                    .and_then(|m| m.get("iothub_hostname"))
+                                    .and_then(serde_json::Value::as_str)
+                                    .map(Into::into)
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        // run the built-in checks
+        'outer: for (section_name, section_checks) in &mut checks::built_in_checks() {
+            self.output_section(&section_name);
+
+            for check in section_checks {
                 let check_result = if self.dont_run.contains(check.id()) {
                     CheckResult::Ignored
                 } else {
                     check.execute(self, runtime)
                 };
 
-                match check_result {
-                    CheckResult::Ok => {
-                        num_successful += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Ok,
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_success(|stdout| {
-                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
-                            Ok(())
-                        });
-                    }
-
-                    CheckResult::Warning(ref warning) if !self.warnings_as_errors => {
-                        num_warnings += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Warning {
-                                    details: warning
-                                        .iter_chain()
-                                        .map(ToString::to_string)
-                                        .collect(),
-                                },
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_warning(|stdout| {
-                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
-
-                            let message = warning.to_string();
-
-                            write_lines(stdout, "    ", "    ", message.lines())?;
-
-                            if self.verbose {
-                                for cause in warning.iter_causes() {
-                                    write_lines(
-                                        stdout,
-                                        "        caused by: ",
-                                        "                   ",
-                                        cause.to_string().lines(),
-                                    )?;
-                                }
-                            }
-
-                            Ok(())
-                        });
-                    }
-
-                    CheckResult::Ignored => {
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Ignored,
-                                additional_info: check.get_json(),
-                            },
-                        );
-                    }
-
-                    CheckResult::Skipped => {
-                        num_skipped += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Skipped,
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        if self.verbose {
-                            stdout.write_warning(|stdout| {
-                                writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
-                                writeln!(stdout, "    skipping because of previous failures")?;
-                                Ok(())
-                            });
-                        }
-                    }
-
-                    CheckResult::Fatal(err) => {
-                        num_fatal += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Fatal {
-                                    details: err.iter_chain().map(ToString::to_string).collect(),
-                                },
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
-
-                            let message = err.to_string();
-
-                            write_lines(stdout, "    ", "    ", message.lines())?;
-
-                            if self.verbose {
-                                for cause in err.iter_causes() {
-                                    write_lines(
-                                        stdout,
-                                        "        caused by: ",
-                                        "                   ",
-                                        cause.to_string().lines(),
-                                    )?;
-                                }
-                            }
-
-                            Ok(())
-                        });
-                    }
-
-                    CheckResult::Warning(err) | CheckResult::Failed(err) => {
-                        num_errors += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Error {
-                                    details: err.iter_chain().map(ToString::to_string).collect(),
-                                },
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
-
-                            let message = err.to_string();
-
-                            write_lines(stdout, "    ", "    ", message.lines())?;
-
-                            if self.verbose {
-                                for cause in err.iter_causes() {
-                                    write_lines(
-                                        stdout,
-                                        "        caused by: ",
-                                        "                   ",
-                                        cause.to_string().lines(),
-                                    )?;
-                                }
-                            }
-
-                            Ok(())
-                        });
-                    }
+                if output_check(
+                    CheckOutput {
+                        id: check.id().into(),
+                        description: check.description().into(),
+                        result: check_result,
+                        additional_info: check.get_json(),
+                    },
+                    self.verbose,
+                    self.warnings_as_errors,
+                )? {
+                    break 'outer;
                 }
-            }
-
-            if self.output_format == OutputFormat::Text {
-                println!();
             }
         }
 
@@ -600,10 +749,10 @@ fn write_lines<'a>(
 #[derive(Debug, serde_derive::Serialize)]
 struct CheckResultsSerializable<'a> {
     additional_info: &'a AdditionalInfo,
-    checks: BTreeMap<&'static str, CheckOutputSerializable>,
+    checks: BTreeMap<String, CheckOutputSerializable>,
 }
 
-#[derive(Debug, serde_derive::Serialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(tag = "result")]
 #[serde(rename_all = "snake_case")]
 enum CheckResultSerializable {
@@ -651,6 +800,7 @@ mod tests {
                     super::OutputFormat::Text, // unused for this test
                     false,
                     false,
+                    "".into(), // unused for this test
                 ))
                 .unwrap();
 
@@ -712,6 +862,7 @@ mod tests {
                     super::OutputFormat::Text, // unused for this test
                     false,
                     false,
+                    "".into(), // unused for this test
                 ))
                 .unwrap();
 
@@ -781,6 +932,7 @@ mod tests {
                 super::OutputFormat::Text, // unused for this test
                 false,
                 false,
+                "".into(), // unused for this test
             ))
             .unwrap();
 
@@ -826,6 +978,7 @@ mod tests {
                 super::OutputFormat::Text, // unused for this test
                 false,
                 false,
+                "".into(), // unused for this test
             ))
             .unwrap();
 
