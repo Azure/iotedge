@@ -46,6 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 {
                     await this.SetUpCertificatesAsync(token, startTime);
                 }
+                else
+                {
+                    this.ca = CertificateAuthority.GetQuickstart();
+                }
 
                 await this.ConfigureDaemonAsync(
                     config =>
