@@ -24,8 +24,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 |------|----------|-------------|
 | `caCertScriptPath` | * | Path to the folder containing `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). Required when running the test 'TransparentGateway', ignored otherwise. |
 | `dpsIdScope` | * | The [ID Scope](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#id-scope) assigned to a Device Provisioning Service. Required when running any DPS tests, ignored otherwise. |
-| `edgeAgentBootstrapImage` || Docker image to pull/use for the initial startup of edgeAgent. It is the EdgeAgent image used in config.yaml. This is a temporary parameter - only here now because the 1.0 version is incompatible with the way this test framework verifies deployments in the master branch. If you want to specify your own, the container registry used is the first registry in the list of registries given by the 'registries' parameter|'
-| `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.0` is used. This setting only applies to any configurations deployed by the tests. See 'EdgeAgentBootstrapImage' for the parameter that is used in config.yaml to bootstrap the edge device. |
+| `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.0` is used. This setting only applies to any configurations deployed by the tests. Note also that the default value is ALWAYS used in config.yaml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
 | `edgeHubImage` || Docker image to pull/use for Edge Hub. If not given, `mcr.microsoft.com/azureiotedge-hub:1.0` is used. |
 | `installerPath` || Path to the Windows installer script `IotEdgeSecurityDaemon.ps1`. This parameter is ignored on Linux, and optional on Windows. If not given on Windows, the default script will be downloaded from https://aka.ms/iotedge-win to a temporary location. |
 | `loadGenImage` | * | LoadGen image to be used. Required when running PriorityQueue tests, ignored otherwise.|
@@ -59,11 +58,10 @@ The tests also expect to find several _secret_ parameters. While these can techn
 |------|----------|-------------|
 | `[E2E_]DPS_GROUP_KEY` | * | The symmetric key of the DPS [enrollment group](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-service#enrollment-group) to use. Required when running any DPS tests, ignored otherwise. |
 | `[E2E_]IOT_HUB_CONNECTION_STRING` | ✔ | Hub-scoped IoT Hub connection string that can be used to get/add/remove devices, deploy edge configurations, and get/update module twins. |
-| `[E2E_]PREVIEW_IOT_HUB_CONNECTION_STRING` | * | Alternate Hub-scoped IoT Hub connection string in a region that has preview bits deployed for preview testing - required only for PlugAndPlay tests. |
 | `[E2E_]EVENT_HUB_ENDPOINT` | ✔ | Connection string used to connect to the Event Hub-compatible endpoint of your IoT Hub, to listen for D2C events sent by devices or modules. |
-| `[E2E_]PREVIEW_EVENT_HUB_ENDPOINT` | * | Alternate Event Hub that is in a region that has preview bits deployed for preview testing - required only for PlugAndPlay tests. |
 | `[E2E_]REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `[E2E_]REGISTRIES__0__PASSWORD`. |
 | `[E2E_]ROOT_CA_PASSWORD` || The password associated with the root certificate specified in `rootCaCertificatePath`. |
+| `[E2E_]BLOB_STORE_SAS` || The sas token used to upload module logs and support bundle in the tests. |
 
 _Note: the definitive source for information about test parameters is `test/Microsoft.Azure.Devices.Edge.Test/helpers/Context.cs`._
 

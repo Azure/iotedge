@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Unstable")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
@@ -100,14 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Unstable")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
-            if (OsPlatform.IsArm() && OsPlatform.Is64Bit())
-            {
-                Assert.Ignore("TempFilterFunc is disabled for arm64 because azureiotedge-functions-filter does not exist for arm64");
-            }
-
             const string filterFuncName = "tempFilterFunctions";
 
             // Azure Function Name: EdgeHubTrigger-CSharp

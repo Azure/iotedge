@@ -317,10 +317,10 @@ fn get_device_info(
     let id_mgr = identity_client.lock().unwrap();
     id_mgr
         .get_device()
-        .map_err(|_| {
-            Error::from(ErrorKind::Initialize(
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
                 InitializeErrorReason::DpsProvisioningClient,
-            ))
+            )))
         })
         .and_then(|identity| match identity {
             aziot_identity_common::Identity::Aziot(spec) => Ok((spec.hub_name, spec.device_id.0)),

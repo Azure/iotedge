@@ -276,6 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             const string Name = "test-filters";
             // Use Json to create module because managedBy property can't has private set on Module object
+            // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic symmetric keys used in tests")]
             const string ModuleJson = "{\"moduleId\":\"test-filters\",\"deviceId\":\"device1\",\"authentication\":{\"symmetricKey\":{\"primaryKey\":\"cHJpbWFyeVN5bW1ldHJpY0tleQ == \",\"secondaryKey\":\"c2Vjb25kYXJ5U3ltbWV0cmljS2V5\"},\"x509Thumbprint\":{\"primaryThumbprint\":null,\"secondaryThumbprint\":null},\"type\":\"sas\"},\"managedBy\":\"iotEdge\"}";
             var serviceModuleIdentity = JsonConvert.DeserializeObject<Module>(ModuleJson);
             var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);
@@ -307,6 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             const string Name = "test-filters";
             // Use Json to create module because managedBy property can't has private set on Module object
+            // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic symmetric keys used in tests")]
             const string ModuleJson = "{\"moduleId\":\"test-filters\",\"deviceId\":\"device1\",\"authentication\":{\"symmetricKey\":{\"primaryKey\":\"cHJpbWFyeVN5bW1ldHJpY0tleQ == \",\"secondaryKey\":\"c2Vjb25kYXJ5U3ltbWV0cmljS2V5\"},\"x509Thumbprint\":{\"primaryThumbprint\":null,\"secondaryThumbprint\":null},\"type\":\"sas\"},\"managedBy\":null}";
             var serviceModuleIdentity = JsonConvert.DeserializeObject<Module>(ModuleJson);
             var currentModule = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVars);

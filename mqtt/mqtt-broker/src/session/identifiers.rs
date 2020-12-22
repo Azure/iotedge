@@ -90,11 +90,6 @@ impl PacketIdentifiers {
     /// We use a bitshift instead of `usize::pow` because the latter is not a const fn
     pub(crate) const SIZE: usize = (1 << 16) / (mem::size_of::<usize>() * 8);
 
-    #[cfg(any(test, feature = "proptest"))]
-    pub(crate) fn new(in_use: IdentifiersInUse, previous: proto::PacketIdentifier) -> Self {
-        Self { in_use, previous }
-    }
-
     pub(crate) fn reserve(&mut self) -> Result<proto::PacketIdentifier, Error> {
         let start = self.previous;
         let mut current = start;

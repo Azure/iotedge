@@ -8,6 +8,7 @@ use set::SmallIndexSet;
 
 use std::{cmp, collections::HashMap};
 
+use chrono::{DateTime, Utc};
 use tracing::{debug, info};
 
 use mqtt3::proto;
@@ -58,8 +59,11 @@ impl SessionState {
         }
     }
 
-    pub fn from_snapshot(snapshot: SessionSnapshot, config: SessionConfig) -> Self {
-        let (client_info, subscriptions, queued_publications) = snapshot.into_parts();
+    pub fn from_snapshot(
+        snapshot: SessionSnapshot,
+        config: SessionConfig,
+    ) -> (Self, DateTime<Utc>) {
+        let (client_info, subscriptions, queued_publications, last_active) = snapshot.into_parts();
 
         let mut waiting_to_be_sent = BoundedQueue::new(
             config.max_queued_messages(),
@@ -68,18 +72,30 @@ impl SessionState {
         );
         waiting_to_be_sent.extend(queued_publications);
 
-        Self {
-            client_info,
-            subscriptions,
-            packet_identifiers: PacketIdentifiers::default(),
-            waiting_to_be_sent,
-            waiting_to_be_acked: SmallIndexMap::new(),
-            waiting_to_be_released: SmallIndexMap::new(),
-            waiting_to_be_completed: SmallIndexSet::new(),
-            waiting_to_be_acked_qos0: SmallIndexMap::new(),
-            packet_identifiers_qos0: PacketIdentifiers::default(),
-            config,
-        }
+        (
+            Self {
+                client_info,
+                subscriptions,
+                packet_identifiers: PacketIdentifiers::default(),
+                waiting_to_be_sent,
+                waiting_to_be_acked: SmallIndexMap::new(),
+                waiting_to_be_released: SmallIndexMap::new(),
+                waiting_to_be_completed: SmallIndexSet::new(),
+                waiting_to_be_acked_qos0: SmallIndexMap::new(),
+                packet_identifiers_qos0: PacketIdentifiers::default(),
+                config,
+            },
+            last_active,
+        )
+    }
+
+    pub fn into_snapshot(self, last_active: DateTime<Utc>) -> SessionSnapshot {
+        SessionSnapshot::from_parts(
+            self.client_info,
+            self.subscriptions,
+            self.waiting_to_be_sent.into_inner(),
+            last_active,
+        )
     }
 
     pub fn client_id(&self) -> &ClientId {
@@ -344,16 +360,6 @@ impl SessionState {
     }
 }
 
-impl From<SessionState> for SessionSnapshot {
-    fn from(state: SessionState) -> Self {
-        SessionSnapshot::from_parts(
-            state.client_info,
-            state.subscriptions,
-            state.waiting_to_be_sent.into_inner(),
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{net::IpAddr, net::Ipv4Addr, net::SocketAddr, time::Duration};
@@ -363,10 +369,9 @@ mod tests {
 
     use mqtt3::proto;
 
-    use super::SessionState;
     use crate::{
         settings::{HumanSize, QueueFullAction},
-        AuthId, ClientId, ClientInfo, SessionConfig, Subscription,
+        AuthId, ClientId, ClientInfo, SessionConfig, SessionState, Subscription,
     };
 
     #[test]
@@ -379,6 +384,7 @@ mod tests {
         let topic = "topic/new";
 
         let config = SessionConfig::new(
+            Duration::default(),
             Duration::default(),
             None,
             max_inflight,
@@ -411,6 +417,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -442,6 +449,7 @@ mod tests {
         let topic = "topic/new";
 
         let config = SessionConfig::new(
+            Duration::default(),
             Duration::default(),
             None,
             max_inflight,
@@ -488,6 +496,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             0,
@@ -531,6 +540,7 @@ mod tests {
         let topic = "topic/new";
 
         let config = SessionConfig::new(
+            Duration::default(),
             Duration::default(),
             None,
             max_inflight,
@@ -577,6 +587,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             0,
@@ -621,6 +632,7 @@ mod tests {
         let topic = "topic/new";
 
         let config = SessionConfig::new(
+            Duration::default(),
             Duration::default(),
             None,
             max_inflight,
@@ -667,6 +679,7 @@ mod tests {
 
         let config = SessionConfig::new(
             Duration::default(),
+            Duration::default(),
             None,
             max_inflight,
             max_queued,
@@ -698,6 +711,7 @@ mod tests {
         let topic = "topic/new";
 
         let config = SessionConfig::new(
+            Duration::default(),
             Duration::default(),
             None,
             max_inflight,

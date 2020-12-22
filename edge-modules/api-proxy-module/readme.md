@@ -107,16 +107,17 @@ First, list all the environment variables that you want to update in the `PROXY_
 
 | Environment variable  | comments |
 | ------------- |  ------------- |
-| PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replaced. By default it contains: NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME  |
+| PROXY_CONFIG_ENV_VAR_LIST | List all the variable to be replaced. By default it contains: NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME, IOTEDGE_PARENTAPIPROXYNAME  |
 
 Next, set each environment variable's value by listing them directly.
 
 | Environment variable  | comments |
 | ------------- |  ------------- |
-| NGINX_DEFAULT_PORT  | Changes the port Nginx listens too. If you change this option, make sure that the port you select is exposed in the dockerfile. Default is 443  |
+| NGINX_DEFAULT_PORT  | Changes the port Nginx listens on. If you update this environment variable, make sure the port you select is also exposed in the module dockerfile and the port binding. Default is 443.  |
 | DOCKER_REQUEST_ROUTE_ADDRESS | Address to route docker requests. By default it points to the parent.  |
 | BLOB_UPLOAD_ROUTE_ADDRESS| Address to route blob registry requests. By default it points to the parent. |
-| IOTEDGE_PARENTHOSTNAME | Parent hostname |
+| IOTEDGE_PARENTHOSTNAME | Read only variable. Do not assign, its value is automatically assigned to Parent hostname when container starts |
+| IOTEDGE_PARENTAPIPROXYNAME | Set the name of the parent api proxy module, as specified in azure portal. This is used for certificate authentication. When omitted, the name of the parent is defaulted to the child api proxy name. | 
 
 ### Update the proxy configuration dynamically
 
@@ -136,7 +137,7 @@ To update the default configuration when the module starts, replace the configur
 
 Lastly, the configuration of the module should match the configuration of the proxy. For instance, the module image should have the same listening port open as defined in the proxy.
 
-To minimize the number of open ports, the API Proxy should relay all HTTPS traffic (e.g. port 443), including traffic targeting the edgeHub. To avoid port binding conflicts, the edgeHub settings thus needs to be modified to not port bind on port 443. The API Proxy module should bind its port 443. The API Proxy should also be configured to route the edgeHub traffic by turning on the `ROUTE_EDGEHUB_TRAFFIC` to true (see example below).
+To minimize the number of open ports, the API Proxy should relay all HTTPS traffic (e.g. port 443), including traffic targeting the edgeHub. To avoid port binding conflicts, the edgeHub settings thus needs to be modified to not port bind on port 443. The API Proxy module should bind its port 443. The API Proxy is configured by default to re-route all edgeHub traffic on port 443.
 
 If minimizing the numer of open ports is not a concerned, the API Proxy can listen on another port than 443 and let edgeHub use port 443. The API Proxy can for instance listen on port 8000 by setting the environment variable `NGINX_DEFAULT_PORT` to `8000` and bind port 8000 of the API Proxy module. This is the default configuration of the API Proxy module.
 

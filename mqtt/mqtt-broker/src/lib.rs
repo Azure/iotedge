@@ -20,6 +20,7 @@ mod ready;
 mod server;
 mod session;
 pub mod settings;
+pub mod sidecar;
 mod snapshot;
 mod state_change;
 mod stream;
@@ -32,11 +33,12 @@ pub mod proptest;
 
 use std::{
     any::Any,
-    fmt::{Display, Formatter, Result as FmtResult},
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
     net::SocketAddr,
     sync::Arc,
 };
 
+use chrono::{DateTime, Utc};
 use proto::Publication;
 use serde::{Deserialize, Serialize};
 use tokio::sync::OwnedSemaphorePermit;
@@ -68,7 +70,7 @@ pub type BrokerReadySignal = ready::BrokerReadySignal<ready::BrokerReadyEvent>;
 pub type BrokerReadyHandle = ready::BrokerReadyHandle<ready::BrokerReadyEvent>;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct ClientId(Arc<String>);
+pub struct ClientId(Arc<str>);
 
 impl ClientId {
     pub fn as_str(&self) -> &str {
@@ -76,9 +78,9 @@ impl ClientId {
     }
 }
 
-impl<T: Into<String>> From<T> for ClientId {
-    fn from(s: T) -> ClientId {
-        ClientId(Arc::new(s.into()))
+impl<T: AsRef<str>> From<T> for ClientId {
+    fn from(id: T) -> Self {
+        Self(id.as_ref().into())
     }
 }
 
@@ -180,11 +182,20 @@ impl ConnReq {
     }
 }
 
-#[derive(Debug)]
 pub enum Auth {
     Identity(AuthId),
     Unknown,
     Failure,
+}
+
+impl Debug for Auth {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            Auth::Identity(id) => f.write_fmt(format_args!("\"{}\"", id)),
+            Auth::Unknown => f.write_str("Unknown"),
+            Auth::Failure => f.write_str("Failure"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -193,7 +204,6 @@ pub enum Publish {
     QoS12(proto::PacketIdentifier, proto::Publish),
 }
 
-#[derive(Debug)]
 pub enum ClientEvent {
     /// Connect request
     ConnReq(ConnReq),
@@ -252,7 +262,115 @@ pub enum ClientEvent {
     PubComp(proto::PubComp),
 }
 
-#[derive(Debug)]
+impl Debug for ClientEvent {
+    #[allow(clippy::too_many_lines)]
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            ClientEvent::ConnReq(connreq) => f
+                .debug_struct("ConnReq")
+                .field("client_id", &connreq.client_id().as_str())
+                .field("connect", &connreq.connect())
+                .field("auth", &connreq.auth())
+                .finish(),
+            ClientEvent::ConnAck(connack) => f
+                .debug_struct("ConnAck")
+                .field("session_present", &connack.session_present)
+                .field("return_code", &connack.return_code)
+                .finish(),
+            ClientEvent::Disconnect(_) => f.write_str("Disconnect"),
+            ClientEvent::DropConnection => f.write_str("DropConnection"),
+            ClientEvent::CloseSession => f.write_str("CloseSession"),
+            ClientEvent::PingReq(_) => f.write_str("PingReq"),
+            ClientEvent::PingResp(_) => f.write_str("PingResp"),
+            ClientEvent::Subscribe(sub) => f
+                .debug_struct("Subscribe")
+                .field("id", &sub.packet_identifier.get())
+                .field("qos", &sub.subscribe_to)
+                .finish(),
+            ClientEvent::SubAck(suback) => f
+                .debug_struct("SubAck")
+                .field("id", &suback.packet_identifier.get())
+                .field("qos", &suback.qos)
+                .finish(),
+            ClientEvent::Unsubscribe(unsub) => f
+                .debug_struct("Unsubscribe")
+                .field("id", &unsub.packet_identifier.get())
+                .field("topic", &unsub.unsubscribe_from)
+                .finish(),
+            ClientEvent::UnsubAck(unsuback) => f
+                .debug_struct("UnsubAck")
+                .field("id", &unsuback.packet_identifier.get())
+                .finish(),
+            ClientEvent::PublishFrom(publish, _) => {
+                let (qos, id, dup) = match publish.packet_identifier_dup_qos {
+                    proto::PacketIdentifierDupQoS::AtMostOnce => {
+                        (proto::QoS::AtMostOnce, None, false)
+                    }
+                    proto::PacketIdentifierDupQoS::AtLeastOnce(id, dup) => {
+                        (proto::QoS::AtLeastOnce, Some(id.get()), dup)
+                    }
+                    proto::PacketIdentifierDupQoS::ExactlyOnce(id, dup) => {
+                        (proto::QoS::ExactlyOnce, Some(id.get()), dup)
+                    }
+                };
+                f.debug_struct("PublishFrom")
+                    .field("qos", &qos)
+                    .field("id", &id)
+                    .field("dup", &dup)
+                    .field("retain", &publish.retain)
+                    .field("topic_name", &publish.topic_name)
+                    .field("payload", &publish.payload)
+                    .finish()
+            }
+            ClientEvent::PublishTo(publish) => {
+                let publish = match publish {
+                    Publish::QoS0(_, publish) => publish,
+                    Publish::QoS12(_, publish) => publish,
+                };
+                let (qos, id, dup) = match publish.packet_identifier_dup_qos {
+                    proto::PacketIdentifierDupQoS::AtMostOnce => {
+                        (proto::QoS::AtMostOnce, None, false)
+                    }
+                    proto::PacketIdentifierDupQoS::AtLeastOnce(id, dup) => {
+                        (proto::QoS::AtLeastOnce, Some(id.get()), dup)
+                    }
+                    proto::PacketIdentifierDupQoS::ExactlyOnce(id, dup) => {
+                        (proto::QoS::ExactlyOnce, Some(id.get()), dup)
+                    }
+                };
+                f.debug_struct("PublishTo")
+                    .field("qos", &qos)
+                    .field("id", &id)
+                    .field("dup", &dup)
+                    .field("retain", &publish.retain)
+                    .field("topic_name", &publish.topic_name)
+                    .field("payload", &publish.payload)
+                    .finish()
+            }
+            ClientEvent::PubAck0(packet_identifier) => f
+                .debug_struct("PubAck0")
+                .field("id", &packet_identifier.get())
+                .finish(),
+            ClientEvent::PubAck(puback) => f
+                .debug_struct("PubAck")
+                .field("id", &puback.packet_identifier.get())
+                .finish(),
+            ClientEvent::PubRec(pubrec) => f
+                .debug_struct("PubRec")
+                .field("id", &pubrec.packet_identifier.get())
+                .finish(),
+            ClientEvent::PubRel(pubrel) => f
+                .debug_struct("PubRel")
+                .field("id", &pubrel.packet_identifier.get())
+                .finish(),
+            ClientEvent::PubComp(pubcomp) => f
+                .debug_struct("PubComp")
+                .field("id", &pubcomp.packet_identifier.get())
+                .finish(),
+        }
+    }
+}
+
 pub enum SystemEvent {
     /// An event for a broker to stop processing incoming event and exit.
     Shutdown,
@@ -268,6 +386,28 @@ pub enum SystemEvent {
     /// The main difference is `ClientEvent::Publish` it doesn't require
     /// ClientId of sender to be passed along with the event.
     Publish(Publication),
+
+    /// An event for a broker to go through offline sessions
+    /// and clean up ones that past provided expiration time.
+    SessionCleanup(DateTime<Utc>),
+}
+
+impl Debug for SystemEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        match self {
+            SystemEvent::Shutdown => f.write_str("Shutdown"),
+            SystemEvent::StateSnapshot(_) => f.write_str("StateSnapshot"),
+            SystemEvent::AuthorizationUpdate(update) => {
+                f.debug_tuple("AuthorizationUpdate").field(&update).finish()
+            }
+            SystemEvent::Publish(publication) => {
+                f.debug_tuple("Publish").field(&publication).finish()
+            }
+            SystemEvent::SessionCleanup(instant) => {
+                f.debug_tuple("SessionCleanup").field(&instant).finish()
+            }
+        }
+    }
 }
 
 #[derive(Debug)]
