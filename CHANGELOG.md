@@ -5,6 +5,10 @@ Please use the edgelet artifacts from release 1.2.0-rc1.
 ## Edge Agent
 ### Bug Fixes
 * Add HostConfig properties ([503d51b](https://github.com/Azure/iotedge/commit/503d51b1627fc9e594b2f15277e1f987b2e44362))
+* Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
+
+### Features
+* Update service SDK to 1.28.1-NestedEdge and and devices SDK to 1.33.1-NestedEdge ([858106f](https://github.com/Azure/iotedge/commit/858106ffcb90c435c396eef39fad29cd355de3cb))
 
 ## Edge Hub
 ### Bug Fixes
