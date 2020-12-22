@@ -237,7 +237,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             Option<CancellationTokenSource> cts = Option.Some(new CancellationTokenSource());
             Exception controllerException = new Exception(ExceptionMessage);
 
-            // DeployModules returns a status, confirm this is what is reported.
             var controller = Mock.Of<IEdgeDeploymentController>();
 
             var client = Mock.Of<IKubernetes>();
@@ -250,8 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            edgeOperator.RestartWatch(cts);
-
+            Assert.Throws<Exception>(() => edgeOperator.RestartWatch(cts));
             Assert.True(cts.OrDefault().IsCancellationRequested);
             Mock.Get(controller).VerifyAll();
             Mock.Get(client).VerifyAll();
@@ -264,7 +262,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             Option<CancellationTokenSource> cts = Option.Some(new CancellationTokenSource());
             Exception controllerException = new Exception(ExceptionMessage);
 
-            // DeployModules returns a status, confirm this is what is reported.
             var controller = Mock.Of<IEdgeDeploymentController>();
 
             var client = Mock.Of<IKubernetes>();

@@ -106,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             {
                 Events.EdgeDeploymentWatchRestartFailed(ex);
                 shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
             }
         }
 
