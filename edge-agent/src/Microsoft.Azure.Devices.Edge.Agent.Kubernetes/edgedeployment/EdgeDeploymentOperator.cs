@@ -100,9 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             // kick off a new watch, log and request restart if it fails.
             try
             {
-                Console.WriteLine($"shutdownCts: {shutdownCts}");
                 this.StartListEdgeDeployments(shutdownCts.OrDefault());
-                Console.WriteLine($"after call shutdownCts: {shutdownCts}");
             }
             catch (Exception ex)
             {

@@ -241,9 +241,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             var controller = Mock.Of<IEdgeDeploymentController>();
 
             var client = Mock.Of<IKubernetes>();
-            // Task<HttpOperationResponse ListNamespacedCustomObjectWithHttpMessagesAsync (string group, string version, string namespaceParameter, string plural, string fieldSelector = null, string labelSelector = null, string resourceVersion = null, int? timeoutSeconds = null, bool? watch = null, string pretty = null, Dictionary<string, List<string>> customHeaders = null, CancellationToken cancellationToken = default(CancellationToken));
-            Mock.Get(client).Setup(c => c.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, null, null, null, null, true, null, null, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(controllerException);
+            Mock.Get(client).Setup(c => c.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, null, null, null, It.IsAny<int?>(), true, null, null, It.IsAny<CancellationToken>()))
+                .Throws(controllerException);
 
             var edgeOperator = new EdgeDeploymentOperator(
                 ResourceName,
