@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         resultBody = Encoding.UTF8.GetString(data.Body);
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
-
+                        Log.Verbose($"For module - Expected devId: {this.deviceId} and modID: {this.Id}");
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                                 && modId != null && modId.ToString().Equals(this.Id)
                                                 && requiredProperties.All(data.Properties.ContainsKey);
