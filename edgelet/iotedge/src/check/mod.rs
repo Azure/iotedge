@@ -12,6 +12,11 @@ use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
+use aziot_check_common::{
+    CheckOuputSerializableStreaming, CheckOutputSerializable, CheckResultSerializable,
+    CheckResultsSerializable, CheckerMetaSerializable,
+};
+
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
@@ -210,14 +215,7 @@ impl Check {
     }
 
     pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
-        // DEVNOTE: keep in sync with aziot CheckerMeta
-        #[derive(serde::Deserialize)]
-        struct CheckerMeta {
-            id: String,
-            description: String,
-        }
-
-        let mut all_checks: Vec<(String, Vec<CheckerMeta>)> = Vec::new();
+        let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
         {
@@ -228,21 +226,21 @@ impl Check {
 
             match aziot_check_out {
                 Err(_) => {
-                    // not being able to access aziot is bad... but we shouldn't fail here,
-                    // as the user may still want to run other iotedge specific checks.
+                    // not being able to shell-out to aziot is bad... but we shouldn't fail here,
+                    // as there might be other iotedge specific checks that don't rely on aziot.
                     //
                     // to make sure the user knows that there should me more checks, we add
                     // this "dummy" entry instead.
                     all_checks.push((
                         "(aziot)".into(),
-                        vec![CheckerMeta {
+                        vec![CheckerMetaSerializable {
                             id: "(aziot-error)".into(),
                             description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
                         }]
                     ));
                 }
                 Ok(out) => {
-                    let aziot_checks: BTreeMap<String, Vec<CheckerMeta>> =
+                    let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
                         serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
 
                     all_checks.extend(
@@ -262,7 +260,7 @@ impl Check {
                     (*section_name).to_string(),
                     checks
                         .iter()
-                        .map(|c| CheckerMeta {
+                        .map(|c| CheckerMetaSerializable {
                             id: c.id().into(),
                             description: c.description().into(),
                         })
@@ -517,24 +515,9 @@ impl Check {
             Ok(false)
         };
 
-        // run the aziot checks first
+        // run the aziot checks first, as certain bits of `additional_info` from
+        // aziot are required to run iotedge checks. e.g: the "iothub_hostname".
         {
-            #[derive(Debug, serde::Deserialize)]
-            #[serde(tag = "kind")]
-            #[serde(rename_all = "snake_case")]
-            enum CheckResultsSerializableStreaming {
-                AdditionalInfo(serde_json::Value),
-                Section {
-                    name: String,
-                },
-                Check {
-                    id: String,
-                    description: String,
-                    result: CheckResultSerializable,
-                    additional_info: serde_json::Value,
-                },
-            }
-
             fn to_check_result(res: CheckResultSerializable) -> CheckResult {
                 fn vec_to_err(mut v: Vec<String>) -> failure::Error {
                     let mut err =
@@ -575,8 +558,8 @@ impl Check {
 
             match aziot_check.spawn() {
                 Err(err) => {
-                    // not being able to access aziot is bad... but we shouldn't fail here,
-                    // as the user may still want to run other iotedge specific checks.
+                    // not being able to shell-out to aziot is bad... but we shouldn't fail here,
+                    // as there might be other iotedge specific checks that don't rely on aziot.
                     //
                     // nonetheless, we still need to notify the user that the aziot checks
                     // could not be run.
@@ -593,26 +576,21 @@ impl Check {
                     )?;
                 }
                 Ok(child) => {
-                    for val in serde_json::Deserializer::from_reader(child.stdout.unwrap())
-                        .into_iter::<CheckResultsSerializableStreaming>()
+                    for val in
+                        serde_json::Deserializer::from_reader(child.stdout.unwrap()).into_iter()
                     {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
-                            CheckResultsSerializableStreaming::Section { name } => {
+                            CheckOuputSerializableStreaming::Section { name } => {
                                 self.output_section(&format!("{} (aziot)", name))
                             }
-                            CheckResultsSerializableStreaming::Check {
-                                id,
-                                description,
-                                result,
-                                additional_info,
-                            } => {
+                            CheckOuputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
                                     CheckOutput {
-                                        id,
-                                        description,
-                                        result: to_check_result(result),
-                                        additional_info,
+                                        id: meta.id,
+                                        description: meta.description,
+                                        result: to_check_result(output.result),
+                                        additional_info: output.additional_info,
                                     },
                                     self.verbose,
                                     self.warnings_as_errors,
@@ -620,7 +598,7 @@ impl Check {
                                     break;
                                 }
                             }
-                            CheckResultsSerializableStreaming::AdditionalInfo(info) => {
+                            CheckOuputSerializableStreaming::AdditionalInfo(info) => {
                                 // try to extract iothub_hostname from additional_info
                                 self.iothub_hostname = info
                                     .as_object()
@@ -713,7 +691,7 @@ impl Check {
 
         if self.output_format == OutputFormat::Json {
             let check_results = CheckResultsSerializable {
-                additional_info: &self.additional_info,
+                additional_info: serde_json::to_value(&self.additional_info).unwrap(),
                 checks,
             };
 
@@ -744,30 +722,6 @@ fn write_lines<'a>(
     }
 
     Ok(())
-}
-
-#[derive(Debug, serde_derive::Serialize)]
-struct CheckResultsSerializable<'a> {
-    additional_info: &'a AdditionalInfo,
-    checks: BTreeMap<String, CheckOutputSerializable>,
-}
-
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
-#[serde(tag = "result")]
-#[serde(rename_all = "snake_case")]
-enum CheckResultSerializable {
-    Ok,
-    Warning { details: Vec<String> },
-    Ignored,
-    Skipped,
-    Fatal { details: Vec<String> },
-    Error { details: Vec<String> },
-}
-
-#[derive(Debug, serde_derive::Serialize)]
-struct CheckOutputSerializable {
-    result: CheckResultSerializable,
-    additional_info: serde_json::Value,
 }
 
 #[cfg(test)]

@@ -39,6 +39,8 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 management = { path = "../management" }
 support-bundle = { path = "../support-bundle" }
 
+aziot-check-common = { path = "/home/danielprilik/Work/iot-identity-service/aziot/aziot-check-common" }
+
 [target.'cfg(unix)'.dependencies]
 byte-unit = "3.0.3"
 libc = "0.2"
