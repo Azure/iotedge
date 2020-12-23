@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
                 ? Option.None<string>()
                 : Option.Some(this.runtime.DeviceId);
-            
+
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 protocol,
