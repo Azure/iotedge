@@ -265,18 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
-                if (!hasParentEdge)
-                {
-                    // Default setting should be local auth with fallback to cloud auth
-                    authenticationMode = AuthenticationMode.CloudAndScope;
-                }
-                else
-                {
-                    // If the Edge is nested and connects to a parent Edge, then we
-                    // should only allow local authentication as we don't expect to
-                    // have internet connectivity.
-                    authenticationMode = AuthenticationMode.Scope;
-                }
+                authenticationMode = AuthenticationMode.Scope;
             }
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
