@@ -1,0 +1,4 @@
+[[principal]]
+uid = 5555
+name = "aziot-edge"
+idtype = ["device"]

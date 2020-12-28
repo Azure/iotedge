@@ -64,7 +64,7 @@ impl<'de> serde::Deserialize<'de> for Manual {
     }
 }
 #[derive(Debug, serde_derive::Deserialize)]
-#[serde(rename_all = "lowercase", tag = "source")]
+#[serde(rename_all = "lowercase", tag = "method")]
 pub(crate) enum ManualAuthMethod {
     #[serde(rename = "device_connection_string")]
     DeviceConnectionString(ManualDeviceConnectionString),

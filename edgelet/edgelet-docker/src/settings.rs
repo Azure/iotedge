@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -30,6 +30,7 @@ const UNIX_SCHEME: &str = "unix";
 pub struct MobyRuntime {
     pub uri: Url,
     pub network: MobyNetwork,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub content_trust: Option<ContentTrust>,
 }
 
@@ -49,11 +50,11 @@ impl MobyRuntime {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct ContentTrust {
-    pub ca_certs: Option<HashMap<String, PathBuf>>,
+    pub ca_certs: Option<BTreeMap<String, PathBuf>>,
 }
 
 impl ContentTrust {
-    pub fn ca_certs(&self) -> Option<&HashMap<String, PathBuf>> {
+    pub fn ca_certs(&self) -> Option<&BTreeMap<String, PathBuf>> {
         self.ca_certs.as_ref()
     }
 }

@@ -177,14 +177,19 @@ pub trait RuntimeSettings {
 pub struct Settings<T> {
     pub agent: ModuleSpec<T>,
     pub hostname: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_hostname: Option<String>,
     pub connect: Connect,
     pub listen: Listen,
     pub homedir: PathBuf,
     #[serde(default)]
     pub watchdog: WatchdogSettings,
-    #[serde(default)]
-    #[cfg_attr(not(debug_assertions), serde(skip))]
+
+    /// Map of service names to endpoint URIs.
+    ///
+    /// Only configurable in debug builds for the sake of tests.
+    #[serde(default, skip_serializing)]
+    #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
 }
 

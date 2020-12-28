@@ -1,5 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+//! This subcommand imports an iotedged config (v1.1 and below) and creates the config files for the five v1.2+ services based on that information.
+//!
+//! Notes:
+//!
+//! - Provisioning with a symmetric key (manual or DPS) requires the key to be preloaded into KS, which means it needs to be
+//!   saved to a file. This subcommand uses a file named `/var/secrets/aziot/keyd/device-id` for that purpose.
+//!   It creates the directory structure and ACLs the directory and the file appropriately to the KS user.
+//!
+//! - This implementation assumes that Microsoft's implementation of libaziot-keys is being used, in that it generates the keyd config
+//!   with the `aziot_keys.homedir_path` property set, and with validation that the preloaded keys must be file paths or `file://` URIs.
+//!
+//! - PKCS#11 is not set up since iotedged did not support it. The user needs to configure it manually, which includes
+//!   configuring their PKCS#11 hardware and library as well as transferring any filesystem keys to the hardware as they want.
+
 mod old_config;
 
 use std::path::Path;
@@ -21,7 +35,7 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
     // have the package installed and the users created, and it's easier to have the config files owned by the current user anyway.
     //
-    // So when running as root, get the three users appropriately.
+    // So when running as root, get the five users appropriately.
     // Otherwise, if this is a debug build, fall back to using the current user.
     // Otherwise, tell the user to re-run as root.
     let (aziotks_user, aziotcs_user, aziotid_user, aziottpm_user, iotedge_user) =
@@ -72,6 +86,7 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
         "/etc/aziot/certd/config.toml",
         "/etc/aziot/edged/config.yaml",
         "/etc/aziot/identityd/config.toml",
+        "/etc/aziot/identityd/config.d/aziot-edged.toml",
         "/etc/aziot/keyd/config.toml",
         "/etc/aziot/tpmd/config.toml",
     ] {
@@ -91,6 +106,93 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
         }
     }
 
+    let RunOutput {
+        keyd_config,
+        certd_config,
+        identityd_config,
+        tpmd_config,
+        edged_config,
+        edged_principal_config,
+        preloaded_device_id_pk_bytes,
+    } = execute_inner(old_config_file, iotedge_user.uid)?;
+
+    if let Some(preloaded_device_id_pk_bytes) = preloaded_device_id_pk_bytes {
+        println!("Note: Symmetric key will be written to /var/secrets/aziot/keyd/device-id");
+
+        create_dir_all("/var/secrets/aziot/keyd", &aziotks_user, 0o0700)?;
+        write_file(
+            "/var/secrets/aziot/keyd/device-id",
+            &preloaded_device_id_pk_bytes,
+            &aziotks_user,
+            0o0600,
+        )?;
+    }
+
+    write_file(
+        "/etc/aziot/keyd/config.toml",
+        &keyd_config,
+        &aziotks_user,
+        0o0600,
+    )?;
+
+    write_file(
+        "/etc/aziot/certd/config.toml",
+        &certd_config,
+        &aziotcs_user,
+        0o0600,
+    )?;
+
+    write_file(
+        "/etc/aziot/identityd/config.toml",
+        &identityd_config,
+        &aziotid_user,
+        0o0600,
+    )?;
+
+    write_file(
+        "/etc/aziot/tpmd/config.toml",
+        &tpmd_config,
+        &aziottpm_user,
+        0o0600,
+    )?;
+
+    write_file(
+        "/etc/aziot/edged/config.yaml",
+        &edged_config,
+        &iotedge_user,
+        0o0600,
+    )?;
+
+    write_file(
+        "/etc/aziot/identityd/config.d/aziot-edged.toml",
+        &edged_principal_config,
+        &aziotid_user,
+        0o0600,
+    )?;
+
+    println!("aziot-edged has been configured successfully!");
+    println!(
+        "You can find the configured files at /etc/aziot/{{key,cert,identity,tpm}}d/config.toml, /etc/aziot/edged/config.yaml and /etc/aziot/identityd/config.d/aziot-edged.toml"
+    );
+
+    Ok(())
+}
+
+#[derive(Debug)]
+struct RunOutput {
+    certd_config: Vec<u8>,
+    identityd_config: Vec<u8>,
+    keyd_config: Vec<u8>,
+    tpmd_config: Vec<u8>,
+    edged_config: Vec<u8>,
+    edged_principal_config: Vec<u8>,
+    preloaded_device_id_pk_bytes: Option<Vec<u8>>,
+}
+
+fn execute_inner(
+    old_config_file: &Path,
+    iotedge_uid: nix::unistd::Uid,
+) -> Result<RunOutput, std::borrow::Cow<'static, str>> {
     let old_config_file_display = old_config_file.display();
 
     let old_config_contents = match std::fs::read_to_string(old_config_file) {
@@ -418,12 +520,7 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
     let identityd_config = aziot_identityd_config::Settings {
         hostname: hostname.clone(),
         homedir: AZIOT_IDENTITYD_HOMEDIR_PATH.into(),
-        principal: vec![aziot_identityd_config::Principal {
-            uid: aziot_identityd_config::Uid(iotedge_user.uid.as_raw()),
-            name: aziot_identity_common::ModuleId("aziot-edge".to_owned()),
-            id_type: Some(vec![aziot_identity_common::IdType::Device]),
-            localid: None,
-        }],
+        principal: vec![],
         provisioning,
         endpoints: Default::default(),
         localid: None,
@@ -563,24 +660,24 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
                 content_trust: content_trust.as_ref().map(|content_trust| {
                     let old_config::ContentTrust { ca_certs } = content_trust;
                     edgelet_docker::ContentTrust {
-                        ca_certs: ca_certs.clone(),
+                        ca_certs: ca_certs.as_ref().map(|ca_certs| {
+                            ca_certs
+                                .iter()
+                                .map(|(k, v)| (k.clone(), v.clone()))
+                                .collect()
+                        }),
                     }
                 }),
             }
         },
     };
 
-    if let Some(preloaded_device_id_pk_bytes) = preloaded_device_id_pk_bytes {
-        eprintln!("Note: Symmetric key will be written to /var/secrets/aziot/keyd/device-id");
-
-        create_dir_all("/var/secrets/aziot/keyd", &aziotks_user, 0o0700)?;
-        write_file(
-            "/var/secrets/aziot/keyd/device-id",
-            &preloaded_device_id_pk_bytes,
-            &aziotks_user,
-            0o0600,
-        )?;
-    }
+    let edged_principal_config = aziot_identityd_config::Principal {
+        uid: aziot_identityd_config::Uid(iotedge_uid.as_raw()),
+        name: aziot_identity_common::ModuleId("aziot-edge".to_owned()),
+        id_type: Some(vec![aziot_identity_common::IdType::Device]),
+        localid: None,
+    };
 
     let keyd_config = toml::to_vec(&keyd_config)
         .map_err(|err| format!("could not serialize aziot-keyd config: {}", err))?;
@@ -590,48 +687,41 @@ pub fn execute(old_config_file: &Path) -> Result<(), std::borrow::Cow<'static, s
         .map_err(|err| format!("could not serialize aziot-certd config: {}", err))?;
     let identityd_config = toml::to_vec(&identityd_config)
         .map_err(|err| format!("could not serialize aziot-identityd config: {}", err))?;
-    let edged_config = serde_yaml::to_vec(&edged_config)
-        .map_err(|err| format!("could not serialize aziot-edged config: {}", err))?;
+    let edged_config = {
+        let mut edged_config = serde_yaml::to_vec(&edged_config)
+            .map_err(|err| format!("could not serialize aziot-edged config: {}", err))?;
+        // serde_yaml prepends the output with `---\n` and does not end the output with `\n`, so fix both of those things.
+        //
+        // (The `---\n` doesn't hurt, but it's cleaner to remove it to be consistent with the default config.)
+        if edged_config.starts_with(b"---\n") {
+            // Would be nice to use `<[u8]>::strip_prefix`, but it's not yet stable.
+            edged_config = edged_config.split_off(b"---\n".len());
+        }
+        edged_config.push(b'\n');
+        edged_config
+    };
+    let edged_principal_config = {
+        // There's no way to serialize the `principal` field as a TOML list named `principal`
+        // without making a whole new struct with a `principal: Vec<Principal>` field.
+        // So just write the header manually.
+        let mut edged_principal_config_serialized = b"[[principal]]\n".to_vec();
+        edged_principal_config_serialized.extend(
+            &toml::to_vec(&edged_principal_config).map_err(|err| {
+                format!("could not serialize aziot-edged principal config: {}", err)
+            })?,
+        );
+        edged_principal_config_serialized
+    };
 
-    write_file(
-        "/etc/aziot/keyd/config.toml",
-        &keyd_config,
-        &aziotks_user,
-        0o0600,
-    )?;
-
-    write_file(
-        "/etc/aziot/certd/config.toml",
-        &certd_config,
-        &aziotcs_user,
-        0o0600,
-    )?;
-
-    write_file(
-        "/etc/aziot/identityd/config.toml",
-        &identityd_config,
-        &aziotid_user,
-        0o0600,
-    )?;
-
-    write_file(
-        "/etc/aziot/tpmd/config.toml",
-        &tpmd_config,
-        &aziottpm_user,
-        0o0600,
-    )?;
-
-    write_file(
-        "/etc/aziot/edged/config.yaml",
-        &edged_config,
-        &iotedge_user,
-        0o0600,
-    )?;
-
-    eprintln!("aziot-edged has been configured successfully!");
-    eprintln!("You can find the configured files at /etc/aziot/{{key,cert,identity,tpm,edge}}d/config.toml");
-
-    Ok(())
+    Ok(RunOutput {
+        keyd_config,
+        certd_config,
+        identityd_config,
+        tpmd_config,
+        edged_config,
+        edged_principal_config,
+        preloaded_device_id_pk_bytes,
+    })
 }
 
 fn file_uri_or_path_to_file_uri(value: &str) -> Result<url::Url, String> {
@@ -695,4 +785,91 @@ fn write_file(
     let () = std::fs::set_permissions(path, std::os::unix::fs::PermissionsExt::from_mode(mode))
         .map_err(|err| format!("could not set permissions on {}: {}", path_displayable, err))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let files_directory = std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test-files/init/import"
+        ));
+        for entry in std::fs::read_dir(files_directory).unwrap() {
+            let entry = entry.unwrap();
+            if !entry.file_type().unwrap().is_dir() {
+                continue;
+            }
+
+            let case_directory = entry.path();
+
+            let test_name = case_directory.file_name().unwrap().to_str().unwrap();
+
+            println!(".\n.\n=========\n.\nRunning test {}", test_name);
+
+            let old_config_file = case_directory.join("input.yaml");
+            let expected_keyd_config = std::fs::read(case_directory.join("keyd.toml")).unwrap();
+            let expected_certd_config = std::fs::read(case_directory.join("certd.toml")).unwrap();
+            let expected_identityd_config =
+                std::fs::read(case_directory.join("identityd.toml")).unwrap();
+            let expected_tpmd_config = std::fs::read(case_directory.join("tpmd.toml")).unwrap();
+            let expected_edged_config = std::fs::read(case_directory.join("edged.yaml")).unwrap();
+            let expected_edged_principal_config =
+                std::fs::read(case_directory.join("edged-principal.toml")).unwrap();
+
+            let expected_preloaded_device_id_pk_bytes =
+                match std::fs::read(case_directory.join("device-id")) {
+                    Ok(contents) => Some(contents),
+                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => None,
+                    Err(err) => panic!("could not read device-id file: {}", err),
+                };
+
+            let super::RunOutput {
+                keyd_config: actual_keyd_config,
+                certd_config: actual_certd_config,
+                identityd_config: actual_identityd_config,
+                tpmd_config: actual_tpmd_config,
+                edged_config: actual_edged_config,
+                edged_principal_config: actual_edged_principal_config,
+                preloaded_device_id_pk_bytes: actual_preloaded_device_id_pk_bytes,
+            } = super::execute_inner(&old_config_file, nix::unistd::Uid::from_raw(5555)).unwrap();
+
+            // Convert the five configs to bytes::Bytes before asserting, because bytes::Bytes's Debug format prints strings.
+            // It doesn't matter for the device ID file since it's binary anyway.
+            assert_eq!(
+                bytes::Bytes::from(expected_keyd_config),
+                bytes::Bytes::from(actual_keyd_config),
+                "keyd config does not match"
+            );
+            assert_eq!(
+                bytes::Bytes::from(expected_certd_config),
+                bytes::Bytes::from(actual_certd_config),
+                "certd config does not match"
+            );
+            assert_eq!(
+                bytes::Bytes::from(expected_identityd_config),
+                bytes::Bytes::from(actual_identityd_config),
+                "identityd config does not match"
+            );
+            assert_eq!(
+                bytes::Bytes::from(expected_tpmd_config),
+                bytes::Bytes::from(actual_tpmd_config),
+                "tpmd config does not match"
+            );
+            assert_eq!(
+                bytes::Bytes::from(expected_edged_config),
+                bytes::Bytes::from(actual_edged_config),
+                "edged config does not match"
+            );
+            assert_eq!(
+                bytes::Bytes::from(expected_edged_principal_config),
+                bytes::Bytes::from(actual_edged_principal_config),
+                "edged config does not match"
+            );
+            assert_eq!(
+                expected_preloaded_device_id_pk_bytes, actual_preloaded_device_id_pk_bytes,
+                "device ID key bytes do not match"
+            );
+        }
+    }
 }
