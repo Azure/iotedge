@@ -51,7 +51,9 @@ impl Bootstrap for EdgeHubBootstrap {
 
     fn load_config<P: AsRef<Path>>(&self, path: P) -> Result<Self::Settings> {
         info!("loading settings from a file {}", path.as_ref().display());
-        Ok(Self::Settings::from_file(path)?)
+        let settings = Self::Settings::from_file(path)?;
+        debug!("broker settings are: {:?}", settings);
+        Ok(settings)
     }
 
     type Authorizer = LocalAuthorizer<EdgeHubAuthorizer<PolicyAuthorizer>>;

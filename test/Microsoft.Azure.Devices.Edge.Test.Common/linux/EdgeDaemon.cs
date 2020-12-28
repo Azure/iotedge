@@ -145,7 +145,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             // must wait until a request can be processed.
             while (true)
             {
-                var request = System.Diagnostics.Process.Start("iotedge", "list");
+                var processInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "iotedge",
+                    Arguments = "list",
+                    RedirectStandardOutput = true
+                };
+                var request = System.Diagnostics.Process.Start(processInfo);
 
                 if (request.WaitForExit(1000))
                 {

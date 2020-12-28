@@ -70,9 +70,9 @@ steps:
     $aziot_commit = git submodule | awk '{print $1;}'
 
     $proxy = ''
-    if(![string]::IsNullOrEmpty('$(Agent.ProxyUrl)'))
+    if($env:AGENT_PROXYURL)
     {
-      $proxy = '-Proxy $(Agent.ProxyUrl)'
+      $proxy = "-Proxy $env:AGENT_PROXYURL"
     }
 
     for($page = 1; ; $page++)
