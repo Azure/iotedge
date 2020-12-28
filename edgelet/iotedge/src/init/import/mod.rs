@@ -675,7 +675,7 @@ fn execute_inner(
     let edged_principal_config = aziot_identityd_config::Principal {
         uid: aziot_identityd_config::Uid(iotedge_uid.as_raw()),
         name: aziot_identity_common::ModuleId("aziot-edge".to_owned()),
-        id_type: Some(vec![aziot_identity_common::IdType::Device]),
+        id_type: None,
         localid: None,
     };
 
