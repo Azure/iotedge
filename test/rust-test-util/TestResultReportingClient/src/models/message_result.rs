@@ -56,14 +56,15 @@ impl<'de> Deserialize<'de> for MessageTestResult {
                 let parts: Vec<String> = value.split(";").map(|part| part.to_string()).collect();
                 let tracking_id = parts
                     .get(0)
-                    .ok_or(de::Error::missing_field("tracking_id"))?;
+                    .ok_or(de::Error::missing_field("tracking_id"))?
+                    .to_string();
                 let batch_id = parts.get(1).ok_or(de::Error::missing_field("batch_id"))?;
                 let sequence_number = parts
                     .get(2)
                     .ok_or(de::Error::missing_field("sequence_number"))?;
 
                 let test_result = MessageTestResult::new(
-                    tracking_id.clone(),
+                    tracking_id,
                     batch_id.clone(),
                     sequence_number.parse::<u32>().map_err(|_| {
                         de::Error::invalid_type(
