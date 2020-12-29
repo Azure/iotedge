@@ -8,7 +8,7 @@ pub const DEFAULTS: &str = include_str!("../config/default.json");
 #[derive(Debug, Clone)]
 pub struct Settings {
     test_scenario: TestScenario,
-    test_result_coordinator_url: String,
+    trc_url: String,
 }
 
 impl Settings {
@@ -39,7 +39,7 @@ impl Settings {
     }
 
     pub fn test_result_coordinator_url(&self) -> &String {
-        &self.test_result_coordinator_url
+        &self.trc_url
     }
 }
 
@@ -51,16 +51,16 @@ impl<'de> serde::Deserialize<'de> for Settings {
         #[derive(Debug, Deserialize)]
         struct Inner {
             test_scenario: TestScenario,
-            test_result_coordinator_url: String,
+            trc_url: String,
         }
         let Inner {
             test_scenario,
-            test_result_coordinator_url,
+            trc_url,
         } = serde::Deserialize::deserialize(deserializer)?;
 
         Ok(Settings {
             test_scenario,
-            test_result_coordinator_url,
+            trc_url,
         })
     }
 }
