@@ -31,19 +31,10 @@ impl TestOperationResultDto {
     }
 }
 
+// If we need to support more test types, take a look at C# TRC client for additional types
 #[derive(Debug, Clone)]
 pub enum TestType {
-    LegacyDirectMethod,
-    LegacyTwin,
     Messages,
-    DirectMethod,
-    Twin,
-    Network,
-    Deployment,
-    EdgeHubRestartMessage,
-    EdgeHubRestartDirectMethod,
-    Error,
-    TestInfo,
 }
 
 #[cfg(test)]
