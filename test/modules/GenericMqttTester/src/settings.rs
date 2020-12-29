@@ -38,7 +38,7 @@ impl Settings {
         &self.test_scenario
     }
 
-    pub fn test_result_coordinator_url(&self) -> &String {
+    pub fn test_result_coordinator_url(&self) -> &str {
         &self.trc_url
     }
 }

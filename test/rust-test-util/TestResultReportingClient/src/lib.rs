@@ -6,7 +6,7 @@ use hyper::http;
 mod client;
 mod models;
 
-pub use client::TestResultReportingClient;
+pub use client::TrcClient;
 pub use models::{
     message_result::MessageTestResult,
     test_result_dto::{TestOperationResultDto, TestType},

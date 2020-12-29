@@ -13,12 +13,12 @@ const CONTENT_TYPE: &str = "Content-Type";
 const APPLICATION_JSON: &str = "application/json";
 
 #[derive(Debug)]
-pub struct TestResultReportingClient {
+pub struct TrcClient {
     client: Client<HttpConnector>,
     uri: String,
 }
 
-impl TestResultReportingClient {
+impl TrcClient {
     pub fn new(uri: String) -> Self {
         Self {
             client: Client::new(),
