@@ -10,7 +10,7 @@ pub(crate) struct TestOperationResultDto {
     #[serde(rename = "result")]
     result: MessageTestResult,
     #[serde(rename = "type")]
-    _type: u8,
+    test_type: u8,
     #[serde(rename = "createdAt")]
     created_at: String,
 }
@@ -19,13 +19,13 @@ impl TestOperationResultDto {
     pub fn new(
         source: String,
         result: MessageTestResult,
-        _type: TestType,
+        test_type: TestType,
         created_at: DateTime<Utc>,
     ) -> Self {
         Self {
             source,
             result,
-            _type: _type as u8,
+            test_type: test_type as u8,
             created_at: created_at.to_string(),
         }
     }
