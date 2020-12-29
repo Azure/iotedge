@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::MessageTestResult;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct TestOperationResultDto {
+pub(crate) struct TestOperationResultDto {
     #[serde(rename = "source")]
     source: String,
     #[serde(rename = "result")]
@@ -50,9 +50,8 @@ pub enum TestType {
 mod tests {
     use chrono::Utc;
 
-    use crate::{MessageTestResult, TestOperationResultDto};
-
-    use super::TestType;
+    use super::{TestOperationResultDto, TestType};
+    use crate::MessageTestResult;
 
     #[test]
     fn serialize() {

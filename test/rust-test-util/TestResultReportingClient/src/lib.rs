@@ -7,10 +7,7 @@ mod client;
 mod models;
 
 pub use client::TrcClient;
-pub use models::{
-    message_result::MessageTestResult,
-    test_result_dto::{TestOperationResultDto, TestType},
-};
+pub use models::{message_result::MessageTestResult, test_result_dto::TestType};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ReportResultError {

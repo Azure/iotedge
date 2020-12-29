@@ -30,10 +30,10 @@ impl TrcClient {
         &self,
         source: String,
         result: MessageTestResult,
-        _type: TestType,
+        test_type: TestType,
         created_at: DateTime<Utc>,
     ) -> Result<(), ReportResultError> {
-        let body = TestOperationResultDto::new(source, result, _type, created_at);
+        let body = TestOperationResultDto::new(source, result, test_type, created_at);
         let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;
         let request = Request::post(self.uri.clone())
             .header(CONTENT_TYPE, APPLICATION_JSON)
