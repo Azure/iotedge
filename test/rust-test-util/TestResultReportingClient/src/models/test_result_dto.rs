@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use enumset::EnumSetType;
 use serde::{Deserialize, Serialize};
 
 use crate::MessageTestResult;
@@ -31,7 +32,7 @@ impl TestOperationResultDto {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, EnumSetType)]
 pub enum TestType {
     LegacyDirectMethod,
     LegacyTwin,

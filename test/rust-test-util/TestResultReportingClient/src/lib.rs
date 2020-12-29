@@ -22,4 +22,7 @@ pub enum ReportResultError {
 
     #[error("response has failure status {}", 0)]
     ResponseStatus(u16),
+
+    #[error("unsupported test type specified")]
+    UnsupportedTestType,
 }

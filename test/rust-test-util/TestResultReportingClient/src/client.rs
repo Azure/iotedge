@@ -1,4 +1,7 @@
+use std::{iter::FromIterator, vec};
+
 use chrono::{DateTime, Utc};
+use enumset::EnumSet;
 use hyper::{client::HttpConnector, Body, Client, Request};
 
 use crate::{
@@ -16,13 +19,17 @@ const APPLICATION_JSON: &str = "application/json";
 pub struct TrcClient {
     client: Client<HttpConnector>,
     uri: String,
+    supported_test_types: EnumSet<TestType>,
 }
 
 impl TrcClient {
     pub fn new(uri: String) -> Self {
+        let supported_test_types = EnumSet::from_iter(vec![TestType::Messages]);
+
         Self {
             client: Client::new(),
             uri,
+            supported_test_types,
         }
     }
 
@@ -33,6 +40,10 @@ impl TrcClient {
         test_type: TestType,
         created_at: DateTime<Utc>,
     ) -> Result<(), ReportResultError> {
+        if !self.supported_test_types.contains(test_type) {
+            return Err(ReportResultError::UnsupportedTestType);
+        }
+
         let body = TestOperationResultDto::new(source, result, test_type, created_at);
         let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;
         let request = Request::post(self.uri.clone())
