@@ -74,9 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var metricsProvider = container.Resolve<IMetricsProvider>();
             Metrics.InitWithAspNet(metricsProvider, logger); // Note this requires App.UseMetricServer() to be called in Startup.cs
 
-            // Init V0 Metrics
-            MetricsV0.BuildMetricsCollector(configuration);
-
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
             ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
@@ -97,10 +94,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
+            ExperimentalFeatures experimentalFeatures = CreateExperimentalFeatures(configuration);
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
-            _ = configUpdater.Init(configSource).ContinueWith(
-                                                        _ => configUpdaterStartupFailed.SetResult(false),
-                                                        TaskContinuationOptions.OnlyOnFaulted);
+            var configDownloadTask = configUpdater.Init(configSource);
+
+            _ = configDownloadTask.ContinueWith(
+                                            _ => configUpdaterStartupFailed.SetResult(false),
+                                            TaskContinuationOptions.OnlyOnFaulted);
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)
@@ -112,12 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-            using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
+            using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(experimentalFeatures, container))
+            using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, experimentalFeatures, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
                 try
                 {
-                    await protocolHead.StartAsync();
+                    await Task.WhenAll(mqttBrokerProtocolHead.StartAsync(), configDownloadTask);
+                    await edgeHubProtocolHead.StartAsync();
                     await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled(), configUpdaterStartupFailed.Task);
                 }
                 catch (Exception ex)
@@ -126,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 }
 
                 logger.LogInformation("Stopping the protocol heads...");
-                await protocolHead.CloseAsync(CancellationToken.None);
+                await Task.WhenAll(mqttBrokerProtocolHead.CloseAsync(CancellationToken.None), edgeHubProtocolHead.CloseAsync(CancellationToken.None));
                 logger.LogInformation("Protocol heads stopped.");
 
                 await CloseDbStoreProviderAsync(container);
@@ -138,6 +140,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return 0;
         }
 
+        static ExperimentalFeatures CreateExperimentalFeatures(IConfigurationRoot configuration)
+        {
+            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
+            return experimentalFeatures;
+        }
+
         static void LogVersionInfo(ILogger logger)
         {
             VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
@@ -147,11 +156,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
         }
 
-        static async Task<EdgeHubProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting)
+        static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(ExperimentalFeatures experimentalFeatures, IContainer container)
         {
-            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
+            if (!experimentalFeatures.EnableMqttBroker)
+            {
+                return EmptyProtocolHead.GetInstance();
+            }
 
+            var orderedProtocolHeads = new List<IProtocolHead>();
+            orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
+            orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
+            return new OrderedProtocolHead(orderedProtocolHeads);
+        }
+
+        static async Task<IProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, ExperimentalFeatures experimentalFeatures, IContainer container, Hosting hosting)
+        {
             var protocolHeads = new List<IProtocolHead>();
 
             // MQTT broker overrides the legacy MQTT protocol head
@@ -168,27 +187,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             if (configuration.GetValue("httpSettings:enabled", true))
             {
                 protocolHeads.Add(new HttpProtocolHead(hosting.WebHost));
-            }
-
-            var orderedProtocolHeads = new List<IProtocolHead>();
-            if (experimentalFeatures.EnableMqttBroker)
-            {
-                orderedProtocolHeads.Add(container.Resolve<MqttBrokerProtocolHead>());
-                orderedProtocolHeads.Add(await container.Resolve<Task<AuthAgentProtocolHead>>());
-            }
-
-            switch (orderedProtocolHeads.Count)
-            {
-                case 0:
-                    break;
-
-                case 1:
-                    protocolHeads.Add(orderedProtocolHeads.First());
-                    break;
-
-                default:
-                    protocolHeads.Add(new OrderedProtocolHead(orderedProtocolHeads));
-                    break;
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
