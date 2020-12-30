@@ -33,8 +33,7 @@ jobs:
         # EdgeHub (azureiotedge-hub-base)
       displayName: Overview ARM32
       name: overview
-
-    - template: templates/e2e-clean-directory.yaml
+    - template: ../e2e/templates/e2e-clean-directory.yaml
 
 ################################################################################
   - job: linux_arm64
@@ -66,4 +65,4 @@ jobs:
         # EdgeHub (azureiotedge-hub-base)
       displayName: Overview ARM64
       name: overview
-    - template: templates/e2e-clean-directory.yaml
+    - template: ../e2e/templates/e2e-clean-directory.yaml
