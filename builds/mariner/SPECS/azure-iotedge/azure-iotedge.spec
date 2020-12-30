@@ -52,11 +52,6 @@ This package contains the IoT Edge daemon and CLI tool
 %global debug_package %{nil}
 
 %prep
-# Setup .cargo directory
-mkdir -p $HOME
-pushd $HOME
-tar xf %{SOURCE1} --no-same-owner
-popd
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
 %patch0 -p1
 
