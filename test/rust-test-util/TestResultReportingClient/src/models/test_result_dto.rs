@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
-use enumset::EnumSetType;
 use serde::{Deserialize, Serialize};
 
-use crate::MessageTestResult;
+use crate::{MessageTestResult, TestType};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub(crate) struct TestOperationResultDto {
@@ -30,21 +29,6 @@ impl TestOperationResultDto {
             created_at: created_at.to_string(),
         }
     }
-}
-
-#[derive(Debug, EnumSetType)]
-pub enum TestType {
-    LegacyDirectMethod,
-    LegacyTwin,
-    Messages,
-    DirectMethod,
-    Twin,
-    Network,
-    Deployment,
-    EdgeHubRestartMessage,
-    EdgeHubRestartDirectMethod,
-    Error,
-    TestInfo,
 }
 
 #[cfg(test)]

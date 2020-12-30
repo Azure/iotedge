@@ -2,12 +2,28 @@
 #![deny(clippy::all, clippy::pedantic)]
 
 use hyper::http;
+use enumset::EnumSetType;
 
 mod client;
 mod models;
 
 pub use client::TrcClient;
-pub use models::{message_result::MessageTestResult, test_result_dto::TestType};
+pub use models::message_result::MessageTestResult;
+
+#[derive(Debug, EnumSetType)]
+pub enum TestType {
+    LegacyDirectMethod,
+    LegacyTwin,
+    Messages,
+    DirectMethod,
+    Twin,
+    Network,
+    Deployment,
+    EdgeHubRestartMessage,
+    EdgeHubRestartDirectMethod,
+    Error,
+    TestInfo,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum ReportResultError {

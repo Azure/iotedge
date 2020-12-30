@@ -5,11 +5,8 @@ use enumset::EnumSet;
 use hyper::{client::HttpConnector, Body, Client, Request};
 
 use crate::{
-    models::{
-        message_result::MessageTestResult,
-        test_result_dto::{TestOperationResultDto, TestType},
-    },
-    ReportResultError,
+    models::{message_result::MessageTestResult, test_result_dto::TestOperationResultDto},
+    ReportResultError, TestType,
 };
 
 const CONTENT_TYPE: &str = "Content-Type";
