@@ -1,0 +1,69 @@
+trigger: none
+pr: none
+
+jobs:
+################################################################################
+  - job: linux_arm32
+################################################################################
+    displayName: Linux ARM32 Base Image Publication
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 32
+        - run-base-image-release -equals true
+        - false
+
+    variables:
+      os: linux
+      arch: arm32v7
+
+    steps:
+    - pwsh: |
+        # Get the version from each file location
+        # EdgeAgent (azureiotedge-agent-base)
+        $unberlyingFilePath = '$(Build.SourcesDirectory)/edge-agent/docker/$(os)/$(arch)/base/Dockerfile' | Resolve-path
+        $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
+        $imageFilePath = '$(Build.SourcesDirectory)/edge-agent/docker/$(os)/$(arch)/Dockerfile' | Resolve-path
+        $edgeAgentTag = $($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1]
+        Write-Output "azureiotedge-agent-base:$edgeAgentTag uses $underlyingTag"
+        Write-Output "##vso[task.setvariable variable=edgeAgentTag]$edgeAgentTag"
+
+        # EdgeHub (azureiotedge-hub-base)
+      displayName: Overview ARM32
+      name: overview
+
+    - template: templates/e2e-clean-directory.yaml
+
+################################################################################
+  - job: linux_arm64
+################################################################################
+    displayName: Linux ARM64 Base Image Publication
+    pool:
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM64
+        - agent-osbits -equals 64
+        - run-base-image-release -equals true
+
+    variables:
+      os: linux
+      arch: arm64v8
+
+    steps:
+    - pwsh: |
+        # Get the version from each file location
+        # EdgeAgent (azureiotedge-agent-base)
+        $unberlyingFilePath = '$(Build.SourcesDirectory)/edge-agent/docker/$(os)/$(arch)/base/Dockerfile' | Resolve-path
+        $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
+        $imageFilePath = '$(Build.SourcesDirectory)/edge-agent/docker/$(os)/$(arch)/Dockerfile' | Resolve-path
+        $edgeAgentTag = $($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1]
+        Write-Output "azureiotedge-agent-base:$edgeAgentTag uses $underlyingTag"
+        Write-Output "##vso[task.setvariable variable=edgeAgentTag]$edgeAgentTag"
+
+        # EdgeHub (azureiotedge-hub-base)
+      displayName: Overview ARM64
+      name: overview
+    - template: templates/e2e-clean-directory.yaml
