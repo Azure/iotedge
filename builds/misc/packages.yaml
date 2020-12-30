@@ -164,6 +164,14 @@ jobs:
           TargetFolder: '$(build.artifactstagingdirectory)'
         condition: succeededOrFailed()
       - task: CopyFiles@2
+        displayName: Copy iotedged and libiothsm source tarballs to artifact staging
+        inputs:
+          SourceFolder: builds/mariner/SPECS/
+          Contents: |
+            **/*.tar.gz
+          TargetFolder: '$(build.artifactstagingdirectory)'
+        condition: succeededOrFailed()
+      - task: CopyFiles@2
         displayName: Copy iotedged and libiothsm Files to Artifact Staging
         inputs:
           SourceFolder: out/RPMS/x86_64

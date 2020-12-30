@@ -12,7 +12,7 @@ VERSION="$(cat "$EDGELET_ROOT/version.txt")"
 
 # Create source tarball
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
-tar -czf azure-iotedge-${VERSION}.tar.gz --transform='s,^iotedge/,azure-iotedge-${VERSION}/,' "${EDGELET_ROOT}"
+tar -czf azure-iotedge-${VERSION}.tar.gz --transform="s,^.*edgelet,azure-iotedge-${VERSION}/edgelet," "${EDGELET_ROOT}"
 popd
 
 # Update expected tarball hash
