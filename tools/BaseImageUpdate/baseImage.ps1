@@ -15,7 +15,7 @@ function Setup-BaseImage-Script
     }
 
     $isDotNetInstalled = ((gp HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*).DisplayName -Match "Microsoft .NET Core Runtime").Length -gt 0;
-    if($isDotNetInstalled)
+    if ($isDotNetInstalled)
     {
         # Cleaning build artifacts as it slow down the search
         dotnet clean 
