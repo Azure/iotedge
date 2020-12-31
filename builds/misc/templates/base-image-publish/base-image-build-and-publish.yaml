@@ -1,10 +1,29 @@
 steps:
 - pwsh: |
+    # Unfortunately there is no way to create a variable name (as a string) in pwsh, pass that to DevOps pipeline, and have it evaluates the value of the variable
+    # Since we know the variable names, we can hard-code variables name, and access them this way.
+    # This list must have the same version ordering as base-image-config.yaml
+    $versionTags = New-Object System.Collections.ArrayList
+    $versionTags.AddRange((
+      "$(edgeAgentTagVersion)",
+      "$(edgeHubTagVersion)",
+      "$(moduleTagVersion)",
+      "$(fullModuleTagVersion)"
+    ));
+
     $scriptPath = "$(Build.SourcesDirectory)/scripts/linux/createArmBase.sh"
     $info = '$(serialize_info)' | ConvertFrom-Json
-    foreach ($each in $info)
+
+    if ($info.count -ne $versionTags.count)
     {
-      $buildCommand = "sh -c $scriptPath -d $($each.Item1.ToString()) -i $($each.Item2.ToString()) -v $("$($each.Item3.ToString())Version")"
+      echo '$info and $versionTags must have the same count.'
+      exit -1;
+    }
+
+    for ( $idx=0; $idx -lt $info.count; $idx++ )
+    {
+      $eachInfo = $info[$idx]
+      $buildCommand = "sh -c ""$scriptPath"" -d ""$($eachInfo.Item1.ToString())"" -i ""$($eachInfo.Item2.ToString())"" -v ""$($versionTags[$idx])"" "
       echo "Command: $buildCommand"
       # BEARWASHERE -- Don't run this unless you really want to release.
       # $buildCommand

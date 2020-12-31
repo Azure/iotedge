@@ -17,6 +17,9 @@ steps:
 
       # Extract version number from the *-linux* base image
       # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
+      #
+      # Note:
+      #    The output {$(edgeAgentTagVersion), $(edgeHubTagVersion), $(moduleTagVersion), $(fullModuleTagVersion)} are used in base-image-build-and-publish.yaml
       Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())Version]$($(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly).split("-")[0])"
     }
   displayName: Overview ARM64
