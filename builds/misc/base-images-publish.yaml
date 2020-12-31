@@ -78,85 +78,118 @@ jobs:
       os: linux
       arch: arm64v8
 
-
     steps:
-    - pwsh: |
-        $info = New-Object System.Collections.ArrayList
-        # Tuple format:  (ModuleRepoPath,                           BaseImageName,                   ReturningVstsVar)
-        $info.AddRange((
-          [Tuple]::Create("edge-agent",                             "azureiotedge-agent-base",       "edgeAgentTag"),
-          [Tuple]::Create("edge-hub",                               "azureiotedge-hub-base",         "edgeHubTag"),
-          [Tuple]::Create("edge-modules/SimulatedTemperatureSensor","azureiotedge-module-base",      "moduleTag"),
-          [Tuple]::Create("test/modules/TestAnalyzer",              "azureiotedge-module-base-full", "fullModuleTag")
-          ));
+    - template: templates/base-image-publish/base-image-config.yaml
 
-        # Apparently the ##vso[task.setvariable ] crop of a string when it sees a newline charater, so chop them off before serialize
-        # Note: Serialize -> Pass as DevOpsVar -> Deserialize to get an object
-        $serialize_info = $($info | ConvertTo-Json).replace("`n"," ").replace("`r"," ")
-        Write-Output "##vso[task.setvariable variable=serialize_info]$serialize_info"
-      displayName: Config
-      name: config
+    # steps:
+    # - pwsh: |
+    #     $info = New-Object System.Collections.ArrayList
+    #     # Tuple format:  (ModuleRepoPath,                           BaseImageName,                   ReturningVstsVar)
+    #     $info.AddRange((
+    #       [Tuple]::Create("edge-agent",                             "azureiotedge-agent-base",       "edgeAgentTag"),
+    #       [Tuple]::Create("edge-hub",                               "azureiotedge-hub-base",         "edgeHubTag"),
+    #       [Tuple]::Create("edge-modules/SimulatedTemperatureSensor","azureiotedge-module-base",      "moduleTag"),
+    #       [Tuple]::Create("test/modules/TestAnalyzer",              "azureiotedge-module-base-full", "fullModuleTag")
+    #       ));
 
-    - pwsh: |
-        # Note: With in the same job, you can access $(info), but it would interpret $(info) as string similar to `echo "$info"` which is undesirable for our case, we want an Object.
-        # We worked around this by using the serialization & deserailzation
-        $info = '$(serialize_info)' | ConvertFrom-Json
+    #     # Apparently the ##vso[task.setvariable ] crop of a string when it sees a newline charater, so chop them off before serialize
+    #     # Note: Serialize -> Pass as DevOpsVar -> Deserialize to get an object
+    #     $serialize_info = $($info | ConvertTo-Json).replace("`n"," ").replace("`r"," ")
+    #     Write-Output "##vso[task.setvariable variable=serialize_info]$serialize_info"
+    #   displayName: Config
+    #   name: config
 
-        # Fetch tags & version from each module Dockerfiles {../$(arch)/base/Dockerfile, ../$(arch)/Dockerfile}
-        foreach ($each in $info)
-        {
-          $pathPrefix = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)"
-          $unberlyingFilePath = $pathPrefix + '/base/Dockerfile' | Resolve-path
-          $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
-          $imageFilePath = $pathPrefix + '/Dockerfile' | Resolve-path
-          Set-Variable -Name "$($each.Item3.ToString())" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
-          Write-Output "$($each.Item2.ToString()):$(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly) <= $underlyingTag"
-          Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())]$(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly)"
+    - template: templates/base-image-publish/base-image-overview.yaml
+    # - pwsh: |
+    #     # Note: With in the same job, you can access $(info), but it would interpret $(info) as string similar to `echo "$info"` which is undesirable for our case, we want an Object.
+    #     # We worked around this by using the serialization & deserailzation
+    #     $info = '$(serialize_info)' | ConvertFrom-Json
 
-          # Extract version number from the *-linux* base image
-          # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
-          Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())Version]$($(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly).split("-")[0])"
-        }
-      displayName: Overview ARM64
-      name: overview
+    #     # Fetch tags & version from each module Dockerfiles {../$(arch)/base/Dockerfile, ../$(arch)/Dockerfile}
+    #     foreach ($each in $info)
+    #     {
+    #       $pathPrefix = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)"
+    #       $unberlyingFilePath = $pathPrefix + '/base/Dockerfile' | Resolve-path
+    #       $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
+    #       $imageFilePath = $pathPrefix + '/Dockerfile' | Resolve-path
+    #       Set-Variable -Name "$($each.Item3.ToString())" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
+    #       Write-Output "$($each.Item2.ToString()):$(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly) <= $underlyingTag"
+    #       Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())]$(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly)"
+
+    #       # Extract version number from the *-linux* base image
+    #       # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
+    #       Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())Version]$($(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly).split("-")[0])"
+    #     }
+    #   displayName: Overview ARM64
+    #   name: overview
 
     - template: ../e2e/templates/e2e-clean-directory.yaml
 
+    - template: templates/base-image-publish/base-image-setup-librocksdb.yaml
     # - pwsh: |
-    #     echo $(edgeAgentTagVersion)
-    #   displayName: test edgeAgentTagVersion
+    #     $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
+    #     Invoke-WebRequest -Uri $("https://edgebuild.blob.core.windows.net/librocksdb/librocksdb.so.$(arch)") -OutFile $artifactLocale
 
-    - pwsh: |
-        #TODO: Clean up these artifacts
-        $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
-        Invoke-WebRequest -Uri $("https://edgebuild.blob.core.windows.net/librocksdb/librocksdb.so.$(arch)") -OutFile $artifactLocale
+    #     $info = '$(serialize_info)' | ConvertFrom-Json
 
-        $info = '$(serialize_info)' | ConvertFrom-Json
+    #     # Copy librocksdb.so to the same directory where base image is built
+    #     # iotedge/edge-agent/docker/linux/arm64v8/base
+    #     foreach ($each in $info)
+    #     {
+    #       $filePath = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
+    #       Copy-Item $artifactLocale -Destination "$filePath"
 
-        # Copy librocksdb.so to the same directory where base image is built
-        # iotedge/edge-agent/docker/linux/arm64v8/base
-        foreach ($each in $info)
-        {
-          $filePath = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
-          Copy-Item $artifactLocale -Destination "$filePath"
+    #       $isSucceeded = $(if ([System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})
+    #       echo "$filePath : $isSucceeded"
+    #     }
+    #   displayName: Setup librocksdb.so
 
-          $isSucceeded = $(if ([System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})
-          echo "$filePath : $isSucceeded"
-        }
-      displayName: Setup librocksdb.so
+    - template: templates/base-image-publish/base-image-clear-docker-cache.yaml
+    # - pwsh: |
+    #     $isNoModuleRunning = [string]::IsNullOrEmpty($(docker ps -aq))
+    #     if (!$isNoModuleRunning)
+    #     {
+    #       docker stop $(docker ps -aq)
+    #     }
 
-    - pwsh: |
-        $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
-        Remove-Item $artifactLocale -ErrorAction Ignore
+    #     docker system prune --volumes -af
+    #   displayName: Clear cached docker images
 
-        $info = '$(serialize_info)' | ConvertFrom-Json
-        foreach ($each in $info)
-        {
-          $filePath = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
-          Remove-Item $filePath -ErrorAction Ignore
+    - template: templates/base-image-publish/base-image-docker-login.yaml
+    # - pwsh: |
+    #     $artifactLocale = "$(Build.SourcesDirectory)/DOCKERIO_PASS"
+    #     $env:DOCKERIO_PASS | Out-File -Encoding Utf8 $artifactLocale
+    #     cat $artifactLocale | docker login docker.io --username $(dockerio.username) --password-stdin
+    #     Remove-Item $artifactLocale -ErrorAction Ignore
+    #   displayName: Docker login
+    #   env:
+    #     DOCKERIO_PASS: $(dockerio.password)
 
-          $isSucceeded = $(if (![System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})
-          echo "$filePath : $isSucceeded"
-        }
-      displayName: Remove librocksdb.so
+    - template: templates/base-image-publish/base-image-build-and-publish.yaml
+    # - pwsh: |
+    #     $scriptPath = "$(Build.SourcesDirectory)/scripts/linux/createArmBase.sh"
+    #     $info = '$(serialize_info)' | ConvertFrom-Json
+    #     foreach ($each in $info)
+    #     {
+    #       $buildCommand = "sh -c $scriptPath -d $($each.Item1.ToString()) -i $($each.Item2.ToString()) -v $("$($each.Item3.ToString())Version")"
+    #       echo "Command: $buildCommand"
+    #       # BEARWASHERE -- Don't run this unless you really want to release.
+    #       # $buildCommand
+    #     }
+    #   displayName: Build and Publish Base Images
 
+    - template: templates/base-image-publish/base-image-remove-librocksdb.yaml
+    # - pwsh: |
+    #     $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
+    #     Remove-Item $artifactLocale -ErrorAction Ignore
+
+    #     $info = '$(serialize_info)' | ConvertFrom-Json
+    #     foreach ($each in $info)
+    #     {
+    #       $filePath = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
+    #       Remove-Item $filePath -ErrorAction Ignore
+
+    #       $isSucceeded = $(if (![System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})
+    #       echo "$filePath : $isSucceeded"
+    #     }
+    #   displayName: Remove librocksdb.so

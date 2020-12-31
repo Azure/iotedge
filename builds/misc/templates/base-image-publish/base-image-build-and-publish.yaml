@@ -1,0 +1,12 @@
+steps:
+- pwsh: |
+    $scriptPath = "$(Build.SourcesDirectory)/scripts/linux/createArmBase.sh"
+    $info = '$(serialize_info)' | ConvertFrom-Json
+    foreach ($each in $info)
+    {
+      $buildCommand = "sh -c $scriptPath -d $($each.Item1.ToString()) -i $($each.Item2.ToString()) -v $("$($each.Item3.ToString())Version")"
+      echo "Command: $buildCommand"
+      # BEARWASHERE -- Don't run this unless you really want to release.
+      # $buildCommand
+    }
+  displayName: Build and Publish Base Images

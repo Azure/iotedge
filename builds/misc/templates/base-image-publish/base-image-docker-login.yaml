@@ -1,0 +1,9 @@
+steps:
+- pwsh: |
+    $artifactLocale = "$(Build.SourcesDirectory)/DOCKERIO_PASS"
+    $env:DOCKERIO_PASS | Out-File -Encoding Utf8 $artifactLocale
+    cat $artifactLocale | docker login docker.io --username $(dockerio.username) --password-stdin
+    Remove-Item $artifactLocale -ErrorAction Ignore
+  displayName: Docker login
+  env:
+    DOCKERIO_PASS: $(dockerio.password)
