@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
@@ -55,9 +56,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
         readonly bool checkEntireQueueOnCleanup;
+        readonly int messageCleanupIntervalSecs;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool nestedEdgeEnabled;
+        readonly bool isLegacyUpstream;
 
         public RoutingModule(
             string iotHubName,
@@ -87,9 +90,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
             bool checkEntireQueueOnCleanup,
+            int messageCleanupIntervalSecs,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
-            bool nestedEdgeEnabled)
+            bool nestedEdgeEnabled,
+            bool isLegacyUpstream)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.gatewayHostname = gatewayHostname;
@@ -118,9 +123,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
+            this.messageCleanupIntervalSecs = messageCleanupIntervalSecs;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.nestedEdgeEnabled = nestedEdgeEnabled;
+            this.isLegacyUpstream = isLegacyUpstream;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -214,40 +221,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IClientProvider>()
                 .SingleInstance();
 
-            // Task<ICloudConnectionProvider>
-            builder.Register(
-                    async c =>
+            if (this.isLegacyUpstream)
+            {
+                // Task<ICloudConnectionProvider>
+                builder.Register(
+                        async c =>
+                        {
+                            var metadataStore = await c.Resolve<Task<IMetadataStore>>();
+                            var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
+                            var clientProvider = c.Resolve<IClientProvider>();
+                            var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
+                            var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
+                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                            var proxy = c.Resolve<Option<IWebProxy>>();
+                            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                            ICredentialsCache credentialsCache = await credentialsCacheTask;
+                            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                                messageConverterProvider,
+                                this.connectionPoolSize,
+                                clientProvider,
+                                this.upstreamProtocol,
+                                tokenProvider,
+                                deviceScopeIdentitiesCache,
+                                credentialsCache,
+                                edgeHubCredentials.Identity,
+                                this.cloudConnectionIdleTimeout,
+                                this.closeCloudConnectionOnIdleTimeout,
+                                this.operationTimeout,
+                                this.useServerHeartbeat,
+                                proxy,
+                                metadataStore,
+                                this.nestedEdgeEnabled);
+                            return cloudConnectionProvider;
+                        })
+                    .As<Task<ICloudConnectionProvider>>()
+                    .SingleInstance();
+            }
+            else
+            {
+                builder.Register(
+                    c =>
                     {
-                        var metadataStore = await c.Resolve<Task<IMetadataStore>>();
-                        var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
-                        var clientProvider = c.Resolve<IClientProvider>();
-                        var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
-                        var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                        var proxy = c.Resolve<Option<IWebProxy>>();
-                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
-                        ICredentialsCache credentialsCache = await credentialsCacheTask;
-                        ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
-                            messageConverterProvider,
-                            this.connectionPoolSize,
-                            clientProvider,
-                            this.upstreamProtocol,
-                            tokenProvider,
-                            deviceScopeIdentitiesCache,
-                            credentialsCache,
-                            edgeHubCredentials.Identity,
-                            this.cloudConnectionIdleTimeout,
-                            this.closeCloudConnectionOnIdleTimeout,
-                            this.operationTimeout,
-                            this.useServerHeartbeat,
-                            proxy,
-                            metadataStore,
-                            this.nestedEdgeEnabled);
-                        return cloudConnectionProvider;
+                        return Task.FromResult(new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>()) as ICloudConnectionProvider);
                     })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
+            }
 
             // IIdentityProvider
             builder.Register(_ => new IdentityProvider(this.iotHubName))
@@ -394,7 +414,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive, this.checkEntireQueueOnCleanup);
+                            IMessageStore messageStore = new MessageStore(
+                                storeProvider,
+                                checkpointStore,
+                                this.storeAndForwardConfiguration.TimeToLive,
+                                this.checkEntireQueueOnCleanup,
+                                this.messageCleanupIntervalSecs);
                             return messageStore;
                         })
                     .As<Task<IMessageStore>>()

@@ -80,24 +80,9 @@ pub fn parse_query(query: &str, pair_delim: char, kv_delim: char) -> HashMap<&st
         .collect()
 }
 
-// returns the config.yaml file if the OS at runtime is windows
-#[cfg(windows)]
-pub fn handle_windows() -> Result<String> {
-    if let Ok(csidl_path) = env::var("CSIDL_COMMON_APPDATA") {
-        return fs::read_to_string(Path::new(&csidl_path).join("/iotedge/config.yaml"));
-    } else if let Ok(program_path) = env::var("ProgramData") {
-        return fs::read_to_string(Path::new(&program_path).join("/iotedge/config.yaml"));
-    }
-    fs::read_to_string(Path::new("C:/ProgramData/iotedge/config.yaml"))
-}
-
 // returns the contents of the config.yaml file from the current device
 pub fn get_file() -> Result<String> {
-    #[cfg(target_os = "windows")]
-    return handle_windows();
-
-    #[cfg(unix)]
-    fs::read_to_string("/etc/iotedge/config.yaml")
+    fs::read_to_string("/etc/aziot/edged/config.yaml")
 }
 
 pub fn return_response(new_device: &Device) -> HttpResponse {

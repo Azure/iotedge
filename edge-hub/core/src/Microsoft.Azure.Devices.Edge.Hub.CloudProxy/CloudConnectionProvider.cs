@@ -91,7 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 if (this.nestedEdgeEnabled)
                 {
                     Option<string> authChainMaybe = await this.deviceScopeIdentitiesCache.GetAuthChain(clientCredentials.Identity.Id);
-                    authChain = authChainMaybe.Expect(() => new InvalidOperationException($"No auth chain for the client identity: {clientCredentials.Identity.Id}"));
+
+                    // It's possible to have no auth-chain for out-of-scope leaf devices connecting through
+                    // us as a gateway. In this case we let the upstream connection happen anyways, as any
+                    // unauthorized attempt here would be denied by IoTHub.
+                    authChain = authChainMaybe.OrDefault();
                 }
 
                 // Get the transport settings

@@ -59,7 +59,7 @@ impl ConnectionHandle {
         Self::new(Uuid::new_v4(), sender)
     }
 
-    pub fn send(&mut self, message: Message) -> Result<(), Error> {
+    pub fn send(&self, message: Message) -> Result<(), Error> {
         self.sender
             .send(message)
             .map_err(Error::SendConnectionMessage)
@@ -86,7 +86,7 @@ impl PartialEq for ConnectionHandle {
 pub async fn process<I, N, P>(
     io: I,
     remote_addr: SocketAddr,
-    mut broker_handle: BrokerHandle,
+    broker_handle: BrokerHandle,
     authenticator: &N,
     make_processor: P,
 ) -> Result<(), Error>
@@ -197,7 +197,7 @@ where
                         // incoming packet stream completed with an error
                         // send a DropConnection request to the broker and wait for the outgoing
                         // task to drain
-                        debug!(message = "incoming_task finished with an error. sending drop connection request to broker", error=%e);
+                        debug!(message = "incoming_task finished with an error. sending drop connection request to broker", error = %e);
                         let msg = Message::Client(client_id.clone(), ClientEvent::DropConnection);
                         broker_handle.send(msg)?;
 
@@ -250,7 +250,7 @@ where
 async fn incoming_task<S, P>(
     client_id: ClientId,
     mut incoming: S,
-    mut broker: BrokerHandle,
+    broker: BrokerHandle,
     mut processor: P,
 ) -> Result<(), Error>
 where
@@ -270,7 +270,7 @@ where
                 }
             },
             Err(e) => {
-                warn!(message="error occurred while reading from connection", error=%e);
+                warn!(message="error occurred while reading from connection", error = %e);
                 return Err(e.into());
             }
         }
@@ -286,7 +286,7 @@ where
 async fn outgoing_task<S, P>(
     mut messages: UnboundedReceiver<Message>,
     mut outgoing: S,
-    mut broker: BrokerHandle,
+    broker: BrokerHandle,
     mut processor: P,
 ) -> Result<(), (UnboundedReceiver<Message>, Error)>
 where
@@ -300,14 +300,14 @@ where
             PacketAction::Continue(Some((packet, message))) => {
                 // send a packet to a client
                 if let Err(e) = outgoing.send(packet).await {
-                    warn!(message = "error occurred while writing to connection", error=%e);
+                    warn!(message = "error occurred while writing to connection", error = %e);
                     return Err((messages, e.into()));
                 }
 
                 // send a message back to broker
                 if let Some(message) = message {
                     if let Err(e) = broker.send(message) {
-                        warn!(message = "error occurred while sending QoS ack to broker", error=%e);
+                        warn!(message = "error occurred while sending QoS ack to broker", error = %e);
                         return Err((messages, e));
                     }
                 }

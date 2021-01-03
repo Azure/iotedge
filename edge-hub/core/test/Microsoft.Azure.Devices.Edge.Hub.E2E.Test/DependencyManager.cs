@@ -145,6 +145,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 checkEntireQueueOnCleanup = false;
             }
 
+            if (!int.TryParse(this.configuration["messageCleanupIntervalSecs"], out int messageCleanupIntervalSecs))
+            {
+                messageCleanupIntervalSecs = 1800;
+            }
+
             builder.RegisterModule(
                 new CommonModule(
                     string.Empty,
@@ -203,9 +208,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     true,
                     TimeSpan.FromHours(1),
                     checkEntireQueueOnCleanup,
+                    messageCleanupIntervalSecs,
                     experimentalFeatures,
                     true,
-                    false));
+                    false,
+                    true));
 
             builder.RegisterModule(new HttpModule("Edge1"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));

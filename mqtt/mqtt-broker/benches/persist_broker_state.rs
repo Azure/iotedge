@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::FromIterator};
+use std::{collections::HashMap, iter::FromIterator, net::SocketAddr};
 
 use bytes::Bytes;
 use criterion::{
@@ -9,8 +9,8 @@ use tokio::runtime::Runtime;
 
 use mqtt3::proto::{Publication, QoS};
 use mqtt_broker::{
-    BrokerSnapshot, ClientId, FileFormat, FilePersistor, Persist, PersistError, SessionSnapshot,
-    VersionedFileFormat,
+    AuthId, BrokerSnapshot, ClientId, ClientInfo, FileFormat, FilePersistor, Persist, PersistError,
+    SessionSnapshot, VersionedFileFormat,
 };
 
 fn test_write<F>(
@@ -119,8 +119,12 @@ fn make_fake_state(
                 .chain(shared_messages.clone())
                 .collect();
 
+            let id = format!("Session {}", i);
+            let client_id = ClientId::from(&id);
+            let auth_id = AuthId::from_identity(id);
+
             SessionSnapshot::from_parts(
-                ClientId::from(format!("Session {}", i)),
+                ClientInfo::new(client_id, peer_addr(), auth_id),
                 HashMap::new(),
                 waiting_to_be_sent,
             )
@@ -128,6 +132,10 @@ fn make_fake_state(
         .collect();
 
     BrokerSnapshot::new(retained, sessions)
+}
+
+fn peer_addr() -> SocketAddr {
+    "127.0.0.1:12345".parse().unwrap()
 }
 
 fn make_fake_publish(topic_name: String) -> Publication {

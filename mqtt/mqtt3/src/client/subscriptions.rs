@@ -1,5 +1,3 @@
-use mockall::automock;
-
 #[derive(Debug)]
 pub(super) struct State {
     subscriptions: std::collections::BTreeMap<String, crate::proto::QoS>,
@@ -86,7 +84,7 @@ impl State {
                                 crate::proto::SubAckQos::Success(actual_qos) => {
                                     if actual_qos >= expected_qos {
                                         log::debug!(
-                                            "Subscribed to {} with {:?}",
+                                            "Subscribed to {} with qos {:?}",
                                             topic_filter,
                                             actual_qos
                                         );
@@ -225,66 +223,42 @@ impl State {
             //
             // So we cannot just make a group of all Subscribes, send that packet, then make a group of all Unsubscribes, then send that packet.
             // Instead, we have to respect the ordering of Subscribes with Unsubscribes.
-            // So we make an intermediate set of all subscriptions based on the updates waiting to be sent, compute the diff from the current subscriptions,
+            // So we make an intermediate set of all subscriptions and unsubscriptions and if for same topic an Unsubscribe is before a Subscribe, only Subscribe remains in the intermediate set
+            // and if a Unsubscribe is set after Subscribe they are both removed
             // then send a SUBSCRIBE packet for any net new subscriptions and an UNSUBSCRIBE packet for any net new unsubscriptions.
-
-            let mut current_subscriptions: std::collections::BTreeMap<_, _> = self
-                .subscriptions
-                .iter()
-                .map(|(topic_filter, qos)| (std::borrow::Cow::Borrowed(&**topic_filter), *qos))
-                .collect();
-
-            for (_, subscription_update) in &self.subscription_updates_waiting_to_be_acked {
-                match subscription_update {
-                    BatchedSubscriptionUpdate::Subscribe(subscribe_to) => {
-                        for subscribe_to in subscribe_to {
-                            current_subscriptions.insert(
-                                std::borrow::Cow::Borrowed(&*subscribe_to.topic_filter),
-                                subscribe_to.qos,
-                            );
-                        }
-                    }
-
-                    BatchedSubscriptionUpdate::Unsubscribe(unsubscribe_from) => {
-                        for unsubscribe_from in unsubscribe_from {
-                            current_subscriptions.remove(&**unsubscribe_from);
-                        }
-                    }
-                }
-            }
-
-            let mut target_subscriptions = current_subscriptions.clone();
+            let mut target_subscriptions = std::collections::BTreeMap::new();
+            let mut target_unsubscriptions = std::collections::BTreeMap::new();
 
             while let Some(subscription_update) =
                 self.subscription_updates_waiting_to_be_sent.pop_front()
             {
                 match subscription_update {
-                    SubscriptionUpdate::Subscribe(subscribe_to) => target_subscriptions.insert(
-                        std::borrow::Cow::Owned(subscribe_to.topic_filter),
-                        subscribe_to.qos,
-                    ),
+                    SubscriptionUpdate::Subscribe(subscribe_to) => {
+                        target_unsubscriptions.remove(&subscribe_to.topic_filter);
+                        target_subscriptions.insert(
+                            std::borrow::Cow::Owned(subscribe_to.topic_filter),
+                            subscribe_to.qos,
+                        );
+                    }
                     SubscriptionUpdate::Unsubscribe(unsubscribe_from) => {
-                        target_subscriptions.remove(&*unsubscribe_from)
+                        if target_subscriptions.remove(&*unsubscribe_from).is_none() {
+                            target_unsubscriptions.insert(unsubscribe_from, true);
+                        }
                     }
                 };
             }
 
             let mut pending_subscriptions: std::collections::VecDeque<_> = Default::default();
             for (topic_filter, &qos) in &target_subscriptions {
-                if current_subscriptions.get(topic_filter) != Some(&qos) {
-                    // Current subscription doesn't exist, or exists but has different QoS
-                    pending_subscriptions.push_back(crate::proto::SubscribeTo {
-                        topic_filter: topic_filter.clone().into_owned(),
-                        qos,
-                    });
-                }
+                pending_subscriptions.push_back(crate::proto::SubscribeTo {
+                    topic_filter: topic_filter.clone().into_owned(),
+                    qos,
+                });
             }
 
             let mut pending_unsubscriptions: std::collections::VecDeque<_> = Default::default();
-            for topic_filter in current_subscriptions.keys() {
-                if !target_subscriptions.contains_key(topic_filter) {
-                    pending_unsubscriptions.push_back(topic_filter.clone().into_owned());
-                }
+            for topic_filter in target_unsubscriptions.keys() {
+                pending_unsubscriptions.push_back(topic_filter.clone());
             }
 
             // Save the error, if any, from reserving a packet identifier
@@ -608,7 +582,6 @@ impl Iterator for NewConnectionIter {
 #[derive(Clone, Debug)]
 pub struct UpdateSubscriptionHandle(futures_channel::mpsc::Sender<SubscriptionUpdate>);
 
-#[automock]
 impl UpdateSubscriptionHandle {
     #[allow(clippy::doc_markdown)]
     /// Subscribe to a topic with the given parameters.

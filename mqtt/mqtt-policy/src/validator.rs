@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use mqtt_broker::TopicFilter;
 use policy::{PolicyDefinition, PolicyValidator, Statement};
 
-use crate::{errors::Error, substituter};
+use crate::{errors::Error, substituter::VariableIter};
 
 /// MQTT-specific implementation of `PolicyValidator`. It checks the following rules:
 /// * Valid schema version.
@@ -78,7 +78,7 @@ fn visit_identity(value: &str) -> Result<(), Error> {
     if value.is_empty() {
         return Err(Error::InvalidIdentity(value.into()));
     }
-    if let Some(variable) = substituter::extract_variable(value) {
+    for variable in VariableIter::new(value) {
         if VALID_VARIABLES.get(variable).is_none() {
             return Err(Error::InvalidIdentityVariable(variable.into()));
         }
@@ -97,7 +97,7 @@ fn visit_resource(value: &str) -> Result<(), Error> {
     if value.is_empty() {
         return Err(Error::InvalidResource(value.into()));
     }
-    if let Some(variable) = substituter::extract_variable(value) {
+    for variable in VariableIter::new(value) {
         if VALID_VARIABLES.get(variable).is_none() {
             return Err(Error::InvalidResourceVariable(variable.into()));
         }

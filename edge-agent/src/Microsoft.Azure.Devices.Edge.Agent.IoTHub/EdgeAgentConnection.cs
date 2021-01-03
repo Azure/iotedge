@@ -132,7 +132,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        //// public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        //// {
+        ////    Events.UpdatingReportedProperties();
+        ////    try
+        ////    {
+        ////        Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
+        ////        if (!moduleClient.HasValue)
+        ////        {
+        ////            Events.SendEventClientEmpty();
+        ////            return;
+        ////        }
+
+        ////        await moduleClient.ForEachAsync(d => d.SendEventBatchAsync(messages));
+        ////        Events.SendEvent();
+        ////    }
+        ////    catch (Exception e)
+        ////    {
+        ////        Events.ErrorSendingEvent(e);
+        ////        throw;
+        ////    }
+        //// }
+
+        public async Task SendEventAsync(Message message)
         {
             Events.UpdatingReportedProperties();
             try
@@ -144,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return;
                 }
 
-                await moduleClient.ForEachAsync(d => d.SendEventBatchAsync(messages));
+                await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
                 Events.SendEvent();
             }
             catch (Exception e)

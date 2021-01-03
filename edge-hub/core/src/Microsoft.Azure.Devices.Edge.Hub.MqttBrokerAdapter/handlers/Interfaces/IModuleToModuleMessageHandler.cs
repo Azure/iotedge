@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public interface IModuleToModuleMessageHandler
     {
-        Task SendModuleToModuleMessageAsync(IMessage message, string input, IIdentity identity);
+        Task SendModuleToModuleMessageAsync(IMessage message, string input, IIdentity identity, bool isDirectClient);
         IReadOnlyCollection<SubscriptionPattern> WatchedSubscriptions { get; }
     }
 }

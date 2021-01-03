@@ -56,7 +56,8 @@ async fn test_broker_manages_sessions(events: impl IntoIterator<Item = BrokerEve
 
     assert_eq!(sessions.len(), model.sessions.len());
 
-    for (client_info, subscriptions, _) in sessions.into_iter().map(|session| session.into_parts())
+    for (client_info, subscriptions, _, _) in
+        sessions.into_iter().map(|session| session.into_parts())
     {
         let model_session = model
             .sessions

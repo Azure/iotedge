@@ -74,7 +74,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var authzProperties = new AuthorizationProperties { statement1, statement2 };
             var integrity = new ManifestIntegrity(new TwinHeader(new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }), new TwinSignature("bytes", "algo"));
 
-            var brokerProperties = new BrokerProperties(new BridgeConfig(), authzProperties);
+            var bridgeConfig = new BridgeConfig
+            {
+                new Bridge("$upstream", new List<Settings>
+                {
+                    new Settings(Direction.In, "topic/a", "local/", "remote/")
+                }),
+                new Bridge("floor2", new List<Settings>
+                {
+                    new Settings(Direction.Out, "/topic/b", "local", "remote")
+                })
+            };
+
+            var brokerProperties = new BrokerProperties(bridgeConfig, authzProperties);
             var properties = new EdgeHubDesiredProperties(
                 "1.2.0",
                 new Dictionary<string, RouteConfiguration>(),

@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public void SetConnector(IMqttBrokerConnector connector)
         {
             this.connector = connector;
-            this.connector.OnConnected += async (sender, args) => await this.OnConnect();
+            this.connector.EnsureConnected.ContinueWith(_ => this.OnConnect());
         }
 
         async Task OnConnect()
@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             try
             {
                 var payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(brokerServiceIdentities));
-                await this.connector.SendAsync(Topic, payload);
+                await this.connector.SendAsync(Topic, payload, retain: true);
             }
             catch (Exception ex)
             {

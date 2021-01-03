@@ -50,7 +50,7 @@ impl ContainerLocalTime {
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )
         } else {
-            return Ok(CheckResult::Skipped);
+            check.diagnostics_image_name.clone()
         };
 
         let output = super::docker(

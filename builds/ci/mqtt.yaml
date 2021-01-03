@@ -13,6 +13,9 @@ jobs:
     pool:
       vmImage: "ubuntu-16.04"
     steps:
+      - checkout: self
+        submodules: false
+        fetchDepth: 3
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|mqtt)'
           if [[ $? == 0 ]]; then
@@ -31,6 +34,9 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
+      - checkout: self
+        submodules: false # mqtt broker does not use submodules
+        fetchDepth: 3
       - task: Bash@3
         displayName: Install Rust
         inputs:
@@ -50,6 +56,14 @@ jobs:
         displayName: Test
         inputs:
           filePath: mqtt/build/linux/test.sh
+          arguments: --report test-results.xml
+      - task: PublishTestResults@2
+        displayName: Publish test results
+        inputs:
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
+        condition: succeededOrFailed()
 
 ################################################################################
   - job: linux_arm32v7
@@ -60,6 +74,9 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
+      - checkout: self
+        submodules: false # mqtt broker does not use submodules
+        fetchDepth: 3
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$(Agent.WorkFolder)/rustup"
           echo "##vso[task.setvariable variable=CARGO_HOME;]$(Agent.WorkFolder)/cargo"
@@ -73,12 +90,12 @@ jobs:
       - script: cargo install cross --version 0.1.16
         displayName: Install cross
       - task: Bash@3
-        displayName: Build
+        displayName: Build with no default features
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
           arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --no-default-features --features "generic" --target armv7-unknown-linux-gnueabihf --cargo cross
       - task: Bash@3
-        displayName: Build
+        displayName: Build with default features
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
           arguments: --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path --target armv7-unknown-linux-gnueabihf --cargo cross
@@ -86,28 +103,11 @@ jobs:
         displayName: Test
         inputs:
           filePath: mqtt/build/linux/test.sh
-          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross
-
-################################################################################
-  - job: style_check
-################################################################################
-    displayName: Style Check
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: 'ubuntu-16.04'
-    steps:
-      - task: Bash@3
-        displayName: Install Rust
+          arguments: --target armv7-unknown-linux-gnueabihf --cargo cross --report test-results.xml
+      - task: PublishTestResults@2
+        displayName: Publish test results
         inputs:
-          filePath: scripts/linux/generic-rust/install.sh
-          arguments: --project-root "mqtt"
-      - task: Bash@3
-        displayName: Format Code
-        inputs:
-          filePath: scripts/linux/generic-rust/format.sh
-          arguments: --project-root "mqtt"
-      - task: Bash@3
-        displayName: Clippy
-        inputs:
-          filePath: mqtt/build/linux/clippy.sh
+          testResultsFormat: "JUnit"
+          testResultsFiles: "**/test-results.xml"
+          failTaskOnFailedTests: true
+        condition: succeededOrFailed()

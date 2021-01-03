@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public MessageConfirmingHandler(IConnectionRegistry connectionRegistry) => this.connectionRegistry = connectionRegistry;
 
-        protected async Task ConfirmMessageAsync(IMessage message, IIdentity identity)
+        protected async Task ConfirmMessageAsync(string lockToken, IIdentity identity)
         {
             var listener = default(IDeviceListener);
             try
@@ -30,10 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return;
             }
 
-            var lockToken = "Unknown";
             try
             {
-                lockToken = message.SystemProperties[SystemProperties.LockToken];
                 await listener.ProcessMessageFeedbackAsync(lockToken, FeedbackStatus.Complete);
             }
             catch (Exception ex)

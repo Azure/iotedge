@@ -36,11 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             using (await this.nodesLock.LockAsync())
             {
+                bool isUpdate = false;
+
                 if (this.nodes.ContainsKey(identity.Id))
                 {
                     // Update case - this is just remove + re-insert
+                    isUpdate = true;
                     this.RemoveSingleNode(identity.Id);
-                    Events.NodeRemoved(identity.Id);
                 }
 
                 // Insert case
@@ -53,7 +55,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     this.InsertDeviceIdentity(identity);
                 }
 
-                Events.NodeAdded(identity.Id);
+                if (isUpdate)
+                {
+                    Events.NodeUpdated(identity.Id);
+                }
+                else
+                {
+                    Events.NodeAdded(identity.Id);
+                }
             }
         }
 
@@ -373,13 +382,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            void RemoveAuthChain()
+            void RemoveAuthChain() => this.RemoveAuthChainRecursive(0);
+
+            void RemoveAuthChainRecursive(int traveled)
             {
+                if (traveled >= 2 * MaxNestingDepth)
+                {
+                    // The max length of a nested chain we can temporarily achieve
+                    // occurs when we try to stitch together two full hierarchies.
+                    // Anything past that is not valid and we can stop recursing.
+                    return;
+                }
+
                 this.AuthChain = Option.None<string>();
                 Events.AuthChainRemoved(this.Identity.Id);
 
                 // Recursively remove the authchains of children
-                this.children.ForEach(child => child.RemoveAuthChain());
+                this.children.ForEach(child => child.RemoveAuthChainRecursive(traveled + 1));
             }
 
             string MakeAuthChainFromParent(string parentAuthChain)
@@ -398,6 +417,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             NodeAdded = IdStart,
             NodeRemoved,
+            NodeUpdated,
             AuthChainAdded,
             AuthChainRemoved,
             MaxDepthExceeded,
@@ -406,10 +426,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         }
 
         public static void NodeAdded(string id) =>
-            Log.LogDebug((int)EventIds.NodeAdded, $"Add node: {id}");
+            Log.LogInformation((int)EventIds.NodeAdded, $"Add node: {id}");
 
         public static void NodeRemoved(string id) =>
-            Log.LogDebug((int)EventIds.NodeRemoved, $"Removed node: {id}");
+            Log.LogInformation((int)EventIds.NodeRemoved, $"Removed node: {id}");
+
+        public static void NodeUpdated(string id) =>
+            Log.LogInformation((int)EventIds.NodeUpdated, $"Updated node: {id}");
 
         public static void AuthChainAdded(string id, string authChain, int depth) =>
             Log.LogDebug((int)EventIds.AuthChainAdded, $"Auth-chain added for: {id}, at depth: {depth}, {authChain}");

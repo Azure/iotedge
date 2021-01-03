@@ -146,7 +146,7 @@ where
             .and_then(|s| s.write_system_log("aziot-keyd", "aziot-keyd"))
             .and_then(|s| s.write_system_log("aziot-certd", "aziot-certd"))
             .and_then(|s| s.write_system_log("aziot-identityd", "aziot-identityd"))
-            .and_then(|s| s.write_system_log("iotedged", "iotedge"))
+            .and_then(|s| s.write_system_log("aziot-edged", "aziot-edged"))
             .and_then(|s| s.write_system_log("docker", "docker"))
             .and_then(Self::write_all_inspects)
             .and_then(Self::write_all_network_inspects)
@@ -323,7 +323,7 @@ where
         self.print_verbose("Calling iotedge check");
 
         let mut iotedge = env::args().next().unwrap();
-        if iotedge.contains("iotedged") {
+        if iotedge.contains("aziot-edged") {
             self.print_verbose("Calling iotedge check from edgelet, using iotedge from path");
             iotedge = "iotedge".to_string();
         }
@@ -501,10 +501,7 @@ mod tests {
     use tempfile::tempdir;
 
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
-    use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::{
-        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
-    };
+    use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime, TestSettings};
 
     use super::{
         make_bundle, pull_logs, Fail, File, Future, LogOptions, LogTail, OsString, OutputLocation,
@@ -557,24 +554,27 @@ mod tests {
         assert_eq!("Roses are redviolets are blue", mod_log);
 
         for name in &[
-            "iotedged",
+            "aziot-edged",
             "aziot-certd",
             "aziot-keyd",
             "aziot-identityd",
             "docker",
         ] {
             let logfile = Regex::new(format!(r"{}.*\.txt", name).as_str()).unwrap();
-            assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
-                .unwrap()
-                .map(|file| file
+            assert!(
+                fs::read_dir(PathBuf::from(&extract_path).join("logs"))
                     .unwrap()
-                    .path()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned())
-                .any(|f| logfile.is_match(&f)), format!("Missing log file: {}*.txt", name));
+                    .map(|file| file
+                        .unwrap()
+                        .path()
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned())
+                    .any(|f| logfile.is_match(&f)),
+                format!("Missing log file: {}*.txt", name)
+            );
         }
 
         //expect inspect
@@ -640,14 +640,10 @@ mod tests {
         let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
-        TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module))
+        TestRuntime::make_runtime(TestSettings::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module))
     }
 
     // From https://github.com/mvdnes/zip-rs/blob/master/examples/extract.rs

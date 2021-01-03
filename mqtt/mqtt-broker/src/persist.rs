@@ -14,6 +14,7 @@ use std::{
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use fail::fail_point;
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
@@ -195,7 +196,8 @@ impl From<BrokerSnapshot> for ConsolidatedState {
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_info, subscriptions, waiting_to_be_sent) = session.into_parts();
+                let (client_info, subscriptions, waiting_to_be_sent, last_active) =
+                    session.into_parts();
 
                 #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
@@ -207,6 +209,7 @@ impl From<BrokerSnapshot> for ConsolidatedState {
                     client_info,
                     subscriptions,
                     waiting_to_be_sent,
+                    last_active,
                 }
             })
             .collect();
@@ -261,6 +264,7 @@ impl From<ConsolidatedState> for BrokerSnapshot {
                     session.client_info,
                     session.subscriptions,
                     waiting_to_be_sent,
+                    session.last_active,
                 )
             })
             .collect();
@@ -274,6 +278,7 @@ struct ConsolidatedSession {
     client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: Vec<SimplifiedPublication>,
+    last_active: DateTime<Utc>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -536,7 +541,7 @@ pub enum PersistError {
     TaskJoin(#[source] Option<tokio::task::JoinError>),
 }
 
-#[cfg(test)]
+#[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
     use std::io::Cursor;
 
@@ -544,32 +549,14 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::{
-        persist::{ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat},
+        persist::{FileFormat, FilePersistor, Persist, VersionedFileFormat},
         proptest::arb_broker_snapshot,
         BrokerSnapshot,
     };
 
     proptest! {
         #[test]
-        fn consolidate_simple(state in arb_broker_snapshot()) {
-            let (expected_retained, expected_sessions) = state.clone().into_parts();
-
-            let consolidated: ConsolidatedState = state.into();
-            prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
-            prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
-
-            let state: BrokerSnapshot = consolidated.into();
-            let (result_retained, result_sessions) = state.into_parts();
-
-            prop_assert_eq!(expected_retained, result_retained);
-            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
-            for i in 0..expected_sessions.len(){
-                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
-            }
-        }
-
-        #[test]
-        fn consolidate_roundtrip(state in arb_broker_snapshot()) {
+        fn broker_state_versioned_file_format_persistance_test(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = VersionedFileFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
@@ -581,10 +568,7 @@ mod tests {
             let (result_retained, result_sessions) = state.into_parts();
 
             prop_assert_eq!(expected_retained, result_retained);
-            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
-            for i in 0..expected_sessions.len(){
-                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
-            }
+            prop_assert_eq!(expected_sessions, result_sessions);
         }
     }
 

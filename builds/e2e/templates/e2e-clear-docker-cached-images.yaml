@@ -25,7 +25,7 @@ steps:
     # Remove old images
     $remove = sudo docker images --format '{{.Repository}}:{{.Tag}}' `
         | where { $images -notcontains $_ }
-    sudo docker rm -f $(docker ps -a -q)
+    sudo docker rm -f $(sudo docker ps -a -q)
     $remove | foreach { sudo docker rmi $_ }
 
     # Delete everything else

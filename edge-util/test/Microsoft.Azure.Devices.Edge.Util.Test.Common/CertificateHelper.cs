@@ -47,6 +47,10 @@ jakkDyV11Q==
 -----END CERTIFICATE-----
 ";
 
+        public const string CertificateThumbprintSha1 = "4b763ae53da1f86112acb008cac657b8dd259e76";
+        public const string CertificateThumbprintSha256 = "1826331953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071";
+
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic key used in tests")]
         public const string PrivateKeyPem = @"-----BEGIN PRIVATE KEY-----
 MIIJQgIBADANBgkqhkiG9w0BAQEFAASCCSwwggkoAgEAAoICAQDaDQIZm/VDDbUf
 5/qmO6IQiKPteetPdonYo0hYOyfkK+9n99jQWO65ue5f2lU5RubjL8ewL8AtnHqQ
@@ -113,6 +117,7 @@ x0DnmhDakf0O/kICIQC0DzYCSXsk0Yce1+Bi7zmwjp320U7o0sCs7O8ZhUgy+g==
 -----END CERTIFICATE-----
 ";
 
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic key used in tests")]
         public const string ECCPrivateKeyPem = @"-----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIP+wX2mlEdZCqURmTFq05cV0XE6VefkqCshhc88q8mxMoAoGCCqGSM49
 AwEHoUQDQgAEvwMwWYNM6YWlwLMOpExYFobxVUQVdmgEXA7vnZEFdvzKvrNegc+H

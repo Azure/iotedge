@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
                     ICheckpointer checkpointer = snapshot[priority].Checkpointer;
 
-                    IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message, timeToLiveSecs);
+                    IMessage storedMessage = await this.messageStore.Add(MessageQueueIdHelper.GetMessageQueueId(this.Endpoint.Id, priority), message, timeToLiveSecs);
                     checkpointer.Propose(storedMessage);
                     Events.AddMessageSuccess(this, storedMessage.Offset, priority, timeToLiveSecs);
                 }
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 if (!updatedSnapshot.ContainsKey(priority))
                 {
-                    string id = GetMessageQueueId(this.Endpoint.Id, priority);
+                    string id = MessageQueueIdHelper.GetMessageQueueId(this.Endpoint.Id, priority);
 
                     // Create a message queue in the store for every priority we have
                     await this.messageStore.AddEndpoint(id);
@@ -190,25 +190,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             else
             {
                 Events.UpdatePrioritiesFailure(this, updatedSnapshot.Keys.ToList());
-            }
-        }
-
-        static string GetMessageQueueId(string endpointId, uint priority)
-        {
-            if (priority == RouteFactory.DefaultPriority)
-            {
-                // We need to maintain backwards compatibility
-                // for existing sequential stores that don't
-                // have the "_Pri<x>" suffix. We use the default
-                // priority (2,000,000,000) for this, which means
-                // the store ID is just the endpoint ID.
-                return endpointId;
-            }
-            else
-            {
-                // The actual ID for the underlying store is of string format:
-                //      <endpointId>_Pri<priority>
-                return endpointId + "_Pri" + priority.ToString();
             }
         }
 
@@ -254,7 +235,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                             {
                                 // Create and cache a new pair for the message provider
                                 // so we can reuse it every loop
-                                pair.Item1 = this.messageStore.GetMessageIterator(GetMessageQueueId(this.Endpoint.Id, priority), fsm.Checkpointer.Offset + 1);
+                                pair.Item1 = this.messageStore.GetMessageIterator(MessageQueueIdHelper.GetMessageQueueId(this.Endpoint.Id, priority), fsm.Checkpointer.Offset + 1);
                                 pair.Item2 = new StoreMessagesProvider(pair.Item1, batchSize);
                                 messageProviderPairs.Add(priority, pair);
                             }
