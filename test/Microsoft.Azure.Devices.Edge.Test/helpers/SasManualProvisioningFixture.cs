@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -11,18 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected EdgeRuntime runtime;
 
-        public SasManualProvisioningFixture()
-            : base()
-        {
-        }
+        protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
-        public SasManualProvisioningFixture(string connectionString, string eventHubEndpoint)
-            : base(connectionString, eventHubEndpoint)
-        {
-        }
-
-        [SetUp]
-        public virtual async Task SasProvisionEdgeAsync()
+        protected virtual async Task SasProvisionEdgeAsync()
         {
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
@@ -47,10 +39,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.OptimizeForPerformance,
                     this.iotHub);
 
+                TestCertificates testCerts = await TestCertificates.GenerateCertsAsync(device.Id, token);
+
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
-                        config.SetDeviceConnectionString(device.ConnectionString);
+                        testCerts.AddCertsToConfig(config);
+                        config.SetManualSasProvisioning(device.HubHostname, device.Id, device.SharedAccessKey);
                         config.Update();
                         return Task.FromResult((
                             "with connection string for device '{Identity}'",

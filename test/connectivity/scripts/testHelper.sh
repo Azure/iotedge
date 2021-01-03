@@ -6,9 +6,8 @@ function clean_up() {
     stop_iotedge_service || true
 
     echo 'Remove IoT Edge and config file'
-    rm -rf /var/lib/iotedge/
-    rm -rf /var/run/iotedge/
-    rm -rf /etc/iotedge/config.yaml
+    rm -rf /var/lib/aziot/edged/
+    rm -rf /etc/aziot/edged/config.yaml
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -24,9 +23,9 @@ function clean_up() {
 
 function create_iotedge_service_config {
     print_highlighted_message 'Create IoT Edge service config'
-    mkdir /etc/systemd/system/iotedge.service.d/ || true
+    mkdir /etc/systemd/system/aziot-edged.service.d/ || true
     bash -c "echo '[Service]
-Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
+Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf"
 }
 
 function get_connectivity_deployment_artifact_file() {
@@ -52,7 +51,7 @@ function get_image_architecture_label() {
 
 function get_iotedged_artifact_folder() {
     local testDir=$1
-    
+
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
         path="$testDir/artifacts/iotedged-ubuntu16.04-amd64"
@@ -98,21 +97,21 @@ function get_leafdevice_artifact_file() {
 function get_hash() {
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
-    
+
     echo "$hash"
 }
 
 function is_cancel_build_requested() {
     local accessToken=$1
     local buildId=$2
-    
+
     if [[ ( -z "$accessToken" ) || ( -z "$buildId" ) ]]; then
         echo 0
     fi
-    
+
     local output1=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
     local output2=$(curl -s -u :$accessToken --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
-    
+
     if [[ -z "$output1" && -z "$output2" ]]; then
         echo 0
     else
@@ -136,7 +135,7 @@ function print_highlighted_message() {
 
 function stop_iotedge_service() {
     echo 'Stop IoT Edge services'
-    systemctl stop iotedge.socket iotedge.mgmt.socket || true
+    systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
     systemctl kill iotedge || true
     systemctl stop iotedge || true
 }

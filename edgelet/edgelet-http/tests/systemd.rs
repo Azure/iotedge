@@ -84,7 +84,7 @@ fn test_fd_ok() {
         // it's not possible to work around it by telling `Http` to bind to `fd://1/` - it'll just complain that `fd://0/` (ie fd 3)
         // isn't a valid fd.
         //
-        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the iotedged service, so we can just pretend
+        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the aziot-edged service, so we can just pretend
         // the test succeeded without losing coverage.
 
         unistd::close(fd).unwrap();

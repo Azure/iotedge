@@ -36,9 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             return new CertificateAuthority(scriptPath);
         }
 
-        public static CertificateAuthority GetQuickstart()
+        public static CertificateAuthority GetQuickstart(string deviceId)
         {
-            CaCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates();
+            CaCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates(deviceId);
             return new CertificateAuthority(certs);
         }
 

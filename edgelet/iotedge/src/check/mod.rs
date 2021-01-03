@@ -30,19 +30,19 @@ use checker::Checker;
 
 mod checks;
 // use checks::{
-//     get_host_connect_upstream_tests, get_host_container_upstream_tests, CertificatesQuickstart,
+//     get_host_connect_upstream_tests, get_host_container_upstream_tests, AziotEdgedVersion, CertificatesQuickstart,
 //     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
 //     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
 //     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
-//     HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
+//     HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry,
 //     ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
 //     WindowsHostVersion,
 // };
 use checks::{
-    ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
+    AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6,
+    ContainerEngineInstalled, ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted, HostLocalTime,
-    Hostname, IotedgedVersion, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
+    Hostname, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
 };
 
 pub struct Check {
@@ -50,7 +50,7 @@ pub struct Check {
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     dont_run: BTreeSet<String>,
-    iotedged: PathBuf,
+    aziot_edged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
     output_format: OutputFormat,
@@ -104,17 +104,19 @@ impl Check {
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
-        expected_iotedged_version: Option<String>,
-        iotedged: PathBuf,
+        expected_aziot_edged_version: Option<String>,
+        aziot_edged: PathBuf,
         // iothub_hostname: Option<String>,
         ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
         warnings_as_errors: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
-        let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
+        let latest_versions = if let Some(expected_aziot_edged_version) =
+            expected_aziot_edged_version
+        {
             future::Either::A(future::ok::<_, Error>(LatestVersions {
-                iotedged: expected_iotedged_version,
+                aziot_edged: expected_aziot_edged_version,
             }))
         } else {
             let proxy = std::env::var("HTTPS_PROXY")
@@ -211,7 +213,7 @@ impl Check {
                 container_engine_config_path,
                 diagnostics_image_name,
                 dont_run,
-                iotedged,
+                aziot_edged,
                 latest_versions: latest_versions.map_err(Some),
                 ntp_server,
                 output_format,
@@ -242,7 +244,7 @@ impl Check {
                     Box::new(ParentHostname::default()),
                     Box::new(ContainerResolveParentHostname::default()),
                     Box::new(ConnectManagementUri::default()),
-                    Box::new(IotedgedVersion::default()),
+                    Box::new(AziotEdgedVersion::default()),
                     Box::new(HostLocalTime::default()),
                     Box::new(ContainerLocalTime::default()),
                     Box::new(ContainerEngineDns::default()),
@@ -660,7 +662,7 @@ mod tests {
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
                     Some("1.0.0".to_owned()), // unused for this test
-                    "iotedged".into(),        // unused for this test
+                    "aziot-edged".into(),     // unused for this test
                     // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
@@ -731,7 +733,7 @@ mod tests {
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
                     Some("1.0.0".to_owned()), // unused for this test
-                    "iotedged".into(),        // unused for this test
+                    "aziot-edged".into(),     // unused for this test
                     // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
@@ -802,7 +804,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
-                "iotedged".into(),        // unused for this test
+                "aziot-edged".into(),     // unused for this test
                 // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
@@ -849,7 +851,7 @@ mod tests {
     //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
     //             Default::default(),
     //             Some("1.0.0".to_owned()), // unused for this test
-    //             "iotedged".into(),        // unused for this test
+    //             "aziot-edged".into(),        // unused for this test
     //             // Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
     //             "pool.ntp.org:123".to_owned(), // unused for this test
     //             super::OutputFormat::Text,     // unused for this test
@@ -932,7 +934,7 @@ mod tests {
     //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
     //             Default::default(),
     //             Some("1.0.0".to_owned()),      // unused for this test
-    //             "iotedged".into(),             // unused for this test
+    //             "aziot-edged".into(),             // unused for this test
     //             None,                          // pretend user did not specify --iothub-hostname
     //             "pool.ntp.org:123".to_owned(), // unused for this test
     //             super::OutputFormat::Text,     // unused for this test
@@ -976,7 +978,7 @@ mod tests {
     //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
     //             Default::default(),
     //             Some("1.0.0".to_owned()), // unused for this test
-    //             "iotedged".into(),        // unused for this test
+    //             "aziot-edged".into(),        // unused for this test
     //             // None,
     //             "pool.ntp.org:123".to_owned(), // unused for this test
     //             super::OutputFormat::Text,     // unused for this test
@@ -1021,7 +1023,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
-                "iotedged".into(),             // unused for this test
+                "aziot-edged".into(),          // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
@@ -1074,7 +1076,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
-                "iotedged".into(),        // unused for this test
+                "aziot-edged".into(),     // unused for this test
                 // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test

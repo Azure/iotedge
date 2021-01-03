@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        public async Task<bool> SendAsync(string topic, byte[] payload)
+        public async Task<bool> SendAsync(string topic, byte[] payload, bool retain = false)
         {
             var client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to send messages."));
 
@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             // put into the dictionary next line, causing the ACK being unknown.
             lock (this.guard)
             {
-                var messageId = client.Publish(topic, payload, 1, false);
+                var messageId = client.Publish(topic, payload, 1, retain);
                 added = this.pendingAcks.TryAdd(messageId, tcs);
             }
 

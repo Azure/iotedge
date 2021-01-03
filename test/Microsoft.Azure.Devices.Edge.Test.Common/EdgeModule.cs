@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Retry.Do(
                 async () =>
                 {
-                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
+                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, Option.Some(this.Id), token);
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),

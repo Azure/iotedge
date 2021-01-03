@@ -43,5 +43,5 @@ pub trait Command {
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
-    pub iotedged: String,
+    pub aziot_edged: String,
 }

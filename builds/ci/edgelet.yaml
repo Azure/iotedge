@@ -31,7 +31,7 @@ jobs:
         displayName: Build
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
-          arguments: --project-root "edgelet" --packages "iotedged" --reduced-linker 
+          arguments: --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker 
       - task: Bash@3
         displayName: Test
         inputs:

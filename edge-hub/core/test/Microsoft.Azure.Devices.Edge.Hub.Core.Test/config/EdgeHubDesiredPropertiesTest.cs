@@ -469,5 +469,52 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             Assert.Single(authConfig[0].Deny[0].Resources);
             Assert.Equal("/alert/#", authConfig[0].Deny[0].Resources[0]);
         }
+
+        [Fact]
+        public void BridgeTest()
+        {
+            string properties =
+                @"{
+                  'schemaVersion': '1.2.0',
+                  'routes': {},
+                  'storeAndForwardConfiguration': {},
+                  'mqttBroker': {
+                      'bridges': [
+                          {
+                              'endpoint': '$upstream',
+                              'settings': [
+                                  {
+                                      'direction': 'in',
+                                      'topic': 'telemetry/#',
+                                      'outPrefix': '/local/topic',
+                                      'inPrefix': '/remote/topic'
+                                  },
+                                  {
+                                      'direction': 'out',
+                                      'topic': '',
+                                      'inPrefix': '/local/telemetry',
+                                      'outPrefix': '/remote/messages'
+                                  }
+                              ]
+                          }
+                      ],
+                  },
+                  '$version': 2
+                }";
+
+            var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
+            var bridges = props.BrokerConfiguration.Bridges;
+            Assert.Single(bridges);
+            Assert.Equal("$upstream", bridges[0].Endpoint);
+            Assert.Equal(2, bridges[0].Settings.Count);
+            Assert.Equal(Direction.In, bridges[0].Settings[0].Direction);
+            Assert.Equal("telemetry/#", bridges[0].Settings[0].Topic);
+            Assert.Equal("/local/topic", bridges[0].Settings[0].OutPrefix);
+            Assert.Equal("/remote/topic", bridges[0].Settings[0].InPrefix);
+            Assert.Equal(Direction.Out, bridges[0].Settings[1].Direction);
+            Assert.Equal(string.Empty, bridges[0].Settings[1].Topic);
+            Assert.Equal("/local/telemetry", bridges[0].Settings[1].InPrefix);
+            Assert.Equal("/remote/messages", bridges[0].Settings[1].OutPrefix);
+        }
     }
 }

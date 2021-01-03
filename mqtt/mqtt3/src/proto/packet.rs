@@ -144,8 +144,6 @@ impl std::fmt::Debug for Connect {
             .field("will", &self.will)
             .field("client_id", &self.client_id)
             .field("keep_alive", &self.keep_alive)
-            .field("protocol_name", &self.protocol_name)
-            .field("protocol_level", &self.protocol_level)
             .finish()
     }
 }
@@ -874,7 +872,7 @@ pub struct SubscribeTo {
 /// The level of reliability for a publication
 ///
 /// Ref: 4.3 Quality of Service levels and protocol flows
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde1", derive(Deserialize, Serialize))]
 pub enum QoS {
     AtMostOnce,
@@ -889,6 +887,12 @@ impl From<QoS> for u8 {
             QoS::AtLeastOnce => 0x01,
             QoS::ExactlyOnce => 0x02,
         }
+    }
+}
+
+impl std::fmt::Debug for QoS {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", u8::from(*self)))
     }
 }
 

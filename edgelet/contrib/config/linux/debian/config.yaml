@@ -69,8 +69,8 @@ hostname: "<ADD HOSTNAME HERE>"
 # Nested Edge parent hostname
 ###############################################################################
 #
-# Optional. This entry should only be specified for the host name of the 
-# parent edge device for nested edge sceanrio. This value is injected into 
+# Optional. This entry should only be specified for the host name of the
+# parent edge device for nested edge sceanrio. This value is injected into
 # Edge Agent and Edge Hub modules as environment value 'IOTEDGE_GATEWAYHOSTNAME',
 # and injected into other module as environment value 'IOTEDGE_PARENTHOSTNAME'.
 # The parent_hostname value is converted to lower case before it is used.
@@ -122,8 +122,8 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
 
 ###############################################################################
 # Listen settings
@@ -141,14 +141,14 @@ connect:
 #
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
-#     listen address is fd://iotedge.workload,
-#     connect address is unix:///var/run/iotedge/workload.sock
+#     listen address is fd://aziot-edged.workload.socket,
+#     connect address is unix:///var/lib/aziot/edged/aziot-edged.workload.sock
 #
 ###############################################################################
 
 listen:
-  management_uri: "fd://iotedge.mgmt.socket"
-  workload_uri: "fd://iotedge.socket"
+  management_uri: "fd://aziot-edged.mgmt.socket"
+  workload_uri: "fd://aziot-edged.workload.socket"
 
 ###############################################################################
 # Home Directory
@@ -158,7 +158,7 @@ listen:
 #
 ###############################################################################
 
-homedir: "/var/lib/iotedge"
+homedir: "/var/lib/aziot/edged"
 
 ###############################################################################
 # Moby Container Runtime settings

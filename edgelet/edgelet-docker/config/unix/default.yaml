@@ -9,14 +9,14 @@ agent:
 hostname: "localhost"
 
 connect:
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
 
 listen:
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
+  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
 
-homedir: "/var/lib/iotedge"
+homedir: "/var/lib/aziot/edged"
 
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
@@ -26,4 +26,3 @@ endpoints:
   aziot_keyd_url: "unix:///run/aziot/keyd.sock"
   aziot_certd_url: "unix:///run/aziot/certd.sock"
   aziot_identityd_url: "unix:///run/aziot/identityd.sock"
-  

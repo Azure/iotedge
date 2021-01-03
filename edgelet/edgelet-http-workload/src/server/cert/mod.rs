@@ -10,7 +10,7 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
 
 use cert_client::client::CertificateClient;
-use edgelet_core::crypto::IOTEDGED_CA_ALIAS;
+use edgelet_core::crypto::AZIOT_EDGED_CA_ALIAS;
 use edgelet_core::{
     Certificate as CoreCertificate, CertificateProperties, KeyBytes, PrivateKey as CorePrivateKey,
 };
@@ -86,14 +86,14 @@ fn refresh_cert(
     let response = generate_key_and_csr(props)
         .map_err(|e| Error::from(e.context(context.clone())))
         .and_then(|(privkey, csr)| {
-            let iotedged_ca_key_pair_handle = key_client
-                .load_key_pair(IOTEDGED_CA_ALIAS)
+            let aziot_edged_ca_key_pair_handle = key_client
+                .load_key_pair(AZIOT_EDGED_CA_ALIAS)
                 .map_err(|e| Error::from(e.context(context.clone())))?;
-            Ok((privkey, csr, iotedged_ca_key_pair_handle))
+            Ok((privkey, csr, aziot_edged_ca_key_pair_handle))
         })
         .into_future()
         .and_then(
-            move |(privkey, csr, iotedged_ca_key_pair_handle)| -> Result<_> {
+            move |(privkey, csr, aziot_edged_ca_key_pair_handle)| -> Result<_> {
                 let context_copy = context.clone();
                 let response = cert_client
                     .lock()
@@ -101,7 +101,7 @@ fn refresh_cert(
                     .create_cert(
                         &alias,
                         &csr,
-                        Some((IOTEDGED_CA_ALIAS, &iotedged_ca_key_pair_handle)),
+                        Some((AZIOT_EDGED_CA_ALIAS, &aziot_edged_ca_key_pair_handle)),
                     )
                     .map_err(|e| Error::from(e.context(context_copy)))
                     .map(|cert| (privkey, cert))
