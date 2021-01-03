@@ -63,12 +63,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         public static IEnumerable<object[]> TwinIntegrityTestData()
         {
-            yield return new object[] { new string[] { "signercert1", "signercert2" }, null, "bytes", "algo" };
-            yield return new object[] { new string[] { "signercert1", "signercert2" }, null, "bytes", "algo" };
-            yield return new object[] { new string[] { string.Empty, "signercert2" }, null, "bytes", "algo" };
-            yield return new object[] { new string[] { "signercert1", string.Empty }, null, "bytes", "algo" };
-            yield return new object[] { new string[] { "signercert1", "signercert2" }, string.Empty, "algo" };
-            yield return new object[] { new string[] { "signercert1", "signercert2" }, "bytes", string.Empty };
+            yield return new object[] { null, null, "bytes", "algo" };
+            yield return new object[] { new string[] { string.Empty, "signercert2" }, new string[] { string.Empty, "intermediatecacert1" }, "bytes", "algo" };
+            yield return new object[] { new string[] { "signercert1", string.Empty }, new string[] { "intermediatecacert1", string.Empty }, "bytes", "algo" };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, "bytes", "algo" };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, string.Empty, "algo" };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, "bytes", string.Empty };
+            yield return new object[] { new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }, string.Empty, string.Empty };
         }
 
         [Theory]
