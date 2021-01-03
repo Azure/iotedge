@@ -11,14 +11,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public TwinHeader(string[] signercert, string[] intermediatecacert)
         {
             this.SignerCert = signercert;
-            this.IntermediateCert = Option.Maybe(intermediatecacert);
+            this.IntermediateCACert = Option.Maybe(intermediatecacert);
         }
 
         [JsonProperty("signercert")]
         public string[] SignerCert { get; }
 
         [JsonProperty("intermediatecacert")]
-        public Option<string[]> IntermediateCert { get; }
+        public Option<string[]> IntermediateCACert { get; }
 
         public override bool Equals(object obj)
         {
@@ -29,12 +29,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             return other != null &&
                    this.SignerCert == other.SignerCert &&
-                   this.IntermediateCert == other.IntermediateCert;
+                   this.IntermediateCACert == other.IntermediateCACert;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(this.SignerCert, this.IntermediateCert);
+            return HashCode.Combine(this.SignerCert, this.IntermediateCACert);
         }
 
         public static bool operator ==(TwinHeader left, TwinHeader right)

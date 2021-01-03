@@ -18,7 +18,7 @@ namespace ManifestSignerClient
         static readonly string SignedDeploymentManifestFilePath = Environment.GetEnvironmentVariable("SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH");
         static readonly string UseTestingCA = Environment.GetEnvironmentVariable("USE_TESTING_CA");
         static readonly string DeviceRootCaPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_DEVICE_ROOT_CA_PATH");
-        static readonly string IntermediateCaPath = Environment.GetEnvironmentVariable("INTERMEDIATE_CA_PATH");
+        static readonly string IntermediateCaPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_INTERMEDIATE_CA_PATH");
         static readonly string SignerPrivateKeyPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH");
         static readonly string SignerCertPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_CERT_PATH");
 
