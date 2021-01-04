@@ -10,12 +10,6 @@ EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
 VERSION="$(cat "$EDGELET_ROOT/version.txt")"
 
-# Pull Rust 1.45 source tarball
-pushd "${BUILD_REPOSITORY_LOCALPATH}"
-mkdir -p "builds/mariner/SPECS/rust/SOURCES/"
-curl -o "builds/mariner/SPECS/rust/SOURCES/rust-1.45.2-x86_64-unknown-linux-gnu.tar.gz" "https://marineriotedge.file.core.windows.net/mariner-build-env/rust-1.45.2-x86_64-unknown-linux-gnu.tar.gz?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
-popd
-
 pushd "${EDGELET_ROOT}"
 
 # Pull Cargo deps and extract
@@ -79,20 +73,22 @@ git checkout tags/1.0-stable
 pushd toolkit
 sudo make package-toolkit REBUILD_TOOLS=y
 popd
-# Move toolkit to build root for Mariner flavor
 sudo mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
 popd
 
-# Build Mariner RPM packages
+# Prepare toolkit
 pushd ${MARINER_BUILD_ROOT}
 sudo tar xzf toolkit.tar.gz
 pushd toolkit
 sudo make clean
 
-# TODO: Remove log level trace
+# Download Rust 1.45 RPM instead of using official 1.39 which is too old
+pushd "${BUILD_REPOSITORY_LOCALPATH}"
+mkdir -p "builds/mariner/build/rpm_cache/cache/x86_64/"
+curl -o "builds/mariner/build/rpm_cache/cache/x86_64/rust-1.45.2-1.cm1.x86_64.rpm" "https://marineriotedge.file.core.windows.net/mariner-build-env/rust-1.45.2-1.cm1.x86_64.rpm?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
+popd
+
+# Build Mariner RPM packages
 sudo make build-packages PACKAGE_BUILD_LIST="rust azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
 popd
 popd
-
-# Pipeline debugging
-find -name '*.x86_64.rpm'
