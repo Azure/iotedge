@@ -1542,7 +1542,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         [Theory]
         [MemberData(nameof(GetTwinForVerifyingSignatures))]
-        public void ValidateTwinSignature(string type, string imageName, string algo, string cert1, string cert2, string signature)
+        public void ValidateTwinSignature(string type, string imageName, string algo, string[] signercert, string[] intermediatecacert, string signature)
         {
             var desiredProperties = new
             {
@@ -1555,7 +1555,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     },
                     type = "docker"
                 },
-                schemaVersion = "1.0",
+                schemaVersion = "1.1",
                 systemModules = new
                 {
                     edgeAgent = new
@@ -1583,9 +1583,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 {
                     header = new
                     {
-                        version = "1",
-                        cert1,
-                        cert2,
+                        signercert,
+                        intermediatecacert,
                     },
                     signature = new
                     {
@@ -1609,20 +1608,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
         public static IEnumerable<object[]> GetTwinForVerifyingSignatures()
         {
-            string goodImageName = "mcr.microsoft.com/azureiotedge-agent-good-image:1.0";
+            string goodImageName = "mcr.microsoft.com/azureiotedge-agent:1.0";
             string maliciousImageName = "mcr.microsoft.com/azureiotedge-agent-malicious-image:1.0";
-            string ecdsaCert1 = "\rMIIBojCCAQMCFC9DNqy01WDwj8osN3vtP1WOvIK0MAoGCCqGSM49BAMCMC8xLTAr\rBgNVBAMMJE1hbmlmZXN0IFNpZ25lciBDbGllbnQgRUNEU0EgUm9vdCBDQTAeFw0y\rMDEwMDQwMTMxMzdaFw0yMDExMDMwMTMxMzdaMDMxMTAvBgNVBAMMKE1hbmlmZXN0\rIFNpZ25lciBDbGllbnQgRUNEU0EgU2lnbmVyIENlcnQwWTATBgcqhkjOPQIBBggq\rhkjOPQMBBwNCAAQkCRltNJxkeu";
-            string ecdsaCert2 = "ZpMzR8EyGplPN30VbGA5ZTDMXXMiGNykwDV2jA\ri9Z6vspIIqxpUibBEfd+5cnkl+Mw9T1ze0IlMAoGCCqGSM49BAMCA4GMADCBiAJC\rAQifI6gDU9Bv87aHikmxXtNW6Xvbzqhivd8cq9Xc6nKBt7zYLvsKzXBJhJNIrGCa\rJ3Yb+Q+FQfYOXfqMP/mcyKNdAkIBxRxVA1loN2VwoeG9IUG+rQhLdCzTvOgQrxZq\rhJRvXjMJxD52KClvXp/Bijq17yhV1aNNLTQuaV4Qiwh38fwA+kA=\r";
-            string rsaCert1 = "\rMIID5TCCAc0CFA3QH6TFwsq4ZQwX3hrcKfSFF0UfMA0GCSqGSIb3DQEBCwUAMC0x\rKzApBgNVBAMMIk1hbmlmZXN0IFNpZ25lciBDbGllbnQgUlNBIFJvb3QgQ0EwHhcN\rMjAwOTMwMjA1MDM1WhcNMjEwOTMwMjA1MDM1WjAxMS8wLQYDVQQDDCZNYW5pZmVz\rdCBTaWduZXIgQ2xpZW50IFJTQSBTaWduZXIgQ2VydDCCASIwDQYJKoZIhvcNAQEB\rBQADggEPADCCAQoCggEBALl7JhOI95LHlA0dNYIg6jnJJNLTEh3G8v/gzhB+61F6\rTXLV2DCjPxHwnYq09mFpjj4+JAwLw44MJtU9VEszw+XvXwibPCbxQ/GMYy5w+By6\rHVLMDF3l8QpLmNnhc+KNjgDQmwinGP+gmNrEF7oNIp/n2cA1x8s5q5LueisB4szt\rnMSKacpddm15h38KMxgJkfetpfBhQdojNvzaTeH4gmT34/39QLkUX3g6PJ88nHob\rZEwYQDZ4xGwbrypdVUm2xNGcZLmBgDYNYe5zYy/zWj2DkzOTCkypsf/8toL38Gqn\rUCPEdi7lGwN8/Lp8TASFeB3cc6WRDaiJYdeph7VpWaMCAwEAATANBgkqhkiG9w0B\rAQsFAAOCAgEARChMFj1Ktt/Gz58A";
-            string rsaCert2 = "4irJL/HocqDOTgjDEaz0sHGD8Cn8QegINW3H\rT96zJ0ra9uwIyHbZk6UWdIhQfmNRlsm9tqB/9XhiW+PAGjYaA28FDY19cyGHhB54\r94gNLS+DqIkhwab5i4QXADtoE6ni3T/Dre/gPf7QrVrLBezjYq+WKZdOxUUfpsDb\rukf0wmfcSjdDBeWyA605Q8KKsk9M77e7nuzezq/s+HIMFlMvM7xZEowRkqkHZqZ2\rZ8ksUBucjDqZUhH7iyIu4ohH3yZjzEGh77s+jPWk4Om9mUyma/hct9jIsO1+MvyR\rFt9uTfzm+2xrPc8YZfzv9FnAc+3APjskmo94W8daHUEMcOqs40RBwp4JHR8xv1vq\rcrX/PWTpG7/2RRcG4x3dc0TmnOFbcLsa2bMIrHAoFI98YW8yhHW7SZdIRdKJRJ1u\rdYSfoVcgBiQf0CHgIg++f+SyYsZsz0UEP1jtq3ieUDSvlxUgxnDfVx6h4TKCYxrV\rhln4hAR4wSA7+UM3UYYG2AMKrBCxV/cxOO/pFJCwveJtIJVGUi1cww2LTglJ9RRO\rQrMMrgXPtl4DBUzO7Kzvexfq4pmi4mCWBou+0PeCfI9aBnvt6nobrXKAxNkXUKIi\ruTOizMejEmrOWVGOTixXH1OMVvg0uHW65vbyxX/DvOErMaHubCHJNIk=\r";
-            string goodEcdsaSignature = "DPu2UJyq0K7WvhsnSA3TOjFZ6Z9/Y1zXR6Me9Xtdj3HctJrcrNY2rU5ukg3HGqZ/flEYSjGILvI66tl7EgsTdQ==";
-            string goodRsaSignature = "YTqJF9gbRo8CWPs92PJkA/HaGFR22brzE2V8y7mofoSRJMpeRgu51tPcclOTsyLgP45n339KtWQGAaeadmvOh5RsYbDF0ZeYR1X/6Hw6bT9gz7TQzYgvENuIWzpnRvhZ8tOWYbLb/739obBbyT6aYNdsc6qh5vyfzejMBJoV0Ie9Sw8ATb1WMub8ut+OLpU+/2rzP99PpjwKVgSSJ3GGiXapZ+GKMV2NCVpuXfu5iuvCA9iPaTNyIYhn2C2OwEKsUkoCZCTfRBH4YMlqUoJT5atKy+LWfIUe/fr2xusMn5mYuDEia+vofvJXDV1/CFoHm7+Fu9jnqAHkn9c4jaQmvw==";
-            string ecdsaAlgo = "ES256";
+            string[] rsaSignerCert = new string[]
+            {
+                "\rMIIFxTCCA62gAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwVDELMAkGA1UEAwwCc3Mx\rCzAJBgNVBAgMAldBMQswCQYDVQQGEwJVUzERMA8GCSqGSIb3DQEJARYCc3MxCzAJ\rBgNVBAoMAnNzMQswCQYDVQQLDAJzczAeFw0xNTA1MDUwMDAwMDBaFw0yNDEyMzEy\rMzU5NTlaMFQxCzAJBgNVBAMMAnNzMQswCQYDVQQIDAJXQTELMAkGA1UEBhMCVVMx\rETAPBgkqhkiG9w0BCQEWAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MwggIi\rMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC/kWLjEMiQnAc7c3JP8PEIEA58\rmIkdQwaRNWhmZW0OsifBHJJvFgyA5CGEazQaFhcrnMjF2T8/eCoIg7/9+6bsX322\rYLLphXW87aohvUYF0VCcomQRuaYHSxKEGXyAoxmvoywuQP3CELnb6PKM71jLYZn4\r+6kvDHcfZ9vY+jlH4sZRc36sauBwxf3voqt4/07PcHKy6WiPElOd+jZsf82lDTp2\rSLad/cZI8fxJqJth7t9g2b99vEUOtSbs9OliAIwTVAHMIWjsP/dbvNe39TlkrRf3\r7XIWD0RoS6apvE/CFfr4gHFJBxYB553y7KOpdURocnTTQNoMmAqm7bZpVUril48/\r7HBx4qaMz+/h7Vbdn+xhIJmHwGAaylzB9p5lpHdAQ/aSYSSwqkqKh0+hCD8wA5Zt\rcpoSBS+rxGgNtWJrAEjMuatIIu055ckf8lqyD7I8AVSUVuZ5IzumVwgMdRdN3L86\rM9JtknGnGIwFeb4l3S/NCxzhTZmgSY1aZ6uXiAJrvjx5i5J8gx8Mw5OCUGsKks/v\redMV3JFUJiJoleDxu7RQMF5Dy2XlKe26/QiM4DdRyCv7GvDO6oMv9Gudl7FEnt/a\roxibOWppmgEI5fHyPwZdiMPpu7qL",
+                "+6AbkFAOQjyTh3Ri5Om9YaXV94zeTrL36ZsR\rA/s29xO/pB437azkcwIDAQABo4GgMIGdMAwGA1UdEwEB/wQCMAAwHQYDVR0OBBYE\rFHoCPM2gglKW8RF8+O/ao3wZMlZsMB8GA1UdIwQYMBaAFLVFJPuERtKpzqIC6fLQ\rZncCpGFaMAsGA1UdDwQEAwIBpjATBgNVHSUEDDAKBggrBgEFBQcDATArBgNVHREE\rJDAigg9hLmEuZXhhbXBsZS5jb22CD2IuYi5leGFtcGxlLmNvbTANBgkqhkiG9w0B\rAQsFAAOCAgEAEiLZpeycdnGWwNUS8LqcLVuJgAJEe10XgKWeUVHBSx3z1thzliXP\rbVsxiiW9V+3lNSaJJSbQkJVPDLV/sKdmSp3dQ/ll3abeSnLzap5FCco1wm2Ru8Vb\rNdJrRLW2hyQ+TFUrWGr9PqK5q6qKuQUywidFZkSvpLOL1eW5jTqUli1GzZio7YD1\rF/Qd4RBbKQTHbtrUMLwJujKIkAh/9dG13WevtdysxaLOYCmckytbE5Af+m1SSERa\r9FjUu22FAwIm9hk64NQgDlML6JKBj03rts51q+FO+D6U6c/VR3rmtZpvqy/Okf4X\rO82+SiTQ1EHLQpIKJhdAfJ7tpDMu0Hz3+qjRX1B8gpK4rnUoPMmmy4cTGjbDzKlL\rcJIP66xbR4tM0O8v1eWu4fJgHlPuYjok/tiIAxZFs8SKomeIEJSNaiOawp5XOshR\r3dggXZey6TDBB4uO2jgGNBQwu4vrFYlZVCcivPbKutjNHB3uhiBrA0yyeD/df1yX\rqwzlSg7cay0WMAbddK0jCFmrXbyRyAuoP/HB1UdQ7LygjsvPdf626xd9w6PihgxD\r9i0AeEqTVdwWfPpiDtRxGhJv/Kz9k17dVFYnJG7oMJrmZJ4kCg+QV/Yy8qRsjiV9\rmPsJeWqhiY5jfO3mC1sEmhb3dzhEW7ntj+xIgCcrlXoU9vkyA/HuPFI=\r"
+            };
+            string[] rsaIntermediateCACert = new string[]
+            {
+                "\rMIIF0TCCA7mgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCVVMx\rCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsM\rAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMTUwNTA1MDAw\rMDAwWhcNMjQxMjMxMjM1OTU5WjBUMQswCQYDVQQDDAJzczELMAkGA1UECAwCV0Ex\rCzAJBgNVBAYTAlVTMREwDwYJKoZIhvcNAQkBFgJzczELMAkGA1UECgwCc3MxCzAJ\rBgNVBAsMAnNzMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA4SGilBtw\rS9iiCka47TzXHEXZuHPKOvZhs+kepLoL/xWWOo/eOcTfnPnD4M0wR0/+Dm3S6zld\rgdojYQPWU48K6mAlNeaTDF16SiTmuMvUvN0c0aifF+YL+9mZuQY30VMXHrjNTQ/e\rTtjEnrp8aOw08eBxFe5zYA+H9a6SnOXuCczH/X9KXlzcYivxPEDc3ImCC7v0DFsB\r7guWp6ZJpU75I5g6hP/tSn/JxaGA1Rp1quZzM0S1Y4eHxqfuhi6mmMFE2TRBRdBn\r5NFtaAmPSqUS51Ie4ryvUlHWCl4jUjKfbjlaFZexPrKAIa293UiJ5J/oywci81Gq\rboAiafB6gCkXFLARy/5aRV+9NGx/+bHPjGn8Q0/1Izhf+qhw8T494IQDkXcSWHNf\r5hw3EFJyrKFsnyMvhcyjNmXaN2JWbnmjw0v4M0xYUjqSyrHAUZVvc3bFQ/5lR2NJ\rbUuopq2f75TT07jvY0LLd5juqjOOntwuVhFpBEow4iT2ELalTI78RiDEcwdyfp9A\rr9Lom94V8yf1ZdJJg4WL4/1uZFOV4dPKxYtd73AISIXusYaI1bdXmPRbJmCZEdN3\rld3bKeuZisdeQmBNl55bnj0IcLQaESbfq77P",
+                "PSppZfU8dy8n4gznMtH9jBqRhU4L\r0hkbeMp6DcLbcC9NBqUImNz9jnCFlxzUEeECAwEAAaOBnzCBnDAPBgNVHRMBAf8E\rBTADAQH/MB0GA1UdDgQWBBS1RST7hEbSqc6iAuny0GZ3AqRhWjAfBgNVHSMEGDAW\rgBQusZAXF6xOrlU/BDkAJLwipDfQszALBgNVHQ8EBAMCAaYwEwYDVR0lBAwwCgYI\rKwYBBQUHAwEwJwYDVR0RBCAwHoINYS5leGFtcGxlLmNvbYINYi5leGFtcGxlLmNv\rbTANBgkqhkiG9w0BAQsFAAOCAgEADhMBwTaOemrA2YfYAz6G5VMKVqoi2buZbaUM\rCWBE4Laj0fjGmBMiDoch5jn4yhvVoLrCf1cWJC/CH2XZqBuxxaayQyeLNJ/z311b\rlrjosRURhmEDgE1SRKfHcN9GdywAsjvmCQkB5j5toBKSzLrRTEoP0fXhaicppHCp\rnUgut2b65Nlj9hYHSkIYujYaFG4vPjJD145yXd+HuwHeMqCunvVm50IsaVoA8OD5\rdg6zPSiecJQFlXIFNGs1kniRmMGOnHMzjM+uUE/uUfrdRiT2e0uq+FPWeYVWlHsO\rRzXYcW5iT23fzp2F6B6tOcACrHt1jMmU7QZVvcAo59aLdSeL+Dbvz8BD8tM5y4mn\rZgH8uIt2VI3uCaj5yVtl58X81//z5w94ihQKpzYZAGklVxCej4npp3g3usQS0ANO\r7bqPN9JVHM5VyxVKyFCSpmwh1cCEoPKJAAm6X/LEgZon6Mq8bBXAiKm06S272umT\rKQ18PjGZWSLJwbhutR2MGCtwbUjIokAWPej6pcmEzxy0wK7xtCMEqiH5hRntHAD8\ry5zTOfJ/XXBb8C56GkDhqjD7lu6gPHZLRYBkRIYHHMQi+xhK9j0k/wRoTiiTwkCw\rctkTDJW4O+im8RrylFeeWTfRsJ7PIDjGp89y+U8aAr5kZEFBT2h6RMDBoSLV9soX\ri4H2KRo=\r"
+            };
+            string rsaSignature = "h+N0UYSXsVACJYgLNMRMWnBYxWyPc7MO+HFFpIm+MRz71T7Z9lfL7COQW8eo3eDi/QUPCkv4ldXB0SZY0GmBCDj7H+IVh7BW6DmxXcj9zzhCzcZFcypoik14tdiE6JywQw/w4jvJu7w+ljFtrPOnzY+LzGNTPqocsVOl/lj4Vj3HlYPqdMocKfJTN6gEYPZ7iKesRzNjarAH44StdoIzvCYRbiHPcuLXNhsaUFZ6yanopCyiYzAgJkdCNbWnEl2wgIqr/0wBe3baDNuOROWNhR4FjfD0AhUR3urvuVnuU6zCeg6cWgESdxnAUrl3TfeVK724kzkMFANY1CeiUyQQrGmwlWanQhCKcKxeKTM7A6TSbvhVo4vcgb6i0apXiFPsjFp991/Vl71MgYVnepdWNmIS0K+B1fw1gkajPgBZARI7v9CS0TTVd00BuvruQRkliXhVXRAQ9132jh4py1pXqSUGMWDd0yXq36Fppm7CflGfDczzARMsYhA5CYAhJ0zDOz6jHJ0prZtqLQeQnbp00H9uQvvNa+8a35LAjGRle4c3AtKGCa427qRe7JS9n2S4YCsdwfQvclHh0+S6sKlCsWS6pqUsBcTplzrp44HuLx18yTpsnnoYe4srj9r/yuBn1xk2AiThPvc4wXAKccl7xY1U2p27ZFMXQIn2t1gyCus=";
             string rsaAlgo = "RS256";
-            yield return new object[] { "good", goodImageName, ecdsaAlgo, ecdsaCert1, ecdsaCert2, goodEcdsaSignature };
-            yield return new object[] { "bad", maliciousImageName, ecdsaAlgo, ecdsaCert1, ecdsaCert2, goodEcdsaSignature };
-            yield return new object[] { "good", goodImageName, rsaAlgo, rsaCert1, rsaCert2, goodRsaSignature };
-            yield return new object[] { "bad", maliciousImageName, rsaAlgo, rsaCert1, rsaCert2, goodRsaSignature };
+
+            string[] ecdsaSignerCert = new string[]
+            {
+                "\rMIICOTCCAd+gAwIBAgICEAAwCgYIKoZIzj0EAwIwVDELMAkGA1UEAwwCc3MxCzAJ\rBgNVBAgMAldBMQswCQYDVQQGEwJVUzERMA8GCSqGSIb3DQEJARYCc3MxCzAJBgNV\rBAoMAnNzMQswCQYDVQQLDAJzczAeFw0xNTA1MDUwMDAwMDBaFw0yNDEyMzEyMzU5\rNTlaMFQxCzAJBgNVBAMMAnNzMQswCQYDVQQIDAJXQTELMAkGA1UEBhMCVVMxETAP\rBgkqhkiG9w0BCQEWAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MwWTATBgcq\rhkjOPQIBBggqhkjOPQMBBwNCAAS7kA6viM5eN1Y/E+1KUOjLEZdhsygtbntGqV",
+                "7s\rMXG5ZEKr+drie2i6lMa8zu/hvHhOdbXiFVOZT045AYaGWBDRo4GgMIGdMAwGA1Ud\rEwEB/wQCMAAwHQYDVR0OBBYEFK0CsUii+1a5RlE+2aQMKrxwlFkeMB8GA1UdIwQY\rMBaAFI3svRm8zDySNcXiJCaqn6phhFtPMAsGA1UdDwQEAwIBpjATBgNVHSUEDDAK\rBggrBgEFBQcDATArBgNVHREEJDAigg9hLmEuZXhhbXBsZS5jb22CD2IuYi5leGFt\rcGxlLmNvbTAKBggqhkjOPQQDAgNIADBFAiBWXuB2+R1lXV3HPmmu7eJc3H2rpr8o\rKwR8wnDdnuYL+AIhAIM5nw1LLtEVKpIOP7DsrlxEQjPw1+nrj4/Ilb47Bqpq\r"
+            };
+            string[] ecdsaIntermediateCACert = new string[]
+            {
+                "\rMIICRTCCAeugAwIBAgICEAAwCgYIKoZIzj0EAwIwYTELMAkGA1UEBhMCVVMxCzAJ\rBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsMAnNz\rMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMTUwNTA1MDAwMDAw\rWhcNMjQxMjMxMjM1OTU5WjBUMQswCQYDVQQDDAJzczELMAkGA1UECAwCV0ExCzAJ\rBgNVBAYTAlVTMREwDwYJKoZIhvcNAQkBFgJzczELMAkGA1UECgwCc3MxCzAJBgNV\rBAsMAnNzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Di5/tzZFOG1KrfoPwBa\rfgjF9I",
+                "DWI7EL5DIeowGfr/MyUmtwULyrLE2bAQUGv9KdH2oPg6aK//WutYqli6MN\rXaOBnzCBnDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSN7L0ZvMw8kjXF4iQm\rqp+qYYRbTzAfBgNVHSMEGDAWgBTNmen1wYUOUouvXOzNt+4Gk2ox1zALBgNVHQ8E\rBAMCAaYwEwYDVR0lBAwwCgYIKwYBBQUHAwEwJwYDVR0RBCAwHoINYS5leGFtcGxl\rLmNvbYINYi5leGFtcGxlLmNvbTAKBggqhkjOPQQDAgNIADBFAiBETS1txVUaZl8E\rWagr5+OFGbHEluKTVD3hltzIjnJ+eAIhAIJbxmhIItZyEYpK6Pwy8eIWWO0u9Eu9\rg4oUYwl08mbk\r"
+            };
+
+            string ecdsaSignature = "c9AvfvMrcgv+jgamtd2VcHJbkajpu+7FfweuCt1ld7x4eDkGLDPuNNmEQkM1cZGwW1JXUd/zHLRp9rs1x9Zg3A==";
+            string ecdsaAlgo = "ES256";
+            yield return new object[] { "good", goodImageName, ecdsaAlgo, ecdsaSignerCert, ecdsaIntermediateCACert, ecdsaSignature };
+            yield return new object[] { "good", goodImageName, rsaAlgo, rsaSignerCert, rsaIntermediateCACert, rsaSignature };
+            yield return new object[] { "bad", maliciousImageName, rsaAlgo, rsaSignerCert, rsaIntermediateCACert, rsaSignature };
+            yield return new object[] { "bad", maliciousImageName, ecdsaAlgo, ecdsaSignerCert, ecdsaIntermediateCACert, ecdsaSignature };
         }
 
         [Theory]

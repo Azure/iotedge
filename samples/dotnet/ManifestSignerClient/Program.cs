@@ -7,8 +7,8 @@ namespace ManifestSignerClient
     using System.IO;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
-    using Newtonsoft.Json.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json.Linq;
 
     class Program
     {

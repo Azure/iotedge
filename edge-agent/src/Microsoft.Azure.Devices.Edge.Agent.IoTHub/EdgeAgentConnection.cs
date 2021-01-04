@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -445,7 +446,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 // Extract Integrity section
                 JToken integrity = twinJobject["integrity"];
                 JToken header = integrity["header"];
-                string combinedCert = integrity["header"]["cert1"].Value<string>() + integrity["header"]["cert2"].Value<string>();
+                JToken signerCertJtoken = integrity["header"]["signercert"];
+                string combinedCert = signerCertJtoken.First.ToString() + signerCertJtoken.Last.ToString();
                 X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
                 JToken signature = integrity["signature"]["bytes"];
 
