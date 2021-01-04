@@ -136,7 +136,7 @@ jobs:
         Mariner1.0-amd64:
           arch: amd64
           os: mariner
-          target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+          target.iotedged: builds/mariner/out/RPMS/x86_64/
     steps:
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -164,21 +164,13 @@ jobs:
           TargetFolder: '$(build.artifactstagingdirectory)'
         condition: succeededOrFailed()
       - task: CopyFiles@2
-        displayName: Copy iotedged and libiothsm source tarballs to artifact staging
-        inputs:
-          SourceFolder: builds/mariner/SPECS/
-          Contents: |
-            **/*.tar.gz
-          TargetFolder: '$(build.artifactstagingdirectory)'
-        condition: succeededOrFailed()
-      - task: CopyFiles@2
         displayName: Copy iotedged and libiothsm Files to Artifact Staging
         inputs:
-          SourceFolder: out/RPMS/x86_64
+          SourceFolder: $(target.iotedged)
           Contents: |
-            *.deb
             *.rpm
           TargetFolder: '$(build.artifactstagingdirectory)'
+        condition: succeededOrFailed()
       - task: PublishBuildArtifacts@1
         displayName: Publish Artifacts
         inputs:

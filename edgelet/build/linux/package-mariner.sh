@@ -66,20 +66,25 @@ cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BU
 
 # Download Mariner repo and build toolkit
 git clone https://github.com/microsoft/CBL-Mariner.git
-cd CBL-Mariner
+pushd CBL-Mariner
 git checkout tags/1.0-stable
-cd toolkit
+pushd toolkit
 sudo make package-toolkit REBUILD_TOOLS=y
-cd ..
-
+popd
 # Move toolkit to build root for Mariner flavor
 sudo mv out/toolkit-*.tar.gz "${MARINER_BUILD_ROOT}/toolkit.tar.gz"
+popd
 
 # Build Mariner RPM packages
-cd ${MARINER_BUILD_ROOT}
+pushd ${MARINER_BUILD_ROOT}
 sudo tar xzf toolkit.tar.gz
-cd toolkit
+pushd toolkit
 sudo make clean
 
 # TODO: Remove log level trace
 sudo make build-packages PACKAGE_BUILD_LIST="rust azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
+popd
+popd
+
+# Pipeline debugging
+find -name '*.x86_64.rpm'
