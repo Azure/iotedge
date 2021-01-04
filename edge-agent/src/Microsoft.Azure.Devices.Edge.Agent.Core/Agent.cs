@@ -146,6 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
                         if (plan.IsEmpty)
                         {
+                            await this.UpdateCurrentConfig(deploymentConfigInfo);
                             this.status = DeploymentStatus.Success;
                         }
                         else
