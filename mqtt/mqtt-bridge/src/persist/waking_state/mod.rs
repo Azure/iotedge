@@ -68,7 +68,7 @@ mod tests {
     #[test_case(WakingMemoryStore::default())]
     fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
-        let num_elements = 10 as usize;
+        let num_elements = 10_usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
@@ -94,7 +94,7 @@ mod tests {
     #[test_case(WakingMemoryStore::default())]
     async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
-        let num_elements = 10 as usize;
+        let num_elements = 10_usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
@@ -275,6 +275,8 @@ mod tests {
         // insert an element to wake the stream, then wait for the other thread to complete
         let mut state_borrow = state.borrow_mut();
         state_borrow.insert(key1, pub1).unwrap();
+        drop(state_borrow);
+
         poll_stream_handle.await.unwrap();
     }
 
