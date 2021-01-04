@@ -10,6 +10,12 @@ EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
 VERSION="$(cat "$EDGELET_ROOT/version.txt")"
 
+# Pull Rust 1.45 source tarball
+pushd "${BUILD_REPOSITORY_LOCALPATH}"
+mkdir -p "builds/mariner/SPECS/rust/SOURCES/"
+curl -o "builds/mariner/SPECS/rust/SOURCES/rust-1.45.2-x86_64-unknown-linux-gnu.tar.gz" "https://marineriotedge.file.core.windows.net/mariner-build-env/rust-1.45.2-x86_64-unknown-linux-gnu.tar.gz?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
+popd
+
 # Pull Cargo deps and extract
 echo "Vendoring Rust dependencies"
 pushd "${EDGELET_ROOT}"
@@ -76,4 +82,4 @@ cd toolkit
 sudo make clean
 
 # TODO: Remove log level trace
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
+sudo make build-packages PACKAGE_BUILD_LIST="rust azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
