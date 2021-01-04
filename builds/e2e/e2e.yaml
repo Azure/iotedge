@@ -143,7 +143,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-centos7-amd64
+      artifactName: iotedged-mariner-amd64
 
     steps:
     - template: templates/e2e-clean-directory.yaml
