@@ -130,7 +130,7 @@ echo "==========================================================================
 
 %files
 %defattr(-, root, root, -)
-%license ../LICENSE
+%license ./LICENSE
 
 # bins
 %{_bindir}/iotedge
