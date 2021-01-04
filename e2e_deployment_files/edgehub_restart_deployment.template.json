@@ -294,12 +294,12 @@
           "authorizations": [
             {
               "identities": [
-                  "{{iot:identity}}"
+                "{{iot:identity}}"
               ],
               "allow": [
                 {
                   "operations": [
-                      "mqtt:connect"
+                    "mqtt:connect"
                   ]
                 }
               ]
