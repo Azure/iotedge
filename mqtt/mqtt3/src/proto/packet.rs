@@ -179,7 +179,7 @@ impl PacketMeta for Connect {
         let client_id = super::Utf8StringDecoder::default()
             .decode(&mut src)?
             .ok_or(super::DecodeError::IncompletePacket)?;
-        let client_id = if client_id == "" {
+        let client_id = if client_id.is_empty() {
             if connect_flags & 0x02 == 0 {
                 return Err(super::DecodeError::ConnectZeroLengthIdWithExistingSession);
             }
