@@ -9,7 +9,8 @@ members = [
     "mqtt-policy",
     "mqtt-util",
     "mqttd",
-    "policy"
+    "policy",
+    "mqtt-bridge/src/persist/ring_buffer"
 ]
 
 [profile.release]
