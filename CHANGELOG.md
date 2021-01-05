@@ -1,3 +1,34 @@
+# 1.2.0-rc3 (2020-12-22)
+This is only container image update. We do not publish edgelet artifact in this release.
+Please use the edgelet artifacts from release 1.2.0-rc1.
+
+## Edge Agent
+### Bug Fixes
+* Add HostConfig properties ([503d51b](https://github.com/Azure/iotedge/commit/503d51b1627fc9e594b2f15277e1f987b2e44362))
+* Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
+
+### Features
+* Update service SDK to 1.28.1-NestedEdge and and devices SDK to 1.33.1-NestedEdge ([858106f](https://github.com/Azure/iotedge/commit/858106ffcb90c435c396eef39fad29cd355de3cb))
+
+## Edge Hub
+### Bug Fixes
+* Prevent stackflow when syncing circularly nested hierarchies ([bf58151](https://github.com/Azure/iotedge/commit/bf581517c0cb0d5861957dbf1567dc73a02e434f))
+* Fix message count metrics ([c8d189b](https://github.com/Azure/iotedge/commit/c8d189b29b90c9c9adec337c5b00ea141685e2bf))
+* Policy engine fixes ([21dfb49](https://github.com/Azure/iotedge/commit/21dfb49a35dc6c50044221c8ff8ac2a7844d0ab1))
+* Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
+* Fix bug with MQTT Bridge prefixes ([f9cf9a3](https://github.com/Azure/iotedge/commit/f9cf9a3772feafa63db3a5d2c9ebd12840eee996))
+* Treat initial container connection state as disconnected ([ff92b28](https://github.com/Azure/iotedge/commit/ff92b28adb0d1c45f69fe2d770f65cf6372e4b7f))
+* Lock down MQTT Broker environment variables ([36175e1](https://github.com/Azure/iotedge/commit/36175e1c5952c7ab99f103eaa7489de5eca996c3))
+* MQTT Bridge remove all sub when upstream bridge is missing from configuration update ([ba655e3](https://github.com/Azure/iotedge/commit/ba655e3e0c29a47275a6b59381b875d010a79844))
+* EdgeHub awaits for Twin in non MQTT Broker scenario ([ee0b87f](https://github.com/Azure/iotedge/commit/ee0b87f5cee30db6dc470b45f127eb394c2d1db2))
+
+### Features
+* Enable PnP for MQTT Broker ([baf74c8](https://github.com/Azure/iotedge/commit/baf74c8d01c0e04896596492fe6f0ad0a1b40bd8))
+* Add message cleanup interval environment variable ([dbcc2d9](https://github.com/Azure/iotedge/commit/dbcc2d91afeca8a21ba170f6ae595b1f4d1cd645))
+* Update service SDK to 1.28.1-NestedEdge and and devices SDK to 1.33.1-NestedEdge ([858106f](https://github.com/Azure/iotedge/commit/858106ffcb90c435c396eef39fad29cd355de3cb))
+* Support for sha256 thumbprint authentication ([dac5710](https://github.com/Azure/iotedge/commit/dac5710d79b034031ead89c14a66feb04ed5d8a7))
+* Add client connection related EdgeHub metrics ([c7da97b](https://github.com/Azure/iotedge/commit/c7da97bf1a2df6b7995613631dc8258cd8b6aa4b))
+
 # 1.2.0-rc2 (2020-11-20)
 This is only container image update. We do not publish edgelet artifact in this release. 
 Please use the edgelet artifacts from release 1.2.0-rc1.

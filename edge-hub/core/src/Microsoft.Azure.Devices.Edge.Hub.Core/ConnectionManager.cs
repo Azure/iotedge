@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
             this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
             this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
-            Util.Metrics.MetricsV0.RegisterGaugeCallback(() => MetricsV0.SetConnectedClientCountGauge(this));
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
         }
 
@@ -72,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await currentDeviceConnection
                 .Filter(dc => dc.IsActive)
                 .ForEachAsync(dc => dc.CloseAsync(new MultipleConnectionsException($"Multiple connections detected for device {identity.Id}")));
+            this.OnDeviceConnected(identity);
             this.DeviceConnected?.Invoke(this, identity);
         }
 
@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                             hasChanged = old != true;
                             return true;
                         });
-                    });
+                });
 
             return hasChanged;
         }
@@ -211,9 +211,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task RemoveDeviceConnection(ConnectedDevice device, bool removeCloudConnection)
         {
-            Events.RemovingDeviceConnection(device.Identity.Id, removeCloudConnection);
+            var id = device.Identity.Id;
+            Events.RemovingDeviceConnection(id, removeCloudConnection);
             await device.DeviceConnection.Filter(dp => dp.IsActive)
-                .ForEachAsync(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {device.Identity.Id}.")));
+                .ForEachAsync(dp => dp.CloseAsync(new EdgeHubConnectionException($"Connection closed for device {id}.")));
 
             if (removeCloudConnection)
             {
@@ -221,7 +222,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     .ForEachAsync(cp => cp.CloseAsync());
             }
 
-            Events.RemoveDeviceConnection(device.Identity.Id);
+            Events.RemoveDeviceConnection(id);
+            this.OnDeviceDisconnected(device.Identity);
             this.DeviceDisconnected?.Invoke(this, device.Identity);
         }
 
@@ -599,8 +601,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 // Subtract EdgeHub from the list of connected clients
                 int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
-                Util.Metrics.MetricsV0.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
+        }
+
+        void OnDeviceConnected(IIdentity identity)
+        {
+            DeviceConnectionMetrics.OnDeviceConnected(identity.ToString());
+            DeviceConnectionMetrics.UpdateConnectedClients(this.GetConnectedClients().Count() - 1);
+        }
+
+        void OnDeviceDisconnected(IIdentity identity)
+        {
+            DeviceConnectionMetrics.OnDeviceDisconnected(identity.ToString());
+            DeviceConnectionMetrics.UpdateConnectedClients(this.GetConnectedClients().Count() - 1);
         }
     }
 }
