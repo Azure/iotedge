@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.RpmMariner => new[]
                 {
                     "set -e",
+                    $"echo '{string.Join(' ', packages)}' > ~/test.txt"
                     $"rpm -i {string.Join(' ', packages)}",
                     "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
@@ -83,9 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 $"apt-get update",
                 $"apt-get install --yes iotedge"
             },
-            var x when
-                    x == SupportedPackageExtension.RpmCentOS ||
-                    x == SupportedPackageExtension.RpmMariner => new[]
+            SupportedPackageExtension.RpmCentOS => new[]
             {
                 $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                 $"yum updateinfo",
@@ -110,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.RpmMariner => new[]
             {
-                "rpm -e libiothsm-std iotedge"
+                "rpm -e libiothsm-std azure-iotedge 2>/dev/null"
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
