@@ -130,54 +130,6 @@ namespace ManifestSignerClient
             return JObject.FromObject(headerObject);
         }
 
-        static string GetAlgorithmScheme(string DsaAlgorithm)
-        {
-            if (DsaAlgorithm.Length < 2)
-            {
-                throw new Exception("DSA algorithm is not specific correctly \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-            }
-
-            if (DsaAlgorithm[0..2] == "ES" || DsaAlgorithm[0..2] == "RS")
-            {
-                return DsaAlgorithm[0..2];
-            }
-            else
-            {
-                throw new Exception("DSA Algorithm Type not supported \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-            }
-        }
-
-        private static HashAlgorithmName GetHashAlgorithm(string DsaAlgorithm)
-        {
-            try
-            {
-                if (DsaAlgorithm.Length <= 2 || DsaAlgorithm.Length > 5)
-                {
-                    throw new Exception("SHA algorithm is not specific correctly \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-                }
-                else if (DsaAlgorithm[2..5] == "256")
-                {
-                    return HashAlgorithmName.SHA256;
-                }
-                else if (DsaAlgorithm[2..5] == "384")
-                {
-                    return HashAlgorithmName.SHA384;
-                }
-                else if (DsaAlgorithm[2..5] == "512")
-                {
-                    return HashAlgorithmName.SHA512;
-                }
-                else
-                {
-                    throw new Exception("SHA Algorithm Type not supported \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-                }
-            }
-            catch (Exception e)
-            {
-                throw e;
-            }
-        }
-
         static bool VerifyCertificate()
         {
             var signerCertificate = new X509Certificate2(SignerCertPath);
