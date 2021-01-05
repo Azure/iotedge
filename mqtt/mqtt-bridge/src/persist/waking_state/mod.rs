@@ -247,7 +247,9 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::default())]
-    //https://github.com/rust-lang/rust-clippy/issues/6353
+    // TODO: There is a clippy bug where it shows false positive for this rule.
+    // When this issue is closed remove this allow.
+    // https://github.com/rust-lang/rust-clippy/issues/6353
     #[allow(clippy::await_holding_refcell_ref)]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
@@ -277,7 +279,6 @@ mod tests {
         // insert an element to wake the stream, then wait for the other thread to complete
         let mut state_borrow = state.borrow_mut();
         state_borrow.insert(key1, pub1).unwrap();
-        drop(state_borrow);
 
         poll_stream_handle.await.unwrap();
     }
