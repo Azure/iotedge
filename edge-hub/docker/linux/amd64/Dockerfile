@@ -3,8 +3,8 @@ FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
-ADD ./watchdog/target/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
-ADD ./mqtt/target/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
+ADD ./watchdog/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
+ADD ./mqtt/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 ADD ./mqtt/broker.json /app/mqttd/broker.json
 
 # RocksDB requires snappy	
