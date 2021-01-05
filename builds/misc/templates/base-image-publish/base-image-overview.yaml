@@ -7,6 +7,12 @@ steps:
     # Fetch tags & version from each module Dockerfiles {../$(arch)/base/Dockerfile, ../$(arch)/Dockerfile}
     foreach ($eachConfig in $config)
     {
+      # Steps: 
+      #  1. Go to a respective Dockerfile as defined in base-image-config.yaml for an underlying base image
+      #  2. Read underlying base image tag using "ARG base_tag="
+      #  3. Go to a Dockerfile of the module to get tagging that refers to underly base image (2)
+      #  4. Set a variable with the tag obtained in (3). This variable has the same name as config by item3 of base-image-config.yaml
+      #  5. Output the read values. Format:  <BaseImageName>:<ReferringTag> 🠘 <UnderLyingBaseImageTag>
       $pathPrefix = "$(Build.SourcesDirectory)/$($eachConfig.Item1.ToString())/docker/$(os)/$(arch)"
       $unberlyingFilePath = $pathPrefix + '/base/Dockerfile' | Resolve-path
       $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
