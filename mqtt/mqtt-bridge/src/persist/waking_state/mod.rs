@@ -279,7 +279,6 @@ mod tests {
         // insert an element to wake the stream, then wait for the other thread to complete
         let mut state_borrow = state.borrow_mut();
         state_borrow.insert(key1, pub1).unwrap();
-
         poll_stream_handle.await.unwrap();
     }
 
