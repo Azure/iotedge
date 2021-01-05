@@ -1,7 +1,7 @@
 Summary:        Azure IoT Edge Security Daemon
 Name:           azure-iotedge
 Version:        1.0.10.3
-Release:        2%{?dist}
+Release:        1%{?dist}
 
 # A buildable azure-iotedge environments needs functioning submodules that do not work from the archive download
 # To recreate the tar.gz run the following
@@ -160,6 +160,8 @@ echo "==========================================================================
 %doc %{_docdir}/iotedge-%{version}/trademark
 
 %changelog
+*   Mon Jan 04 2021 Chad Zawistowski <chzawist@microsoft.com> 1.0.10.3-1
+-   Update to version 1.0.10.3.
 *   Sun May 31 2020 Henry Beberman <henry.beberman@microsoft.com> 1.0.9.1-2
 -   Disable FORTIFY_SOURCE=2 to fix compilation error with hardened defaults.
 *   Wed May 27 2020 Andrew Phelps <anphel@microsoft.com> 1.0.9.1-1
