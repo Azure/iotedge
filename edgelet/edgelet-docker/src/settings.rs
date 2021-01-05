@@ -149,6 +149,26 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 
     agent_labels(settings)?;
 
+    // In nested scenario, Agent image can be pulled from its parent.
+    // It is possible to specify the parent address using the keyword $upstream
+    agent_image_resolve(settings)?;
+
+    Ok(())
+}
+
+fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+    let image = settings.agent().config().image().to_string();
+
+    if let Some(parent_hostname) = settings.parent_hostname()
+    {
+        if image.starts_with("$upstream")
+        {
+            let image_nested =  format!("{}{}", parent_hostname, &image[9..]);
+            let config = settings.agent().config().clone().with_image(image_nested);
+            settings.agent_mut().set_config(config);
+        }
+    }
+
     Ok(())
 }
 
@@ -310,6 +330,7 @@ mod tests {
     use std::cmp::Ordering;
     use std::fs::File;
     use std::io::prelude::*;
+    use crate::settings::agent_image_resolve;
 
     use serde_json::json;
     use tempdir::TempDir;
@@ -385,6 +406,8 @@ mod tests {
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -1160,6 +1183,17 @@ mod tests {
         assert_eq!(
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
+        );
+    }
+
+    #[test]
+    fn agent_image_is_resolved() {
+        let mut settings = Settings::new(Path::new(GOOD_SETTINGS_IMAGE_RESOLVE)).unwrap();
+        agent_image_resolve(&mut settings).unwrap();
+
+        assert_eq!(
+            "parent_hostname:443/microsoft/azureiotedge-agent:1.0",
+            settings.agent().config().image()
         );
     }
 
