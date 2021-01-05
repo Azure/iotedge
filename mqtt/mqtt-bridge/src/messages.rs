@@ -115,8 +115,8 @@ where
                         });
 
                 if let Some(publication) = forward_publication {
-                    debug!("saving message to store");
-                    self.store.push(publication).map_err(BridgeError::Store)?;
+                    debug!("ANCAN saving message to store");
+                    //self.store.push(publication).map_err(BridgeError::Store)?;
 
                     return Ok(Handled::Fully);
                 } else {
