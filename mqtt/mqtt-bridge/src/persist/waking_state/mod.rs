@@ -247,6 +247,8 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::default())]
+    //https://github.com/rust-lang/rust-clippy/issues/6353
+    #[allow(clippy::await_holding_refcell_ref)]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
         let state = Rc::new(RefCell::new(state));

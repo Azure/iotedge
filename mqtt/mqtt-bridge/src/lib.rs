@@ -8,8 +8,7 @@
     clippy::use_self,
     clippy::match_same_arms,
     clippy::must_use_candidate,
-    clippy::missing_errors_doc,
-    clippy::clippy::await_holding_refcell_ref // https://github.com/rust-lang/rust-clippy/issues/6353
+    clippy::missing_errors_doc
 )]
 
 mod bridge;
