@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             {
                 os = "Mariner";
                 version = "1.0";
-                packageExtension = SupportedPackageExtension.Rpm;
+                packageExtension = SupportedPackageExtension.RpmMariner;
             }
             else
             {
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     case "CentOS":
                         os = os.ToLower();
                         version = version.Split('.')[0];
-                        packageExtension = SupportedPackageExtension.Rpm;
+                        packageExtension = SupportedPackageExtension.RpmCentOS;
 
                         if (version != "7")
                         {
