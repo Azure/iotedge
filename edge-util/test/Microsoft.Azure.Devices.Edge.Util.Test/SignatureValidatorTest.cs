@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
     public class SignatureValidatorTest
     {
+        [Unit]
         [Theory]
         [MemberData(nameof(InputSignatureData))]
         public static void VerifySignatureTest(bool expectedResult, string payload, string header, byte[] signatureBytes, X509Certificate2 signerCert, string algorithmScheme, HashAlgorithmName hashAlgorithm)
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal(actualResult, expectedResult);
         }
 
+        [Unit]
         [Theory]
         [MemberData(nameof(InputAlgorithm))]
         public static void ParseAlgorithmTest(string algorithm,  bool hasParseExcpetion, string expectedAlgoScheme, HashAlgorithmName expectedHashAlgo )

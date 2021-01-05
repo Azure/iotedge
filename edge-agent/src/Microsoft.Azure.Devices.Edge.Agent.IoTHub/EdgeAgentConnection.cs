@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     try
                     {
                         Events.LogDesiredPropertiesAfterFullTwin(twin.Properties.Desired);
-                        if (CheckTwinSignatureIsValid(twin.Properties.Desired))
+                        if (CheckIfTwinSignatureIsValid(twin.Properties.Desired))
                         {
                             this.desiredProperties = Option.Some(twin.Properties.Desired);
                             await this.UpdateDeploymentConfig(twin.Properties.Desired);
@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
                 desiredProperties = new TwinCollection(mergedJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
-                if (CheckTwinSignatureIsValid(desiredProperties))
+                if (CheckIfTwinSignatureIsValid(desiredProperties))
                 {
                     this.desiredProperties = Option.Some(desiredProperties);
                     await this.UpdateDeploymentConfig(desiredProperties);
@@ -403,7 +403,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         async Task<bool> WaitForDeviceClientInitialization() =>
             await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
 
-        internal static bool CheckTwinSignatureIsValid(TwinCollection twinDesiredProperties)
+        internal static bool CheckIfTwinSignatureIsValid(TwinCollection twinDesiredProperties)
         {
             // This function call returns false only when the signature verification fails
             // It returns true when there is no signature data or when the signature is verified
@@ -430,6 +430,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         internal static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
         {
+            // If there is no integrity section in the desired twin properties then it is unsigned twin
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
             return integrity != null && integrity.HasValues != false;
         }

@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 JToken integrity = twinJobject["integrity"];
                 JToken header = integrity["header"];
                 JToken signerCertJtoken = integrity["header"]["signercert"];
-                string combinedCert = signerCertJtoken.First.ToString() + signerCertJtoken.Last.ToString();
+                string combinedCert = signerCertJtoken[0].ToString() + signerCertJtoken[1].ToString();
                 X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
                 JToken signature = integrity["signature"]["bytes"];
 
@@ -348,12 +348,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             internal static void LogDesiredPropertiesAfterPatch(TwinCollection twinCollection)
             {
-                Log.LogDebug((int)EventIds.LogDesiredPropertiesAfterPatch, $"Obtained desired properties after apply patch: {twinCollection}");
+                Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterPatch, $"Obtained desired properties after apply patch: {twinCollection}");
             }
 
             internal static void LogDesiredPropertiesAfterFullTwin(TwinCollection twinCollection)
             {
-                Log.LogDebug((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
+                Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
             }
 
             internal static void ExtractHubTwinAndVerifyFailed(Exception exception)

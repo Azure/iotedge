@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
     using Newtonsoft.Json;
     using Xunit;
 
-    [Unit]
     public class TwinConfigSourceTest
     {
         [Unit]

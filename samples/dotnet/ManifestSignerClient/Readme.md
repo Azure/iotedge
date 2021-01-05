@@ -43,9 +43,10 @@ Manifest Signer client has  `launchSettings.json` under `Properties` folder and 
 2. `USE_TESTING_CA` is set to true or false when using CA's signed by Unknown Authority. It is only used for testing and not for production.
 3. `DEPLOYMENT_MANIFEST_FILE_PATH` is the absolute path of the deployment manifest to be signed including the file name. 
 4. `SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH` is the absolute path of the signed deployment manifest including the file name of your choice. 
-5. `MANIFEST_TRUST_DEVICE_ROOT_CA_PATH` is the absolute path of the file `root_ca_public_<algo>_cert.pem`
-6. `MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH` is the absolute path of the file  `signer_private_<algo>_key.pem`
-7. `MANIFEST_TRUST_SIGNER_CERT_PATH` is the absolute path of the file `signer_public_<algo>_cert.pem` 
+5. `MANIFEST_TRUST_DEVICE_ROOT_CA_PATH` is the absolute path of the file `root_ca_public_<algo>_cert.pem`  
+6. `MANIFEST_TRUST_INTERMEDIATE_CA_PATH` is the absolute path of the intermediate CA if needed. Otherwise can use only Root CA and the signer cert only. It is not mandatory. 
+7. `MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH` is the absolute path of the file  `signer_private_<algo>_key.pem`
+8. `MANIFEST_TRUST_SIGNER_CERT_PATH` is the absolute path of the file `signer_public_<algo>_cert.pem` 
 
 ### Step 3: Build and Run Manifest Signer Client
 Once the `launchSettings.json` file is configured, the solution can be built and run using `dotnet build` and `dotnet run`. If all the inputs are configured properly, then signed deployment JSON will be generated. 

@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System.Collections.Immutable;
     using System.Net;
     using System.Threading.Tasks;
-    using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -1546,7 +1545,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         [MemberData(nameof(GetTwinCollectionForTwinSignature))]
         public void TestCheckTwinSignatureIsValid(bool expectedResult, TwinCollection twinDesiredProperties)
         {
-            Assert.Equal(expectedResult, EdgeAgentConnection.CheckTwinSignatureIsValid(twinDesiredProperties));
+            Assert.Equal(expectedResult, EdgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
         }
 
         public static IEnumerable<object[]> GetTwinCollectionForTwinSignature()
