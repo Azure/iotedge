@@ -47,7 +47,7 @@ where
                 )
             });
 
-            let bundle = state.and_then(|state| state.bundle_all());
+            let bundle = state.and_then(BundleState::bundle_all);
 
             let read =
                 bundle.and_then(|mut bundle| -> Result<(Box<dyn Read + Send>, u64), Error> {
@@ -76,7 +76,7 @@ where
                 )
             });
 
-            let bundle = state.and_then(|state| state.bundle_all());
+            let bundle = state.and_then(BundleState::bundle_all);
 
             let read =
                 bundle.and_then(|mut bundle| -> Result<(Box<dyn Read + Send>, u64), Error> {
@@ -244,9 +244,8 @@ where
             mut zip_writer,
         } = state;
 
-        let file_name = format!("{}_log.txt", module_name);
         zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), file_options)
+            .start_file(format!("logs/{}_log.txt", module_name), file_options)
             .into_future()
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))
             .and_then(move |_| {
@@ -294,9 +293,9 @@ where
 
         let (file_name, output) = if let Ok(result) = command {
             if result.status.success() {
-                (format!("{}.txt", name), result.stdout)
+                (format!("logs/{}.txt", name), result.stdout)
             } else {
-                (format!("{}_err.txt", name), result.stderr)
+                (format!("logs/{}_err.txt", name), result.stderr)
             }
         } else {
             let err_message = command.err().unwrap().to_string();
@@ -304,11 +303,14 @@ where
                 "Could not find system logs for {}. Including error in bundle.\nError message: {}",
                 name, err_message
             );
-            (format!("{}_err.txt", name), err_message.as_bytes().to_vec())
+            (
+                format!("logs/{}_err.txt", name),
+                err_message.as_bytes().to_vec(),
+            )
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new("logs").join(file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -339,7 +341,7 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
-            .start_file_from_path(&Path::new("check.json"), self.file_options)
+            .start_file("check.json", self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -389,7 +391,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -466,7 +468,7 @@ where
         };
 
         self.zip_writer
-            .start_file_from_path(&Path::new(&file_name), self.file_options)
+            .start_file(file_name, self.file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         self.zip_writer
@@ -654,16 +656,25 @@ mod tests {
 
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).unwrap();
-            let outpath = PathBuf::from(destination).join(file.sanitized_name());
 
-            if (&*file.name()).ends_with('/') {
+            let filename = {
+                let filename = std::path::Path::new(file.name());
+                // Assert that the path has no components other than Normal
+                let mut components = filename.components();
+                assert!(components
+                    .all(|component| matches!(component, std::path::Component::Normal(_))));
+                filename
+            };
+
+            let outpath = PathBuf::from(destination).join(filename);
+
+            if let Some(parent) = outpath.parent() {
+                fs::create_dir_all(&parent).unwrap();
+            }
+
+            if file.is_dir() {
                 fs::create_dir_all(&outpath).unwrap();
-            } else {
-                if let Some(p) = outpath.parent() {
-                    if !p.exists() {
-                        fs::create_dir_all(&p).unwrap();
-                    }
-                }
+            } else if file.is_file() {
                 let mut outfile = fs::File::create(&outpath).unwrap();
                 io::copy(&mut file, &mut outfile).unwrap();
             }

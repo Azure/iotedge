@@ -101,18 +101,18 @@ fn get_derived_identity_key_handle(
     name: &str,
 ) -> impl Future<Item = KeyHandle, Error = Error> {
     let id_client = identity_client.lock().unwrap();
-    id_client
-        .get_module(name)
-        .map_err(|_| Error::from(ErrorKind::GetIdentity))
-        .and_then(|identity| match identity {
-            aziot_identity_common::Identity::Aziot(spec) => spec
-                .auth
-                .map(|authinfo| Ok(authinfo.key_handle))
-                .expect("keyhandle missing"),
-            aziot_identity_common::Identity::Local(_) => {
-                Err(Error::from(ErrorKind::InvalidIdentityType))
-            }
-        })
+    id_client.get_module(name).then(|identity| match identity {
+        Ok(aziot_identity_common::Identity::Aziot(spec)) => spec
+            .auth
+            .and_then(|authinfo| authinfo.key_handle)
+            .ok_or_else(|| failure::err_msg("keyhandle missing"))
+            .context(ErrorKind::GetIdentity)
+            .map_err(Into::into),
+        Ok(aziot_identity_common::Identity::Local(_)) => {
+            Err(Error::from(ErrorKind::InvalidIdentityType))
+        }
+        Err(err) => Err(err.context(ErrorKind::GetIdentity).into()),
+    })
 }
 
 fn get_master_encryption_key(
