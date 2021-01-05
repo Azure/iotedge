@@ -91,3 +91,8 @@ popd
 sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
 popd
 popd
+
+# Prevent publishing the Rust RPM as an artifact
+pushd "${BUILD_REPOSITORY_LOCALPATH}"
+rm "builds/mariner/out/RPMS/x86_64/rust-1.45.2-1.cm1.x86_64.rpm"
+popd
