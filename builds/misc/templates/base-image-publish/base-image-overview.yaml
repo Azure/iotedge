@@ -12,7 +12,7 @@ steps:
       $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
       $imageFilePath = $pathPrefix + '/Dockerfile' | Resolve-path
       Set-Variable -Name "$($eachConfig.Item3.ToString())" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
-      Write-Output "$($eachConfig.Item2.ToString()):$(Get-Variable -Name "$($eachConfig.Item3.ToString())" -ValueOnly) <= $underlyingTag"
+      Write-Output "$($eachConfig.Item2.ToString()):$(Get-Variable -Name "$($eachConfig.Item3.ToString())" -ValueOnly) 🠘 $underlyingTag"
 
       # Extract version number from the *-linux* base image
       # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
