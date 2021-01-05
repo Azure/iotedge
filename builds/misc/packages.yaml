@@ -153,6 +153,17 @@ jobs:
           keyVaultName: $(kv.name)
           secretsFilter: >-
             marineriotedge-key
+      - task: AzureCLI@2
+        displayName: Download from Azure Blob Storage
+        inputs:
+          azureSubscription: $(az.subscription)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            az --version
+            mkdir -p "builds/mariner/out/RPMS/x86_64/"
+            az storage blob download --account-name "marineriotedge" --container-name "iotedge-build-pipeline" --file "builds/mariner/out/RPMS/x86_64/rust-1.45.2-1.cm1.x86_64.rpm" --name "rust-1.45.2-1.cm1.x86_64.rpm" --account-key "$(marineriotedge-key)"
+            az storage blob download --account-name "marineriotedge" --container-name "iotedge-build-pipeline" --file "edgelet/azure-iotedge-cargo-vendor.zip" --name "azure-iotedge-cargo-vendor.zip" --account-key "$(marineriotedge-key)"
       - script: edgelet/build/linux/package-mariner.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2
