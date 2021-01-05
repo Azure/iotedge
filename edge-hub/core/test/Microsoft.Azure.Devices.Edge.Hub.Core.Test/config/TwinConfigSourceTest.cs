@@ -3,11 +3,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Xunit;
+
+    [Unit]
     public class TwinConfigSourceTest
     {
+        [Unit]
         [Theory]
         [MemberData(nameof(GetTwinCollectionForIntegrityCheck))]
         public void TestCheckIfTwinPropertiesAreSigned(bool expectedResult, TwinCollection twinDesiredProperties)
@@ -57,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             return new TwinCollection(JsonConvert.SerializeObject(desiredProperties));
         }
 
+        [Unit]
         [Theory]
         [MemberData(nameof(GetTwinForVerifyingSignatures))]
         public void TestExtractHubTwinAndVerify(string type, string schemaVersion, string algo, string[] signercert, string[] intermediatecacert, string signature)

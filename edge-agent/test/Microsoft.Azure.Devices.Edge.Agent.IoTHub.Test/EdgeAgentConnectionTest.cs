@@ -1541,6 +1541,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             }
         }
 
+        [Unit]
         [Theory]
         [MemberData(nameof(GetTwinCollectionForTwinSignature))]
         public void TestCheckTwinSignatureIsValid(bool expectedResult, TwinCollection twinDesiredProperties)
@@ -1586,6 +1587,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             yield return new object[] { false, GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithRsaCerts) };
         }
 
+        [Unit]
         [Theory]
         [MemberData(nameof(GetTwinCollectionForIntegrityCheck))]
         public void TestCheckIfTwinPropertiesAreSigned(bool expectedResult, TwinCollection twinDesiredProperties)
@@ -1660,6 +1662,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             return new TwinCollection(JsonConvert.SerializeObject(desiredProperties));
         }
 
+        [Unit]
         [Theory]
         [MemberData(nameof(GetTwinForVerifyingSignatures))]
         public void TestExtractAgentTwinAndVerify(string type, string imageName, string algo, string[] signercert, string[] intermediatecacert, string signature)
