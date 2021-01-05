@@ -84,11 +84,11 @@ sudo make clean
 
 # Download Rust 1.45 RPM instead of using official 1.39 which is too old
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
-mkdir -p "builds/mariner/build/rpm_cache/cache/x86_64/"
-curl -o "builds/mariner/build/rpm_cache/cache/x86_64/rust-1.45.2-1.cm1.x86_64.rpm" "https://marineriotedge.file.core.windows.net/mariner-build-env/rust-1.45.2-1.cm1.x86_64.rpm?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
+mkdir -p "builds/mariner/out/RPMS/x86_64/"
+curl -o "builds/mariner/out/RPMS/x86_64/rust-1.45.2-1.cm1.x86_64.rpm" "https://marineriotedge.file.core.windows.net/mariner-build-env/rust-1.45.2-1.cm1.x86_64.rpm?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
 popd
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="rust azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
+sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
 popd
 popd
