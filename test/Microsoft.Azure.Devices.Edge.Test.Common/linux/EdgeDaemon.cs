@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             SupportedPackageExtension packageExtension;
             string os, version;
             string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
-            if (platformInfo.Any(s=> s.Contains("Mariner")))
+            if (platformInfo.Any(s => s.Contains("Mariner")))
             {
                 os = "Mariner";
                 version = "1.0";

@@ -117,7 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             SupportedPackageExtension.RpmMariner => new[]
             {
                 "if rpm -qa azure-iotedge | grep -q azure-iotedge; then rpm -e azure-iotedge; fi",
-                "if rpm -qa rust | grep -q rust; then rpm -e rust; fi",
                 "if rpm -qa libiothsm-std | grep -q libiothsm-std; then rpm -e libiothsm-std; fi",
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
