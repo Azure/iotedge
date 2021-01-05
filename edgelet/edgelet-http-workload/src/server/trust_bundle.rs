@@ -36,7 +36,7 @@ impl Handler<Parameters> for TrustBundleHandler {
             .cert_client
             .lock()
             .expect("cert client lock failed")
-            .get_cert("iotedge-trust-bundle")
+            .get_cert(edgelet_core::TRUST_BUNDLE_ALIAS)
             .map_err(|_| Error::from(ErrorKind::GetIdentity))
             .and_then(|cert| -> Result<_, Error> {
                 let cert = str::from_utf8(cert.as_ref())

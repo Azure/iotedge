@@ -1,0 +1,5 @@
+[aziot_keys]
+homedir_path = "/var/lib/aziot/keyd"
+
+[preloaded_keys]
+device-id = "file:///var/secrets/device-id.key.pem"

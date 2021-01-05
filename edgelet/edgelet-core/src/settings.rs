@@ -5,15 +5,15 @@ use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 
 use crate::module::ModuleSpec;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Connect {
-    workload_uri: Url,
-    management_uri: Url,
+    pub workload_uri: Url,
+    pub management_uri: Url,
 }
 
 impl Connect {
@@ -28,10 +28,10 @@ impl Connect {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Listen {
-    workload_uri: Url,
-    management_uri: Url,
+    pub workload_uri: Url,
+    pub management_uri: Url,
     #[serde(default = "Protocol::default")]
-    min_tls_version: Protocol,
+    pub min_tls_version: Protocol,
 }
 
 impl Listen {
@@ -89,8 +89,26 @@ impl<'de> Deserialize<'de> for Protocol {
     where
         D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        s.parse().map_err(de::Error::custom)
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = Protocol;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, r#"one of "tls1.0", "tls1.1", "tls1.2""#)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(v.parse().map_err(|_err| {
+                    serde::de::Error::invalid_value(serde::de::Unexpected::Str(v), &self)
+                })?)
+            }
+        }
+
+        deserializer.deserialize_str(Visitor)
     }
 }
 
@@ -99,7 +117,11 @@ impl Serialize for Protocol {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&format!("{}", self))
+        serializer.serialize_str(match self {
+            Protocol::Tls10 => "tls1.0",
+            Protocol::Tls11 => "tls1.1",
+            Protocol::Tls12 => "tls1.2",
+        })
     }
 }
 
@@ -128,7 +150,7 @@ impl Default for RetryLimit {
 #[derive(Clone, Debug, Default, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct WatchdogSettings {
     #[serde(default)]
-    max_retries: RetryLimit,
+    pub max_retries: RetryLimit,
 }
 
 impl WatchdogSettings {
@@ -153,17 +175,22 @@ pub trait RuntimeSettings {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings<T> {
-    agent: ModuleSpec<T>,
-    hostname: String,
-    parent_hostname: Option<String>,
-    connect: Connect,
-    listen: Listen,
-    homedir: PathBuf,
+    pub agent: ModuleSpec<T>,
+    pub hostname: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_hostname: Option<String>,
+    pub connect: Connect,
+    pub listen: Listen,
+    pub homedir: PathBuf,
     #[serde(default)]
-    watchdog: WatchdogSettings,
-    #[serde(default)]
-    #[cfg_attr(not(debug_assertions), serde(skip))]
-    endpoints: Endpoints,
+    pub watchdog: WatchdogSettings,
+
+    /// Map of service names to endpoint URIs.
+    ///
+    /// Only configurable in debug builds for the sake of tests.
+    #[serde(default, skip_serializing)]
+    #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
+    pub endpoints: Endpoints,
 }
 
 impl<T> RuntimeSettings for Settings<T>

@@ -17,7 +17,7 @@ use yaml_rust::{Yaml, YamlLoader};
 #[derive(Clone, Debug)]
 pub enum YamlFileSource {
     File(PathBuf),
-    String(&'static str),
+    String(Cow<'static, str>),
 }
 
 impl Source for YamlFileSource {
@@ -42,7 +42,7 @@ impl Source for YamlFileSource {
                 Cow::Owned(contents)
             }
 
-            YamlFileSource::String(s) => Cow::Borrowed(*s),
+            YamlFileSource::String(s) => Cow::Borrowed(&**s),
         };
 
         let docs = YamlLoader::load_from_str(&*contents)
@@ -123,19 +123,15 @@ fn from_yaml_value(uri: Option<&String>, value: Yaml) -> Result<Value, ConfigErr
         // 3. Alias – No idea what to do with this and there is a note in the lib that its
         //            not fully supported yet anyway
         //
-        // The original function returns `Value::new(uri, ValueKind::Nil)` here.
-        // Since `ValueKind` is private, we have to return Err instead. It shouldn't be a problem for our use case
-        // since we don't expect null / bad value / alias.
-        value => Err(ConfigError::Foreign(Box::new(
-            YamlFileSourceError::UnrecognizedYamlValue(value),
-        ))),
+        // All of these return ValueKind::Nil in original, so use
+        //    Option::None here to transform into ValueKind::Nil
+        _ => Ok(Value::new(uri, None::<String>)),
     }
 }
 
 #[derive(Debug)]
 enum YamlFileSourceError {
     MoreThanOneDocument,
-    UnrecognizedYamlValue(Yaml),
 }
 
 impl std::fmt::Display for YamlFileSourceError {
@@ -143,9 +139,6 @@ impl std::fmt::Display for YamlFileSourceError {
         match self {
             YamlFileSourceError::MoreThanOneDocument => {
                 write!(f, "more than one YAML document provided")
-            }
-            YamlFileSourceError::UnrecognizedYamlValue(value) => {
-                write!(f, "unrecognized YAML value {:?}", value)
             }
         }
     }

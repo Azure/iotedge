@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -28,9 +28,10 @@ const UNIX_SCHEME: &str = "unix";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
-    uri: Url,
-    network: MobyNetwork,
-    content_trust: Option<ContentTrust>,
+    pub uri: Url,
+    pub network: MobyNetwork,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_trust: Option<ContentTrust>,
 }
 
 impl MobyRuntime {
@@ -49,11 +50,11 @@ impl MobyRuntime {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct ContentTrust {
-    ca_certs: Option<HashMap<String, PathBuf>>,
+    pub ca_certs: Option<BTreeMap<String, PathBuf>>,
 }
 
 impl ContentTrust {
-    pub fn ca_certs(&self) -> Option<&HashMap<String, PathBuf>> {
+    pub fn ca_certs(&self) -> Option<&BTreeMap<String, PathBuf>> {
         self.ca_certs.as_ref()
     }
 }
@@ -66,14 +67,14 @@ impl ContentTrust {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
-    base: BaseSettings<DockerConfig>,
-    moby_runtime: MobyRuntime,
+    pub base: BaseSettings<DockerConfig>,
+    pub moby_runtime: MobyRuntime,
 }
 
 impl Settings {
     pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
         let mut config = Config::default();
-        config.merge(YamlFileSource::String(DEFAULTS))?;
+        config.merge(YamlFileSource::String(DEFAULTS.into()))?;
         config.merge(YamlFileSource::File(filename.into()))?;
         config.merge(Environment::with_prefix("iotedge"))?;
 
