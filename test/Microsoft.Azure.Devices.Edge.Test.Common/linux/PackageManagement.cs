@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.RpmMariner => new[]
                 {
                     "set -e",
-                    $"echo '{string.Join(' ', packages)}' > ~/test.txt"
+                    $"echo '{string.Join(' ', packages)}' > ~/test.txt",
                     $"rpm -i {string.Join(' ', packages)}",
                     "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
