@@ -3,13 +3,13 @@ steps:
     $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
     Invoke-WebRequest -Uri $("https://edgebuild.blob.core.windows.net/librocksdb/librocksdb.so.$(arch)") -OutFile $artifactLocale
 
-    $info = '$(serialize_info)' | ConvertFrom-Json
+    $config = '$(serialize_config)' | ConvertFrom-Json
 
     # Copy librocksdb.so to the same directory where base image is built
     # iotedge/edge-agent/docker/linux/arm64v8/base
-    foreach ($each in $info)
+    foreach ($eachConfig in $config)
     {
-      $filePath = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
+      $filePath = "$(Build.SourcesDirectory)/$($eachConfig.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
       Copy-Item $artifactLocale -Destination "$filePath"
 
       $isSucceeded = $(if ([System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})

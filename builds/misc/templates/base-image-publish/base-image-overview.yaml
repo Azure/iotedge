@@ -1,26 +1,25 @@
 steps:
 - pwsh: |
-    # Note: With in the same job, you can access $(info), but it would interpret $(info) as string similar to `echo "$info"` which is undesirable for our case, we want an Object.
+    # Note: With in the same job, you can access $(info), but it would interpret $(info) as string similar to `echo "$config"` which is undesirable for our case, we want an Object.
     # We worked around this by using the serialization & deserailzation
-    $info = '$(serialize_info)' | ConvertFrom-Json
+    $config = '$(serialize_config)' | ConvertFrom-Json
 
     # Fetch tags & version from each module Dockerfiles {../$(arch)/base/Dockerfile, ../$(arch)/Dockerfile}
-    foreach ($each in $info)
+    foreach ($eachConfig in $config)
     {
-      $pathPrefix = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)"
+      $pathPrefix = "$(Build.SourcesDirectory)/$($eachConfig.Item1.ToString())/docker/$(os)/$(arch)"
       $unberlyingFilePath = $pathPrefix + '/base/Dockerfile' | Resolve-path
       $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
       $imageFilePath = $pathPrefix + '/Dockerfile' | Resolve-path
-      Set-Variable -Name "$($each.Item3.ToString())" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
-      Write-Output "$($each.Item2.ToString()):$(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly) <= $underlyingTag"
-      Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())]$(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly)"
+      Set-Variable -Name "$($eachConfig.Item3.ToString())" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
+      Write-Output "$($eachConfig.Item2.ToString()):$(Get-Variable -Name "$($eachConfig.Item3.ToString())" -ValueOnly) <= $underlyingTag"
 
       # Extract version number from the *-linux* base image
       # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
       #
       # Note:
       #    The output {$(edgeAgentTagVersion), $(edgeHubTagVersion), $(moduleTagVersion), $(fullModuleTagVersion)} are used in base-image-build-and-publish.yaml
-      Write-Output "##vso[task.setvariable variable=$($each.Item3.ToString())Version]$($(Get-Variable -Name "$($each.Item3.ToString())" -ValueOnly).split("-")[0])"
+      Write-Output "##vso[task.setvariable variable=$($eachConfig.Item3.ToString())Version]$($(Get-Variable -Name "$($eachConfig.Item3.ToString())" -ValueOnly).split("-")[0])"
     }
-  displayName: Overview ARM64
+  displayName: Overview
   name: overview

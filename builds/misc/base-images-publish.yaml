@@ -21,7 +21,6 @@ jobs:
     steps:
     - template: templates/base-image-publish/base-image-config.yaml
     - template: templates/base-image-publish/base-image-overview.yaml
-    - template: ../e2e/templates/e2e-clean-directory.yaml
     - template: templates/base-image-publish/base-image-setup-librocksdb.yaml
     - template: templates/base-image-publish/base-image-clear-docker-cache.yaml
     - template: templates/base-image-publish/base-image-docker-login.yaml
@@ -47,7 +46,6 @@ jobs:
     steps:
     - template: templates/base-image-publish/base-image-config.yaml
     - template: templates/base-image-publish/base-image-overview.yaml
-    - template: ../e2e/templates/e2e-clean-directory.yaml
     - template: templates/base-image-publish/base-image-setup-librocksdb.yaml
     - template: templates/base-image-publish/base-image-clear-docker-cache.yaml
     - template: templates/base-image-publish/base-image-docker-login.yaml

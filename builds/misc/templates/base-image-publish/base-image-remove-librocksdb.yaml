@@ -3,10 +3,10 @@ steps:
     $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
     Remove-Item $artifactLocale -ErrorAction Ignore
 
-    $info = '$(serialize_info)' | ConvertFrom-Json
-    foreach ($each in $info)
+    $config = '$(serialize_config)' | ConvertFrom-Json
+    foreach ($eachConfig in $config)
     {
-      $filePath = "$(Build.SourcesDirectory)/$($each.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
+      $filePath = "$(Build.SourcesDirectory)/$($eachConfig.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
       Remove-Item $filePath -ErrorAction Ignore
 
       $isSucceeded = $(if (![System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})

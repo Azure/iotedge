@@ -12,18 +12,18 @@ steps:
     ));
 
     $scriptPath = "$(Build.SourcesDirectory)/scripts/linux/createArmBase.sh"
-    $info = '$(serialize_info)' | ConvertFrom-Json
+    $config = '$(serialize_config)' | ConvertFrom-Json
 
-    if ($info.count -ne $versionTags.count)
+    if ($config.count -ne $versionTags.count)
     {
-      echo '$info and $versionTags must have the same count.'
+      echo '$config and $versionTags must have the same count.'
       exit -1;
     }
 
-    for ( $idx=0; $idx -lt $info.count; $idx++ )
+    for ( $idx=0; $idx -lt $config.count; $idx++ )
     {
-      $eachInfo = $info[$idx]
-      $buildCommand = "sh -c ""$scriptPath"" -d ""$($eachInfo.Item1.ToString())"" -i ""$($eachInfo.Item2.ToString())"" -v ""$($versionTags[$idx])"" "
+      $eachConfig = $config[$idx]
+      $buildCommand = "sh -c ""$scriptPath"" -d ""$($eachConfig.Item1.ToString())"" -i ""$($eachConfig.Item2.ToString())"" -v ""$($versionTags[$idx])"" "
       echo "Command: $buildCommand"
       # BEARWASHERE -- Don't run this unless you really want to release.
       # $buildCommand
