@@ -128,12 +128,12 @@ jobs:
 ################################################################################
   - job: mariner_linux
 ################################################################################
-    displayName: CBL-Mariner Linux
+    displayName: Linux
     pool:
       vmImage: 'ubuntu-18.04'
     strategy:
       matrix:
-        Mariner1.0-amd64:
+        CBL-Mariner1.0-amd64:
           arch: amd64
           os: mariner
           target.iotedged: builds/mariner/out/RPMS/x86_64/
