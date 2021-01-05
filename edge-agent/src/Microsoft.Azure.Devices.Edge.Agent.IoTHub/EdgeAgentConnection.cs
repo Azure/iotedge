@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     try
                     {
                         Events.LogDesiredPropertiesAfterFullTwin(twin.Properties.Desired);
-                        if (!CheckTwinSignature(twin.Properties.Desired))
+                        if (CheckTwinSignatureIsValid(twin.Properties.Desired))
                         {
                             this.desiredProperties = Option.Some(twin.Properties.Desired);
                             await this.UpdateDeploymentConfig(twin.Properties.Desired);
@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
                 desiredProperties = new TwinCollection(mergedJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
-                if (!CheckTwinSignature(desiredProperties))
+                if (CheckTwinSignatureIsValid(desiredProperties))
                 {
                     this.desiredProperties = Option.Some(desiredProperties);
                     await this.UpdateDeploymentConfig(desiredProperties);
@@ -403,13 +403,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         async Task<bool> WaitForDeviceClientInitialization() =>
             await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
 
-        private static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
+        internal static bool CheckTwinSignatureIsValid(TwinCollection twinDesiredProperties)
         {
-            return JObject.Parse(twinDesiredProperties.ToString())["integrity"] != null;
-        }
-
-        private static bool CheckTwinSignature(TwinCollection twinDesiredProperties)
-        {
+            // This function call returns false only when the signature verification fails
+            // It returns true when there is no signature data or when the signature is verified
             if (!CheckIfTwinPropertiesAreSigned(twinDesiredProperties))
             {
                 Events.TwinPropertiesAreNotSigned();
@@ -424,14 +421,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 else
                 {
                     Events.VerifyTwinSignatureFailed();
-                    return true;
+                    return false;
                 }
             }
 
-            return false;
+            return true;
         }
 
-        public static bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
+        internal static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
+        {
+            JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
+            return integrity != null && integrity.HasValues != false;
+        }
+
+        internal static bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
         {
             try
             {
@@ -447,7 +450,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 JToken integrity = twinJobject["integrity"];
                 JToken header = integrity["header"];
                 JToken signerCertJtoken = integrity["header"]["signercert"];
-                string combinedCert = signerCertJtoken.First.ToString() + signerCertJtoken.Last.ToString();
+                string combinedCert = signerCertJtoken[0].ToString() + signerCertJtoken[1].ToString();
                 X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
                 JToken signature = integrity["signature"]["bytes"];
 

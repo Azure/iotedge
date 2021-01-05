@@ -231,9 +231,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        private static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties) => JObject.Parse(twinDesiredProperties.ToString())["integrity"] != null;
+        internal static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
+        {
+            JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
+            return integrity != null && integrity.HasValues != false;
+        }
 
-        public static bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
+        internal static bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
         {
             try
             {
