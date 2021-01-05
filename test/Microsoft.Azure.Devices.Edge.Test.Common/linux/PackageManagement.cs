@@ -36,8 +36,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string[] GetInstallCommandsFromLocal(string path)
         {
+            string packageExtensionString = this.packageExtension switch
+            {
+                SupportedPackageExtension.Deb => "deb",
+                var x when
+                    x == SupportedPackageExtension.RpmCentOS ||
+                    x == SupportedPackageExtension.RpmMariner => "rpm",
+                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
+            };
             string[] packages = Directory
-                .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
+                .GetFiles(path, $"*.{packageExtensionString}")
                 .Where(p => !p.Contains("debug"))
                 .ToArray();
 
@@ -61,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.RpmMariner => new[]
                 {
                     "set -e",
-                    $"echo '{string.Join(' ', packages)}' > ~/test.txt",
                     $"rpm -i {string.Join(' ', packages)}",
                     "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
@@ -109,7 +116,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.RpmMariner => new[]
             {
-                "rpm -e libiothsm-std azure-iotedge 2>/dev/null"
+                "if rpm -qa azure-iotedge | grep -q azure-iotedge; then rpm -e azure-iotedge; fi",
+                "if rpm -qa rust | grep -q rust; then rpm -e rust; fi",
+                "if rpm -qa libiothsm-std | grep -q libiothsm-std; then rpm -e libiothsm-std; fi",
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
