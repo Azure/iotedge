@@ -114,7 +114,7 @@ where
                             payload: publication.payload.clone(),
                         });
 
-                if let Some(publication) = forward_publication {
+                if let Some(_publication) = forward_publication {
                     debug!("ANCAN saving message to store");
                     //self.store.push(publication).map_err(BridgeError::Store)?;
 
