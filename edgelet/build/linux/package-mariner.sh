@@ -14,9 +14,9 @@ pushd "${EDGELET_ROOT}"
 
 # Pull Cargo deps and extract
 echo "Vendoring Rust dependencies"
-curl -o "azure-iotedge-1.0.10.3-cargo-vendor.zip" "https://marineriotedge.file.core.windows.net/mariner-build-env/azure-iotedge-1.0.10.3-cargo-vendor.zip?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
-unzip "azure-iotedge-1.0.10.3-cargo-vendor.zip"
-rm "azure-iotedge-1.0.10.3-cargo-vendor.zip"
+curl -o "azure-iotedge-${VERSION}-cargo-vendor.zip" "https://marineriotedge.file.core.windows.net/mariner-build-env/azure-iotedge-1.0.10.3-cargo-vendor.zip?sv=2019-12-12&ss=bf&srt=o&sp=rl&se=2021-02-01T09:51:53Z&st=2021-01-04T01:51:53Z&spr=https&sig=yKbgAIjgol1nmv%2B3bFP%2BegX43i2bfmc82vhR%2F%2Bs7naw%3D"
+unzip "azure-iotedge-${VERSION}-cargo-vendor.zip"
+rm "azure-iotedge-${VERSION}-cargo-vendor.zip"
 
 # Configure Cargo to use vendored deps
 mkdir .cargo
