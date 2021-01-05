@@ -69,7 +69,7 @@ mod tests {
     #[test_case(WakingMemoryStore::default())]
     fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
-        let num_elements = 10 as usize;
+        let num_elements = 10_usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
@@ -95,7 +95,7 @@ mod tests {
     #[test_case(WakingMemoryStore::default())]
     async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
-        let num_elements = 10 as usize;
+        let num_elements = 10_usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
@@ -248,6 +248,10 @@ mod tests {
     }
 
     #[test_case(WakingMemoryStore::default())]
+    // TODO: There is a clippy bug where it shows false positive for this rule.
+    // When this issue is closed remove this allow.
+    // https://github.com/rust-lang/rust-clippy/issues/6353
+    #[allow(clippy::await_holding_refcell_ref)]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
         let state = Rc::new(RefCell::new(state));
