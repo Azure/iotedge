@@ -27,7 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.IotedgeServices = extension switch
             {
                 SupportedPackageExtension.Deb => "iotedge.mgmt.socket iotedge.socket iotedge.service",
-                SupportedPackageExtension.RpmCentOS or SupportedPackageExtension.RpmMariner => "iotedge.service",
+                var x when
+                    x == SupportedPackageExtension.RpmCentOS ||
+                    x == SupportedPackageExtension.RpmMariner => "iotedge.service",
                 _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
             };
         }
@@ -59,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.RpmMariner => new[]
                 {
                     "set -e",
-                    $"dnf install -y {string.Join(' ', packages)}",
+                    $"rpm -i {string.Join(' ', packages)}",
                     "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                     "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
@@ -81,7 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 $"apt-get update",
                 $"apt-get install --yes iotedge"
             },
-            SupportedPackageExtension.RpmCentOS or SupportedPackageExtension.Mariner => new[]
+            var x when
+                    x == SupportedPackageExtension.RpmCentOS ||
+                    x == SupportedPackageExtension.RpmMariner => new[]
             {
                 $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                 $"yum updateinfo",
@@ -106,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.RpmMariner => new[]
             {
-                "dnf erase -y libiothsm-std iotedge"
+                "rpm -e libiothsm-std iotedge"
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
