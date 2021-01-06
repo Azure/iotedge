@@ -3,7 +3,7 @@ name = "generic-mqtt-tester"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
-description = "Test module for longhaul / connectivity tests."
+description = "Test module for longhaul / connectivity tests. Reports status to TestResultCoordinator (TRC)."
 
 [dependencies]
 anyhow = "1.0"
@@ -25,3 +25,4 @@ edgelet-client = { path = "../../../mqtt/edgelet-client" }
 mqtt-util = { path = "../../../mqtt/mqtt-util" }
 mqtt-broker-tests-util = { path = "../../../mqtt/mqtt-broker-tests-util" }
 mqtt3 = { path = "../../../mqtt/mqtt3" }
+trc-client = { path = "../../rust-test-util/TestResultReportingClient" }
