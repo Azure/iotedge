@@ -3,4 +3,4 @@ steps:
   displayName: Docker Login
   inputs:
     command: login
-    containerRegistry: docker.io
+    containerRegistry: azureiotedge
