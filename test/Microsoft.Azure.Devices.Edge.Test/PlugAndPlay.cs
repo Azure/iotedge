@@ -81,10 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
- //       [TestCase(Protocol.Mqtt, false)]
- //       [TestCase(Protocol.Amqp, false)]
+        [TestCase(Protocol.Mqtt, false)]
+        [TestCase(Protocol.Amqp, false)]
         [TestCase(Protocol.Mqtt, true)]
- //       [TestCase(Protocol.Amqp, true)]
+        [TestCase(Protocol.Amqp, true)]
         [Test]
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
