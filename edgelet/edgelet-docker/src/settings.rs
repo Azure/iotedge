@@ -479,7 +479,7 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.yaml";
+    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/windows/sample_settings_image_resolve.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
