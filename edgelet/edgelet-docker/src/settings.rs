@@ -159,11 +159,9 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let image = settings.agent().config().image().to_string();
 
-    if let Some(parent_hostname) = settings.parent_hostname()
-    {
-        if image.starts_with("$upstream")
-        {
-            let image_nested =  format!("{}{}", parent_hostname, &image[9..]);
+    if let Some(parent_hostname) = settings.parent_hostname() {
+        if image.starts_with("$upstream") {
+            let image_nested = format!("{}{}", parent_hostname, &image[9..]);
             let config = settings.agent().config().clone().with_image(image_nested);
             settings.agent_mut().set_config(config);
         }
@@ -327,10 +325,10 @@ mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use crate::settings::agent_image_resolve;
     use std::cmp::Ordering;
     use std::fs::File;
     use std::io::prelude::*;
-    use crate::settings::agent_image_resolve;
 
     use serde_json::json;
     use tempdir::TempDir;
