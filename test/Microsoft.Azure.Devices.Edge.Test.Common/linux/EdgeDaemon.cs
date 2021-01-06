@@ -20,8 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             SupportedPackageExtension packageExtension;
             string os, version;
             string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
-            os = Array.Find(platformInfo, element => element.StartsWith("ID"));
-            version = Array.Find(platformInfo, element => element.StartsWith("VERSION"));
+            os = Array.Find(platformInfo, element => element.StartsWith("ID="));
+            version = Array.Find(platformInfo, element => element.StartsWith("VERSION_ID="));
+
+            // VERSION_ID is desired but it is an optional field
+            if (version == null)
+            {
+                version = Array.Find(platformInfo, element => element.StartsWith("VERSION="));
+            }
 
             if (os == null || version == null)
             {
