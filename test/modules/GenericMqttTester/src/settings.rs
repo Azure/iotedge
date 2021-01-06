@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
     test_scenario: TestScenario,
     trc_url: String,
@@ -40,28 +40,6 @@ impl Settings {
 
     pub fn test_result_coordinator_url(&self) -> &str {
         &self.trc_url
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Settings {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(Debug, Deserialize)]
-        struct Inner {
-            test_scenario: TestScenario,
-            trc_url: String,
-        }
-        let Inner {
-            test_scenario,
-            trc_url,
-        } = serde::Deserialize::deserialize(deserializer)?;
-
-        Ok(Settings {
-            test_scenario,
-            trc_url,
-        })
     }
 }
 

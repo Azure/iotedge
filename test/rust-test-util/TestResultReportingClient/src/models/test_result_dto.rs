@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{MessageTestResult, TestType};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq)]
 pub(crate) struct TestOperationResultDto {
     #[serde(rename = "source")]
     source: String,
@@ -55,28 +55,5 @@ mod tests {
         let serialized = serde_json::to_string(&test_result_dto).unwrap();
 
         assert_eq!(expected, serialized);
-    }
-
-    #[test]
-    fn deserialize() {
-        let tracking_id = "tracking".to_string();
-        let batch_id = "batch".to_string();
-        let seq_num = 2;
-        let test_result = MessageTestResult::new(tracking_id, batch_id, seq_num);
-
-        let source = "source".to_string();
-        let _type = TestType::Messages;
-        let created_at = Utc::now();
-        let expected =
-            TestOperationResultDto::new(source, test_result, _type.clone(), created_at.clone());
-
-        let serialized = format!(
-            "{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}",
-            created_at
-        );
-        let deserialized: TestOperationResultDto =
-            serde_json::from_str(serialized.as_str()).unwrap();
-
-        assert_eq!(expected, deserialized);
     }
 }
