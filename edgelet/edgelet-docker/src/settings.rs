@@ -28,6 +28,7 @@ pub const DEFAULTS: &str = include_str!("../config/windows/default.yaml");
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
+const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
@@ -160,8 +161,8 @@ fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError>
     let image = settings.agent().config().image().to_string();
 
     if let Some(parent_hostname) = settings.parent_hostname() {
-        if image.starts_with("$upstream") {
-            let image_nested = format!("{}{}", parent_hostname, &image[9..]);
+        if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
+            let image_nested = format!("{}{}", parent_hostname, &image[UPSTREAM_PARENT_KEYWORD.len()..]);
             let config = settings.agent().config().clone().with_image(image_nested);
             settings.agent_mut().set_config(config);
         }
@@ -325,13 +326,15 @@ mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
-    use crate::settings::agent_image_resolve;
+
     use std::cmp::Ordering;
     use std::fs::File;
     use std::io::prelude::*;
 
     use serde_json::json;
     use tempdir::TempDir;
+
+    use crate::settings::agent_image_resolve;
 
     use edgelet_core::{
         AttestationMethod, IpamConfig, ManualAuthMethod, ProvisioningType, DEFAULT_NETWORKID,
@@ -471,6 +474,8 @@ mod tests {
         "test/windows/bad_sample_settings.dyn.repro.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
