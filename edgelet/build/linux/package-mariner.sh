@@ -55,6 +55,7 @@ popd
 
 # Update expected tarball hash
 TARBALL_HASH=$(sha256sum "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" | awk '{print $1}')
+echo "azure-iotedge-${VERSION}.tar.gz sha256 hash is ${TARBALL_HASH}"
 sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/azure-iotedge/azure-iotedge.signatures.json"
 sed -i 's/\("azure-iotedge-[0-9.]\+.tar.gz": "\)\([a-fA-F0-9]\+\)/\1'${TARBALL_HASH}'/g' "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/libiothsm-std.signatures.json"
 
@@ -67,7 +68,7 @@ cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BU
 # Download Mariner repo and build toolkit
 git clone https://github.com/microsoft/CBL-Mariner.git
 pushd CBL-Mariner
-git checkout tags/1.0-stable
+git checkout ${MARINER_RELEASE}
 pushd toolkit
 sudo make package-toolkit REBUILD_TOOLS=y
 popd
@@ -86,5 +87,5 @@ popd
 
 # Prevent publishing the Rust RPM as an artifact
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
-rm "builds/mariner/out/RPMS/x86_64/rust-1.45.2-1.cm1.x86_64.rpm"
+rm "builds/mariner/out/RPMS/x86_64/rust-*.rpm"
 popd

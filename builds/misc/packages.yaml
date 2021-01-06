@@ -136,6 +136,7 @@ jobs:
         CBL-Mariner1.0-amd64:
           arch: amd64
           os: mariner
+          release: tags/1.0-stable
           target.iotedged: builds/mariner/out/RPMS/x86_64/
     steps:
       - bash: |
@@ -145,6 +146,7 @@ jobs:
 
           echo "PACKAGE_ARCH=$(arch)"
           echo "PACKAGE_OS=$(os)"
+          echo "MARINER_RELEASE=$(release)"
         displayName: Set Version
       - task: AzureKeyVault@1
         displayName: Get secrets
