@@ -2,17 +2,12 @@
 function Setup-BaseImage-Script
 {
     # Change current directory to ../iotedge
-    try
-    {
-        $(cd $(Build.SourcesDirectory)) 
+    $rootDir = $env:BUILD_SOURCESDIRECTORY
+    if (-not $rootDir) {
+        $rootDir = [IO.Path]::Combine($PSScriptRoot, "..", "..")
     }
-    catch
-    {
-        $curDir = pwd
-        $iotedgeDir=$($curDir -split("iotedge", 2))
-        $iotedgeDir = $iotedgeDir[0] + "iotedge"
-        cd $iotedgeDir
-    }
+
+    cd $rootDir
 
     $isDotNetInstalled = ((gp HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*).DisplayName -Match "Microsoft .NET Core Runtime").Length -gt 0;
     if ($isDotNetInstalled)
