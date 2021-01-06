@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
             string[] packages = Directory
                 .GetFiles(path, $"*.{packageExtensionString}")
-                .Where(p => !p.Contains("debug"))
+                .Where(p => !p.Contains("debug") && !p.Contains("rust"))
                 .ToArray();
 
             return this.packageExtension switch
