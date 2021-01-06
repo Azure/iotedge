@@ -26,7 +26,7 @@ function usage()
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " --project-root          The project root of the desired build"
+    echo " --project-root      The project root of the desired build"
     echo " -h, --help          Print this help and exit."
     exit 1;
 }
