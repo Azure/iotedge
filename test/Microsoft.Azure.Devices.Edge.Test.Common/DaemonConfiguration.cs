@@ -36,13 +36,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         private Dictionary<Service, Config> config;
 
-        public DaemonConfiguration(ConfigFilePaths configFiles)
+        public DaemonConfiguration(ConfigFilePaths configFiles, uint iotedgeUid)
         {
             this.config = new Dictionary<Service, Config>();
             this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true);
             this.InitServiceConfig(Service.Certd, configFiles.Certd, true);
             this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true);
             this.InitServiceConfig(Service.Edged, configFiles.Edged, false);
+
+            // Add the principal entry for aziot-edge to Identity Service.
+            // This is required so aziot-edge can communicate with Identity Service.
+            this.config[Service.Identityd].Document.RemoveIfExists("principal");
+            ((TomlDocument)this.config[Service.Identityd].Document).AddPrincipal("aziot-edge", iotedgeUid);
         }
 
         public void AddHttpsProxy(Uri proxy)
