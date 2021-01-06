@@ -162,7 +162,11 @@ fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError>
 
     if let Some(parent_hostname) = settings.parent_hostname() {
         if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
-            let image_nested = format!("{}{}", parent_hostname, &image[UPSTREAM_PARENT_KEYWORD.len()..]);
+            let image_nested = format!(
+                "{}{}",
+                parent_hostname,
+                &image[UPSTREAM_PARENT_KEYWORD.len()..]
+            );
             let config = settings.agent().config().clone().with_image(image_nested);
             settings.agent_mut().set_config(config);
         }
