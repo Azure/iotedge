@@ -34,9 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 throw new NotImplementedException("Failed to gather operating system information from /etc/os-release file");
             }
 
+            // Trim potential whitespaces and double quotes
             char[] trimChr = { ' ', '"' };
             os = os.Split('=').Last().Trim(trimChr).ToLower();
-            version = version.Split('=').Last().Trim(trimChr);
+            // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
+            version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
 
             switch (os)
             {
