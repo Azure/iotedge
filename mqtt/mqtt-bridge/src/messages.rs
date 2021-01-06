@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{collections::HashMap, convert::TryFrom};
 
 use async_trait::async_trait;
