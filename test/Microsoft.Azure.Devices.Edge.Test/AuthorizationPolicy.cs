@@ -16,9 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
 
-
- 
-
     [EndToEnd]
     public class AuthorizationPolicy : SasManualProvisioningFixture
     {
@@ -41,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(getHubEnvVar())
+                        .WithEnvironment(this.GetHubEnvVar())
                         // deploy with deny policy
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
@@ -64,7 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token, Context.Current.NestedEdge);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -93,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    this.ca,
                     this.iotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
@@ -108,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(getHubEnvVar())
+                        .WithEnvironment(this.GetHubEnvVar())
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -130,7 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token, Context.Current.NestedEdge);
+                token,
+                Context.Current.NestedEdge);
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
@@ -146,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    this.ca,
                     this.iotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
@@ -185,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(getHubEnvVar())
+                        .WithEnvironment(this.GetHubEnvVar())
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -218,7 +217,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token, Context.Current.NestedEdge);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(),
+                this.ca,
                 this.iotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
@@ -272,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    this.ca,
                     this.iotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
@@ -283,12 +283,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             });
         }
 
-        protected (string, string)[] getHubEnvVar()
+        protected (string, string)[] GetHubEnvVar()
         {
             (string, string)[] hubEnvVar;
             if (Context.Current.NestedEdge == true)
             {
-                hubEnvVar = new[] {
+                hubEnvVar = new[]
+                {
                     ("RuntimeLogLevel", "debug"),
                     ("experimentalFeatures__enabled", "true"),
                     ("experimentalFeatures__nestedEdgeEnabled", "true"),

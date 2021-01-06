@@ -14,16 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected EdgeRuntime runtime;
         protected CertificateAuthority ca;
 
-        public SasManualProvisioningFixture()
-            : base()
-        {
-        }
-
-        public SasManualProvisioningFixture(string connectionString, string eventHubEndpoint)
-            : base(connectionString, eventHubEndpoint)
-        {
-        }
-
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
         protected virtual async Task SasProvisionEdgeAsync(bool withCerts = false)
@@ -55,6 +45,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 if (Context.Current.NestedEdge || withCerts)
                 {
                     await this.SetUpCertificatesAsync(token, startTime);
+                }
+                else
+                {
+                    this.ca = CertificateAuthority.GetQuickstart();
                 }
 
                 await this.ConfigureDaemonAsync(

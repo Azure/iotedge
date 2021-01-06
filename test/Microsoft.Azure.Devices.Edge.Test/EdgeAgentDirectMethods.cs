@@ -46,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token, Context.Current.NestedEdge);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(30000);
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
@@ -74,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token, Context.Current.NestedEdge);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(30000);
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
@@ -102,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token, Context.Current.NestedEdge);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             // restart module
@@ -139,7 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token, Context.Current.NestedEdge);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             var request = new
@@ -178,7 +182,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token, Context.Current.NestedEdge);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             var request = new
