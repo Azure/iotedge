@@ -31,11 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             if (os == null || version == null)
             {
-                throw new NotImplementedException($"Failed to gather operating system information (OS: '{os}', Version: '{version}')");
+                throw new NotImplementedException("Failed to gather operating system information from /etc/os-release file");
             }
 
-            os = os.Split('=').Last().Trim().ToLower();
-            version = version.Split('=').Last().Trim();
+            char[] trimChr = { ' ', '"' };
+            os = os.Split('=').Last().Trim(trimChr).ToLower();
+            version = version.Split('=').Last().Trim(trimChr);
 
             switch (os)
             {
