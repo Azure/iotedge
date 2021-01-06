@@ -28,14 +28,10 @@ function Get-Unique-BaseImages
 {
     Setup-BaseImage-Script
 
-    # Get all the Dockerfile file with string "ARG base_tag="
-    $fileLocal = $(Get-ChildItem -Recurse -Filter "Dockerfile" | Select-String "ARG base_tag=")
-
-    # Remove the filenames
-    $i = 1; $baseImageNames = $($fileLocal -split "ARG base_tag=" | Where-Object { $i % 2 -eq 0; $i++ })
-
-    # Show unique base image we are using
-    $baseImageNames | Sort-Object -Unique
+    Get-ChildItem -Recurse -Filter "Dockerfile" | `
+        Select-String "ARG base_tag=" | `
+        ForEach-Object { $_.Line -replace 'ARG base_tag=', '' } | `
+        Sort-Object -Unique
 }
 
 
@@ -62,9 +58,9 @@ function Update-ARM-BaseImages
     $baseAspNetLocale = $($($fileLocale | Convert-Path) -like "*\base\*" | Resolve-path)
     foreach ($file in $baseAspNetLocale)
     {
-        (Get-Content $file.Path) |
+        (Get-Content -Encoding utf8 $file.Path) |
         Foreach-Object { $_ -replace "ARG base_tag=.*.-bionic-arm", "ARG base_tag=$NewASPNetCoreVersion-bionic-arm" } |
-        Set-Content $file.Path
+        Set-Content -Encoding utf8 $file.Path 
     }
 
     # Update the places where the base images are used

@@ -11,7 +11,7 @@ steps:
 
     # Apparently the ##vso[task.setvariable ] crop of a string when it sees a newline charater, so chop them off before serialize
     # Note: Serialize -> Pass as DevOpsVar -> Deserialize to get an object
-    $serialize_config = $($config | ConvertTo-Json).replace("`n"," ").replace("`r"," ")
+    $serialize_config = $($config | ConvertTo-Json -Compress)
     Write-Output "##vso[task.setvariable variable=serialize_config]$serialize_config"
   displayName: Config
   name: config

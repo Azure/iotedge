@@ -1,15 +1,12 @@
 steps:
 - pwsh: |
     $artifactLocale = "$(Build.SourcesDirectory)/librocksdb.so"
-    Remove-Item $artifactLocale -ErrorAction Ignore
+    Remove-Item $artifactLocale
 
     $config = '$(serialize_config)' | ConvertFrom-Json
     foreach ($eachConfig in $config)
     {
       $filePath = "$(Build.SourcesDirectory)/$($eachConfig.Item1.ToString())/docker/$(os)/$(arch)/base/librocksdb.so"
-      Remove-Item $filePath -ErrorAction Ignore
-
-      $isSucceeded = $(if (![System.IO.File]::Exists($filePath)) {"Succeeded"} else {"Failed"})
-      echo "$filePath : $isSucceeded"
+      Remove-Item $filePath
     }
   displayName: Remove librocksdb.so

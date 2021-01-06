@@ -13,19 +13,19 @@ steps:
       #  3. Go to a Dockerfile of the module to get tagging that refers to underly base image (2)
       #  4. Set a variable with the tag obtained in (3). This variable has the same name as config by item3 of base-image-config.yaml
       #  5. Output the read values. Format:  <BaseImageName>:<ReferringTag> 🠘 <UnderLyingBaseImageTag>
-      $pathPrefix = "$(Build.SourcesDirectory)/$($eachConfig.Item1.ToString())/docker/$(os)/$(arch)"
+      $pathPrefix = "$(Build.SourcesDirectory)/$($eachConfig.Item1)/docker/$(os)/$(arch)"
       $unberlyingFilePath = $pathPrefix + '/base/Dockerfile' | Resolve-path
       $underlyingTag = $($(Get-Content $unberlyingFilePath | Select-String "ARG base_tag=") -split "=")[1]
       $imageFilePath = $pathPrefix + '/Dockerfile' | Resolve-path
-      Set-Variable -Name "$($eachConfig.Item3.ToString())" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
-      Write-Output "$($eachConfig.Item2.ToString()):$(Get-Variable -Name "$($eachConfig.Item3.ToString())" -ValueOnly) 🠘 $underlyingTag"
+      Set-Variable -Name "$($eachConfig.Item3)" -Value "$($($(Get-Content $imageFilePath | Select-String "ARG base_tag=") -split "=")[1])"
+      Write-Output "$($eachConfig.Item2):$(Get-Variable -Name "$($eachConfig.Item3)" -ValueOnly) 🠘 $underlyingTag"
 
       # Extract version number from the *-linux* base image
       # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
       #
       # Note:
       #    The output {$(edgeAgentTagVersion), $(edgeHubTagVersion), $(moduleTagVersion), $(fullModuleTagVersion)} are used in base-image-build-and-publish.yaml
-      Write-Output "##vso[task.setvariable variable=$($eachConfig.Item3.ToString())Version]$($(Get-Variable -Name "$($eachConfig.Item3.ToString())" -ValueOnly).split("-")[0])"
+      Write-Output "##vso[task.setvariable variable=$($eachConfig.Item3)Version]$($(Get-Variable -Name "$($eachConfig.Item3)" -ValueOnly).split("-")[0])"
     }
   displayName: Overview
   name: overview
