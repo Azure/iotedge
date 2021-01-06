@@ -11,6 +11,7 @@ steps:
       "$(fullModuleTagVersion)"
     ));
 
+    cd $(Build.SourcesDirectory)
     $scriptPath = "$(Build.SourcesDirectory)/scripts/linux/createArmBase.sh"
     $config = '$(serialize_config)' | ConvertFrom-Json
 
@@ -23,7 +24,7 @@ steps:
     for ( $idx=0; $idx -lt $config.count; $idx++ )
     {
       $eachConfig = $config[$idx]
-      $buildCommand = "sh -c ``""$scriptPath"" -d ""$($eachConfig.Item1.ToString())"" -i ""$($eachConfig.Item2.ToString())"" -v ""$($versionTags[$idx])""``"
+      $buildCommand = " ``sh -c ""$scriptPath -d $($eachConfig.Item1.ToString()) -i $($eachConfig.Item2.ToString()) -v $($versionTags[$idx])""`` "
       echo "Command: $buildCommand"
       # Invoke-Expression -Command "$buildCommand"
     }
