@@ -26,6 +26,6 @@ steps:
       $eachConfig = $config[$idx]
       $buildCommand = " ``sh -c ""$scriptPath -d $($eachConfig.Item1.ToString()) -i $($eachConfig.Item2.ToString()) -v $($versionTags[$idx])""`` "
       echo "Command: $buildCommand"
-      # Invoke-Expression -Command "$buildCommand"
+      Invoke-Expression -Command "$buildCommand"
     }
   displayName: Build and Publish Base Images
