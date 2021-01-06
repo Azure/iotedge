@@ -1,6 +1,4 @@
-use std::{error::Error as StdError};
-
-use async_trait::async_trait;
+use std::error::Error as StdError;
 
 use self::error::RingBufferError;
 
@@ -13,9 +11,3 @@ fn to_ring_buffer_err(message: String, err: Box<dyn StdError>) -> RingBufferErro
 }
 
 pub type RingBufferResult<T> = Result<T, RingBufferError>;
-
-#[async_trait]
-pub trait RingBuffer {
-    async fn enqueue(&mut self, data: &[u8]) -> RingBufferResult<()>;
-    async fn dequeue(&mut self, data: &mut [u8]) -> RingBufferResult<()>;
-}

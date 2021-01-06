@@ -1,7 +1,8 @@
-use std::{
-    mem::size_of,
-    sync::{atomic::AtomicUsize, atomic::Ordering, Arc, Mutex},
-};
+use std::{cell::UnsafeCell, mem::size_of, sync::{
+        atomic::AtomicUsize,
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    }, thread::sleep, time::Duration};
 
 use memmap::MmapMut;
 
@@ -14,16 +15,18 @@ use crate::{
     to_ring_buffer_err, RingBufferResult,
 };
 
+const LOCK_DELAY: Duration = Duration::from_nanos(500);
+
 fn mmap_read(
-    mmap: Arc<Mutex<MmapMut>>,
+    mmap_cell: &UnsafeCell<MmapMut>,
     block_size: usize,
     file_size: usize,
     read_index: usize,
 ) -> RingBufferResult<Option<HashedBlock>> {
     let offset_begin = (read_index * block_size) % file_size;
     let offset_end = offset_begin + block_size;
-    let lock = mmap.lock().unwrap();
-    let bytes = &lock[offset_begin..offset_end];
+    let mmap = unsafe { &*mmap_cell.get() };
+    let bytes = &mmap[offset_begin..offset_end];
     // TODO: Should have some sort of check over the bytes for attributes to determine if empty block
     let result = if bytes[0..10] == [0; 10] {
         None
@@ -34,7 +37,7 @@ fn mmap_read(
 }
 
 fn mmap_write(
-    mmap: Arc<Mutex<MmapMut>>,
+    mmap_cell: &UnsafeCell<MmapMut>,
     block_size: usize,
     file_size: usize,
     write_index: usize,
@@ -43,24 +46,26 @@ fn mmap_write(
     let bytes = binary_serialize(hashed_block)?;
     let offset_begin = (write_index * block_size) % file_size;
     let offset_end = offset_begin + block_size;
-    let mut lock = mmap.lock().unwrap();
-    lock[offset_begin..offset_end].clone_from_slice(&bytes);
+    // let zeroes = vec![0; block_size];
+    let mmap = unsafe { &mut *mmap_cell.get() };
+    // mmap[offset_begin..offset_end].clone_from_slice(&zeroes);
+    mmap[offset_begin..offset_end].clone_from_slice(&bytes);
     Ok(())
 }
 
 fn mmap_flush(
-    mmap: Arc<Mutex<MmapMut>>,
+    mmap_cell: &UnsafeCell<MmapMut>,
     block_size: usize,
     file_size: usize,
     index: usize,
 ) -> RingBufferResult<()> {
-    let lock = mmap.lock().unwrap();
-    lock.flush_range((index * block_size) % file_size, block_size)
+    let mmap = unsafe { &*mmap_cell.get() };
+    mmap.flush_async_range((index * block_size) % file_size, block_size)
         .map_err(|err| to_ring_buffer_err("Failed to flush on mmap".to_owned(), Box::new(err)))
 }
 
 fn mmap_delete(
-    mmap: Arc<Mutex<MmapMut>>,
+    mmap_cell: &UnsafeCell<MmapMut>,
     block_size: usize,
     file_size: usize,
     delete_index: usize,
@@ -69,18 +74,22 @@ fn mmap_delete(
         ((delete_index * block_size) % file_size) + size_of::<HashedBlock>() - size_of::<u64>();
     let offset_end = offset_begin + size_of::<u64>();
     let zeroes = vec![0; size_of::<u64>()];
-    let mut lock = mmap.lock().unwrap();
-    lock[offset_begin..offset_end].clone_from_slice(&zeroes);
+    let mmap = unsafe { &mut *mmap_cell.get() };
+    mmap[offset_begin..offset_end].clone_from_slice(&zeroes);
     Ok(())
 }
+
+type SafeVec = Vec<(AtomicBool, Mutex<()>)>;
 
 #[derive(Debug)]
 pub struct MmapRingBuffer {
     write_index: AtomicUsize,
     read_index: AtomicUsize,
+    has_init: AtomicBool,
     block_size: usize,
     file_size: usize,
-    mmap: Arc<Mutex<MmapMut>>,
+    safe_vec: SafeVec,
+    mmap: UnsafeCell<MmapMut>,
 }
 
 unsafe impl Send for MmapRingBuffer {}
@@ -104,28 +113,49 @@ impl MmapRingBuffer {
                 min_block_size
             ))
         }
+
+        let mut safe_vec = SafeVec::new();
+        for _ in 0..(file_size / block_size) {
+            safe_vec.push((AtomicBool::new(false), Mutex::new(())));
+        }
+
         Self {
             file_size,
             block_size,
             write_index: AtomicUsize::new(0),
             read_index: AtomicUsize::new(0),
-            mmap: Arc::from(Mutex::from(mmap)),
+            has_init: AtomicBool::new(false),
+            safe_vec,
+            mmap: UnsafeCell::from(mmap),
         }
     }
 
     pub fn init(&self) -> RingBufferResult<()> {
-        let maybe_curr_block = self.load_block()?;
+        let has_init = self
+            .has_init
+            .compare_and_swap(false, true, Ordering::SeqCst);
+        if has_init {
+            return Err(RingBufferError::new(
+                "Cannot initialize ring buffer more than once".to_owned(),
+                None,
+            ));
+        }
+        let read_index = self.read_index.load(Ordering::SeqCst);
+        let maybe_curr_block = self.load_block(read_index)?;
         if maybe_curr_block.is_none() {
             return Ok(());
         }
+        self.read_index.store(read_index + 1, Ordering::SeqCst);
         let curr_block = maybe_curr_block.unwrap();
         let mut curr: usize = *curr_block.fixed_block().attributes().index();
 
         loop {
-            let maybe_next_block = self.load_block()?;
+            let read_index = self.read_index.load(Ordering::SeqCst);
+            let maybe_next_block = self.load_block(read_index)?;
             if maybe_next_block.is_none() {
                 return Ok(());
             }
+            self.read_index.store(read_index + 1, Ordering::SeqCst);
             let next_block = maybe_next_block.unwrap();
             let next = *next_block.fixed_block().attributes().index();
             curr = next;
@@ -140,36 +170,42 @@ impl MmapRingBuffer {
         self.block_size - serialized_block_size_minus_data()
     }
 
-    pub fn save(&self, buf: &[u8]) -> RingBufferResult<()> {
-        let write_index = self.write_index.fetch_add(1, Ordering::Acquire);
-        // println!("w {}", write_index);
-        let fixed_block = FixedBlock::new(self.block_size, Vec::from(buf), write_index);
+    fn save_block(&self, write_index: usize, buf: &[u8]) -> RingBufferResult<()> {
+        let block_size = self.block_size;
+        let file_size = self.file_size;
+        let fixed_block = FixedBlock::new(block_size, Vec::from(buf), write_index);
         let hash = calculate_hash(buf);
         let hashed_block = HashedBlock::new(fixed_block, hash);
         let _ = mmap_write(
-            self.mmap.clone(),
-            self.block_size,
-            self.file_size,
+            &self.mmap,
+            block_size,
+            file_size,
             write_index,
             &hashed_block,
         )?;
-        let _ = mmap_flush(
-            self.mmap.clone(),
-            self.block_size,
-            self.file_size,
-            write_index,
-        )?;
         Ok(())
+        // mmap_flush(&self.mmap, block_size, file_size, write_index)
     }
 
-    fn load_block(&self) -> RingBufferResult<Option<HashedBlock>> {
-        let read_index = self.read_index.fetch_add(1, Ordering::Acquire);
-        let result = if let Some(hashed_block) = mmap_read(
-            self.mmap.clone(),
-            self.block_size,
-            self.file_size,
-            read_index,
-        )? {
+    pub fn save(&self, buf: &[u8]) -> RingBufferResult<()> {
+        let write_index = self.write_index.fetch_add(1, Ordering::SeqCst);
+        let index = write_index % (self.file_size / self.block_size);
+        let (in_use, _lock) = &self.safe_vec[index];
+        loop {
+            sleep(LOCK_DELAY);
+            if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
+                break;
+            }
+        }
+        let res = self.save_block(write_index, buf);
+        let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
+        res
+    }
+
+    fn load_block(&self, read_index: usize) -> RingBufferResult<Option<HashedBlock>> {
+        let result = if let Some(hashed_block) =
+            mmap_read(&self.mmap, self.block_size, self.file_size, read_index)?
+        {
             self.validate(&hashed_block)?;
             Some(hashed_block)
         } else {
@@ -179,17 +215,36 @@ impl MmapRingBuffer {
     }
 
     pub fn load(&self) -> RingBufferResult<Option<Vec<u8>>> {
-        let result = if let Some(hashed_block) = self.load_block()? {
+        let read_index = self.read_index.fetch_add(1, Ordering::SeqCst);
+
+        let index = read_index % (self.file_size / self.block_size);
+        let (in_use, _lock) = &self.safe_vec[index];
+        loop {
+            sleep(LOCK_DELAY);
+            if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
+                break;
+            }
+        }
+        let result = if let Some(hashed_block) = self.load_block(read_index)? {
             Some(hashed_block.fixed_block().data().clone())
         } else {
             None
         };
+        let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
         Ok(result)
     }
 
-    pub fn remove(&self, hint: usize) -> RingBufferResult<()> {
-        mmap_delete(self.mmap.clone(), self.block_size, self.file_size, hint)?;
-        mmap_flush(self.mmap.clone(), self.block_size, self.file_size, hint)?;
+    pub fn remove(&self, index: usize) -> RingBufferResult<()> {
+        let (in_use, _lock) = &self.safe_vec[index];
+        loop {
+            if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
+                break;
+            }
+        }
+        mmap_delete(&self.mmap, self.block_size, self.file_size, index)?;
+        mmap_flush(&self.mmap, self.block_size, self.file_size, index)?;
+        let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
+
         Ok(())
     }
 
@@ -248,7 +303,10 @@ impl MmapRingBuffer {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::{File, OpenOptions, remove_file}, path::PathBuf};
+    use std::{
+        fs::{remove_file, File, OpenOptions},
+        path::PathBuf,
+    };
 
     use super::*;
 
@@ -303,8 +361,8 @@ mod tests {
             assert!(result.is_ok());
             let rb = result.unwrap();
             assert_eq!(rb.file_size, MAX_FILE_SIZE);
-            assert_eq!(rb.read_index.load(Ordering::Relaxed), 0);
-            assert_eq!(rb.write_index.load(Ordering::Relaxed), 0);
+            assert_eq!(rb.read_index.load(Ordering::SeqCst), 0);
+            assert_eq!(rb.write_index.load(Ordering::SeqCst), 0);
             assert_eq!(rb.block_size, BLOCK_SIZE);
             cleanup_test_file(file_name);
         }
@@ -528,13 +586,13 @@ mod tests {
         ) -> JoinHandle<()> {
             thread::spawn(move || {
                 for data in vchunk {
-                    rb.save(&data).expect("Failed to save");
-                    let count = atomic_count.load(Ordering::Acquire);
+                    let _ = rb.save(&data).expect("Failed to save");
+                    let count = atomic_count.load(Ordering::SeqCst);
                     if count >= dequeue_start {
                         let _ = rb.load().expect("Failed to load");
                         // rb.remove(count - dequeue_start).expect("Failed to remove");
                     }
-                    atomic_count.store(count + 1, Ordering::Release);
+                    atomic_count.store(count + 1, Ordering::SeqCst);
                 }
             })
         }
@@ -558,8 +616,12 @@ mod tests {
                 parameters.min_packet_size,
                 parameters.max_packet_size,
             );
-            let rb = create_ring_buffer(parameters.file_name, parameters.file_size, parameters.block_size)
-                .expect("Failed to get ring buffer");
+            let rb = create_ring_buffer(
+                parameters.file_name,
+                parameters.file_size,
+                parameters.block_size,
+            )
+            .expect("Failed to get ring buffer");
             let arb = Arc::from(rb);
             println!("Perf test start");
             let start = Instant::now();
