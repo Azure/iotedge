@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
-
+            Log.Information("Value: " + Context.Current.NestedEdge);
             Assert.Ignore("Value: "+ Context.Current.NestedEdge);
             if (Context.Current.NestedEdge && brokerOn)
             {
