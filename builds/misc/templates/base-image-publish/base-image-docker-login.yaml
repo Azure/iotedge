@@ -3,4 +3,4 @@ steps:
   displayName: Docker Login
   inputs:
     command: login
-    containerRegistry: bearDockerIo
+    containerRegistry: $(user.dockerConnection)
