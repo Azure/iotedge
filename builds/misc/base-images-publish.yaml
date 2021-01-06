@@ -19,11 +19,9 @@ jobs:
       arch: arm32v7
 
     steps:
-    - template: templates/base-image-publish/base-image-setup.yaml
     - template: templates/base-image-publish/base-image-clear-docker-cache.yaml
     - template: templates/base-image-publish/base-image-docker-login.yaml
     - template: templates/base-image-publish/base-image-build-and-publish.yaml
-    - template: templates/base-image-publish/base-image-remove-librocksdb.yaml
 
 ################################################################################
   - job: linux_arm64
@@ -42,8 +40,6 @@ jobs:
       arch: arm64v8
 
     steps:
-    - template: templates/base-image-publish/base-image-setup.yaml
     - template: templates/base-image-publish/base-image-clear-docker-cache.yaml
     - template: templates/base-image-publish/base-image-docker-login.yaml
     - template: templates/base-image-publish/base-image-build-and-publish.yaml
-    - template: templates/base-image-publish/base-image-remove-librocksdb.yaml
