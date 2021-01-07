@@ -31,8 +31,6 @@ Requires:       openssl
 Requires:       moby-engine
 Requires:       moby-cli
 
-Patch0:         0001-set-mgmt-socket-to-var-lib.patch
-
 %description
 Azure IoT Edge Security Daemon
 Azure IoT Edge is a fully managed service that delivers cloud intelligence
@@ -53,7 +51,6 @@ This package contains the IoT Edge daemon and CLI tool
 
 %prep
 %setup -q -n %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
-%patch0 -p1
 
 %build
 cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
@@ -61,6 +58,9 @@ cd %{_topdir}/BUILD/azure-iotedge-%{version}/edgelet
 # Remove FORTIFY_SOURCE from CFLAGS to fix compilation error
 CFLAGS="`echo " %{build_cflags} " | sed 's/ -Wp,-D_FORTIFY_SOURCE=2//'`"
 export CFLAGS
+
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
+export IOTEDGE_HOST
 
 make %{?_smp_mflags} release
 
