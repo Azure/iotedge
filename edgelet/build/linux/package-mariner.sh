@@ -85,4 +85,3 @@ pushd toolkit
 sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
 popd
 popd
-popd
