@@ -77,17 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return this.document.ToString();
         }
 
-        public void AddPrincipal(string name, uint uid)
-        {
-            string document = this.document.ToString() + "\n";
-
-            document += "[[principal]]\n";
-            document += $"uid = {uid}\n";
-            document += $"name = \"{name}\"\n";
-
-            this.document = Toml.ReadString(document);
-        }
-
         void AddTable(string tableName, string key, string value)
         {
             this.document = Toml.ReadString(
