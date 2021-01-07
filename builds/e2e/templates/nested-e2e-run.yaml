@@ -10,8 +10,8 @@ steps:
     else
     {
       #DPS test are not expected to work in nested environment  
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName!~Provisioning'
-      #sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName~PlugAndPlay.PlugAndPlayModuleClient'
+      #sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName!~Provisioning'
+      #sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName~X509Device.X509ManualProvision'
     }
   displayName: Run tests
   env:
