@@ -20,10 +20,10 @@ steps:
     {
       # Fetch tags & version from each module Dockerfiles {../$(arch)/base/Dockerfile, ../$(arch)/Dockerfile}
       # Steps: 
-      #  1. Go to a respective Dockerfile as defined in base-image-config.yaml for an underlying base image
+      #  1. Go to a respective Dockerfile as defined in $config for an underlying base image
       #  2. Read underlying base image tag using "ARG base_tag="
       #  3. Go to a Dockerfile of the module to get tagging that refers to underly base image (2)
-      #  4. Set a variable with the tag obtained in (3). This variable has the same name as config by item3 of base-image-config.yaml
+      #  4. Set a variable with the tag obtained in (3). This variable has the same name as config by item3 of $config
       #  5. Output the read values. Format:  <BaseImageName>:<ReferringTag> 🠘 <UnderLyingBaseImageTag>
       $pathPrefix = "$(Build.SourcesDirectory)/$($eachConfig.Item1)/docker/$(os)/$(arch)"
       $unberlyingFilePath = $pathPrefix + '/base/Dockerfile' | Resolve-path
@@ -33,7 +33,7 @@ steps:
       Write-Output "$($eachConfig.Item2):$(Get-Variable -Name "$($eachConfig.Item3)" -ValueOnly) 🠘 $underlyingTag"
 
       # Extract version number from the *-linux* base image
-      # Uses (ReturningVstsVar) + 'Version' to return the version string as VSTS variable
+      # Uses ($config.item3) + 'Version' to return the version string as an environment variable
       #
       # Note:
       #    The output {$(edgeAgentTagVersion), $(edgeHubTagVersion), $(moduleTagVersion), $(fullModuleTagVersion)} are used to publish artifacts
