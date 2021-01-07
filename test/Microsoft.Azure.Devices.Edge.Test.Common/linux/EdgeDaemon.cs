@@ -115,7 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
                     DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
 
-                    DaemonConfiguration conf = new DaemonConfiguration(paths);
+                    uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -243,6 +244,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await Task.Delay(250, token).ConfigureAwait(false);
                 }
             }
+        }
+
+        private static async Task<uint> GetIotedgeUid(CancellationToken token)
+        {
+            string[] output = await Process.RunAsync("id", "-u iotedge", token);
+            string uid = output[0].Trim();
+
+            return System.Convert.ToUInt32(uid, 10);
         }
     }
 }

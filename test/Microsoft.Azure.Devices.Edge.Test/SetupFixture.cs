@@ -179,11 +179,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Directory.CreateDirectory(path);
             File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
-            OsPlatform.Current.SetFileOwner(trustBundlePath, "aziotcs", "644");
+            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
             File.Copy(this.certs.CertificatePath, certPath);
-            OsPlatform.Current.SetFileOwner(certPath, "aziotcs", "644");
+            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
             File.Copy(this.certs.KeyPath, keyPath);
-            OsPlatform.Current.SetFileOwner(keyPath, "aziotks", "600");
+            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
             config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
         }

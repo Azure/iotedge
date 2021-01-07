@@ -35,14 +35,35 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         private Dictionary<Service, Config> config;
+        private string principalsPath;
 
-        public DaemonConfiguration(ConfigFilePaths configFiles)
+        public DaemonConfiguration(ConfigFilePaths configFiles, uint iotedgeUid)
         {
             this.config = new Dictionary<Service, Config>();
+
             this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true);
             this.InitServiceConfig(Service.Certd, configFiles.Certd, true);
             this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true);
             this.InitServiceConfig(Service.Edged, configFiles.Edged, false);
+
+            string principalsPath = Path.Combine(
+                Path.GetDirectoryName(configFiles.Identityd),
+                "config.d");
+            this.principalsPath = principalsPath;
+
+            // Clear any existing Identity Service principals.
+            this.config[Service.Identityd].Document.RemoveIfExists("principal");
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+            }
+
+            Directory.CreateDirectory(principalsPath);
+            OsPlatform.Current.SetOwner(principalsPath, "aziotid", "755");
+
+            // Add the principal entry for aziot-edge to Identity Service.
+            // This is required so aziot-edge can communicate with Identity Service.
+            this.AddPrincipal("aziot-edge", iotedgeUid);
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -209,6 +230,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.iotedge-trust-bundle");
         }
 
+        public void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
+        {
+            string path = Path.Combine(this.principalsPath, $"{name}-principal.toml");
+
+            string principal = string.Join(
+                "\n",
+                "[[principal]]",
+                $"uid = {uid}",
+                $"name = \"{name}\"");
+
+            if (type != null)
+            {
+                // Need to quote each type.
+                for (int i = 0; i < type.Length; i++)
+                {
+                    type[i] = $"\"{type[i]}\"";
+                }
+
+                string types = string.Join(", ", type);
+                principal = string.Join("\n", principal, $"idtype = [{types}]");
+            }
+
+            if (opts != null)
+            {
+                foreach (KeyValuePair<string, string> opt in opts)
+                {
+                    principal = string.Join("\n", principal, $"{opt.Key} = {opt.Value}");
+                }
+            }
+
+            File.WriteAllText(path, principal);
+            OsPlatform.Current.SetOwner(path, "aziotid", "644");
+        }
+
         public void Update()
         {
             foreach (KeyValuePair<Service, Config> i in this.config)
@@ -243,7 +298,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             // Change owner of config file.
-            OsPlatform.Current.SetFileOwner(configFile, owner, "644");
+            OsPlatform.Current.SetOwner(configFile, owner, "644");
         }
 
         private static string SanitizeName(string name)
@@ -259,7 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string filePath = $"/etc/aziot/e2e_tests/{name}.key";
 
             File.WriteAllBytes(filePath, Convert.FromBase64String(value));
-            OsPlatform.Current.SetFileOwner(filePath, "aziotks", "600");
+            OsPlatform.Current.SetOwner(filePath, "aziotks", "600");
 
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
         }
