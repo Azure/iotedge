@@ -230,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.iotedge-trust-bundle");
         }
 
-        public void AddPrincipal(string name, uint uid)
+        public void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
         {
             string path = Path.Combine(this.principalsPath, $"{name}-principal.toml");
 
@@ -239,6 +239,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "[[principal]]",
                 $"uid = {uid}",
                 $"name = \"{name}\"");
+
+            if (type != null)
+            {
+                // Need to quote each type.
+                for (int i = 0; i < type.Length; i++)
+                {
+                    type[i] = $"\"{type[i]}\"";
+                }
+
+                string types = string.Join(", ", type);
+                principal = string.Join("\n", principal, $"idtype = [{types}]");
+            }
+
+            if (opts != null)
+            {
+                foreach (KeyValuePair<string, string> opt in opts)
+                {
+                    principal = string.Join("\n", principal, $"{opt.Key} = {opt.Value}");
+                }
+            }
+
             File.WriteAllText(path, principal);
             OsPlatform.Current.SetOwner(path, "aziotid", "644");
         }
