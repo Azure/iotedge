@@ -88,9 +88,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
-            Log.Information("Value: " + Context.Current.NestedEdge);
-            Log.Information("NestedEdge + brokerOn: " + (Context.Current.NestedEdge && brokerOn));
-
             if (Context.Current.NestedEdge && brokerOn)
             {
                 Assert.Ignore("MQTT Bridge does not support Plug and Play yet");

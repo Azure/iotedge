@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(this.GetHubEnvVar())
+                        .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                         // deploy with deny policy
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(this.GetHubEnvVar())
+                        .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(this.GetHubEnvVar())
+                        .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
@@ -281,27 +281,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
             });
-        }
-
-        protected (string, string)[] GetHubEnvVar()
-        {
-            (string, string)[] hubEnvVar;
-            if (Context.Current.NestedEdge == true)
-            {
-                hubEnvVar = new[]
-                {
-                    ("RuntimeLogLevel", "debug"),
-                    ("experimentalFeatures__enabled", "true"),
-                    ("experimentalFeatures__nestedEdgeEnabled", "true"),
-                    ("experimentalFeatures__mqttBrokerEnabled", "true")
-                };
-            }
-            else
-            {
-                hubEnvVar = new[] { ("RuntimeLogLevel", "debug") };
-            }
-
-            return hubEnvVar;
         }
     }
 }
