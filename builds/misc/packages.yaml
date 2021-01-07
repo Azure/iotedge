@@ -146,7 +146,7 @@ jobs:
 
           echo "PACKAGE_ARCH=$(arch)"
           echo "PACKAGE_OS=$(os)"
-          echo "MARINER_RELEASE=$(release)"
+          echo "##vso[task.setvariable variable=MARINER_RELEASE;]$(release)"
         displayName: Set Version
       - task: AzureKeyVault@1
         displayName: Get secrets

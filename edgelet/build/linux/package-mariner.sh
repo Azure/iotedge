@@ -14,7 +14,7 @@ pushd "${EDGELET_ROOT}"
 
 # Cargo vendored dependencies should be downloaded by the AzureCLI task. Extract them now.
 echo "Vendoring Rust dependencies"
-unzip "azure-iotedge-cargo-vendor.zip"
+unzip -q "azure-iotedge-cargo-vendor.zip"
 rm "azure-iotedge-cargo-vendor.zip"
 
 # Configure Cargo to use vendored the deps
@@ -66,6 +66,7 @@ mkdir -p "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 cp "${BUILD_REPOSITORY_LOCALPATH}/azure-iotedge-${VERSION}.tar.gz" "${MARINER_BUILD_ROOT}/SPECS/libiothsm-std/SOURCES/"
 
 # Download Mariner repo and build toolkit
+echo "Cloning the \"${MARINER_RELEASE}\" tag of the CBL-Mariner repo."
 git clone https://github.com/microsoft/CBL-Mariner.git
 pushd CBL-Mariner
 git checkout ${MARINER_RELEASE}
