@@ -54,7 +54,7 @@ steps:
       $versionTag = $(Get-Variable -Name "$($eachConfig.Item3)Version" -ValueOnly)
       $buildCommand = " ``sh -c ""$scriptPath -d $($eachConfig.Item1) -i $($eachConfig.Item2) -v $versionTag""`` "
       echo "Command: $buildCommand"
-      # Invoke-Expression -Command "$buildCommand"
+      Invoke-Expression -Command "$buildCommand"
 
       # Clean up librocksdb.so that we copied here.  
       $filePath = "$(Build.SourcesDirectory)/$($eachConfig.Item1)/docker/$(os)/$(arch)/base/librocksdb.so"
