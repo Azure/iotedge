@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected EdgeRuntime runtime;
 
         [OneTimeSetUp]
-        public async Task X509ProvisionEdgeAsync()
+        public async Task X509ProvisionEdgeAsync(bool withCerts = false)
         {
             await Profiler.Run(
                 async () =>
@@ -47,9 +47,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.OptimizeForPerformance,
                             this.iotHub);
 
+                        if (Context.Current.NestedEdge || withCerts)
+                        {
+                            await this.SetUpCertificatesAsync(token, startTime, this.runtime.DeviceId);
+                        }
+                        else
+                        {
+                            this.ca = CertificateAuthority.GetQuickstart();
+                        }
+
                         await this.ConfigureDaemonAsync(
                             config =>
                             {
+                                if (Context.Current.NestedEdge || withCerts)
+                                {
+                                    config.SetCertificates(this.ca.EdgeCertificates);
+                                }
                                 config.SetDeviceManualX509(
                                     device.HubHostname,
                                     device.Id,
