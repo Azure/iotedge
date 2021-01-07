@@ -96,26 +96,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             // entity store. But that should be rare enough that it might be okay. Also it is better than not being able to forward the message.
             // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.
             // TODO - Need to support transactions for these operations. The underlying storage layers support it.
-            using (MetricsV0.MessageStoreLatency(endpointId))
-            {
-                await this.messageEntityStore.PutOrUpdate(
-                    edgeMessageId,
-                    new MessageWrapper(message),
-                    (m) =>
-                    {
-                        m.RefCount++;
-                        return m;
-                    });
-            }
+            await this.messageEntityStore.PutOrUpdate(
+                edgeMessageId,
+                new MessageWrapper(message),
+                (m) =>
+                {
+                    m.RefCount++;
+                    return m;
+                });
 
             try
             {
-                using (MetricsV0.SequentialStoreLatency(endpointId))
-                {
-                    long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
-                    Events.MessageAdded(offset, edgeMessageId, endpointId);
-                    return new MessageWithOffset(message, offset);
-                }
+                long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
+                Events.MessageAdded(offset, edgeMessageId, endpointId);
+                return new MessageWithOffset(message, offset);
             }
             catch (Exception)
             {
@@ -634,10 +628,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };
-
-            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
-
-            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
 
             internal static MetricTags GetTags(string id)
             {
