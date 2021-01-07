@@ -138,40 +138,38 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token,
                 Context.Current.NestedEdge);
+                
+            // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
+            // idempotent and cannot be retried reliably.
+            Devices.Device edge = await this.iotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
+            Devices.Device leaf = new Devices.Device(deviceId2)
+            {
+                Authentication = new AuthenticationMechanism
+                {
+                    Type = AuthenticationType.Sas
+                },
+                Scope = edge.Scope
+            };
+
+            leaf = await this.iotHub.CreateDeviceIdentityAsync(leaf, token);
+            string connectionString =
+                $"HostName={this.iotHub.Hostname};" +
+                $"DeviceId={leaf.Id};" +
+                $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
+                $"GatewayHostName={Dns.GetHostName().ToLower()}";
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
             //
             // DefaultProgressive => 55 sec max.
-            LeafDevice leaf = null;
             await RetryPolicy.DefaultProgressive.ExecuteAsync(
                 async () =>
             {
-                leaf = await LeafDevice.CreateAsync(
-                    deviceId2,
-                    Protocol.Mqtt,
-                    AuthenticationType.Sas,
-                    Option.Some(this.runtime.DeviceId),
-                    false,
-                    this.ca,
-                    this.iotHub,
-                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
-                    token,
-                    Option.None<string>());
+                using var client = DeviceClient.CreateFromConnectionString(connectionString);
+                await client.OpenAsync();
             }, token);
 
-            // verify device is authorized after policy update.
-            await TryFinally.DoAsync(
-                 async () =>
-                 {
-                     DateTime seekTime = DateTime.Now;
-                     await leaf.SendEventAsync(token);
-                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                 },
-                 async () =>
-                 {
-                     await leaf.DeleteIdentityAsync(token);
-                 });
+            await this.iotHub.DeleteDeviceIdentityAsync(leaf, token);
         }
 
         /// <summary>
@@ -192,7 +190,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                        .WithEnvironment(new[]
+                        {
+                            ("experimentalFeatures__enabled", "true"),
+                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
+                        })
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
