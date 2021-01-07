@@ -38,7 +38,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                        .WithEnvironment(new[]
+                        {
+                            ("experimentalFeatures__enabled", "true"),
+                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
+                        })
                         // deploy with deny policy
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
@@ -106,7 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 builder =>
                 {
                     builder.GetModule(ModuleName.EdgeHub)
-                        .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
+                        .WithEnvironment(new[]
+                        {
+                            ("experimentalFeatures__enabled", "true"),
+                            ("experimentalFeatures__mqttBrokerEnabled", "true"),
+                        })
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
                             ["mqttBroker"] = new
