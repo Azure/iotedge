@@ -16,8 +16,7 @@ steps:
       project: $(vsts.project)
       pipeline: $(images.build)
       branchName: $(images.branchName)
-      buildVersionToDownload: specific
-      buildId: $(imageBuildId)
+      buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(images.artifact.name.linux)
       itemPattern: |
