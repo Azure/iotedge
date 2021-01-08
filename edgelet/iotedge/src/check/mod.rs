@@ -763,6 +763,7 @@ mod tests {
                     false,
                     false,
                     "".into(), // unused for this test
+                    None,
                 ))
                 .unwrap();
 
@@ -825,6 +826,7 @@ mod tests {
                     false,
                     false,
                     "".into(), // unused for this test
+                    None,
                 ))
                 .unwrap();
 
@@ -895,6 +897,7 @@ mod tests {
                 false,
                 false,
                 "".into(), // unused for this test
+                None,
             ))
             .unwrap();
 
@@ -941,6 +944,7 @@ mod tests {
                 false,
                 false,
                 "".into(), // unused for this test
+                None,
             ))
             .unwrap();
 
