@@ -65,50 +65,16 @@ steps:
     downloadType: single
     artifactName: $(artifactName)
 
-- pwsh: |
-    $github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization" = "token $(TestGitHubAccessToken)"}'
-    $aziot_commit = git submodule | awk '{print $1;}'
-
-    $proxy = ''
-    if($env:AGENT_PROXYURL)
-    {
-      $proxy = "-Proxy $env:AGENT_PROXYURL"
-    }
-
-    for($page = 1; ; $page++)
-    {
-      $url = "https://api.github.com/repos/azure/iot-identity-service/actions/runs?per_page=100&page=$page"
-      $actions_runs = Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$url'" | ConvertFrom-JSON
-      $actions_size = $actions_runs.workflow_runs | Measure-Object
-
-      if($actions_size.Count -eq 0)
-      {
-        # Searched all pages and could not find artifact for submodule commit.
-        exit 1
-      }
-
-      $artifacts_link = $actions_runs.workflow_runs | `
-        where {($_.head_sha -eq $aziot_commit) -and ($_.name -eq 'packages')} | `
-        Select-Object -ExpandProperty artifacts_url
-
-      if([string]::IsNullOrEmpty($artifacts_link))
-      {
-        # Artifact not on this page.
-        continue
-      }
-
-      $artifacts = Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$artifacts_link'" | ConvertFrom-JSON
-      $download_link = $artifacts.artifacts | where {$_.name -eq '$(identityServiceArtifactName)'} | `
-        Select-Object -ExpandProperty archive_download_url
-      Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$download_link' -OutFile iot-identity-service.zip"
-      Expand-Archive -Path iot-identity-service.zip -DestinationPath iot-identity-service
-
-      $packages = Get-ChildItem -Recurse iot-identity-service -Filter $(identityServicePackageFilter)
-      $packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)'
-      Copy-Item $packages -Destination $packagePath
-      exit 0
-    }
-  displayName: Download iot-identity-service package
+- task: PowerShell@2
+  displayName: Download aziot-identity-service
+  inputs:
+    filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+    workingDirectory: $(Build.SourcesDirectory)
+  env:
+    GITHUB_TOKEN: $(TestGitHubAccessToken)
+    ARTIFACT_NAME: $(identityServiceArtifactName)
+    PACKAGE_FILTER: $(identityServicePackageFilter)
+    DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
