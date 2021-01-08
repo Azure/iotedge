@@ -100,6 +100,7 @@ stages:
       - template: templates/nested-e2e-run.yaml
   - job:  Clean_up     
     dependsOn: SetupVM_and_RunTest_level3
+    condition: true
     displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
