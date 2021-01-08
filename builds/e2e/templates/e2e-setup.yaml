@@ -92,6 +92,10 @@ steps:
 
     $currentPath = pwd;
 
+    device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
+    eval device_name=${device_name}
+    echo "  Hostname FQDN: ${device_name}" 
+
     if ('$(nestededge)' -eq 'true')
     {
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
@@ -110,7 +114,7 @@ steps:
 
     $context = @{
       parentHostname= '$(parentName)'
-      hostname= '$(deviceName)'
+      hostname= '${device_name}'
       parentDeviceId = '$(parentDeviceId)'
       nestededge = '$(nestededge)'
       dpsIdScope = '$(dps.idScope)'
