@@ -209,6 +209,7 @@ function test_setup() {
 
 function set_output_params() {
     echo "##vso[task.setvariable variable=deviceName;isOutput=true]${device_name}"
+    echo "##vso[task.setvariable variable=deviceName]${device_name}"
 }
 
 set -e
