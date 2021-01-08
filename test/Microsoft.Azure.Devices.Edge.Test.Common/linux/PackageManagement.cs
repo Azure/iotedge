@@ -108,11 +108,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes libiothsm-std iotedge"
+                "apt-get purge --yes aziot-edge aziot-identity-service libiothsm-std iotedge"
             },
             SupportedPackageExtension.RpmCentOS => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std iotedge"
+                "yum remove -y --remove-leaves aziot-edge aziot-identity-service libiothsm-std iotedge"
             },
             SupportedPackageExtension.RpmMariner => new[]
             {
