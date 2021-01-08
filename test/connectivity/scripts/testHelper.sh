@@ -54,7 +54,7 @@ function get_iotedged_artifact_folder() {
 
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu16.04-amd64"
+        path="$testDir/artifacts/iotedged-ubuntu18.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$testDir/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -135,7 +135,5 @@ function print_highlighted_message() {
 
 function stop_iotedge_service() {
     echo 'Stop IoT Edge services'
-    systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
-    systemctl kill iotedge || true
-    systemctl stop iotedge || true
+    systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
 }

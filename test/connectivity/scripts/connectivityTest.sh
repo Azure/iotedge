@@ -35,7 +35,7 @@ function prepare_test_from_artifacts() {
 
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
-    
+
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
@@ -49,15 +49,15 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
-    
+
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
     fi
-    
+
     if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
     fi
-    
+
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
 
     sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
@@ -76,7 +76,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
-    
+
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
 
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
@@ -85,8 +85,8 @@ function prepare_test_from_artifacts() {
 }
 
 function print_deployment_logs() {
-    print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    print_highlighted_message 'LOGS FROM AZIOT-EDGED'
+    journalctl -u aziot-edged -u aziot-keyd -u aziot-certd -u aziot-identityd --since "$test_start_time" --no-pager || true
 
     print_highlighted_message 'edgeAgent LOGS'
     docker logs edgeAgent || true
@@ -190,22 +190,22 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 11 ]; then
             TEST_START_DELAY="$arg"
-            saveNextArg=0 
+            saveNextArg=0
         elif [ $saveNextArg -eq 12 ]; then
             LOADGEN_MESSAGE_FREQUENCY="$arg"
-            saveNextArg=0   
+            saveNextArg=0
         elif [ $saveNextArg -eq 13 ]; then
             NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
             NETWORK_CONTROLLER_RUNPROFILE="$arg"
-            saveNextArg=0    
+            saveNextArg=0
         elif [ $saveNextArg -eq 15 ]; then
             LOG_ANALYTICS_WORKSPACEID="$arg"
-            saveNextArg=0 
+            saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
             LOG_ANALYTICS_SHAREDKEY="$arg"
-            saveNextArg=0 
+            saveNextArg=0
         elif [ $saveNextArg -eq 17 ]; then
             LOG_ANALYTICS_LOGTYPE="$arg"
             saveNextArg=0
@@ -303,8 +303,8 @@ function process_args() {
                 '-testInfo' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-                
-                * ) 
+
+                * )
                     echo "Unsupported argument: $saveNextArg $arg"
                     usage
                     ;;
@@ -343,23 +343,23 @@ function run_connectivity_test() {
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    
+
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
     echo "Nested edge test=$NESTED_EDGE_TEST"
-    
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
         DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
         DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
         TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
-        
+
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
         echo "Device CA cert=$DEVICE_CA_CERT"
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
-        
+
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "$iotedge_package" \
@@ -399,7 +399,7 @@ function run_connectivity_test() {
 
     local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
-    
+
     if [ $funcRet -ne 0 ]; then
         print_highlighted_message "Deploy connectivity test failed."
         print_deployment_logs
@@ -428,13 +428,13 @@ function run_connectivity_test() {
         while [ $total_wait -lt $time_for_test_to_complete ]
         do
             local is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-            
+
             if [ $is_build_canceled -eq 1 ]; then
                 print_highlighted_message "build is canceled."
                 stop_iotedge_service || true
                 return 3
             fi
-        
+
             sleep "$sleep_frequency_secs"s
             total_wait=$((total_wait+sleep_frequency_secs))
             echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
@@ -452,7 +452,7 @@ function run_connectivity_test() {
         print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
-        sudo systemctl stop iotedge
+        stop_iotedge_service
     fi
 
     return $testExitCode
@@ -463,13 +463,13 @@ function test_setup() {
 
     validate_test_parameters && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
+
     clean_up && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
+
     prepare_test_from_artifacts && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
+
     create_iotedge_service_config && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
 }
@@ -552,7 +552,7 @@ function usage() {
     exit 1;
 }
 
-is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
+is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
 if [ $is_build_canceled -eq 1 ]; then
     print_highlighted_message "build is canceled."
     exit 3
