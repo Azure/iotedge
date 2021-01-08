@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
+    using Serilog;
 
     [EndToEnd]
     public class AuthorizationPolicy : SasManualProvisioningFixture
@@ -87,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
+            Log.Information("Hostname: " + Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower());
             // verify devices are not authorized after policy update.
             Assert.ThrowsAsync<UnauthorizedException>(async () =>
             {
@@ -101,6 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
+
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
