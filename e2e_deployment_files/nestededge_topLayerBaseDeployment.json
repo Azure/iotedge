@@ -33,13 +33,13 @@
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "experimentalFeatures__Enabled": {
+              "experimentalFeatures__enabled": {
                 "value": "true"
               },
               "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
               },
-              "experimentalFeatures__EnableMqttBroker": {
+              "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               },
               "RuntimeLogLevel": {
@@ -97,7 +97,7 @@
     },
     "$edgeHub": {
       "properties.desired": {
-        "schemaVersion": "1.1",
+        "schemaVersion": "1.2",
         "routes": {
           "ToUpstream": "FROM /messages/* INTO $upstream"
         },

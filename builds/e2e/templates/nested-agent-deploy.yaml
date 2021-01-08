@@ -6,8 +6,7 @@ steps:
       project: $(vsts.project)
       pipeline: $(edgelet.package.build)
       branchName: $(edgelet.package.branchName)
-      buildVersionToDownload: specific
-      buildId: $(packageBuildId)
+      buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(edgelet.artifact.name)
   - task: DownloadBuildArtifacts@0
@@ -17,8 +16,7 @@ steps:
       project: $(vsts.project)
       pipeline: $(images.build)
       branchName: $(images.branchName)
-      buildVersionToDownload: specific
-      buildId: $(imageBuildId)
+      buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(images.artifact.name.linux)
       itemPattern: |
@@ -51,7 +49,7 @@ steps:
         . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
-   
+
         sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \

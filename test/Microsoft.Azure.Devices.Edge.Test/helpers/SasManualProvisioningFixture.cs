@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
         protected EdgeRuntime runtime;
-        protected CertificateAuthority ca;
 
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
@@ -44,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                 if (Context.Current.NestedEdge || withCerts)
                 {
-                    await this.SetUpCertificatesAsync(token, startTime);
+                    await this.SetUpCertificatesAsync(token, startTime, this.runtime.DeviceId);
                 }
                 else
                 {
@@ -69,58 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     startTime,
                     token);
             }
-        }
-
-        public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime)
-        {
-            (string, string, string) rootCa =
-                Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
-            string caCertScriptPath =
-                Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
-            string certId = Context.Current.Hostname.GetOrElse(this.runtime.DeviceId);
-
-            try
-            {
-                this.ca = await CertificateAuthority.CreateAsync(
-                    certId,
-                    rootCa,
-                    caCertScriptPath,
-                    token);
-
-                CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(certId, token);
-                this.ca.EdgeCertificates = caCert;
-            }
-
-            // ReSharper disable once RedundantCatchClause
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                await NUnitLogs.CollectAsync(startTime, token);
-            }
-        }
-
-        [OneTimeTearDown]
-        public async Task RemoveCertificatesAsync()
-        {
-            await Profiler.Run(
-                async () =>
-                {
-                    using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                    {
-                        await this.daemon.ConfigureAsync(
-                            config =>
-                            {
-                                config.RemoveCertificates();
-                                config.Update();
-                                return Task.FromResult(("without edge certificates", Array.Empty<object>()));
-                            },
-                            cts.Token);
-                    }
-                },
-                "Completed custom certificate teardown");
         }
     }
 }

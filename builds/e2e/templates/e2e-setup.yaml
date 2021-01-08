@@ -110,7 +110,7 @@ steps:
 
     $context = @{
       parentHostname= '$(parentName)'
-      hostname= '$(hostname)'
+      hostname= '$(deviceName)'
       parentDeviceId = '$(parentDeviceId)'
       nestededge = '$(nestededge)'
       dpsIdScope = '$(dps.idScope)'

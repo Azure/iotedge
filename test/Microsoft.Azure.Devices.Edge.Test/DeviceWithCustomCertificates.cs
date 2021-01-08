@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            if (testAuth == TestAuthenticationType.SasOutOfScope)
+            if (Context.Current.NestedEdge && (testAuth == TestAuthenticationType.SasOutOfScope))
             {
                 Assert.Ignore("Out of scope test don't work while nested");
             }
