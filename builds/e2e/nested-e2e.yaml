@@ -76,8 +76,7 @@ stages:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
 #      parentName: nestededgetest02.eastus2.cloudapp.azure.com
-#      hostname: nestededgetest03.eastus.cloudapp.azure.com
-      parentDeviceId: level_4_20201210.99
+#      parentDeviceId: level_4_20201210.99
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu16.04-amd64
