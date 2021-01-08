@@ -372,7 +372,7 @@ function process_args() {
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
-    [[ (-z "$TEST_NAME") && ("$TEST_NAME" == "longhaul" || "$TEST_NAME" == "stress") ]] && { print_error 'Test name is required'; exit 1; }
+    [[ (-z "$TEST_NAME") && ("$TEST_NAME" == "LongHaul" || "$TEST_NAME" == "Connectivity") ]] && { print_error 'Test name is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -685,12 +685,6 @@ function usage() {
     exit 1;
 }
 
-is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
-if [ $is_build_canceled -eq 1 ]; then
-    print_highlighted_message "build is canceled."
-    exit 3
-fi
-
 process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
@@ -742,6 +736,12 @@ elif [[ "${TEST_NAME,,}" == "connectivity" ]]; then
     TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
     TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
     TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
+
+    is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
+    if [ $is_build_canceled -eq 1 ]; then
+        print_highlighted_message "build is canceled."
+        exit 3
+    fi
 
     run_connectivity_test && testRet=$? || testRet=$?
 fi

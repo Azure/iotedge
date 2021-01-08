@@ -32,6 +32,7 @@ variables:
   #metricsCollector.metricsEndpointsCSV
   #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
   #metricsCollector.uploadTarget
+  #test.useTRC
 
 jobs:
 ################################################################################
@@ -109,6 +110,7 @@ jobs:
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(LogAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
@@ -117,6 +119,8 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
+          test.useTRC: '$(useTRC)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -194,6 +198,7 @@ jobs:
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(LogAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
@@ -202,6 +207,8 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
+          test.useTRC: '$(useTRC)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -279,6 +286,7 @@ jobs:
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(LogAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
@@ -287,3 +295,5 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          test.useTRC: '$(useTRC)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
