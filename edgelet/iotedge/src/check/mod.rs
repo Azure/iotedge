@@ -97,6 +97,7 @@ impl Check {
         verbose: bool,
         warnings_as_errors: bool,
         aziot_bin: std::ffi::OsString,
+        iothub_hostname: Option<String>,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_aziot_edged_version) =
             expected_aziot_edged_version
@@ -206,7 +207,7 @@ impl Check {
 
                 additional_info: AdditionalInfo::new(),
 
-                iothub_hostname: None,
+                iothub_hostname,
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
@@ -550,6 +551,10 @@ impl Check {
                 .arg("-o=json-stream")
                 .stdout(std::process::Stdio::piped());
 
+            if let Some(iothub_hostname) = &self.iothub_hostname {
+                aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
+            }
+
             if !self.dont_run.is_empty() {
                 aziot_check
                     .arg("--dont-run")
@@ -599,12 +604,15 @@ impl Check {
                                 }
                             }
                             CheckOutputSerializableStreaming::AdditionalInfo(info) => {
-                                // try to extract iothub_hostname from additional_info
-                                self.iothub_hostname = info
-                                    .as_object()
-                                    .and_then(|m| m.get("iothub_hostname"))
-                                    .and_then(serde_json::Value::as_str)
-                                    .map(Into::into)
+                                // if it wasn't manually specified via CLI flag, try to
+                                // extract iothub_hostname from additional_info
+                                if self.iothub_hostname.is_none() {
+                                    self.iothub_hostname = info
+                                        .as_object()
+                                        .and_then(|m| m.get("iothub_hostname"))
+                                        .and_then(serde_json::Value::as_str)
+                                        .map(Into::into)
+                                }
                             }
                         }
                     }
