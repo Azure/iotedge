@@ -125,17 +125,18 @@ jobs:
             $(images.artifact.name.linux)/scripts/connectivityTest.sh
             $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
         inputs:
           filePath: $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
-          workingDirectory: $(images.artifact.name.linux)
         env:
           GITHUB_TOKEN: $(GitHubAccessToken)
           ARTIFACT_NAME: $(aziotis.artifact.name)
           PACKAGE_FILTER: $(aziotis.package.filter)
           DOWNLOAD_PATH: $(Build.StagingDirectory)/aziot_identity_service.deb
+          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
