@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             var authzProperties = properties.BrokerConfiguration.Authorizations;
 
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             var validator = new BrokerPropertiesValidator();
 
-            EdgeHubDesiredProperties properties = ConfigTestData.GetTestData();
+            EdgeHubDesiredProperties_1_2 properties = ConfigTestData.GetTestData();
 
             IList<string> errors = validator.ValidateBridgeConfig(properties.BrokerConfiguration.Bridges);
 

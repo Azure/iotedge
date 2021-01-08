@@ -14,158 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
     [Unit]
     public class EdgeHubDesiredPropertiesTest
     {
-        [Theory]
-        [MemberData(nameof(GetSchemaVersionData))]
-        public void SchemaVersionCheckTest(string manifest, Type expectedException)
-        {
-            if (expectedException != null)
-            {
-                Assert.Throws(expectedException, () => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(manifest));
-            }
-            else
-            {
-                JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(manifest);
-            }
-        }
-
-        public static IEnumerable<object[]> GetSchemaVersionData()
-        {
-            string noVersion =
-                @"{
-                  'routes': {
-                    'route1': 'from /* INTO $upstream'
-                  },
-                  'storeAndForwardConfiguration': {
-                    'timeToLiveSecs': 20
-                  },
-                  '$version': 2
-                }";
-
-            string version_0_1 =
-                    @"{
-                      'schemaVersion': '0.1',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string version_1 =
-                    @"{
-                      'schemaVersion': '1',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string version_1_0 =
-                    @"{
-                      'schemaVersion': '1.0',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string version_1_1 =
-                    @"{
-                      'schemaVersion': '1.1',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string version_1_1_0 =
-                    @"{
-                      'schemaVersion': '1.1.0',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string version_1_2 =
-                    @"{
-                      'schemaVersion': '1.2',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      'authorizations': [ ],
-                      '$version': 2
-                    }";
-
-            string version_2_0 =
-                    @"{
-                      'schemaVersion': '2.0',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string version_2_0_1 =
-                    @"{
-                      'schemaVersion': '2.0.1',
-                      'routes': {
-                        'route1': 'from /* INTO $upstream'
-                      },
-                      'storeAndForwardConfiguration': {
-                        'timeToLiveSecs': 20
-                      },
-                      '$version': 2
-                    }";
-
-            string versionMismatch =
-                @"{
-                  'schemaVersion': '1.0',
-                  'routes': {
-                    'route1': {
-                      'route': 'from /* INTO $upstream',
-                      'priority': 1,
-                      'timeToLiveSecs': 7200
-                    }
-                  },
-                  'storeAndForwardConfiguration': {
-                    'timeToLiveSecs': 20
-                  },
-                  '$version': 2
-                }";
-
-            yield return new object[] { noVersion, typeof(ArgumentException) };
-            yield return new object[] { version_0_1, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { version_1, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { version_1_0, null };
-            yield return new object[] { version_1_1, null };
-            yield return new object[] { version_1_1_0, null };
-            yield return new object[] { version_1_2, null };
-            yield return new object[] { version_2_0, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { version_2_0_1, typeof(InvalidSchemaVersionException) };
-            yield return new object[] { versionMismatch, null };
-        }
-
         [Fact]
         public void RoutesSmokeTest_1_0()
         {
@@ -180,15 +28,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(normal);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_0>(normal);
             Assert.Equal(1, desiredProperties.Routes.Count);
 
-            Assert.Equal("from /* INTO $upstream", desiredProperties.Routes["route1"].Route);
+            Assert.Equal("from /* INTO $upstream", desiredProperties.Routes["route1"]);
             Assert.Equal(20, desiredProperties.StoreAndForwardConfiguration.TimeToLiveSecs);
         }
 
         [Fact]
-        public void RoutesSmokeTest_1_1_0()
+        public void RoutesSmokeTest_1_1()
         {
             string normal =
                 @"{
@@ -206,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(normal);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(normal);
             Assert.Equal(2, desiredProperties.Routes.Count);
 
             Assert.Equal("from /* INTO $upstream", desiredProperties.Routes["route1"].Route);
@@ -232,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(emptyRoutesSection);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(emptyRoutesSection);
             Assert.Equal(0, desiredProperties.Routes.Count);
         }
 
@@ -253,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noPriority);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(noPriority);
             Assert.Equal(1, desiredProperties.Routes.Count);
             Assert.Equal(RouteFactory.DefaultPriority, desiredProperties.Routes["route2"].Priority);
         }
@@ -275,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noTTL);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(noTTL);
             Assert.Equal(1, desiredProperties.Routes.Count);
             Assert.Equal(0u, desiredProperties.Routes["route2"].TimeToLiveSecs);
         }
@@ -296,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(noPriorityOrTTL);
+            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(noPriorityOrTTL);
             Assert.Equal(1, desiredProperties.Routes.Count);
             Assert.Equal(RouteFactory.DefaultPriority, desiredProperties.Routes["route2"].Priority);
             Assert.Equal(0u, desiredProperties.Routes["route2"].TimeToLiveSecs);
@@ -306,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         [MemberData(nameof(GetMalformedData))]
         public void RoutesSectionMalformedTest(string manifest, Type expectedException)
         {
-            var ex = Assert.ThrowsAny<Exception>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(manifest));
+            var ex = Assert.ThrowsAny<Exception>(() => JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(manifest));
             Assert.Equal(expectedException, ex.GetType());
         }
 
@@ -452,7 +300,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   },
                   '$version': 2
                 }";
-            var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
+            var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_2>(properties);
             var authConfig = props.BrokerConfiguration.Authorizations;
             Assert.Single(authConfig);
             Assert.Equal(2, authConfig[0].Identities.Count);
@@ -502,7 +350,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                   '$version': 2
                 }";
 
-            var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(properties);
+            var props = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_2>(properties);
             var bridges = props.BrokerConfiguration.Bridges;
             Assert.Single(bridges);
             Assert.Equal("$upstream", bridges[0].Endpoint);
