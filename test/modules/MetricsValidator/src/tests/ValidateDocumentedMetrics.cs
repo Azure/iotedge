@@ -74,7 +74,8 @@ namespace MetricsValidator.Tests
                 "edgehub_messages_dropped_total",
                 "edgehub_messages_unack_total",
                 "edgehub_offline_count_total",
-                "edgehub_operation_retry_total"
+                "edgehub_operation_retry_total",
+                "edgehub_client_disconnect_total"
             };
 
             foreach (string skippingMetric in skippingMetrics)

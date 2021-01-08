@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
-    public class AuthAgentProtocolHead : IProtocolHead
+    public class AuthAgentProtocolHead : IProtocolHead, IAsyncDisposable
     {
         readonly IAuthenticator authenticator;
         readonly IMetadataStore metadataStore;
@@ -96,12 +96,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void Dispose()
         {
+            this.DisposeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
             if (this.host.HasValue)
             {
-                // FIXES a bug when the the process is stuck on WebHost.StopAsync() method call https://github.com/dotnet/extensions/issues/1363
-                // lets not wait forever but cancel after a timeout
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-                this.CloseAsync(cts.Token).Wait();
+                await this.CloseAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
 

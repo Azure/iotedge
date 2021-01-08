@@ -3,34 +3,17 @@ trigger:
     include:
       - master
       - release/*
+  paths:
+    include:
+      - "mqtt/*"
+      - "builds/*"
 pr: none
 jobs:
-
-################################################################################
-  - job: check_run_pipeline
-################################################################################
-    displayName: Check pipeline preconditions (changes ARE in builds or mqtt)
-    pool:
-      vmImage: "ubuntu-16.04"
-    steps:
-      - checkout: self
-        submodules: false
-        fetchDepth: 3
-      - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|mqtt)'
-          if [[ $? == 0 ]]; then
-            echo "Detected changes inside builds or mqtt folders"
-            echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
-          fi
-        displayName: Check changes in sources
-        name: check_files
 
 ################################################################################
   - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
@@ -69,8 +52,6 @@ jobs:
   - job: linux_arm32v7
 ################################################################################
     displayName: Linux arm32v7
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: 'ubuntu-16.04'
     steps:

@@ -30,6 +30,9 @@ pub enum ErrorKind {
     )]
     FetchLatestVersions(FetchLatestVersionsReason),
 
+    #[fail(display = "Unable to initialize config: {}", _0)]
+    Init(std::borrow::Cow<'static, str>),
+
     #[fail(display = "Could not initialize tokio runtime")]
     InitializeTokio,
 

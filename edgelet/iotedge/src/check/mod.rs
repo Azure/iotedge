@@ -13,7 +13,7 @@ use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
 use aziot_check_common::{
-    CheckOuputSerializableStreaming, CheckOutputSerializable, CheckResultSerializable,
+    CheckOutputSerializable, CheckOutputSerializableStreaming, CheckResultSerializable,
     CheckResultsSerializable, CheckerMetaSerializable,
 };
 
@@ -581,10 +581,10 @@ impl Check {
                     {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
-                            CheckOuputSerializableStreaming::Section { name } => {
+                            CheckOutputSerializableStreaming::Section { name } => {
                                 self.output_section(&format!("{} (aziot)", name))
                             }
-                            CheckOuputSerializableStreaming::Check { meta, output } => {
+                            CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
                                     CheckOutput {
                                         id: meta.id,
@@ -598,7 +598,7 @@ impl Check {
                                     break;
                                 }
                             }
-                            CheckOuputSerializableStreaming::AdditionalInfo(info) => {
+                            CheckOutputSerializableStreaming::AdditionalInfo(info) => {
                                 // try to extract iothub_hostname from additional_info
                                 self.iothub_hostname = info
                                     .as_object()
