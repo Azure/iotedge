@@ -6,6 +6,8 @@
 # - PACKAGE_FILTER: Filter for the package in the GitHub artifact. Example: aziot-identity-service_*_amd64.deb
 # - DOWNLOAD_PATH: Where to save the aziot-identity-service package.
 # - AGENT_PROXYURL: HTTP proxy and port, if needed.
+# - IDENTITY_SERVICE_COMMIT: Commit of iot-identity-service to use. If not set, the script will try to use the iotedge
+# repo's aziot submodule.
 #
 # GitHub artifacts expire after 90 days. So if this script runs more than 90 days after the aziot submodule's
 # commit, it will fail.
@@ -21,9 +23,25 @@ else
     Write-Output "Downloading without proxy"
 }
 
-$github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization" = "token ' + $env:GITHUB_TOKEN + '"}'
-$aziot_commit = git submodule | awk '{print $1;}'
+$aziot_commit = if($env:IDENTITY_SERVICE_COMMIT)
+{
+    $env:IDENTITY_SERVICE_COMMIT
+}
+else
+{
+    git submodule | awk '{print $1;}'
+}
+
+if([string]::IsNullOrEmpty($aziot_commit))
+{
+    Write-Output "Couldn't determine iot-identity-service commit"
+    Write-Output "Set env var IDENTITY_SERVICE_COMMIT and try again"
+    exit 1
+}
+
 Write-Output "Downloading aziot-identity-service $aziot_commit"
+
+$github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization" = "token ' + $env:GITHUB_TOKEN + '"}'
 
 for($page = 1; ; $page++)
 {
