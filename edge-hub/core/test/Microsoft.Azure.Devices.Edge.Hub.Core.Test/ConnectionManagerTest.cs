@@ -287,7 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(cloudProxy.HasValue);
             Assert.True(cloudProxy.OrDefault().IsActive);
 
-            deviceListener.BindDeviceProxy(deviceProxyMock1.Object);
+            deviceListener.BindDeviceProxy(deviceProxyMock1.Object, Option.None<Action>());
 
             Option<IDeviceProxy> deviceProxy = connectionManager.GetDeviceConnection(deviceId);
             Assert.True(deviceProxy.HasValue);

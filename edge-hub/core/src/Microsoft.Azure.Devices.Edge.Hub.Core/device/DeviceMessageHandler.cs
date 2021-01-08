@@ -71,10 +71,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return Task.CompletedTask;
         }
 
-        public void BindDeviceProxy(IDeviceProxy deviceProxy)
+        public void BindDeviceProxy(IDeviceProxy deviceProxy, Option<Action> initWhenBound)
         {
             this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            this.connectionManager.AddDeviceConnection(this.Identity, this);
+
+            var connectionCreation = this.connectionManager.AddDeviceConnection(this.Identity, this);
+            initWhenBound.ForEach(a => connectionCreation.ContinueWith(_ => a?.Invoke(), TaskContinuationOptions.OnlyOnRanToCompletion));
+
             Events.BindDeviceProxy(this.Identity);
         }
 
