@@ -248,6 +248,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
         }
 
+        // Note, that this test tests a corner case scenario, because the connection between edgeHub and the broker
+        // should not be broken, and if it is, then the MQTT library should resend the message automatically, which
+        // ultimately deliver an ACK. We added an internal timeout anyway to prevent infinite waiting (and freeze a
+        // processing loop). This timeout is 10 seconds. As a result, this test completes after 10 seconds.
+        // If you are cleaning up slow unit tests because CI has become too slow running them, this is a good
+        // candidate to skip.
+        [Fact]
+        public async Task SendAsyncCancelsWhenTimeout()
+        {
+            using var broker = new MiniMqttServer();
+            var sut = default(MqttBrokerConnector);
+
+            broker.OnPublish =
+                () =>
+                {
+                    throw new Exception(); // this stops sending ACK back
+                };
+
+            var producer = new ProducerStub();
+
+            sut = new ConnectorBuilder()
+                .WithProducer(producer)
+                .Build();
+
+            await sut.ConnectAsync(HOST, broker.Port);
+            await Assert.ThrowsAsync<TimeoutException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
+        }
+
         [Fact]
         public async Task TriesReconnect()
         {
