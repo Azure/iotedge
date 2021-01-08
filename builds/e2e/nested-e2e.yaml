@@ -98,7 +98,7 @@ stages:
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/nested-e2e-run.yaml
   - job:  Clean_up     
-    dependsOn: SetupVM_level4
+    dependsOn: SetupVM_and_RunTest_level3
     displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]

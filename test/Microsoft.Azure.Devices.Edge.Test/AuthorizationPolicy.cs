@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            Log.Information("Hostname: " + Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower());
+            Log.Information("Hostname: " + Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()));
             // verify devices are not authorized after policy update.
             Assert.ThrowsAsync<UnauthorizedException>(async () =>
             {
