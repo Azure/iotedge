@@ -94,12 +94,14 @@ steps:
 
     if ('$(nestededge)' -eq 'true')
     {
+      $nestededge = "true"
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
       $caCertScriptPath = "$currentPath/certs"
       $rootCaCertificatePath = "$currentPath/certs/certs/azure-iot-test-only.root.ca.cert.pem"
       $rootCaPrivateKeyPath = "$currentPath/certs/private/azure-iot-test-only.root.ca.key.pem"
     }else
     {
+      $nestededge = "false"
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
       $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
@@ -112,7 +114,7 @@ steps:
       parentHostname= '$(parentName)'
       hostname= '$(deviceName)'
       parentDeviceId = '$(parentDeviceId)'
-      nestededge = '$(nestededge)'
+      nestededge = "$nestededge"
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
