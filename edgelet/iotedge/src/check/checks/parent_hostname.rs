@@ -28,7 +28,6 @@ impl Checker for ParentHostname {
 }
 
 impl ParentHostname {
-    #[allow(clippy::unnecessary_wraps)] // keeps this inner_execute consistent with all other checks
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
