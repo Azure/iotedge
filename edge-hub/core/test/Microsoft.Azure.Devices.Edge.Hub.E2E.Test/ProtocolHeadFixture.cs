@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             MqttProtocolHead mqttProtocolHead = await container.Resolve<Task<MqttProtocolHead>>();
             AmqpProtocolHead amqpProtocolHead = await container.Resolve<Task<AmqpProtocolHead>>();
             var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
-            this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead }, logger);
+            this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead, httpProtocolHead }, logger);
             await this.protocolHead.StartAsync();
         }
 
