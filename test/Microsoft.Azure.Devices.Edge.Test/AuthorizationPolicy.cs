@@ -157,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 $"HostName={this.iotHub.Hostname};" +
                 $"DeviceId={leaf.Id};" +
                 $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
-                $"GatewayHostName={Dns.GetHostName().ToLower()}";
+                $"GatewayHostName={Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())}";
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.

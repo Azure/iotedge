@@ -91,30 +91,30 @@ stages:
         - status -equals unlocked    
     steps:   
       - template: templates/nested-get-secrets.yaml     
-#      - template: templates/lock-test-agent.yaml     
+      - template: templates/lock-test-agent.yaml     
       - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-root-ca.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/nested-e2e-run.yaml
-#  - job:  Clean_up     
-#    dependsOn: SetupVM_level4
-#    displayName: Clean up identities and unlock agents
-#    variables:    
-#      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-#      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ]     
-#      deviceLvl4Name: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-#      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level4.outputs['createIdentity.connectionString'] ] 
-#    pool:
-#      name: $(pool.name)
-#      demands:
-#        - agent-group -equals $(agent.group)
-#        - Agent.OS -equals Linux
-#        - Agent.OSArchitecture -equals X64
-#        - run-idle -equals true 
-#        - status -equals unlocked_$(Build.BuildId)  
-#    strategy:
-#      parallel: 2          
-#    steps:
-#      - template: templates/nested-get-secrets.yaml     
-#      - template: templates/unlock-test-agent.yaml      
+  - job:  Clean_up     
+    dependsOn: SetupVM_level4
+    displayName: Clean up identities and unlock agents
+    variables:    
+      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ]     
+      deviceLvl4Name: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level4.outputs['createIdentity.connectionString'] ] 
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
+        - status -equals unlocked_$(Build.BuildId)  
+    strategy:
+      parallel: 2          
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/unlock-test-agent.yaml      
