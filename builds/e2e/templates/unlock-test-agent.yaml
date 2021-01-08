@@ -16,7 +16,7 @@ steps:
         # Get test agent's capabilities
         agentCapabilities=$(curl -s -u :$(edgebuild-1-PAT) --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         # Filter for user capabilities, access "status" field and append buildId as a suffix
-        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) = "unlocked"; "")')
+        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked")')
         # Update the user capability on the agent pool for this agent
         responseCapabilities=$(curl -s -u :$(edgebuild-1-PAT) \
         --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
