@@ -6,8 +6,7 @@ steps:
       project: $(vsts.project)
       pipeline: $(edgelet.package.build)
       branchName: $(edgelet.package.branchName)
-      buildVersionToDownload: specific
-      buildId: $(packageBuildId)
+      buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(edgelet.artifact.name)
   - task: DownloadBuildArtifacts@0
