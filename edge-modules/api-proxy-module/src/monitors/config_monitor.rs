@@ -1,7 +1,6 @@
-use std::{sync::Arc, time::Duration};
+use std::{env, sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
-use chrono::Utc;
 use futures_util::future::Either;
 use log::{error, warn};
 use regex::Regex;
@@ -9,22 +8,22 @@ use tokio::{sync::Notify, task::JoinHandle};
 
 use super::file;
 use super::shutdown_handle;
-use azure_iot_mqtt::{
-    module::Client, ReportTwinStateHandle, ReportTwinStateRequest, Transport::Tcp, TwinProperties,
-};
+use azure_iot_mqtt::{module::Client, Transport::Tcp, TwinProperties};
 use shutdown_handle::ShutdownHandle;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME,IOTEDGE_PARENTAPIPROXYNAME";
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
+    ("NGINX_DEFAULT_PORT", "443"),
+    ("IOTEDGE_PARENTAPIPROXYNAME", "IOTEDGE_MODULEID"),
+];
 
-const TWIN_STATE_POLL_INTERVAL: Duration = Duration::from_secs(5);
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
-const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(5);
+const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(300);
 
 pub fn get_sdk_client() -> Result<Client, Error> {
     let client = match Client::new_for_edge_module(
@@ -53,6 +52,9 @@ pub fn start(
 
     //Allow on level of indirection, when one env var references another env var.
     dereference_env_variable();
+
+    //Special handling of some of the environment variables
+    specific_handling_env_var();
 
     //Parse default config and notify to reboot nginx if it has already started
     //If the config is incorrect, return error because otherwise nginx doesn't have any config.
@@ -143,6 +145,12 @@ fn dereference_env_variable() {
     }
 }
 
+fn specific_handling_env_var() {
+    if let Ok(moduleid) = env::var("IOTEDGE_PARENTAPIPROXYNAME") {
+        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", sanitize_dns_label(&moduleid));
+    }
+}
+
 fn save_raw_config(twin: &TwinProperties) -> Result<()> {
     let json = twin.properties.get_key_value(PROXY_CONFIG_TAG);
 
@@ -190,6 +198,24 @@ fn get_var_list() -> String {
     }
 }
 
+const ALLOWED_CHAR_DNS: char = '-';
+const DNS_MAX_SIZE: usize = 63;
+
+// The name returned from here must conform to following rules (as per RFC 1035):
+//  - length must be <= 63 characters
+//  - must be all lower case alphanumeric characters or '-'
+//  - must start with an alphabet
+//  - must end with an alphanumeric character
+pub fn sanitize_dns_label(name: &str) -> String {
+    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
+        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || c == &ALLOWED_CHAR_DNS)
+        .take(DNS_MAX_SIZE)
+        .collect::<String>()
+}
+
 //Check readme for details of how parsing is done.
 //First all the environment variables are replaced by their value.
 //Only environment variables in the list NGINX_CONFIG_ENV_VAR_LIST are replaced.
@@ -225,55 +251,6 @@ fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
     Ok(str)
 }
 
-pub fn report_twin_state(
-    mut report_twin_state_handle: ReportTwinStateHandle,
-) -> (JoinHandle<Result<()>>, ShutdownHandle) {
-    use futures_util::StreamExt;
-
-    let shutdown_signal = Arc::new(tokio::sync::Notify::new());
-    let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
-
-    let mut interval = tokio::time::interval(TWIN_STATE_POLL_INTERVAL);
-    let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
-        report_twin_state_handle
-            .report_twin_state(ReportTwinStateRequest::Replace(
-                vec![("start-time".to_string(), Utc::now().to_string().into())]
-                    .into_iter()
-                    .collect(),
-            ))
-            .await
-            .context("couldn't report initial twin state")?;
-
-        loop {
-            let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
-            match futures::future::select(wait_shutdown, interval.next()).await {
-                Either::Left(_) => {
-                    warn!("Shutting down twin state polling!");
-                    return Ok(());
-                }
-                Either::Right((result, _)) => {
-                    if result.is_some() {
-                        report_twin_state_handle
-                            .report_twin_state(ReportTwinStateRequest::Patch(
-                                vec![("current-time".to_string(), Utc::now().to_string().into())]
-                                    .into_iter()
-                                    .collect(),
-                            ))
-                            .await
-                            .context("couldn't report twin state patch")?;
-                    } else {
-                        warn!("Shutting down twin state polling!");
-                        //Should send a ctrl c event here?
-                        return Ok(());
-                    }
-                }
-            };
-        }
-    });
-    (monitor_loop, shutdown_handle)
-}
-
 #[cfg(test)]
 mod tests {
     const RAW_CONFIG_BASE64:&str = "ZXZlbnRzIHsgfQ0KDQoNCmh0dHAgew0KICAgIHByb3h5X2J1ZmZlcnMgMzIgMTYwazsgIA0KICAgIHByb3h5X2J1ZmZlcl9zaXplIDE2MGs7DQogICAgcHJveHlfcmVhZF90aW1lb3V0IDM2MDA7DQogICAgZXJyb3JfbG9nIC9kZXYvc3Rkb3V0IGluZm87DQogICAgYWNjZXNzX2xvZyAvZGV2L3N0ZG91dDsNCg0KICAgIHNlcnZlciB7DQogICAgICAgIGxpc3RlbiAke05HSU5YX0RFRkFVTFRfUE9SVH0gc3NsIGRlZmF1bHRfc2VydmVyOw0KDQogICAgICAgIGNodW5rZWRfdHJhbnNmZXJfZW5jb2Rpbmcgb247DQoNCiAgICAgICAgc3NsX2NlcnRpZmljYXRlICAgICAgICBzZXJ2ZXIuY3J0Ow0KICAgICAgICBzc2xfY2VydGlmaWNhdGVfa2V5ICAgIHByaXZhdGVfa2V5LnBlbTsgDQogICAgICAgIHNzbF9jbGllbnRfY2VydGlmaWNhdGUgdHJ1c3RlZENBLmNydDsNCiAgICAgICAgc3NsX3ZlcmlmeV9jbGllbnQgb247DQoNCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX0JMT0JfTU9EVUxFfQ0KICAgICAgICBpZiAoJGh0dHBfeF9tc19ibG9iX3R5cGUgPSBCbG9ja0Jsb2IpDQogICAgICAgIHsNCiAgICAgICAgICAgIHJld3JpdGUgXiguKikkIC9zdG9yYWdlJDEgbGFzdDsNCiAgICAgICAgfSANCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7RE9DS0VSX1JFUVVFU1RfUk9VVEVfQUREUkVTU30NCiAgICAgICAgbG9jYXRpb24gL3YyIHsNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwOi8vJHtET0NLRVJfUkVRVUVTVF9ST1VURV9BRERSRVNTfSI7DQogICAgICAgICAgICBwcm94eV9wYXNzICAgICAgICAgICRiYWNrZW5kOw0KICAgICAgICB9DQogICAgICAgI2VuZGlmX3RhZyAke0RPQ0tFUl9SRVFVRVNUX1JPVVRFX0FERFJFU1N9DQoNCiAgICAgICAgI2lmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCiAgICAgICAgbG9jYXRpb24gfl4vc3RvcmFnZS8oLiopew0KICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsNCiAgICAgICAgICAgIHJlc29sdmVyIDEyNy4wLjAuMTE7DQogICAgICAgICAgICBzZXQgJGJhY2tlbmQgImh0dHA6Ly8ke05HSU5YX0JMT0JfTU9EVUxFX05BTUVfQUREUkVTU30iOw0KICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICAkYmFja2VuZC8kMSRpc19hcmdzJGFyZ3M7DQogICAgICAgIH0NCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfTk9UX1JPT1R9ICAgICAgDQogICAgICAgIGxvY2F0aW9uIC97DQogICAgICAgICAgICBwcm94eV9odHRwX3ZlcnNpb24gMS4xOw0KICAgICAgICAgICAgcmVzb2x2ZXIgMTI3LjAuMC4xMTsNCiAgICAgICAgICAgIHNldCAkYmFja2VuZCAiaHR0cHM6Ly8ke0dBVEVXQVlfSE9TVE5BTUV9OjQ0MyI7DQogICAgICAgICAgICBwcm94eV9wYXNzICAgICAgICAgICRiYWNrZW5kLyQxJGlzX2FyZ3MkYXJnczsNCiAgICAgICAgfQ0KICAgICAgICAjZW5kaWZfdGFnICR7TkdJTlhfTk9UX1JPT1R9DQogICAgfQ0KfQ==";
@@ -284,7 +261,7 @@ mod tests {
     #[test]
     fn env_var_tests() {
         //unset all variables
-        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT");
+        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT,IOTEDGE_PARENTAPIPROXYNAME");
         let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
         for key in vars_list {
             std::env::remove_var(key);
@@ -355,5 +332,42 @@ mod tests {
         let config = get_parsed_config(dummy_config).unwrap();
 
         assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
+
+        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME defaults to module id if omitted *******************
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
+            std::env::remove_var(key);
+        }
+        std::env::set_var("IOTEDGE_MODULEID", "apiproxy");
+
+        set_default_env_vars();
+        //Check variable has been assigned the module id env var
+        let var = std::env::var("IOTEDGE_PARENTAPIPROXYNAME").unwrap();
+        assert_eq!("IOTEDGE_MODULEID", var);
+
+        dereference_env_variable();
+
+        specific_handling_env_var();
+
+        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
+
+        let config = get_parsed_config(dummy_config).unwrap();
+
+        assert_eq!("apiproxy", config);
+
+        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME get sanitized *******************
+        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
+        for key in vars_list {
+            std::env::remove_var(key);
+        }
+        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", "iotedge_api_proxy");
+        set_default_env_vars();
+        dereference_env_variable();
+        specific_handling_env_var();
+        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
+
+        let config = get_parsed_config(dummy_config).unwrap();
+
+        assert_eq!("iotedgeapiproxy", config);
     }
 }

@@ -36,11 +36,6 @@ namespace MetricsValidator.Tests
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
 
             var expected = this.GetExpectedMetrics();
-            if (RuntimeInformation.OSArchitecture == Architecture.Arm || RuntimeInformation.OSArchitecture == Architecture.Arm64)
-            {
-                // Docker doesn't return this on arm
-                expected.Remove("edgeAgent_created_pids_total");
-            }
 
             if (OsPlatform.IsWindows())
             {
@@ -85,7 +80,8 @@ namespace MetricsValidator.Tests
                 "edgehub_messages_dropped_total",
                 "edgehub_messages_unack_total",
                 "edgehub_offline_count_total",
-                "edgehub_operation_retry_total"
+                "edgehub_operation_retry_total",
+                "edgehub_client_disconnect_total"
             };
 
             foreach (string skippingMetric in skippingMetrics)

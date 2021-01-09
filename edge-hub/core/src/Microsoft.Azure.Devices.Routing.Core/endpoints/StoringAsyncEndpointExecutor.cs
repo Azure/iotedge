@@ -61,19 +61,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
 
-                using (MetricsV0.StoreLatency(this.Endpoint.Id))
-                {
-                    // Get the checkpointer corresponding to the queue for this priority
-                    ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
-                    ICheckpointer checkpointer = snapshot[priority].Checkpointer;
+                // Get the checkpointer corresponding to the queue for this priority
+                ImmutableDictionary<uint, EndpointExecutorFsm> snapshot = this.prioritiesToFsms;
+                ICheckpointer checkpointer = snapshot[priority].Checkpointer;
 
-                    IMessage storedMessage = await this.messageStore.Add(GetMessageQueueId(this.Endpoint.Id, priority), message, timeToLiveSecs);
-                    checkpointer.Propose(storedMessage);
-                    Events.AddMessageSuccess(this, storedMessage.Offset, priority, timeToLiveSecs);
-                }
+                IMessage storedMessage = await this.messageStore.Add(MessageQueueIdHelper.GetMessageQueueId(this.Endpoint.Id, priority), message, timeToLiveSecs);
+                checkpointer.Propose(storedMessage);
+                Events.AddMessageSuccess(this, storedMessage.Offset, priority, timeToLiveSecs);
 
                 this.hasMessagesInQueue.Set();
-                MetricsV0.StoredCountIncrement(this.Endpoint.Id, priority);
             }
             catch (Exception ex)
             {
@@ -159,7 +155,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 if (!updatedSnapshot.ContainsKey(priority))
                 {
-                    string id = GetMessageQueueId(this.Endpoint.Id, priority);
+                    string id = MessageQueueIdHelper.GetMessageQueueId(this.Endpoint.Id, priority);
 
                     // Create a message queue in the store for every priority we have
                     await this.messageStore.AddEndpoint(id);
@@ -190,25 +186,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             else
             {
                 Events.UpdatePrioritiesFailure(this, updatedSnapshot.Keys.ToList());
-            }
-        }
-
-        static string GetMessageQueueId(string endpointId, uint priority)
-        {
-            if (priority == RouteFactory.DefaultPriority)
-            {
-                // We need to maintain backwards compatibility
-                // for existing sequential stores that don't
-                // have the "_Pri<x>" suffix. We use the default
-                // priority (2,000,000,000) for this, which means
-                // the store ID is just the endpoint ID.
-                return endpointId;
-            }
-            else
-            {
-                // The actual ID for the underlying store is of string format:
-                //      <endpointId>_Pri<priority>
-                return endpointId + "_Pri" + priority.ToString();
             }
         }
 
@@ -254,7 +231,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                             {
                                 // Create and cache a new pair for the message provider
                                 // so we can reuse it every loop
-                                pair.Item1 = this.messageStore.GetMessageIterator(GetMessageQueueId(this.Endpoint.Id, priority), fsm.Checkpointer.Offset + 1);
+                                pair.Item1 = this.messageStore.GetMessageIterator(MessageQueueIdHelper.GetMessageQueueId(this.Endpoint.Id, priority), fsm.Checkpointer.Offset + 1);
                                 pair.Item2 = new StoreMessagesProvider(pair.Item1, batchSize);
                                 messageProviderPairs.Add(priority, pair);
                             }
@@ -273,7 +250,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                                 Events.ProcessingMessages(this, messages, priority);
                                 await this.ProcessMessages(messages, fsm);
                                 Events.SendMessagesSuccess(this, messages, priority);
-                                MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length, priority);
 
                                 // Only move on to the next priority if the queue for the current
                                 // priority is empty. If we processed any messages, break out of
@@ -518,12 +494,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };
-
-            public static void StoredCountIncrement(string identity, uint priority) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTagsWithPriority(identity, priority), EndpointMessageStoredCountOptions, 1);
-
-            public static void DrainedCountIncrement(string identity, long amount, uint priority) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTagsWithPriority(identity, priority), EndpointMessageDrainedCountOptions, amount);
-
-            public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.MetricsV0.Latency(GetTags(identity), EndpointMessageLatencyOptions);
 
             internal static MetricTags GetTags(string id)
             {

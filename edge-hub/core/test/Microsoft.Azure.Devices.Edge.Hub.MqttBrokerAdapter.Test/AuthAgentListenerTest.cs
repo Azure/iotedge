@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -26,49 +27,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     public class AuthAgentHeadTest
     {
         const string HOST = "localhost";
-        const int PORT = 7120;
-        const string URL = "http://localhost:7120/authenticate/";
 
-        readonly AuthAgentProtocolHeadConfig config = new AuthAgentProtocolHeadConfig(PORT, "/authenticate/");
+        static int atomicPort = 17122;
+        readonly int port;
+        readonly AuthAgentProtocolHeadConfig config;
+        readonly string url;
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        public AuthAgentHeadTest()
+        {
+            // assign a new port for each test
+            this.port = Interlocked.Increment(ref atomicPort);
+            this.config = new AuthAgentProtocolHeadConfig(this.port, "/authenticate/");
+            this.url = $"http://localhost:{this.port}/authenticate/";
+        }
+
+        [Fact]
         public async Task StartsUpAndServes()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(200, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task CannotStartTwice()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.StartAsync());
-            }                
+            }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesNoPasswordNorCertificate()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -76,39 +87,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesBothPasswordAndCertificate()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
                 content.certificate = ThumbprintTestCert;
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesBadCertificateFormat()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -117,83 +129,86 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.username = "testhub/device/api-version=2018-06-30";
                 content.certificate = new byte[] { 0x30, 0x23, 0x44 };
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesNoVersion()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesBadVersion()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2017-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
 
                 Assert.Equal(403, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task AcceptsGoodTokenDeniesBadToken()
         {
-            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodToken("good_token");
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "bad_token";
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
                 Assert.Equal(403, (int)response.result);
 
                 content.password = "good_token";
 
-                response = await PostAsync(content, URL);
+                response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task AcceptsGoodThumbprintDeniesBadThumbprint()
         {
-            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodThumbprint(ThumbprintTestCertThumbprint2);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -202,26 +217,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.username = "testhub/device/api-version=2018-06-30";
                 content.certificate = ThumbprintTestCert;
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
                 Assert.Equal(403, (int)response.result);
 
                 content.certificate = ThumbprintTestCert2;
 
-                response = await PostAsync(content, URL);
+                response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task AcceptsGoodCaDeniesBadCa()
         {
-            (_, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
             var goodCa = new X509Certificate2(Encoding.ASCII.GetBytes(CaTestRoot2));
 
             var authenticator = SetupAcceptGoodCa(goodCa);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -231,63 +246,65 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 content.certificate = CaTestDevice;
                 content.certificateChain = new List<string>() { CaTestRoot };
 
-                dynamic response = await PostAsync(content, URL);
+                dynamic response = await PostAsync(content, this.url);
                 Assert.Equal(403, (int)response.result);
 
                 content.certificate = CaTestDevice2;
                 content.certificateChain = new List<string>() { CaTestRoot2 };
 
-                response = await PostAsync(content, URL);
+                response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task ReturnsDeviceIdentity()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                var response = await PostAsync(content, URL);
+                var response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
-                Assert.Equal("device", (string)response.identity);
+                Assert.Equal("testhub/device", (string)response.identity);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task ReturnsModuleIdentity()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
                 dynamic content = new ExpandoObject();
                 content.version = "2020-04-20";
                 content.username = "testhub/device/module/api-version=2018-06-30";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
                 content.password = "somepassword";
 
-                var response = await PostAsync(content, URL);
+                var response = await PostAsync(content, this.url);
                 Assert.Equal(200, (int)response.result);
-                Assert.Equal("device/module", (string)response.identity);
+                Assert.Equal("testhub/device/module", (string)response.identity);
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task AcceptsRequestWithContentLength()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody);
@@ -296,12 +313,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task AcceptsRequestWithNoContentLength()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, withContentLength: false);
@@ -310,12 +327,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesMalformedJsonRequest()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(NonJSONRequestBody);
@@ -324,12 +341,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        [Fact(Skip = "Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task DeniesBadContentLengthLongBody()
         {
-            (var authenticator, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);
@@ -338,12 +355,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
+        [Fact]
+        public async Task StoresMetadataCorrectly()
+        {
+            (var authenticator, _, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
+            var metadataStore = new MetadataStore(store, "productInfo");
+            string modelIdString = "dtmi:test:modelId;1";
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            {
+                await sut.StartAsync();
+
+                dynamic content = new ExpandoObject();
+                content.version = "2020-04-20";
+                content.username = $"testhub/device/api-version=2018-06-30&model-id={modelIdString}";
+                // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic password used in tests")]
+                content.password = "somepassword";
+
+                dynamic response = await PostAsync(content, this.url);
+
+                Assert.Equal(200, (int)response.result);
+                var modelId = (await metadataStore.GetMetadata("device")).ModelId;
+                Assert.True(modelId.HasValue);
+                Assert.Equal(modelIdString, modelId.GetOrElse("impossibleValue"));
+            }
+        }
+
         private async Task<string> SendDirectRequest(string content, bool withContentLength = true, int contentLengthOverride = 0)
         {
             using (var client = new TcpClient())
             {
-                await client.ConnectAsync(HOST, PORT);
-                
+                await client.ConnectAsync(HOST, this.port);
+
                 using (var stream = client.GetStream())
                 {
                     var request = GetRequestWithBody(content, withContentLength, contentLengthOverride);
@@ -427,7 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
             else
             {
-                var content = response.Substring(contentStart + 4);                
+                var content = response.Substring(contentStart + 4);
                 return CutChunkNumber(content);
             }
         }
@@ -447,9 +491,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         private bool IsTimeout(DateTime startTime) => DateTime.Now - startTime > TimeSpan.FromSeconds(5);
 
-        private (IAuthenticator, IUsernameParser, IClientCredentialsFactory, ISystemComponentIdProvider) SetupAcceptEverything(string hubname = "testhub")
+        private (IAuthenticator, IMetadataStore, IUsernameParser, IClientCredentialsFactory, ISystemComponentIdProvider) SetupAcceptEverything(string hubname = "testhub")
         {
             var authenticator = Mock.Of<IAuthenticator>();
+            var metadataStore = Mock.Of<IMetadataStore>();
             var usernameParser = new MqttUsernameParser();
             var credFactory = new ClientCredentialsFactory(new IdentityProvider(hubname));
             var sysIdProvider = Mock.Of<ISystemComponentIdProvider>();
@@ -457,7 +502,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Mock.Get(authenticator).Setup(a => a.AuthenticateAsync(It.IsAny<IClientCredentials>())).Returns(Task.FromResult(true));
             Mock.Get(sysIdProvider).Setup(a => a.EdgeHubBridgeId).Returns("testdev/$edgeHub/$bridge");
 
-            return (authenticator, usernameParser, credFactory, sysIdProvider);
+            return (authenticator, metadataStore, usernameParser, credFactory, sysIdProvider);
         }
 
         private IAuthenticator SetupAcceptGoodToken(string goodToken) => SetupAccept(
@@ -537,9 +582,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         private static HttpContent CreateContent(dynamic content)
-        {            
+        {
             var stream = SerializeJsonIntoStream(content);
-            
+
             var httpContent = new StreamContent(stream);
             httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 

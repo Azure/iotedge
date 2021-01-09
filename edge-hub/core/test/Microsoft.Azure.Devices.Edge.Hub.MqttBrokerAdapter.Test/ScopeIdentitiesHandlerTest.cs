@@ -99,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             deviceScopeIdentitiesCache.Raise(d => d.ServiceIdentitiesUpdated += null, null, new List<string>() { serviceIdentity.Id, serviceIdentity2.Id });
 
             // Assert
+            capture.WhenCaptured().Wait();
+
             Assert.Equal(Topic, capture.Topic);
             brokerServiceIdentities = JsonConvert.DeserializeObject<IList<BrokerServiceIdentity>>(Encoding.UTF8.GetString(capture.Content));
             Assert.Equal(2, brokerServiceIdentities.Count);
@@ -110,8 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             var connector = new Mock<IMqttBrokerConnector>();
             connector
-                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>()))
-                .Returns((string topic, byte[] content) =>
+                .Setup(c => c.SendAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<bool>()))
+                .Returns((string topic, byte[] content, bool retain) =>
                 {
                     sendCapture?.Capture(topic, content);
                     return Task.FromResult(true);

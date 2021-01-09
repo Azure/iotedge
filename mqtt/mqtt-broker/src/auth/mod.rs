@@ -17,8 +17,6 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::ClientId;
-
 /// Authenticated MQTT client identity.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AuthId {
@@ -59,7 +57,7 @@ impl<T: Into<Identity>> From<T> for AuthId {
 
 /// Non-anonymous client identity.
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub struct Identity(Arc<String>);
+pub struct Identity(Arc<str>);
 
 impl Identity {
     pub fn as_str(&self) -> &str {
@@ -67,9 +65,9 @@ impl Identity {
     }
 }
 
-impl<T: Into<String>> From<T> for Identity {
-    fn from(s: T) -> Self {
-        Self(Arc::new(s.into()))
+impl<T: AsRef<str>> From<T> for Identity {
+    fn from(identity: T) -> Self {
+        Self(identity.as_ref().into())
     }
 }
 
@@ -79,8 +77,8 @@ impl Display for Identity {
     }
 }
 
-impl PartialEq<ClientId> for Identity {
-    fn eq(&self, other: &ClientId) -> bool {
-        self.as_str() == other.as_str()
+impl<T: AsRef<str>> PartialEq<T> for Identity {
+    fn eq(&self, other: &T) -> bool {
+        self.as_str() == other.as_ref()
     }
 }

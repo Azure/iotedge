@@ -27,7 +27,7 @@ impl ConfigUpdater {
 
         debug!("sending diff {:?}", diff);
 
-        self.bridge_handle.send(diff.clone()).await?;
+        self.bridge_handle.send_update(diff.clone()).await?;
 
         self.update(diff);
 
@@ -116,7 +116,7 @@ impl BridgeControllerUpdate {
         Self(vec![bridge_update])
     }
 
-    pub fn bridge_updates(self) -> Vec<BridgeUpdate> {
+    pub fn into_inner(self) -> Vec<BridgeUpdate> {
         self.0
     }
 }
@@ -129,8 +129,20 @@ pub struct BridgeUpdate {
 }
 
 impl BridgeUpdate {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            endpoint: name.into(),
+            subscriptions: vec![],
+        }
+    }
+
+    // TODO update should have name
+    pub fn name(&self) -> &str {
+        &self.endpoint
+    }
+
     pub fn endpoint(&self) -> &str {
-        self.endpoint.as_ref()
+        &self.endpoint
     }
 
     pub fn into_parts(self) -> (Vec<TopicRule>, Vec<TopicRule>) {
@@ -907,7 +919,7 @@ mod tests {
         let bridge_controller_update: BridgeControllerUpdate =
             serde_json::from_str(update).unwrap();
 
-        let updates = bridge_controller_update.bridge_updates();
+        let updates = bridge_controller_update.into_inner();
         let bridge_update = updates.first().take().unwrap();
 
         let sub_rule: TopicRule = serde_json::from_str(
@@ -960,7 +972,7 @@ mod tests {
             vec![forward_rule.clone()].as_slice(),
         );
 
-        let updates = bridge_controller_update.bridge_updates();
+        let updates = bridge_controller_update.into_inner();
         let bridge_update = updates.first().take().unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");

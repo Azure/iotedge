@@ -7,7 +7,7 @@ use crate::errors::Result;
 use crate::{substituter::Substituter, Error, ResourceMatcher};
 
 mod builder;
-pub use builder::{PolicyBuilder, PolicyDefinition, Statement};
+pub use builder::{Effect, PolicyBuilder, PolicyDefinition, Statement};
 
 /// Policy engine. Represents a read-only set of rules and can
 /// evaluate `Request` based on those rules.
@@ -36,30 +36,21 @@ where
     /// If no rules match the `&Request` - the default `Decision` is returned.
     pub fn evaluate(&self, request: &Request<RC>) -> Result<Decision> {
         match self.eval_static_rules(request) {
-            // static rules not defined. Need to check variable rules.
-            Ok(EffectOrd {
-                effect: Effect::Undefined,
-                ..
-            }) => match self.eval_variable_rules(request) {
+            // static rules undefined. Need to check variable rules.
+            Ok(None) => match self.eval_variable_rules(request) {
                 // variable rules undefined as well. Return default decision.
-                Ok(EffectOrd {
-                    effect: Effect::Undefined,
-                    ..
-                }) => Ok(self.default_decision),
+                Ok(None) => Ok(self.default_decision),
                 // variable rules defined. Return the decision.
-                Ok(effect) => Ok(effect.into()),
+                Ok(Some(effect)) => Ok(effect.into()),
                 Err(e) => Err(e),
             },
             // static rules are defined. Evaluate variable rules and compare priority.
-            Ok(static_effect) => {
+            Ok(Some(static_effect)) => {
                 match self.eval_variable_rules(request) {
                     // variable rules undefined. Proceed with static rule decision.
-                    Ok(EffectOrd {
-                        effect: Effect::Undefined,
-                        ..
-                    }) => Ok(static_effect.into()),
+                    Ok(None) => Ok(static_effect.into()),
                     // variable rules defined. Compare priority and return.
-                    Ok(variable_effect) => {
+                    Ok(Some(variable_effect)) => {
                         // compare order.
                         Ok(if variable_effect > static_effect {
                             static_effect
@@ -76,36 +67,38 @@ where
         }
     }
 
-    fn eval_static_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
+    fn eval_static_rules(&self, request: &Request<RC>) -> Result<Option<EffectOrd>> {
         // lookup an identity
         match self.static_rules.get(&request.identity) {
             // identity exists. Look up operations.
             Some(operations) => match operations.0.get(&request.operation) {
                 // operation exists.
                 Some(resources) => {
-                    // Iterate over and match resources.
-                    // We need to go through all resources and find one with highest priority (smallest order).
-                    let mut result = &EffectOrd::undefined();
+                    // iterate over and match resources.
+                    // we need to go through all resources and find one with highest priority (smallest order).
+                    let mut result: Option<EffectOrd> = None;
                     for (resource, effect) in &resources.0 {
-                        if effect.order < result.order // check the order
+                        // check the order first
+                        if effect.order < result.map_or(usize::MAX, |e| e.order)
+                             // only then check that matches
                             && self.resource_matcher.do_match( // only then check that matches
                                 request,
                                 &request.resource,
                                 &resource,
                             )
                         {
-                            result = effect;
+                            result = Some(*effect);
                         }
                     }
-                    Ok(*result)
+                    Ok(result)
                 }
-                None => Ok(EffectOrd::undefined()),
+                None => Ok(None),
             },
-            None => Ok(EffectOrd::undefined()),
+            None => Ok(None),
         }
     }
 
-    fn eval_variable_rules(&self, request: &Request<RC>) -> Result<EffectOrd> {
+    fn eval_variable_rules(&self, request: &Request<RC>) -> Result<Option<EffectOrd>> {
         for (identity, operations) in &self.variable_rules {
             // process identity variables.
             let identity = self.substituter.visit_identity(identity, request)?;
@@ -115,28 +108,37 @@ where
                 return match operations.0.get(&request.operation) {
                     // operation exists.
                     Some(resources) => {
-                        // Iterate over and match resources.
-                        // We need to go through all resources and find one with highest priority (smallest order).
-                        let mut result = &EffectOrd::undefined();
+                        // iterate over and match resources.
+                        // we need to go through all resources and find one with highest priority (smallest order).
+                        let mut result: Option<EffectOrd> = None;
                         for (resource, effect) in &resources.0 {
                             let resource = self.substituter.visit_resource(resource, request)?;
-                            if effect.order < result.order // check the order
-                                && self.resource_matcher.do_match( // only then check that matches
+                            // check the order first
+                            if effect.order < result.map_or(usize::MAX, |e| e.order)
+                                // only then check that matches
+                                && self.resource_matcher.do_match(
                                     request,
                                     &request.resource,
                                     &resource,
                                 )
                             {
-                                result = effect;
+                                result = Some(*effect);
                             }
                         }
-                        Ok(*result)
+                        // continue to look for other identity variable rules
+                        // if no resources matched the current one.
+                        if result == None {
+                            continue;
+                        }
+                        Ok(result)
                     }
-                    None => Ok(EffectOrd::undefined()),
+                    // continue to look for other identity variable rules
+                    // if no operation found for the current one.
+                    None => continue,
                 };
             }
         }
-        Ok(EffectOrd::undefined())
+        Ok(None)
     }
 }
 
@@ -297,23 +299,6 @@ pub enum Decision {
     Denied,
 }
 
-impl From<Effect> for Decision {
-    fn from(effect: Effect) -> Self {
-        match effect {
-            Effect::Allow => Decision::Allowed,
-            Effect::Deny => Decision::Denied,
-            Effect::Undefined => Decision::Denied,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-enum Effect {
-    Allow,
-    Deny,
-    Undefined,
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 struct EffectOrd {
     order: usize,
@@ -323,13 +308,6 @@ struct EffectOrd {
 impl EffectOrd {
     pub fn new(effect: Effect, order: usize) -> Self {
         Self { order, effect }
-    }
-
-    pub fn undefined() -> Self {
-        Self {
-            order: usize::MAX,
-            effect: Effect::Undefined,
-        }
     }
 
     /// Merges two `EffectOrd` by replacing with the one with higher priority.
@@ -353,7 +331,6 @@ impl From<EffectOrd> for Decision {
         match effect.effect {
             Effect::Allow => Decision::Allowed,
             Effect::Deny => Decision::Denied,
-            Effect::Undefined => Decision::Denied,
         }
     }
 }
@@ -433,7 +410,7 @@ pub(crate) mod tests {
                 {
                     "effect": "allow",
                     "identities": [
-                        "contoso.azure-devices.net/some_device"
+                        "actor_a"
                     ],
                     "operations": [
                         "write"
@@ -525,7 +502,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .build()
             .expect("Unable to build policy from json.");
 
@@ -592,7 +569,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .build()
             .expect("Unable to build policy from json.");
 
@@ -603,6 +580,21 @@ pub(crate) mod tests {
         let request = Request::new("other_actor", "connect", "").unwrap();
 
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    #[test]
+    fn evaluate_definition_no_statements() {
+        let json = r#"{
+            "schemaVersion": "2020-10-30",
+            "statements": [ ]
+        }"#;
+
+        let policy = build_policy(json);
+
+        let request = Request::new("actor_a", "connect", "").unwrap();
+
+        // default decision expected.
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Denied));
     }
 
     /// Scenario:
@@ -647,7 +639,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .with_matcher(StartWithMatcher)
             .build()
             .expect("Unable to build policy from json.");
@@ -692,7 +684,7 @@ pub(crate) mod tests {
 
         let policy = PolicyBuilder::from_json(json)
             .with_default_decision(Decision::Denied)
-            .with_substituter(TestSubstituter)
+            .with_substituter(TestIdentitySubstituter)
             .with_matcher(StartWithMatcher)
             .build()
             .expect("Unable to build policy from json.");
@@ -702,25 +694,131 @@ pub(crate) mod tests {
         assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
     }
 
-    /// `TestSubstituter` replaces any value with the corresponding identity or resource
-    /// from the request, thus making the variable rule to always match the request.
-    struct TestSubstituter;
+    /// Scenario:
+    /// - Have a policy with a custom identity matcher
+    /// - Have two variable rules (deny and allow) for an identity, such that
+    ///   both rules match a given request identity.
+    /// - But the two rules must be different in resources.
+    /// - Make a request to the allowed resource.
+    /// - The deny rule resources do not match the request.
+    /// - The allow rule resources do match the request.
+    /// - Expected: request allowed.
+    ///
+    /// This case is created as a result of a discovered bug.
+    #[test]
+    fn all_identity_variable_rules_must_be_evaluated_resources_do_not_match() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "{{identity}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
 
-    impl Substituter for TestSubstituter {
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestIdentitySubstituter)
+            .with_matcher(DefaultResourceMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello/a").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    /// Scenario:
+    /// - The same as test case above,
+    ///   but statement operations are different.
+    ///
+    /// This case is created as a result of a discovered bug.
+    #[test]
+    fn all_identity_variable_rules_must_be_evaluated_operations_do_not_match() {
+        let json = r###"{
+            "schemaVersion": "2020-10-30",
+            "statements": [
+                {
+                    "effect": "deny",
+                    "identities": [
+                        "{{any}}"
+                    ],
+                    "operations": [
+                        "read"
+                    ],
+                    "resources": [
+                        "hello/b"
+                    ]
+                },
+                {
+                    "effect": "allow",
+                    "identities": [
+                        "{{identity}}"
+                    ],
+                    "operations": [
+                        "write"
+                    ],
+                    "resources": [
+                        "hello/a"
+                    ]
+                }
+            ]
+        }"###;
+
+        let policy = PolicyBuilder::from_json(json)
+            .with_default_decision(Decision::Denied)
+            .with_substituter(TestIdentitySubstituter)
+            .with_matcher(DefaultResourceMatcher)
+            .build()
+            .expect("Unable to build policy from json.");
+
+        let request = Request::new("actor_a", "write", "hello/a").unwrap();
+
+        assert_matches!(policy.evaluate(&request), Ok(Decision::Allowed));
+    }
+
+    /// `TestSubstituter` replaces any value with the corresponding identity
+    /// from the request, thus making the variable rule to always match the request.
+    #[derive(Debug)]
+    struct TestIdentitySubstituter;
+
+    impl Substituter for TestIdentitySubstituter {
         type Context = ();
 
         fn visit_identity(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
             Ok(context.identity.clone())
         }
 
-        fn visit_resource(&self, _value: &str, context: &Request<Self::Context>) -> Result<String> {
-            Ok(context.resource.clone())
+        fn visit_resource(&self, value: &str, _context: &Request<Self::Context>) -> Result<String> {
+            Ok(value.into())
         }
     }
 
     /// `StartWithMatcher` matches resources that start with requested value. For
     /// example, if a policy defines a resource "hello/world", then request for "hello/"
     /// will match.
+    #[derive(Debug)]
     struct StartWithMatcher;
 
     impl ResourceMatcher for StartWithMatcher {
@@ -728,6 +826,100 @@ pub(crate) mod tests {
 
         fn do_match(&self, _: &Request<Self::Context>, input: &str, policy: &str) -> bool {
             policy.starts_with(input)
+        }
+    }
+
+    #[cfg(feature = "proptest")]
+    mod proptests {
+        use crate::{Decision, Effect, PolicyBuilder, PolicyDefinition, Request, Statement};
+        use proptest::{collection::vec, prelude::*};
+
+        proptest! {
+            /// The goal of this test is to verify the following scenarios:
+            /// - PolicyBuilder does not crash.
+            /// - All combinations of identity/operation/resource in a statement in the definition
+            ///   should produce expected result.
+            ///   Since some statements can be overridden by the previous ones,
+            ///   we can only safely verify the very first statement.
+            #[test]
+            fn policy_engine_proptest(definition in arb_policy_definition()){
+                use itertools::iproduct;
+
+                // take very first statement, which should have top priority.
+                let statement = &definition.statements()[0];
+                let expected = match statement.effect() {
+                    Effect::Allow => Decision::Allowed,
+                    Effect::Deny => Decision::Denied,
+                };
+
+                // collect all combos of identity/operation/resource
+                // in the statement.
+                let requests = iproduct!(
+                    statement.identities(),
+                    statement.operations(),
+                    statement.resources()
+                )
+                .map(|item| Request::new(item.0, item.1, item.2).expect("unable to create a request"))
+                .collect::<Vec<_>>();
+
+                let policy = PolicyBuilder::from_definition(definition)
+                    .build()
+                    .expect("unable to build policy from definition");
+
+                // evaluate and assert.
+                for request in requests {
+                    assert_eq!(policy.evaluate(&request).unwrap(), expected);
+                }
+            }
+        }
+
+        prop_compose! {
+            pub fn arb_policy_definition()(
+                statements in vec(arb_statement(), 1..5)
+            ) -> PolicyDefinition {
+                PolicyDefinition {
+                    statements
+                }
+            }
+        }
+
+        prop_compose! {
+            pub fn arb_statement()(
+                description in arb_description(),
+                effect in arb_effect(),
+                identities in vec(arb_identity(), 1..5),
+                operations in vec(arb_operation(), 1..5),
+                resources in vec(arb_resource(), 1..5),
+            ) -> Statement {
+                Statement{
+                    order: 0,
+                    description,
+                    effect,
+                    identities,
+                    operations,
+                    resources,
+                }
+            }
+        }
+
+        pub fn arb_effect() -> impl Strategy<Value = Effect> {
+            prop_oneof![Just(Effect::Allow), Just(Effect::Deny)]
+        }
+
+        pub fn arb_description() -> impl Strategy<Value = String> {
+            "\\PC+"
+        }
+
+        pub fn arb_identity() -> impl Strategy<Value = String> {
+            "(\\PC+)|(\\{\\{\\PC+\\}\\})"
+        }
+
+        pub fn arb_operation() -> impl Strategy<Value = String> {
+            "\\PC+"
+        }
+
+        pub fn arb_resource() -> impl Strategy<Value = String> {
+            "\\PC+(/(\\PC+|\\{\\{\\PC+\\}\\}))*"
         }
     }
 }

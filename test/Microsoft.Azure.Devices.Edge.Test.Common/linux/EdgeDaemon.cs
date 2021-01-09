@@ -13,14 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        readonly Option<string> bootstrapAgentImage;
-        readonly Option<Registry> bootstrapRegistry;
         readonly PackageManagement packageManagement;
 
-        public static async Task<EdgeDaemon> CreateAsync(
-            Option<string> bootstrapAgentImage,
-            Option<Registry> bootstrapRegistry,
-            CancellationToken token)
+        public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
             string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
             if (platformInfo.Length == 1)
@@ -58,16 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     throw new NotImplementedException($"Don't know how to install daemon on operating system '{os}'");
             }
 
-            return new EdgeDaemon(
-                bootstrapAgentImage,
-                bootstrapRegistry,
-                new PackageManagement(os, version, packageExtension));
+            return new EdgeDaemon(new PackageManagement(os, version, packageExtension));
         }
 
-        EdgeDaemon(Option<string> bootstrapAgentImage, Option<Registry> bootstrapRegistry, PackageManagement packageManagement)
+        EdgeDaemon(PackageManagement packageManagement)
         {
-            this.bootstrapAgentImage = bootstrapAgentImage;
-            this.bootstrapRegistry = bootstrapRegistry;
             this.packageManagement = packageManagement;
         }
 
@@ -84,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = packagesPath.Match(
                 p => this.packageManagement.GetInstallCommandsFromLocal(p),
-                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd());
+                () => this.packageManagement.GetInstallCommandsFromMicrosoftProd(proxy));
 
             await Profiler.Run(
                 async () =>
@@ -107,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml", this.bootstrapAgentImage, this.bootstrapRegistry);
+                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
                     (string msg, object[] props) = await config(yaml);
 
                     message += $" {msg}";

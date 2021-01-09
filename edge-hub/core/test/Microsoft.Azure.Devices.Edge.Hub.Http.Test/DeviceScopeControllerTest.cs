@@ -25,6 +25,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
     [Unit]
     public class DeviceScopeControllerTest
     {
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic symmetric keys used in tests")]
+        readonly string primaryKey = "t3LtII3CppvtVqycKp9bo043vCEgWbGBJAzXZNmoBXo=";
+
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic symmetric keys used in tests")]
+        readonly string secondaryKey = "kT4ac4PpH5UY0vA1JpLQWOu2yG6qKoqwvzee3j1Z3bA=";
+
         [Fact]
         public async Task GetDevicesAndModulesInTargetDeviceScope_RoundTripTest()
         {
@@ -36,9 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceScope = "deviceScope1";
             string parentScope = "parentScope1";
             string generationId = "generation1";
-            string primaryKey = "t3LtII3CppvtVqycKp9bo043vCEgWbGBJAzXZNmoBXo=";
-            string secondaryKey = "kT4ac4PpH5UY0vA1JpLQWOu2yG6qKoqwvzee3j1Z3bA=";
-            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(primaryKey, secondaryKey));
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(this.primaryKey, this.secondaryKey));
             var resultDeviceIdentity = new ServiceIdentity(deviceId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
@@ -51,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             await controller.GetDevicesAndModulesInTargetDeviceScopeAsync(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
-            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
+            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = this.primaryKey, SecondaryKey = this.secondaryKey } };
             var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(deviceId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
             var expectedModuleIdentities = new List<EdgeHubScopeModule>() { new EdgeHubScopeModule(moduleId, deviceId, generationId, expectedAuth) };
             var responseExpected = new EdgeHubScopeResultSuccess(expectedDeviceIdentities, expectedModuleIdentities);
@@ -85,9 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceScope = "deviceScope1";
             string parentScope = "parentScope1";
             string generationId = "generation1";
-            string primaryKey = "t3LtII3CppvtVqycKp9bo043vCEgWbGBJAzXZNmoBXo=";
-            string secondaryKey = "kT4ac4PpH5UY0vA1JpLQWOu2yG6qKoqwvzee3j1Z3bA=";
-            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(primaryKey, secondaryKey));
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(this.primaryKey, this.secondaryKey));
             var resultDeviceIdentity = new ServiceIdentity(childEdgeId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultModuleIdentity = new ServiceIdentity(childEdgeId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
@@ -102,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
-            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
+            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = this.primaryKey, SecondaryKey = this.secondaryKey } };
             var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(childEdgeId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
             var expectedModuleIdentities = new List<EdgeHubScopeModule>() { new EdgeHubScopeModule(moduleId, childEdgeId, generationId, expectedAuth) };
             var responseExpected = new EdgeHubScopeResultSuccess(expectedDeviceIdentities, expectedModuleIdentities);
@@ -126,9 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceScope = "deviceScope1";
             string parentScope = "parentScope1";
             string generationId = "generation1";
-            string primaryKey = "t3LtII3CppvtVqycKp9bo043vCEgWbGBJAzXZNmoBXo=";
-            string secondaryKey = "kT4ac4PpH5UY0vA1JpLQWOu2yG6qKoqwvzee3j1Z3bA=";
-            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(primaryKey, secondaryKey));
+            var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(this.primaryKey, this.secondaryKey));
             var resultDeviceIdentity = new ServiceIdentity(deviceId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
             // Verify EdgeHub result types
-            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = primaryKey, SecondaryKey = secondaryKey } };
+            var expectedAuth = new AuthenticationMechanism() { SymmetricKey = new SymmetricKey() { PrimaryKey = this.primaryKey, SecondaryKey = this.secondaryKey } };
             var expectedDeviceIdentities = new List<EdgeHubScopeDevice>() { new EdgeHubScopeDevice(deviceId, generationId, DeviceStatus.Enabled, expectedAuth, new DeviceCapabilities(), deviceScope, new List<string> { parentScope }) };
             var responseExpected = new EdgeHubScopeResultSuccess(expectedDeviceIdentities, new List<EdgeHubScopeModule>());
             var responseExpectedJson = JsonConvert.SerializeObject(responseExpected);

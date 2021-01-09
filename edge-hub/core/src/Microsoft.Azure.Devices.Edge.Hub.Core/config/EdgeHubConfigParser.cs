@@ -4,9 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// Creates EdgeHubConfig out of EdgeHubDesiredProperties. Also validates the
@@ -26,12 +29,107 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.validator = Preconditions.CheckNotNull(validator, nameof(validator));
         }
 
-        public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties desiredProperties)
+        public EdgeHubConfig GetEdgeHubConfig(string twinJson)
+        {
+            EdgeHubConfig edgeHubConfig;
+
+            var twinJObject = JObject.Parse(twinJson);
+            if (twinJObject.TryGetValue(Core.Constants.SchemaVersionKey, out JToken token))
+            {
+                Version version;
+
+                try
+                {
+                    version = new Version(token.ToString());
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidSchemaVersionException($"Error parsing schema version string: {token}, Exception: {e.Message}");
+                }
+
+                // Parse the JSON for 1.x
+                if (version.Major == Core.Constants.SchemaVersion_1_0.Major)
+                {
+                    if (version.Minor == Core.Constants.SchemaVersion_1_0.Minor)
+                    {
+                        var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_0>(twinJson);
+                        edgeHubConfig = this.GetEdgeHubConfig(desiredProperties);
+                    }
+                    else if (version.Minor == Core.Constants.SchemaVersion_1_1.Minor)
+                    {
+                        var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_1>(twinJson);
+                        edgeHubConfig = this.GetEdgeHubConfig(desiredProperties);
+                    }
+                    else if (version.Minor == Core.Constants.SchemaVersion_1_2.Minor)
+                    {
+                        var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties_1_2>(twinJson);
+                        edgeHubConfig = this.GetEdgeHubConfig(desiredProperties);
+                    }
+                    else
+                    {
+                        throw new InvalidSchemaVersionException($"EdgeHub config contains unsupported SchemaVersion: {version}");
+                    }
+                }
+                else
+                {
+                    throw new InvalidSchemaVersionException($"EdgeHub config contains unsupported SchemaVersion: {version}");
+                }
+            }
+            else
+            {
+                throw new InvalidSchemaVersionException("EdgeHub config missing SchemaVersion");
+            }
+
+            return edgeHubConfig;
+        }
+
+        public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties_1_0 desiredProperties)
         {
             Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
 
-            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutes(desiredProperties, this.routeFactory);
+            var routes = new Dictionary<string, RouteConfig>();
+            if (desiredProperties.Routes != null)
+            {
+                foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(inputRoute.Value))
+                        {
+                            Route route = this.routeFactory.Create(inputRoute.Value);
+                            routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value, route));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException($"Error parsing route {inputRoute.Key} - {ex.Message}", ex);
+                    }
+                }
+            }
 
+            return new EdgeHubConfig(
+                desiredProperties.SchemaVersion,
+                new ReadOnlyDictionary<string, RouteConfig>(routes),
+                desiredProperties.StoreAndForwardConfiguration,
+                Option.None<BrokerConfig>());
+        }
+
+        public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties_1_1 desiredProperties)
+        {
+            Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
+            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutesWithPriority(desiredProperties.Routes, this.routeFactory);
+
+            return new EdgeHubConfig(
+                desiredProperties.SchemaVersion,
+                routes,
+                desiredProperties.StoreAndForwardConfiguration,
+                Option.None<BrokerConfig>());
+        }
+
+        public EdgeHubConfig GetEdgeHubConfig(EdgeHubDesiredProperties_1_2 desiredProperties)
+        {
+            Preconditions.CheckNotNull(desiredProperties, nameof(desiredProperties));
+            ReadOnlyDictionary<string, RouteConfig> routes = ParseRoutesWithPriority(desiredProperties.Routes, this.routeFactory);
             Option<BrokerConfig> brokerConfig = this.ParseBrokerConfig(desiredProperties.BrokerConfiguration);
 
             return new EdgeHubConfig(
@@ -41,22 +139,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 brokerConfig);
         }
 
-        static ReadOnlyDictionary<string, RouteConfig> ParseRoutes(EdgeHubDesiredProperties desiredProperties, RouteFactory routeFactory)
+        static ReadOnlyDictionary<string, RouteConfig> ParseRoutesWithPriority(IDictionary<string, RouteSpec> routeSpecs, RouteFactory routeFactory)
         {
             var routes = new Dictionary<string, RouteConfig>();
-            if (desiredProperties.Routes != null)
+            foreach (KeyValuePair<string, RouteSpec> inputRoute in routeSpecs)
             {
-                foreach (KeyValuePair<string, RouteConfiguration> inputRoute in desiredProperties.Routes)
+                try
                 {
-                    try
-                    {
-                        Route route = routeFactory.Create(inputRoute.Value.Route, inputRoute.Value.Priority, inputRoute.Value.TimeToLiveSecs);
-                        routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value.Route, route));
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException($"Error parsing route {inputRoute.Key} - {ex.Message}", ex);
-                    }
+                    Route route = routeFactory.Create(inputRoute.Value.Route, inputRoute.Value.Priority, inputRoute.Value.TimeToLiveSecs);
+                    routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value.Route, route));
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Error parsing route {inputRoute.Key} - {ex.Message}", ex);
                 }
             }
 

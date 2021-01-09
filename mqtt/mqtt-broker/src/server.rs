@@ -37,6 +37,12 @@ where
     }
 }
 
+impl<Z, P> Server<Z, P> {
+    pub fn listeners(&self) -> &Vec<Listener> {
+        &self.listeners
+    }
+}
+
 impl<Z, P> Server<Z, P>
 where
     Z: Authorizer + Send + 'static,
@@ -97,18 +103,18 @@ where
 
     pub async fn serve<F>(self, shutdown_signal: F) -> Result<BrokerSnapshot, Error>
     where
-        F: Future<Output = ()> + Unpin,
+        F: Future<Output = ()>,
     {
         let Server {
             broker,
             listeners,
             make_processor,
         } = self;
-        let mut handle = broker.handle();
+        let handle = broker.handle();
 
         // prepare dispatcher in a separate task
         let broker_task = tokio::spawn(broker.run());
-        pin_mut!(broker_task);
+        pin_mut!(broker_task, shutdown_signal);
 
         // prepare each transport listener
         let mut incoming_tasks = Vec::new();
@@ -229,7 +235,7 @@ where
     }
 }
 
-struct Listener {
+pub struct Listener {
     transport: Transport,
     authenticator: Arc<(dyn Authenticator<Error = Box<dyn StdError + Send + Sync>> + Send + Sync)>,
     ready: Option<BrokerReadySignal>,
@@ -254,6 +260,10 @@ impl Listener {
             ready,
             broker_handle,
         }
+    }
+
+    pub fn transport(&self) -> &Transport {
+        &self.transport
     }
 
     async fn run<F, P>(self, shutdown_signal: F, make_processor: P) -> Result<(), Error>
@@ -323,8 +333,8 @@ impl Listener {
                             }
                             Either::Right((Some(Err(e)), _)) => {
                                 warn!(
-                                    message = "accept loop exiting due to an error",
-                                    error =% DetailedErrorValue(&e)
+                                    error =% DetailedErrorValue(&e),
+                                    message = "accept loop exiting due to an error"
                                 );
                                 break;
                             }
@@ -337,13 +347,13 @@ impl Listener {
                     Ok(())
                 }
                 Either::Left((Err(e), _)) => {
-                    error!("error occurred when waiting for broker readiness. {}", e);
+                    error!(error = %DetailedErrorValue(&e), "error occurred when waiting for broker readiness.");
                     Ok(())
                 }
                 Either::Right((_, _)) => {
                     info!("shutdown signalled while waiting for broker to be ready");
                     Ok(())
-                },
+                }
             }
         }
         .instrument(span)

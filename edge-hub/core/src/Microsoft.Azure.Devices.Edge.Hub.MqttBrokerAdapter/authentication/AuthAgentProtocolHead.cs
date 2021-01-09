@@ -14,9 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
-    public class AuthAgentProtocolHead : IProtocolHead
+    public class AuthAgentProtocolHead : IProtocolHead, IAsyncDisposable
     {
         readonly IAuthenticator authenticator;
+        readonly IMetadataStore metadataStore;
         readonly IUsernameParser usernameParser;
         readonly IClientCredentialsFactory clientCredentialsFactory;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
@@ -29,12 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public AuthAgentProtocolHead(
                     IAuthenticator authenticator,
+                    IMetadataStore metadataStore,
                     IUsernameParser usernameParser,
                     IClientCredentialsFactory clientCredentialsFactory,
                     ISystemComponentIdProvider systemComponentIdProvider,
                     AuthAgentProtocolHeadConfig config)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
+            this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
             this.usernameParser = Preconditions.CheckNotNull(usernameParser, nameof(usernameParser));
             this.clientCredentialsFactory = Preconditions.CheckNotNull(clientCredentialsFactory, nameof(clientCredentialsFactory));
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
@@ -52,16 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     Events.StartedWhenAlreadyRunning();
                     throw new InvalidOperationException("Cannot start AuthAgentProtocolHead twice");
                 }
-                else
-                {
-                    this.host = Option.Some(
-                                    CreateWebHostBuilder(
-                                        this.authenticator,
-                                        this.usernameParser,
-                                        this.clientCredentialsFactory,
-                                        this.systemComponentIdProvider,
-                                        this.config));
-                }
+
+                this.host = Option.Some(
+                    CreateWebHostBuilder(
+                        this.authenticator,
+                        this.metadataStore,
+                        this.usernameParser,
+                        this.clientCredentialsFactory,
+                        this.systemComponentIdProvider,
+                        this.config));
             }
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
@@ -82,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             await hostToStop.Match(
-                async h => await h.StopAsync(),
+                async h => await h.StopAsync(token),
                 () =>
                 {
                     Events.ClosedWhenNotRunning();
@@ -94,14 +96,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void Dispose()
         {
+            this.DisposeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
             if (this.host.HasValue)
             {
-                this.CloseAsync(CancellationToken.None).Wait();
+                await this.CloseAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
 
         static IWebHost CreateWebHostBuilder(
                             IAuthenticator authenticator,
+                            IMetadataStore metadataStore,
                             IUsernameParser usernameParser,
                             IClientCredentialsFactory clientCredentialsFactory,
                             ISystemComponentIdProvider systemComponentIdProvider,
@@ -112,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                           .UseKestrel(serverOptions => serverOptions.Limits.MaxRequestBufferSize = 64 * 1024)
                           .UseUrls($"http://*:{config.Port}")
                           .ConfigureServices(s => s.TryAddSingleton(authenticator))
+                          .ConfigureServices(s => s.TryAddSingleton(metadataStore))
                           .ConfigureServices(s => s.TryAddSingleton(usernameParser))
                           .ConfigureServices(s => s.TryAddSingleton(clientCredentialsFactory))
                           .ConfigureServices(s => s.TryAddSingleton(systemComponentIdProvider))

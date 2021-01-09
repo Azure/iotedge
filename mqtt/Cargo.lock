@@ -225,6 +225,7 @@ dependencies = [
  "libc",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "winapi 0.3.9",
 ]
@@ -290,22 +291,6 @@ name = "const_fn"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce90df4c658c62f12d78f7508cf92f9173e5184a539c10bfe54a3107b3ffd0f2"
-
-[[package]]
-name = "core-foundation"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57d24c7a13c43e870e37c1556b74555437870a04514f7685f5b354e090567171"
-dependencies = [
- "core-foundation-sys",
- "libc",
-]
-
-[[package]]
-name = "core-foundation-sys"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3a71ab494c0b5b860bdc8407ae08978052417070c2ced38573a9157ad75b8ac"
 
 [[package]]
 name = "crc32fast"
@@ -943,7 +928,6 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
- "owning_ref",
  "scopeguard",
 ]
 
@@ -1107,7 +1091,6 @@ dependencies = [
  "bincode",
  "bson",
  "bytes",
- "chrono",
  "config",
  "edgelet-client",
  "futures-util",
@@ -1118,10 +1101,9 @@ dependencies = [
  "mockall",
  "mqtt-broker",
  "mqtt-broker-tests-util",
+ "mqtt-util",
  "mqtt3",
- "openssl",
  "parking_lot 0.11.0",
- "percent-encoding 1.0.1",
  "regex",
  "serde",
  "serde_bytes",
@@ -1132,8 +1114,6 @@ dependencies = [
  "test-case",
  "thiserror",
  "tokio",
- "tokio-openssl",
- "tokio-tls",
  "tracing",
  "tracing-futures",
  "url",
@@ -1144,6 +1124,7 @@ name = "mqtt-broker"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "atty",
  "bincode",
  "bytes",
  "chrono",
@@ -1188,6 +1169,7 @@ dependencies = [
  "futures-util",
  "lazy_static",
  "mqtt-broker",
+ "mqtt-util",
  "mqtt3",
  "tokio",
  "tokio-io-timeout",
@@ -1254,9 +1236,29 @@ dependencies = [
  "mqtt-broker",
  "mqtt3",
  "policy",
+ "proptest",
  "test-case",
  "thiserror",
  "tracing",
+]
+
+[[package]]
+name = "mqtt-util"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "edgelet-client",
+ "futures-util",
+ "mqtt3",
+ "openssl",
+ "percent-encoding 1.0.1",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tokio-openssl",
+ "tracing",
+ "url",
 ]
 
 [[package]]
@@ -1281,6 +1283,8 @@ name = "mqttd"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
+ "cfg-if 1.0.0",
  "chrono",
  "clap",
  "edgelet-client",
@@ -1296,24 +1300,6 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "native-tls"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b0d88c06fe90d5ee94048ba40409ef1d9315d86f6f38c2efdaad4fb50c58b2d"
-dependencies = [
- "lazy_static",
- "libc",
- "log",
- "openssl",
- "openssl-probe",
- "openssl-sys",
- "schannel",
- "security-framework",
- "security-framework-sys",
- "tempfile",
 ]
 
 [[package]]
@@ -1400,12 +1386,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "openssl-probe"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77af24da69f9d9341038eba93a073b1fdaaa1b788221b00a69bce9e762cb32de"
-
-[[package]]
 name = "openssl-sys"
 version = "0.9.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1429,17 +1409,6 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
-dependencies = [
- "lock_api 0.3.4",
- "parking_lot_core 0.6.2",
- "rustc_version",
-]
-
-[[package]]
-name = "parking_lot"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3a704eb390aafdc107b0e392f56a82b668e3a71366993b5340f5833fd62505e"
@@ -1457,21 +1426,6 @@ dependencies = [
  "instant",
  "lock_api 0.4.1",
  "parking_lot_core 0.8.0",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b876b1b9e7ac6e1a74a6da34d25c42e17e8862aa409cbbbdcfc8d86c6f3bc62b"
-dependencies = [
- "cfg-if 0.1.10",
- "cloudabi 0.0.3",
- "libc",
- "redox_syscall",
- "rustc_version",
- "smallvec 0.6.13",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1569,8 +1523,10 @@ dependencies = [
 name = "policy"
 version = "0.1.0"
 dependencies = [
+ "itertools",
  "lazy_static",
  "matches",
+ "proptest",
  "regex",
  "serde",
  "serde_json",
@@ -1953,43 +1909,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "schannel"
-version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f05ba609c234e60bee0d547fe94a4c7e9da733d1c962cf6e59efa4cd9c8bc75"
-dependencies = [
- "lazy_static",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
-
-[[package]]
-name = "security-framework"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64808902d7d99f78eaddd2b4e2509713babc3dc3c85ad6f4c447680f3c01e535"
-dependencies = [
- "bitflags",
- "core-foundation",
- "core-foundation-sys",
- "libc",
- "security-framework-sys",
-]
-
-[[package]]
-name = "security-framework-sys"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17bf11d99252f512695eb468de5516e5cf75455521e69dfe343f3b74e4748405"
-dependencies = [
- "core-foundation-sys",
- "libc",
-]
 
 [[package]]
 name = "semver"
@@ -2353,16 +2276,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-tls"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a70f4fcd7b3b24fb194f837560168208f669ca8cb70d0c4b862944452396343"
-dependencies = [
- "native-tls",
- "tokio",
-]
-
-[[package]]
 name = "tokio-util"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2461,7 +2374,6 @@ dependencies = [
  "lazy_static",
  "matchers",
  "owning_ref",
- "parking_lot 0.9.0",
  "regex",
  "smallvec 0.6.13",
  "tracing-core",

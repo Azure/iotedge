@@ -60,6 +60,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.headOffset;
         }
 
+        public long GetTailOffset(CancellationToken _)
+        {
+            return this.tailOffset;
+        }
+
         public async Task<long> Append(T item, CancellationToken cancellationToken)
         {
             using (await this.tailLockObject.LockAsync(cancellationToken))

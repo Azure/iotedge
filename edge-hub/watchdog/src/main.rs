@@ -30,11 +30,11 @@ fn main() -> Result<()> {
     init_logging();
     info!("Starting Watchdog");
 
-    let experimental_features_enabled = std::env::var("experimentalFeatures:enabled")
+    let experimental_features_enabled = std::env::var("experimentalFeatures__enabled")
         .unwrap_or_else(|_| "false".to_string())
         == "true";
 
-    let mqtt_broker_enabled = std::env::var("experimentalFeatures:mqttBrokerEnabled")
+    let mqtt_broker_enabled = std::env::var("experimentalFeatures__mqttBrokerEnabled")
         .unwrap_or_else(|_| "false".to_string())
         == "true";
 
