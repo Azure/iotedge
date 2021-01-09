@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,
-                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                Dns.GetHostName().ToLower()
                 token,
                 Option.None<string>());
 
@@ -286,9 +286,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    this.ca,
+                    CertificateAuthority.GetQuickstart(),
                     this.iotHub,
-                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                    Dns.GetHostName().ToLower()
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;
