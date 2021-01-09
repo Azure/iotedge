@@ -20,10 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string iothubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iothubConnectionString);
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
@@ -59,6 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     await receiver.Disconnect();
                 }
             }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -69,15 +71,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string iothubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iothubConnectionString);
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender3", transportSettings);
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver3", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
 
                 await receiver.SetupReceiveMessageHandler();
 
@@ -108,6 +109,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     await receiver.Disconnect();
                 }
             }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -118,10 +122,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
@@ -162,6 +165,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     await receiver.Disconnect();
                 }
             }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -170,14 +176,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             TestModule sender = null;
 
-            string iothubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iothubConnectionString);
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender4", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
 
                 Exception ex = null;
                 try
@@ -200,6 +205,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     await rm.CloseAsync();
                 }
             }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -210,18 +218,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestModule sender = null;
             TestModule receiver = null;
 
-            string iothubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iothubConnectionString);
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
 
             try
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender5", transportSettings);
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
                 int sentMessagesCount = await sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
                 Assert.Equal(messagesCount, sentMessagesCount);
 
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver5", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
                 await receiver.SetupReceiveMessageHandler();
 
                 await Task.Delay(TimeSpan.FromSeconds(60));
@@ -246,6 +253,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     await receiver.Disconnect();
                 }
             }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
         }
     }
 }

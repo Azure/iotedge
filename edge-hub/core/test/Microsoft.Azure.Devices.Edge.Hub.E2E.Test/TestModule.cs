@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.disposed = true;
         }
 
-        public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings, int retryCount = 10)
+        public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings, int retryCount = int.MaxValue)
         {
             ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
             IRetryPolicy defaultRetryStrategy = new ExponentialBackoff(
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return new TestModule(moduleClient);
         }
 
-        public static async Task<TestModule> CreateAndConnect(RegistryManager rm, string hostName, string deviceId, string moduleId, ITransportSettings[] transportSettings, int retryCount = 10)
+        public static async Task<TestModule> CreateAndConnect(RegistryManager rm, string hostName, string deviceId, string moduleId, ITransportSettings[] transportSettings, int retryCount = int.MaxValue)
         {
             string connStr = await RegistryManagerHelper.GetOrCreateModule(rm, hostName, deviceId, moduleId);
             return await CreateAndConnect(connStr, transportSettings, retryCount);
