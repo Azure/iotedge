@@ -235,10 +235,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             bool match = referenceValues.All(
                 kvp =>
                 {
-                    Log.Information("Comparing: " + kvp.Key.ToString());
-                    Log.Information("ref: " + kvp.Value.ToString());
-                    Log.Information("result: " + kvp.Value.ToString() + " " + comparandValues[kvp.Key].ToString());
-
                     return comparandValues.ContainsKey(kvp.Key) &&
                         kvp.Value.Equals(comparandValues[kvp.Key]);
                 });
