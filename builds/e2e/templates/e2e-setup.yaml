@@ -111,7 +111,6 @@ steps:
     echo "Edge agent image: $imagePrefix-agent:$imageTag"    
 
     $context = @{
-      hostname= '$(deviceName)'
       nestededge = "$nestededge"
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -143,6 +142,7 @@ steps:
 
     if ('$(nestededge)' -eq 'true')
     {
+      $context['hostname'] = '$(deviceName)'
       $context['parentHostname'] = '$(parentName)'
       $context['parentDeviceId'] = '$(parentDeviceId)'
     }
