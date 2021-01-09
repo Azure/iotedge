@@ -98,11 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PriorityQueueTimeToLive()
         {
-            // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM32
-            if (OsPlatform.IsWindows() || !OsPlatform.Is64Bit())
-            {
-                Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm32 until we can fix it.");
-            }
+            // TODO: Fix PriorityQueue TTL E2E tests
+            Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm32 until we can fix it.");
 
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
