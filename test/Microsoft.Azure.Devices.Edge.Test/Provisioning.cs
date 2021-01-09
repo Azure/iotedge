@@ -38,11 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("CentOsSafe")]
         public async Task DpsSymmetricKey()
         {
-            if (Context.Current.NestedEdge)
-            {
-                Assert.Ignore("DPS not enabled for nested edge yet");
-            }
-
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
             string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key"));
             string registrationId = DeviceId.Current.Generate();
@@ -84,11 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task DpsX509()
         {
-            if (Context.Current.NestedEdge)
-            {
-                Assert.Ignore("DPS not enabled for nested edge yet");
-            }
-
             (string, string, string) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
             string caCertScriptPath =
