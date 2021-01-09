@@ -111,9 +111,7 @@ steps:
     echo "Edge agent image: $imagePrefix-agent:$imageTag"    
 
     $context = @{
-      parentHostname= '$(parentName)'
       hostname= '$(deviceName)'
-      parentDeviceId = '$(parentDeviceId)'
       nestededge = "$nestededge"
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
@@ -141,6 +139,12 @@ steps:
       rootCaCertificatePath = "$rootCaCertificatePath";
       rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+    }
+
+    if ('$(nestededge)' -eq 'true')
+    {
+      $context['parentHostname'] = '$(parentName)'
+      $context['parentDeviceId'] = '$(parentDeviceId)'
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
