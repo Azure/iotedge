@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistries(this.registries);
             builder.AddEdgeAgent(this.agentImage.OrDefault())
-                .WithEnvironment()
+                .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
             builder.AddEdgeHub(this.hubImage.OrDefault(), this.optimizeForPerformance)
                 .WithEnvironment(hubEnvVar)
@@ -65,7 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
             await edgeConfiguration.DeployAsync(this.iotHub, token);
-
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
