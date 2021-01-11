@@ -5,9 +5,9 @@ function clean_up() {
 
     stop_iotedge_service || true
 
-    echo 'Remove IoT Edge and config file'
-    rm -rf /var/lib/aziot/edged/
-    rm -rf /etc/aziot/edged/config.yaml
+    echo 'Remove IoT Edge and config files'
+    rm -rf /var/lib/aziot/
+    rm -rf /etc/aziot/
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -28,15 +28,6 @@ function create_iotedge_service_config {
 Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf"
 }
 
-function get_connectivity_deployment_artifact_file() {
-    local testDir=$1
-
-    local path
-    path="$testDir/artifacts/core-linux/e2e_deployment_files/connectivity_deployment.template.json"
-
-    echo "$path"
-}
-
 function get_image_architecture_label() {
     local arch
     arch="$(uname -m)"
@@ -49,49 +40,19 @@ function get_image_architecture_label() {
     esac
 }
 
-function get_iotedged_artifact_folder() {
+function get_aziot_edge_artifact_file() {
     local testDir=$1
+    ls "$testDir/artifacts/" | grep aziot-edge_.*.deb
+}
 
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu18.04-amd64"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu18.04-aarch64"
-    else
-        path="$testDir/artifacts/iotedged-debian9-arm32v7"
-    fi
-
-    echo "$path"
+function get_aziot_is_artifact_file() {
+    local testDir=$1
+    ls "$testDir/artifacts/" | grep aziot-identity-service_.*.deb
 }
 
 function get_iotedge_quickstart_artifact_file() {
     local testDir=$1
-
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/core-linux/IotEdgeQuickstart.linux-x64.tar.gz"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$testDir/artifacts/core-linux/IotEdgeQuickstart.linux-arm64.tar.gz"
-    else
-        path="$testDir/artifacts/core-linux/IotEdgeQuickstart.linux-arm.tar.gz"
-    fi
-
-    echo "$path"
-}
-
-function get_leafdevice_artifact_file() {
-    local testDir=$1
-
-    local path
-    if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/core-linux/LeafDevice.linux-x64.tar.gz"
-    elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$testDir/artifacts/core-linux/LeafDevice.linux-arm64.tar.gz"
-    else
-        path="$testDir/artifacts/core-linux/LeafDevice.linux-arm.tar.gz"
-    fi
-
-    echo "$path"
+    ls "$testDir/artifacts/core-linux" | grep IotEdgeQuickstart.linux.*.tar.gz
 }
 
 function get_hash() {

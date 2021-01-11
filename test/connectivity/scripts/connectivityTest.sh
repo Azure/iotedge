@@ -478,26 +478,21 @@ function validate_test_parameters() {
     print_highlighted_message "Validate test parameters"
 
     local required_files=()
-    local required_folders=()
-
     required_files+=("$iotedge_quickstart_artifact_file")
-    required_folders+=("$iotedged_artifact_folder")
-
-    required_files+=($connectivity_deployment_artifact_file)
+    required_files+=("$aziot_edge_artifact_file")
+    required_files+=("$aziot_is_artifact_file")
+    required_files+=("$connectivity_deployment_artifact_file")
 
     local error=0
     for f in "${required_files[@]}"
     do
-        if [ ! -f "$f" ]; then
-            print_error "Required file, $f doesn't exist."
+        local files = echo "$f" | wc -w
+        if [ "$files" > 1 ]; then
+            print_error "More than one artifact found."
             ((error++))
         fi
-    done
-
-    for d in "${required_folders[@]}"
-    do
-        if [ ! -d "$d" ]; then
-            print_error "Required directory, $d doesn't exist."
+        if [ ! -f "$f" ]; then
+            print_error "Required file, $f doesn't exist."
             ((error++))
         fi
     done
@@ -553,7 +548,7 @@ function usage() {
 }
 
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-if [ $is_build_canceled -eq 1 ]; then
+if [ "$is_build_canceled" -eq 1 ]; then
     print_highlighted_message "build is canceled."
     exit 3
 fi
@@ -586,7 +581,8 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     log_upload_enabled=false
 fi
 
-iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
+aziot_edge_artifact_file="$(get_aziot_edge_artifact_file $E2E_TEST_DIR)"
+aziot_is_artifact_file="$(get_aziot_is_artifact_file $E2E_TEST_DIR)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
 connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
