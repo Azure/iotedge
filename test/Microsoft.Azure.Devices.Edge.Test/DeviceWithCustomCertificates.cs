@@ -23,11 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            if (Context.Current.NestedEdge && (testAuth == TestAuthenticationType.SasOutOfScope))
-            {
-                Assert.Ignore("Out of scope test don't work while nested");
-            }
-
             await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
@@ -45,9 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     testAuth.ToAuthenticationType(),
                     parentId,
                     testAuth.UseSecondaryCertificate(),
-                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     this.ca,
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
             }

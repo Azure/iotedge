@@ -40,6 +40,9 @@ steps:
 
     Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
     Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+    Write-Output '>> Package Build ID=$(packageBuildId)'
+    Write-Output '>> Image Build ID=$(imageBuildId)'
   displayName: Override artifacts with user-supplied args
 
 - task: DownloadBuildArtifacts@0
@@ -104,15 +107,13 @@ steps:
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
-    $currentPath = pwd;
-
     if ('$(nestededge)' -eq 'true')
     {
       $nestededge = "true"
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
-      $caCertScriptPath = "$currentPath/certs"
-      $rootCaCertificatePath = "$currentPath/certs/certs/azure-iot-test-only.root.ca.cert.pem"
-      $rootCaPrivateKeyPath = "$currentPath/certs/private/azure-iot-test-only.root.ca.key.pem"
+      $caCertScriptPath = Convert-Path "/certs"
+      $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+      $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
     }else
     {
       $nestededge = "false"

@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
+    using Serilog;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {

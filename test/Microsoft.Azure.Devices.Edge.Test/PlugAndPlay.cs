@@ -35,11 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [TestCase(Protocol.Amqp, true)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol, bool brokerOn)
         {
-            if (Context.Current.NestedEdge && brokerOn)
-            {
-                Assert.Ignore("MQTT Bridge does not support Plug and Play yet");
-            }
-
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -88,11 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
-            if (Context.Current.NestedEdge && brokerOn)
-            {
-                Assert.Ignore("MQTT Bridge does not support Plug and Play yet");
-            }
-
             CancellationToken token = this.TestToken;
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(

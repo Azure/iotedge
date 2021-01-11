@@ -1,40 +1,62 @@
-steps:       
-  - task: DownloadBuildArtifacts@0
-    displayName: 'Download Edgelet Artifacts'
-    inputs:
-      buildType: specific
-      project: $(vsts.project)
-      pipeline: $(edgelet.package.build)
-      branchName: $(edgelet.package.branchName)
-      buildVersionToDownload: latestFromBranch
-      downloadPath: '$(Build.StagingDirectory)'
-      artifactName: $(edgelet.artifact.name)
+steps:  
+  - pwsh: |
+      $imageBuildId = $(resources.pipeline.images.runID)
+      $packageBuildId = $(resources.pipeline.packages.runID)
+
+      if ('$(az.pipeline.images.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+        $imageBuildId = '$(az.pipeline.images.buildId)'
+      }
+
+      if ('$(az.pipeline.packages.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+        $packageBuildId = '$(az.pipeline.packages.buildId)'
+      }
+
+      Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+      Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+      Write-Output '>> Package Build ID=$(packageBuildId)'
+      Write-Output '>> Image Build ID=$(imageBuildId)'
+    displayName: Override artifacts with user-supplied args       
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Images Artifacts'
     inputs:
       buildType: specific
-      project: $(vsts.project)
-      pipeline: $(images.build)
-      branchName: $(images.branchName)
-      buildVersionToDownload: latestFromBranch
+      project: $(resources.pipeline.images.projectID)
+      pipeline: $(resources.pipeline.images.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(imageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
-      artifactName: $(images.artifact.name.linux)
+      artifactName: $(az.pipeline.images.artifacts)
       itemPattern: |
-        $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-        $(images.artifact.name.linux)/scripts/connectivityTest.sh
-        $(images.artifact.name.linux)/scripts/testHelper.sh
-        $(images.artifact.name.linux)/artifactInfo.txt  
+        $(az.pipeline.images.artifacts)/e2e_deployment_files/$(deploymentFileName)
+        $(az.pipeline.images.artifacts)/scripts/connectivityTest.sh
+        $(az.pipeline.images.artifacts)/scripts/testHelper.sh
+        $(az.pipeline.images.artifacts)/artifactInfo.txt 
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.packages.projectID)
+      pipeline: $(resources.pipeline.packages.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(artifactName)                    
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)/$(edgelet.artifact.name)"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(edgelet.artifact.name)"
+      SourceFolder: "$(Build.StagingDirectory)/$(artifactName)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(artifactName)"
       CleanTargetFolder: true
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
-      SourceFolder: "$(Build.StagingDirectory)/$(images.artifact.name.linux)"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)"
+      SourceFolder: "$(Build.StagingDirectory)/$(az.pipeline.images.artifacts)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/$(az.pipeline.images.artifacts)"
       CleanTargetFolder: true 
   - task: Bash@3
     displayName: 'Deployment iotedge on agent'
@@ -46,7 +68,7 @@ steps:
       #@TODO remove hard coding of level and parent
       script: |
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-        . $(Agent.HomeDirectory)/../artifacts/$(images.artifact.name.linux)/artifactInfo.txt
+        . $(Agent.HomeDirectory)/../artifacts/$(az.pipeline.images.artifacts)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
 
@@ -54,7 +76,7 @@ steps:
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "ct$(agent.group)" \
           -artifactImageBuildNumber "$BuildNumber" \
-          -containerRegistry "$(container.registry)" \
+          -containerRegistry "$(cr.address)" \
           -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
           -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
           -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
