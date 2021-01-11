@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
@@ -14,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
-        protected virtual async Task SasProvisionEdgeAsync()
+        protected virtual async Task SasProvisionEdgeAsync(bool withCerts = false)
         {
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
@@ -23,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                 EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                     DeviceId.Current.Generate(),
+                    Context.Current.ParentDeviceId,
                     this.iotHub,
                     AuthenticationType.Sas,
                     null,

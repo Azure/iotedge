@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token);
+            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -33,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                 this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>());
 

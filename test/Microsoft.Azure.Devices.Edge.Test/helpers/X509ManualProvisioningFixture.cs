@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
+                            Context.Current.ParentDeviceId,
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,

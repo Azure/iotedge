@@ -66,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -97,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;
@@ -135,7 +137,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
             // idempotent and cannot be retried reliably.
@@ -225,7 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -254,6 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                 this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>());
 
@@ -280,6 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;

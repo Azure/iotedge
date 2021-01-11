@@ -1,0 +1,150 @@
+#TODO:
+# 1. Turn {SetupVM_job135, SetupVM_job13} into a template and use it in a yaml as a known job name
+# 2. In a task, before the test agent run template from (1), have the pipeline appends "_$(Build.BuildId)" to "nested-edge" userCapabilities.
+#    This will prevent the test agent from being picked up by other run instance of the pipeline
+#    This can be done using https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/agents/update?view=azure-devops-rest-6.0 [userCapabilities] 
+#     2.1. Issue - List (See agentsCurl.json)  -- poolId=123
+#     2.2. Filter the response (1) json to find the corresponding agent name & get that agentId 
+#     2.3. Use PUT to update the capabilities 
+# 3. Run test on whatever machine you want
+# 4. Once the test is done, reverse the capability from (2) by removing the "_$(Build.BuildId)" from "nested-edge" userCapabilities.
+# Note: For LongHaul, we can even have a pipeline selection to execute the Rest API to undo the capability suffix which enables the damn thing.
+
+stages:
+- stage: SetupVM
+  jobs:
+  - job:  SetupVM_level5
+    displayName: SettingUp level 5
+    condition: ne(variables['agent.group'], '')
+    timeoutInMinutes: 180
+    variables:
+      images.artifact.name.linux: 'core-linux'
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      vsts.project: $(System.TeamProjectId)
+      level: '5'
+      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
+      parentName: ''
+      parentDeviceId: ''
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true
+        - status -equals unlocked
+    steps:
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/lock-test-agent.yaml
+      - template: templates/nested-get-root-ca.yaml       
+      - template: templates/nested-create-identity.yaml   
+      - template: templates/nested-agent-deploy.yaml
+
+  - job:  SetupVM_level4
+    dependsOn: SetupVM_level5
+    displayName: SettingUp level 4
+    condition: ne(variables['agent.group'], '')
+    timeoutInMinutes: 180
+    variables:
+      images.artifact.name.linux: 'core-linux'
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      vsts.project: $(System.TeamProjectId)
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
+      level: '4'
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
+        - status -equals unlocked    
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/lock-test-agent.yaml
+      - template: templates/nested-get-root-ca.yaml         
+      - template: templates/nested-create-identity.yaml          
+      - template: templates/nested-agent-deploy.yaml
+  - job:  Clean_up     
+    dependsOn: SetupVM_level4
+    displayName: Clean up identities and unlock agents
+    variables:    
+      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]     
+      deviceLvl4Name: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
+        - status -equals unlocked_$(Build.BuildId)  
+    strategy:
+      parallel: 2          
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/unlock-test-agent.yaml      
+          
+#  - job:  Running_tests     
+#    dependsOn: SetupVM_level4  
+#    displayName: Running tests
+#    condition: ne(variables['agent.group'], '')
+#    timeoutInMinutes: 1
+#    pool:
+#      name: $(pool.name)
+#      demands:
+#        - agent-group -equals $(agent.group)
+#        - Agent.OS -equals Linux
+#        - Agent.OSArchitecture -equals X64
+#        - run-idle -equals true 
+#        - status -equals unlocked    
+#    steps:
+#      - template: templates/nested-agent-lock-and-deploy.yaml   
+
+#TODO:
+# 1. Turn {SetupVM_job135, SetupVM_job13} into a template and use it in a yaml as a known job name
+# 2. In a task, before the test agent run template from (1), have the pipeline appends "_$(Build.BuildId)" to "nested-edge" userCapabilities.
+#    This will prevent the test agent from being picked up by other run instance of the pipeline
+#    This can be done using https://docs.microsoft.com/en-us/rest/api/azure/devops/distributedtask/agents/update?view=azure-devops-rest-6.0 [userCapabilities]
+# 3. Run test on whatever machine you want
+# 4. Once the test is done, reverse the capability from (2) by removing the "_$(Build.BuildId)" from "nested-edge" userCapabilities.
+# Note: For LongHaul, we can even have a pipeline selection to execute the Rest API to undo the capability suffix which enables the damn thing.
+#trigger: none
+#pr: none
+#
+#variables:
+#  images.artifact.name.linux: 'core-linux'
+#  vsts.project: $(System.TeamProjectId)
+#
+#stages:
+#- stage: SetupVM
+#  jobs:
+#    - job: SetupVM_job135
+#      displayName: SettingUp
+#      condition: ne(variables['agent.group'], '')
+#      timeoutInMinutes: 180
+#      variables:
+#        testrun.vmTier: L3_5
+#        testrun.waitTimeMin: 1
+#        edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'  
+#      pool:
+#        name: $(pool.name)
+#        demands:
+#          - agent-group -equals $(agent.group)
+#          - Agent.OS -equals Linux
+#          - Agent.OSArchitecture -equals X64
+#          - run-idle -equals true
+#          - nested-edge -equals $(testrun.vmTier)
+#      steps:
+#        - script: echo "JobName:$(Agent.JobName)"
+#          displayName: jobName
+#
+#        - bash: echo "##vso[task.setvariable variable=$(testrun.vmTier).readyAgent;isOutput=true]$(Agent.Name)"
+#          name: var1
+#        - template: templates/nested_connectivity-deploy.yaml
+
+

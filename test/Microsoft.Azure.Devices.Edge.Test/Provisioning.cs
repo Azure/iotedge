@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
                 registrationId,
+                Context.Current.ParentDeviceId,
                 this.iotHub,
                 token,
                 takeOwnership: true);
@@ -124,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
                 registrationId,
+                Context.Current.ParentDeviceId,
                 this.iotHub,
                 token,
                 takeOwnership: true);

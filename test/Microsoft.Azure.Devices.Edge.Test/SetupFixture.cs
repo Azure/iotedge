@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
 
-                            string hostname = Dns.GetHostName();
+                            string hostname = Context.Current.Hostname.GetOrElse(Dns.GetHostName());
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
@@ -84,6 +85,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
+
+                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
+                                config.SetEdgeAgentImage(edgeAgent);
                             });
 
                             Context.Current.Proxy.ForEach(proxy =>
