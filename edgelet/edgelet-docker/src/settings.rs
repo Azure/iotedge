@@ -50,11 +50,11 @@ impl MobyRuntime {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct ContentTrust {
-    pub ca_certs: Option<BTreeMap<String, PathBuf>>,
+    pub ca_certs: Option<BTreeMap<String, String>>,
 }
 
 impl ContentTrust {
-    pub fn ca_certs(&self) -> Option<&BTreeMap<String, PathBuf>> {
+    pub fn ca_certs(&self) -> Option<&BTreeMap<String, String>> {
         self.ca_certs.as_ref()
     }
 }

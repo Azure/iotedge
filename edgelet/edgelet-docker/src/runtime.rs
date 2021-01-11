@@ -15,6 +15,7 @@ use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use url::Url;
 
+use cert_client::client::CertificateClient;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
@@ -248,20 +249,42 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
+        // let cert_client_notary = 
         let created = init_client(settings.moby_runtime().uri())
             .and_then(move |client| {
                 let home_dir = settings.homedir();
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let mut notary_registries = BTreeMap::new();
+                let certd_url = settings.endpoints().aziot_certd_url().clone();
+                let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(
+                    aziot_cert_common_http::ApiVersion::V2020_09_01,
+                    &certd_url,
+                )));
+                
                 if let Some(content_trust_map) = settings
                     .moby_runtime()
                     .content_trust()
                     .and_then(ContentTrust::ca_certs)
                 {
                     info!("Notary Content Trust is enabled");
-                    for (registry_server_hostname, path) in content_trust_map {
+                    
+                    // For each value in content trust map, get the cert and create a temp cert and get that path 
+                    // create a new map with hostname and the created path to complete smooth move.
+                    for (registry_server_hostname, cert_id) in content_trust_map {
+                        let cert_pemstring = cert_client.get_cert(cert_id);
+                                                // .lock()
+                                                // .expect("cert client lock failed")
+                                                // .get_cert()
+                                                // .map_err(|_| Error::from(ErrorKind::GetIdentity))
+                                                // .and_then(|cert| -> Result<_, Error> {
+                                                //     let cert = str::from_utf8(cert.as_ref())
+                                                //         .context(ErrorKind::EncryptionOperation(
+                                                //             EncryptionOperation::GetTrustBundle,
+                                                //         ))?
+                                                //         .to_string();
+                                                //     }
                         let config_path =
-                            notary::notary_init(home_dir, registry_server_hostname, path)
+                            notary::notary_init(home_dir, registry_server_hostname, cert_pemstring)
                                 .context(ErrorKind::Initialization)?;
                         notary_registries.insert(registry_server_hostname.clone(), config_path);
                     }
