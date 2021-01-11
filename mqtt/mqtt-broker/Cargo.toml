@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 bincode = "1.2"
-bytes = "0.5"
+bytes = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 criterion = { version = "0.3", optional = true }
 fail = "0.3"
@@ -24,10 +24,10 @@ regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp", "dns", "io-util"] }
+tokio = { version = "1", features = ["sync", "net", "io-util"] }
 tokio-io-timeout = "0.4"
 tokio-openssl = "0.4"
-tokio-util = { version = "0.2", features = ["codec"] }
+tokio-util = { version = "0.6", features = ["codec"] }
 tracing = "0.1"
 tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
@@ -36,14 +36,14 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 
 [dev-dependencies]
 atty = "0.2"
-bytes = "0.5"
+bytes = "1.0"
 fail = { version = "0.3", features = ["failpoints"] }
 itertools = "0.9"
 matches = "0.1"
 proptest = "0.9"
 tempfile = "3"
 test-case = "1.0"
-tokio = { version = "0.2", features = ["dns", "macros", "io-util"] }
+tokio = { version = "1", features = ["net", "macros", "io-util"] }
 tracing-subscriber = "0.1"
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
@@ -60,15 +60,15 @@ required-features = ["proptest"]
 [[bench]]
 name = "persist_broker_state"
 harness = false
-required-features = ["criterion", "tokio/rt-threaded"]
+required-features = ["criterion", "tokio/rt-multi-thread"]
 
 [[bench]]
 name = "dispatch_messages"
 harness = false
-required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
+required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-multi-thread"]
 
 [features]
-benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
+benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-multi-thread"]
 
 # Internal (PRIVATE!) features used to aid testing.
 # Don't rely on these whatsoever. They may disappear at anytime.
