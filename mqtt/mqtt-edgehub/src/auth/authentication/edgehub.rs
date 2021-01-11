@@ -1,11 +1,10 @@
 use std::{
     convert::{TryFrom, TryInto},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use async_trait::async_trait;
 use backoff::{future::FutureOperation as _, Error, ExponentialBackoff};
-use bytes::buf::BufExt;
 use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
@@ -74,26 +73,18 @@ impl Authenticator for EdgeHubAuthenticator {
         &self,
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        let authenticate = || async {
+        // try to authenticate a client. it reties with 500ms interval until
+        // it gives up after 1min of trying.
+        let when_stop_attempts = Instant::now() + Duration::from_secs(60);
+        while Instant::now() <= when_stop_attempts {
             info!("authenticate client");
-            self.authenticate(&context).await.map_err(|e| match e {
-                error @ AuthenticateError::SendRequest(_) => Error::Transient(error),
-                error @ AuthenticateError::UnsuccessfullResponse(_) => Error::Transient(error),
-                error => Error::Permanent(error),
-            })
-        };
-
-        // try to authenticate a client and give up after 1min of trying.
-        // it starts with 500ms interval and exponentially increases timeout.
-        // it will make 10 attempts during 1min interval.
-        let auth_id = authenticate
-            .retry(ExponentialBackoff {
-                max_elapsed_time: Some(Duration::from_secs(60)),
-                ..ExponentialBackoff::default()
-            })
-            .await?;
-
-        Ok(auth_id)
+            match self.authenticate(&context).await {
+                Err(e) if e.can_retry() => {
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                }
+                result => return result,
+            }
+        }
     }
 }
 
@@ -174,6 +165,15 @@ pub enum AuthenticateError {
 
     #[error("not supported response body.")]
     InvalidResponse,
+}
+
+impl AuthenticateError {
+    pub fn can_retry(&self) {
+        match self {
+            AuthenticateError::SendRequest(_) | AuthenticateError::UnsuccessfullResponse(_) => true,
+            _ => false,
+        }
+    }
 }
 
 #[cfg(test)]
