@@ -11,10 +11,10 @@ futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 lazy_static = "1.4"
 tokio = { version = "1", features = ["sync", "net"] }
-tokio-io-timeout = "0.4"
+tokio-io-timeout = "1.1"
 tokio-util = { version = "0.6", features = ["codec"] }
 tracing = "0.1"
-tracing-subscriber = "0.1"
+tracing-subscriber = "0.2"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }

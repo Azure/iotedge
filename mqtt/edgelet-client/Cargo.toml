@@ -27,6 +27,6 @@ hyperlocal = "0.8"
 [dev-dependencies]
 lazy_static = "1.4"
 matches = "0.1"
-mockito = "0.25"
+mockito = "0.28"
 test-case = "1.0"
 tokio = { version = "1", features = ["macros"] }

@@ -17,5 +17,5 @@ policy = { path = "../policy" }
 [dev-dependencies]
 assert_matches = "1.3"
 bytes = "1.0"
-proptest = "0.9"
+proptest = "0.10"
 test-case = "1.0"

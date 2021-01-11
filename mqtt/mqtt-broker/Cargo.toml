@@ -10,23 +10,23 @@ bincode = "1.2"
 bytes = "1.0"
 chrono = { version = "0.4", features = ["serde"] }
 criterion = { version = "0.3", optional = true }
-fail = "0.3"
+fail = "0.4"
 flate2 = "1.0"
 futures-util = { version = "0.3", features = ["sink"] }
 humantime = "2.0"
 humantime-serde = "1.0"
 lazy_static = "1.4"
 openssl = "0.10"
-pin-project = "0.4"
-proptest = { version = "0.9", optional = true }
-rand = { version = "0.7", optional = true }
+pin-project = "1.0"
+proptest = { version = "0.10", optional = true }
+rand = { version = "0.8", optional = true }
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "1", features = ["sync", "net", "io-util"] }
-tokio-io-timeout = "0.4"
-tokio-openssl = "0.4"
+tokio-io-timeout = "1.1"
+tokio-openssl = "0.6"
 tokio-util = { version = "0.6", features = ["codec"] }
 tracing = "0.1"
 tracing-futures = "0.2"
@@ -37,14 +37,14 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 [dev-dependencies]
 atty = "0.2"
 bytes = "1.0"
-fail = { version = "0.3", features = ["failpoints"] }
-itertools = "0.9"
+fail = { version = "0.4", features = ["failpoints"] }
+itertools = "0.10"
 matches = "0.1"
-proptest = "0.9"
+proptest = "0.10"
 tempfile = "3"
 test-case = "1.0"
 tokio = { version = "1", features = ["net", "macros", "io-util"] }
-tracing-subscriber = "0.1"
+tracing-subscriber = "0.2"
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 

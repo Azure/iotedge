@@ -17,7 +17,7 @@ tokio = { version = "1", features = ["time"] }
 tokio-util = { version = "0.6", features = ["codec"] }
 
 [dev-dependencies]
-env_logger = "0.7"
+env_logger = "0.8"
 structopt = "0.3"
 tokio = { version = "1", features = ["rt", "signal", "net"] }
 
