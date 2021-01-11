@@ -3,7 +3,7 @@ This file documents how to set up a proxy environment in Azure for our E2E tests
 The environment includes:
 - A proxy server VM - full network connectivity, runs an HTTP proxy server (squid).
 - One or more proxy client VMs (aka "runners") - no internet-bound network connectivity except through the proxy server.
-- A Key Vault that contains the private keys used to SSH into the VMs.
+- A Key Vault that contains the private keys used to SSH into the Linux VMs, and passwords to RDP into the Windows VMs.
 
 After installing the Azure CLI, enter the following commands to deploy and configure the VMs:
 
@@ -23,10 +23,16 @@ location='<>'
 resource_group_name='<>'
 
 # Prefix used when creating Azure resources. If not given, defaults to 'e2e-<13 char hash>-'.
+# **NOTE** Windows VM names have a 15-character limit and this script creates the VM name by
+#   appending 'w<n>' to the resource_prefix, where <n> is a number between 1 and
+#   windows_runner_count (see below). If you're adding a Windows runner, you must define a
+#   resource_prefix that takes these constraints into account (e.g. no more than 13 characters
+#   for 1-9 Windows runners).
 resource_prefix='<>'
 
-# The number of runner VMs to create
-runner_count=2
+# The number of Linux and Windows runner VMs to create
+linux_runner_count=1
+windows_runner_count=1
 
 # AAD Object ID for a user or group who will be given access to the secrets in the key vault
 key_vault_access_objectid='<>'
@@ -45,18 +51,20 @@ az group create -l "$location" -n "$resource_group_name"
 az deployment group create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters "$(
     jq -n \
         --arg resource_prefix $resource_prefix \
-        --argjson runner_count $runner_count \
+        --argjson linux_runner_count $linux_runner_count \
+        --argjson windows_runner_count $windows_runner_count \
         --arg key_vault_access_objectid "$key_vault_access_objectid" \
         '{
             "resource_prefix": { "value": $resource_prefix },
-            "runner_count": { "value": $runner_count },
+            "linux_runner_count": { "value": $linux_runner_count },
+            "windows_runner_count": { "value": $windows_runner_count },
             "key_vault_access_objectid": { "value": $key_vault_access_objectid },
             "create_runner_public_ip": { "value": true }
         }'
 )"
 ```
 
-Once the deployment has completed, SSH into each runner VM to install and configure the Azure Pipelines agent. To SSH into the runner VMs, you must first download their private keys from Key Vault. Find the name of the key vault from your deployment, then list the secret URLs for the private keys:
+Once the deployment has completed, SSH/RDP into each runner VM to install and configure the Azure Pipelines agent. To access the runner VMs, you must first download their private keys/passwords from Key Vault. Find the name of the key vault from your deployment, then list the secret URLs for the private keys/passwprds:
 
 ```sh
 az keyvault secret list --vault-name '<>' -o tsv --query "[].id|[?contains(@, 'runner')]"
@@ -69,8 +77,15 @@ az keyvault secret show --id '<>' -o tsv --query value > ~/.ssh/id_rsa.runner
 chmod 600 ~/.ssh/id_rsa.runner
 ssh -i ~/.ssh/id_rsa.runner azureuser@<ip addr>
 ```
+Or print the Windows password to your terminal like this:
 
-To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) and [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops&tabs=unix).
+```
+az keyvault secret show --id '<>' -o tsv --query value
+```
+
+...and copy it into the login dialog of your Remote Desktop client.
+
+To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-linux?view=azure-devops) or [Self-hosted Windows Agents](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/v2-windows?view=azure-devops). Also, see [Run a self-hosted agent behind a web proxy](https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/proxy?view=azure-devops).
 
 > Note that the proxy URL required for most operations on the runner VMs is simply the hostname of the proxy server VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm:3128`. However, operations inside Docker containers on the runner VMs need either:
 > - The _fully-qualified_ name of the proxy VM, e.g. `http://e2e-piaj2z37enpb4-proxy-vm.e0gkjhpfr5quzatbjwfoss05vh.xx.internal.cloudapp.net:3128`, or

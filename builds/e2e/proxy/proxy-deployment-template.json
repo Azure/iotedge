@@ -12,7 +12,7 @@
 		},
 		"windows_runner_count": {
 			"type": "int",
-			"defaultValue": "1"
+			"defaultValue": 0
 		},
 		"key_vault_access_objectid": {
 			"type": "string"
@@ -62,8 +62,8 @@
 		"role_definition_name": "[guid(variables('keygen_identity_name'), variables('contributor_id'))]",
 		"proxy_vm_name": "[concat(parameters('resource_prefix'), 'proxy-vm')]",
 		"proxy_nsg_name": "[concat(parameters('resource_prefix'), 'proxy-nsg')]",
-		"linux_runner_prefix": "[concat(parameters('resource_prefix'), 'runner-l')]",
-		"windows_runner_prefix": "[concat(parameters('resource_prefix'), 'runner-w')]",
+		"linux_runner_prefix": "[concat(parameters('resource_prefix'), 'l')]",
+		"windows_runner_prefix": "[concat(parameters('resource_prefix'), 'w')]",
 		"runner_nsg_name": "[concat(parameters('resource_prefix'), 'runner-nsg')]",
 		"vnet_name": "[concat(parameters('resource_prefix'), 'vnet')]",
 		"vnet_address_prefix": "10.0.0.0/24",
@@ -131,7 +131,7 @@
 		"properties": {
 			"azCliVersion": "2.9.1",
 			"cleanupPreference": "OnSuccess",
-			"arguments": "[add(parameters('linux_runner_count'), 1)] [parameters('windows_runner_count')]",
+			"arguments": "[concat(add(parameters('linux_runner_count'), 1), ' ', parameters('windows_runner_count'))]",
 			"primaryScriptUri": "[parameters('create_secrets_script_uri')]",
 			"timeout": "PT30M",
 			"retentionInterval": "P1D"
@@ -184,7 +184,7 @@
 					"resources": [
 						{
 							"type": "Microsoft.KeyVault/vaults/secrets",
-							"name": "[concat(variables('key_vault_name'), '/', variables('windows_runner_prefix'), copyIndex(), '-password'))]",
+							"name": "[concat(variables('key_vault_name'), '/', variables('windows_runner_prefix'), copyIndex(), '-password')]",
 							"apiVersion": "2019-09-01",
 							"properties": {
 								"value": "[reference(variables('secretgen_script_name')).outputs.passwords[copyIndex()]]"
@@ -486,7 +486,7 @@
 					"value": "[reference(variables('secretgen_script_name')).outputs.passwords[copyIndex()]]"
 				},
 				"extension_command": {
-					"value": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', parameters('proxy_vm_name'), ':3128 -Uri ', variables('windows_runner_config_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', parameters('proxy_vm_name'), ' }\"')]"
+					"value": "[concat('powershell -ExecutionPolicy Unrestricted -Command \"& { . { Invoke-WebRequest -UseBasicParsing -Proxy http://', variables('proxy_vm_name'), ':3128 -Uri ', parameters('windows_runner_config_script_uri'), ' } | Invoke-Expression; Initialize-WindowsVM -ProxyHostname ', variables('proxy_vm_name'), ' }\"')]"
 				},
 				"nic_name": {
 					"value": "[concat(variables('windows_runner_prefix'), copyIndex(1), '-nic')]"
