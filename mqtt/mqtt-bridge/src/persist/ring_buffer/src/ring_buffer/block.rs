@@ -7,7 +7,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::{to_ring_buffer_err, RingBufferResult};
+use crate::ring_buffer::{RingBufferError, RingBufferResult};
 
 #[derive(Clone, Debug, Deserialize, Getters, Hash, Serialize)]
 #[repr(C)]
@@ -115,13 +115,14 @@ impl HashedBlock {
 
 pub(crate) fn binary_serialize(hashed_block: &HashedBlock) -> RingBufferResult<Vec<u8>> {
     Ok(bincode::serialize(hashed_block).map_err(|err| {
-        to_ring_buffer_err(format!("Failed to serialize {:?}", hashed_block), err)
+        RingBufferError::from_err(format!("Failed to serialize {:?}", hashed_block), err)
     })?)
 }
 
 pub(crate) fn binary_deserialize(bytes: &[u8]) -> RingBufferResult<HashedBlock> {
-    Ok(bincode::deserialize::<HashedBlock>(bytes)
-        .map_err(|err| to_ring_buffer_err(format!("Failed to deserialize {:?}", bytes), err))?)
+    Ok(bincode::deserialize::<HashedBlock>(bytes).map_err(|err| {
+        RingBufferError::from_err(format!("Failed to deserialize {:?}", bytes), err)
+    })?)
 }
 
 #[cfg(test)]
