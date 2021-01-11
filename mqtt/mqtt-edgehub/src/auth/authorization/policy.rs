@@ -69,6 +69,7 @@ impl Authorizer for PolicyAuthorizer {
         if let Some(policy_update) = update.downcast_ref::<PolicyUpdate>() {
             self.policy = Some(build_policy(&policy_update.definition, &self.device_id)?);
             info!("policy engine has been updated.");
+            debug!("DRB - new policy is: {:?}", self.policy);
 
             // signal that policy has been initialized
             if let Some(mut broker_ready) = self.broker_ready.take() {
