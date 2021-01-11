@@ -17,8 +17,8 @@ echo "Edgelet version is ${VERSION}"
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
 sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json
 sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/libiothsm-std.signatures.json
-sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/libiothsm-std.spec
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec
 popd
 
 pushd "${EDGELET_ROOT}"
