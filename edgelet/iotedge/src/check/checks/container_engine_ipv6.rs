@@ -72,13 +72,12 @@ impl ContainerEngineIPv6 {
             .context(MESSAGE)?;
         self.actual_use_ipv6 = daemon_config.ipv6;
 
-        match (
-            daemon_config.ipv6.unwrap_or_default(),
-            is_edge_ipv6_configured,
-        ) {
-            (true, _) => Ok(CheckResult::Ok),
-            (false, true) => Err(Context::new(MESSAGE).into()),
-            (false, false) => Ok(CheckResult::Ignored),
+        if daemon_config.ipv6.unwrap_or_default() {
+            Ok(CheckResult::Ok)
+        } else if is_edge_ipv6_configured {
+            Err(Context::new(MESSAGE).into())
+        } else {
+            Ok(CheckResult::Ignored)
         }
     }
 }

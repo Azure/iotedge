@@ -222,10 +222,20 @@ impl Check {
         {
             let aziot_check_out = std::process::Command::new(aziot_bin)
                 .arg("check-list")
-                .arg("-j")
+                .arg("--json")
                 .output();
 
             match aziot_check_out {
+                Ok(out) => {
+                    let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
+                        serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
+
+                    all_checks.extend(
+                        aziot_checks
+                            .into_iter()
+                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
+                    );
+                }
                 Err(_) => {
                     // not being able to shell-out to aziot is bad... but we shouldn't fail here,
                     // as there might be other iotedge specific checks that don't rely on aziot.
@@ -239,16 +249,6 @@ impl Check {
                             description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
                         }]
                     ));
-                }
-                Ok(out) => {
-                    let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
-                        serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
-
-                    all_checks.extend(
-                        aziot_checks
-                            .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
-                    );
                 }
             }
         }
@@ -562,24 +562,6 @@ impl Check {
             }
 
             match aziot_check.spawn() {
-                Err(err) => {
-                    // not being able to shell-out to aziot is bad... but we shouldn't fail here,
-                    // as there might be other iotedge specific checks that don't rely on aziot.
-                    //
-                    // nonetheless, we still need to notify the user that the aziot checks
-                    // could not be run.
-                    self.output_section("(aziot)");
-                    output_check(
-                        CheckOutput {
-                            id: "(aziot-error)".into(),
-                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
-                            result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
-                            additional_info: serde_json::Value::Null,
-                        },
-                        self.verbose,
-                        self.warnings_as_errors,
-                    )?;
-                }
                 Ok(child) => {
                     for val in
                         serde_json::Deserializer::from_reader(child.stdout.unwrap()).into_iter()
@@ -616,6 +598,24 @@ impl Check {
                             }
                         }
                     }
+                }
+                Err(err) => {
+                    // not being able to shell-out to aziot is bad... but we shouldn't fail here,
+                    // as there might be other iotedge specific checks that don't rely on aziot.
+                    //
+                    // nonetheless, we still need to notify the user that the aziot checks
+                    // could not be run.
+                    self.output_section("(aziot)");
+                    output_check(
+                        CheckOutput {
+                            id: "(aziot-error)".into(),
+                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
+                            additional_info: serde_json::Value::Null,
+                        },
+                        self.verbose,
+                        self.warnings_as_errors,
+                    )?;
                 }
             };
         }

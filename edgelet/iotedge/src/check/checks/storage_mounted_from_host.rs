@@ -95,7 +95,8 @@ fn storage_mounted_from_host(
                 .and_then(|capture| capture.get(1))
                 .map(|match_| match_.as_str())
         })
-        // Hard-code the value here rather than using the tempfile crate.
+        // Hard-code the value here rather than using the tempfile crate. It needs to match .Net Core's implementation,
+        // and needs to be in the context of the container user instead of the host running `iotedge check`.
         .unwrap_or("/tmp");
 
     let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
