@@ -143,7 +143,7 @@ function prepare_test_from_artifacts() {
     tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
     echo "Copy deployment artifact to $deployment_working_file"
-    cp "$(get_artifact_file "$E2E_TEST_DIR" deployment)" "$deployment_working_file"
+    cp "$(get_artifact_file "$E2E_TEST_DIR" deployment "$DEPLOYMENT_FILE_NAME")" "$deployment_working_file"
 
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
@@ -465,7 +465,7 @@ function validate_test_parameters() {
     echo "aziot_edge: $(get_artifact_file $E2E_TEST_DIR aziot_edge)"
     echo "aziot_identity_service: $(get_artifact_file $E2E_TEST_DIR aziot_is)"
     echo "IotEdgeQuickstart: $(get_artifact_file $E2E_TEST_DIR quickstart)"
-    echo "Deployment: $(get_artifact_file $E2E_TEST_DIR deployment)"
+    echo "Deployment: $(get_artifact_file $E2E_TEST_DIR deployment "$DEPLOYMENT_FILE_NAME")"
 
     if [[ -z "$TEST_INFO" ]]; then
         print_error "Required test info."
