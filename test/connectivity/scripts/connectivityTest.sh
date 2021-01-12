@@ -140,10 +140,10 @@ function prepare_test_from_artifacts() {
 
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
-    tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
+    tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
-    echo "Copy deployment file from $connectivity_deployment_artifact_file"
-    cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
+    echo "Copy deployment artifact to $deployment_working_file"
+    cp "$(get_artifact_file "$E2E_TEST_DIR" deployment)" "$deployment_working_file"
 
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
@@ -503,7 +503,8 @@ function run_connectivity_test() {
     test_setup && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
 
-    local hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
+    local hash
+    hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-connect-$hash"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -529,7 +530,7 @@ function run_connectivity_test() {
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
-        -a "$iotedge_package" \
+        -a "$testDir/artifacts/" \
         -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
@@ -550,7 +551,7 @@ function run_connectivity_test() {
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$iotedge_package" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -564,7 +565,8 @@ function run_connectivity_test() {
             --no-verify && funcRet=$? || funcRet=$?
     fi
 
-    local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
+    local elapsed_time
+    elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
 
     if [ $funcRet -ne 0 ]; then
@@ -577,26 +579,27 @@ function run_connectivity_test() {
 
     # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation)
     local module_download_buffer=300
-    local time_for_test_to_complete=$(($module_download_buffer + \
+    local time_for_test_to_complete=$((module_download_buffer + \
                                     $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
     echo "test start delay=$TEST_START_DELAY"
     echo "test duration=$TEST_DURATION"
-    echo "verificaiton delay=$VERIFICATION_DELAY"
+    echo "verification delay=$VERIFICATION_DELAY"
     echo "time for report generation=$TIME_FOR_REPORT_GENERATION"
     echo "time for test to complete in seconds=$time_for_test_to_complete"
 
-    if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
+    if [ "$WAIT_FOR_TEST_COMPLETE" -eq 1 ]; then
         local sleep_frequency_secs=60
         local total_wait=0
 
         while [ $total_wait -lt $time_for_test_to_complete ]
         do
-            local is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
+            local is_build_canceled
+            is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
 
-            if [ $is_build_canceled -eq 1 ]; then
+            if [ "$is_build_canceled" -eq 1 ]; then
                 print_highlighted_message "build is canceled."
                 stop_aziot_edge || true
                 return 3
@@ -659,8 +662,6 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     log_upload_enabled=false
 fi
 
-iotedge_quickstart_artifact_file="$(get_artifact_file $E2E_TEST_DIR quickstart)"
-connectivity_deployment_artifact_file="$(get_artifact_file $E2E_TEST_DIR deployment)"
 deployment_working_file="$working_folder/deployment.json"
 
 tracking_id=$(cat /proc/sys/kernel/random/uuid)
