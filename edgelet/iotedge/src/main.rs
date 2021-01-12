@@ -38,6 +38,8 @@ fn main() {
 
 #[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
+    let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziot");
+
     let default_mgmt_uri =
         option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock");
 
@@ -60,16 +62,6 @@ fn run() -> Result<(), Error> {
                 .global(true)
                 .env("IOTEDGE_HOST")
                 .default_value(default_mgmt_uri),
-        )
-        .arg(
-            Arg::with_name("aziot-bin")
-                .help("path to 'aziot' binary")
-                .long("aziot-bin")
-                .takes_value(true)
-                .value_name("PATH")
-                .global(true)
-                .env("AZIOT_BIN")
-                .default_value("aziot"),
         )
         .subcommand(
             SubCommand::with_name("check")
@@ -330,19 +322,13 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value"),
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
-                args.value_of_os("aziot-bin")
-                    .expect("arg has a default value")
-                    .to_os_string(),
+                aziot_bin.into(),
                 args.value_of("iothub-hostname").map(ToOwned::to_owned),
             );
 
             tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)
         }
-        ("check-list", Some(args)) => Check::print_list(
-            args.value_of_os("aziot-bin")
-                .expect("arg has a default value")
-                .to_os_string(),
-        ),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
