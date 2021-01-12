@@ -123,7 +123,6 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
             $(images.artifact.name.linux)/scripts/connectivityTest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
             $(images.artifact.name.linux)/artifactInfo.txt
             $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
       - task: PowerShell@2
