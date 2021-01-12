@@ -3,7 +3,7 @@
 ###############################################################################
 # This script is used to run connectivity test for Linux.
 ###############################################################################
-set -e
+set -euo pipefail
 
 # Import test-related functions
 . $(dirname "$0")/testHelper.sh
@@ -21,7 +21,7 @@ function examine_test_result() {
 function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
-    echo 'Remove working folder'
+    echo 'Clean working folder'
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
@@ -476,26 +476,10 @@ function test_setup() {
 
 function validate_test_parameters() {
     print_highlighted_message "Validate test parameters"
-
-    local required_files=()
-    required_files+=("$iotedge_quickstart_artifact_file")
-    required_files+=("$aziot_edge_artifact_file")
-    required_files+=("$aziot_is_artifact_file")
-    required_files+=("$connectivity_deployment_artifact_file")
-
-    local error=0
-    for f in "${required_files[@]}"
-    do
-        local files = echo "$f" | wc -w
-        if [ "$files" > 1 ]; then
-            print_error "More than one artifact found."
-            ((error++))
-        fi
-        if [ ! -f "$f" ]; then
-            print_error "Required file, $f doesn't exist."
-            ((error++))
-        fi
-    done
+    echo "aziot_edge: $(get_artifact_file $E2E_TEST_DIR aziot_edge)"
+    echo "aziot_identity_service: $(get_artifact_file $E2E_TEST_DIR aziot_is)"
+    echo "IotEdgeQuickstart: $(get_artifact_file $E2E_TEST_DIR quickstart)"
+    echo "Deployment: $(get_artifact_file $E2E_TEST_DIR deployment)"
 
     if [[ -z "$TEST_INFO" ]]; then
         print_error "Required test info."
@@ -572,7 +556,7 @@ TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
-get_image_architecture_label
+image_architecture_label=get_image_architecture_label
 optimize_for_performance=true
 log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
@@ -581,10 +565,8 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     log_upload_enabled=false
 fi
 
-aziot_edge_artifact_file="$(get_aziot_edge_artifact_file $E2E_TEST_DIR)"
-aziot_is_artifact_file="$(get_aziot_is_artifact_file $E2E_TEST_DIR)"
-iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
-connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
+iotedge_quickstart_artifact_file="$(get_artifact_file $E2E_TEST_DIR quickstart)"
+connectivity_deployment_artifact_file="$(get_artifact_file $E2E_TEST_DIR deployment)"
 deployment_working_file="$working_folder/deployment.json"
 
 tracking_id=$(cat /proc/sys/kernel/random/uuid)
