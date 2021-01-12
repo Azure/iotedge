@@ -79,8 +79,8 @@ function get_artifact_file() {
     case "$fileType" in
         'aziot_edge' ) filter='aziot-edge_*.deb';;
         'aziot_is' ) filter='aziot-identity-service_*.deb';;
-        'quickstart' ) filter='IotEdgeQuickstart.linux*.tar.gz';;
-        'deployment' ) filter="core-linux/e2e_deployment_files/ $3";;
+        'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
+        'deployment' ) filter="core-linux/e2e_deployment_files/$3";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
     esac
 
@@ -599,7 +599,7 @@ function run_connectivity_test() {
             local is_build_canceled
             is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
 
-            if [ "$is_build_canceled" -eq 1 ]; then
+            if [ "$is_build_canceled" -eq '1' ]; then
                 print_highlighted_message "build is canceled."
                 stop_aziot_edge || true
                 return 3
@@ -629,7 +629,7 @@ function run_connectivity_test() {
 }
 
 is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-if [ "$is_build_canceled" -eq 1 ]; then
+if [ "$is_build_canceled" -eq '1' ]; then
     print_highlighted_message "build is canceled."
     exit 3
 fi
@@ -653,7 +653,7 @@ TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
-image_architecture_label=get_image_architecture_label
+image_architecture_label=$(get_image_architecture_label)
 optimize_for_performance=true
 log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
