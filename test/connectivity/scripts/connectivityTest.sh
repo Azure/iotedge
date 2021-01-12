@@ -93,7 +93,7 @@ function get_artifact_file() {
         exit 1
     fi
 
-    echo "$path"
+    printf "$path"
 }
 
 function is_cancel_build_requested() {
@@ -101,7 +101,7 @@ function is_cancel_build_requested() {
     local buildId=$2
 
     if [[ ( -z "$accessToken" ) || ( -z "$buildId" ) ]]; then
-        echo 0
+        printf 0
     fi
 
     local output1
@@ -110,9 +110,9 @@ function is_cancel_build_requested() {
     output2=$(curl -s -u :"$accessToken" --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
 
     if [[ -z "$output1" && -z "$output2" ]]; then
-        echo 0
+        printf 0
     else
-        echo 1
+        printf 1
     fi
 }
 
@@ -513,7 +513,6 @@ function run_connectivity_test() {
     SECONDS=0
 
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-    echo "Nested edge test=$NESTED_EDGE_TEST"
 
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
@@ -522,6 +521,7 @@ function run_connectivity_test() {
         DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
         TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
 
+        echo "Running with nested Edge."
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
         echo "Device CA cert=$DEVICE_CA_CERT"
@@ -570,7 +570,7 @@ function run_connectivity_test() {
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
 
     if [ $funcRet -ne 0 ]; then
-        print_highlighted_message "Deploy connectivity test failed."
+        print_error "Deploy connectivity test failed."
         print_deployment_logs
         return $funcRet
     fi
