@@ -120,7 +120,7 @@ jobs:
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           test.useTRC: '$(useTRC)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -208,7 +208,7 @@ jobs:
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
           test.useTRC: '$(useTRC)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -296,4 +296,4 @@ jobs:
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
           test.useTRC: '$(useTRC)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
