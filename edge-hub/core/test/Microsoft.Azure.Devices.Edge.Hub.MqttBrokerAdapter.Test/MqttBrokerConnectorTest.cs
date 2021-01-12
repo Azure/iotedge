@@ -249,6 +249,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         }
 
         [Fact]
+        public async Task SendAsyncCancelsWhenTimeout()
+        {
+            using var broker = new MiniMqttServer();
+            var sut = default(MqttBrokerConnector);
+
+            broker.OnPublish =
+                () =>
+                {
+                    throw new Exception(); // this stops sending ACK back
+                };
+
+            var producer = new ProducerStub();
+
+            sut = new ConnectorBuilder()
+                .WithProducer(producer)
+                .Build();
+
+            sut.AckTimeout = TimeSpan.FromSeconds(2);
+
+            await sut.ConnectAsync(HOST, broker.Port);
+            await Assert.ThrowsAsync<TimeoutException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
+        }
+
+        [Fact]
         public async Task TriesReconnect()
         {
             using var broker = new MiniMqttServer();
