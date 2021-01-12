@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await RetryPolicy.DefaultProgressive.ExecuteAsync(
                 async () =>
             {
-                using var client = DeviceClient.CreateFromConnectionString(connectionString);
+                using var client = DeviceClient.CreateFromConnectionString(connectionString, Client.TransportType.Mqtt);
                 await client.OpenAsync();
             }, token);
 
