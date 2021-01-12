@@ -3,7 +3,7 @@
 ###############################################################################
 # This script is used to run Connectivity test for Linux.
 ###############################################################################
-set -euo pipefail
+set -eo pipefail
 
 function usage() {
     echo "connectivityTest.sh [options]"
