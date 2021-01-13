@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.TestToken;
 
-            TestCertificates testCerts = await TestCertificates.GenerateCertsAsync(registrationId, token);
+            (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
 
             await this.daemon.ConfigureAsync(
                 config =>

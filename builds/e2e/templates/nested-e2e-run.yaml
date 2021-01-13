@@ -10,8 +10,8 @@ steps:
     else
     {
       #DPS test are not expected to work in nested environment  
-      #sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName~AuthorizationPolicyExplicitPolicyTest'
+      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
+      #sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'FullyQualifiedName~AuthorizationPolicyExplicitPolicyTest'
     }
   displayName: Run tests
   env:

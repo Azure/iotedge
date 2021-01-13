@@ -42,13 +42,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.OptimizeForPerformance,
                     this.iotHub);
 
-                TestCertificates testCerts = await TestCertificates.GenerateCertsAsync(device.Id, token);
+                TestCertificates testCerts;
+                (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
 
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
                         testCerts.AddCertsToConfig(config);
-                        config.SetManualSasProvisioning(device.HubHostname, device.Id, device.SharedAccessKey);
+
+                        config.SetManualSasProvisioning(Context.Current.ParentHostname.GetOrElse(device.HubHostname), device.Id, device.SharedAccessKey);
+
                         config.Update();
                         return Task.FromResult((
                             "with connection string for device '{Identity}'",

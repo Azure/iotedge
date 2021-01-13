@@ -36,7 +36,7 @@
                 "value": "true"
               },
               "RuntimeLogLevel": {
-                "value": "info"
+                "value": "debug"
               }                   
             },
             "status": "running",

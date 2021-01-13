@@ -84,13 +84,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
-            Log.Information($"Creating edge device identity with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
+            Log.Information($"Creating edge device {deviceId} with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
             Device edge = await parentDeviceId.Match(
             async p =>
             {
                 Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
                 string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
-                Log.Verbose($"Got parent device from id. Parent scope: {parentDeviceScope}");
+                Log.Information($"Parent scope: {parentDeviceScope}");
                 return new Device(deviceId)
             {
                 Authentication = new AuthenticationMechanism()

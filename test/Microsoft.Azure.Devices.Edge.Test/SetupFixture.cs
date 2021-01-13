@@ -79,9 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
-
+                            Log.Information("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
+                                Log.Information($"Found parent hostname {parentHostname}");
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
@@ -161,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             this.certs = certs;
         }
 
-        public static async Task<TestCertificates> GenerateCertsAsync(string deviceId, CancellationToken token)
+        public static async Task<(TestCertificates, CertificateAuthority ca)> GenerateCertsAsync(string deviceId, CancellationToken token)
         {
             string scriptPath = Context.Current.CaCertScriptPath.Expect(
                 () => new System.InvalidOperationException("Missing CA cert script path"));
@@ -170,8 +171,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(deviceId, rootCa, scriptPath, token);
             CaCertificates certs = await ca.GenerateCaCertificatesAsync(deviceId, token);
+            ca.EdgeCertificates = certs;
 
-            return new TestCertificates(deviceId, certs);
+            return (new TestCertificates(deviceId, certs), ca);
         }
 
         public void AddCertsToConfig(DaemonConfiguration config)
