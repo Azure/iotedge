@@ -685,10 +685,10 @@ function usage() {
     exit 1;
 }
 
-process_args "$@"
-
 LONGHAUL_TEST_NAME="LongHaul"
 CONNECTIVITY_TEST_NAME="Connectivity"
+
+process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
