@@ -147,28 +147,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = this.packageManagement.GetUninstallCommands();
 
-            try
+            foreach(string command in commands)
             {
-                foreach(string command in commands)
+                try
                 {
-                    Log.Verbose($"Trying to run {command}...");
                     await Profiler.Run(
                     async () =>
                     {
                         string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
-                    },
-                    "Uninstalled edge component");
-                    Log.Verbose($"\nUninstall command '{command}' ran successfully");
+                        if (output.Length > 0)
+                        {
+                            Log.Verbose($"\nUninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output: {output}");
+                        }
+                        else
+                        {
+                            Log.Verbose($"\nUninstall command '{command}' ran successfully");
+                        }
+                    }, "Uninstalled edge component");
                 }
-            }
-            catch (Win32Exception e)
-            {
-                Log.Verbose(e, "Failed to uninstall edge daemon, probably because it isn't installed");
-            }
-            catch (Exception e)
-            {
-                Log.Verbose($"\nUninstall command ran unsuccessfully, {e}");
-                throw e;
+                catch (Win32Exception e)
+                {
+                    Log.Verbose(e, $"Failed to uninstall edge component with command '{command}', probably because this component isn't installed");
+                }
             }
         }
 
