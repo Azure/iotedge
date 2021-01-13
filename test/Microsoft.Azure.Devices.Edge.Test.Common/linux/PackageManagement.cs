@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves aziot-edge ",
+                "yum remove -y --remove-leaves aziot-edge",
                 "yum remove -y --remove-leaves aziot-identity-service",
                 "yum remove -y --remove-leaves iotedge",
                 "yum remove -y --remove-leaves libiothsm-std"
