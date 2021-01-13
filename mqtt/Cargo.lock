@@ -1168,6 +1168,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "log",
+ "pin-project 1.0.4",
  "serde",
  "structopt",
  "tokio",

@@ -21,7 +21,7 @@ serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 serde_repr = "0.1"
 thiserror = "1.0"
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1.0", features = ["sync"] }
 tracing = "0.1"
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
@@ -37,7 +37,7 @@ matches = "0.1"
 mockito = "0.28"
 serial_test = "0.5"
 test-case = "1.0"
-tokio = { version = "1", features = ["macros"] }
+tokio = { version = "1.0", features = ["macros"] }
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 mqtt-broker = { path = "../mqtt-broker", features = ["proptest"] }

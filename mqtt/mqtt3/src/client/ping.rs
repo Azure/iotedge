@@ -1,13 +1,16 @@
 use std::future::Future;
 
+use pin_project::pin_project;
+
+#[pin_project(project = StateProj)]
 pub(super) enum State {
     BeginWaitingForNextPing,
-    WaitingForNextPing(tokio::time::Sleep),
+    WaitingForNextPing(#[pin] tokio::time::Sleep),
 }
 
 impl State {
     pub(super) fn poll(
-        &mut self,
+        self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
 
         packet: &mut Option<crate::proto::Packet>,
@@ -16,9 +19,9 @@ impl State {
         if let Some(crate::proto::Packet::PingResp(crate::proto::PingResp)) = packet {
             let _ = packet.take();
 
-            match self {
-                State::BeginWaitingForNextPing => (),
-                State::WaitingForNextPing(ping_timer) => {
+            match self.project() {
+                StateProj::BeginWaitingForNextPing => (),
+                StateProj::WaitingForNextPing(ping_timer) => {
                     ping_timer.reset(deadline(tokio::time::Instant::now(), keep_alive))
                 }
             }
@@ -27,22 +30,20 @@ impl State {
         loop {
             log::trace!("    {:?}", self);
 
-            match self {
-                State::BeginWaitingForNextPing => {
+            match self.project() {
+                StateProj::BeginWaitingForNextPing => {
                     let ping_timer = tokio::time::sleep(keep_alive);
                     *self = State::WaitingForNextPing(ping_timer);
                 }
 
-                State::WaitingForNextPing(ping_timer) => {
-                    match std::pin::Pin::new(&mut *ping_timer).poll(cx) {
-                        std::task::Poll::Ready(()) => {
-                            ping_timer.reset(deadline(ping_timer.deadline(), keep_alive));
-                            return Some(crate::proto::Packet::PingReq(crate::proto::PingReq));
-                        }
-
-                        std::task::Poll::Pending => return None,
+                StateProj::WaitingForNextPing(ping_timer) => match ping_timer.poll(cx) {
+                    std::task::Poll::Ready(()) => {
+                        ping_timer.reset(deadline(ping_timer.deadline(), keep_alive));
+                        return Some(crate::proto::Packet::PingReq(crate::proto::PingReq));
                     }
-                }
+
+                    std::task::Poll::Pending => return None,
+                },
             }
         }
     }

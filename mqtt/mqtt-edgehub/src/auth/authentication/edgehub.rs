@@ -4,7 +4,6 @@ use std::{
 };
 
 use async_trait::async_trait;
-use backoff::{future::FutureOperation as _, Error, ExponentialBackoff};
 use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
