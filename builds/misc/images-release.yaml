@@ -603,7 +603,7 @@ jobs:
 ################################################################################
     displayName: Publish Manifest Images
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: ubuntu-latest
     dependsOn:
       - linux_dotnet_projects
       - windows
