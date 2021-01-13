@@ -1,5 +1,7 @@
 use std::future::Future;
 
+use pin_project::pin_project;
+
 mod connect;
 
 mod ping;
@@ -22,8 +24,9 @@ pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};
 /// The [`Stream`] only ends (returns `Ready(None)`) when the client is told to shut down gracefully using the handle
 /// returned by [`Client::shutdown_handle`]. The `Client` becomes unusable after it has returned `None`
 /// and should be dropped.
+#[pin_project]
 #[derive(Debug)]
-pub struct Client<IoS>(ClientState<IoS>)
+pub struct Client<IoS>(#[pin] ClientState<IoS>)
 where
     IoS: IoSource;
 
@@ -239,9 +242,11 @@ where
     ) -> std::task::Poll<Option<Self::Item>> {
         use futures_sink::Sink;
 
+        let this = self.project();
+
         let reason = loop {
-            match &mut self.0 {
-                ClientState::Up {
+            match &mut this.0.project() {
+                ClientStateProj::Up {
                     client_id,
                     username,
                     will,
@@ -274,7 +279,7 @@ where
                         username.as_ref().map(AsRef::as_ref),
                         will.as_ref(),
                         client_id,
-                        *keep_alive,
+                        **keep_alive,
                     ) {
                         std::task::Poll::Ready(framed) => framed,
                         std::task::Poll::Pending => return std::task::Poll::Pending,
@@ -283,7 +288,7 @@ where
                     if new_connection {
                         log::debug!("New connection established");
 
-                        *packets_waiting_to_be_sent = Default::default();
+                        **packets_waiting_to_be_sent = Default::default();
 
                         ping.new_connection();
 
@@ -302,7 +307,7 @@ where
                     match client_poll(
                         cx,
                         framed,
-                        *keep_alive,
+                        **keep_alive,
                         packets_waiting_to_be_sent,
                         packet_identifiers,
                         ping,
@@ -325,13 +330,15 @@ where
                                     // DEVNOTE: subscriptions::State relies on the fact that the session is reset here.
                                     // Update that if this ever changes.
                                     *client_id = match std::mem::replace(
-                                        client_id,
+                                        *client_id,
                                         crate::proto::ClientId::ServerGenerated,
                                     ) {
                                         id @ crate::proto::ClientId::ServerGenerated
-                                        | id @ crate::proto::ClientId::IdWithCleanSession(_) => id,
+                                        | id @ crate::proto::ClientId::IdWithCleanSession(_) => {
+                                            &mut id
+                                        }
                                         crate::proto::ClientId::IdWithExistingSession(id) => {
-                                            crate::proto::ClientId::IdWithCleanSession(id)
+                                            &mut crate::proto::ClientId::IdWithCleanSession(id)
                                         }
                                     };
                                 }
@@ -350,7 +357,7 @@ where
                     }
                 }
 
-                ClientState::ShuttingDown {
+                ClientStateProj::ShuttingDown {
                     client_id,
                     username,
                     will,
@@ -367,7 +374,7 @@ where
                         username.as_ref().map(AsRef::as_ref),
                         will.as_ref(),
                         client_id,
-                        *keep_alive,
+                        **keep_alive,
                     ) {
                         std::task::Poll::Ready(framed) => framed,
                         std::task::Poll::Pending => {
@@ -380,7 +387,7 @@ where
                     };
 
                     loop {
-                        if *sent_disconnect {
+                        if **sent_disconnect {
                             match std::pin::Pin::new(&mut framed).poll_flush(cx) {
                                 std::task::Poll::Ready(Ok(())) => {
                                     self.0 = ClientState::ShutDown {
@@ -406,7 +413,7 @@ where
                                     let packet =
                                         crate::proto::Packet::Disconnect(crate::proto::Disconnect);
                                     match std::pin::Pin::new(&mut framed).start_send(packet) {
-                                        Ok(()) => *sent_disconnect = true,
+                                        Ok(()) => **sent_disconnect = true,
 
                                         Err(err) => {
                                             log::warn!("couldn't send DISCONNECT: {}", err);
@@ -432,7 +439,7 @@ where
                     }
                 }
 
-                ClientState::ShutDown { reason } => match reason.take() {
+                ClientStateProj::ShutDown { reason } => match reason.take() {
                     Some(err) => return std::task::Poll::Ready(Some(Err(err))),
                     None => return std::task::Poll::Ready(None),
                 },
@@ -559,6 +566,7 @@ impl ShutdownHandle {
     }
 }
 
+#[pin_project(project = ClientStateProj)]
 #[derive(Debug)]
 enum ClientState<IoS>
 where
@@ -576,7 +584,10 @@ where
         packet_identifiers: PacketIdentifiers,
 
         connect: connect::Connect<IoS>,
+
+        #[pin]
         ping: ping::State,
+
         publish: publish::State,
         subscriptions: subscriptions::State,
 

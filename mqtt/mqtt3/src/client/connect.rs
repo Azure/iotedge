@@ -1,5 +1,7 @@
 use std::future::Future;
 
+use pin_project::pin_project;
+
 #[derive(Debug)]
 pub(super) struct Connect<IoS>
 where
@@ -11,12 +13,13 @@ where
     state: State<IoS>,
 }
 
+#[pin_project(project = StateProj)]
 enum State<IoS>
 where
     IoS: super::IoSource,
 {
     BeginBackOff,
-    EndBackOff(tokio::time::Sleep),
+    EndBackOff(#[pin] tokio::time::Sleep),
     BeginConnecting,
     WaitingForIoToConnect(<IoS as super::IoSource>::Future),
     Framed {
@@ -97,7 +100,7 @@ where
         loop {
             log::trace!("    {:?}", state);
 
-            match state {
+            match state.project() {
                 State::BeginBackOff => match self.current_back_off {
                     back_off if back_off.as_secs() == 0 => {
                         self.current_back_off = std::time::Duration::from_secs(1);
