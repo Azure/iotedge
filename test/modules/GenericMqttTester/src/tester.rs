@@ -1,5 +1,3 @@
-#![allow(unused_variables, dead_code)] // TODO: remove when module complete
-
 use future::{select_all, Either};
 use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
@@ -21,7 +19,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    MessageTesterError, BACKWARDS_TOPIC, FORWARDS_TOPIC,
+    MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, FORWARDS_TOPIC,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -29,14 +27,20 @@ const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
 #[derive(Debug, Clone)]
 pub struct MessageTesterShutdownHandle {
     poll_client_shutdown: Sender<()>,
-    send_messages_shutdown: Sender<()>,
+    message_channel_shutdown: ShutdownHandle,
+    message_initiator_shutdown: Option<ShutdownHandle>,
 }
 
 impl MessageTesterShutdownHandle {
-    fn new(poll_client_shutdown: Sender<()>, send_messages_shutdown: Sender<()>) -> Self {
+    fn new(
+        poll_client_shutdown: Sender<()>,
+        message_channel_shutdown: ShutdownHandle,
+        message_initiator_shutdown: Option<ShutdownHandle>,
+    ) -> Self {
         Self {
             poll_client_shutdown,
-            send_messages_shutdown,
+            message_channel_shutdown,
+            message_initiator_shutdown,
         }
     }
 
@@ -45,10 +49,12 @@ impl MessageTesterShutdownHandle {
             .send(())
             .await
             .map_err(MessageTesterError::SendShutdownSignal)?;
-        self.send_messages_shutdown
-            .send(())
-            .await
-            .map_err(MessageTesterError::SendShutdownSignal)?;
+        self.message_channel_shutdown.shutdown().await?;
+
+        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown {
+            message_initiator_shutdown.shutdown().await?;
+        }
+
         Ok(())
     }
 }
@@ -72,7 +78,6 @@ pub struct MessageTester {
     message_initiator: Option<MessageInitiator>,
     shutdown_handle: MessageTesterShutdownHandle,
     poll_client_shutdown_recv: Receiver<()>,
-    message_loop_shutdown_recv: Receiver<()>,
 }
 
 impl MessageTester {
@@ -101,19 +106,26 @@ impl MessageTester {
         let message_channel = MessageChannel::new(message_handler);
 
         let mut message_initiator = None;
+        let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
-            message_initiator = Some(MessageInitiator::new(
+            let initiator = MessageInitiator::new(
                 publish_handle.clone(),
                 tracking_id,
                 batch_id,
                 reporting_client,
-            ));
+            );
+
+            message_initiator_shutdown = Some(initiator.shutdown_handle());
+            message_initiator = Some(initiator);
         }
 
         let (poll_client_shutdown_send, poll_client_shutdown_recv) = mpsc::channel::<()>(1);
-        let (message_loop_shutdown_send, message_loop_shutdown_recv) = mpsc::channel::<()>(1);
-        let shutdown_handle =
-            MessageTesterShutdownHandle::new(poll_client_shutdown_send, message_loop_shutdown_send);
+        let message_handler_shutdown = message_channel.shutdown_handle();
+        let shutdown_handle = MessageTesterShutdownHandle::new(
+            poll_client_shutdown_send,
+            message_handler_shutdown,
+            message_initiator_shutdown,
+        );
 
         info!("finished initializing message tester");
         Ok(Self {
@@ -123,7 +135,6 @@ impl MessageTester {
             message_initiator,
             shutdown_handle,
             poll_client_shutdown_recv,
-            message_loop_shutdown_recv,
         })
     }
 
@@ -145,7 +156,6 @@ impl MessageTester {
         Self::subscribe(client_sub_handle, self.settings.clone()).await?;
 
         // run message channel
-        let message_channel_shutdown = self.message_channel.shutdown_handle();
         let message_channel_join = tokio::spawn(
             self.message_channel
                 .run()
@@ -153,11 +163,9 @@ impl MessageTester {
         );
 
         let mut tasks = vec![message_channel_join, poll_client_join];
-        let mut shutdown_handles = vec![message_channel_shutdown];
 
         // maybe start message initiator depending on mode
         if let Some(message_initiator) = self.message_initiator {
-            shutdown_handles.push(message_initiator.shutdown_handle());
             let message_loop = tokio::spawn(message_initiator.run());
             tasks.push(message_loop);
         }
@@ -165,10 +173,6 @@ impl MessageTester {
         info!("waiting for tasks to exit");
         let (exited, _, join_handles) = select_all(tasks).await;
         exited.map_err(MessageTesterError::WaitForShutdown)??;
-
-        for shutdown_handle in shutdown_handles {
-            shutdown_handle.shutdown().await?;
-        }
 
         for handle in join_handles {
             handle
