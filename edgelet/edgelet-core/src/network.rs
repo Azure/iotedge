@@ -4,13 +4,13 @@ use crate::DEFAULT_NETWORKID;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Network {
-    name: String,
+    pub name: String,
 
     #[serde(rename = "ipv6", skip_serializing_if = "Option::is_none")]
-    ipv6: Option<bool>,
+    pub ipv6: Option<bool>,
 
     #[serde(rename = "ipam", skip_serializing_if = "Option::is_none")]
-    ipam: Option<Ipam>,
+    pub ipam: Option<Ipam>,
 }
 
 impl Network {
@@ -53,7 +53,7 @@ impl Network {
 #[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
-    config: Option<Vec<IpamConfig>>,
+    pub config: Option<Vec<IpamConfig>>,
 }
 
 impl Ipam {
@@ -70,13 +70,13 @@ impl Ipam {
 #[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
-    gateway: Option<String>,
+    pub gateway: Option<String>,
 
     #[serde(rename = "subnet", skip_serializing_if = "Option::is_none")]
-    subnet: Option<String>,
+    pub subnet: Option<String>,
 
     #[serde(rename = "ip_range", skip_serializing_if = "Option::is_none")]
-    ip_range: Option<String>,
+    pub ip_range: Option<String>,
 }
 
 impl IpamConfig {

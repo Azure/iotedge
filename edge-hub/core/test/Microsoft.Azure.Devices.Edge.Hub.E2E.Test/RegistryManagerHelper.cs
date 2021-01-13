@@ -62,6 +62,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
+        public static async Task RemoveModule(string deviceId, string moduleId, RegistryManager registryManager)
+        {
+            var module = await registryManager.GetModuleAsync(deviceId, moduleId);
+            if (module != null)
+            {
+                await registryManager.RemoveModuleAsync(deviceId, moduleId);
+            }
+        }
+
         public static async Task<string> GetOrCreateModule(RegistryManager registryManager, string hostName, string deviceId, string moduleId)
         {
             Module module = await registryManager.GetModuleAsync(deviceId, moduleId);

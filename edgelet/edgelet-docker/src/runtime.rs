@@ -19,14 +19,13 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
+    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
-use provisioning::ProvisioningResult;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
@@ -65,7 +64,6 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
-    provisioning_info: ProvisioningInfo,
 }
 
 impl DockerModuleRuntime {
@@ -243,16 +241,11 @@ where
 impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Settings = Settings;
-    type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = Self;
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(
-        settings: Settings,
-        _: ProvisioningResult,
-        _: impl GetTrustBundle,
-    ) -> Self::Future {
+    fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
         let created = init_client(settings.moby_runtime().uri())
@@ -319,7 +312,6 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
-                            provisioning_info: ProvisioningInfo::new(settings.provisioning()),
                         }
                     });
                 Ok(future::Either::A(fut))
@@ -707,7 +699,13 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
-        let provisioning = self.provisioning_info.clone();
+        // Provisioning information is no longer available in aziot-edged. This information should
+        // be emitted from Identity Service
+        let provisioning = ProvisioningInfo {
+            r#type: "ProvisioningType".into(),
+            dynamic_reprovisioning: false,
+            always_reprovision_on_startup: false,
+        };
 
         Box::new(
             self.client
@@ -805,9 +803,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                 0
             }
         };
-
-        #[cfg(windows)]
-        let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
 
         let mut system_resources = self
             .system_resources
@@ -1249,9 +1244,9 @@ mod tests {
     use super::{
         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
-        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
-        ProvisioningResult, Request, Settings, Stream, SystemResources,
+        Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
+        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Settings,
+        Stream, SystemResources,
     };
 
     use std::path::Path;
@@ -1263,30 +1258,13 @@ mod tests {
     use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
-        WatchdogSettings,
+        Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
     };
-    use edgelet_test_utils::crypto::TestHsm;
-    use provisioning::ReprovisioningStatus;
     #[cfg(target_os = "linux")]
     use std::fs;
     #[cfg(target_os = "linux")]
     use tempfile::NamedTempFile;
     use tempfile::TempDir;
-
-    fn provisioning_result() -> ProvisioningResult {
-        ProvisioningResult::new(
-            "d1",
-            "h1",
-            None,
-            ReprovisioningStatus::DeviceDataNotUpdated,
-            None,
-        )
-    }
-
-    fn crypto() -> impl GetTrustBundle {
-        TestHsm::default()
-    }
 
     fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
         let tmp_dir = TempDir::new().unwrap();
@@ -1307,12 +1285,12 @@ mod tests {
             },
             "hostname": "zoo",
             "connect": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+                "management_uri": "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock",
+                "workload_uri": "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
             },
             "listen": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
+                "management_uri": "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock",
+                "workload_uri": "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
             },
             "homedir": tmp_dir.path(),
             "moby_runtime": {
@@ -1339,7 +1317,7 @@ mod tests {
                 "uri": "foo:///this/is/not/valid"
             }
         })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+        let err = DockerModuleRuntime::make_runtime(settings)
             .wait()
             .unwrap_err();
         assert!(failure::Fail::iter_chain(&err).any(|err| err
@@ -1355,7 +1333,7 @@ mod tests {
                 "uri": "unix:///this/file/does/not/exist"
             }
         })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+        let err = DockerModuleRuntime::make_runtime(settings)
             .wait()
             .unwrap_err();
         assert!(failure::Fail::iter_chain(&err)
@@ -1388,7 +1366,7 @@ mod tests {
             }
         })));
 
-        let runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
+        let runtime = DockerModuleRuntime::make_runtime(settings);
         let runtime = tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(runtime)
@@ -1654,10 +1632,6 @@ mod tests {
     impl RuntimeSettings for TestSettings {
         type Config = TestConfig;
 
-        fn provisioning(&self) -> &Provisioning {
-            unimplemented!()
-        }
-
         fn agent(&self) -> &ModuleSpec<Self::Config> {
             unimplemented!()
         }
@@ -1686,11 +1660,11 @@ mod tests {
             unimplemented!()
         }
 
-        fn certificates(&self) -> &Certificates {
+        fn watchdog(&self) -> &WatchdogSettings {
             unimplemented!()
         }
 
-        fn watchdog(&self) -> &WatchdogSettings {
+        fn endpoints(&self) -> &Endpoints {
             unimplemented!()
         }
     }
@@ -1776,17 +1750,12 @@ mod tests {
 
     impl MakeModuleRuntime for TestModuleList {
         type Config = TestConfig;
-        type ProvisioningResult = ProvisioningResult;
         type ModuleRuntime = Self;
         type Settings = TestSettings;
         type Error = Error;
         type Future = FutureResult<Self, Self::Error>;
 
-        fn make_runtime(
-            _settings: Self::Settings,
-            _provisioning_result: Self::ProvisioningResult,
-            _crypto: impl GetTrustBundle,
-        ) -> Self::Future {
+        fn make_runtime(_settings: Self::Settings) -> Self::Future {
             unimplemented!()
         }
     }

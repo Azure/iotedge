@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(),
+                CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                 this.iotHub,
                 token,
                 Option.None<string>());

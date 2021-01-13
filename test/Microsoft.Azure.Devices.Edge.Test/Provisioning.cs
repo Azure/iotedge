@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.IO;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
@@ -46,9 +47,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.TestToken;
 
+            TestCertificates testCerts = await TestCertificates.GenerateCertsAsync(registrationId, token);
+
             await this.daemon.ConfigureAsync(
                 config =>
                 {
+                    testCerts.AddCertsToConfig(config);
                     config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
                     config.Update();
                     return Task.FromResult((
@@ -95,10 +99,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
 
+            // The trust bundle for this test isn't used. It can be any arbitrary existing certificate.
+            string trustBundle = Path.Combine(
+                caCertScriptPath,
+                "certs",
+                "azure-iot-test-only.intermediate-full-chain.cert.pem");
+
             await this.daemon.ConfigureAsync(
                 config =>
                 {
-                    config.SetDpsX509(idScope, registrationId, idCert);
+                    config.SetDpsX509(idScope, registrationId, idCert, trustBundle);
                     config.Update();
                     return Task.FromResult((
                         "with DPS X509 attestation for '{Identity}'",

@@ -14,7 +14,7 @@ use tokio::{
     time,
 };
 use tracing::info;
-use trc_client::{MessageTestResult, TestResultReportingClient};
+use trc_client::{MessageTestResult, TrcClient};
 
 use crate::{MessageTesterError, ShutdownHandle, FORWARDS_TOPIC, SEND_SOURCE};
 
@@ -26,7 +26,7 @@ pub struct MessageInitiator {
     shutdown_handle: ShutdownHandle,
     tracking_id: String,
     batch_id: String,
-    reporting_client: TestResultReportingClient,
+    reporting_client: TrcClient,
 }
 
 impl MessageInitiator {
@@ -34,7 +34,7 @@ impl MessageInitiator {
         publish_handle: PublishHandle,
         tracking_id: String,
         batch_id: String,
-        reporting_client: TestResultReportingClient,
+        reporting_client: TrcClient,
     ) -> Self {
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
         let shutdown_handle = ShutdownHandle(shutdown_send);

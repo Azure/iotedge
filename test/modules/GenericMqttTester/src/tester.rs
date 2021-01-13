@@ -11,7 +11,7 @@ use mqtt3::{
 };
 use mqtt_broker_tests_util::client;
 use mqtt_util::client_io::ClientIoSource;
-use trc_client::TestResultReportingClient;
+use trc_client::TrcClient;
 
 use crate::{
     message_channel::{
@@ -86,8 +86,8 @@ impl MessageTester {
 
         let tracking_id = settings.tracking_id().clone();
         let batch_id = settings.batch_id().clone();
-        let test_result_coordinator_url = settings.test_result_coordinator_url().to_string();
-        let reporting_client = TestResultReportingClient::new(test_result_coordinator_url);
+        let test_result_coordinator_url = settings.trc_url().to_string();
+        let reporting_client = TrcClient::new(test_result_coordinator_url);
 
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
             TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(

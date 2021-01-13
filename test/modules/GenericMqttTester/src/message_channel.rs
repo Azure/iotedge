@@ -11,7 +11,7 @@ use mqtt3::{
     proto::{Publication, QoS},
     PublishHandle, ReceivedPublication,
 };
-use trc_client::{MessageTestResult, TestResultReportingClient};
+use trc_client::{MessageTestResult, TrcClient};
 
 use crate::{MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, RECEIVE_SOURCE};
 
@@ -24,17 +24,13 @@ pub trait MessageHandler {
 
 /// Responsible for receiving publications and reporting result to the Test Result Coordinator.
 pub struct ReportResultMessageHandler {
-    reporting_client: TestResultReportingClient,
+    reporting_client: TrcClient,
     tracking_id: String,
     batch_id: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(
-        reporting_client: TestResultReportingClient,
-        tracking_id: String,
-        batch_id: String,
-    ) -> Self {
+    pub fn new(reporting_client: TrcClient, tracking_id: String, batch_id: String) -> Self {
         Self {
             reporting_client,
             tracking_id,

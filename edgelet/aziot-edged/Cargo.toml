@@ -1,0 +1,58 @@
+[package]
+name = "aziot-edged"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+publish = false
+edition = "2018"
+
+[dependencies]
+base64 = "0.9"
+clap = "2.31"
+chrono = "0.4"
+env_logger = "0.5"
+failure = "0.1"
+foreign-types-shared = "0.1"
+futures = "0.1"
+hyper = "0.12.17"
+hyper-tls = { version = "0.3", optional = true }
+log = "0.4"
+openssl = "0.10"
+serde_json = "1.0"
+serde = "1.0"
+sha2 = "0.7.0"
+tokio = "0.1.8"
+tokio-signal = "0.2"
+native-tls = "0.2"
+url = "2"
+url_serde = "0.2"
+
+docker = { path = "../docker-rs" }
+edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
+edgelet-http = { path = "../edgelet-http" }
+edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
+edgelet-http-workload = { path = "../edgelet-http-workload" }
+edgelet-utils = { path = "../edgelet-utils" }
+aziot-cert-common-http = { path = "../aziot/cert/aziot-cert-common-http" }
+aziot-identity-common = { path = "../aziot/identity/aziot-identity-common" }
+aziot-identity-common-http = { path = "../aziot/identity/aziot-identity-common-http" }
+aziot-key-client = { path = "../aziot/key/aziot-key-client" }
+aziot-key-common = { path = "../aziot/key/aziot-key-common" }
+aziot-key-common-http = { path = "../aziot/key/aziot-key-common-http" }
+aziot-key-openssl-engine = { path = "../aziot/key/aziot-key-openssl-engine" }
+cert-client = { path = "../cert-client" }
+identity-client = { path = "../identity-client" }
+http-common = { path = "../aziot/http-common" }
+openssl2 = { path = "../aziot/openssl2" }
+openssl-sys2 = { path = "../aziot/openssl-sys2" }
+
+[dev_dependencies]
+lazy_static = "1"
+rand = "0.5"
+tempdir = "0.3.7"
+
+edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+default = ["runtime-docker"]
+runtime-docker = []

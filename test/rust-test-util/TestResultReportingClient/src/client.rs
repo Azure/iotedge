@@ -1,28 +1,32 @@
+use std::{iter::FromIterator, vec};
+
 use chrono::{DateTime, Utc};
+use enumset::EnumSet;
 use hyper::{client::HttpConnector, Body, Client, Request};
 
 use crate::{
-    models::{
-        message_result::MessageTestResult,
-        test_result_dto::{TestOperationResultDto, TestType},
-    },
-    ReportResultError,
+    models::{message_result::MessageTestResult, test_result_dto::TestOperationResultDto},
+    ReportResultError, TestType,
 };
 
 const CONTENT_TYPE: &str = "Content-Type";
 const APPLICATION_JSON: &str = "application/json";
 
 #[derive(Debug, Clone)]
-pub struct TestResultReportingClient {
+pub struct TrcClient {
     client: Client<HttpConnector>,
     uri: String,
+    supported_test_types: EnumSet<TestType>,
 }
 
-impl TestResultReportingClient {
+impl TrcClient {
     pub fn new(uri: String) -> Self {
+        let supported_test_types = EnumSet::from_iter(vec![TestType::Messages]);
+
         Self {
             client: Client::new(),
             uri,
+            supported_test_types,
         }
     }
 
@@ -30,10 +34,14 @@ impl TestResultReportingClient {
         &self,
         source: String,
         result: MessageTestResult,
-        _type: TestType,
+        test_type: TestType,
         created_at: DateTime<Utc>,
     ) -> Result<(), ReportResultError> {
-        let body = TestOperationResultDto::new(source, result, _type, created_at);
+        if !self.supported_test_types.contains(test_type) {
+            return Err(ReportResultError::UnsupportedTestType);
+        }
+
+        let body = TestOperationResultDto::new(source, result, test_type, created_at);
         let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;
         let request = Request::post(self.uri.clone())
             .header(CONTENT_TYPE, APPLICATION_JSON)

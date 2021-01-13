@@ -2,6 +2,7 @@ steps:
 - checkout: self
   clean: true
   fetchDepth: 100
+  submodules: recursive
 
 - task: AzureKeyVault@1
   displayName: Get secrets
@@ -12,6 +13,8 @@ steps:
       TestContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
+      TestGitHubAccessToken,
+      TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
       TestRootCaCertificate,
@@ -61,6 +64,17 @@ steps:
     buildId: $(packageBuildId)
     downloadType: single
     artifactName: $(artifactName)
+
+- task: PowerShell@2
+  displayName: Download aziot-identity-service
+  inputs:
+    filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+    workingDirectory: $(Build.SourcesDirectory)
+  env:
+    GITHUB_TOKEN: $(TestGitHubAccessToken)
+    ARTIFACT_NAME: $(identityServiceArtifactName)
+    PACKAGE_FILTER: $(identityServicePackageFilter)
+    DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
@@ -124,8 +138,8 @@ steps:
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
-      $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 6
+      $context['teardownTimeoutMinutes'] = 10
+      $context['testTimeoutMinutes'] = 10
     }
 
     if ($env:AGENT_PROXYURL)
