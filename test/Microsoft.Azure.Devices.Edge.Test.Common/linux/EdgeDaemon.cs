@@ -207,11 +207,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
                         if (output.Length > 0)
                         {
-                            Log.Verbose($"\nUninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output: {output}");
+                            Log.Verbose($"Uninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output: {output}");
                         }
                         else
                         {
-                            Log.Verbose($"\nUninstall command '{command}' ran successfully");
+                            Log.Verbose($"Uninstall command '{command}' ran successfully");
                         }
                     }, "Uninstalled edge component");
                 }
