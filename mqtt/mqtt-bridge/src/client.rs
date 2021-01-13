@@ -464,6 +464,7 @@ mod tests {
             "c".repeat(repeat + 1),
             "username".into(),
             "pass".into(),
+            None,
         ));
 
         let event_handler = EventHandler::default();
@@ -489,6 +490,7 @@ mod tests {
             "user".into(),
             "u".repeat(repeat + 1),
             "pass".into(),
+            None,
         ));
 
         let event_handler = EventHandler::default();
