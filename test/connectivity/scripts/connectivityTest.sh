@@ -568,7 +568,7 @@ function run_longhaul_test() {
             -p "$CONTAINER_REGISTRY_PASSWORD" \
             -n "$(hostname)" \
             -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-            --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+            --initialize-with-agent-artifact "true" \
             --leave-running=All \
             -l "$deployment_working_file" \
             --runtime-log-level "$RUNTIME_LOG_LEVEL" \
