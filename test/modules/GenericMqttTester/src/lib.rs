@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(unused_variables, dead_code)] // TODO: remove when module complete
+
 use std::{
     env::VarError,
     io::{self},

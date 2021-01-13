@@ -145,7 +145,7 @@ where
                     }
                 }
                 Either::Right((shutdown_signal, _)) => {
-                    if let Some(shutdown_signal) = shutdown_signal {
+                    if let Some(_) = shutdown_signal {
                         info!("received shutdown signal");
                         return Ok(());
                     } else {

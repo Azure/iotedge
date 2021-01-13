@@ -1,13 +1,15 @@
+#![allow(unused_variables, dead_code)] // TODO: remove when module complete
+
 use future::{select_all, Either};
 use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
 use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::{info, info_span};
+use tracing::{error, info, info_span};
 use tracing_futures::Instrument;
 
 use mqtt3::{
     proto::{QoS, SubscribeTo},
-    Client, Event, PublishHandle, ReceivedPublication, UpdateSubscriptionHandle,
+    Client, Event, ReceivedPublication, UpdateSubscriptionHandle,
 };
 use mqtt_broker_tests_util::client;
 use mqtt_util::client_io::ClientIoSource;
@@ -66,7 +68,6 @@ impl MessageTesterShutdownHandle {
 pub struct MessageTester {
     settings: Settings,
     client: Client<ClientIoSource>,
-    publish_handle: PublishHandle,
     message_channel: MessageChannel<dyn MessageHandler + Send>,
     message_initiator: Option<MessageInitiator>,
     shutdown_handle: MessageTesterShutdownHandle,
@@ -118,7 +119,6 @@ impl MessageTester {
         Ok(Self {
             settings,
             client,
-            publish_handle,
             message_channel,
             message_initiator,
             shutdown_handle,
@@ -229,6 +229,10 @@ async fn poll_client(
                 }
             }
             Either::Right((shutdown, _)) => {
+                if let None = shutdown {
+                    error!("shutdown channel was full when shutdown initiated");
+                }
+
                 break;
             }
         }
