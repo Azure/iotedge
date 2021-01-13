@@ -1632,9 +1632,9 @@ fn manual_provision_connection_string(
                         InitializeErrorReason::ManualProvisioningClient,
                     )))
                 })
-                .and_then(|k| {
+                .map(|k| {
                     let derived_key_store = DerivedKeyStore::new(k.clone());
-                    Ok((derived_key_store, prov_result, k))
+                    (derived_key_store, prov_result, k)
                 })
         });
     tokio_runtime.block_on(provision)
@@ -1791,9 +1791,9 @@ fn external_provision_tpm(
                 ),
             )))
         })
-        .and_then(|k| {
+        .map(|k| {
             let derived_key_store = DerivedKeyStore::new(k.clone());
-            Ok((derived_key_store, k))
+            (derived_key_store, k)
         })
 }
 
