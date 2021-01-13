@@ -98,10 +98,10 @@ impl MessageInitiator {
             sequence_number,
         );
 
-        let _type = trc_client::TestType::Messages;
+        let test_type = trc_client::TestType::Messages;
         let created_at = chrono::Utc::now();
         self.reporting_client
-            .report_result(SEND_SOURCE.to_string(), result, _type, created_at)
+            .report_result(SEND_SOURCE.to_string(), result, test_type, created_at)
             .await
             .map_err(MessageTesterError::ReportResult)?;
 
