@@ -355,7 +355,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         static async Task<(DeviceClient, string)> InitializeDeviceClient(RegistryManager rm, string iotHubConnectionString, ITransportSettings[] settings)
         {
             DeviceClient deviceClient = null;
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
+            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
             for (int i = 0; i < 3; i++)
             {
                 try
