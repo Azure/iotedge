@@ -34,10 +34,7 @@ impl cmp::PartialEq for Pid {
     fn eq(&self, other: &Pid) -> bool {
         match *self {
             Pid::None => false,
-            Pid::Any => match *other {
-                Pid::None => false,
-                _ => true,
-            },
+            Pid::Any => !matches!(*other, Pid::None),
             Pid::Value(pid1) => match *other {
                 Pid::None => false,
                 Pid::Any => true,

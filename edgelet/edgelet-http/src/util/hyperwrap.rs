@@ -167,18 +167,12 @@ impl Client {
 
     #[cfg(test)]
     pub fn is_null(&self) -> bool {
-        match *self {
-            Client::Null => true,
-            _ => false,
-        }
+        matches!(*self, Client::Null)
     }
 
     #[cfg(test)]
     pub fn has_proxy(&self) -> bool {
-        match *self {
-            Client::Proxy(_) => true,
-            _ => false,
-        }
+        matches!(*self, Client::Proxy(_))
     }
 }
 
