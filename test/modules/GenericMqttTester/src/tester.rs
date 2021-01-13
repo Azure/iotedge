@@ -220,6 +220,8 @@ async fn poll_client(
         let message_send_handle = message_send_handle.clone();
         let event = client.try_next();
         let shutdown = shutdown_recv.next();
+
+        // TODO: if we get sub rejected then fail
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {
                 if let Ok(Some(event)) = event {

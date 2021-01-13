@@ -53,6 +53,7 @@ impl MessageInitiator {
         info!("starting message loop");
 
         let mut seq_num: u32 = 0;
+        let mut publish_handle = self.publish_handle.clone();
         loop {
             info!("publishing message {} to upstream broker", seq_num);
             let publication = Publication {
@@ -63,7 +64,7 @@ impl MessageInitiator {
             };
 
             let shutdown_recv_fut = self.shutdown_recv.next();
-            let publish_fut = self.publish_handle.publish(publication);
+            let publish_fut = publish_handle.publish(publication);
             pin_mut!(publish_fut);
 
             match future::select(shutdown_recv_fut, publish_fut).await {
@@ -77,9 +78,10 @@ impl MessageInitiator {
                 }
             };
 
-            time::delay_for(Duration::from_secs(1)).await;
-
+            self.report_message_sent(seq_num).await?;
             seq_num += 1;
+
+            time::delay_for(Duration::from_secs(1)).await;
         }
 
         Ok(())
