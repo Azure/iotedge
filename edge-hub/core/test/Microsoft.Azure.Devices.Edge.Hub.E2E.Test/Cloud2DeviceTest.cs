@@ -31,8 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
@@ -65,8 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
@@ -106,8 +110,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
@@ -154,8 +161,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             // Arrange
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm);
+            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
+            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
 
             ServiceClient serviceClient = null;
             DeviceClient deviceClient = null;
