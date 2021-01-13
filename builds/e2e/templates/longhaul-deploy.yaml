@@ -74,6 +74,7 @@ steps:
 
           # TODO: remove
           echo "$testName"
+          echo "${{ parameters['test.runtimeLogLevel'] }}"
 
           sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
