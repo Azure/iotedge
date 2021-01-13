@@ -100,11 +100,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes libiothsm-std iotedge"
+                "apt-get purge --yes libiothsm-std iotedge",
+                "sudo systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std iotedge"
+                "yum remove -y --remove-leaves libiothsm-std iotedge",
+                "sudo systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
