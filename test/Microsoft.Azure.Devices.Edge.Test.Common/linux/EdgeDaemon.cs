@@ -149,13 +149,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             try
             {
-                await Profiler.Run(
+                foreach(string command in commands)
+                {
+                    await Profiler.Run(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
+                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
                         Log.Verbose(string.Join("\n", output));
                     },
-                    "Uninstalled edge daemon");
+                    "Uninstalled edge component");
+                }
             }
             catch (Win32Exception e)
             {
