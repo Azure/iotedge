@@ -688,7 +688,9 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$(get_hash 8)"
+    local hash
+    hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -762,6 +764,15 @@ function run_longhaul_test() {
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_logs $ret "$test_end_time" $elapsed_seconds
+
+    if [ $ret -ne 0 ]; then
+        elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds")"
+        print_highlighted_message "Test completed at $test_end_time, took $elapsed_time."
+
+        print_error "Deploy longhaul test failed."
+
+        print_deployment_logs
+    fi
 
     return $ret
 }
