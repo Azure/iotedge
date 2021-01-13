@@ -18,7 +18,9 @@ const TOKEN_FILEPATH: &str = "/var/run/secrets/kubernetes.io/serviceaccount/toke
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Settings {
+    // services we will proxy.
     services: Vec<ServiceSettings>,
+    // optional api declaration for liveness/readiness probe
     api: Option<ApiSettings>,
 }
 
