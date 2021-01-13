@@ -1,4 +1,4 @@
-ARG base_tag=3.1.10-nanoserver-1809
+ARG base_tag=3.1.11-nanoserver-1809
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 # In order to set system PATH, ContainerAdministrator must be used
