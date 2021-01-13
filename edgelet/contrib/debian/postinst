@@ -7,28 +7,28 @@ GROUP=iotedge
 case "$1" in
     configure)
         if id -u $USER > /dev/null 2>&1; then
-            if [ ! -d /var/lib/iotedge ]; then
-                mkdir -p /var/lib/iotedge
+            if [ ! -d /var/lib/aziot/edged ]; then
+                mkdir -p /var/lib/aziot/edged
             fi
-            if [ ! -d /var/log/iotedge ]; then
-                mkdir -p /var/log/iotedge
+            if [ ! -d /var/log/aziot/edged ]; then
+                mkdir -p /var/log/aziot/edged
             fi
-            chown ${USER}:${GROUP} /var/lib/iotedge
-            chown ${USER}:${GROUP} /var/log/iotedge
-            chown ${USER}:${GROUP} /etc/iotedge/config.yaml.template
-            if [ ! -f /etc/iotedge/config.yaml ]; then
-                cp -a /etc/iotedge/config.yaml.template /etc/iotedge/config.yaml
+            chown ${USER}:${GROUP} /var/lib/aziot/edged
+            chown ${USER}:${GROUP} /var/log/aziot/edged
+            chown ${USER}:${GROUP} /etc/aziot/edged/config.yaml.template
+            if [ ! -f /etc/aziot/edged/config.yaml ]; then
+                cp -a /etc/aziot/edged/config.yaml.template /etc/aziot/edged/config.yaml
             fi
 
-            chmod 755 /var/lib/iotedge
-            chmod 755 /var/log/iotedge
-            chmod 400 /etc/iotedge/config.yaml.template
-            chmod 400 /etc/iotedge/config.yaml
+            chmod 755 /var/lib/aziot/edged
+            chmod 755 /var/log/aziot/edged
+            chmod 400 /etc/aziot/edged/config.yaml.template
+            chmod 400 /etc/aziot/edged/config.yaml
 
         fi
 
         # Set the hostname
-        sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
+        sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/aziot/edged/config.yaml
 
         echo "==============================================================================="
         echo ""
@@ -36,18 +36,17 @@ case "$1" in
         echo ""
         echo "  IMPORTANT: Please update the configuration file located at:"
         echo ""
-        echo "    /etc/iotedge/config.yaml"
+        echo "    /etc/aziot/edged/config.yaml"
         echo ""
-        echo "  with your device's provisioning information. You will need to restart the"
-        echo "  'iotedge' service for these changes to take effect."
+        echo "  with your container runtime configuration."
         echo ""
-        echo "  To restart the 'iotedge' service, use:"
+        echo "  To configure the Identity Service with provisioning information, use:"
         echo ""
-        echo "    'systemctl restart iotedge'"
+        echo "    'aziot init'"
         echo ""
-        echo "    - OR -"
+        echo "  To restart all services for provisioning changes to take effect, use:"
         echo ""
-        echo "    /etc/init.d/iotedge restart"
+        echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged'"
         echo ""
         echo "  These commands may need to be run with sudo depending on your environment."
         echo ""

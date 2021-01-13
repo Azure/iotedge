@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
     using System.ComponentModel;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
@@ -97,8 +98,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-                    var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
-                    (string msg, object[] props) = await config(yaml);
+
+                    ConfigFilePaths paths = new ConfigFilePaths
+                    {
+                        Keyd = "/etc/aziot/keyd/config.toml",
+                        Certd = "/etc/aziot/certd/config.toml",
+                        Identityd = "/etc/aziot/identityd/config.toml",
+                        Edged = "/etc/aziot/edged/config.yaml"
+                    };
+
+                    // The name of the default aziot-edged config file differs based on OS.
+                    string edgedDefault = this.packageManagement.GetDefaultEdgedConfig();
+
+                    DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
+                    DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
+                    DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
+                    DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
+
+                    uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
+                    (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
@@ -118,9 +137,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "start iotedge", token);
+            string[] output = await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
+
+            // Waiting for the processes to enter the "Running" state doesn't guarantee that
+            // they are fully started and ready to accept requests. Therefore, this function
+            // must wait until a request can be processed.
+            while (true)
+            {
+                var processInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "iotedge",
+                    Arguments = "list",
+                    RedirectStandardOutput = true
+                };
+                var request = System.Diagnostics.Process.Start(processInfo);
+
+                if (request.WaitForExit(1000))
+                {
+                    if (request.ExitCode == 0)
+                    {
+                        request.Close();
+                        Log.Verbose("aziot-edged ready for requests");
+                        break;
+                    }
+                }
+                else
+                {
+                    request.Kill(true);
+                    request.WaitForExit();
+                    request.Close();
+                    Log.Verbose("aziot-edged not yet ready");
+                }
+            }
         }
 
         public Task StopAsync(CancellationToken token) => Profiler.Run(
@@ -170,23 +220,38 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         static async Task WaitForStatusAsync(ServiceControllerStatus desired, CancellationToken token)
         {
-            while (true)
-            {
-                Func<string, bool> stateMatchesDesired = desired switch
-                {
-                    ServiceControllerStatus.Running => s => s == "active",
-                    ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
-                    _ => throw new NotImplementedException($"No handler for {desired}"),
-                };
-                string[] output = await Process.RunAsync("systemctl", "-p ActiveState show iotedge", token);
-                Log.Verbose(output.First());
-                if (stateMatchesDesired(output.First().Split("=").Last()))
-                {
-                    break;
-                }
+            string[] processes = { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
 
-                await Task.Delay(250, token).ConfigureAwait(false);
+            foreach (string process in processes)
+            {
+                while (true)
+                {
+                    Func<string, bool> stateMatchesDesired = desired switch
+                    {
+                        ServiceControllerStatus.Running => s => s == "active",
+                        ServiceControllerStatus.Stopped => s => s == "inactive" || s == "failed",
+                        _ => throw new NotImplementedException($"No handler for {desired}"),
+                    };
+
+                    string[] output = await Process.RunAsync("systemctl", $"-p ActiveState show {process}", token);
+                    Log.Verbose($"{process}: {output.First()}");
+
+                    if (stateMatchesDesired(output.First().Split("=").Last()))
+                    {
+                        break;
+                    }
+
+                    await Task.Delay(250, token).ConfigureAwait(false);
+                }
             }
+        }
+
+        private static async Task<uint> GetIotedgeUid(CancellationToken token)
+        {
+            string[] output = await Process.RunAsync("id", "-u iotedge", token);
+            string uid = output[0].Trim();
+
+            return System.Convert.ToUInt32(uid, 10);
         }
     }
 }

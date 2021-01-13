@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                     this.iotHub,
                     token,
                     Option.None<string>());
@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await RetryPolicy.DefaultProgressive.ExecuteAsync(
                 async () =>
             {
-                using var client = DeviceClient.CreateFromConnectionString(connectionString);
+                using var client = DeviceClient.CreateFromConnectionString(connectionString, Client.TransportType.Mqtt);
                 await client.OpenAsync();
             }, token);
 
@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(),
+                CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                 this.iotHub,
                 token,
                 Option.None<string>());
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
                     this.iotHub,
                     token,
                     Option.None<string>());

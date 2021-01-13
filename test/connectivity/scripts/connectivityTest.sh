@@ -1,14 +1,127 @@
 #!/bin/bash
 
 ###############################################################################
-# This script is used to run connectivity test for Linux.
+# This script is used to run Connectivity test for Linux.
 ###############################################################################
-set -e
+set -eo pipefail
 
-# Import test-related functions
-. $(dirname "$0")/testHelper.sh
+function usage() {
+    echo "connectivityTest.sh [options]"
+    echo ''
+    echo 'options'
+    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -releaseLabel                            Release label is used as part of Edge device id to make it unique.'
+    echo ' -artifactImageBuildNumber                Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
+    echo " -containerRegistry                       Host address of container registry."
+    echo " -containerRegistryUsername               Username of container registry."
+    echo ' -containerRegistryPassword               Password of given username for container registory.'
+    echo ' -iotHubConnectionString                  IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
+    echo ' -testDuration                            Connectivity test duration'
+    echo ' -testStartDelay                          Tests start after delay for applicable modules'
+    echo ' -loadGenMessageFrequency                 Message frequency sent by load gen'
+    echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"'
+    echo ' -networkControllerRunProfile             Online, Offline, SatelliteGood or Cellular3G'
+    echo ' -logAnalyticsWorkspaceId                 Log Analytics Workspace Id'
+    echo ' -logAnalyticsSharedKey                   Log Analytics shared key'
+    echo ' -logAnalyticsLogType                     Log Analytics log type'
+    echo ' -verificationDelay                       Delay before starting the verification after test finished'
+    echo ' -upstreamProtocol                        Upstream protocol used to connect to IoT Hub'
+    echo ' -deploymentTestUpdatePeriod              duration of updating deployment of target module in deployment test'
+    echo ' -timeForReportingGeneration              Time reserved for report generation'
+    echo ' -waitForTestComplete                     Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
+    echo ' -metricsEndpointsCSV                     Csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs            Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget                     Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
+    echo ' -deploymentFileName                      Deployment file name'
+    echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
+    echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
+    echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
+    echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
+    echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
+    echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
+    echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
+    exit 1;
+}
 
-function examine_test_result() {
+function print_error() {
+    local message=$1
+    local red='\033[0;31m'
+    local color_reset='\033[0m'
+    echo -e "${red}$message${color_reset}"
+}
+
+function print_highlighted_message() {
+    local message=$1
+    local cyan='\033[0;36m'
+    local color_reset='\033[0m'
+    echo -e "${cyan}$message${color_reset}"
+}
+
+function get_image_architecture_label() {
+    local arch
+    arch="$(uname -m)"
+
+    case "$arch" in
+        'x86_64' ) echo 'amd64';;
+        'armv7l' ) echo 'arm32v7';;
+        'aarch64' ) echo 'arm64v8';;
+        *) print_error "Unsupported OS architecture: $arch"; exit 1;;
+    esac
+}
+
+function get_artifact_file() {
+    local testDir=$1
+    local fileType=$2
+
+    local filter
+    case "$fileType" in
+        'aziot_edge' ) filter='aziot-edge_*.deb';;
+        'aziot_is' ) filter='aziot-identity-service_*.deb';;
+        'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
+        'deployment' ) filter="core-linux/e2e_deployment_files/$3";;
+        *) print_error "Unknown file type: $fileType"; exit 1;;
+    esac
+
+    local path
+    # shellcheck disable=SC2086
+    path=$(ls "$testDir/artifacts/"$filter)
+
+    if [ "$(echo "$path" | wc -w)" -ne 1 ]; then
+        print_error "Multiple files for $fileType found."
+        exit 1
+    fi
+
+    printf "$path"
+}
+
+function is_cancel_build_requested() {
+    local accessToken=$1
+    local buildId=$2
+
+    if [[ ( -z "$accessToken" ) || ( -z "$buildId" ) ]]; then
+        printf 0
+    fi
+
+    local output1
+    local output2
+    output1=$(curl -s -u :"$accessToken" --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId?api-version=5.1" | grep -oe '"status":"cancel')
+    output2=$(curl -s -u :"$accessToken" --request GET "https://dev.azure.com/msazure/one/_apis/build/builds/$buildId/Timeline?api-version=5.1" | grep -oe '"result":"canceled"')
+
+    if [[ -z "$output1" && -z "$output2" ]]; then
+        printf 0
+    else
+        printf 1
+    fi
+}
+
+function stop_aziot_edge() {
+    echo 'Stop IoT Edge services'
+    systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
+}
+
+function parse_result() {
     found_test_passed="$(docker logs testResultCoordinator 2>&1 | sed -n '/Test summary/,/"TestResultReports"/p' | grep '"IsPassed": true')"
 
     if [[ -z "$found_test_passed" ]]; then
@@ -21,21 +134,17 @@ function examine_test_result() {
 function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
-    echo 'Remove working folder'
+    echo 'Clean working folder'
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-    iotedge_package="${pkg_list[*]}"
-    echo "iotedge_package=$iotedge_package"
-
     echo 'Extract quickstart to working folder'
     mkdir -p "$quickstart_working_folder"
-    tar -C "$quickstart_working_folder" -xzf "$iotedge_quickstart_artifact_file"
+    tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
-    echo "Copy deployment file from $connectivity_deployment_artifact_file"
-    cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
-    
+    echo "Copy deployment artifact to $deployment_working_file"
+    cp "$(get_artifact_file "$E2E_TEST_DIR" deployment "$DEPLOYMENT_FILE_NAME")" "$deployment_working_file"
+
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
@@ -49,15 +158,15 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
-    
+
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
     fi
-    
+
     if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
     fi
-    
+
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
 
     sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
@@ -76,7 +185,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunProfile>@$NETWORK_CONTROLLER_RUNPROFILE@g" "$deployment_working_file"
-    
+
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
 
     sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
@@ -84,9 +193,30 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
 }
 
+function clean_up() {
+    print_highlighted_message 'Clean up'
+
+    stop_aziot_edge || true
+
+    echo 'Remove IoT Edge and config files'
+    rm -rf /var/lib/aziot/
+    rm -rf /etc/aziot/
+
+    if [ "$CLEAN_ALL" = '1' ]; then
+        echo 'Prune docker system'
+        docker system prune -af --volumes || true
+
+        echo 'Restart docker'
+        systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
+    else
+        echo 'Remove docker containers'
+        docker rm -f "$(docker ps -aq)" || true
+    fi
+}
+
 function print_deployment_logs() {
-    print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    print_highlighted_message 'LOGS FROM AZIOT-EDGED'
+    journalctl -u aziot-edged -u aziot-keyd -u aziot-certd -u aziot-identityd --since "$test_start_time" --no-pager || true
 
     print_highlighted_message 'edgeAgent LOGS'
     docker logs edgeAgent || true
@@ -190,22 +320,22 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 11 ]; then
             TEST_START_DELAY="$arg"
-            saveNextArg=0 
+            saveNextArg=0
         elif [ $saveNextArg -eq 12 ]; then
             LOADGEN_MESSAGE_FREQUENCY="$arg"
-            saveNextArg=0   
+            saveNextArg=0
         elif [ $saveNextArg -eq 13 ]; then
             NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
             NETWORK_CONTROLLER_RUNPROFILE="$arg"
-            saveNextArg=0    
+            saveNextArg=0
         elif [ $saveNextArg -eq 15 ]; then
             LOG_ANALYTICS_WORKSPACEID="$arg"
-            saveNextArg=0 
+            saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
             LOG_ANALYTICS_SHAREDKEY="$arg"
-            saveNextArg=0 
+            saveNextArg=0
         elif [ $saveNextArg -eq 17 ]; then
             LOG_ANALYTICS_LOGTYPE="$arg"
             saveNextArg=0
@@ -303,8 +433,8 @@ function process_args() {
                 '-testInfo' ) saveNextArg=35;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-                
-                * ) 
+
+                * )
                     echo "Unsupported argument: $saveNextArg $arg"
                     usage
                     ;;
@@ -330,6 +460,42 @@ function process_args() {
     echo 'Required parameters are provided'
 }
 
+function validate_test_parameters() {
+    print_highlighted_message "Validate test parameters"
+    echo "aziot_edge: $(get_artifact_file $E2E_TEST_DIR aziot_edge)"
+    echo "aziot_identity_service: $(get_artifact_file $E2E_TEST_DIR aziot_is)"
+    echo "IotEdgeQuickstart: $(get_artifact_file $E2E_TEST_DIR quickstart)"
+    echo "Deployment: $(get_artifact_file $E2E_TEST_DIR deployment "$DEPLOYMENT_FILE_NAME")"
+
+    if [[ -z "$TEST_INFO" ]]; then
+        print_error "Required test info."
+        ((error++))
+    fi
+
+    if (( error > 0 )); then
+        exit 1
+    fi
+}
+
+function test_setup() {
+    local funcRet=0
+
+    validate_test_parameters && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+
+    clean_up && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+
+    prepare_test_from_artifacts && funcRet=$? || funcRet=$?
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+
+    print_highlighted_message 'Create IoT Edge service config'
+    mkdir -p /etc/systemd/system/aziot-edged.service.d/
+    echo -e '[Service]\nEnvironment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf
+
+    if [ $funcRet -ne 0 ]; then return $funcRet; fi
+}
+
 function run_connectivity_test() {
     print_highlighted_message "Run connectivity test for $image_architecture_label"
 
@@ -337,32 +503,34 @@ function run_connectivity_test() {
     test_setup && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
 
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-connect-$(get_hash 8)"
+    local hash
+    hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
+    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-connect-$hash"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run connectivity test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    
+
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-    echo "Nested edge test=$NESTED_EDGE_TEST"
-    
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
         DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
         DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
         TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
-        
+
+        echo "Running with nested Edge."
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
         echo "Device CA cert=$DEVICE_CA_CERT"
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
-        
+
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
-        -a "$iotedge_package" \
+        -a "$testDir/artifacts/" \
         -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
@@ -383,7 +551,7 @@ function run_connectivity_test() {
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$iotedge_package" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -397,11 +565,12 @@ function run_connectivity_test() {
             --no-verify && funcRet=$? || funcRet=$?
     fi
 
-    local elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
+    local elapsed_time
+    elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$SECONDS")"
     print_highlighted_message "Deploy connectivity test with -d '$device_id' completed in $elapsed_time"
-    
+
     if [ $funcRet -ne 0 ]; then
-        print_highlighted_message "Deploy connectivity test failed."
+        print_error "Deploy connectivity test failed."
         print_deployment_logs
         return $funcRet
     fi
@@ -410,40 +579,41 @@ function run_connectivity_test() {
 
     # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation)
     local module_download_buffer=300
-    local time_for_test_to_complete=$(($module_download_buffer + \
+    local time_for_test_to_complete=$((module_download_buffer + \
                                     $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
                                     $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
     echo "test start delay=$TEST_START_DELAY"
     echo "test duration=$TEST_DURATION"
-    echo "verificaiton delay=$VERIFICATION_DELAY"
+    echo "verification delay=$VERIFICATION_DELAY"
     echo "time for report generation=$TIME_FOR_REPORT_GENERATION"
     echo "time for test to complete in seconds=$time_for_test_to_complete"
 
-    if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
+    if [ "$WAIT_FOR_TEST_COMPLETE" -eq 1 ]; then
         local sleep_frequency_secs=60
         local total_wait=0
 
         while [ $total_wait -lt $time_for_test_to_complete ]
         do
-            local is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-            
-            if [ $is_build_canceled -eq 1 ]; then
+            local is_build_canceled
+            is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
+
+            if [ "$is_build_canceled" -eq '1' ]; then
                 print_highlighted_message "build is canceled."
-                stop_iotedge_service || true
+                stop_aziot_edge || true
                 return 3
             fi
-        
-            sleep "$sleep_frequency_secs"s
+
+            sleep "${sleep_frequency_secs}s"
             total_wait=$((total_wait+sleep_frequency_secs))
             echo "total wait time=$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$total_wait")"
         done
 
         test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
         print_highlighted_message "Connectivity test should be completed at $test_end_time."
-        testExitCode=$(examine_test_result)
-        if [[ "$(examine_test_result)" -eq '0' ]]; then
+        testExitCode=$(parse_result)
+        if [[ "$(parse_result)" -eq '0' ]]; then
             testExitCode=1
         else
             testExitCode=0
@@ -452,108 +622,14 @@ function run_connectivity_test() {
         print_test_run_logs $testExitCode
 
         # stop IoT Edge service after test complete to prevent sending metrics
-        sudo systemctl stop iotedge
+        stop_aziot_edge
     fi
 
     return $testExitCode
 }
 
-function test_setup() {
-    local funcRet=0
-
-    validate_test_parameters && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
-    clean_up && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
-    prepare_test_from_artifacts && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
-    create_iotedge_service_config && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-}
-
-function validate_test_parameters() {
-    print_highlighted_message "Validate test parameters"
-
-    local required_files=()
-    local required_folders=()
-
-    required_files+=("$iotedge_quickstart_artifact_file")
-    required_folders+=("$iotedged_artifact_folder")
-
-    required_files+=($connectivity_deployment_artifact_file)
-
-    local error=0
-    for f in "${required_files[@]}"
-    do
-        if [ ! -f "$f" ]; then
-            print_error "Required file, $f doesn't exist."
-            ((error++))
-        fi
-    done
-
-    for d in "${required_folders[@]}"
-    do
-        if [ ! -d "$d" ]; then
-            print_error "Required directory, $d doesn't exist."
-            ((error++))
-        fi
-    done
-
-    if [[ -z "$TEST_INFO" ]]; then
-        print_error "Required test info."
-        ((error++))
-    fi
-
-    if (( error > 0 )); then
-        exit 1
-    fi
-}
-
-function usage() {
-    echo "$SCRIPT_NAME [options]"
-    echo ''
-    echo 'options'
-    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
-    echo ' -releaseLabel                            Release label is used as part of Edge device id to make it unique.'
-    echo ' -artifactImageBuildNumber                Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry                       Host address of container registry."
-    echo " -containerRegistryUsername               Username of container registry."
-    echo ' -containerRegistryPassword               Password of given username for container registory.'
-    echo ' -iotHubConnectionString                  IoT hub connection string for creating edge device.'
-    echo ' -eventHubConnectionString                Event hub connection string for receive D2C messages.'
-    echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
-    echo ' -testDuration                            Connectivity test duration'
-    echo ' -testStartDelay                          Tests start after delay for applicable modules'
-    echo ' -loadGenMessageFrequency                 Message frequency sent by load gen'
-    echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"'
-    echo ' -networkControllerRunProfile             Online, Offline, SatelliteGood or Cellular3G'
-    echo ' -logAnalyticsWorkspaceId                 Log Analytics Workspace Id'
-    echo ' -logAnalyticsSharedKey                   Log Analytics shared key'
-    echo ' -logAnalyticsLogType                     Log Analytics log type'
-    echo ' -verificationDelay                       Delay before starting the verification after test finished'
-    echo ' -upstreamProtocol                        Upstream protocol used to connect to IoT Hub'
-    echo ' -deploymentTestUpdatePeriod              duration of updating deployment of target module in deployment test'
-    echo ' -timeForReportingGeneration              Time reserved for report generation'
-    echo ' -waitForTestComplete                     Wait for test to complete if this parameter is provided.  Otherwise it will finish once deployment is done.'
-    echo ' -metricsEndpointsCSV                     Csv of exposed endpoints for which to scrape metrics.'
-    echo ' -metricsScrapeFrequencyInSecs            Frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
-    echo ' -metricsUploadTarget                     Upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
-    echo ' -deploymentFileName                      Deployment file name'
-    echo ' -EdgeHubRestartTestRestartPeriod         EdgeHub restart period (must be greater than 1 minutes)'
-    echo ' -EdgeHubRestartTestSdkOperationTimeout   SDK retry timeout'
-    echo ' -storageAccountConnectionString          Azure storage account connection string with privilege to create blob container.'
-    echo ' -edgeRuntimeBuildNumber                  Build number for specifying edge runtime (edgeHub and edgeAgent)'
-    echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
-    echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
-    echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
-    exit 1;
-}
-
-is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
-if [ $is_build_canceled -eq 1 ]; then
+is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
+if [ "$is_build_canceled" -eq '1' ]; then
     print_highlighted_message "build is canceled."
     exit 3
 fi
@@ -577,7 +653,7 @@ TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
-get_image_architecture_label
+image_architecture_label=$(get_image_architecture_label)
 optimize_for_performance=true
 log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
@@ -586,9 +662,6 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     log_upload_enabled=false
 fi
 
-iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
-iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file $E2E_TEST_DIR)"
-connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
 tracking_id=$(cat /proc/sys/kernel/random/uuid)

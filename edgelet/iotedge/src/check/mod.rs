@@ -21,7 +21,7 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
-mod upstream_protocol_port;
+// mod upstream_protocol_port;
 
 mod hostname_checks_common;
 
@@ -29,14 +29,20 @@ mod checker;
 use checker::Checker;
 
 mod checks;
+// use checks::{
+//     get_host_connect_upstream_tests, get_host_container_upstream_tests, AziotEdgedVersion, CertificatesQuickstart,
+//     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
+//     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
+//     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
+//     HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry,
+//     ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
+//     WindowsHostVersion,
+// };
 use checks::{
-    get_host_connect_upstream_tests, get_host_container_upstream_tests, CertificatesQuickstart,
-    ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-    ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
-    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
-    HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry, IotedgedVersion,
-    ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
-    WindowsHostVersion,
+    AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6,
+    ContainerEngineInstalled, ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
+    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted, HostLocalTime,
+    Hostname, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
 };
 
 pub struct Check {
@@ -44,7 +50,7 @@ pub struct Check {
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     dont_run: BTreeSet<String>,
-    iotedged: PathBuf,
+    aziot_edged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
     output_format: OutputFormat,
@@ -53,13 +59,13 @@ pub struct Check {
 
     additional_info: AdditionalInfo,
 
-    iothub_hostname: Option<String>,
+    // iothub_hostname: Option<String>,
 
     // These optional fields are populated by the checks
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
-    device_ca_cert_path: Option<PathBuf>,
+    // device_ca_cert_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -98,17 +104,19 @@ impl Check {
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
-        expected_iotedged_version: Option<String>,
-        iotedged: PathBuf,
-        iothub_hostname: Option<String>,
+        expected_aziot_edged_version: Option<String>,
+        aziot_edged: PathBuf,
+        // iothub_hostname: Option<String>,
         ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
         warnings_as_errors: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
-        let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
+        let latest_versions = if let Some(expected_aziot_edged_version) =
+            expected_aziot_edged_version
+        {
             future::Either::A(future::ok::<_, Error>(LatestVersions {
-                iotedged: expected_iotedged_version,
+                aziot_edged: expected_aziot_edged_version,
             }))
         } else {
             let proxy = std::env::var("HTTPS_PROXY")
@@ -205,7 +213,7 @@ impl Check {
                 container_engine_config_path,
                 diagnostics_image_name,
                 dont_run,
-                iotedged,
+                aziot_edged,
                 latest_versions: latest_versions.map_err(Some),
                 ntp_server,
                 output_format,
@@ -217,33 +225,32 @@ impl Check {
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
-                iothub_hostname,
-                device_ca_cert_path: None,
+                // iothub_hostname,
+                // device_ca_cert_path: None,
             })
         }))
     }
 
-    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 1] {
         /* Note: keep ordering consistant. Later tests may depend on earlier tests. */
         [
             (
                 "Configuration checks",
                 vec![
                     Box::new(WellFormedConfig::default()),
-                    Box::new(WellFormedConnectionString::default()),
+                    // Box::new(WellFormedConnectionString::default()),
                     Box::new(ContainerEngineInstalled::default()),
-                    Box::new(WindowsHostVersion::default()),
                     Box::new(Hostname::default()),
                     Box::new(ParentHostname::default()),
                     Box::new(ContainerResolveParentHostname::default()),
                     Box::new(ConnectManagementUri::default()),
-                    Box::new(IotedgedVersion::default()),
+                    Box::new(AziotEdgedVersion::default()),
                     Box::new(HostLocalTime::default()),
                     Box::new(ContainerLocalTime::default()),
                     Box::new(ContainerEngineDns::default()),
                     Box::new(ContainerEngineIPv6::default()),
-                    Box::new(IdentityCertificateExpiry::default()),
-                    Box::new(CertificatesQuickstart::default()),
+                    // Box::new(IdentityCertificateExpiry::default()),
+                    // Box::new(CertificatesQuickstart::default()),
                     Box::new(ContainerEngineIsMoby::default()),
                     Box::new(ContainerEngineLogrotate::default()),
                     Box::new(EdgeAgentStorageMounted::default()),
@@ -251,13 +258,13 @@ impl Check {
                     Box::new(PullAgentFromUpstream::default()),
                 ],
             ),
-            ("Connectivity checks", {
-                let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-                tests.push(Box::new(HostConnectDpsEndpoint::default()));
-                tests.extend(get_host_connect_upstream_tests());
-                tests.extend(get_host_container_upstream_tests());
-                tests
-            }),
+            // ("Connectivity checks", {
+            //     let mut tests: Vec<Box<dyn Checker>> = Vec::new();
+            //     tests.push(Box::new(HostConnectDpsEndpoint::default()));
+            //     tests.extend(get_host_connect_upstream_tests());
+            //     tests.extend(get_host_container_upstream_tests());
+            //     tests
+            // }),
         ]
     }
 
@@ -627,8 +634,13 @@ struct CheckOutputSerializable {
 #[cfg(test)]
 mod tests {
     use super::{
-        Check, CheckResult, Checker, ContainerEngineIsMoby, Hostname, WellFormedConfig,
-        WellFormedConnectionString,
+        Check,
+        CheckResult,
+        Checker,
+        ContainerEngineIsMoby,
+        Hostname,
+        WellFormedConfig,
+        // WellFormedConnectionString,
     };
 
     #[test]
@@ -639,7 +651,7 @@ mod tests {
             let config_file = format!(
                 "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                if cfg!(windows) { "windows" } else { "linux" },
+                "linux",
                 filename,
             );
 
@@ -649,9 +661,9 @@ mod tests {
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
-                    Some("1.0.0".to_owned()),      // unused for this test
-                    "iotedged".into(),             // unused for this test
-                    None,                          // unused for this test
+                    Some("1.0.0".to_owned()), // unused for this test
+                    "aziot-edged".into(),     // unused for this test
+                    // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
                     false,
@@ -664,13 +676,13 @@ mod tests {
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking connection string in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
+            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+            //     CheckResult::Ok => (),
+            //     check_result => panic!(
+            //         "checking connection string in {} returned {:?}",
+            //         filename, check_result
+            //     ),
+            // }
 
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
@@ -710,7 +722,7 @@ mod tests {
             let config_file = format!(
                 "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
-                if cfg!(windows) { "windows" } else { "linux" },
+                "linux",
                 filename,
             );
 
@@ -720,9 +732,9 @@ mod tests {
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
-                    Some("1.0.0".to_owned()),      // unused for this test
-                    "iotedged".into(),             // unused for this test
-                    None,                          // unused for this test
+                    Some("1.0.0".to_owned()), // unused for this test
+                    "aziot-edged".into(),     // unused for this test
+                    // None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
                     false,
@@ -735,13 +747,13 @@ mod tests {
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-                CheckResult::Ok => (),
-                check_result => panic!(
-                    "checking connection string in {} returned {:?}",
-                    filename, check_result
-                ),
-            }
+            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+            //     CheckResult::Ok => (),
+            //     check_result => panic!(
+            //         "checking connection string in {} returned {:?}",
+            //         filename, check_result
+            //     ),
+            // }
 
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
@@ -781,7 +793,7 @@ mod tests {
         let config_file = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
+            "linux",
             filename,
         );
 
@@ -791,9 +803,9 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()),      // unused for this test
-                "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                "aziot-edged".into(),     // unused for this test
+                // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
                 false,
@@ -809,7 +821,7 @@ mod tests {
                     .expect("expected to find cause-of-cause-of-error");
                 assert!(
                     err.to_string()
-                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 10 column 5"),
+                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 7 column 5"),
                     "parsing {} produced unexpected error: {}",
                     filename,
                     err,
@@ -820,44 +832,44 @@ mod tests {
         }
     }
 
-    #[test]
-    fn settings_connection_string_dps_hostname() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+    // #[test]
+    // fn settings_connection_string_dps_hostname() {
+    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.dps.sym.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
-            filename,
-        );
+    //     let filename = "sample_settings.dps.sym.yaml";
+    //     let config_file = format!(
+    //         "{}/../edgelet-docker/test/{}/{}",
+    //         env!("CARGO_MANIFEST_DIR"),
+    //         "linux",
+    //         filename,
+    //     );
 
-        let mut check = runtime
-            .block_on(Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()), // unused for this test
-                "iotedged".into(),        // unused for this test
-                Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
-                "pool.ntp.org:123".to_owned(),              // unused for this test
-                super::OutputFormat::Text,                  // unused for this test
-                false,
-                false,
-            ))
-            .unwrap();
+    //     let mut check = runtime
+    //         .block_on(Check::new(
+    //             config_file.into(),
+    //             "daemon.json".into(), // unused for this test
+    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+    //             Default::default(),
+    //             Some("1.0.0".to_owned()), // unused for this test
+    //             "aziot-edged".into(),        // unused for this test
+    //             // Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
+    //             "pool.ntp.org:123".to_owned(), // unused for this test
+    //             super::OutputFormat::Text,     // unused for this test
+    //             false,
+    //             false,
+    //         ))
+    //         .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
+    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Ok => (),
+    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
+    //     }
 
-        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
-    }
+    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Ok => (),
+    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
+    //     }
+    // }
 
     // This test inexplicably fails in the ci pipeline due to file read errors.
     // It has been tested on ubuntu 18.04, raspbian buster and windows.
@@ -875,7 +887,7 @@ mod tests {
     //     let config_file_source = format!(
     //         "{}/../edgelet-docker/test/{}/{}",
     //         env!("CARGO_MANIFEST_DIR"),
-    //         if cfg!(windows) { "windows" } else { "linux" },
+    //         "linux",
     //         filename,
     //     );
 
@@ -922,7 +934,7 @@ mod tests {
     //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
     //             Default::default(),
     //             Some("1.0.0".to_owned()),      // unused for this test
-    //             "iotedged".into(),             // unused for this test
+    //             "aziot-edged".into(),             // unused for this test
     //             None,                          // pretend user did not specify --iothub-hostname
     //             "pool.ntp.org:123".to_owned(), // unused for this test
     //             super::OutputFormat::Text,     // unused for this test
@@ -947,49 +959,49 @@ mod tests {
     //     }
     // }
 
-    #[test]
-    fn settings_connection_string_dps_err() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+    // #[test]
+    // fn settings_connection_string_dps_err() {
+    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.dps.sym.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
-            filename,
-        );
+    //     let filename = "sample_settings.dps.sym.yaml";
+    //     let config_file = format!(
+    //         "{}/../edgelet-docker/test/{}/{}",
+    //         env!("CARGO_MANIFEST_DIR"),
+    //         "linux",
+    //         filename,
+    //     );
 
-        let mut check = runtime
-            .block_on(Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()), // unused for this test
-                "iotedged".into(),        // unused for this test
-                None,
-                "pool.ntp.org:123".to_owned(), // unused for this test
-                super::OutputFormat::Text,     // unused for this test
-                false,
-                false,
-            ))
-            .unwrap();
+    //     let mut check = runtime
+    //         .block_on(Check::new(
+    //             config_file.into(),
+    //             "daemon.json".into(), // unused for this test
+    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+    //             Default::default(),
+    //             Some("1.0.0".to_owned()), // unused for this test
+    //             "aziot-edged".into(),        // unused for this test
+    //             // None,
+    //             "pool.ntp.org:123".to_owned(), // unused for this test
+    //             super::OutputFormat::Text,     // unused for this test
+    //             false,
+    //             false,
+    //         ))
+    //         .unwrap();
 
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
+    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Ok => (),
+    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
+    //     }
 
-        match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => assert!(err
-                .to_string()
-                .contains("Could not retrieve iothub_hostname from provisioning file.")),
-            check_result => panic!(
-                "checking connection string in {} returned {:?}",
-                filename, check_result
-            ),
-        }
-    }
+    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
+    //         CheckResult::Failed(err) => assert!(err
+    //             .to_string()
+    //             .contains("Could not retrieve iothub_hostname from provisioning file.")),
+    //         check_result => panic!(
+    //             "checking connection string in {} returned {:?}",
+    //             filename, check_result
+    //         ),
+    //     }
+    // }
 
     #[test]
     #[cfg(windows)]
@@ -1000,7 +1012,7 @@ mod tests {
         let config_file = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
+            "linux",
             filename,
         );
 
@@ -1011,7 +1023,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
-                "iotedged".into(),             // unused for this test
+                "aziot-edged".into(),          // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
@@ -1053,7 +1065,7 @@ mod tests {
         let config_file = format!(
             "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
-            if cfg!(windows) { "windows" } else { "linux" },
+            "linux",
             filename,
         );
 
@@ -1063,9 +1075,9 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()),      // unused for this test
-                "iotedged".into(),             // unused for this test
-                None,                          // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                "aziot-edged".into(),     // unused for this test
+                // None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
                 false,

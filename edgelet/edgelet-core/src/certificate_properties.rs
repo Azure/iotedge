@@ -24,7 +24,8 @@ pub struct CertificateProperties {
     certificate_type: CertificateType,
     alias: String,
     issuer: CertificateIssuer,
-    san_entries: Option<Vec<String>>,
+    dns_san_entries: Option<Vec<String>>,
+    ip_entries: Option<Vec<String>>,
 }
 
 impl CertificateProperties {
@@ -40,7 +41,8 @@ impl CertificateProperties {
             certificate_type,
             alias,
             issuer: CertificateIssuer::DefaultCa,
-            san_entries: None,
+            dns_san_entries: None,
+            ip_entries: None,
         }
     }
 
@@ -89,12 +91,21 @@ impl CertificateProperties {
         self
     }
 
-    pub fn san_entries(&self) -> Option<&[String]> {
-        self.san_entries.as_ref().map(AsRef::as_ref)
+    pub fn dns_san_entries(&self) -> Option<&[String]> {
+        self.dns_san_entries.as_ref().map(AsRef::as_ref)
     }
 
-    pub fn with_san_entries(mut self, entries: Vec<String>) -> Self {
-        self.san_entries = Some(entries);
+    pub fn with_dns_san_entries(mut self, entries: Vec<String>) -> Self {
+        self.dns_san_entries = Some(entries);
+        self
+    }
+
+    pub fn ip_entries(&self) -> Option<&[String]> {
+        self.ip_entries.as_ref().map(AsRef::as_ref)
+    }
+
+    pub fn with_ip_entries(mut self, entries: Vec<String>) -> Self {
+        self.ip_entries = Some(entries);
         self
     }
 }
@@ -117,7 +128,7 @@ mod tests {
         assert_eq!(&CertificateType::Client, c.certificate_type());
         assert_eq!("alias", c.alias());
         assert_eq!(&CertificateIssuer::DefaultCa, c.issuer());
-        assert_eq!(true, c.san_entries().is_none());
+        assert_eq!(true, c.dns_san_entries().is_none());
     }
 
     #[test]
@@ -134,12 +145,12 @@ mod tests {
         .with_validity_in_secs(240)
         .with_alias("Andrew Johnson".to_string())
         .with_issuer(CertificateIssuer::DeviceCa)
-        .with_san_entries(input_sans.clone());
+        .with_dns_san_entries(input_sans.clone());
         assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());
         assert_eq!("Andrew Johnson", c.alias());
         assert_eq!(&CertificateIssuer::DeviceCa, c.issuer());
-        assert_eq!(&*input_sans, c.san_entries().unwrap());
+        assert_eq!(&*input_sans, c.dns_san_entries().unwrap());
     }
 }

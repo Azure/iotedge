@@ -13,7 +13,7 @@ There are two options for building the IoT Edge Security Daemon.
 
 Linux packages are built using the `edgelet/build/linux/package.sh` script. Set the following environment variables, then invoke the script:
 
-1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian8`, `debian9`, `debian10`, `ubuntu16.04` or `ubuntu18.04`
+1. `PACKAGE_OS`: This is the OS on which the resulting packages will be installed. It should be one of `centos7`, `debian9`, `debian10`, `ubuntu18.04` or `ubuntu20.04`
 
 1. `PACKAGE_ARCH`: This is the architecture of the OS on which the resulting packages will be installed. It should be one of `amd64`, `arm32v7` or `aarch64`.
 
@@ -144,15 +144,15 @@ To build the project, use:
 ```sh
 cd edgelet/
 
-cargo build -p iotedged -p iotedge
+cargo build -p aziot-edged -p iotedge
 ```
 
-This will create `iotedged` and `iotedge` binaries under `edgelet/target/debug`
+This will create `aziot-edged` and `iotedge` binaries under `edgelet/target/debug`
 
 
 ### Run
 
-To run `iotedged` locally:
+To run `aziot-edged` locally:
 
 1. Create a directory that it will use as its home directory, such as `~/iotedge`
 
@@ -175,7 +175,7 @@ To run `iotedged` locally:
 1. Run the daemon with the `IOTEDGE_HOMEDIR` environment variable set and with the path to the `config.yaml`
 
     ```sh
-    cargo run -p iotedged -- -c /absolute/path/to/config.yaml
+    cargo run -p aziot-edged -- -c /absolute/path/to/config.yaml
     ```
 
 

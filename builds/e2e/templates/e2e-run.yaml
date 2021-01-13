@@ -2,15 +2,19 @@ steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
-    # Unfortunately CentOs has some failing test that need to be worked on.
+    # Filter out unstable tests.
+    $filter = 'Category!=Unstable'
+
     if ('$(Agent.Name)'.Contains('centos'))
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Category=CentOsSafe'
+      $filter += '&Category=CentOsSafe'
     }
-    else
+    elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx
+      $filter += '&Category!=UnstableOnArm'
     }
+
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)

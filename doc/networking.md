@@ -20,7 +20,7 @@ The only requirement for IoT Edge is that this nat network has outbound internet
 
 ## User-defined Network (Linux only)
 
-On Linux, `iotedged` creates a [user-defined network][2] named `azure-iot-edge` when it boots for the first time.
+On Linux, `aziot-edged` creates a [user-defined network][2] named `azure-iot-edge` when it boots for the first time.
 It also starts the Edge Agent and places it on the `azure-iot-edge` network.
 
 All other modules (containers), including the Edge Hub, are started by the Edge Agent and placed on the `azure-iot-edge` network.
@@ -30,7 +30,7 @@ This means that a route from the `azure-iot-edge` subnet to the internet must ex
 
 ### Configuring `azure-iot-edge`
 
-This network is configured via the `moby_runtime` section of the `iotedged`'s config file (`/etc/iotedge/config.yaml):
+This network is configured via the `moby_runtime` section of the `aziot-edged`'s config file (`/etc/aziot/edged/config.yaml):
 
 ```yaml
 moby_runtime:
@@ -61,7 +61,7 @@ Read the Docker [networking guide][4] for more information.
 
 For more details on how to configure IoT edge to work on IPv6 networks, please refer to the [IPv6 networking guide on Linux devices](./IPv6Configuration.md) guide.
 
-This network can be configured before starting IoT Edge, as the `iotedged` does a "get or create" operation on the network when starting.
+This network can be configured before starting IoT Edge, as the `aziot-edged` does a "get or create" operation on the network when starting.
 Pre-configuring a network and updating the network in the `config.yaml` allows complete control over its settings.
 
 # Ports
@@ -84,7 +84,7 @@ This means that one of 8883, 5671, and 443 must be open to inbound access.
 If no downstream devices are to connect to the edge device as a gateway, then all inbound connectivity can be disabled.
 
 *The `Edge Agent` and `Edge Hub` require one of ports 5671, 8883, or 443 open for outbound connectivity to IoT Hub.
-The `iotedged` requires outbound connectivity on port 443 to IoT Hub, and optionally to the Device Provisioning Service (DPS), if DPS is used for provisioning.
+The `aziot-edged` requires outbound connectivity on port 443 to IoT Hub, and optionally to the Device Provisioning Service (DPS), if DPS is used for provisioning.
 The Moby Engine requires outbound connectivity on port 443 to a container registry.
 
 # Upstream Protocol
