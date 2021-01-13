@@ -189,7 +189,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         CertificateType::Client => CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT,
         CertificateType::Server => CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER,
         CertificateType::Ca => CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA,
-        _ => CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN,
+        CertificateType::Unknown => CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN,
     };
     let result = unsafe { set_certificate_type(handle, c_cert_type) };
     match result {
@@ -281,9 +281,8 @@ impl CreateCertificate for Crypto {
 
         CString::new(alias)
             .ok()
-            .and_then(|c_alias| {
+            .map(|c_alias| {
                 unsafe { if_fn(self.handle, c_alias.as_ptr()) };
-                Some(())
             })
             .ok_or_else(|| ErrorKind::ToCStr)?;
         Ok(())
