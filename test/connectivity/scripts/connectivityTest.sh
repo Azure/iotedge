@@ -674,7 +674,7 @@ function usage() {
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -twinUpdateSize                          Specifies the char count (i.e. size) of each twin update.'
     echo ' -twinUpdateFrequency                     Frequency to make twin updates. This should be specified in DateTime format.'
-    echo " -testName                                Name of test to run. Either 'longhaul' or 'connectivity'"
+    echo " -testName                                Name of test to run. Either 'LongHaul' or 'Connectivity'"
     echo ' -connectManagementUri                    Customize connect management socket'
     echo ' -connectWorkloadUri                      Customize connect workload socket'
     echo ' -listenManagementUri                     Customize listen management socket'
