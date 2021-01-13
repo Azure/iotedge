@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetEdgeAgentImage(string value)
         {
-            this.config.ReplaceOrAdd("agent.config.image", value);
+            this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", value);
         }
 
         public void SetDeviceHostname(string value)
