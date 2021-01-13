@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             {
                 foreach(string command in commands)
                 {
-                    Log.Verbose($"Trying to run {command}...")
+                    Log.Verbose($"Trying to run {command}...");
                     await Profiler.Run(
                     async () =>
                     {
