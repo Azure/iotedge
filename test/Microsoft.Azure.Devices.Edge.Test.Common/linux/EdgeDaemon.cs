@@ -155,21 +155,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     async () =>
                     {
                         string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
-                        if (output.Length > 0)
-                        {
-                            Log.Verbose($"\nUninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output: {output}");
-                        }
-                        else
-                        {
-                            Log.Verbose($"\nUninstall command '{command}' ran successfully");
-                        }
                     },
                     "Uninstalled edge component");
+                    Log.Verbose($"\nUninstall command '{command}' ran successfully");
                 }
             }
             catch (Win32Exception e)
             {
                 Log.Verbose(e, "Failed to uninstall edge daemon, probably because it isn't installed");
+            }
+            catch (Exception e)
+            {
+                Log.Verbose($"\nUninstall command ran unsuccessfully, {e}");
+                throw e;
             }
         }
 
