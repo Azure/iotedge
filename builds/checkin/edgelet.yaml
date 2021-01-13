@@ -30,7 +30,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-18.04
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -52,7 +52,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-18.04
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -81,7 +81,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-18.04
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -130,7 +130,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-18.04
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -158,7 +158,7 @@ jobs:
 #       coverage.goal: 68
 #       rust.toolchain: nightly-2020-04-10
 #     pool:
-#       vmImage: ubuntu-latest
+#       vmImage: ubuntu-18.04
 #     steps:
 #       - script: |
 #           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
