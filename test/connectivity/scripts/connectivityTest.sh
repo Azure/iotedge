@@ -81,12 +81,12 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
     sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
 
-    if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
+    if [[ "${TEST_NAME,,}" == "$LONGHAUL_TEST_NAME" ]]; then
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
     fi
 
-    if [[ "${TEST_NAME,,}" == 'connectivity' ]]; then
+    if [[ "${TEST_NAME,,}" == "$CONNECTIVITY_TEST_NAME" ]]; then
         sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
         sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
         sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
@@ -372,7 +372,7 @@ function process_args() {
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
-    [[ (-z "$TEST_NAME") && ("$TEST_NAME" == "LongHaul" || "$TEST_NAME" == "Connectivity") ]] && { print_error 'Test name is required'; exit 1; }
+    [[ (-z "$TEST_NAME") || ("$TEST_NAME" != "$LONGHAUL_TEST_NAME" && "$TEST_NAME" != "$CONNECTIVITY_TEST_NAME") ]] && { print_error 'Test name is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -687,6 +687,9 @@ function usage() {
 
 process_args "$@"
 
+LONGHAUL_TEST_NAME="LongHaul"
+CONNECTIVITY_TEST_NAME="Connectivity"
+
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 TEST_DURATION="${TEST_DURATION:-01:00:00}"
@@ -724,12 +727,12 @@ TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
 TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 
 testRet=0
-if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
+if [[ "${TEST_NAME,,}" == "$LONGHAUL_TEST_NAME" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
 
     run_longhaul_test && ret=$? || ret=$?
-elif [[ "${TEST_NAME,,}" == "connectivity" ]]; then
+elif [[ "${TEST_NAME,,}" == "$CONNECTIVITY_TEST_NAME" ]]; then
     NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
 
