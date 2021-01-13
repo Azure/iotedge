@@ -16,8 +16,7 @@ use serde_derive::Serialize;
 use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result};
-use crate::settings::{Provisioning, RuntimeSettings};
-use crate::GetTrustBundle;
+use crate::settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -140,15 +139,15 @@ impl ModuleRuntimeState {
 
 #[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
 pub struct ModuleSpec<T> {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    type_: String,
-    config: T,
+    pub type_: String,
+    pub config: T,
     #[serde(default = "BTreeMap::new")]
-    env: BTreeMap<String, String>,
+    pub env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
-    image_pull_policy: ImagePullPolicy,
+    pub image_pull_policy: ImagePullPolicy,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -384,16 +383,6 @@ pub struct ProvisioningInfo {
     pub always_reprovision_on_startup: bool,
 }
 
-impl ProvisioningInfo {
-    pub fn new(provisioning: &Provisioning) -> Self {
-        ProvisioningInfo {
-            r#type: provisioning.provisioning_type().to_string(),
-            dynamic_reprovisioning: provisioning.dynamic_reprovisioning(),
-            always_reprovision_on_startup: provisioning.always_reprovision_on_startup(),
-        }
-    }
-}
-
 #[derive(Debug, serde_derive::Serialize)]
 pub struct SystemResources {
     host_uptime: u64,
@@ -484,16 +473,11 @@ pub trait ProvisioningResult {
 pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<Config = Self::Config>;
-    type ProvisioningResult: ProvisioningResult;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
     type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
 
-    fn make_runtime(
-        settings: Self::Settings,
-        provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + Send + 'static,
-    ) -> Self::Future;
+    fn make_runtime(settings: Self::Settings) -> Self::Future;
 }
 
 pub trait ModuleRuntime: Sized {

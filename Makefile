@@ -12,7 +12,7 @@ RPM_VERSION?=$(word 1,$(subst ~, , $(VERSION)))
 _release=$(or $(and $(word 2,$(subst ~, ,$1)),0.${REVISION}.$(word 2,$(subst ~, ,$1))),${REVISION})
 RPM_RELEASE?=$(call _release, ${VERSION})
 
-PACKAGE_NAME=iotedge
+PACKAGE_NAME=aziot-edge
 PACKAGE="$(PACKAGE_NAME)-$(RPM_VERSION)"
 
 GIT=git

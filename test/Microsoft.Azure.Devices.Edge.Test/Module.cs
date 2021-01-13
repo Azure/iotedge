@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Category("Unstable")]
         public async Task TempSensor()
         {
-            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             CancellationToken token = this.TestToken;
 
@@ -101,15 +101,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Unstable")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
-            Assert.Ignore("Temporarily disabling flaky test while we figure out what is wrong");
-            if (OsPlatform.IsArm() && OsPlatform.Is64Bit())
-            {
-                Assert.Ignore("TempFilterFunc is disabled for arm64 because azureiotedge-functions-filter does not exist for arm64");
-            }
-
             const string filterFuncName = "tempFilterFunctions";
 
             // Azure Function Name: EdgeHubTrigger-CSharp
@@ -148,11 +143,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task ModuleToModuleDirectMethod(
             [Values] Protocol protocol)
         {
-            if (OsPlatform.IsWindows() && (protocol == Protocol.AmqpWs || protocol == Protocol.MqttWs))
-            {
-                Assert.Ignore("Module-to-module direct methods don't work over WebSocket on Windows");
-            }
-
             string senderImage = Context.Current.MethodSenderImage.Expect(() => new InvalidOperationException("Missing Direct Method Sender image"));
             string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new InvalidOperationException("Missing Direct Method Receiver image"));
             string methodSender = $"methodSender-{protocol.ToString()}";

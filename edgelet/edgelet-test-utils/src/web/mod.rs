@@ -1,11 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[cfg(windows)]
-mod windows;
-
-#[cfg(windows)]
-pub use self::windows::run_pipe_server;
-
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::error::Error as StdError;
@@ -22,10 +16,6 @@ use hyper::Error as HyperError;
 use hyper::{self, Body, Method, Request, Response};
 #[cfg(unix)]
 use hyperlocal::server::{Http as UdsHttp, Incoming as UdsIncoming};
-#[cfg(windows)]
-use hyperlocal_windows::server::{Http as UdsHttp, Incoming as UdsIncoming};
-#[cfg(windows)]
-use mio_uds_windows::net::UnixListener as StdUnixListener;
 
 pub fn run_tcp_server<F, R>(
     ip: &str,
