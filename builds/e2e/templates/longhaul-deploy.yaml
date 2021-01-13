@@ -57,7 +57,7 @@ steps:
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        testName="LongHaul"
+        testName="longhaul"
         
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
         testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
