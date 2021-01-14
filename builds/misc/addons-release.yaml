@@ -42,5 +42,12 @@ jobs:
     dependsOn:
       - linux_API_proxy_module
     steps:
+    - bash: |
+          if [ -z '$(version)' ]; then
+            echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
+          else
+            echo '##vso[task.setvariable variable=buildVersion]$(version)'
+          fi
+      displayName: 'Set build version'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(buildVersion) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-api-proxy Manifest'
