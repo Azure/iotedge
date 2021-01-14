@@ -189,6 +189,22 @@ jobs:
       targetArch: x86_64
 
 ################################################################################
+# linux - Rust arm32
+################################################################################
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: arm32
+      targetArch: armv7l
+
+################################################################################
+# linux - Rust arm64
+################################################################################
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: arm64
+      targetArch: aarch64
+
+################################################################################
   - job: windows
 ################################################################################
     displayName: Windows
@@ -372,6 +388,8 @@ jobs:
     dependsOn:
       - linux_dotnet_projects
       - linux_rust_amd64
+      - linux_rust_arm32
+      - linux_rust_arm64
       - windows
     variables:
       tags: "['latest']"
