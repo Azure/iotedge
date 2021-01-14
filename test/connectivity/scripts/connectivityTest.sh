@@ -731,7 +731,7 @@ function run_longhaul_test() {
             --initialize-with-agent-artifact "true" \
             --leave-running=All \
             -l "$deployment_working_file" \
-            --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
             --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
@@ -752,7 +752,7 @@ function run_longhaul_test() {
             --initialize-with-agent-artifact "true" \
             --leave-running=All \
             -l "$deployment_working_file" \
-            --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+            --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
             --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
