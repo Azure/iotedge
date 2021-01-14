@@ -94,10 +94,17 @@ function get_artifact_file() {
     esac
 
     local path
+    local path_count
     # shellcheck disable=SC2086
-    path=$(ls "$testDir/artifacts/"$filter)
+    path=$(ls "$testDir/artifacts/*/"$filter)
+    path_count="$(echo "$path" | wc -w)"
 
-    if [ "$(echo "$path" | wc -w)" -ne 1 ]; then
+    if [ "$path_count"  -eq 0 ]; then
+        print_error "No files for $fileType found."
+        exit 1
+    fi
+
+    if [ "$path_count" -ne 1 ]; then
         print_error "Multiple files for $fileType found."
         exit 1
     fi

@@ -652,13 +652,6 @@
             "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | mqtt"
           },
-          "reportMetadata13": {
-            "TestReportType": "CountingReport",
-            "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageSender1.send",
-            "ActualSource": "cloudToDeviceMessageReceiver1.receive",
-            "TestDescription": "C2D | amqp"
-          },
           "reportMetadata16": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
