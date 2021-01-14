@@ -86,8 +86,8 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='aziot-edge_*.deb';;
-        'aziot_is' ) filter='aziot-identity-service_*.deb';;
+        'aziot_edge' ) filter='*/aziot-edge_*.deb';;
+        'aziot_is' ) filter='*/aziot-identity-service_*.deb';;
         'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
         'deployment' ) filter="core-linux/e2e_deployment_files/$3";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
@@ -96,7 +96,7 @@ function get_artifact_file() {
     local path
     local path_count
     # shellcheck disable=SC2086
-    path=$(ls "$testDir/artifacts/*/"$filter)
+    path=$(ls "$testDir/artifacts/"$filter)
     path_count="$(echo "$path" | wc -w)"
 
     if [ "$path_count"  -eq 0 ]; then
@@ -772,7 +772,6 @@ function run_longhaul_test() {
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
-    print_logs $ret "$test_end_time" $elapsed_seconds
 
     if [ $ret -ne 0 ]; then
         elapsed_time="$(TZ=UTC0 printf '%(%H:%M:%S)T\n' "$elapsed_seconds")"
