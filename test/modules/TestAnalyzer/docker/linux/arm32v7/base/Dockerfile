@@ -1,4 +1,4 @@
-ARG base_tag=3.1.10-bionic-arm32v7
+﻿ARG base_tag=3.1.11-bionic-arm32v7
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
 
 RUN apt-get update && apt-get install -y libcap2-bin libsnappy1v5 && \
