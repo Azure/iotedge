@@ -27,12 +27,18 @@ namespace TestResultCoordinator.Reports.DirectMethod
             Option<string> receiverSource,
             Option<ITestResultCollection<TestOperationResult>> receiverTestResults,
             string resultType,
-            NetworkStatusTimeline networkStatusTimeline,
+            Option<NetworkStatusTimeline> networkStatusTimeline,
             NetworkControllerType networkControllerType)
         {
             if (receiverSource.HasValue ^ receiverTestResults.HasValue)
             {
                 throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
+            }
+
+            // NetworkStatusTimeline can be empty if we don't deploy with NetworkController (e.g. long haul with no connectivity cuts)
+            if (!networkStatusTimeline.HasValue && networkControllerType.Equals(NetworkControllerType.Offline))
+            {
+                throw new ArgumentException("If NetworkStatusTimeline is empty, we must be in an online only scenario");
             }
 
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
@@ -42,7 +48,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             this.ReceiverSource = receiverSource;
             this.ReceiverTestResults = receiverTestResults;
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
-            this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
+            this.NetworkStatusTimeline = networkStatusTimeline;
             this.NetworkControllerType = networkControllerType;
         }
 
@@ -60,7 +66,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
-        internal NetworkStatusTimeline NetworkStatusTimeline { get; }
+        internal Option<NetworkStatusTimeline> NetworkStatusTimeline { get; }
 
         internal NetworkControllerType NetworkControllerType { get; }
 
@@ -85,7 +91,9 @@ namespace TestResultCoordinator.Reports.DirectMethod
             {
                 this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
                 (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
-                    this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt);
+                    this.NetworkStatusTimeline.Match(
+                        n => n.GetNetworkControllerStatusAndWithinToleranceAt(this.SenderTestResults.Current.CreatedAt),
+                        () => (NetworkControllerStatus.Disabled, true)); // These are dummy values that will never get used if NetworkStatusTimeline is absent.
                 this.ValidateNetworkControllerStatus(networkControllerStatus);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
 

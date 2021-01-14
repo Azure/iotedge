@@ -47,7 +47,41 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 receiverSource,
                 receiverResults,
                 resultType,
-                NetworkStatusTimeline,
+                Option.Some(NetworkStatusTimeline),
+                networkControllerType);
+
+            Assert.Equal(TestDescription, reportGenerator.TestDescription);
+            Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
+            Assert.Equal(senderResults, reportGenerator.SenderTestResults);
+            Assert.Equal(senderSource, reportGenerator.SenderSource);
+            Assert.Equal(receiverResults, reportGenerator.ReceiverTestResults);
+            Assert.Equal(resultType, reportGenerator.ResultType);
+        }
+
+        [Fact]
+        public void TestConstructorSuccessWithEmptyNetworkStatusTimeline()
+        {
+            string senderSource = "senderSource";
+            Option<string> receiverSource = Option.Some("receiverSource");
+            int batchSize = 10;
+            string resultType = "resultType1";
+            NetworkControllerType networkControllerType = NetworkControllerType.Online;
+
+            var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            var reportGenerator = new DirectMethodReportGenerator(
+                TestDescription,
+                Guid.NewGuid().ToString(),
+                senderSource,
+                senderResults,
+                receiverSource,
+                receiverResults,
+                resultType,
+                Option.None<NetworkStatusTimeline>(),
                 networkControllerType);
 
             Assert.Equal(TestDescription, reportGenerator.TestDescription);
@@ -79,7 +113,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.StartsWith("trackingId", ex.Message);
@@ -106,7 +140,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.StartsWith("testDescription", ex.Message);
@@ -133,7 +167,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.StartsWith("senderSource", ex.Message);
@@ -157,7 +191,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     "resultType1",
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.Equal("senderTestResults", ex.ParamName);
@@ -184,7 +218,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     receiverResults,
                     resultType,
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.StartsWith("resultType", ex.Message);
@@ -206,7 +240,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.Some("receiverSource"),
                     Option.None<ITestResultCollection<TestOperationResult>>(),
                     "resultType1",
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
@@ -231,10 +265,35 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Option.None<string>(),
                     receiverResults,
                     "resultType1",
-                    NetworkStatusTimeline,
+                    Option.Some(NetworkStatusTimeline),
                     networkControllerType));
 
             Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
+        }
+
+        [Fact]
+        public void TestConstructorThrowsWhenNetworkStatusTimelineIsEmptyAndNetworkControllerTypeIsOffline()
+        {
+            int batchSize = 10;
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline;
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DirectMethodReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "senderSource",
+                    mockSenderResults.Object,
+                    Option.Some("receiverSource"),
+                    receiverResults,
+                    "resultType1",
+                    Option.None<NetworkStatusTimeline>(),
+                    networkControllerType));
+
+            Assert.Equal("If NetworkStatusTimeline is empty, we must be in an online only scenario", ex.Message);
         }
 
         [Fact]
@@ -259,7 +318,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 Option.Some(receiverSource),
                 receiverResults,
                 "resultType1",
-                NetworkStatusTimeline,
+                Option.Some(NetworkStatusTimeline),
                 networkControllerType);
 
             var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
@@ -311,7 +370,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 Option.Some(receiverSource),
                 receiverResults,
                 resultType,
-                NetworkStatusTimeline,
+                Option.Some(NetworkStatusTimeline),
                 networkControllerType);
 
             Guid guid = Guid.NewGuid();
@@ -340,6 +399,94 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedMismatchSuccess, report.MismatchSuccess);
             Assert.Equal(expectedMismatchFailure, report.MismatchFailure);
             Assert.Equal(expectedIsPassed, report.IsPassed);
+        }
+
+        [Theory]
+        [MemberData(nameof(DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderAndReceiverSource))]
+        public async Task TestCreateReportAsyncWithNoNetworkStatusTimeline(
+            IEnumerable<ulong> senderStoreValues,
+            IEnumerable<ulong> receiverStoreValues,
+            IEnumerable<HttpStatusCode> statusCodes,
+            IEnumerable<DateTime> timestamps,
+            int batchSize,
+            ulong expectedNetworkOnSuccess,
+            ulong expectedNetworkOffSuccess,
+            ulong expectedNetworkOnToleratedSuccess,
+            ulong expectedNetworkOffToleratedSuccess,
+            ulong expectedNetworkOnFailure,
+            ulong expectedNetworkOffFailure,
+            ulong expectedMismatchSuccess,
+            ulong expectedMismatchFailure,
+            bool expectedIsPassed,
+            NetworkControllerType networkControllerType = NetworkControllerType.Offline)
+        {
+            string senderSource = "senderSource";
+            string receiverSource = "receiverSource";
+            string resultType = TestOperationResultType.DirectMethod.ToString();
+
+            var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            if (networkControllerType.Equals(NetworkControllerType.Offline))
+            {
+                Assert.Throws<ArgumentException>(
+                    () =>
+                    {
+                        new DirectMethodReportGenerator(
+                            TestDescription,
+                            Guid.NewGuid().ToString(),
+                            senderSource,
+                            senderResults,
+                            Option.Some(receiverSource),
+                            receiverResults,
+                            resultType,
+                            Option.None<NetworkStatusTimeline>(),
+                            networkControllerType);
+                    });
+            }
+            else
+            {
+                var reportGenerator = new DirectMethodReportGenerator(
+                TestDescription,
+                Guid.NewGuid().ToString(),
+                senderSource,
+                senderResults,
+                Option.Some(receiverSource),
+                receiverResults,
+                resultType,
+                Option.None<NetworkStatusTimeline>(),
+                networkControllerType);
+
+                Guid guid = Guid.NewGuid();
+                var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
+                for (int i = 0; i < senderStoreData.Count; i += batchSize)
+                {
+                    int startingOffset = i;
+                    mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
+                }
+
+                var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, guid);
+                for (int j = 0; j < senderStoreData.Count; j += batchSize)
+                {
+                    int startingOffset = j;
+                    mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
+                }
+
+                var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+
+                Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
+                Assert.Equal(expectedNetworkOffSuccess, report.NetworkOffSuccess);
+                Assert.Equal(expectedNetworkOnToleratedSuccess, report.NetworkOnToleratedSuccess);
+                Assert.Equal(expectedNetworkOffToleratedSuccess, report.NetworkOffToleratedSuccess);
+                Assert.Equal(expectedNetworkOnFailure, report.NetworkOnFailure);
+                Assert.Equal(expectedNetworkOffFailure, report.NetworkOffFailure);
+                Assert.Equal(expectedMismatchSuccess, report.MismatchSuccess);
+                Assert.Equal(expectedMismatchFailure, report.MismatchFailure);
+                Assert.Equal(expectedIsPassed, report.IsPassed);
+            }
         }
 
         [Theory]
@@ -376,7 +523,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 Option.None<string>(),
                 receiverResults,
                 resultType,
-                NetworkStatusTimeline,
+                Option.Some(NetworkStatusTimeline),
                 networkControllerType);
 
             var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, Guid.NewGuid());

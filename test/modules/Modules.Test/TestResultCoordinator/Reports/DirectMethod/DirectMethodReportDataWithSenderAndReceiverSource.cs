@@ -218,6 +218,46 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     10, 6, 0, 0, 0, 0, 0, 1, 0, true,
                     NetworkControllerType.Satellite
                 },
+
+                new object[]
+                {
+                    // Online NetworkOnSuccess test
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
+                    new DateTime[]
+                    {
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 21, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 22, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 23, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15)
+                    },
+                    10, 7, 0, 0, 0, 0, 0, 0, 0, true,
+                    NetworkControllerType.Online
+                },
+
+                new object[]
+                {
+                    // Online NetworkOnFailure test
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.NotFound, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK },
+                    new DateTime[]
+                    {
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 21, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 22, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 23, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15)
+                    },
+                    10, 6, 0, 0, 0, 1, 0, 0, 0, false,
+                    NetworkControllerType.Online
+                },
             };
     }
 }

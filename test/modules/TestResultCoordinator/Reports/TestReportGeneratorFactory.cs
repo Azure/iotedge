@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports
 {
     using System;
+    using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
@@ -183,11 +184,18 @@ namespace TestResultCoordinator.Reports
             }
         }
 
-        async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
+        async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
         {
-            return await NetworkStatusTimeline.CreateAsync(
-                new StoreTestResultCollection<TestOperationResult>(this.Storage.GetStoreFromSource("networkController"), BatchSize),
-                tolerancePeriod);
+            try
+            {
+                return Option.Some(await NetworkStatusTimeline.CreateAsync(
+                    new StoreTestResultCollection<TestOperationResult>(this.Storage.GetStoreFromSource("networkController"), BatchSize),
+                    tolerancePeriod));
+            }
+            catch (InvalidDataException)
+            {
+                return Option.None<NetworkStatusTimeline>();
+            }
         }
 
         ITestResultCollection<TestOperationResult> GetResults(string resultSource)
