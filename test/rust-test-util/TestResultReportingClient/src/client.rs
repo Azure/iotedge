@@ -12,7 +12,7 @@ use crate::{
 const CONTENT_TYPE: &str = "Content-Type";
 const APPLICATION_JSON: &str = "application/json";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TrcClient {
     client: Client<HttpConnector>,
     uri: String,

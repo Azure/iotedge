@@ -1,8 +1,8 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 
-use hyper::http;
 use enumset::EnumSetType;
+use hyper::http;
 
 mod client;
 mod models;

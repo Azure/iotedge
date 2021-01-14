@@ -9,6 +9,8 @@ pub const DEFAULTS: &str = include_str!("../config/default.json");
 pub struct Settings {
     test_scenario: TestScenario,
     trc_url: String,
+    tracking_id: String,
+    batch_id: String,
 }
 
 impl Settings {
@@ -38,8 +40,16 @@ impl Settings {
         &self.test_scenario
     }
 
-    pub fn test_result_coordinator_url(&self) -> &str {
+    pub fn trc_url(&self) -> &str {
         &self.trc_url
+    }
+
+    pub fn tracking_id(&self) -> &String {
+        &self.tracking_id
+    }
+
+    pub fn batch_id(&self) -> &String {
+        &self.batch_id
     }
 }
 
