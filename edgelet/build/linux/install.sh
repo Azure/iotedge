@@ -69,9 +69,6 @@ process_args "$@"
 
 install_rust
 
-# Add trusty repo to get older version of libc6-armhf-cross
-sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
-
 # Install OpenSSL, curl and uuid and valgrind
 sudo apt-get update || :
 sudo apt-get install -y \
