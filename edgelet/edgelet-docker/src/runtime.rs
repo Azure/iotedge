@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::str;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -15,7 +16,6 @@ use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use url::Url;
 
-use cert_client::client::CertificateClient;
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
@@ -267,24 +267,21 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     .and_then(ContentTrust::ca_certs)
                 {
                     info!("Notary Content Trust is enabled");
-                    
-                    // For each value in content trust map, get the cert and create a temp cert and get that path 
-                    // create a new map with hostname and the created path to complete smooth move.
                     for (registry_server_hostname, cert_id) in content_trust_map {
-                        let cert_pemstring = cert_client.get_cert(cert_id);
-                                                // .lock()
-                                                // .expect("cert client lock failed")
-                                                // .get_cert()
-                                                // .map_err(|_| Error::from(ErrorKind::GetIdentity))
-                                                // .and_then(|cert| -> Result<_, Error> {
-                                                //     let cert = str::from_utf8(cert.as_ref())
-                                                //         .context(ErrorKind::EncryptionOperation(
-                                                //             EncryptionOperation::GetTrustBundle,
-                                                //         ))?
-                                                //         .to_string();
-                                                //     }
+                        let cert_buf = cert_client
+                                                .lock()
+                                                .expect("cert client lock failed")
+                                                .get_cert(cert_id)
+                                                .and_then(|cert_output|{
+                                                    // let cert_output = cert_output.with_context(|_| {
+                                                    //     ErrorKind::NotaryRootCAReadError("Notary root CA read error".to_owned())
+                                                    // });
+                                                    // let cert_output_string = String::from_utf8(cert_output);                                                                              
+                                                    // Ok(cert_output_string);
+                                                    Ok(cert_output);                                                    
+                                                });
                         let config_path =
-                            notary::notary_init(home_dir, registry_server_hostname, cert_pemstring)
+                            notary::notary_init(home_dir, registry_server_hostname, cert_buf)
                                 .context(ErrorKind::Initialization)?;
                         notary_registries.insert(registry_server_hostname.clone(), config_path);
                     }
