@@ -716,7 +716,7 @@ function run_longhaul_test() {
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$iotedge_package" \
-            -c "$IOTHUB_CONNECTION_STRING" \
+            -c "$IO_THUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
@@ -742,7 +742,7 @@ function run_longhaul_test() {
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$iotedge_package" \
-            -c "$IOTHUB_CONNECTION_STRING" \
+            -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
