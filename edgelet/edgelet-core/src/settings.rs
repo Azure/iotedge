@@ -194,9 +194,9 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
-    edge_ca_cert: Option<String>,
-    edge_ca_key: Option<String>,
-    trust_bundle_cert: Option<String>,
+    pub edge_ca_cert: Option<String>,
+    pub edge_ca_key: Option<String>,
+    pub trust_bundle_cert: Option<String>,
 }
 
 impl<T> RuntimeSettings for Settings<T>
