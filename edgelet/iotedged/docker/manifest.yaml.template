@@ -6,13 +6,3 @@ manifests:
     platform:
       architecture: amd64
       os: linux
-  -
-    image: __REGISTRY__/__NAMESPACE__/azureiotedge-iotedged:__VERSION__-linux-arm32v7
-    platform:
-      architecture: arm
-      os: linux
-  -
-    image: __REGISTRY__/__NAMESPACE__/azureiotedge-iotedged:__VERSION__-linux-arm64v8
-    platform:
-      architecture: arm64
-      os: linux
