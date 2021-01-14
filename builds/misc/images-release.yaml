@@ -9,7 +9,7 @@ jobs:
     # TODO: Investigate why we have to toggle primary installs on linux, but not on windows.
     displayName: LinuxDotnet
     pool: 
-      name: "Hosted Ubuntu 1604"
+      vmImage: ubuntu-18.04
     variables:
       build.registry.address: edgebuilds.azurecr.io
       build.registry.user: EdgeBuilds
