@@ -12,7 +12,7 @@ jobs:
 ################################################################################
     displayName: Check pipeline preconditions (changes ARE in builds or edgelet)
     pool:
-      vmImage: ubuntu-latest
+      vmImage: ubuntu-18.04
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edgelet)'
