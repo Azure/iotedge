@@ -2,7 +2,8 @@ use std::{iter::FromIterator, vec};
 
 use chrono::{DateTime, Utc};
 use enumset::EnumSet;
-use hyper::{client::HttpConnector, Body, Client, Request};
+use hyper::{body, client::HttpConnector, Body, Client, Request};
+use tracing::info;
 
 use crate::{
     models::{message_result::MessageTestResult, test_result_dto::TestOperationResultDto},
@@ -47,16 +48,24 @@ impl TrcClient {
             .header(CONTENT_TYPE, APPLICATION_JSON)
             .body(Body::from(body.clone()))
             .map_err(ReportResultError::ConstructRequest)?;
+
         let response = self
             .client
             .request(request)
             .await
             .map_err(ReportResultError::SendRequest)?;
 
-        match response.status().as_u16() {
+        let status = response.status();
+        let body_bytes = body::to_bytes(response.into_body()).await.unwrap();
+        let body = String::from_utf8(body_bytes.to_vec()).expect("response was not valid utf-8");
+
+        match status.as_u16() {
             204 => Ok(()),
             200 => Ok(()),
-            fail_status => Err(ReportResultError::ResponseStatus(fail_status)),
+            fail_status => {
+                info!("failed response body: {:?}", body);
+                Err(ReportResultError::ResponseStatus(fail_status))
+            }
         }
     }
 }

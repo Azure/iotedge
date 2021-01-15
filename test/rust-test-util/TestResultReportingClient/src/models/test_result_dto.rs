@@ -26,7 +26,7 @@ impl TestOperationResultDto {
             source,
             result,
             test_type: test_type as u8,
-            created_at: created_at.to_string(),
+            created_at: created_at.to_rfc3339(),
         }
     }
 }
@@ -51,7 +51,7 @@ mod tests {
         let test_result_dto =
             TestOperationResultDto::new(source, test_result, _type.clone(), created_at.clone());
 
-        let expected = format!("{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}", created_at);
+        let expected = format!("{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}", created_at.to_rfc3339());
         let serialized = serde_json::to_string(&test_result_dto).unwrap();
 
         assert_eq!(expected, serialized);
