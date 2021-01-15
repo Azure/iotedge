@@ -443,25 +443,11 @@ mod tests {
         {
             assert_eq!(
                 content_trust_map.get("contoso1.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso1.crt"))
+                Some(&String::from("content-trust-contoso1.azurecr.io"))
             );
             assert_eq!(
                 content_trust_map.get("contoso2.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso2.crt"))
-            );
-            assert_eq!(
-                content_trust_map.get(""),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso3.crt"))
-            );
-            assert_eq!(
-                content_trust_map.get("contoso4.azurcr.io"),
-                Some(&std::path::PathBuf::from(
-                    "/path/to/root_ca_contoso4_replaced.crt"
-                ))
-            );
-            assert_eq!(
-                content_trust_map.get("contoso5.azurcr.io"),
-                Some(&std::path::PathBuf::from(""))
+                Some(&String::from("content-trust-contoso2.azurecr.io"))
             );
         } else {
             panic!();

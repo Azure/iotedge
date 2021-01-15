@@ -1295,9 +1295,6 @@ mod tests {
         Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
     };
     #[cfg(target_os = "linux")]
-    use std::fs;
-    #[cfg(target_os = "linux")]
-    use tempfile::NamedTempFile;
     use tempfile::TempDir;
 
     fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
@@ -1372,108 +1369,6 @@ mod tests {
             .unwrap_err();
         assert!(failure::Fail::iter_chain(&err)
             .any(|err| err.to_string().contains("Socket file could not be found")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn notary_initialization() {
-        // Docker Daemon is not installed in arm32v7 and arm64v8 of the CI build VMs.
-        // This test returns if the docker.sock file does not exist in such scenarios
-        let docker_path = Path::new("unix:///var/run/docker.sock");
-        if !cfg!(target_arch = "x86_64") && !docker_path.exists() {
-            return;
-        }
-
-        let hostname1 = r"myreg1.azurecr.io";
-        let hostname2 = r"myreg2.azurecr.io";
-        let file1 = NamedTempFile::new().unwrap();
-        let file2 = NamedTempFile::new().unwrap();
-        let (settings, tmp_home_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": docker_path,
-                "content_trust" : {
-                    "ca_certs" : {
-                        hostname1 : file1.path(),
-                        hostname2 : file2.path()
-                    }
-                }
-            }
-        })));
-
-        let runtime = DockerModuleRuntime::make_runtime(settings);
-        let runtime = tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(runtime)
-            .unwrap();
-
-        let mut config_path1 = tmp_home_dir.path().to_owned();
-        config_path1.push("notary");
-        let mut filename1 = String::new();
-        for c in hostname1.chars() {
-            if c.is_ascii_alphanumeric() || !c.is_ascii() {
-                filename1.push(c);
-            } else {
-                filename1.push_str(&format!("%{:02x}", c as u8));
-            }
-        }
-        config_path1.push(filename1);
-        let trust_dir = config_path1.clone();
-        config_path1.push("config.json");
-        let actual_config1 = fs::read(&config_path1).unwrap();
-        let actual_json_content1: serde_json::Value =
-            serde_json::from_slice(&actual_config1).unwrap();
-        let expected_json_content1 = json!({
-            "trust_dir" : trust_dir,
-            "remote_server": {
-              "url": "https://myreg1.azurecr.io"
-            },
-            "trust_pinning": {
-              "ca": {
-                "": file1.path()
-              },
-              "disable_tofu": "true"
-            }
-        });
-
-        let mut config_path2 = tmp_home_dir.path().to_owned();
-        config_path2.push("notary");
-        let mut filename2 = String::new();
-        for c in hostname2.chars() {
-            if c.is_ascii_alphanumeric() || !c.is_ascii() {
-                filename2.push(c);
-            } else {
-                filename2.push_str(&format!("%{:02x}", c as u8));
-            }
-        }
-        config_path2.push(filename2);
-        let trust_dir = config_path2.clone();
-        config_path2.push("config.json");
-        let actual_config2 = fs::read(&config_path2).unwrap();
-        let actual_json_content2: serde_json::Value =
-            serde_json::from_slice(&actual_config2).unwrap();
-        let expected_json_content2 = json!({
-            "trust_dir" : trust_dir,
-            "remote_server": {
-              "url": "https://myreg2.azurecr.io"
-            },
-            "trust_pinning": {
-              "ca": {
-                "": file2.path()
-              },
-              "disable_tofu": "true"
-            }
-        });
-
-        assert_eq!(
-            runtime.notary_registries.get(hostname1),
-            Some(&config_path1)
-        );
-        assert_eq!(
-            runtime.notary_registries.get(hostname2),
-            Some(&config_path2)
-        );
-        assert_eq!(actual_json_content1, expected_json_content1);
-        assert_eq!(actual_json_content2, expected_json_content2);
     }
 
     #[test]
