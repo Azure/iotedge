@@ -172,8 +172,9 @@ impl MessageTester {
 
         info!("waiting for tasks to exit");
         let (exited, _, join_handles) = select_all(tasks).await;
-        exited.map_err(MessageTesterError::WaitForShutdown)??;
 
+        info!("stopping test run");
+        exited.map_err(MessageTesterError::WaitForShutdown)??;
         for handle in join_handles {
             handle
                 .await
