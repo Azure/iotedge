@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Reports.DirectMethod
+namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 {
     using System;
     using System.Collections.Generic;

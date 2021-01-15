@@ -7,7 +7,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Net;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
 
-    class DirectMethodReportDataWithSenderAndReceiverSource
+    class DirectMethodConnectivityReportDataWithSenderAndReceiverSource
     {
         public static IEnumerable<object[]> GetCreateReportData =>
             // See TestCreateReportAsync for parameters names
