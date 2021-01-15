@@ -21,7 +21,7 @@ steps:
 
     if ($IsWindows)
     {
-        Get-Command dotnet -ErrorAction SilentlyContinue
+        Get-Command docker -ErrorAction SilentlyContinue
         if (!$?)
         {
             Write-Output 'Docker not installed, skipping...'
