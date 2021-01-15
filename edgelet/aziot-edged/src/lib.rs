@@ -67,7 +67,6 @@ use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
 
-use crate::error::ExternalProvisioningErrorReason;
 use crate::watchdog::Watchdog;
 use crate::workload::WorkloadData;
 
@@ -249,19 +248,15 @@ where
 
             let device_info = get_device_info(&client)
                 .map_err(|e| {
-                    Error::from(e.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    )))
+                    Error::from(
+                        e.context(ErrorKind::Initialize(InitializeErrorReason::GetDeviceInfo)),
+                    )
                 })
                 .map(|(hub_name, device_id)| {
                     debug!("{}:{}", hub_name, device_id);
                     (hub_name, device_id)
                 });
-            let result = tokio_runtime
-                .block_on(device_info)
-                .context(ErrorKind::Initialize(
-                    InitializeErrorReason::DpsProvisioningClient,
-                ));
+            let result = tokio_runtime.block_on(device_info);
 
             match result {
                 Ok((hub, device_id)) => {
@@ -310,7 +305,7 @@ where
                 }
                 Err(err) => {
                     log_failure(Level::Warn, &err);
-                    
+
                     std::thread::sleep(IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS);
 
                     log::warn!("Retrying getting edge device provisioning information.");
@@ -330,9 +325,7 @@ fn get_device_info(
     id_mgr
         .get_device()
         .map_err(|err| {
-            Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::DpsProvisioningClient,
-            )))
+            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::GetDeviceInfo)))
         })
         .and_then(|identity| match identity {
             aziot_identity_common::Identity::Aziot(spec) => Ok((spec.hub_name, spec.device_id.0)),
@@ -701,8 +694,8 @@ mod tests {
 
     use super::{
         env, signal, CertificateIssuer, CertificateProperties, CreateCertificate, Digest,
-        ErrorKind, ExternalProvisioningErrorReason, Fail, File, Future, GetIssuerAlias,
-        InitializeErrorReason, Main, MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
+        ErrorKind, Fail, File, Future, GetIssuerAlias, InitializeErrorReason, Main,
+        MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
         EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
     };
     use docker::models::ContainerCreateBody;
