@@ -185,7 +185,7 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
+                "value": "http://testResultCoordinator:5001"
               },
               "TwinTestMode": {
                 "value": "TwinCloudOperations"
@@ -263,7 +263,7 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
+                "value": "http://testResultCoordinator:5001"
               },
               "TwinTestMode": {
                 "value": "TwinCloudOperations"
@@ -356,7 +356,7 @@
                 "value": "<TestStartDelay>"
               },
               "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
+                "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -413,7 +413,7 @@
                 "value": "<TestStartDelay>"
               },
               "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
+                "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -515,7 +515,7 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://localhost:5001"
+                "value": "http://testResultCoordinator:5001"
               },
               "RunFrequencies__0__OfflineFrequency": {
                 "value": "<NetworkController.OfflineFrequency0>"
