@@ -575,7 +575,7 @@
             "restartPolicy": "on-failure",
             "env": {
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "DesiredModulesToRestartCSV": {
                 "value": "<DesiredModulesToRestartCSV>"
