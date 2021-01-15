@@ -7,7 +7,7 @@ use tracing_futures::Instrument;
 
 use mqtt3::{
     proto::{QoS, SubscribeTo},
-    Client, Event, ReceivedPublication, UpdateSubscriptionHandle,
+    Client, Event, ReceivedPublication, SubscriptionUpdateEvent, UpdateSubscriptionHandle,
 };
 use mqtt_broker_tests_util::client;
 use mqtt_util::client_io::ClientIoSource;
@@ -226,7 +226,6 @@ async fn poll_client(
         let event = client.try_next();
         let shutdown = shutdown_recv.next();
 
-        // TODO: if we get sub rejected then fail
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {
                 if let Ok(Some(event)) = event {
@@ -260,8 +259,13 @@ fn process_event(
                 .send(publication)
                 .map_err(MessageTesterError::SendPublicationInChannel)?;
         }
-        Event::SubscriptionUpdates(sub) => {
-            info!("received subscription update {:?}", sub);
+        Event::SubscriptionUpdates(sub_updates) => {
+            info!("received subscription update {:?}", sub_updates);
+            for subscription_update in sub_updates {
+                if let SubscriptionUpdateEvent::RejectedByServer(rejection) = subscription_update {
+                    return Err(MessageTesterError::RejectedSubscription(rejection));
+                }
+            }
         }
         Event::Disconnected(_) => {
             info!("received disconnect");

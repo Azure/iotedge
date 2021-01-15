@@ -79,4 +79,7 @@ pub enum MessageTesterError {
 
     #[error("failed to report test result")]
     ReportResult(#[from] ReportResultError),
+
+    #[error("received rejected subscription: {0}")]
+    RejectedSubscription(String),
 }
