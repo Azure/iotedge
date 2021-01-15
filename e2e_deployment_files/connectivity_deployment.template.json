@@ -414,6 +414,12 @@
               },
               "TargetModuleId": {
                 "value": "twinTester2"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
               }
             },
             "settings": {
@@ -447,6 +453,12 @@
               },
               "TransportType": {
                 "value": "Amqp"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
               }
             },
             "settings": {
@@ -480,6 +492,12 @@
               },
               "TargetModuleId": {
                 "value": "twinTester4"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
               }
             },
             "settings": {
@@ -513,6 +531,12 @@
               },
               "TransportType": {
                 "value": "Mqtt"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
               }
             },
             "settings": {
