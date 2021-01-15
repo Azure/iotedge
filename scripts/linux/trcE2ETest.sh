@@ -6,7 +6,7 @@
 set -eo pipefail
 
 function usage() {
-    echo "connectivityTest.sh [options]"
+    echo "trcE2ETest.sh [options]"
     echo ''
     echo 'options'
     echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
