@@ -17,14 +17,14 @@ use crate::{Error, ErrorKind};
 pub fn notary_init(
     home_dir: &Path,
     registry_server_hostname: &str,
-    cert_pem_string: &str,
+    cert_buf: &Vec<u8>,
 ) -> Result<PathBuf, Error> {
     // Validate inputs
     if registry_server_hostname.is_empty() {
         return Err(ErrorKind::InitializeNotary("hostname is empty".to_owned()).into());
     }
 
-    if cert_pem_string.is_empty() {
+    if cert_buf.is_empty() {
         return Err(ErrorKind::InitializeNotary("root ca pem string content is empty".to_owned()).into());
     }
 
@@ -49,12 +49,12 @@ pub fn notary_init(
             file_name.push_str(&format!("%{:02x}", c as u8));
         }
     }
-    hostname_dir.push(file_name);
+    hostname_dir.push(&file_name);
 
     // Build trust collection and certs directory for each hostname
-    let mut trust_dir = hostname_dir.join("trust_collection");
+    let trust_dir = hostname_dir.join("trust_collection");
     info!("Trust directory for {} is {}", file_name, trust_dir.display());
-    let mut certs_dir = hostname_dir.join("certs");
+    let certs_dir = hostname_dir.join("certs");
     info!("Certs directory for {} is {}", file_name, trust_dir.display());
 
     // Delete hostname directory for a clean start. 
@@ -87,13 +87,12 @@ pub fn notary_init(
     // Create root CA file name 
     let root_ca_cert_name = file_name + "_root_ca.pem";
 
-    if let Err(err) = fs::write(root_ca_cert_name, cert_pem_string) {
-        return Err(ErrorKind::InitializeNotary(format!(
+    fs::write(&root_ca_cert_name, cert_buf).with_context(|_| {
+        ErrorKind::InitializeNotary(format!(
             "could not create root CA cert for notary hostname directory {}",
             hostname_dir.display()
         ))
-        .into());
-    }
+    })?;
     let root_ca_file_path = certs_dir.join(root_ca_cert_name);
 
     // Add https to hostname
