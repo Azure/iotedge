@@ -230,7 +230,6 @@ function clean_up() {
     systemctl kill iotedge || true
     systemctl stop iotedge || true
 
-
     stop_aziot_edge || true
 
     echo 'Remove IoT Edge and config files'
