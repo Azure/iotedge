@@ -384,6 +384,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             public Task ProcessDeviceMessageBatchAsync(IEnumerable<IMessage> message) => Task.CompletedTask;
             public Task RemoveDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;
+            public Task RemoveSubscriptions() => Task.CompletedTask;
             public Task ProcessDeviceMessageAsync(IMessage message) => Task.CompletedTask;
             public Task ProcessMessageFeedbackAsync(string messageId, FeedbackStatus feedbackStatus) => Task.CompletedTask;
             public Task ProcessMethodResponseAsync(IMessage message) => Task.CompletedTask;

@@ -9,10 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public SubscriptionPattern(string pattern, DeviceSubscription subscription)
         {
             this.Pattern = Preconditions.CheckNotNull(pattern);
-            this.Subscrition = subscription;
+            this.Subscription = subscription;
         }
 
         public string Pattern { get; }
-        public DeviceSubscription Subscrition { get; }
+        public DeviceSubscription Subscription { get; }
     }
 }
