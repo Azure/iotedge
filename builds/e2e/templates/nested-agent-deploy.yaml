@@ -63,9 +63,6 @@ steps:
     name: deployIoTEdge
     inputs:
       targetType: inline
-      #@TODO change Build.Repository.LocalPath to use artifact.
-      #@TODO remove hard coding of deploymentFileName: It is also hardcoded in install.sh
-      #@TODO remove hard coding of level and parent
       script: |
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
         . $(Agent.HomeDirectory)/../artifacts/$(az.pipeline.images.artifacts)/artifactInfo.txt
