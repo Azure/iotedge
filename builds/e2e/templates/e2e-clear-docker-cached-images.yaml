@@ -38,18 +38,6 @@ steps:
 
     if ($IsWindows)
     {
-        Get-Command docker -ErrorAction SilentlyContinue
-        if (!$?) {
-            Write-Output 'Docker not installed, skipping...'
-            Exit 0
-        }
-
-        $moby = Get-Service 'iotedge-moby' -ErrorAction SilentlyContinue
-        if (($moby -eq $null) -or ($moby.Status -ne 'Running')) {
-            Write-Output 'Docker not running, skipping...'
-            Exit 0
-        }
-
         # set docker command prefix
         $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
 
