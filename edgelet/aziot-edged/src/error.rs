@@ -129,143 +129,37 @@ impl From<&ErrorKind> for i32 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InitializeErrorReason {
-    CertificateSettings,
-    CreateCertificateManager,
-    CreateMasterEncryptionKey,
-    CreateSettingsDirectory,
     CreateCacheDirectory,
-    CreateTlsCertificate,
-    DestroyWorkloadCa,
-    DeviceClient,
-    DpsProvisioningClient,
     EdgeRuntime,
-    ExternalProvisioningClient(ExternalProvisioningErrorReason),
-    Hsm,
-    HttpClient,
-    HybridAuthDirCreate,
-    HybridAuthKeyCreate,
-    HybridAuthKeyGet,
-    HybridAuthKeyLoad,
-    HybridAuthKeyInvalid,
-    HybridAuthKeySign,
-    IncompatibleHsmVersion,
-    IdentityCertificateSettings,
-    InvalidDeviceCertCredentials,
+    GetDeviceInfo,
+    IdentityClient,
     InvalidDeviceConfig,
     InvalidHubConfig,
     InvalidIdentityType,
-    InvalidProxyUri,
-    IssuerCAExpiration,
     LoadSettings,
     ManagementService,
-    ManualProvisioningClient,
     ModuleRuntime,
-    PrepareWorkloadCa,
     RemoveExistingModules,
     StopExistingModules,
-    SaveSettings,
     Tokio,
     WorkloadService,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ExternalProvisioningErrorReason {
-    ClientInitialization,
-    DownloadIdentityCertificate,
-    DownloadIdentityPrivateKey,
-    ExternalProvisioningDirCreate,
-    HsmInitialization,
-    HsmKeyRetrieval,
-    HybridKeyPreparation,
-    InvalidAuthenticationType,
-    InvalidCredentials,
-    Provisioning,
 }
 
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InitializeErrorReason::CertificateSettings => {
-                write!(f, "Could not configure Edge gateway certificates")
-            }
-
-            InitializeErrorReason::CreateCertificateManager => {
-                write!(f, "Could not create the certificate manager.")
-            }
-
-            InitializeErrorReason::CreateMasterEncryptionKey => {
-                write!(f, "Could not create master encryption key")
-            }
-
-            InitializeErrorReason::CreateSettingsDirectory => {
-                write!(f, "Could not create settings directory")
-            }
-
             InitializeErrorReason::CreateCacheDirectory => {
                 write!(f, "Could not create cache directory")
             }
 
-            InitializeErrorReason::CreateTlsCertificate => {
-                write!(f, "Could not create TLS certificate")
-            }
-
-            InitializeErrorReason::DestroyWorkloadCa => {
-                write!(f, "Could not destroy workload CA certificate")
-            }
-
-            InitializeErrorReason::DeviceClient => write!(f, "Could not initialize device client"),
-
-            InitializeErrorReason::DpsProvisioningClient => {
-                write!(f, "Could not initialize DPS provisioning client")
-            }
-
             InitializeErrorReason::EdgeRuntime => write!(f, "Could not initialize edge runtime"),
 
-            InitializeErrorReason::ExternalProvisioningClient(x) => write!(
-                f,
-                "Could not initialize external provisioning client. {}",
-                x
-            ),
-
-            InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
-
-            InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
-
-            InitializeErrorReason::HybridAuthDirCreate => {
-                write!(f, "Could not create the hybrid identity key directory")
+            InitializeErrorReason::GetDeviceInfo => {
+                write!(f, "Could not retrieve device information")
             }
 
-            InitializeErrorReason::HybridAuthKeyCreate => {
-                write!(f, "Could not create the hybrid identity key")
-            }
-
-            InitializeErrorReason::HybridAuthKeyGet => write!(
-                f,
-                "Could not get the hybrid identity key from the key store"
-            ),
-
-            InitializeErrorReason::HybridAuthKeyLoad => {
-                write!(f, "Could not load the hybrid identity key")
-            }
-
-            InitializeErrorReason::HybridAuthKeyInvalid => {
-                write!(f, "The loaded hybrid identity key was invalid")
-            }
-
-            InitializeErrorReason::HybridAuthKeySign => {
-                write!(f, "Could not sign using the hybrid identity key")
-            }
-
-            InitializeErrorReason::IncompatibleHsmVersion => {
-                write!(f, "Incompatible HSM lib version")
-            }
-
-            InitializeErrorReason::IdentityCertificateSettings => {
-                write!(f, "Could not configure Edge X.509 identity certificate")
-            }
-
-            InitializeErrorReason::InvalidDeviceCertCredentials => {
-                write!(f, "Invalid identity certificate")
+            InitializeErrorReason::IdentityClient => {
+                write!(f, "Could not get device from Identity Service")
             }
 
             InitializeErrorReason::InvalidDeviceConfig => {
@@ -280,28 +174,14 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Invalid identity type was received")
             }
 
-            InitializeErrorReason::InvalidProxyUri => write!(f, "Invalid proxy URI"),
-
-            InitializeErrorReason::IssuerCAExpiration => {
-                write!(f, "Edge device CA has expired or is near expiration")
-            }
-
             InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
 
             InitializeErrorReason::ManagementService => {
                 write!(f, "Could not start management service")
             }
 
-            InitializeErrorReason::ManualProvisioningClient => {
-                write!(f, "Could not initialize manual provisioning client")
-            }
-
             InitializeErrorReason::ModuleRuntime => {
                 write!(f, "Could not initialize module runtime")
-            }
-
-            InitializeErrorReason::PrepareWorkloadCa => {
-                write!(f, "Could not prepare workload CA certificate")
             }
 
             InitializeErrorReason::RemoveExistingModules => {
@@ -312,60 +192,9 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not stop existing modules")
             }
 
-            InitializeErrorReason::SaveSettings => write!(f, "Could not save settings file"),
-
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 
             InitializeErrorReason::WorkloadService => write!(f, "Could not start workload service"),
-        }
-    }
-}
-
-impl fmt::Display for ExternalProvisioningErrorReason {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ExternalProvisioningErrorReason::ClientInitialization => {
-                write!(f, "Could not create the external provisioning client.")
-            }
-
-            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
-                f,
-                "The download of the identity certificate from the external environment failed."
-            ),
-
-            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
-                f,
-                "The download of the identity private key from the external environment failed."
-            ),
-
-            ExternalProvisioningErrorReason::ExternalProvisioningDirCreate => {
-                write!(f, "Could not create the external provisioning directory.")
-            }
-
-            ExternalProvisioningErrorReason::HsmInitialization => {
-                write!(f, "Could not initialize the HSM interface.")
-            }
-
-            ExternalProvisioningErrorReason::HsmKeyRetrieval => {
-                write!(f, "Could not retrieve the device's key from the HSM.")
-            }
-
-            ExternalProvisioningErrorReason::HybridKeyPreparation => {
-                write!(f, "Could not prepare the hybrid key.")
-            }
-
-            ExternalProvisioningErrorReason::InvalidAuthenticationType => {
-                write!(f, "Invalid authentication type specified.")
-            }
-
-            ExternalProvisioningErrorReason::InvalidCredentials => write!(
-                f,
-                "Invalid credentials retrieved from the external environment."
-            ),
-
-            ExternalProvisioningErrorReason::Provisioning => {
-                write!(f, "Could not provision the device.")
-            }
         }
     }
 }
