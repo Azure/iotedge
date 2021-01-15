@@ -223,6 +223,14 @@ function prepare_test_from_artifacts() {
 function clean_up() {
     print_highlighted_message 'Clean up'
 
+    # TODO: Need to fix this script to deploy correct iotedge artifact.
+    # Because it deploys iotedge installed from apt, we need to stop 1.0.10 service.
+    echo 'Stop IoT Edge services'
+    systemctl stop iotedge.socket iotedge.mgmt.socket || true
+    systemctl kill iotedge || true
+    systemctl stop iotedge || true
+
+
     stop_aziot_edge || true
 
     echo 'Remove IoT Edge and config files'
@@ -593,7 +601,7 @@ function run_connectivity_test() {
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
-        # need to fix this script to deploy correct iotedge artifact
+        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
         -a "" \
@@ -615,7 +623,7 @@ function run_connectivity_test() {
         --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
         --no-verify && funcRet=$? || funcRet=$?
     else
-        # need to fix this script to deploy correct iotedge artifact
+        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "" \
@@ -724,7 +732,7 @@ function run_longhaul_test() {
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
-        # need to fix this script to deploy correct iotedge artifact
+        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "" \
@@ -751,7 +759,7 @@ function run_longhaul_test() {
             $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     else
-        # need to fix this script to deploy correct iotedge artifact
+        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "" \

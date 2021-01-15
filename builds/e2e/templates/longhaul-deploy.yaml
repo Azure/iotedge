@@ -70,10 +70,6 @@ steps:
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
           chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
 
-          # TODO: remove
-          echo "$testName"
-          echo "${{ parameters['test.runtimeLogLevel'] }}"
-
           sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
