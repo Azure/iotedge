@@ -66,9 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
         }
 
-
-        public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime,
-            string deviceId)
+        public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime, string deviceId)
         {
             (string, string, string) rootCa =
                 Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));

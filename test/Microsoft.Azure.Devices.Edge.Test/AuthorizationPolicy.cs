@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Update deployment with new policy that allows the connection.
         /// - Validate that new device can connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task AuthorizationPolicyUpdateTest()
         {
@@ -153,6 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             };
 
             leaf = await this.iotHub.CreateDeviceIdentityAsync(leaf, token);
+
             string connectionString =
                 $"HostName={this.iotHub.Hostname};" +
                 $"DeviceId={leaf.Id};" +
@@ -179,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         ///     allow device1 connect, deny device2 connect.
         /// - Create devices and validate that they can/cannot connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {

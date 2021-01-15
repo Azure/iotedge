@@ -101,8 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Capabilities = new DeviceCapabilities()
                 {
                     IotEdge = true
-                    },
-                    ParentScopes = new[] { parentDeviceScope }
+                },
+                ParentScopes = new[] { parentDeviceScope }
             };
             },
             () =>

@@ -240,8 +240,6 @@ fi
 working_folder="$E2E_TEST_DIR/working"
 iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 
-#@TODO remove hardcoding
-#connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
@@ -249,6 +247,3 @@ test_setup
 create_certificates
 install_and_setup_iotedge
 set_output_params
-
-#clean up
-#az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}

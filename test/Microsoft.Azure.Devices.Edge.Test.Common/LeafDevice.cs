@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             ITransportSettings transport,
             string edgeHostname,
             CancellationToken token,
-            ClientOptions options)
+            ClientOptions options )
         {
             Device leaf = new Device(leafDeviceId)
             {

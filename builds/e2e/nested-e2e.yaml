@@ -73,8 +73,6 @@ stages:
     variables:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-#      parentName: nestededgetest02.eastus2.cloudapp.azure.com
-#      parentDeviceId: level_4_20201210.99
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
@@ -100,7 +98,7 @@ stages:
       - template: templates/nested-e2e-run.yaml
   - job:  Clean_up     
     dependsOn: SetupVM_and_RunTest_level3
-    condition: true
+    condition: always()
     displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
