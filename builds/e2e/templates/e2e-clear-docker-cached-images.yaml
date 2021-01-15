@@ -21,19 +21,26 @@ steps:
 
     if ($IsWindows)
     {
-      # set docker command prefix
-      $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
+        Get-Command dotnet -ErrorAction SilentlyContinue
+        if (!$?)
+        {
+            Write-Output 'Docker not installed, skipping...'
+            Exit 0
+        }
 
-      # Pull required images
-      $images | foreach { Invoke-Expression ( $dockerCommand + " pull $_" ) }
+        # set docker command prefix
+        $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
+
+        # Pull required images
+        $images | foreach { Invoke-Expression ( $dockerCommand + " pull $_" ) }
     }
     else
     {
-      # set docker command prefix
-      $dockerCommand="sudo docker"
+        # set docker command prefix
+        $dockerCommand="sudo docker"
 
-      # Pull required images
-      $images | foreach { sudo --preserve-env docker pull $_ }
+        # Pull required images
+        $images | foreach { sudo --preserve-env docker pull $_ }
     }
 
     # Remove old images
