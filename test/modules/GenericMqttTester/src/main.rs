@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
 }
 
 fn init_logging() {
-    let subscriber = Subscriber::builder().with_max_level(Level::TRACE).finish();
+    let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
     let _ = subscriber::set_global_default(subscriber);
 }
 
