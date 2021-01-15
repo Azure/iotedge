@@ -593,9 +593,10 @@ function run_connectivity_test() {
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
+        # need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
-        -a "$testDir/artifacts/" \
+        -a "" \
         -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
@@ -614,9 +615,10 @@ function run_connectivity_test() {
         --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
         --no-verify && funcRet=$? || funcRet=$?
     else
+        # need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$testDir/artifacts/" \
+            -a "" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -721,10 +723,11 @@ function run_longhaul_test() {
         echo "Device CA cert=$DEVICE_CA_CERT"
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
-        
+
+        # need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$iotedge_package" \
+            -a "" \
             -c "$IO_THUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -748,9 +751,10 @@ function run_longhaul_test() {
             $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     else
+        # need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$iotedge_package" \
+            -a "" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
