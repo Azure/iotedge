@@ -28,13 +28,13 @@ pub enum TestType {
 #[derive(Debug, thiserror::Error)]
 pub enum ReportResultError {
     #[error("failed converting test result data object to json string: {0:?}")]
-    CreateJsonString(#[source] serde_json::error::Error),
+    CreateJsonString(#[from] serde_json::error::Error),
 
     #[error("failed constructing request: {0:?}")]
-    ConstructRequest(#[source] http::Error),
+    ConstructRequest(#[from] http::Error),
 
     #[error("failed sending request: {0:?}")]
-    SendRequest(#[source] hyper::Error),
+    SendRequest(#[from] hyper::Error),
 
     #[error("response has failure status: {0:?}")]
     ResponseStatus(u16),

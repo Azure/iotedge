@@ -172,9 +172,19 @@ impl MessageTester {
 
         info!("waiting for tasks to exit");
         let (exited, _, join_handles) = select_all(tasks).await;
+        match exited {
+            Err(e) => {
+                error!("task exited with error: {:?}", e)
+            }
+            Ok(Err(e)) => {
+                error!("task exited with error: {:?}", e)
+            }
+            Ok(Ok(_)) => {}
+        }
 
         info!("stopping test run");
-        exited.map_err(MessageTesterError::WaitForShutdown)??;
+        self.shutdown_handle.shutdown().await?;
+
         for handle in join_handles {
             handle
                 .await
@@ -263,6 +273,7 @@ fn process_event(
             info!("received subscription update {:?}", sub_updates);
             for subscription_update in sub_updates {
                 if let SubscriptionUpdateEvent::RejectedByServer(rejection) = subscription_update {
+                    error!("received rejected subscription update: {:?}", rejection);
                     return Err(MessageTesterError::RejectedSubscription(rejection));
                 }
             }
