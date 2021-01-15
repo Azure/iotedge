@@ -32,6 +32,7 @@ variables:
   #metricsCollector.metricsEndpointsCSV
   #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
   #metricsCollector.uploadTarget
+  #test.useTRC
 
 jobs:
 ################################################################################
@@ -47,7 +48,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
@@ -55,7 +56,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -80,6 +81,7 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
@@ -109,6 +111,7 @@ jobs:
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
@@ -117,6 +120,8 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
+          test.useTRC: '$(useTRC)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -165,6 +170,7 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
@@ -194,6 +200,7 @@ jobs:
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
@@ -202,6 +209,8 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
+          test.useTRC: '$(useTRC)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -250,6 +259,7 @@ jobs:
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/long_haul_deployment.template.json
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
@@ -279,6 +289,7 @@ jobs:
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
@@ -287,3 +298,5 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          test.useTRC: '$(useTRC)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
