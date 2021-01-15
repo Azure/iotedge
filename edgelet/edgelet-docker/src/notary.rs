@@ -25,11 +25,13 @@ pub fn notary_init(
     }
 
     if cert_buf.is_empty() {
-        return Err(ErrorKind::InitializeNotary("root ca pem string content is empty".to_owned()).into());
+        return Err(
+            ErrorKind::InitializeNotary("root ca pem string content is empty".to_owned()).into(),
+        );
     }
 
-    // Directory structure example 
-    // home directory : /home 
+    // Directory structure example
+    // home directory : /home
     // notary directory : /home/notary
     // hostname directory : /home/notary/sanitized_hostname
     // trust collection directory : /home/notary/santized_hostname/trust_collection
@@ -53,11 +55,19 @@ pub fn notary_init(
 
     // Build trust collection and certs directory for each hostname
     let trust_dir = hostname_dir.join("trust_collection");
-    info!("Trust directory for {} is {}", file_name, trust_dir.display());
+    info!(
+        "Trust directory for {} is {}",
+        file_name,
+        trust_dir.display()
+    );
     let certs_dir = hostname_dir.join("certs");
-    info!("Certs directory for {} is {}", file_name, trust_dir.display());
+    info!(
+        "Certs directory for {} is {}",
+        file_name,
+        trust_dir.display()
+    );
 
-    // Delete hostname directory for a clean start. 
+    // Delete hostname directory for a clean start.
     if let Err(err) = fs::remove_dir_all(&hostname_dir) {
         if err.kind() != std::io::ErrorKind::NotFound {
             return Err(ErrorKind::InitializeNotary(format!(
@@ -84,7 +94,7 @@ pub fn notary_init(
         ))
     })?;
 
-    // Create root CA file name 
+    // Create root CA file name
     let root_ca_cert_name = file_name + "_root_ca.pem";
 
     fs::write(&root_ca_cert_name, cert_buf).with_context(|_| {
@@ -180,41 +190,3 @@ pub fn notary_lookup(
             Ok((split_array[1].to_string(), lock))
         })
 }
-
-// #[cfg(test)]
-// mod test {
-//     use std::path::PathBuf;
-
-//     use tempfile::NamedTempFile;
-
-//     use crate::notary;
-//     use crate::ErrorKind;
-
-//     #[test]
-//     fn check_for_empty_hostname() {
-//         let registry_server_hostname = String::new();
-//         let home_dir = NamedTempFile::new().unwrap();
-//         let root_ca_file = NamedTempFile::new().unwrap();
-//         let result = notary::notary_init(
-//             home_dir.path(),
-//             &registry_server_hostname,
-//             &root_ca_file.path().to_path_buf(),
-//         );
-//         let err = result.unwrap_err();
-//         assert!(matches!(err.kind(), ErrorKind::InitializeNotary(s) if s == "hostname is empty"));
-//     }
-
-//     #[test]
-//     fn check_for_root_ca_file_does_not_exist() {
-//         let registry_server_hostname = r"myregistry.azurecr.io";
-//         let home_dir = NamedTempFile::new().unwrap();
-//         let root_ca_file = PathBuf::from("filedoesnotexist.crt");
-//         let result = notary::notary_init(home_dir.path(), &registry_server_hostname, &root_ca_file);
-//         let err = result.unwrap_err();
-//         let display_msg = format!("root ca at path {} does not exist", root_ca_file.display());
-//         assert!(matches!(
-//             err.kind(),
-//             ErrorKind::InitializeNotary(s) if s == &display_msg
-//         ));
-//     }
-// }

@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -249,10 +249,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
-        // let cert_client_notary = 
+        // let cert_client_notary =
         let created = init_client(settings.moby_runtime().uri())
             .and_then(move |client| {
-                let home_dir:Arc<Path> = settings.homedir().into();
+                let home_dir: Arc<Path> = settings.homedir().into();
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let notary_registries = BTreeMap::new();
                 let certd_url = settings.endpoints().aziot_certd_url().clone();
@@ -260,32 +260,43 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     aziot_cert_common_http::ApiVersion::V2020_09_01,
                     &certd_url,
                 );
-                
-                let notary_registries = 
-                if let Some(content_trust_map) = settings
+
+                let notary_registries = if let Some(content_trust_map) = settings
                     .moby_runtime()
                     .content_trust()
                     .and_then(ContentTrust::ca_certs)
                 {
                     info!("Notary Content Trust is enabled");
-                    future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold((notary_registries, cert_client), move |(mut notary_registries, cert_client), (registry_server_hostname, cert_id)|{
-                        let home_dir = home_dir.clone();
-                        cert_client
-                            .get_cert(&cert_id)
-                            .then(move |cert_output| -> Result<_> {
-                                match cert_output {
-                                    Ok(cert_buf) =>   {
-                                        let config_path = notary::notary_init(&home_dir, &registry_server_hostname, &cert_buf)
-                                                            .context(ErrorKind::Initialization)?;                                                        
-                                        notary_registries.insert(registry_server_hostname.clone(), config_path);
-                                        Ok((notary_registries, cert_client))
+                    future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
+                        (notary_registries, cert_client),
+                        move |(mut notary_registries, cert_client),
+                              (registry_server_hostname, cert_id)| {
+                            let home_dir = home_dir.clone();
+                            cert_client
+                                .get_cert(&cert_id)
+                                .then(move |cert_output| -> Result<_> {
+                                    match cert_output {
+                                        Ok(cert_buf) => {
+                                            let config_path = notary::notary_init(
+                                                &home_dir,
+                                                &registry_server_hostname,
+                                                &cert_buf,
+                                            )
+                                            .context(ErrorKind::Initialization)?;
+                                            notary_registries.insert(
+                                                registry_server_hostname.clone(),
+                                                config_path,
+                                            );
+                                            Ok((notary_registries, cert_client))
+                                        }
+                                        Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
+                                            "Notary root CA read error".to_owned(),
+                                        )
+                                        .into()),
                                     }
-                                    Err(_e) => {
-                                        Err(ErrorKind::NotaryRootCAReadError("Notary root CA read error".to_owned()).into())
-                                    }
-                                }                                               
-                            })
-                    }))
+                                })
+                        },
+                    ))
                 } else {
                     info!("Notary Content Trust is disabled");
                     future::Either::B(future::ok((notary_registries, cert_client)))
@@ -476,7 +487,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let client = self.client.clone();
         let result = image_by_notary
-        .and_then(|(image, is_content_trust_enabled)| {
+            .and_then(|(image, is_content_trust_enabled)| {
                 if is_content_trust_enabled {
                     info!("Creating image via digest {}...", image);
                 } else {
