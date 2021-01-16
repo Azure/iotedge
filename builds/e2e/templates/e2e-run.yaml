@@ -21,8 +21,9 @@ steps:
     #filter out tests not usable on nested edge
     if ('$(nestededge)' -eq 'true')
     {
-      #$filter += 'FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
-      $filter += 'FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~QuickstartCerts&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest&FullyQualifiedName!~SasInScope'
+      #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
+      #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~QuickstartCerts&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest&FullyQualifiedName!~SasInScope'
+      $filter += '&X509ManualProvision&FullyQualifiedName~QuickstartCerts'
     }
     sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
   displayName: Run tests
