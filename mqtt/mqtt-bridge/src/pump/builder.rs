@@ -93,12 +93,9 @@ where
         let topic_filters = make_topics(&self.local.rules)?;
         let local_topic_mappers_updates = TopicMapperUpdates::new(topic_filters);
 
-        let (retry_send, retry_recv) = mpsc::unbounded_channel();
-
         let rpc = LocalRpcMqttEventHandler::new(PumpHandle::new(remote_messages_send.clone()));
-        let mut messages =
+        let messages =
             StoreMqttEventHandler::new(remote_store.clone(), local_topic_mappers_updates.clone());
-        messages.set_retry_sub_sender(retry_send);
 
         let handler = LocalUpstreamMqttEventHandler::new(messages, rpc);
 
@@ -110,16 +107,6 @@ where
         let subscription_handle = client
             .update_subscription_handle()
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
-
-        let retry_sub_handle = client
-            .update_subscription_handle()
-            .map_err(BridgeError::UpdateSubscriptionHandle)?;
-
-        tokio::spawn(messages::retry_subscriptions(
-            retry_recv,
-            local_topic_mappers_updates.clone(),
-            retry_sub_handle,
-        ));
 
         let handler = LocalUpstreamPumpEventHandler::new(local_pub_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());
@@ -142,10 +129,14 @@ where
         let topic_filters = make_topics(&self.remote.rules)?;
         let remote_topic_mappers_updates = TopicMapperUpdates::new(topic_filters);
 
+        let (retry_send, retry_recv) = mpsc::unbounded_channel();
+
         let rpc_subscriptions = RpcSubscriptions::default();
         let rpc = RemoteRpcMqttEventHandler::new(rpc_subscriptions.clone(), local_pump.handle());
-        let messages =
+        let mut messages =
             StoreMqttEventHandler::new(local_store, remote_topic_mappers_updates.clone());
+        messages.set_retry_sub_sender(retry_send);
+
         let connectivity = ConnectivityMqttEventHandler::new(PumpHandle::new(local_messages_send));
         let handler = RemoteUpstreamMqttEventHandler::new(messages, rpc, connectivity);
 
@@ -157,6 +148,16 @@ where
         let remote_sub_handle = client
             .update_subscription_handle()
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        let retry_sub_handle = client
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        tokio::spawn(messages::retry_subscriptions(
+            retry_recv,
+            remote_topic_mappers_updates.clone(),
+            retry_sub_handle,
+        ));
 
         let handler = RemoteUpstreamPumpEventHandler::new(
             remote_sub_handle,
