@@ -95,7 +95,11 @@ stages:
       - template: templates/nested-get-device-name.yaml    
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
-      - template: templates/nested-e2e-run.yaml
+      - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
+          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)
+
   - job:  Clean_up     
     dependsOn: SetupVM_and_RunTest_level3
     condition: always()
