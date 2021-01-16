@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
-    messages::{StoreMqttEventHandler, TopicMapper},
+    messages::{self, StoreMqttEventHandler, TopicMapper},
     persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
@@ -93,9 +93,13 @@ where
         let topic_filters = make_topics(&self.local.rules)?;
         let local_topic_mappers_updates = TopicMapperUpdates::new(topic_filters);
 
+        let (retry_send, retry_recv) = mpsc::unbounded_channel();
+
         let rpc = LocalRpcMqttEventHandler::new(PumpHandle::new(remote_messages_send.clone()));
-        let messages =
+        let mut messages =
             StoreMqttEventHandler::new(remote_store.clone(), local_topic_mappers_updates.clone());
+        messages.set_retry_sub_sender(retry_send);
+
         let handler = LocalUpstreamMqttEventHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
@@ -106,6 +110,16 @@ where
         let subscription_handle = client
             .update_subscription_handle()
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        let retry_sub_handle = client
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        tokio::spawn(messages::retry_subscriptions(
+            retry_recv,
+            local_topic_mappers_updates.clone(),
+            retry_sub_handle,
+        ));
 
         let handler = LocalUpstreamPumpEventHandler::new(local_pub_handle);
         let pump_handle = PumpHandle::new(local_messages_send.clone());

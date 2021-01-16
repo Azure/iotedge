@@ -1,9 +1,25 @@
-use std::{collections::HashMap, convert::TryFrom};
+use std::{collections::HashMap, convert::TryFrom, time::Duration};
 
 use async_trait::async_trait;
-use mqtt3::{proto::Publication, Event, SubscriptionUpdateEvent};
+use futures_util::StreamExt;
+use tokio::{
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    time,
+};
+use tracing::{debug, error, info, warn};
+
+use mqtt3::{
+    proto::{Publication, SubscribeTo},
+    Event, SubscriptionUpdateEvent,
+};
 use mqtt_broker::TopicFilter;
-use tracing::{debug, warn};
+
+// Import and use mocks when run tests, real implementation when otherwise
+#[cfg(test)]
+pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
+
+#[cfg(not(test))]
+use crate::client::UpdateSubscriptionHandle;
 
 use crate::{
     bridge::BridgeError,
@@ -46,6 +62,7 @@ pub struct StoreMqttEventHandler<S> {
     topic_mappers: HashMap<String, TopicMapper>,
     topic_mappers_updates: TopicMapperUpdates,
     store: PublicationStore<S>,
+    retry_sub_send: Option<UnboundedSender<SubscribeTo>>,
 }
 
 impl<S> StoreMqttEventHandler<S> {
@@ -54,7 +71,12 @@ impl<S> StoreMqttEventHandler<S> {
             topic_mappers: HashMap::new(),
             topic_mappers_updates,
             store,
+            retry_sub_send: None,
         }
+    }
+
+    pub fn set_retry_sub_sender(&mut self, sender: UnboundedSender<SubscribeTo>) {
+        self.retry_sub_send = Some(sender);
     }
 
     fn transform(&self, topic_name: &str) -> Option<String> {
@@ -76,7 +98,7 @@ impl<S> StoreMqttEventHandler<S> {
         })
     }
 
-    fn update_subscribed(&mut self, sub: &str) {
+    fn handle_subscribed(&mut self, sub: &str) {
         if let Some(mapper) = self.topic_mappers_updates.get(sub) {
             self.topic_mappers.insert(sub.to_owned(), mapper);
         } else {
@@ -84,10 +106,19 @@ impl<S> StoreMqttEventHandler<S> {
         };
     }
 
-    fn update_unsubscribed(&mut self, sub: &str) {
+    fn handle_unsubscribed(&mut self, sub: &str) {
         if self.topic_mappers.remove(sub).is_none() {
             warn!("unexpected subscription/rejected ack for {}", sub);
         };
+    }
+
+    fn handle_rejected(&mut self, sub: SubscribeTo) {
+        self.topic_mappers.remove(&sub.topic_filter);
+        if let Some(sender) = &mut self.retry_sub_send {
+            if sender.send(sub).is_err() {
+                warn!("unable to schedule subscription retry. channel closed");
+            }
+        }
     }
 }
 
@@ -126,17 +157,17 @@ where
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
                     match update {
-                        SubscriptionUpdateEvent::Subscribe(subscribe_to) => {
-                            debug!("received subscribe: {:?}", subscribe_to);
-                            self.update_subscribed(&subscribe_to.topic_filter);
+                        SubscriptionUpdateEvent::Subscribe(sub) => {
+                            debug!("received subscribe: {:?}", sub);
+                            self.handle_subscribed(&sub.topic_filter);
                         }
-                        SubscriptionUpdateEvent::Unsubscribe(unsubcribed_from) => {
-                            debug!("received unsubscribe: {}", unsubcribed_from);
-                            self.update_unsubscribed(&unsubcribed_from);
+                        SubscriptionUpdateEvent::Unsubscribe(unsub) => {
+                            debug!("received unsubscribe: {}", unsub);
+                            self.handle_unsubscribed(&unsub);
                         }
-                        SubscriptionUpdateEvent::RejectedByServer(rejected) => {
-                            debug!("received subscription rejected: {}", rejected);
-                            self.update_unsubscribed(&rejected);
+                        SubscriptionUpdateEvent::RejectedByServer(sub) => {
+                            debug!("received subscription rejected: {}", sub.topic_filter);
+                            self.handle_rejected(sub.clone());
                         }
                     }
                 }
@@ -147,6 +178,32 @@ where
         }
 
         Ok(Handled::Skipped(event))
+    }
+}
+
+pub async fn retry_subscriptions(
+    retries: UnboundedReceiver<SubscribeTo>,
+    topic_mappers_updates: TopicMapperUpdates,
+    mut subscription_handle: UpdateSubscriptionHandle,
+) {
+    // read re-subscription requests in chunks by 100 items if ready
+    let mut retries = retries.ready_chunks(100);
+
+    while let Some(subs) = retries.next().await {
+        if !subs.is_empty() {
+            info!("try to re-subscribe to {} topics", subs.len());
+            for sub in subs {
+                if topic_mappers_updates.contains_key(&sub.topic_filter) {
+                    debug!("re-subscribe to {} qos {:?}", sub.topic_filter, sub.qos);
+                    if let Err(e) = subscription_handle.subscribe(sub).await {
+                        error!("failed to send subscribe {}", e);
+                    }
+                }
+            }
+        }
+
+        // wait for timeout before trying the next batch
+        time::delay_for(Duration::from_secs(10)).await;
     }
 }
 
@@ -207,6 +264,52 @@ mod tests {
             .unwrap();
 
         let _topic_mapper = handler.topic_mappers.get("local/floor/#").unwrap();
+    }
+
+    #[tokio::test]
+    async fn message_handler_retries_rejected_topic() {
+        let batch_size: usize = 5;
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+
+        let topics: HashMap<String, TopicMapper> = connection_settings
+            .forwards()
+            .iter()
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                    },
+                )
+            })
+            .collect();
+
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+
+        let store = PublicationStore::new_memory(batch_size);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        handler.set_retry_sub_sender(tx);
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::RejectedByServer(SubscribeTo {
+                    topic_filter: "local/floor/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        assert!(!handler.topic_mappers.contains_key("local/floor/#"));
+        assert_eq!(
+            rx.recv().await,
+            Some(SubscribeTo {
+                topic_filter: "local/floor/#".to_string(),
+                qos: QoS::AtLeastOnce,
+            })
+        );
     }
 
     #[tokio::test]
