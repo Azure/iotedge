@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
@@ -451,7 +452,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 JToken integrity = twinJobject["integrity"];
                 JToken header = integrity["header"];
                 JToken signerCertJtoken = integrity["header"]["signercert"];
-                string combinedCert = signerCertJtoken[0].ToString() + signerCertJtoken[1].ToString();
+                string combinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
                 X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
                 JToken signature = integrity["signature"]["bytes"];
 
