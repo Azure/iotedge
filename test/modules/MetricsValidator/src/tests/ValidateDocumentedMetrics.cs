@@ -37,12 +37,6 @@ namespace MetricsValidator.Tests
 
             var expected = this.GetExpectedMetrics();
 
-            if (OsPlatform.IsWindows())
-            {
-                // Docker doesn't return this on windows
-                expected.Remove("edgeAgent_created_pids_total");
-            }
-
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
             if (expected.Count == 0)
             {

@@ -21,14 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.owned = owned;
         }
 
-        public string ConnectionString =>
-            $"HostName={this.iotHub.Hostname};" +
-            $"DeviceId={this.device.Id};" +
-            $"SharedAccessKey={this.device.Authentication.SymmetricKey.PrimaryKey}";
-
-        public string Id => this.device.Id;
-
         public string HubHostname => this.iotHub.Hostname;
+        public string Id => this.device.Id;
+        public string SharedAccessKey => this.device.Authentication.SymmetricKey.PrimaryKey;
 
         public static Task<EdgeDevice> CreateIdentityAsync(
             string deviceId,

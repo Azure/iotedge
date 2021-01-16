@@ -12,7 +12,6 @@
 
 use std::path::{Path, PathBuf};
 
-use failure::ResultExt;
 use lazy_static::lazy_static;
 use url::Url;
 
@@ -20,24 +19,22 @@ mod authentication;
 mod authorization;
 mod certificate_properties;
 pub mod crypto;
-mod error;
+pub mod error;
 mod identity;
 mod logs;
-mod module;
+pub mod module;
 mod network;
 mod parse_since;
-mod settings;
+pub mod settings;
 mod virtualization;
-pub mod watchdog;
 pub mod workload;
 
 pub use authentication::Authenticator;
 pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
-    Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetHsmVersion,
-    GetIssuerAlias, GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MakeRandom,
-    MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
+    Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
+    PrivateKey, AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
@@ -45,16 +42,13 @@ pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
     ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, ModuleTop, ProvisioningInfo, ProvisioningResult, RegistryOperation,
-    RuntimeOperation, SystemInfo, SystemResources,
+    ModuleStatus, ModuleTop, ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo,
+    SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
 pub use settings::{
-    AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
-    ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,
-    RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
-    WatchdogSettings, X509AttestationInfo,
+    Connect, Endpoints, Listen, Protocol, RetryLimit, RuntimeSettings, Settings, WatchdogSettings,
 };
 pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
@@ -89,26 +83,7 @@ impl UrlExt for Url {
     fn to_uds_file_path(&self) -> Result<PathBuf, Error> {
         debug_assert_eq!(self.scheme(), UNIX_SCHEME);
 
-        if cfg!(windows) {
-            // We get better handling of Windows file syntax if we parse a
-            // unix:// URL as a file:// URL. Specifically:
-            // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and
-            //   returns "/path".
-            // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails
-            //   with Err(()).
-            // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds
-            //   and returns "C:\\path".
-            debug_assert_eq!(self.scheme(), UNIX_SCHEME);
-            let mut s = self.to_string();
-            s.replace_range(..4, "file");
-            let url = Url::parse(&s).with_context(|_| ErrorKind::InvalidUrl(s.clone()))?;
-            let path = url
-                .to_file_path()
-                .map_err(|()| ErrorKind::InvalidUrl(url.to_string()))?;
-            Ok(path)
-        } else {
-            Ok(Path::new(self.path()).to_path_buf())
-        }
+        Ok(Path::new(self.path()).to_path_buf())
     }
 
     fn to_base_path(&self) -> Result<PathBuf, Error> {
@@ -121,5 +96,5 @@ impl UrlExt for Url {
 
 pub const UNIX_SCHEME: &str = "unix";
 
-/// This is the name of the network created by the iotedged
+/// This is the name of the network created by the aziot-edged
 pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";
