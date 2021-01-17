@@ -8,6 +8,7 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Future, IntoFuture};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Response, StatusCode};
+use log::{warn, Level};
 
 use cert_client::client::CertificateClient;
 use edgelet_core::{
@@ -15,7 +16,7 @@ use edgelet_core::{
     PrivateKey as CorePrivateKey,
 };
 use edgelet_http::Error as HttpError;
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 use openssl::error::ErrorStack;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
@@ -35,9 +36,6 @@ const AZIOT_EDGE_CA_CERT_MIN_DURATION_SECS: i64 = 5 * 60;
 
 // 180 days
 const AZIOT_EDGE_CA_CERT_MAX_DURATION_SECS: u64 = 180 * 24 * 3600;
-
-// Workload CA alias
-const IOTEDGED_CA_ALIAS: &str = "iotedged-workload-ca";
 
 // Workload CA CN
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
@@ -166,7 +164,11 @@ fn refresh_cert(
                 })
         })
         .flatten()
-        .or_else(|e| Ok(e.into_response()));
+        .or_else(|e| {
+            warn!("Error in workload API when requesting certificate:");
+            log_failure(Level::Warn, &e);
+            Ok(e.into_response())
+        });
 
     Box::new(response)
 }
@@ -190,22 +192,23 @@ fn generate_local_keypair() -> std::result::Result<
 fn load_keypair(
     ca_key_pair_handle: &aziot_key_common::KeyHandle,
     key_engine: &mut openssl2::FunctionalEngine,
+    context: &ErrorKind,
 ) -> std::result::Result<
     (
         openssl::pkey::PKey<openssl::pkey::Private>,
         openssl::pkey::PKey<openssl::pkey::Public>,
     ),
-    ErrorStack,
+    Error,
 > {
     let (workload_ca_private_key, workload_ca_public_key) = {
-        let workload_ca_key_pair_handle =
-            std::ffi::CString::new(ca_key_pair_handle.0.clone()).unwrap();
+        let workload_ca_key_pair_handle = std::ffi::CString::new(ca_key_pair_handle.0.clone())
+            .map_err(|err| Error::from(err.context(context.clone())))?;
         let workload_ca_public_key = key_engine
             .load_public_key(&workload_ca_key_pair_handle)
-            .unwrap();
+            .map_err(|err| Error::from(err.context(context.clone())))?;
         let workload_ca_private_key = key_engine
             .load_private_key(&workload_ca_key_pair_handle)
-            .unwrap();
+            .map_err(|err| Error::from(err.context(context.clone())))?;
         (workload_ca_private_key, workload_ca_public_key)
     };
 
@@ -360,7 +363,7 @@ fn create_edge_ca_certificate(
         AZIOT_EDGE_CA_CERT_MAX_DURATION_SECS,
         IOTEDGED_COMMONNAME.to_string(),
         CertificateType::Ca,
-        IOTEDGED_CA_ALIAS.to_string(),
+        ca.cert_id.to_string(),
     );
 
     //generate new key in Key Service, generate csr for Edge CA certificate, import into Cert Service
@@ -371,7 +374,7 @@ fn create_edge_ca_certificate(
                 .create_key_pair_if_not_exists(ca.key_id.as_str(), Some("rsa-2048:*"))
                 .map_err(|e| Error::from(e.context(context.clone())))
                 .and_then(|ca_key_pair_handle| {
-                    load_keypair(&ca_key_pair_handle, &mut key_engine)
+                    load_keypair(&ca_key_pair_handle, &mut key_engine, &context.clone())
                         .map_err(|e| Error::from(e.context(context.clone())))
                         .and_then(|(privkey, pubkey)| {
                             create_csr(&edgelet_ca_props, &privkey, &pubkey)

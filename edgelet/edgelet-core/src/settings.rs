@@ -187,6 +187,9 @@ pub struct Settings<T> {
     pub homedir: PathBuf,
     #[serde(default)]
     pub watchdog: WatchdogSettings,
+    pub edge_ca_cert: Option<String>,
+    pub edge_ca_key: Option<String>,
+    pub trust_bundle_cert: Option<String>,
 
     /// Map of service names to endpoint URIs.
     ///
@@ -194,9 +197,6 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
-    pub edge_ca_cert: Option<String>,
-    pub edge_ca_key: Option<String>,
-    pub trust_bundle_cert: Option<String>,
 }
 
 impl<T> RuntimeSettings for Settings<T>
