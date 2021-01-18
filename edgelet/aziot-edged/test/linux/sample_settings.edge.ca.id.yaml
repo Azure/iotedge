@@ -30,4 +30,4 @@ moby_runtime:
   network: "azure-iot-edge"
 edge_ca_cert: "iotedge-test-ca"
 edge_ca_key: "iotedge-test-ca"
-trust_bundle_cert: "iotedge-trust-bundle"
+trust_bundle_cert: "aziot-edged-trust-bundle"
