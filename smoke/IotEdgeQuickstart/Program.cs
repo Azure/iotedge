@@ -65,7 +65,7 @@ Defaults:
     [HelpOption]
     class Program
     {
-        [Option("-a|--bootstrapper-archive <path>", Description = "Path to bootstrapper archive")]
+        [Option("-a|--bootstrapper-archive <path>", Description = "Path to directory containing packages to install")]
         public string BootstrapperArchivePath { get; } = Environment.GetEnvironmentVariable("bootstrapperArchivePath");
 
         [Option("-b|--bootstrapper=<iotedged/iotedgectl>", CommandOptionType.SingleValue, Description = "Which bootstrapper to use")]
@@ -219,8 +219,7 @@ Defaults:
                     case BootstrapperType.Iotedged:
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
-                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
+                            throw new NotImplementedException("Windows support is not available");
                         }
                         else
                         {
