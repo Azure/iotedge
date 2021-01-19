@@ -3,6 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -61,6 +63,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     startTime,
                     token);
             }
+        }
+
+        public async Task UpdateParentHostnameAsync(string parentHostname)
+        {
+            using var cts = new CancellationTokenSource(Context.Current.SetupTimeout);
+            CancellationToken token = cts.Token;
+
+            await Profiler.Run(
+                async () =>
+                {
+                    await this.daemon.ConfigureAsync(
+                        config =>
+                        {
+                            var props = new List<object>();
+                            config.SetParentHostname(parentHostname);
+                            props.Add(parentHostname);
+                            config.Update();
+
+                            return Task.FromResult(($", parent hostname '{parentHostname}'", props.ToArray()));
+                        },
+                        token,
+                        restart: true);
+                },
+                "Completed parent hostname update");
         }
     }
 }

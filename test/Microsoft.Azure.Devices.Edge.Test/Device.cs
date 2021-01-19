@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Linq;
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
@@ -50,6 +51,124 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 async () =>
                 {
                     await leaf.DeleteIdentityAsync(token);
+                });
+        }
+
+        [Test]
+        [Category("CentOsSafe")]
+        [Category("NestedEdgeOnly")]
+        public async Task QuickStartParentIp()
+        {
+            CancellationToken token = this.TestToken;
+
+            // Resolve the parent hostname into a raw IP
+            IPAddress[] ipAddresses = await Dns.GetHostAddressesAsync(Context.Current.ParentHostname.OrDefault());
+
+            if (ipAddresses.Length == 0)
+            {
+                throw new InvalidOperationException($"Could not resolve ParentHostname to a valid IP");
+            }
+
+            // Update the daemon config to point to the IP
+            await this.UpdateParentHostnameAsync(ipAddresses.First().ToString());
+
+            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+
+            string leafDeviceId = DeviceId.Current.Generate();
+
+            var leaf = await LeafDevice.CreateAsync(
+                leafDeviceId,
+                Protocol.Amqp,
+                AuthenticationType.Sas,
+                Option.Some(this.runtime.DeviceId),
+                false,
+                this.ca,
+                this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                token,
+                Option.None<string>(),
+                Context.Current.NestedEdge);
+
+            await TryFinally.DoAsync(
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await leaf.InvokeDirectMethodAsync(token);
+                },
+                async () =>
+                {
+                    await leaf.DeleteIdentityAsync(token);
+                });
+        }
+
+        [Test]
+        [Category("CentOsSafe")]
+        [Category("NestedEdgeOnly")]
+        public async Task QuickstartChangeSasKey()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+
+            string leafDeviceId = DeviceId.Current.Generate();
+
+            // Create leaf and send message
+            var leaf = await LeafDevice.CreateAsync(
+                leafDeviceId,
+                Protocol.Amqp,
+                AuthenticationType.Sas,
+                Option.Some(this.runtime.DeviceId),
+                false,
+                this.ca,
+                this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                token,
+                Option.None<string>(),
+                Context.Current.NestedEdge);
+
+            await TryFinally.DoAsync(
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await leaf.InvokeDirectMethodAsync(token);
+                },
+                async () =>
+                {
+                    await leaf.Close();
+                    await leaf.DeleteIdentityAsync(token);
+                });
+
+            // Re-create the leaf with the same device ID, for our purposes this is
+            // the equivalent of updating the SAS keys
+            var leafUpdated = await LeafDevice.CreateAsync(
+                leafDeviceId,
+                Protocol.Amqp,
+                AuthenticationType.Sas,
+                Option.Some(this.runtime.DeviceId),
+                false,
+                this.ca,
+                this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                token,
+                Option.None<string>(),
+                Context.Current.NestedEdge);
+
+            await TryFinally.DoAsync(
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leafUpdated.SendEventAsync(token);
+                    await leafUpdated.WaitForEventsReceivedAsync(seekTime, token);
+                    await leafUpdated.InvokeDirectMethodAsync(token);
+                },
+                async () =>
+                {
+                    await leafUpdated.Close();
+                    await leafUpdated.DeleteIdentityAsync(token);
                 });
         }
     }
