@@ -115,6 +115,18 @@ impl RuntimeSettings for TestSettings {
     fn endpoints(&self) -> &Endpoints {
         unimplemented!()
     }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone, Debug)]

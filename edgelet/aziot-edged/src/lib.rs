@@ -8,6 +8,7 @@
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
     clippy::shadow_unrelated,
+    clippy::too_many_arguments,
     clippy::too_many_lines,
     clippy::type_complexity,
     clippy::use_self,
@@ -51,7 +52,7 @@ use url::Url;
 
 use edgelet_core::crypto::{
     CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature,
-    AZIOT_EDGED_CA_ALIAS,
+    AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS,
 };
 use edgelet_core::{
     Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
@@ -287,6 +288,18 @@ where
                         hub,
                         settings.parent_hostname().map(String::from),
                         device_id,
+                        settings
+                            .edge_ca_cert()
+                            .unwrap_or(AZIOT_EDGED_CA_ALIAS)
+                            .to_string(),
+                        settings
+                            .edge_ca_key()
+                            .unwrap_or(AZIOT_EDGED_CA_ALIAS)
+                            .to_string(),
+                        settings
+                            .trust_bundle_cert()
+                            .unwrap_or(TRUST_BUNDLE_ALIAS)
+                            .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
                         AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
                     );
@@ -700,8 +713,8 @@ mod tests {
     };
     use docker::models::ContainerCreateBody;
 
-    #[cfg(unix)]
     static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.yaml";
+    static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.yaml";
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
 
@@ -723,5 +736,13 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
         assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
+    }
+
+    #[test]
+    fn settings_for_edge_ca_cert() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EDGE_CA_CERT_ID)).unwrap();
+        assert_eq!(settings.edge_ca_cert(), Some("iotedge-test-ca"));
     }
 }

@@ -95,15 +95,19 @@ where
                     alias.clone(),
                 )
                 .with_dns_san_entries(sans);
-                Ok((alias, props))
+                Ok((alias, props, cfg))
             })
-            .and_then(move |(alias, props)| {
+            .and_then(move |(alias, props, cfg)| {
                 let response = refresh_cert(
                     &key_client,
                     cert_client,
                     alias,
                     &props,
-                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
+                    super::EdgeCaCertificate {
+                        cert_id: cfg.edge_ca_cert().to_string(),
+                        key_id: cfg.edge_ca_key().to_string(),
+                    },
+                    &ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
                 )
                 .map_err(|_| {
                     Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))
