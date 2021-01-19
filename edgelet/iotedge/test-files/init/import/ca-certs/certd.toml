@@ -3,5 +3,5 @@ homedir_path = "/var/lib/aziot/certd"
 [cert_issuance]
 
 [preloaded_certs]
-aziot-edged-device-ca = "file:///var/secrets/device-ca.pem"
-iotedge-trust-bundle = "file:///var/secrets/trusted-ca.pem"
+aziot-edged-ca = "file:///var/secrets/device-ca.pem"
+aziot-edged-trust-bundle = "file:///var/secrets/trusted-ca.pem"

@@ -18,6 +18,9 @@ listen:
 homedir: /var/lib/aziot/edged
 watchdog:
   max_retries: ~
+edge_ca_cert: aziot-edged-ca
+edge_ca_key: aziot-edged-ca
+trust_bundle_cert: aziot-edged-trust-bundle
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
   network: azure-iot-edge
