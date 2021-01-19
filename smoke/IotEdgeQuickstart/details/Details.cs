@@ -211,7 +211,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task VerifyEdgeIsNotAlreadyActive()
         {
-            Console.WriteLine("Verifying if edge is not already active.");
+            Console.WriteLine("Verifying that aziot-edge and aziot-identity-service are not active.");
             return this.bootstrapper.VerifyNotActive();
         }
 

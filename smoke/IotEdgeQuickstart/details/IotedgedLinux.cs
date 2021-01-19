@@ -88,10 +88,16 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyNotActive()
         {
-            string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
-            if (result.First().Split("=").Last() == "active")
+            string [] services = new string[] { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
+
+            foreach (string service in services)
             {
-                throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl stop iotedge` first.");
+                string[] result = await Process.RunAsync("bash", $"-c \"systemctl --no-pager show {service} | grep ActiveState=\"");
+
+                if (result.First().Split("=").Last() == "active")
+                {
+                    throw new Exception($"{service} is already active. If you want this test to overwrite the active configuration, please run `systemctl stop {service}` first.");
+                }
             }
         }
 
