@@ -134,17 +134,6 @@ mod tests {
     }
 
     #[test]
-    fn invalid_uds_url() {
-        let err = match UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
-        {
-            Ok(_) => panic!("Expected UrlConnector::new to fail"),
-            Err(err) => err,
-        };
-
-        assert!(err.to_string().contains("Socket file could not be found"));
-    }
-
-    #[test]
     fn create_http_succeeds() {
         let _connector = UrlConnector::new(&Url::parse("http://localhost:2375").unwrap()).unwrap();
     }
