@@ -27,5 +27,4 @@ mqtt3 = { path = "../../mqtt/mqtt3" }
 lazy_static = "1.4"
 matches = "0.1"
 mockito = "0.25"
-test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }

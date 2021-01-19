@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
+                            Context.Current.ParentDeviceId,
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
@@ -47,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.OptimizeForPerformance,
                             this.iotHub);
 
-                        TestCertificates testCerts = await TestCertificates.GenerateCertsAsync(device.Id, token);
+                        TestCertificates testCerts;
+                        (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
 
                         await this.ConfigureDaemonAsync(
                             config =>
@@ -96,9 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             Directory.CreateDirectory(path);
             File.Copy(identityCerts.CertificatePath, certPath);
-            OsPlatform.Current.SetFileOwner(certPath, "aziotcs", "644");
+            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
             File.Copy(identityCerts.KeyPath, keyPath);
-            OsPlatform.Current.SetFileOwner(keyPath, "aziotks", "600");
+            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
             X509Certificate2 deviceCert = new X509Certificate2(identityCerts.CertificatePath);
 
