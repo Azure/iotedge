@@ -182,6 +182,9 @@ Defaults:
         [Option("--parent-edge-device", Description = "Optional input to specify parent edge device id for nested edge scenario")]
         public string ParentEdgeDevice { get; } = string.Empty;
 
+        [Option("--overwrite-packages", Description = "Overwrite existing aziot packages with those specified in the bootstrapper")]
+        public bool overwritePackages { get; } = false;
+
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -230,7 +233,7 @@ Defaults:
 
                             UriSocks socks = new UriSocks(this.ConnectManagementUri, this.ConnectWorkloadUri, this.ListenManagementUri, this.ListenWorkloadUri);
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation, this.overwritePackages);
                         }
 
                         break;

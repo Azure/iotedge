@@ -620,7 +620,8 @@ function run_connectivity_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
-        --no-verify && funcRet=$? || funcRet=$?
+        --no-verify \
+        --overwrite-packages && funcRet=$? || funcRet=$?
     else
         # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
@@ -636,7 +637,8 @@ function run_connectivity_test() {
             --leave-running=All \
             -l "$deployment_working_file" \
             --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
-            --no-verify && funcRet=$? || funcRet=$?
+            --no-verify \
+            --overwrite-packages && funcRet=$? || funcRet=$?
     fi
 
     local elapsed_time
@@ -717,14 +719,14 @@ function run_longhaul_test() {
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
     echo "Nested edge test=$NESTED_EDGE_TEST"
     local ret=0
-    
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
         DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
         DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
         TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
-        
+
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
         echo "Device CA cert=$DEVICE_CA_CERT"
@@ -855,7 +857,7 @@ if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
 elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
 
-    is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)         
+    is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
     if [ $is_build_canceled -eq 1 ]; then
         print_highlighted_message "build is canceled."
         exit 3

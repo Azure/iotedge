@@ -2,6 +2,7 @@
 namespace IotEdgeQuickstart.Details
 {
     using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
@@ -75,8 +76,9 @@ namespace IotEdgeQuickstart.Details
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
         readonly bool requireEdgeInstallation;
+        readonly bool overwritePackages;
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
@@ -85,19 +87,32 @@ namespace IotEdgeQuickstart.Details
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
             this.requireEdgeInstallation = requireEdgeInstallation;
+            this.overwritePackages = overwritePackages;
         }
 
-        public async Task VerifyNotActive()
+        public async Task VerifyNotInstalled()
         {
-            string [] services = new string[] { "aziot-keyd", "aziot-certd", "aziot-identityd", "aziot-edged" };
+            string [] packages = new string[] { "aziot-edge", "aziot-identity-service" };
 
-            foreach (string service in services)
+            foreach (string package in packages)
             {
-                string[] result = await Process.RunAsync("bash", $"-c \"systemctl --no-pager show {service} | grep ActiveState=\"");
-
-                if (result.First().Split("=").Last() == "active")
+                try
                 {
-                    throw new Exception($"{service} is already active. If you want this test to overwrite the active configuration, please run `systemctl stop {service}` first.");
+                    await Process.RunAsync("bash", $"-c \"dpkg -l | grep {package}\"");
+
+                    if (this.overwritePackages)
+                    {
+                        Console.WriteLine($"Removing {package}.");
+                        await Process.RunAsync("apt", $"purge -y {package}");
+                    }
+                    else
+                    {
+                        throw new Exception($"Existing installation of {package} found on this machine. Remove it and retry.");
+                    }
+                }
+                catch (Win32Exception)
+                {
+                    // Package not installed; continue.
                 }
             }
         }
@@ -201,6 +216,8 @@ namespace IotEdgeQuickstart.Details
                 {
                     Console.WriteLine("Setting up aziot-edged with agent image 1.0");
                 });
+
+            Dictionary<string, (string template, IConfigDocument document)> services = new Dictionary<string, (string, IConfigDocument)>();
 
             const string YamlPath = "/etc/aziot/edged/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);

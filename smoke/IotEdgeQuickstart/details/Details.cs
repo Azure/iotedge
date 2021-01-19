@@ -209,10 +209,10 @@ namespace IotEdgeQuickstart.Details
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
         }
 
-        protected Task VerifyEdgeIsNotAlreadyActive()
+        protected Task VerifyEdgeIsNotInstalled()
         {
-            Console.WriteLine("Verifying that aziot-edge and aziot-identity-service are not active.");
-            return this.bootstrapper.VerifyNotActive();
+            Console.WriteLine("Verifying that aziot-edge and aziot-identity-service are not installed.");
+            return this.bootstrapper.VerifyNotInstalled();
         }
 
         protected Task VerifyBootstrapperDependencies()
