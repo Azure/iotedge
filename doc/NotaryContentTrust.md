@@ -109,7 +109,9 @@ To check if the image is signed or not, `az` tools can be used. Before that logi
 
 The root CA of each Container Registry i.e `root_ca_exampleregistry.crt` must be copied out of band into the device in a specific location.
 
-In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and location of its corresponding root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/config.yaml)
+In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and certificate ID of the root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/edged.yaml)
+
+In the `certd.toml`, under `preloaded_certs`, the mapping of the certificate ID and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/certd.toml)
 
 Recommendation is to create another Service Principal with Pull access for the edge device and ensure the login credentials are applied in the deployment manifest. 
 

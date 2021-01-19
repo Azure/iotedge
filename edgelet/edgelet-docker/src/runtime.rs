@@ -249,9 +249,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
-        // let cert_client_notary =
-        let created = init_client(settings.moby_runtime().uri())
-            .and_then(move |client| {
+        let created = match init_client(settings.moby_runtime().uri()) {
+            Ok(client) => {
                 let home_dir: Arc<Path> = settings.homedir().into();
                 let network_id = settings.moby_runtime().network().name().to_string();
                 let notary_registries = BTreeMap::new();
@@ -348,13 +347,13 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             notary_lock,
                         }
                     });
-                Ok(future::Either::A(fut))
-            })
-            .unwrap_or_else(|err| {
+                future::Either::A(fut)
+            }
+            Err(err) => {
                 log_failure(Level::Warn, &err);
                 future::Either::B(Err(err).into_future())
-            });
-
+            }
+        };
         Box::new(created)
     }
 }
@@ -1354,21 +1353,6 @@ mod tests {
         assert!(failure::Fail::iter_chain(&err).any(|err| err
             .to_string()
             .contains("URL does not have a recognized scheme")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn invalid_uds_path_fails() {
-        let (settings, _tmp_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "unix:///this/file/does/not/exist"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings)
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err)
-            .any(|err| err.to_string().contains("Socket file could not be found")));
     }
 
     #[test]

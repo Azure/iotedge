@@ -17,7 +17,7 @@ use crate::{Error, ErrorKind};
 pub fn notary_init(
     home_dir: &Path,
     registry_server_hostname: &str,
-    cert_buf: &Vec<u8>,
+    cert_buf: &[u8],
 ) -> Result<PathBuf, Error> {
     // Validate inputs
     if registry_server_hostname.is_empty() {
