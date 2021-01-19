@@ -10,6 +10,7 @@ namespace IotEdgeQuickstart.Details
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
 
     public class HttpUris
     {
@@ -213,7 +214,7 @@ namespace IotEdgeQuickstart.Details
                 },
                 () =>
                 {
-                    doc.Remove("provisioning.device_connection_string");
+                    doc.RemoveIfExists("provisioning.device_connection_string");
                     return string.Empty;
                 });
 
