@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::str;
+use std::sync::{Arc, Mutex};
 
 use failure::ResultExt;
 use futures::{Future, IntoFuture};
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 
-use edgelet_core::{Certificate, GetTrustBundle};
+use cert_client::client::CertificateClient;
+use edgelet_core::WorkloadConfig;
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use workload::models::TrustBundleResponse;
@@ -15,39 +17,37 @@ use workload::models::TrustBundleResponse;
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
 
-pub struct TrustBundleHandler<T: GetTrustBundle> {
-    hsm: T,
+pub struct TrustBundleHandler<W: WorkloadConfig> {
+    cert_client: Arc<Mutex<CertificateClient>>,
+    config: W,
 }
 
-impl<T> TrustBundleHandler<T>
-where
-    T: 'static + GetTrustBundle + Clone,
-{
-    pub fn new(hsm: T) -> Self {
-        TrustBundleHandler { hsm }
+impl<W: WorkloadConfig> TrustBundleHandler<W> {
+    pub fn new(cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
+        TrustBundleHandler {
+            cert_client,
+            config,
+        }
     }
 }
 
-impl<T> Handler<Parameters> for TrustBundleHandler<T>
+impl<W> Handler<Parameters> for TrustBundleHandler<W>
 where
-    T: 'static + GetTrustBundle + Send,
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
 {
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let config = self.config.clone();
         let response = self
-            .hsm
-            .get_trust_bundle()
-            .context(ErrorKind::EncryptionOperation(
-                EncryptionOperation::GetTrustBundle,
-            ))
-            .map_err(Error::from)
+            .cert_client
+            .lock()
+            .expect("cert client lock failed")
+            .get_cert(config.trust_bundle_cert())
+            .map_err(|_| Error::from(ErrorKind::GetIdentity))
             .and_then(|cert| -> Result<_, Error> {
-                let cert = cert.pem().context(ErrorKind::EncryptionOperation(
-                    EncryptionOperation::GetTrustBundle,
-                ))?;
                 let cert = str::from_utf8(cert.as_ref())
                     .context(ErrorKind::EncryptionOperation(
                         EncryptionOperation::GetTrustBundle,
@@ -70,89 +70,5 @@ where
             .into_future();
 
         Box::new(response)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use futures::Future;
-    use futures::Stream;
-
-    use edgelet_test_utils::cert::TestCert;
-    use edgelet_test_utils::crypto::TestHsm;
-
-    use super::{
-        Handler, Parameters, Request, StatusCode, TrustBundleHandler, TrustBundleResponse,
-        CONTENT_LENGTH, CONTENT_TYPE,
-    };
-
-    #[test]
-    fn get_fail() {
-        let handler = TrustBundleHandler::new(TestHsm::default().with_fail_call(true));
-        let request = Request::get("http://localhost/trust-bundle")
-            .body("".into())
-            .unwrap();
-        let response = handler.handle(request, Parameters::new()).wait().unwrap();
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-    }
-
-    #[test]
-    fn pem_fail() {
-        let handler = TrustBundleHandler::new(
-            TestHsm::default().with_cert(TestCert::default().with_fail_pem(true)),
-        );
-        let request = Request::get("http://localhost/trust-bundle")
-            .body("".into())
-            .unwrap();
-        let response = handler.handle(request, Parameters::new()).wait().unwrap();
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-    }
-
-    #[test]
-    fn utf8_decode_fail() {
-        let handler = TrustBundleHandler::new(
-            TestHsm::default().with_cert(TestCert::default().with_cert(vec![0, 159, 146, 150])),
-        );
-        let request = Request::get("http://localhost/trust-bundle")
-            .body("".into())
-            .unwrap();
-        let response = handler.handle(request, Parameters::new()).wait().unwrap();
-        assert_eq!(StatusCode::INTERNAL_SERVER_ERROR, response.status());
-    }
-
-    #[test]
-    fn success() {
-        let handler = TrustBundleHandler::new(
-            TestHsm::default().with_cert(TestCert::default().with_cert(b"boo".to_vec())),
-        );
-        let request = Request::get("http://localhost/trust-bundle")
-            .body("".into())
-            .unwrap();
-        let response = handler.handle(request, Parameters::new()).wait().unwrap();
-        assert_eq!(StatusCode::OK, response.status());
-
-        let content_length = {
-            let headers = response.headers();
-            assert_eq!(headers.get(CONTENT_TYPE).unwrap(), &"application/json");
-
-            headers
-                .get(CONTENT_LENGTH)
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string()
-        };
-
-        response
-            .into_body()
-            .concat2()
-            .and_then(|b| {
-                assert_eq!(content_length, b.len().to_string());
-                let trust_bundle: TrustBundleResponse = serde_json::from_slice(&b).unwrap();
-                assert_eq!("boo", trust_bundle.certificate().as_str());
-                Ok(())
-            })
-            .wait()
-            .unwrap();
     }
 }

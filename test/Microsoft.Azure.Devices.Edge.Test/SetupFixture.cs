@@ -2,12 +2,15 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
@@ -18,6 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class SetupFixture
     {
         IEdgeDaemon daemon;
+
+        private string[] configFiles =
+        {
+            "/etc/aziot/keyd/config.toml",
+            "/etc/aziot/certd/config.toml",
+            "/etc/aziot/identityd/config.toml",
+            "/etc/aziot/edged/config.yaml"
+        };
 
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
@@ -46,22 +57,38 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
 
+                    // Create a directory for the tests to store certs, keys, etc.
+                    Directory.CreateDirectory("/etc/aziot/e2e_tests");
+
+                    // Backup any existing service config files.
+                    foreach (string file in this.configFiles)
+                    {
+                        if (File.Exists(file))
+                        {
+                            File.Move(file, file + ".backup", true);
+                        }
+                    }
+
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
 
-                            string hostname = Dns.GetHostName();
+                            string hostname = Context.Current.Hostname.GetOrElse(Dns.GetHostName());
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
-
+                            Log.Information("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
+                                Log.Information($"Found parent hostname {parentHostname}");
                                 config.SetParentHostname(parentHostname);
                                 msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
+
+                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
+                                config.SetEdgeAgentImage(edgeAgent);
                             });
 
                             Context.Current.Proxy.ForEach(proxy =>
@@ -93,11 +120,78 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         await device.MaybeDeleteIdentityAsync(token);
                     }
+
+                    // Remove packages installed by this run.
+                    await this.daemon.UninstallAsync(token);
+
+                    // Delete test certs, keys, etc.
+                    Directory.Delete("/etc/aziot/e2e_tests", true);
+
+                    // Restore backed up config files.
+                    foreach (string file in this.configFiles)
+                    {
+                        string backupFile = file + ".backup";
+
+                        if (File.Exists(backupFile))
+                        {
+                            File.Move(backupFile, file, true);
+                        }
+                        else
+                        {
+                            File.Delete(file);
+                        }
+                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>
             {
                 Log.CloseAndFlush();
             });
+    }
+
+    // Generates a test CA cert, test CA key, and trust bundle.
+    // TODO: Remove this once iotedge init is finished?
+    public class TestCertificates
+    {
+        private string deviceId;
+        private CaCertificates certs;
+
+        TestCertificates(string deviceId, CaCertificates certs)
+        {
+            this.deviceId = deviceId;
+            this.certs = certs;
+        }
+
+        public static async Task<(TestCertificates, CertificateAuthority ca)> GenerateCertsAsync(string deviceId, CancellationToken token)
+        {
+            string scriptPath = Context.Current.CaCertScriptPath.Expect(
+                () => new System.InvalidOperationException("Missing CA cert script path"));
+            (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
+                () => new System.InvalidOperationException("Missing root CA"));
+
+            CertificateAuthority ca = await CertificateAuthority.CreateAsync(deviceId, rootCa, scriptPath, token);
+            CaCertificates certs = await ca.GenerateCaCertificatesAsync(deviceId, token);
+            ca.EdgeCertificates = certs;
+
+            return (new TestCertificates(deviceId, certs), ca);
+        }
+
+        public void AddCertsToConfig(DaemonConfiguration config)
+        {
+            string path = $"/etc/aziot/e2e_tests/{this.deviceId}";
+            string certPath = $"{path}/device_ca_cert.pem";
+            string keyPath = $"{path}/device_ca_cert_key.pem";
+            string trustBundlePath = $"{path}/trust_bundle.pem";
+
+            Directory.CreateDirectory(path);
+            File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
+            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
+            File.Copy(this.certs.CertificatePath, certPath);
+            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
+            File.Copy(this.certs.KeyPath, keyPath);
+            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
+
+            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
+        }
     }
 }

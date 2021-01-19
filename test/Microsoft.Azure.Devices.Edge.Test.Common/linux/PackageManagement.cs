@@ -24,19 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.os = os;
             this.version = version;
             this.packageExtension = extension;
-            this.IotedgeServices = extension switch
-            {
-                SupportedPackageExtension.Deb => "iotedge.mgmt.socket iotedge.socket iotedge.service",
-                SupportedPackageExtension.Rpm => "iotedge.service",
-                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
-            };
+            this.IotedgeServices = string.Join(
+                " ",
+                "aziot-keyd.service",
+                "aziot-certd.service",
+                "aziot-identityd.service",
+                "aziot-edged.service");
         }
 
         public string[] GetInstallCommandsFromLocal(string path)
         {
             string[] packages = Directory
                 .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
-                .Where(p => !p.Contains("debug"))
+                .Where(p => !p.Contains("debug") && !p.Contains("devel"))
                 .ToArray();
 
             return this.packageExtension switch
@@ -44,19 +44,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 SupportedPackageExtension.Deb => new[]
                 {
                     "set -e",
-                    $"dpkg --force-confnew -i {string.Join(' ', packages)}",
+                    $"apt-get install -y {string.Join(' ', packages)}",
                     $"apt-get install -f"
                 },
                 SupportedPackageExtension.Rpm => new[]
                 {
                     "set -e",
-                    $"yum install -y {string.Join(' ', packages)}",
-                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    $"rpm --nodeps -i {string.Join(' ', packages)}",
+                    "pathToSystemdConfig=$(systemctl cat aziot-edged | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                     "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
                     "sudo systemctl daemon-reload"
                 },
                 _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+            };
+        }
+
+        public string GetDefaultEdgedConfig()
+        {
+            return this.packageExtension switch
+            {
+                SupportedPackageExtension.Deb => "/etc/aziot/edged/config.yaml.template",
+                SupportedPackageExtension.Rpm => "/etc/aziot/edged/config.yaml.rpmnew",
+                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'"),
             };
         }
 
@@ -100,11 +110,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes aziot-edge aziot-identity-service libiothsm-std iotedge"
+                "dpkg --purge aziot-edge",
+                "dpkg --purge aziot-identity-service",
+                "dpkg --purge iotedge",
+                "dpkg --purge libiothsm-std",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves aziot-edge aziot-identity-service libiothsm-std iotedge"
+                "yum remove -y --remove-leaves aziot-edge",
+                "yum remove -y --remove-leaves aziot-identity-service",
+                "yum remove -y --remove-leaves iotedge",
+                "yum remove -y --remove-leaves libiothsm-std",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };

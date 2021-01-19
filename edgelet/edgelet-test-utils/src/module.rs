@@ -3,10 +3,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions,
-    MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    Provisioning, ProvisioningInfo, ProvisioningResult, RuntimeSettings, SystemInfo,
-    SystemResources, WatchdogSettings,
+    AuthId, Authenticator, Connect, DiskInfo, Endpoints, Listen, LogOptions, MakeModuleRuntime,
+    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
@@ -81,10 +80,6 @@ impl TestSettings {
 impl RuntimeSettings for TestSettings {
     type Config = TestConfig;
 
-    fn provisioning(&self) -> &Provisioning {
-        unimplemented!()
-    }
-
     fn agent(&self) -> &ModuleSpec<Self::Config> {
         unimplemented!()
     }
@@ -113,11 +108,23 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
-    fn certificates(&self) -> &Certificates {
+    fn watchdog(&self) -> &WatchdogSettings {
         unimplemented!()
     }
 
-    fn watchdog(&self) -> &WatchdogSettings {
+    fn endpoints(&self) -> &Endpoints {
+        unimplemented!()
+    }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
         unimplemented!()
     }
 }
@@ -275,25 +282,6 @@ impl<E> From<TestBody<E>> for Body {
     }
 }
 
-#[derive(Default)]
-pub struct TestProvisioningResult;
-
-impl TestProvisioningResult {
-    pub fn new() -> Self {
-        TestProvisioningResult {}
-    }
-}
-
-impl ProvisioningResult for TestProvisioningResult {
-    fn device_id(&self) -> &str {
-        unimplemented!()
-    }
-
-    fn hub_name(&self) -> &str {
-        unimplemented!()
-    }
-}
-
 impl<E, S> MakeModuleRuntime for TestRuntime<E, S>
 where
     E: Clone + Fail,
@@ -302,16 +290,11 @@ where
 {
     type Config = S::Config;
     type Settings = S;
-    type ProvisioningResult = TestProvisioningResult;
     type ModuleRuntime = Self;
     type Error = E;
     type Future = FutureResult<Self, Self::Error>;
 
-    fn make_runtime(
-        settings: Self::Settings,
-        _: Self::ProvisioningResult,
-        _: impl GetTrustBundle,
-    ) -> Self::Future {
+    fn make_runtime(settings: Self::Settings) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
             registry: TestRegistry::new(None),

@@ -2,10 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
+    using Serilog;
 
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
@@ -13,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
-        protected virtual async Task SasProvisionEdgeAsync()
+        protected virtual async Task SasProvisionEdgeAsync(bool withCerts = false)
         {
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
@@ -22,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                 EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                     DeviceId.Current.Generate(),
+                    Context.Current.ParentDeviceId,
                     this.iotHub,
                     AuthenticationType.Sas,
                     null,
@@ -38,10 +42,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.OptimizeForPerformance,
                     this.iotHub);
 
+                TestCertificates testCerts;
+                (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
+
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
-                        config.SetDeviceConnectionString(device.ConnectionString);
+                        testCerts.AddCertsToConfig(config);
+
+                        config.SetManualSasProvisioning(Context.Current.ParentHostname.GetOrElse(device.HubHostname), device.Id, device.SharedAccessKey);
+
                         config.Update();
                         return Task.FromResult((
                             "with connection string for device '{Identity}'",
