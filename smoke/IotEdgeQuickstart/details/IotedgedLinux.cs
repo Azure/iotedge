@@ -159,35 +159,23 @@ namespace IotEdgeQuickstart.Details
         {
             if (this.requireEdgeInstallation)
             {
-                const string PackageName = "iotedge";
+                string[] packages = Directory.GetFiles(this.archivePath, "*.deb");
 
-                Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
-
-                string commandName;
-                string commandArgs;
-
-                // Use apt-get if a package name is given, or dpkg if a package file is given.
-                // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
-                // in Raspbian) can't accept a package file.
-                if (string.IsNullOrEmpty(this.archivePath))
+                foreach (string package in packages)
                 {
-                    commandName = "apt-get";
-                    commandArgs = $"--yes install {PackageName}";
+                    Console.WriteLine($"Will install {package}");
                 }
-                else
-                {
-                    commandName = "dpkg";
-                    commandArgs = $"--force-confnew -i {this.archivePath}";
-                }
+
+                string packageArguments = string.Join(" ", packages);
 
                 return Process.RunAsync(
-                    commandName,
-                    commandArgs,
+                    "apt-get",
+                    $"install -y {packageArguments}",
                     300); // 5 min timeout because install can be slow on raspberry pi
             }
             else
             {
-                Console.WriteLine("Skipping iotedge installation.");
+                Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
 
                 return Task.CompletedTask;
             }
@@ -206,14 +194,14 @@ namespace IotEdgeQuickstart.Details
             agentImage.ForEach(
                 image =>
                 {
-                    Console.WriteLine($"Setting up iotedged with agent image {image}");
+                    Console.WriteLine($"Setting up aziot-edged with agent image {image}");
                 },
                 () =>
                 {
-                    Console.WriteLine("Setting up iotedged with agent image 1.0");
+                    Console.WriteLine("Setting up aziot-edged with agent image 1.0");
                 });
 
-            const string YamlPath = "/etc/iotedge/config.yaml";
+            const string YamlPath = "/etc/aziot/edged/config.yaml";
             Task<string> text = File.ReadAllTextAsync(YamlPath);
             var doc = new YamlDocument(await text);
 
