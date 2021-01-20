@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identityProvider = Mock.Of<IIdentityProvider>();
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetIndirectConnectionsAsync())
+                .Setup(cr => cr.GetNestedConnectionsAsync())
                 .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new DeviceIdentity("host", "captured_device_id") }));
 
             var directMethodHandler = Mock.Of<IDirectMethodHandler>();
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identityProvider = Mock.Of<IIdentityProvider>();
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetIndirectConnectionsAsync())
+                .Setup(cr => cr.GetNestedConnectionsAsync())
                 .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new ModuleIdentity("host", "captured_device_id", "captured_module_id") }));
 
             var directMethodHandler = Mock.Of<IDirectMethodHandler>();
@@ -273,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var (connectionRegistry, identityProvider) = GetHandlerDependencies(listenerCapture: listenerCapture);
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetIndirectConnectionsAsync())
+                .Setup(cr => cr.GetNestedConnectionsAsync())
                 .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new ModuleIdentity("host", "device_id", "module_id") }));
 
             var sut = new SubscriptionChangeHandler(

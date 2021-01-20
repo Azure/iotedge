@@ -91,28 +91,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 return true;
             }
 
-            var id1 = match.Groups["id1"];
-            var id2 = match.Groups["id2"];
+            var deviceId = match.Groups["id1"].Success ? Option.Some<string>(match.Groups["id1"].Value) : Option.None<string>();
+            var moduleId = match.Groups["id2"].Success ? Option.Some<string>(match.Groups["id2"].Value) : Option.None<string>();
 
             // For indirect clients the subscription change will be reported through edgeHub. That is a
             // slower method to reconcile so we handle the direct case separately with a faster method
-            if (id2.Success && string.Equals(id2.Value, Constants.EdgeHubModuleId))
-            {
-                await this.HandleIndirectChanges(subscriptionList);
-            }
-            else
-            {
-                await this.HandleDirectChanges(id1, id2, subscriptionList);
-            }
+            await moduleId.Filter(i => string.Equals(i, Constants.EdgeHubModuleId))
+                     .Match(
+                        _ => this.HandleNestedSubscriptionChanges(subscriptionList),
+                        () => this.HandleDirectSubscriptionChanges(deviceId, moduleId, subscriptionList));
 
             return true;
         }
 
-        async Task HandleDirectChanges(Group id1, Group id2, List<string> subscriptionList)
+        async Task HandleDirectSubscriptionChanges(Option<string> deviceId, Option<string> moduleId, List<string> subscriptionList)
         {
-            var identity = id2.Success
-                                ? this.identityProvider.Create(id1.Value, id2.Value)
-                                : this.identityProvider.Create(id1.Value);
+            var identity = moduleId.Match(
+                               mod => deviceId.Match(
+                                         dev => this.identityProvider.Create(dev, mod),
+                                         () => throw new ArgumentException("Invalid topic structure for subscriptions - Module name matched but no Device name")),
+                               () => deviceId.Match(
+                                         dev => this.identityProvider.Create(dev),
+                                         () => throw new ArgumentException("Invalid topic structure for subscriptions - no Device name matched")));
 
             var listener = default(IDeviceListener);
             var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity, true);
@@ -128,10 +128,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     foreach (var subscription in subscriptionList)
                     {
                         var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
-                        if (IsMatchWithIds(subscriptionMatch, id1, id2))
+                        if (subscriptionMatch.Success)
                         {
-                            subscribes = true;
-                            break;
+                            var subscribedDevId = subscriptionMatch.Groups["id1"].Success ? Option.Some<string>(subscriptionMatch.Groups["id1"].Value) : Option.None<string>();
+                            var subscribedModId = subscriptionMatch.Groups["id2"].Success ? Option.Some<string>(subscriptionMatch.Groups["id2"].Value) : Option.None<string>();
+
+                            if (IsMatchingIds(subscribedDevId, subscribedModId, deviceId, moduleId))
+                            {
+                                subscribes = true;
+                                break;
+                            }
                         }
                     }
 
@@ -151,10 +157,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        // A connection is indirect when happens through a lower level edge device. In this case the
-        // current level learns about the connections by 'sidechannels', e.g. when an indirect client
+        // A connection is nested when happens through a lower level edge device. In this case the
+        // current level learns about the connections by 'sidechannels', e.g. when an nested client
         // subscribes to a topic. The notification of the subscription is assigned to $edgeHub and
-        // and it contains the current subscription list of all indirectly connected devices/modules.
+        // and it contains the current subscription list of all nested-connected devices/modules.
         // There are two issues with this approach:
         //  1) it can happen that a subscription is sent by a device has never been seen before.
         //  2) if it is an unsubscribe, it can happen that no device/module related string can be
@@ -165,12 +171,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // been seen before.
         // To solve 2), we need to take all known devices and unsubscribe from all topics not listed in the
         // current notification.
-        async Task HandleIndirectChanges(List<string> subscriptionList)
+        async Task HandleNestedSubscriptionChanges(List<string> subscriptionList)
         {
             // Collect all added subscriptions to this dictionary for every client. At the end we are going to
             // unsubscribe from everything not in this collection
             var affectedClients = new Dictionary<IIdentity, HashSet<DeviceSubscription>>();
 
+            // As a first step, go through the sent subscription list and subscribe to everything it says.
+            // We are trying to fit all possible subscription pattern to every item in the list
             foreach (var subscriptionPattern in this.subscriptionPatterns)
             {
                 foreach (var subscription in subscriptionList)
@@ -178,12 +186,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
                     if (subscriptionMatch.Success)
                     {
-                        var id1 = subscriptionMatch.Groups["id1"];
-                        var id2 = subscriptionMatch.Groups["id2"];
+                        // Once we have a hit (e.g. it is a method call subscription), we do two things:
+                        // - subscribe to the given topic in the name of the client
+                        // - store the fact that the subscription happened in the 'affectedClients' collection.
+                        //   This collection will be used to decide about unsubscriptions later.
+                        var deviceId = subscriptionMatch.Groups["id1"];
+                        var moduleId = subscriptionMatch.Groups["id2"];
 
-                        var identity = id2.Success
-                                            ? this.identityProvider.Create(id1.Value, id2.Value)
-                                            : this.identityProvider.Create(id1.Value);
+                        var identity = moduleId.Success
+                                            ? this.identityProvider.Create(deviceId.Value, moduleId.Value)
+                                            : this.identityProvider.Create(deviceId.Value);
 
                         var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity, false);
                         if (maybeListener.HasValue)
@@ -215,12 +227,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
             }
 
-            // The indirect connections list may contain clients not handled above. Those will unsubscribe from
-            // everything
-            var indirectConnections = await this.connectionRegistry.GetIndirectConnectionsAsync();
+            // At this point we have a collection about 'affectedClients'. Those are the clients subscribed to something.
+            // What we don't know are the unsubscribtions. That is because the broker sends only the current subscription list,
+            // so when a client unsubscribes, that is only a shorter list of subscriptions sent.
+            // The information we want to gain is that what the unsubscriptions are, and the answer is that what we have not seen
+            // previously as subscribed, that is unsubscribed. E.g. if a client subscribed to 'methods' only, then we say that
+            // it unsubscribed from twin responses, c2d, m2m, etc. The underlaying layers take care of the optimization doing
+            // nothing when unsubscribed twice from a topic.
+            // As a first step we need all nested connections, because it is possible that the subscribtion list above did not
+            // cover all clients. It can happen when a client had only a single subscription before, but now it unsubscribed.
+            // In that case that client will not be contained by the subscription event sent by the broker, because it has no
+            // subscription at all.
+            var nestConnections = await this.connectionRegistry.GetNestedConnectionsAsync();
 
-            foreach (var connection in indirectConnections)
+            foreach (var connection in nestConnections)
             {
+                // for a given client we are going to unsubscribe from everything that was not marked as subscribed
+                // from the broker subscription event. Every subscription marked in the broker event is stored in the
+                // 'affectedClients' collection built previously.
                 var subscriptions = default(HashSet<DeviceSubscription>);
                 if (!affectedClients.TryGetValue(connection, out subscriptions))
                 {
@@ -254,20 +278,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        static bool IsMatchWithIds(Match match, Group id1, Group id2)
+        static bool IsMatchingIds(Option<string> subscribedDevId, Option<string> subscribedModId, Option<string> deviceId, Option<string> moduleId)
         {
-            if (match.Success)
-            {
-                var subscriptionId1 = match.Groups["id1"];
-                var subscriptionId2 = match.Groups["id2"];
+            // checking that both subscribedDevId and deviceId are defined and they have the same value
+            var doesDevIdMatch = subscribedDevId.Match(
+                                    sdi => deviceId.Match(
+                                                di => string.Equals(sdi, di),
+                                                () => false),
+                                    () => false);
 
-                var id1Match = id1.Success && subscriptionId1.Success && id1.Value == subscriptionId1.Value;
-                var id2Match = (id2.Success && subscriptionId2.Success && id2.Value == subscriptionId2.Value) || (!id2.Success && !subscriptionId2.Success);
+            // checking that both subscribedModId and moduleId are defined and they have the same value or both of them have no value (because it is a device not a module)
+            var doesModIdMatch = subscribedModId.Match(
+                                    smi => moduleId.Match(
+                                                mi => string.Equals(smi, mi),
+                                                () => false),
+                                    () => false)
+                              || (!subscribedModId.HasValue && !moduleId.HasValue);
 
-                return id1Match && id2Match;
-            }
-
-            return false;
+            return doesDevIdMatch && doesModIdMatch;
         }
 
         static Task AddOrRemoveSubscription(IDeviceListener listener, bool add, DeviceSubscription subscription)

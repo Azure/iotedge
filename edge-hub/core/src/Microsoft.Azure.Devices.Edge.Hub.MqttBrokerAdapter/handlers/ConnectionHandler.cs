@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        public async Task<IReadOnlyList<IIdentity>> GetIndirectConnectionsAsync()
+        public async Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync()
         {
             using (await this.guard.LockAsync())
             {
