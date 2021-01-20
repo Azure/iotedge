@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
-    messages::{StoreMqttEventHandler, TopicMapper},
+    messages::{self, StoreMqttEventHandler, TopicMapper},
     persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
@@ -96,6 +96,7 @@ where
         let rpc = LocalRpcMqttEventHandler::new(PumpHandle::new(remote_messages_send.clone()));
         let messages =
             StoreMqttEventHandler::new(remote_store.clone(), local_topic_mappers_updates.clone());
+
         let handler = LocalUpstreamMqttEventHandler::new(messages, rpc);
 
         let config = self.local.client.take().expect("local client config");
@@ -128,10 +129,14 @@ where
         let topic_filters = make_topics(&self.remote.rules)?;
         let remote_topic_mappers_updates = TopicMapperUpdates::new(topic_filters);
 
+        let (retry_send, retry_recv) = mpsc::unbounded_channel();
+
         let rpc_subscriptions = RpcSubscriptions::default();
         let rpc = RemoteRpcMqttEventHandler::new(rpc_subscriptions.clone(), local_pump.handle());
-        let messages =
+        let mut messages =
             StoreMqttEventHandler::new(local_store, remote_topic_mappers_updates.clone());
+        messages.set_retry_sub_sender(retry_send);
+
         let connectivity = ConnectivityMqttEventHandler::new(PumpHandle::new(local_messages_send));
         let handler = RemoteUpstreamMqttEventHandler::new(messages, rpc, connectivity);
 
@@ -143,6 +148,16 @@ where
         let remote_sub_handle = client
             .update_subscription_handle()
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        let retry_sub_handle = client
+            .update_subscription_handle()
+            .map_err(BridgeError::UpdateSubscriptionHandle)?;
+
+        tokio::spawn(messages::retry_subscriptions(
+            retry_recv,
+            remote_topic_mappers_updates.clone(),
+            retry_sub_handle,
+        ));
 
         let handler = RemoteUpstreamPumpEventHandler::new(
             remote_sub_handle,
