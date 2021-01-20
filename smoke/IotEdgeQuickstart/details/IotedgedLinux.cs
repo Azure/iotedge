@@ -92,7 +92,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyNotInstalled()
         {
-            string[] packages = new string[] { "aziot-edge", "aziot-identity-service" };
+            string[] packages = new string[] { "aziot-edge", "aziot-identity-service", "iotedge", "libiothsm-std" };
 
             foreach (string package in packages)
             {
@@ -234,6 +234,11 @@ namespace IotEdgeQuickstart.Details
             const string IDENTITYD = "/etc/aziot/identityd/config.toml";
             const string EDGED = "/etc/aziot/edged/config.yaml";
 
+            // Initialize each service's config file.
+            // The mapped values are:
+            // - Path to the config file (/etc/aziot/[service_name]/config.[toml | yaml])
+            // - User owning the config file
+            // - Template used to generate the config file.
             Dictionary<string, (string owner, IConfigDocument document)> config = new Dictionary<string, (string, IConfigDocument)>();
             config.Add(KEYD, ("aziotks", InitDocument(KEYD + ".default", true)));
             config.Add(CERTD, ("aziotcs", InitDocument(CERTD + ".default", true)));
