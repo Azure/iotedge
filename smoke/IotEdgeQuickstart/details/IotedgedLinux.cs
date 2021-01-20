@@ -245,7 +245,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     string keyPath = "/var/secrets/aziot/keyd/device-id";
                     config[IDENTITYD].document.ReplaceOrAdd("provisioning.source", "manual");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.source", "sas");
+                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.method", "sas");
                     config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.device_id_pk", "device-id");
                     config[KEYD].document.ReplaceOrAdd("preloaded_keys.device-id", $"file://{keyPath}");
 
@@ -356,6 +356,23 @@ namespace IotEdgeQuickstart.Details
                 config[EDGED].document.ReplaceOrAdd("listen.workload_uri", socks.ListenWorkload);
             }
 
+            // Clear any existing Identity Service principals.
+            string principalsPath = "/etc/aziot/identityd/config.d";
+
+            config[IDENTITYD].document.RemoveIfExists("principal");
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+            }
+
+            Directory.CreateDirectory(principalsPath);
+            SetOwner(principalsPath, "aziotid", "755");
+
+            // Add the principal entry for aziot-edge to Identity Service.
+            // This is required so aziot-edge can communicate with Identity Service.
+            uint iotedgeUid = await GetIotedgeUid();
+            AddPrincipal("aziot-edge", iotedgeUid);
+
             foreach (string file in new string[] { deviceCaCert, deviceCaPk, deviceCaCerts })
             {
                 if (string.IsNullOrEmpty(file))
@@ -374,7 +391,7 @@ namespace IotEdgeQuickstart.Details
             SetOwner(deviceCaCert, config[CERTD].owner, "444");
             SetOwner(deviceCaPk, config[KEYD].owner, "400");
 
-            config[CERTD].document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", new Uri(deviceCaCerts).AbsoluteUri);
+            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", new Uri(deviceCaCerts).AbsoluteUri);
             config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-device-ca", new Uri(deviceCaCert).AbsoluteUri);
             config[KEYD].document.ReplaceOrAdd("preloaded_keys.aziot-edged-device-ca", new Uri(deviceCaPk).AbsoluteUri);
 
@@ -397,30 +414,38 @@ namespace IotEdgeQuickstart.Details
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
-                string errorMessage = null;
+                await Process.RunAsync("systemctl", "restart aziot-keyd aziot-certd aziot-identityd aziot-edged", cts.Token);
+                Console.WriteLine("Waiting for aziot-edged to start up.");
 
-                try
+                // Waiting for the processes to enter the "Running" state doesn't guarantee that
+                // they are fully started and ready to accept requests. Therefore, this function
+                // must wait until a request can be processed.
+                while (true)
                 {
-                    await Process.RunAsync("systemctl", "enable iotedge", cts.Token);
-                    await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
-                    await Process.RunAsync("systemctl", "restart iotedge", cts.Token);
-
-                    // Wait for service to become active
-                    while (true)
+                    var processInfo = new System.Diagnostics.ProcessStartInfo
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
-                        string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
-                        if (result.First().Split("=").Last() == "active")
+                        FileName = "iotedge",
+                        Arguments = "list",
+                        RedirectStandardOutput = true
+                    };
+                    var request = System.Diagnostics.Process.Start(processInfo);
+
+                    if (request.WaitForExit(1000))
+                    {
+                        if (request.ExitCode == 0)
                         {
+                            request.Close();
+                            Console.WriteLine("aziot-edged ready for requests.");
                             break;
                         }
-
-                        errorMessage = result.First();
                     }
-                }
-                catch (OperationCanceledException e)
-                {
-                    throw new Exception($"Error starting iotedged: {errorMessage ?? e.Message}");
+                    else
+                    {
+                        request.Kill(true);
+                        request.WaitForExit();
+                        request.Close();
+                        Console.WriteLine("aziot-edged not yet ready.");
+                    }
                 }
             }
         }
@@ -436,6 +461,14 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
+        private static async Task<uint> GetIotedgeUid()
+        {
+            string[] output = await Process.RunAsync("id", "-u iotedge");
+            string uid = output[0].Trim();
+
+            return System.Convert.ToUInt32(uid, 10);
+        }
+
         private static void SetOwner(string path, string owner, string permissions)
         {
             var chown = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {path}");
@@ -445,6 +478,40 @@ namespace IotEdgeQuickstart.Details
             var chmod = System.Diagnostics.Process.Start("chmod", $"{permissions} {path}");
             chmod.WaitForExit();
             chmod.Close();
+        }
+
+        private static void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
+        {
+            string path = $"/etc/aziot/identityd/config.d/{name}-principal.toml";
+
+            string principal = string.Join(
+                "\n",
+                "[[principal]]",
+                $"uid = {uid}",
+                $"name = \"{name}\"");
+
+            if (type != null)
+            {
+                // Need to quote each type.
+                for (int i = 0; i < type.Length; i++)
+                {
+                    type[i] = $"\"{type[i]}\"";
+                }
+
+                string types = string.Join(", ", type);
+                principal = string.Join("\n", principal, $"idtype = [{types}]");
+            }
+
+            if (opts != null)
+            {
+                foreach (KeyValuePair<string, string> opt in opts)
+                {
+                    principal = string.Join("\n", principal, $"{opt.Key} = {opt.Value}");
+                }
+            }
+
+            File.WriteAllText(path, principal);
+            SetOwner(path, "aziotid", "644");
         }
     }
 }
