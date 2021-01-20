@@ -211,7 +211,7 @@ namespace IotEdgeQuickstart.Details
 
         protected Task VerifyEdgeIsNotInstalled()
         {
-            Console.WriteLine("Verifying that aziot-edge and aziot-identity-service are not installed.");
+            Console.WriteLine("Checking if aziot-edge and aziot-identity-service are installed.");
             return this.bootstrapper.VerifyNotInstalled();
         }
 
