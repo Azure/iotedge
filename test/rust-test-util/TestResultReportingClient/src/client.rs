@@ -13,6 +13,7 @@ use crate::{
 const CONTENT_TYPE: &str = "Content-Type";
 const APPLICATION_JSON: &str = "application/json";
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone)]
 pub struct TrcClient {
     client: Client<HttpConnector>,

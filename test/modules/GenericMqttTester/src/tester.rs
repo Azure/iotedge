@@ -113,6 +113,7 @@ impl MessageTester {
                 tracking_id,
                 batch_id,
                 reporting_client,
+                settings.message_frequency(),
             );
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());

@@ -448,6 +448,8 @@ dependencies = [
  "config",
  "edgelet-client",
  "futures-util",
+ "humantime",
+ "humantime-serde",
  "mqtt-broker-tests-util",
  "mqtt-util",
  "mqtt3",

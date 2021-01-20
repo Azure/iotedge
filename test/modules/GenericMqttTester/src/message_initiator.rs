@@ -27,6 +27,7 @@ pub struct MessageInitiator {
     tracking_id: String,
     batch_id: String,
     reporting_client: TrcClient,
+    message_frequency: Duration,
 }
 
 impl MessageInitiator {
@@ -35,6 +36,7 @@ impl MessageInitiator {
         tracking_id: String,
         batch_id: String,
         reporting_client: TrcClient,
+        message_frequency: Duration,
     ) -> Self {
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
         let shutdown_handle = ShutdownHandle(shutdown_send);
@@ -46,6 +48,7 @@ impl MessageInitiator {
             tracking_id,
             batch_id,
             reporting_client,
+            message_frequency,
         }
     }
 
@@ -81,7 +84,7 @@ impl MessageInitiator {
             self.report_message_sent(seq_num).await?;
             seq_num += 1;
 
-            time::delay_for(Duration::from_secs(1)).await;
+            time::delay_for(self.message_frequency).await;
         }
 
         Ok(())

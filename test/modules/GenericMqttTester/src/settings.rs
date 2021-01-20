@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
@@ -8,9 +8,18 @@ pub const DEFAULTS: &str = include_str!("../config/default.json");
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
     test_scenario: TestScenario,
+
     trc_url: String,
+
     tracking_id: String,
+
     batch_id: String,
+
+    #[serde(with = "humantime_serde")]
+    message_frequency: Duration,
+
+    #[serde(with = "humantime_serde")]
+    test_start_delay: Duration,
 }
 
 impl Settings {
@@ -50,6 +59,14 @@ impl Settings {
 
     pub fn batch_id(&self) -> &String {
         &self.batch_id
+    }
+
+    pub fn message_frequency(&self) -> Duration {
+        self.message_frequency
+    }
+
+    pub fn test_start_delay(&self) -> Duration {
+        self.test_start_delay
     }
 }
 
