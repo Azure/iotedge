@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             CancellationToken token = this.TestToken;
 
-            TestCertificates testCerts = await TestCertificates.GenerateCertsAsync(registrationId, token);
+            (TestCertificates testCerts, _) = await TestCertificates.GenerateCertsAsync(registrationId, token);
 
             await this.daemon.ConfigureAsync(
                 config =>
@@ -69,6 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
                 registrationId,
+                Context.Current.ParentDeviceId,
                 this.iotHub,
                 token,
                 takeOwnership: true);
@@ -124,6 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
                 registrationId,
+                Context.Current.ParentDeviceId,
                 this.iotHub,
                 token,
                 takeOwnership: true);

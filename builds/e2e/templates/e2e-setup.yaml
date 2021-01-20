@@ -40,6 +40,9 @@ steps:
 
     Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
     Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+    Write-Output '>> Package Build ID=$(packageBuildId)'
+    Write-Output '>> Image Build ID=$(imageBuildId)'
   displayName: Override artifacts with user-supplied args
 
 - task: DownloadBuildArtifacts@0
@@ -99,13 +102,31 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
-    $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
+    if ('$(nestededge)' -eq 'true')
+    {
+      $nestededge = "true"
+      $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
+      $caCertScriptPath = Convert-Path "/certs"
+      $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+      $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
+    }else
+    {
+      $nestededge = "false"
+      $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+      $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+    }
+
+    echo "Edge agent image: $imagePrefix-agent:$imageTag"    
+
     $context = @{
+      nestededge = "$nestededge"
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
@@ -128,10 +149,17 @@ steps:
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
-      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      caCertScriptPath = "$caCertScriptPath";
+      rootCaCertificatePath = "$rootCaCertificatePath";
+      rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+    }
+
+    if ('$(nestededge)' -eq 'true')
+    {
+      $context['hostname'] = '$(deviceName)'
+      $context['parentHostname'] = '$(parentName)'
+      $context['parentDeviceId'] = '$(parentDeviceId)'
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')

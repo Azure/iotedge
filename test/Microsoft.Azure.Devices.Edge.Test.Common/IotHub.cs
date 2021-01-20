@@ -82,9 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
+        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
-            Device edge = new Device(deviceId)
+            Log.Information($"Creating edge device {deviceId} with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
+            Device edge = await parentDeviceId.Match(
+            async p =>
+            {
+                Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
+                string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
+                Log.Information($"Parent scope: {parentDeviceScope}");
+                return new Device(deviceId)
             {
                 Authentication = new AuthenticationMechanism()
                 {
@@ -94,10 +101,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Capabilities = new DeviceCapabilities()
                 {
                     IotEdge = true
-                }
+                },
+                ParentScopes = new[] { parentDeviceScope }
             };
+            },
+            () =>
+            {
+                return Task.FromResult(new Device(deviceId)
+                {
+                    Authentication = new AuthenticationMechanism()
+                    {
+                        Type = authType,
+                        X509Thumbprint = x509Thumbprint
+                    },
+                    Capabilities = new DeviceCapabilities()
+                    {
+                        IotEdge = true
+                    }
+                });
+            });
 
-            return this.CreateDeviceIdentityAsync(edge, token);
+            return await this.CreateDeviceIdentityAsync(edge, token);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
