@@ -129,6 +129,18 @@ impl RuntimeSettings for Settings {
     fn endpoints(&self) -> &Endpoints {
         self.base.endpoints()
     }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        self.base.edge_ca_cert()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        self.base.edge_ca_key()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        self.base.trust_bundle_cert()
+    }
 }
 
 fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
