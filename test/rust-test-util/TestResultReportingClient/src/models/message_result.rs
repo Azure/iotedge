@@ -8,6 +8,7 @@ pub struct MessageTestResult {
 }
 
 impl MessageTestResult {
+    #[must_use]
     pub fn new(tracking_id: String, batch_id: String, sequence_number: u32) -> Self {
         Self {
             tracking_id,

@@ -1,5 +1,6 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::module_name_repetitions)]
 
 use std::{
     env::VarError,

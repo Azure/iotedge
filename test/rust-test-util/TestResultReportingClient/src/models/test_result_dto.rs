@@ -46,10 +46,10 @@ mod tests {
         let test_result = MessageTestResult::new(tracking_id, batch_id, seq_num);
 
         let source = "source".to_string();
-        let _type = TestType::Messages;
+        let test_type = TestType::Messages;
         let created_at = Utc::now();
         let test_result_dto =
-            TestOperationResultDto::new(source, test_result, _type.clone(), created_at.clone());
+            TestOperationResultDto::new(source, test_result, test_type, created_at);
 
         let expected = format!("{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}", created_at.to_rfc3339());
         let serialized = serde_json::to_string(&test_result_dto).unwrap();

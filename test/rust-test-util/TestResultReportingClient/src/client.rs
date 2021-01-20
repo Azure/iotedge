@@ -22,6 +22,7 @@ pub struct TrcClient {
 }
 
 impl TrcClient {
+    #[must_use]
     pub fn new(uri: String) -> Self {
         let supported_test_types = EnumSet::from_iter(vec![TestType::Messages]);
 
@@ -61,8 +62,7 @@ impl TrcClient {
         let body = String::from_utf8(body_bytes.to_vec()).expect("response was not valid utf-8");
 
         match status.as_u16() {
-            204 => Ok(()),
-            200 => Ok(()),
+            204 | 200 => Ok(()),
             fail_status => {
                 info!("failed response body: {:?}", body);
                 Err(ReportResultError::ResponseStatus(fail_status))
