@@ -10,8 +10,8 @@ namespace IotEdgeQuickstart.Details
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class HttpUris
     {
@@ -92,7 +92,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyNotInstalled()
         {
-            string [] packages = new string[] { "aziot-edge", "aziot-identity-service" };
+            string[] packages = new string[] { "aziot-edge", "aziot-identity-service" };
 
             foreach (string package in packages)
             {
