@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             // get index of last character from right that's an alphanumeric
             int end = Math.Max(start, name.Length - 1);
-            while (end > start && !(name[end]))
+            while (end > start && !IsAlphaNumeric(name[end]))
             {
                 end--;
             }
