@@ -233,3 +233,18 @@ moby_runtime:
   #           gateway: '2021:ffff:e0:3b1:1::1'
   #           subnet: '2021:ffff:e0:3b1:1::/80'
   #           ip_range: '2021:ffff:e0:3b1:1::/80'
+
+###############################################################################
+# Edge CA Settings 
+###############################################################################
+#
+# Optional. This entry should only be specified to override the certificate
+# and keypair name of the CA certificate created by IoT Edge to issue identity
+# and server certificates for Edge modules. The name corresponds to the 
+# cert-id in the Certificate Service and key-id in the Key Service that are
+# pre-configured manually or by invoking the iotedge init command.
+###############################################################################
+
+#edge_ca_cert: "<ADD EDGE CA CERT ID HERE>"
+#edge_ca_key: "<ADD EDGE CA KEY ID HERE>"
+#trust_bundle_cert: "<ADD TRUST BUNDLE CERT ID HERE>"

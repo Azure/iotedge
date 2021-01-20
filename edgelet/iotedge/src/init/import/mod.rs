@@ -20,6 +20,7 @@ use std::path::Path;
 
 use config::Config;
 
+use edgelet_core::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS};
 use edgelet_utils::YamlFileSource;
 
 const AZIOT_KEYD_HOMEDIR_PATH: &str = "/var/lib/aziot/keyd";
@@ -608,6 +609,9 @@ fn execute_inner(
             },
 
             endpoints: Default::default(),
+            edge_ca_cert: Some(AZIOT_EDGED_CA_ALIAS.to_owned()),
+            edge_ca_key: Some(AZIOT_EDGED_CA_ALIAS.to_owned()),
+            trust_bundle_cert: Some(TRUST_BUNDLE_ALIAS.to_owned()),
         },
 
         moby_runtime: {
