@@ -1,4 +1,6 @@
 {
     "test_scenario": "Initiate",
-    "test_result_coordinator_url": "http://testResultCoordinator:5001/api/testoperationresult"
+    "trc_url": "http://testResultCoordinator:5001/api/testoperationresult",
+    "message_send_frequency": "1s",
+    "test_start_delay": "3m"
 }
