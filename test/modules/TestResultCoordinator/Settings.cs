@@ -44,7 +44,7 @@ namespace TestResultCoordinator
             TimeSpan testStartDelay,
             Option<TimeSpan> testDuration,
             Option<TimeSpan> verificationDelay,
-            TimeSpan sendReportFrequency,
+            Option<TimeSpan> sendReportFrequency,
             bool logUploadEnabled,
             string storageAccountConnectionString,
             string networkControllerRunProfileName,
@@ -75,13 +75,26 @@ namespace TestResultCoordinator
                 });
             }
 
-            if (TestMode.Connectivity.Equals(testMode))
+            switch (testMode)
             {
-                this.ConnectivitySpecificSettings = Option.Some(new ConnectivitySpecificSettings()
-                {
-                    TestDuration = testDuration.Expect<ArgumentException>(() => throw new ArgumentException("TestDuration must be supplied if in Connectivity test mode")),
-                    TestVerificationDelay = verificationDelay.Expect<ArgumentException>(() => throw new ArgumentException("VerificationDelay must be supplied if in Connectivity test mode"))
-                });
+                case TestMode.Connectivity:
+                    {
+                        this.ConnectivitySpecificSettings = Option.Some(new ConnectivitySpecificSettings()
+                        {
+                            TestDuration = testDuration.Expect<ArgumentException>(() => throw new ArgumentException("TestDuration must be supplied if in Connectivity test mode")),
+                            TestVerificationDelay = verificationDelay.Expect<ArgumentException>(() => throw new ArgumentException("VerificationDelay must be supplied if in Connectivity test mode"))
+                        });
+                        break;
+                    }
+
+                case TestMode.LongHaul:
+                    {
+                        this.LongHaulSpecificSettings = Option.Some(new TestResultCoordinator.LongHaulSpecificSettings()
+                        {
+                            SendReportFrequency = sendReportFrequency.Expect<ArgumentException>(() => throw new ArgumentException("SendReportFrequency must be supplied if in LongHaul test mode"))
+                        });
+                        break;
+                    }
             }
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -92,7 +105,6 @@ namespace TestResultCoordinator
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestStartDelay = testStartDelay;
-            this.SendReportFrequency = sendReportFrequency;
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
             this.UnmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
@@ -140,7 +152,7 @@ namespace TestResultCoordinator
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", Option.Some(TimeSpan.FromHours(1))),
                 configuration.GetValue("verificationDelay", Option.Some(TimeSpan.FromMinutes(15))),
-                configuration.GetValue("sendReportFrequency", TimeSpan.FromHours(24)),
+                configuration.GetValue("sendReportFrequency", Option.Some(TimeSpan.FromHours(24))),
                 configuration.GetValue<bool>("logUploadEnabled", true),
                 configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
@@ -165,8 +177,6 @@ namespace TestResultCoordinator
 
         public TimeSpan TestStartDelay { get; }
 
-        public TimeSpan SendReportFrequency { get; }
-
         public bool LogUploadEnabled { get; }
 
         public SortedDictionary<string, string> TestInfo { get; }
@@ -180,6 +190,8 @@ namespace TestResultCoordinator
         public Option<TestResultReportingServiceSettings> TestResultReportingServiceSettings { get; }
 
         public Option<ConnectivitySpecificSettings> ConnectivitySpecificSettings { get; }
+
+        public Option<LongHaulSpecificSettings> LongHaulSpecificSettings { get; }
 
         public TestMode TestMode { get; }
 
@@ -196,7 +208,7 @@ namespace TestResultCoordinator
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.ConnectivitySpecificSettings), this.ConnectivitySpecificSettings.ToString() },
-                { nameof(this.SendReportFrequency), this.SendReportFrequency.ToString() },
+                { nameof(this.LongHaulSpecificSettings), this.LongHaulSpecificSettings.ToString() },
                 { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() },
                 { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) },
                 { nameof(this.TestMode), this.TestMode.ToString() }
@@ -252,5 +264,10 @@ namespace TestResultCoordinator
     {
         public TimeSpan TestDuration;
         public TimeSpan TestVerificationDelay;
+    }
+
+    internal struct LongHaulSpecificSettings
+    {
+        public TimeSpan SendReportFrequency;
     }
 }

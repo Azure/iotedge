@@ -28,22 +28,32 @@ namespace TestResultCoordinator.Services
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
-            if (TestMode.Connectivity.Equals(Settings.Current.TestMode))
+            switch (Settings.Current.TestMode)
             {
-                ConnectivitySpecificSettings connectivitySettings =
-                    Settings.Current.ConnectivitySpecificSettings.Expect(() => new ArgumentException("ConnectivitySpecificSettings must be supplied."));
-                this.delayBeforeWork = Settings.Current.TestStartDelay +
-                    connectivitySettings.TestDuration +
-                    connectivitySettings.TestVerificationDelay;
-            }
-            else
-            {
-                // In long haul mode, wait 1 report frequency before starting
-                this.delayBeforeWork = Settings.Current.SendReportFrequency;
+                case TestMode.Connectivity:
+                    {
+                        ConnectivitySpecificSettings connectivitySettings =
+                            Settings.Current.ConnectivitySpecificSettings.Expect(() => new ArgumentException("ConnectivitySpecificSettings must be supplied."));
+                        this.delayBeforeWork = Settings.Current.TestStartDelay +
+                            connectivitySettings.TestDuration +
+                            connectivitySettings.TestVerificationDelay;
+                        // Set sendReportFrequency to -1ms to indicate that the sending report Timer won't repeat
+                        this.sendReportFrequency = TimeSpan.FromMilliseconds(-1);
+                        break;
+                    }
+
+                case TestMode.LongHaul:
+                    {
+                        this.sendReportFrequency = Settings.Current.LongHaulSpecificSettings
+                            .Expect(() => new ArgumentException("LongHaulSpecificSettings must be supplied."))
+                            .SendReportFrequency;
+                        // In long haul mode, wait 1 report frequency before starting
+                        this.delayBeforeWork = this.sendReportFrequency;
+                        break;
+                    }
             }
 
             this.serviceSpecificSettings = Settings.Current.TestResultReportingServiceSettings.Expect(() => new ArgumentException("TestResultReportingServiceSettings must be supplied."));
-            this.sendReportFrequency = Settings.Current.SendReportFrequency;
         }
 
         public Task StartAsync(CancellationToken ct)
