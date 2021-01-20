@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -109,7 +110,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         resultBody = Encoding.UTF8.GetString(data.Body);
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
-
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                                 && modId != null && modId.ToString().Equals(this.Id)
                                                 && requiredProperties.All(data.Properties.ContainsKey);
@@ -140,7 +140,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
-                null,
+                // Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
+                e =>
+                {
+                    if (e is KeyNotFoundException)
+                    {
+                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                },
                 TimeSpan.FromSeconds(5),
                 token);
 
@@ -204,6 +216,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     result[key].Value = createOptions.ToString(Formatting.None);
                 }
 
+                var imagesKeys = result.Keys
+                    .Where(k => k.EndsWith("settings.image"));
+                foreach (var imageKeys in imagesKeys)
+                {
+                    result[imageKeys].Value = Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value);
+                }
+
                 return result;
             }
 
@@ -213,8 +232,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // comparand equals reference if, for each json value in reference:
             // - comparand has a json value with the same path
             // - the json values match
-            bool match = referenceValues.All(kvp => comparandValues.ContainsKey(kvp.Key) &&
-                kvp.Value.Equals(comparandValues[kvp.Key]));
+            bool match = referenceValues.All(
+                kvp =>
+                {
+                    return comparandValues.ContainsKey(kvp.Key) &&
+                        kvp.Value.Equals(comparandValues[kvp.Key]);
+                });
 
             if (!match)
             {

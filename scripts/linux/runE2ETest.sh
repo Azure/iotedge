@@ -506,7 +506,6 @@ function process_args() {
 }
 
 function get_hash() {
-    # TODO: testHelper.sh needs to be shared across build pipelines
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
 
