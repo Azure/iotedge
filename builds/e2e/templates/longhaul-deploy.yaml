@@ -96,7 +96,7 @@ steps:
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
             -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
-            -sendReportFrequency: "${{ parameters['longHaul.sendReportFrequency'] }}" \
+            -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -testName "$testName" \
             -waitForTestComplete \
             -cleanAll
