@@ -1,6 +1,23 @@
 steps:
+- pwsh: |
+    if ($IsWindows)
+    {
+        Get-Command docker -ErrorAction SilentlyContinue
+        if ($?) {
+            $moby = Get-Service 'iotedge-moby' -ErrorAction SilentlyContinue
+            if (($moby -ne $null) -and ($moby.Status -eq 'Running')) {
+                exit 0
+            }
+        }
+
+        Write-Output 'Docker not installed, skipping...'
+        echo "##vso[task.setvariable variable=hasDocker]No"
+    }
+  displayName: Check for Docker
+
 - task: Docker@2
   displayName: Docker login
+  condition: and(succeeded(), ne(variables['hasDocker'], 'No'))
   inputs:
     command: login
     containerRegistry: iotedge-edgebuilds-acr
@@ -21,19 +38,19 @@ steps:
 
     if ($IsWindows)
     {
-      # set docker command prefix
-      $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
+        # set docker command prefix
+        $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
 
-      # Pull required images
-      $images | foreach { Invoke-Expression ( $dockerCommand + " pull $_" ) }
+        # Pull required images
+        $images | foreach { Invoke-Expression ( $dockerCommand + " pull $_" ) }
     }
     else
     {
-      # set docker command prefix
-      $dockerCommand="sudo docker"
+        # set docker command prefix
+        $dockerCommand="sudo docker"
 
-      # Pull required images
-      $images | foreach { sudo --preserve-env docker pull $_ }
+        # Pull required images
+        $images | foreach { sudo --preserve-env docker pull $_ }
     }
 
     # Remove old images
@@ -45,5 +62,5 @@ steps:
     # Delete everything else
     Invoke-Expression ($dockerCommand + " network prune -f")
     Invoke-Expression ($dockerCommand + " volume prune -f")
-    
-  displayName: Clear Docker Cached images
+  displayName: Clear Docker cached images
+  condition: and(succeeded(), ne(variables['hasDocker'], 'No'))

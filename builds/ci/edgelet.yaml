@@ -13,7 +13,7 @@ jobs:
 ################################################################################
     displayName: Linux amd64
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: ubuntu-18.04
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -40,7 +40,7 @@ jobs:
     displayName: Linux arm32v7
     timeoutInMinutes: 90
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: ubuntu-18.04
     steps:
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
@@ -95,7 +95,7 @@ jobs:
 ################################################################################
     displayName: Style Check
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: ubuntu-18.04
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
