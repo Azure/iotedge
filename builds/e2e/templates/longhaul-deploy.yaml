@@ -20,6 +20,7 @@ parameters:
   loadGen.message.frequency: ''
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
+  longHaul.sendReportFrequency: ''
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
@@ -95,6 +96,7 @@ steps:
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
             -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -sendReportFrequency: "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -testName "$testName" \
             -waitForTestComplete \
             -cleanAll
