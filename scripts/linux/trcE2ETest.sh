@@ -586,24 +586,24 @@ function run_connectivity_test() {
 
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
 
+    DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
+    DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
+    TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
+    echo "Device CA cert=$DEVICE_CA_CERT"
+    echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
+    echo "Trusted CA certs=$TRUSTED_CA_CERTS"
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
-        DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
-        DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
-        TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
 
         echo "Running with nested Edge."
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
-        echo "Device CA cert=$DEVICE_CA_CERT"
-        echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
-        echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
-        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
-        -a "" \
+        -a "$testDir/artifacts/" \
         -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
@@ -623,10 +623,9 @@ function run_connectivity_test() {
         --no-verify \
         --overwrite-packages && funcRet=$? || funcRet=$?
     else
-        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -636,6 +635,9 @@ function run_connectivity_test() {
             -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
             --leave-running=All \
             -l "$deployment_working_file" \
+            --device_ca_cert "$DEVICE_CA_CERT" \
+            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
             --runtime-log-level "$TEST_RUNTIME_LOG_LEVEL" \
             --no-verify \
             --overwrite-packages && funcRet=$? || funcRet=$?
@@ -720,24 +722,24 @@ function run_longhaul_test() {
     echo "Nested edge test=$NESTED_EDGE_TEST"
     local ret=0
 
+    DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
+    DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
+    TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
+    echo "Device CA cert=$DEVICE_CA_CERT"
+    echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
+    echo "Trusted CA certs=$TRUSTED_CA_CERTS"
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
-        DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
-        DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
-        TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
 
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
-        echo "Device CA cert=$DEVICE_CA_CERT"
-        echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
-        echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
-        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "" \
-            -c "$IO_THUB_CONNECTION_STRING" \
+            -a "$testDir/artifacts/" \
+            -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
@@ -757,13 +759,12 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $BYPASS_EDGE_INSTALLATION \
+            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
             --no-verify && ret=$? || ret=$?
     else
-        # TODO: need to fix this script to deploy correct iotedge artifact
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -779,7 +780,10 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $BYPASS_EDGE_INSTALLATION \
+            --device_ca_cert "$DEVICE_CA_CERT" \
+            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
             --no-verify && ret=$? || ret=$?
     fi
 
