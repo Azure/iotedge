@@ -22,7 +22,6 @@ pub struct TrcClient {
 }
 
 impl TrcClient {
-    #[must_use]
     pub fn new(uri: String) -> Self {
         let supported_test_types = EnumSet::from_iter(vec![TestType::Messages]);
 

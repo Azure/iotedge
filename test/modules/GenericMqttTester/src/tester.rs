@@ -109,7 +109,7 @@ impl MessageTester {
         let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
             let initiator = MessageInitiator::new(
-                publish_handle.clone(),
+                publish_handle,
                 tracking_id,
                 batch_id,
                 reporting_client,
@@ -240,11 +240,11 @@ async fn poll_client(
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {
                 if let Ok(Some(event)) = event {
-                    process_event(event, message_send_handle)?;
+                    process_event(event, &message_send_handle)?;
                 }
             }
             Either::Right((shutdown, _)) => {
-                if let None = shutdown {
+                if shutdown.is_none() {
                     error!("shutdown channel was full when shutdown initiated");
                 }
 
@@ -258,7 +258,7 @@ async fn poll_client(
 
 fn process_event(
     event: Event,
-    message_send_handle: UnboundedSender<ReceivedPublication>,
+    message_send_handle: &UnboundedSender<ReceivedPublication>,
 ) -> Result<(), MessageTesterError> {
     match event {
         Event::NewConnection { .. } => {
