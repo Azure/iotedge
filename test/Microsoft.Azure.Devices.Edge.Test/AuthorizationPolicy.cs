@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Update deployment with new policy that allows the connection.
         /// - Validate that new device can connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task AuthorizationPolicyUpdateTest()
         {
@@ -66,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -95,8 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
+                    this.ca,
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;
@@ -135,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
             // idempotent and cannot be retried reliably.
@@ -150,11 +154,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             };
 
             leaf = await this.iotHub.CreateDeviceIdentityAsync(leaf, token);
+
             string connectionString =
                 $"HostName={this.iotHub.Hostname};" +
                 $"DeviceId={leaf.Id};" +
                 $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
-                $"GatewayHostName={Dns.GetHostName().ToLower()}";
+                $"GatewayHostName={Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())}";
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
@@ -176,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         ///     allow device1 connect, deny device2 connect.
         /// - Create devices and validate that they can/cannot connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
@@ -225,7 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -252,8 +259,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
+                this.ca,
                 this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>());
 
@@ -278,8 +286,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(this.runtime.DeviceId),
+                    this.ca,
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>());
                 DateTime seekTime = DateTime.Now;

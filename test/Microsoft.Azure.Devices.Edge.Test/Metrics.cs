@@ -47,12 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         builder.AddTemporaryModule();
                         builder.AddMetricsValidatorConfig(metricsValidatorImage);
-                    }, token);
+                    }, token,
+                Context.Current.NestedEdge);
 
             // Next remove the temporary image from the deployment
             await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddMetricsValidatorConfig(metricsValidatorImage); },
-                token);
+                token,
+                Context.Current.NestedEdge);
         }
 
         // Presents a more focused view by serializing only failures

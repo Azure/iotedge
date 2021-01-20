@@ -100,7 +100,9 @@ dependencies = [
 name = "aziot-certd-config"
 version = "0.1.0"
 dependencies = [
+ "hex 0.4.2",
  "http-common",
+ "openssl",
  "serde",
  "url 2.1.1",
 ]
@@ -170,7 +172,6 @@ dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
  "aziot-key-common",
- "aziot-key-common-http",
  "http-common",
  "serde",
  "serde_json",
@@ -222,7 +223,7 @@ version = "0.1.0"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
- "base64 0.12.3",
+ "base64 0.13.0",
  "foreign-types-shared",
  "log",
  "openssl",
@@ -292,9 +293,9 @@ dependencies = [
 
 [[package]]
 name = "base64"
-version = "0.12.3"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
+checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "bitflags"
@@ -747,6 +748,8 @@ dependencies = [
  "aziot-identity-common",
  "aziot-key-client",
  "aziot-key-common",
+ "aziot-key-common-http",
+ "aziot-key-openssl-engine",
  "base64 0.9.3",
  "cert-client",
  "chrono",
@@ -763,6 +766,8 @@ dependencies = [
  "log",
  "native-tls",
  "openssl",
+ "openssl-sys2",
+ "openssl2",
  "serde",
  "serde_json",
  "tempfile",
@@ -1029,6 +1034,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "805026a5d0141ffc30abb3be3173848ad46a1b1664fe632428479619a3644d77"
 
 [[package]]
+name = "hex"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+
+[[package]]
 name = "hmac"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1077,10 +1088,9 @@ name = "http-common"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "base64 0.12.3",
+ "base64 0.13.0",
  "futures-util",
  "http 0.2.1",
- "lazy_static",
  "libc",
  "log",
  "nix 0.18.0",
@@ -1172,7 +1182,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d063d6d5658623c6ef16f452e11437c0e7e23a6d327470573fe78892dafbc4fb"
 dependencies = [
  "futures",
- "hex",
+ "hex 0.3.2",
  "hyper",
  "tokio",
  "tokio-io",

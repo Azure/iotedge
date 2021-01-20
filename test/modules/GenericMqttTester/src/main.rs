@@ -3,8 +3,11 @@ use futures_util::{
     future::{self, select, Either},
     pin_mut,
 };
-use tokio::signal::unix::{signal, SignalKind};
 use tokio::{self, stream::StreamExt};
+use tokio::{
+    signal::unix::{signal, SignalKind},
+    time,
+};
 use tracing::{info, info_span, subscriber, Level};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::Subscriber;
@@ -17,8 +20,10 @@ async fn main() -> Result<()> {
     info!("starting generic mqtt test module");
     let settings = Settings::new()?;
 
-    let tester = MessageTester::new(settings).await?;
+    let tester = MessageTester::new(settings.clone()).await?;
     let tester_shutdown = tester.shutdown_handle();
+
+    time::delay_for(settings.test_start_delay()).await;
 
     let test_fut = tester.run().instrument(info_span!("tester"));
     let shutdown_fut = listen_for_shutdown().instrument(info_span!("shutdown"));
@@ -43,7 +48,7 @@ async fn main() -> Result<()> {
 }
 
 fn init_logging() {
-    let subscriber = Subscriber::builder().with_max_level(Level::TRACE).finish();
+    let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
     let _ = subscriber::set_global_default(subscriber);
 }
 
