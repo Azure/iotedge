@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("edgeagent", "$edgeAgent")]
         [InlineData("edgehub", "$edgeHub")]
         [InlineData("---a-0---", "---a-0---")]
+        [InlineData("000", "000")]
         [InlineData(null, null)]
         public void SanitizeK8sValueTest(string expected, string raw) => Assert.Equal(expected, KubeUtils.SanitizeK8sValue(raw));
 
@@ -65,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("a-z", "---a-z---")]
         [InlineData("a-z---1", "---a-z-/--1")]
         [InlineData("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab----------c", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB----------C")]
+        [InlineData("111111111", "111111111")]
         public void SanitizeDnsValueTest(string expected, string raw) => Assert.Equal(expected, KubeUtils.SanitizeDNSValue(raw));
 
         [Theory]
