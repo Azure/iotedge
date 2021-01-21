@@ -61,6 +61,7 @@ Defaults:
   --proxy                               no proxy is used
   --parent-hostname                     no parent hostname is used
   --parent-edge-device                  no parent edge device is used
+  --overwrite-packages                  program will terminate instead of modifying installed packages
 ")]
     [HelpOption]
     class Program
