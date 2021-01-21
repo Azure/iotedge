@@ -253,7 +253,7 @@ fn execute_inner(
     ) = {
         let old_config::Provisioning {
             provisioning,
-            dynamic_reprovisioning,
+            dynamic_reprovisioning: _,
         } = provisioning;
 
         match provisioning {
@@ -268,7 +268,7 @@ fn execute_inner(
                     ),
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: true,
                     provisioning: aziot_identityd_config::ProvisioningType::Manual {
                         iothub_hostname: hostname.clone(),
                         device_id: device_id.clone(),
@@ -295,7 +295,7 @@ fn execute_inner(
                     }),
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: true,
                     provisioning: aziot_identityd_config::ProvisioningType::Manual {
                         iothub_hostname: iothub_hostname.clone(),
                         device_id: device_id.clone(),
@@ -330,11 +330,10 @@ fn execute_inner(
                             symmetric_key,
                         },
                     ),
-                // TODO: Start migrating this when IS adds support for this flag
-                always_reprovision_on_startup: _,
+                always_reprovision_on_startup,
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: *always_reprovision_on_startup,
                     provisioning: aziot_identityd_config::ProvisioningType::Dps {
                         global_endpoint: global_endpoint.to_string(),
                         scope_id: scope_id.clone(),
@@ -360,11 +359,10 @@ fn execute_inner(
                         identity_cert,
                         identity_pk,
                     }),
-                // TODO: Start migrating this when IS adds support for this flag
-                always_reprovision_on_startup: _,
+                always_reprovision_on_startup,
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: *always_reprovision_on_startup,
                     provisioning: aziot_identityd_config::ProvisioningType::Dps {
                         global_endpoint: global_endpoint.to_string(),
                         scope_id: scope_id.clone(),
@@ -400,11 +398,10 @@ fn execute_inner(
                     old_config::AttestationMethod::Tpm(old_config::TpmAttestationInfo {
                         registration_id,
                     }),
-                // TODO: Start migrating this when IS adds support for this flag
-                always_reprovision_on_startup: _,
+                always_reprovision_on_startup,
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: *always_reprovision_on_startup,
                     provisioning: aziot_identityd_config::ProvisioningType::Dps {
                         global_endpoint: global_endpoint.to_string(),
                         scope_id: scope_id.clone(),

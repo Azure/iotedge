@@ -222,7 +222,7 @@ impl Check {
         {
             let aziot_check_out = std::process::Command::new(aziot_bin)
                 .arg("check-list")
-                .arg("--json")
+                .arg("--output=json")
                 .output();
 
             match aziot_check_out {
