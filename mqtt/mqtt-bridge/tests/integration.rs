@@ -52,7 +52,7 @@ impl Authorizer for DummySubscribeAuthorizer {
 }
 
 #[tokio::test]
-async fn send_message_upstream() {
+async fn send_message_upstream_downstream() {
     let subs = vec![
         Direction::Out(TopicRule::new(
             "temp/#".into(),
@@ -98,15 +98,15 @@ async fn send_message_upstream() {
         .publish_qos1("to/temp/1", "from local", false)
         .await;
 
-    assert_matches!(
-        upstream_client.publications().recv().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
-    );
-
     // Send downstream
     upstream_client
         .publish_qos1("to/filter/1", "from upstream", false)
         .await;
+
+    assert_matches!(
+        upstream_client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+    );
 
     assert_matches!(
         local_client.publications().recv().await,
@@ -176,6 +176,7 @@ async fn bridge_settings_update() {
         ))
         .unwrap();
 
+    // delay to propagate the update
     tokio::time::delay_for(Duration::from_secs(2)).await;
 
     // Send upstream
@@ -252,6 +253,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
         ))
         .unwrap();
 
+    // delay to have authorizer updated
     tokio::time::delay_for(Duration::from_secs(2)).await;
 
     // Send upstream
