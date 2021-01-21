@@ -190,6 +190,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + trustBundle);
         }
 
+        public void SetEdgeAgentImage(string value)
+        {
+            this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", value);
+        }
+
         public void SetDeviceHostname(string value)
         {
             this.config[Service.Edged].Document.ReplaceOrAdd("hostname", value);

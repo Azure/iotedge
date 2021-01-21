@@ -23,6 +23,7 @@ parameters:
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
+  logAnalytics.logType: ''
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
@@ -32,6 +33,9 @@ parameters:
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
   test.runtimeLogLevel: ''
+  test.useTRC: ''
+  test.deploymentFileName: 'long_haul_deployment.template.json'
+  testResultCoordinator.storageAccountConnectionString: ''
 
 steps:
   - task: CopyFiles@2
@@ -52,6 +56,7 @@ steps:
       targetType: inline
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         testName="LongHaul"
         
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
@@ -61,39 +66,71 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,TestName=$testName"
-        testInfo="$testInfo,UpstreamProtocol=amqp"
-        
-        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
-        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
-          -testDir "$(Agent.HomeDirectory)/.." \
-          -releaseLabel "${{ parameters['release.label'] }}" \
-          -artifactImageBuildNumber "$BuildNumber" \
-          -testName "$testName" \
-          -containerRegistry "${{ parameters['container.registry'] }}" \
-          -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
-          -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
-          -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
-          -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-          -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" \
-          -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" \
-          -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" \
-          -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" \
-          -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
-          -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
-          -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
-          -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
-          -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
-          -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
-          -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
-          -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
-          -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
-          -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
-          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
-          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
-          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-          -testInfo "$testInfo" \
-          -testStartDelay "${{ parameters['test.startDelay'] }}" \
-          -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
-          -cleanAll
+
+        if [ "${{ parameters['test.useTRC'] }}" == true ]; then
+          chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
+
+          sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh \
+            -testDir "$(Agent.HomeDirectory)/.." \
+            -releaseLabel "${{ parameters['release.label'] }}" \
+            -artifactImageBuildNumber "$BuildNumber" \
+            -containerRegistry "${{ parameters['container.registry'] }}" \
+            -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+            -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+            -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+            -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+            -testDuration  24:00:00 \
+            -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+            -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+            -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+            -logAnalyticsLogType "${{ parameters['logAnalytics.logType'] }}" \
+            -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+            -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+            -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+            -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
+            -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
+            -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -testInfo "$testInfo" \
+            -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+            -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -testName "$testName" \
+            -waitForTestComplete \
+            -cleanAll
+        else
+          chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
+
+          sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
+            -testDir "$(Agent.HomeDirectory)/.." \
+            -releaseLabel "${{ parameters['release.label'] }}" \
+            -artifactImageBuildNumber "$BuildNumber" \
+            -testName "$testName" \
+            -containerRegistry "${{ parameters['container.registry'] }}" \
+            -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+            -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+            -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+            -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+            -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" \
+            -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" \
+            -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" \
+            -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" \
+            -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+            -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
+            -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
+            -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+            -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+            -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+            -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+            -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
+            -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+            -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+            -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+            -testInfo "$testInfo" \
+            -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+            -cleanAll
+        fi
       workingDirectory: "$(Agent.HomeDirectory)/.."

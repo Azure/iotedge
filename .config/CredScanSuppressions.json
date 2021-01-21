@@ -40,6 +40,14 @@
     {
       "file": "http_proxy_io_requirements.md",
       "_justification": "A file in a submodule repo, which we don't control, and which contains a fake password for illustration purposes"
+    },
+    {
+      "placeholder": "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU=",
+      "_justification": "This is a fake key generated for testing purposes"
+    },
+    {
+      "placeholder": "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg==",
+      "_justification": "This is a fake key generated for testing purposes"
     }
   ]
 }

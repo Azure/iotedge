@@ -42,6 +42,8 @@ impl Handler<Parameters> for SignHandler {
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let key_client = self.key_client.clone();
+
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
@@ -51,9 +53,8 @@ impl Handler<Parameters> for SignHandler {
                     .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
                 Ok((name, genid))
             })
-            .map(|(name, _)| {
+            .map(move |(name, _)| {
                 let id = name.to_string();
-                let key_store = self.key_client.clone();
                 let id_mgr = self.identity_client.clone();
 
                 req.into_body().concat2().then(|body| {
@@ -61,16 +62,16 @@ impl Handler<Parameters> for SignHandler {
                         body.context(ErrorKind::EncryptionOperation(EncryptionOperation::Encrypt))?;
                     let request: SignRequest =
                         serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
-                    Ok((id, request, key_store, id_mgr))
+                    Ok((id, request, id_mgr))
                 })
             })
             .into_future()
             .flatten()
-            .and_then(|(id, request, key_store, id_mgr)| -> Result<_, Error> {
+            .and_then(move |(id, request, id_mgr)| -> Result<_, Error> {
                 let data: Vec<u8> =
                     base64::decode(request.data()).context(ErrorKind::MalformedRequestBody)?;
                 let response = get_derived_identity_key_handle(&id_mgr, &id)
-                    .and_then(move |k| get_signature(&key_store, &k, &data))
+                    .and_then(move |k| get_signature(&key_client, &k, &data))
                     .and_then(|signature| -> Result<_, Error> {
                         let encoded = base64::encode(signature.as_bytes());
                         let response = SignResponse::new(encoded);
