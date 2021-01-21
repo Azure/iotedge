@@ -1,0 +1,4 @@
+# This template will prepare the build context for various entities
+steps:
+  - script: scripts/linux/consolidate-build-artifacts --build-binaries-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
+  - script: scripts/linux/consolidate-build-artifacts --build-binaries-dir '$(Build.BinariesDirectory)' --artifact-name 'generic-mqtt-tester'

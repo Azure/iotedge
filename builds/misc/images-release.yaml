@@ -36,7 +36,7 @@ jobs:
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
       - template: templates/build-rust-artifacts.yaml
-      - template: templates/consolidate-edgehub-artifacts.yaml
+      - template: templates/consolidate-build-artifacts.yaml
       # Code Sign
       - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
