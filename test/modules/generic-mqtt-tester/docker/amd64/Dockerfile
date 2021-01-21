@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ARG EXE_DIR=.
+ARG EXE_DIR=amd64
 
 WORKDIR /app
 

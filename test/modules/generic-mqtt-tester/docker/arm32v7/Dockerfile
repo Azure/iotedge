@@ -1,9 +1,11 @@
 ARG base_tag=1.0.0-linux-arm32v7
 FROM edgebuilds.azurecr.io/microsoft/azureiotedge-module-base-rust:${base_tag}
 
+ARG EXE_DIR=arm32v7
+
 WORKDIR /app
 
-COPY target/armv7-unknown-linux-gnueabihf/release/generic-mqtt-tester ./
+COPY $EXE_DIR/generic-mqtt-tester ./
 
 USER moduleuser
 

@@ -26,9 +26,7 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
 
-      - template: templates/build-broker.yaml
-
-      - template: templates/build-watchdog.yaml
+      - template: templates/build-rust-artifacts.yaml
 
       - template: templates/consolidate-edgehub-artifacts.yaml
 
