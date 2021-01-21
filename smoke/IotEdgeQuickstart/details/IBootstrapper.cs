@@ -6,7 +6,7 @@ namespace IotEdgeQuickstart.Details
 
     public interface IBootstrapper
     {
-        Task VerifyNotInstalled();
+        Task UpdatePackageState();
 
         Task VerifyDependenciesAreInstalled();
 

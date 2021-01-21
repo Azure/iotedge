@@ -90,7 +90,7 @@ namespace IotEdgeQuickstart.Details
             this.overwritePackages = overwritePackages;
         }
 
-        public async Task VerifyNotInstalled()
+        public async Task UpdatePackageState()
         {
             string[] packages = new string[] { "aziot-edge", "aziot-identity-service", "iotedge", "libiothsm-std" };
 
