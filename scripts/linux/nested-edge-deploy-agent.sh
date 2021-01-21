@@ -3,64 +3,75 @@
 # Level 3 is deveployed by specialized script for connectivity/long haul and quick start.
 
 function create_certificates() {
-    echo "Installing test root certificate bundle."    
+    echo "Installing test root certificate bundle."
 
     echo "Generating edge device certificate"
     device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
     eval device_name=${device_name}
-    echo "  Hostname FQDN: ${device_name}" 
+    echo "  Hostname FQDN: ${device_name}"
 
     /certs/certGen.sh create_edge_device_certificate ${device_name}
 }
 #@TODO this might not be compatible for CENTOS
-function install_and_setup_iotedge() {
-    echo "Install and setup iotedge"
+function setup_iotedge() {
+    echo "Setup certd"
 
-    echo "  Install artifacts"
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
-    iotedge_package="${pkg_list[*]}" 
-    sudo dpkg -i --force-confnew ${iotedge_package}
- 
     echo "  Updating IoT Edge configuration file to use the newly installed certificcates"
-    device_ca_cert_path="/certs/certs/iot-edge-device-${device_name}-full-chain.cert.pem"
-    device_ca_pk_path="/certs/private/iot-edge-device-${device_name}.key.pem"
-    trusted_ca_certs_path="/certs/certs/azure-iot-test-only.root.ca.cert.pem"
-    sudo sed -i "165s|.*|certificates:|" /etc/iotedge/config.yaml
-    sudo sed -i "166s|.*|  device_ca_cert: \"$device_ca_cert_path\"|" /etc/iotedge/config.yaml
-    sudo sed -i "167s|.*|  device_ca_pk: \"$device_ca_pk_path\"|" /etc/iotedge/config.yaml
-    sudo sed -i "168s|.*|  trusted_ca_certs: \"$trusted_ca_certs_path\"|" /etc/iotedge/config.yaml
+    device_ca_cert_path="file:///certs/certs/iot-edge-device-${device_name}-full-chain.cert.pem"
+    trusted_ca_certs_path="file:///certs/certs/azure-iot-test-only.root.ca.cert.pem"
 
-    echo "Updating the device connection string"
-    sudo sed -i "s#\(device_connection_string: \).*#\1\"${CONNECTION_STRING}\"#g" /etc/iotedge/config.yaml
+    echo "aziot-edged-ca = \"$device_ca_cert_path\"" | sudo tee -a  /etc/aziot/certd/config.toml
+    echo "aziot-edged-trust-bundle = \"$trusted_ca_certs_path\"" | sudo tee -a  /etc/aziot/certd/config.toml
+    sudo cat /etc/aziot/certd/config.toml
 
-    echo "Updating the device and parent hostname"
-    sudo sed -i "224s/.*/hostname: \"$device_name\"/" /etc/iotedge/config.yaml
+    echo "Setup keyd"
+    device_ca_pk_path="file:///certs/private/iot-edge-device-${device_name}.key.pem"
+    echo "aziot-edged-ca = \"$device_ca_pk_path\"" | sudo tee -a  /etc/aziot/keyd/config.toml
+    sudo cat /etc/aziot/keyd/config.toml
 
-    if [ ! -z $PARENT_NAME ]; then
-        echo "Updating the parent hostname"
-        sudo sed -i "237s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/iotedge/config.yaml
-    fi
-
-    echo "Updating edge Agent"
-    sudo sed -i "207s|.*|    image: \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/iotedge/config.yaml
-
+    echo "Setup edged"
+    echo "    Updating edge Agent"
+    sudo cp /etc/aziot/edged/config.yaml.template /etc/aziot/edged/config.yaml
+    sudo sed -i "49s|.*|    image: \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/aziot/edged/config.yaml
     if [ -z $PARENT_NAME ]; then
-        sudo sed -i "208s|.*|    auth:|" /etc/iotedge/config.yaml
-        sed -i "209i\      serveraddress: \"${CONTAINER_REGISTRY}\"" /etc/iotedge/config.yaml
-        sed -i "210i\      username: \"${CONTAINER_REGISTRY_USERNAME}\"" /etc/iotedge/config.yaml
-        sed -i "211i\      password: \"${CONTAINER_REGISTRY_PASSWORD}\"" /etc/iotedge/config.yaml
+        sudo sed -i "50s|.*|    auth:|" /etc/aziot/edged/config.yaml
+        sed -i "51i\      serveraddress: \"${CONTAINER_REGISTRY}\"" /etc/aziot/edged/config.yaml
+        sed -i "52i\      username: \"${CONTAINER_REGISTRY_USERNAME}\"" /etc/aziot/edged/config.yaml
+        sed -i "53i\      password: \"${CONTAINER_REGISTRY_PASSWORD}\"" /etc/aziot/edged/config.yaml
     fi
 
-    sudo cat /etc/iotedge/config.yaml
+
+    sudo sed -i "1s/.*/hostname = \"$device_name\"/" /etc/aziot/identityd/config.toml
+    if [ ! -z $PARENT_NAME ]; then
+        echo "    Updating the device and parent hostname"
+        sudo sed -i "66s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
+        echo "    Updating the parent hostname"
+        sudo sed -i "79s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/aziot/edged/config.yaml
+
+        sudo sed -i "7s/.*/iothub_hostname = \"$PARENT_NAME\"/" /etc/aziot/identityd/config.toml
+    else
+        echo "    Updating the device hostname"
+        sudo sed -i "69s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
+    fi
+    sudo cat /etc/aziot/edged/config.yaml
+    sudo cat /etc/aziot/identityd/config.toml
+
+    echo "Setup aziot-edged-principal.toml"
+    id_aziot=$(id -u iotedge)
+    sudo touch /etc/aziot/identityd/config.d/aziot-edged-principal.toml
+    echo "[[principal]]" | sudo tee  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
+    echo "uid = ${id_aziot}" | sudo tee -a  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
+    echo "name = \"aziot-edge\"" | sudo tee -a  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
+    sudo chown "$(id -u aziotid):$(id -g aziotid)" /etc/aziot/identityd/config.d/aziot-edged-principal.toml
 
     #deploy the config in azure portal
     az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 
     echo "Start IoT edge"
-    sudo systemctl restart iotedge
+    sudo systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged
 }
 
-function prepare_test_from_artifacts() {   
+function prepare_test_from_artifacts() {
     print_highlighted_message 'Prepare test from artifacts'
 
     echo 'Remove working folder'
@@ -69,7 +80,7 @@ function prepare_test_from_artifacts() {
 
     echo "Copy deployment file from $connectivity_deployment_artifact_file"
     cp "$connectivity_deployment_artifact_file" "$deployment_working_file"
-    
+
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
     sed -i -e "s/<EdgeRuntime.BuildNumber>/$EDGE_RUNTIME_BUILD_NUMBER/g" "$deployment_working_file"
@@ -77,16 +88,15 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
-  
+
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
     fi
-    
+
     if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
     fi
 }
-
 
 function process_args() {
     print_highlighted_message 'Process arguments'
@@ -134,20 +144,20 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
             LEVEL="$arg"
-            saveNextArg=0         
+            saveNextArg=0
         elif [ $saveNextArg -eq 15 ]; then
             PARENT_NAME="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 16 ]; then
             CONNECTION_STRING="$arg"
-            saveNextArg=0     
+            saveNextArg=0
         elif [ $saveNextArg -eq 17 ]; then
             DEVICE_ID="$arg"
-            saveNextArg=0   
+            saveNextArg=0
         elif [ $saveNextArg -eq 18 ]; then
             IOT_HUB_NAME="$arg"
-            saveNextArg=0                                               
-        else              
+            saveNextArg=0
+        else
             case "$arg" in
                 '-h' | '--help' ) usage;;
                 '-testDir' ) saveNextArg=1;;
@@ -167,11 +177,11 @@ function process_args() {
                 '-parentName' ) saveNextArg=15;;
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
-                '-iotHubName' ) saveNextArg=18;;                
+                '-iotHubName' ) saveNextArg=18;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
-                
-                * ) 
+
+                * )
                     echo "Unsupported argument: $saveNextArg $arg"
                     usage
                     ;;
@@ -179,9 +189,9 @@ function process_args() {
         fi
     done
 
-    # Required parameters 
+    # Required parameters
     [[ -z "$CONNECTION_STRING" ]] && { print_error 'CONNECTION_STRING is required.'; exit 1; }
-    [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }    
+    [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
     [[ -z "$ARTIFACT_IMAGE_BUILD_NUMBER" ]] && { print_error 'Artifact image build number is required'; exit 1; }
@@ -196,13 +206,10 @@ function process_args() {
 
 function test_setup() {
     local funcRet=0
-    
-    clean_up && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
+
     prepare_test_from_artifacts && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
-    
+
     create_iotedge_service_config && funcRet=$? || funcRet=$?
     if [ $funcRet -ne 0 ]; then return $funcRet; fi
 }
@@ -238,12 +245,16 @@ if [ -z $CUSTOM_EDGE_HUB_IMAGE ]; then
     fi
 fi
 working_folder="$E2E_TEST_DIR/working"
-iotedged_artifact_folder="$(get_iotedged_artifact_folder $E2E_TEST_DIR)"
 
+#@TODO remove hardcoding
+#connectivity_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
 test_setup
 create_certificates
-install_and_setup_iotedge
+setup_iotedge
 set_output_params
+
+#clean up
+#az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}
