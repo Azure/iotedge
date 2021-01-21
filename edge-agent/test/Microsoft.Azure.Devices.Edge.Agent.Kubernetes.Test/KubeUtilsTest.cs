@@ -66,7 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("a-z", "---a-z---")]
         [InlineData("a-z---1", "---a-z-/--1")]
         [InlineData("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab----------c", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB----------C")]
-        [InlineData("111111111", "111111111")]
         public void SanitizeDnsValueTest(string expected, string raw) => Assert.Equal(expected, KubeUtils.SanitizeDNSValue(raw));
 
         [Theory]
@@ -78,6 +77,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData(null)]
         [InlineData("$$$$$$")]
         public void SanitizeDnsValueFailTest(string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSValue(raw));
+
+        [Theory]
+        [InlineData("edgeagent", "$edgeAgent")]
+        [InlineData("edgehub", "$edgeHub")]
+        // all characters are forced lowercase.
+        [InlineData("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabc", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABC")]
+        // Allow '-'
+        [InlineData("abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abcdefghi-abc", "ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABC")]
+        // Must start with alphabet and end with alphanumeric
+        [InlineData("a-0", "---a-0---")]
+        [InlineData("z-9", "---z-9---")]
+        [InlineData("a-0", "---A-0---")]
+        [InlineData("z-9", "---Z-9---")]
+        [InlineData("a-z", "---a-z---")]
+        [InlineData("a-z---1", "---a-z-/--1")]
+        [InlineData("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijab----------c", "ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB----------C")]
+        [InlineData("111111111", "111111111")]
+        public void SanitizeDnsLabelTest(string expected, string raw) => Assert.Equal(expected, KubeUtils.SanitizeDNSLabel(raw));
+
+        [Theory]
+        // length is <= 63 characters
+        [InlineData("ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJ")]
+        [InlineData("ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHI-ABCDEFGHIJ")]
+        // Must start with alphabet and end with alphanumeric
+        [InlineData("ABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJABCDEFGHIJAB-------J")]
+        [InlineData(null)]
+        [InlineData("$$$$$$")]
+        public void SanitizeDnsLabelFailTest(string raw) => Assert.Throws<InvalidKubernetesNameException>(() => KubeUtils.SanitizeDNSLabel(raw));
 
         [Theory]
         // must be a one or more DNS labels separated by dots (.), not longer than 253 characters in total
