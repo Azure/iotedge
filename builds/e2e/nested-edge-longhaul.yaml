@@ -10,6 +10,9 @@
 # 4. Once the test is done, reverse the capability from (2) by removing the "_$(Build.BuildId)" from "nested-edge" userCapabilities.
 # Note: For LongHaul, we can even have a pipeline selection to execute the Rest API to undo the capability suffix which enables the damn thing.
 
+trigger: none
+pr: none
+
 stages:
 - stage: SetupVM
   jobs:
