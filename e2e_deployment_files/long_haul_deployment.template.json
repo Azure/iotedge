@@ -187,9 +187,6 @@
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
-              "TwinTestMode": {
-                "value": "TwinCloudOperations"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -207,6 +204,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "EdgeHubRestartFailureTolerance": {
+                "value": "<EdgeHubRestartFailureTolerance>"
               }
             },
             "settings": {
@@ -226,87 +226,6 @@
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
-              "TwinTestMode": {
-                "value": "TwinEdgeOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TransportType": {
-                "value": "Amqp"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "twinTester3": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinCloudOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "twinTester4"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "twinTester4": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinEdgeOperations"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -324,6 +243,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "EdgeHubRestartFailureTolerance": {
+                "value": "<EdgeHubRestartFailureTolerance>"
               }
             },
             "settings": {
