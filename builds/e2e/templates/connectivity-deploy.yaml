@@ -54,6 +54,13 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
+    displayName: 'Generate device certificates'
+    inputs:
+      targetType: inline
+      script: |
+        ./certGen.sh
+  - task: Bash@3
+    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
     inputs:
       targetType: inline
