@@ -25,7 +25,7 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #longhaul.desiredModulesToRestartCSV: ''
   #longhaul.restartIntervalInMins: ''
-  #longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
+  #longHaul.sendReportFrequency: 'xx:xx:xx.xx'
   #twinTester.twinUpdateSize: ''
   #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
   #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
