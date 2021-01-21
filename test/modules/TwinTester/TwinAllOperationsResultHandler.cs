@@ -75,7 +75,7 @@ namespace TwinTester
 
         async Task SendStatus(string status)
         {
-            var result = new LegacyTwinTestResult(moduleId, DateTime.UtcNow, status);
+            var result = new LegacyTwinTestResult(this.moduleId, DateTime.UtcNow, status);
             Logger.LogDebug($"Sending report {result.GetFormattedResult()}");
             await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, Logger, result);
         }
