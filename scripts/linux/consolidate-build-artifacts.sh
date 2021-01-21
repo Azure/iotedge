@@ -60,20 +60,51 @@ function process_args()
     done
 }
 
+function make_artifact_subfolders()
+{
+    mkdir "$1"
+    mkdir "$1/amd64"
+    mkdir "$1/arm32v7"
+    mkdir "$1/arm64v8"
+}
+
 process_args "$@"
 
 cd $BUILD_REPOSITORY_LOCALPATH
 
-if [ "$ARTIFACT_NAME" = "generic-mqtt-tester" ]; then
-    ARTIFACTS_SOURCE="test/modules/generic-mqtt-tester"
-    ARTIFACTS_DEST="${BUILD_BINARIESDIRECTORY}/publish/$ARTIFACT_NAME"
+case "$ARTIFACT_NAME" in
+    generic-mqtt-tester)
+        ARTIFACTS_SOURCE="test/modules/generic-mqtt-tester"
+        ARTIFACTS_DEST="${BUILD_BINARIESDIRECTORY}/publish/$ARTIFACT_NAME"
 
-    mkdir "$ARTIFACTS_DEST"
-    mkdir "$ARTIFACTS_DEST/amd64"
-    mkdir "$ARTIFACTS_DEST/arm32v7"
-    mkdir "$ARTIFACTS_DEST/arm64v8"
+        make_artifact_subfolders "$ARTIFACTS_DEST"
 
-    cp "$ARTIFACTS_SOURCE/target/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/amd64"
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/arm32v7"
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/arm64v8"
-fi
+        cp "$ARTIFACTS_SOURCE/target/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/amd64"
+        cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/arm32v7"
+        cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/arm64v8"
+
+    edge-hub)
+        EDGEHUB_ARTIFACTS_SOURCE="$BUILD_BINARIESDIRECTORY/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
+        MQTT_ARTIFACTS_SOURCE="test/modules/generic-mqtt-tester"
+        WATCHDOG_ARTIFACTS_SOURCE="test/modules/generic-mqtt-tester"
+        ARTIFACTS_DEST="${BUILD_BINARIESDIRECTORY}/publish/$ARTIFACT_NAME"
+
+        make_artifact_subfolders "$ARTIFACTS_DEST"
+
+        # copy edgehub core artifacts
+        cp "$EDGEHUB_ARTIFACTS_SOURCE" "$ARTIFACTS_DEST/amd64"
+        cp "$EDGEHUB_ARTIFACTS_SOURCE" "$ARTIFACTS_DEST/arm32v7"
+        cp "$EDGEHUB_ARTIFACTS_SOURCE" "$ARTIFACTS_DEST/arm64v8"
+
+        # copy mqtt artifacts
+        cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/mqtt/amd64"
+        cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/mqtt/arm32v7"
+        cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64v8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/mqtt/arm64v8"
+
+        # copy watchdog artifacts
+        cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/watchdog/amd64"
+        cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/watchdog/arm32v7"
+        cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM64v8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/watchdog/arm64v8"
+    *)
+        print_error "Invalid artifact name"
+        exit 1
