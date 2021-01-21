@@ -69,7 +69,7 @@ steps:
     artifactName: $(artifactName)
 
 - task: PowerShell@2
-  displayName: Download aziot-identity-service
+  displayName: 'Download aziot-identity-service'
   inputs:
     filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
     workingDirectory: $(Build.SourcesDirectory)
