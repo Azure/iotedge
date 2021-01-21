@@ -397,8 +397,8 @@ namespace IotEdgeQuickstart.Details
             SetOwner(deviceCaPk, config[KEYD].owner, "400");
 
             config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", new Uri(deviceCaCerts).AbsoluteUri);
-            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-device-ca", new Uri(deviceCaCert).AbsoluteUri);
-            config[KEYD].document.ReplaceOrAdd("preloaded_keys.aziot-edged-device-ca", new Uri(deviceCaPk).AbsoluteUri);
+            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", new Uri(deviceCaCert).AbsoluteUri);
+            config[KEYD].document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", new Uri(deviceCaPk).AbsoluteUri);
 
             this.proxy.ForEach(proxy => config[EDGED].document.ReplaceOrAdd("agent.env.https_proxy", proxy));
 
