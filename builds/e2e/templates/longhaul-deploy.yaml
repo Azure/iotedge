@@ -34,6 +34,7 @@ parameters:
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
   test.runtimeLogLevel: ''
+  test.testMode: ''
   test.useTRC: ''
   test.deploymentFileName: 'long_haul_deployment.template.json'
   testResultCoordinator.storageAccountConnectionString: ''
@@ -97,6 +98,7 @@ steps:
             -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
+            -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
             -waitForTestComplete \
             -cleanAll
