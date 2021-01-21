@@ -57,8 +57,12 @@ steps:
     displayName: 'Generate device certificates'
     inputs:
       targetType: inline
+      workingDirectory: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
       script: |
+        chmod +x certGen.sh
+
         ./certGen.sh
+
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
