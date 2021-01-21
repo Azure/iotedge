@@ -233,6 +233,7 @@ namespace IotEdgeQuickstart.Details
             const string CERTD = "/etc/aziot/certd/config.toml";
             const string IDENTITYD = "/etc/aziot/identityd/config.toml";
             const string EDGED = "/etc/aziot/edged/config.yaml";
+            const string TPMD = "/etc/aziot/tpmd/config.toml";
 
             // Initialize each service's config file.
             // The mapped values are:
@@ -244,6 +245,7 @@ namespace IotEdgeQuickstart.Details
             config.Add(CERTD, ("aziotcs", InitDocument(CERTD + ".default", true)));
             config.Add(IDENTITYD, ("aziotid", InitDocument(IDENTITYD + ".default", true)));
             config.Add(EDGED, ("iotedge", InitDocument(EDGED + ".template", false)));
+            config.Add(TPMD, ("aziottp", InitDocument(TPMD + ".default", true)));
 
             method.ManualConnectionString.Match(
                 cs =>

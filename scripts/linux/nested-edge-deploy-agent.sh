@@ -68,7 +68,7 @@ function setup_iotedge() {
     az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 
     echo "Start IoT edge"
-    sudo systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged
+    sudo systemctl start aziot-keyd aziot-certd aziot-identityd aziot-edged
 }
 
 function prepare_test_from_artifacts() {

@@ -67,6 +67,11 @@ steps:
       targetType: inline
       script: |
         echo 'Stop IoT Edge services'
+        sudo systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+        sudo systemctl stop iotedge.socket iotedge.mgmt.socket || true
+        sudo systemctl kill iotedge || true
+        sudo systemctl stop iotedge || true        
+        sudo systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
         sudo dpkg --purge aziot-edge aziot-identity-service
 
         sudo rm -rf /var/lib/aziot/
