@@ -3,7 +3,7 @@ use futures_util::{
     future::{self, Either},
     stream::StreamExt,
 };
-use mpsc::{Receiver, Sender, UnboundedReceiver, UnboundedSender};
+use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
@@ -11,25 +11,9 @@ use mqtt3::{
     proto::{Publication, QoS},
     PublishHandle, ReceivedPublication,
 };
-use trc_client::TrcClient;
+use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{MessageTesterError, BACKWARDS_TOPIC};
-
-#[derive(Debug, Clone)]
-pub struct MessageChannelShutdownHandle(Sender<()>);
-
-impl MessageChannelShutdownHandle {
-    pub fn new(sender: Sender<()>) -> Self {
-        Self(sender)
-    }
-
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
-        self.0
-            .send(())
-            .await
-            .map_err(MessageTesterError::SendShutdownSignal)
-    }
-}
+use crate::{MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, RECEIVE_SOURCE};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -41,11 +25,17 @@ pub trait MessageHandler {
 /// Responsible for receiving publications and reporting result to the Test Result Coordinator.
 pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
+    tracking_id: String,
+    batch_id: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(reporting_client: TrcClient) -> Self {
-        Self { reporting_client }
+    pub fn new(reporting_client: TrcClient, tracking_id: String, batch_id: String) -> Self {
+        Self {
+            reporting_client,
+            tracking_id,
+            batch_id,
+        }
     }
 }
 
@@ -55,7 +45,21 @@ impl MessageHandler for ReportResultMessageHandler {
         &mut self,
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
-        info!("should send result to TRC, but not implemented yet");
+        let sequence_number: u32 = serde_json::from_slice(&received_publication.payload)
+            .map_err(MessageTesterError::DeserializeMessage)?;
+        let result = MessageTestResult::new(
+            self.tracking_id.clone(),
+            self.batch_id.clone(),
+            sequence_number,
+        );
+
+        let test_type = trc_client::TestType::Messages;
+        let created_at = chrono::Utc::now();
+        self.reporting_client
+            .report_result(RECEIVE_SOURCE.to_string(), result, test_type, created_at)
+            .await
+            .map_err(MessageTesterError::ReportResult)?;
+
         Ok(())
     }
 }
@@ -100,7 +104,7 @@ impl MessageHandler for RelayingMessageHandler {
 pub struct MessageChannel<H: ?Sized + MessageHandler + Send> {
     publication_sender: UnboundedSender<ReceivedPublication>,
     publication_receiver: UnboundedReceiver<ReceivedPublication>,
-    shutdown_handle: MessageChannelShutdownHandle,
+    shutdown_handle: ShutdownHandle,
     shutdown_recv: Receiver<()>,
     message_handler: Box<H>,
 }
@@ -113,7 +117,7 @@ where
         let (publication_sender, publication_receiver) =
             mpsc::unbounded_channel::<ReceivedPublication>();
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
-        let shutdown_handle = MessageChannelShutdownHandle::new(shutdown_send);
+        let shutdown_handle = ShutdownHandle::new(shutdown_send);
 
         Self {
             publication_sender,
@@ -141,7 +145,7 @@ where
                     }
                 }
                 Either::Right((shutdown_signal, _)) => {
-                    if let Some(shutdown_signal) = shutdown_signal {
+                    if shutdown_signal.is_some() {
                         info!("received shutdown signal");
                         return Ok(());
                     } else {
@@ -157,7 +161,7 @@ where
         self.publication_sender.clone()
     }
 
-    pub fn shutdown_handle(&self) -> MessageChannelShutdownHandle {
+    pub fn shutdown_handle(&self) -> ShutdownHandle {
         self.shutdown_handle.clone()
     }
 }

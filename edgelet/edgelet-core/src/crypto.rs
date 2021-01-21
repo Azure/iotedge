@@ -8,10 +8,10 @@ use crate::certificate_properties::{CertificateIssuer, CertificateProperties};
 use crate::error::Error;
 
 /// ID of the device CA cert in certd and private key in keyd.
-pub const AZIOT_EDGED_CA_ALIAS: &str = "aziot-edged-device-ca";
+pub const AZIOT_EDGED_CA_ALIAS: &str = "aziot-edged-ca";
 
 /// ID of the trust bundle cert in certd.
-pub const TRUST_BUNDLE_ALIAS: &str = "iotedge-trust-bundle";
+pub const TRUST_BUNDLE_ALIAS: &str = "aziot-edged-trust-bundle";
 
 pub trait Signature {
     fn as_bytes(&self) -> &[u8];
