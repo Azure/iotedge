@@ -265,6 +265,73 @@ async fn subscribe_to_upstream_rejected_should_retry() {
     );
 }
 
+#[tokio::test]
+async fn connect_to_upstream_failure_should_retry() {
+    let (local_server_handle, _) = setup_local_broker(AllowAll);
+
+    let subs = vec![
+        Direction::Out(TopicRule::new(
+            "temp/#".into(),
+            Some("to".into()),
+            Some("upstream".into()),
+        )),
+        Direction::In(TopicRule::new(
+            "filter/#".into(),
+            Some("to".into()),
+            Some("downstream".into()),
+        )),
+    ];
+    let upstream_tcp_address = "localhost:8801".to_string();
+    let upstream_tls_address = "localhost:8802".to_string();
+    setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_tls_address.clone(),
+        subs,
+    )
+    .await;
+    let mut local_client = TestClientBuilder::new(local_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
+        .build();
+
+    local_client
+        .subscribe("$internal/connectivity", QoS::AtLeastOnce)
+        .await;
+    // wait to receive subscription ack
+    local_client.subscriptions().recv().await;
+
+    assert_matches!(
+        local_client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("{\"status\":\"Disconnected\"}")
+    );
+
+    let (mut upstream_server_handle, _) = setup_upstream_broker(
+        AllowAll,
+        Some(upstream_tcp_address.clone()),
+        Some(upstream_tls_address.clone()),
+    );
+
+    assert_matches!(
+        local_client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("{\"status\":\"Connected\"}")
+    );
+
+    upstream_server_handle.shutdown().await;
+    assert_matches!(
+        local_client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("{\"status\":\"Disconnected\"}")
+    );
+
+    let (_upstream_server_handle, _) = setup_upstream_broker(
+        AllowAll,
+        Some(upstream_tcp_address),
+        Some(upstream_tls_address),
+    );
+    assert_matches!(
+        local_client.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("{\"status\":\"Connected\"}")
+    );
+}
+
 fn setup_brokers<Z, T>(
     local_authorizer: Z,
     upstream_authorizer: T,
@@ -273,27 +340,49 @@ where
     Z: Authorizer + Send + 'static,
     T: Authorizer + Send + 'static,
 {
-    let local_broker = BrokerBuilder::default()
-        .with_authorizer(local_authorizer)
-        .build();
-    let local_server_handle = start_server(local_broker, DummyAuthenticator::with_id("local"));
-
-    let upstream_broker = BrokerBuilder::default()
-        .with_authorizer(upstream_authorizer)
-        .build();
-    let upstream_broker_handle = upstream_broker.handle();
-    let identity = ServerCertificate::from_pem_pair(CERTIFICATE, PRIVATE_KEY).unwrap();
-    let upstream_server_handle = start_server_with_tls(
-        identity,
-        upstream_broker,
-        DummyAuthenticator::with_id("device_1"),
-    );
+    let (local_server_handle, _) = setup_local_broker(local_authorizer);
+    let (upstream_server_handle, upstream_broker_handle) =
+        setup_upstream_broker(upstream_authorizer, None, None);
 
     (
         local_server_handle,
         upstream_server_handle,
         upstream_broker_handle,
     )
+}
+
+fn setup_upstream_broker<Z>(
+    authorizer: Z,
+    tcp_addr: Option<String>,
+    tls_addr: Option<String>,
+) -> (ServerHandle, BrokerHandle)
+where
+    Z: Authorizer + Send + 'static,
+{
+    let upstream_broker = BrokerBuilder::default().with_authorizer(authorizer).build();
+    let upstream_broker_handle = upstream_broker.handle();
+    let identity = ServerCertificate::from_pem_pair(CERTIFICATE, PRIVATE_KEY).unwrap();
+
+    let upstream_server_handle = start_server_with_tls(
+        identity,
+        upstream_broker,
+        DummyAuthenticator::with_id("device_1"),
+        tcp_addr,
+        tls_addr,
+    );
+
+    (upstream_server_handle, upstream_broker_handle)
+}
+
+fn setup_local_broker<Z>(authorizer: Z) -> (ServerHandle, BrokerHandle)
+where
+    Z: Authorizer + Send + 'static,
+{
+    let local_broker = BrokerBuilder::default().with_authorizer(authorizer).build();
+    let local_broker_handle = local_broker.handle();
+    let local_server_handle = start_server(local_broker, DummyAuthenticator::with_id("local"));
+
+    (local_server_handle, local_broker_handle)
 }
 
 async fn setup_bridge_controller(

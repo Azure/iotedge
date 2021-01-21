@@ -66,22 +66,28 @@ pub fn start_server_with_tls<N, E, Z>(
     identity: ServerCertificate,
     broker: Broker<Z>,
     authenticator: N,
+    tcp_addr: Option<String>,
+    tls_addr: Option<String>,
 ) -> ServerHandle
 where
     N: Authenticator<Error = E> + Clone + Send + Sync + 'static,
     Z: Authorizer + Send + 'static,
     E: StdError + Send + Sync + 'static,
 {
-    run_with_tls(|addr, tls_addr| {
-        let mut server = Server::from_broker(broker);
-        server.with_tcp(addr, authenticator.clone(), None).unwrap();
+    run_with_tls(
+        |addr, tls_addr| {
+            let mut server = Server::from_broker(broker);
+            server.with_tcp(addr, authenticator.clone(), None).unwrap();
 
-        if let Some(tls) = tls_addr {
-            server.with_tls(tls, identity, authenticator, None).unwrap();
-        }
+            if let Some(tls) = tls_addr {
+                server.with_tls(tls, identity, authenticator, None).unwrap();
+            }
 
-        server
-    })
+            server
+        },
+        tcp_addr,
+        tls_addr,
+    )
 }
 
 /// Starts a test server with a provided broker and returns
@@ -125,17 +131,29 @@ where
     }
 }
 
-pub fn run_with_tls<F, Z, P>(make_server: F) -> ServerHandle
+pub fn run_with_tls<F, Z, P>(
+    make_server: F,
+    tcp_addr: Option<String>,
+    tls_addr: Option<String>,
+) -> ServerHandle
 where
     F: FnOnce(String, Option<String>) -> Server<Z, P>,
     Z: Authorizer + Send + 'static,
     P: MakePacketProcessor + Clone + Send + Sync + 'static,
 {
-    let port = PORT.fetch_add(1, Ordering::SeqCst);
-    let addr = format!("localhost:{}", port);
+    let addr = if let Some(addr) = tcp_addr {
+        addr
+    } else {
+        let port = PORT.fetch_add(1, Ordering::SeqCst);
+        format!("localhost:{}", port)
+    };
 
-    let tls_port = PORT.fetch_add(1, Ordering::SeqCst);
-    let tls_addr = Some(format!("localhost:{}", tls_port));
+    let tls_addr = if tls_addr.is_some() {
+        tls_addr
+    } else {
+        let port = PORT.fetch_add(1, Ordering::SeqCst);
+        Some(format!("localhost:{}", port))
+    };
 
     let server = make_server(addr.clone(), tls_addr.clone());
 
