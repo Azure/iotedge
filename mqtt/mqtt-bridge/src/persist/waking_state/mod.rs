@@ -1,6 +1,5 @@
 use std::{collections::VecDeque, task::Waker};
 
-use async_trait::async_trait;
 use mqtt3::proto::Publication;
 
 use crate::persist::{Key, PersistError};
@@ -20,7 +19,6 @@ pub mod ring_buffer;
 ///
 /// All implementations of this trait should have the same behavior with respect to errors.
 /// Thus all implementations will share the below test suite.
-#[async_trait]
 pub trait StreamWakeableState {
     fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError>;
 

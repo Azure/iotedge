@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use anyhow::Result;
 use mqtt3::proto::Publication;
@@ -8,6 +8,8 @@ use tracing::debug;
 use crate::persist::{
     loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
 };
+
+use super::storage::{FlushOptions, ring_buffer::ring_buffer::RingBuffer, sled::Sled};
 
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
@@ -22,6 +24,31 @@ pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
         Self::new(WakingMemoryStore::default(), batch_size)
+    }
+}
+
+impl PublicationStore<Sled> {
+    pub fn new_db(
+        path: impl AsRef<Path> + Send + Sync + 'static,
+        tree_name: String,
+        flush_options: FlushOptions,
+        batch_size: usize,
+    ) -> Self {
+        Self::new(Sled::new(path, tree_name, flush_options), batch_size)
+    }
+}
+
+impl PublicationStore<RingBuffer> {
+    pub fn new_ring_buffer(
+        file_name: String,
+        max_file_size: usize,
+        flush_options: FlushOptions,
+        batch_size: usize,
+    ) -> Self {
+        Self::new(
+            RingBuffer::new(file_name, max_file_size, flush_options),
+            batch_size,
+        )
     }
 }
 

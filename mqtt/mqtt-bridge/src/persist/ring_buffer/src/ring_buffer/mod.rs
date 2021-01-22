@@ -2,10 +2,12 @@ pub mod block;
 pub mod error;
 pub mod ring_buffer_1;
 pub mod ring_buffer_2;
+pub mod ring_buffer_3;
 
 use memmap::MmapMut;
 use ring_buffer_1::RingBuffer1;
 use ring_buffer_2::RingBuffer2;
+use ring_buffer_3::RingBuffer3;
 
 use crate::{error::StorageError, Storage, StorageResult};
 
@@ -13,8 +15,8 @@ use self::error::RingBufferError;
 use std::{
     collections::VecDeque,
     fs::{File, OpenOptions},
-    path::PathBuf,
     ops::Deref,
+    path::PathBuf,
 };
 
 pub type RingBufferResult<T> = Result<T, RingBufferError>;
@@ -26,6 +28,11 @@ pub enum RingBufferType {
         file_path: PathBuf,
     },
     WithAtomicSpin {
+        file_size: usize,
+        block_size: usize,
+        file_path: PathBuf,
+    },
+    WithFileIO {
         file_size: usize,
         block_size: usize,
         file_path: PathBuf,
@@ -43,11 +50,16 @@ fn create_file(file_path: PathBuf) -> RingBufferResult<File> {
         })
 }
 
-fn create_mmap(file_path: PathBuf, file_size: usize) -> RingBufferResult<MmapMut> {
+fn create_file_with_len(file_path: PathBuf, file_size: usize) -> RingBufferResult<File> {
     let file = create_file(file_path)?;
     file.set_len(file_size as u64).map_err(|err| {
         RingBufferError::from_err("Failed to set file size".to_owned(), Box::new(err))
     })?;
+    Ok(file)
+}
+
+fn create_mmap(file_path: PathBuf, file_size: usize) -> RingBufferResult<MmapMut> {
+    let file = create_file_with_len(file_path, file_size)?;
     Ok(unsafe {
         MmapMut::map_mut(&file).map_err(|err| {
             RingBufferError::from_err("Failed to create mmap".to_owned(), Box::new(err))
@@ -86,6 +98,14 @@ pub fn create_ring_buffer(rbt: RingBufferType) -> RingBufferResult<Rb> {
             let mmap = create_mmap(file_path, file_size)?;
             Box::new(RingBuffer2::new(file_size, block_size, mmap))
         }
+        RingBufferType::WithFileIO {
+            file_size,
+            block_size,
+            file_path,
+        } => {
+            let file = create_file_with_len(file_path, file_size)?;
+            Box::new(RingBuffer3::new(file_size, block_size, file))
+        }
     };
     Ok(Rb(inner))
 }
@@ -98,8 +118,7 @@ pub trait RingBuffer: Send + Sync {
     fn remove(&self, key: &usize) -> RingBufferResult<()>;
 }
 
-impl Storage for Rb
-{
+impl Storage for Rb {
     type Key = usize;
     type Value = Vec<u8>;
 
@@ -146,8 +165,8 @@ mod tests {
     use memmap::MmapMut;
 
     use super::{
-        ring_buffer_1::RingBuffer1, ring_buffer_2::RingBuffer2, RingBuffer, RingBufferError,
-        RingBufferResult,
+        ring_buffer_1::RingBuffer1, ring_buffer_2::RingBuffer2, ring_buffer_3::RingBuffer3,
+        RingBuffer, RingBufferError, RingBufferResult,
     };
     use std::{
         fs::{remove_file, File, OpenOptions},
@@ -180,11 +199,16 @@ mod tests {
         }
     }
 
-    fn create_mmap(file_name: &'static str) -> RingBufferResult<MmapMut> {
+    fn create_file(file_name: &'static str) -> RingBufferResult<File> {
         let file = create_test_file(file_name)?;
         file.set_len(MAX_FILE_SIZE as u64).map_err(|err| {
             RingBufferError::from_err("Failed to set file size".to_owned(), Box::new(err))
         })?;
+        Ok(file)
+    }
+
+    fn create_mmap(file_name: &'static str) -> RingBufferResult<MmapMut> {
+        let file = create_file(file_name)?;
         Ok(unsafe {
             MmapMut::map_mut(&file).map_err(|err| {
                 RingBufferError::from_err("Failed to create mmap".to_owned(), Box::new(err))
@@ -196,6 +220,7 @@ mod tests {
     enum TestRingBufferType {
         WithMutex,
         WithAtomicSpin,
+        WithFileIO,
     }
 
     fn create_ring_buffer(
@@ -210,6 +235,11 @@ mod tests {
             TestRingBufferType::WithAtomicSpin => {
                 Box::new(RingBuffer2::new(MAX_FILE_SIZE, BLOCK_SIZE, mmapmut))
             }
+            TestRingBufferType::WithFileIO => Box::new(RingBuffer3::new(
+                MAX_FILE_SIZE,
+                BLOCK_SIZE,
+                create_file(file_name)?,
+            )),
         })
     }
 
@@ -219,6 +249,7 @@ mod tests {
 
         #[test_case("test_init_with_previous_data_mutex.txt", TestRingBufferType::WithMutex ; "Init with mutex")]
         #[test_case("test_init_with_previous_data_atomic_spin.txt", TestRingBufferType::WithAtomicSpin ; "Init with atomic spin")]
+        #[test_case("test_init_with_previous_data_file_io.txt", TestRingBufferType::WithFileIO ; "Init with file io")]
         fn test_init_with_previous_data_written(file_name: &'static str, rbt: TestRingBufferType) {
             cleanup_test_file(file_name);
             // Firstly write some garbage data
@@ -245,6 +276,7 @@ mod tests {
 
         #[test_case("test_init_without_previous_data_mutex.txt", TestRingBufferType::WithMutex ; "Init with mutex")]
         #[test_case("test_init_without_previous_data_atomic_spin.txt", TestRingBufferType::WithAtomicSpin ; "Init with atomic spin")]
+        #[test_case("test_init_without_previous_data_file_io.txt", TestRingBufferType::WithFileIO ; "Init with file io")]
         fn test_init_without_previous_data_written(
             file_name: &'static str,
             rbt: TestRingBufferType,
@@ -281,11 +313,17 @@ mod tests {
                 TestRingBufferType::WithAtomicSpin => {
                     Box::new(RingBuffer2::new(MAX_FILE_SIZE, BLOCK_SIZE / 2, mmap))
                 }
+                TestRingBufferType::WithFileIO => Box::new(RingBuffer3::new(
+                    MAX_FILE_SIZE / 2,
+                    BLOCK_SIZE / 2,
+                    create_file(file_name)?,
+                )),
             })
         }
 
         #[test_case("test_init_mutex.txt", TestRingBufferType::WithMutex ; "Init with mutex")]
         #[test_case("test_init_atomic_spin.txt", TestRingBufferType::WithAtomicSpin ; "Init with atomic spin")]
+        #[test_case("test_init_file_io.txt", TestRingBufferType::WithFileIO ; "Init with file io")]
         fn test_init_with_previous_data_written_and_different_block_sizes(
             file_name: &'static str,
             rbt: TestRingBufferType,
@@ -324,6 +362,7 @@ mod tests {
 
         #[test_case("test_load_with_large_buffer_mutex.txt", TestRingBufferType::WithMutex ; "Load with mutex")]
         #[test_case("test_load_with_large_buffer_atomic_spin.txt", TestRingBufferType::WithAtomicSpin ; "Load with atomic spin")]
+        #[test_case("test_load_with_large_buffer_file_io.txt", TestRingBufferType::WithFileIO ; "Load with file io")]
         fn test_load_with_buffer_size_large_enough_for_block(
             file_name: &'static str,
             rbt: TestRingBufferType,
@@ -379,6 +418,7 @@ mod tests {
 
         #[test_case("test_save_with_small_data_mutex.txt", TestRingBufferType::WithMutex ; "Save with mutex")]
         #[test_case("test_save_with_small_data_atomic_spin.txt", TestRingBufferType::WithAtomicSpin ; "Save with atomic spin")]
+        #[test_case("test_save_with_small_data_file_io.txt", TestRingBufferType::WithFileIO ; "Save with file io")]
         fn test_save_with_data_within_limits_for_block(
             file_name: &'static str,
             rbt: TestRingBufferType,

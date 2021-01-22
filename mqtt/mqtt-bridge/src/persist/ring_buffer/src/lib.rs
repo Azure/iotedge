@@ -3,6 +3,7 @@ pub mod error_macro;
 pub mod db;
 pub mod error;
 pub mod ring_buffer;
+// pub mod txrx;
 
 use crate::ring_buffer::{create_ring_buffer, RingBufferType};
 use db::{create_embedded_database, DbType};
@@ -52,6 +53,22 @@ pub trait Storage: Send + Sync {
     fn remove(&self, name: String, key: &Self::Key) -> StorageResult<()>;
 }
 
+// #[async_trait]
+// pub trait AsyncStorage: Send+Sync {
+//       type Key;
+//     type Value;
+
+//     fn init(&mut self, names: Vec<String>) -> StorageResult<()>;
+//     fn save(&self, name: String, value: &Self::Value) -> StorageResult<Self::Key>;
+//     fn load(&self, name: String) -> StorageResult<Option<(Self::Key, Self::Value)>>;
+//     fn batch_load(
+//         &self,
+//         name: String,
+//         batch_size: usize,
+//     ) -> StorageResult<VecDeque<(Self::Key, Self::Value)>>;
+//     fn remove(&self, name: String, key: &Self::Key) -> StorageResult<()>;
+// }
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -88,6 +105,7 @@ mod tests {
         Sled,
         RBWithMutex,
         RBWithAtomicSpin,
+        RBWithFileIO,
     }
 
     fn create_test_storage(
@@ -116,6 +134,15 @@ mod tests {
             }
             TestStorageType::RBWithMutex => {
                 let rbt = RingBufferType::WithAtomicSpin {
+                    file_size: MAX_FILE_SIZE,
+                    block_size: BLOCK_SIZE,
+                    file_path: PathBuf::from(file_name),
+                };
+                let st = StorageType::RingBuffer(rbt);
+                create_storage(st)
+            }
+            TestStorageType::RBWithFileIO => {
+                let rbt = RingBufferType::WithFileIO {
                     file_size: MAX_FILE_SIZE,
                     block_size: BLOCK_SIZE,
                     file_path: PathBuf::from(file_name),
@@ -193,7 +220,16 @@ mod tests {
                     create_storage(st)
                 }
                 TestStorageType::RBWithMutex => {
-                    let rbt = RingBufferType::WithAtomicSpin {
+                    let rbt = RingBufferType::WithMutex {
+                        file_size,
+                        block_size,
+                        file_path: PathBuf::from(file_name),
+                    };
+                    let st = StorageType::RingBuffer(rbt);
+                    create_storage(st)
+                }
+                TestStorageType::RBWithFileIO => {
+                    let rbt = RingBufferType::WithFileIO {
                         file_size,
                         block_size,
                         file_path: PathBuf::from(file_name),
@@ -336,10 +372,11 @@ mod tests {
             cleanup_test_file(file_name);
         }
 
-        #[test_case("perf_1_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_1_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_1_1_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_1_1_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_1_1_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_1_1_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_1_1(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -373,10 +410,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_1_4_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_1_4_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_1_4_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_1_4_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_1_4_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_1_4_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_1_4(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -410,10 +448,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_1_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_1_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_1_8_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_1_8_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_1_8_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_1_8_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_1_8(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -447,10 +486,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_1_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_1_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_1_16_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_1_16_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_1_16_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_1_16_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_1_16(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -484,10 +524,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_2_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_2_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_2_1_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_2_1_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_2_1_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_2_1_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_2_1(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -521,10 +562,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_2_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_2_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_2_8_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_2_8_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_2_8_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_2_8_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_2_4(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -558,10 +600,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_2_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_2_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_2_8_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_2_8_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_2_8_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_2_8_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_2_8(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -595,10 +638,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_2_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_2_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_2_16_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_2_16_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_2_16_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_2_16_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_2_16(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024,
@@ -632,10 +676,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_3_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_3_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_3_1_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_3_1_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_3_1_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_3_1_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_3_1(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1280,
@@ -669,10 +714,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_3_4_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_3_4_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_3_4_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_3_4_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_3_4_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_3_4_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_3_4(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1280,
@@ -706,10 +752,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_3_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_3_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_3_8_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_3_8_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_3_8_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_3_8_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_3_8(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1280,
@@ -743,10 +790,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_3_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_3_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_3_16_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_3_16_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_3_16_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_3_16_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_3_16(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1280,
@@ -780,10 +828,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_4_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_4_1_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_4_1_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_4_1_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_4_1_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_4_1_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_4_1(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024 * 4,
@@ -817,10 +866,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_4_4_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_4_4_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_4_4_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_4_4_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_4_4_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_4_4_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_4_4(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024 * 4,
@@ -854,10 +904,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_4_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_4_8_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_4_8_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_4_8_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_4_8_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_4_8_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_4_8(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024 * 4,
@@ -891,10 +942,11 @@ mod tests {
             );
         }
 
-        #[test_case("perf_4_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
+        // #[test_case("perf_4_16_with_rocksdb.txt", TestStorageType::RocksDb ; "With RocksDb")]
         #[test_case("perf_4_16_with_sled.txt", TestStorageType::Sled ; "With Sled")]
         #[test_case("perf_4_16_with_rbm.txt", TestStorageType::RBWithMutex ; "With RBWithMutex")]
         #[test_case("perf_4_16_with_rbas.txt", TestStorageType::RBWithAtomicSpin ; "With RBWithAtomicSpin")]
+        #[test_case("perf_4_16_with_rbfio.txt", TestStorageType::RBWithFileIO ; "With RBWithFileIO")]
         fn test_emulated_packet_performance_4_16(file_name: &'static str, tst: TestStorageType) {
             let parameters = Parameters {
                 file_size: 1024 * 1024 * 4,

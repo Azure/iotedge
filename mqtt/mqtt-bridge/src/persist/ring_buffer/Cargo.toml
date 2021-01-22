@@ -12,9 +12,14 @@ memmap = "0.7.0"
 sled = "0.34.6"
 rocksdb = "0.15.0"
 rand = "0.8.0"
+queue-file = "1.1.0"
+yaque = "0.4.3"
+tokio = {version="1.0.2",features=["full"]}
+async-trait = "0.1.42"
 
 [dev-dependencies]
 criterion = "0.3"
 test-case = "1.0.0"
 lazy_static = "1.4.0"
 
+[workspace]
