@@ -88,11 +88,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes libiothsm-std iotedge"
+                "apt-get purge --yes aziot-edge aziot-identity-service libiothsm-std iotedge"
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std iotedge"
+                "yum remove -y --remove-leaves aziot-edge aziot-identity-service libiothsm-std iotedge"
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
