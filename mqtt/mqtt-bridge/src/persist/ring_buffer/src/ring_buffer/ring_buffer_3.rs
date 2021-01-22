@@ -1,6 +1,7 @@
-use memmap::MmapMut;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, io::{Read, SeekFrom, Write}};
 use std::{
+    fs::File,
+    io::Seek,
     mem::size_of,
     sync::{atomic::AtomicUsize, atomic::Ordering, Arc, Mutex},
 };
@@ -16,26 +17,36 @@ use crate::ring_buffer::{
 
 use super::RingBuffer;
 
-fn mmap_read(
-    mmap: Arc<Mutex<MmapMut>>,
+fn file_read(
+    file: Arc<Mutex<File>>,
     block_size: usize,
     file_size: usize,
     read_index: usize,
 ) -> RingBufferResult<Option<HashedBlock>> {
     let offset_begin = (read_index * block_size) % file_size;
     let offset_end = offset_begin + block_size;
-    let lock = mmap.lock().unwrap();
-    let bytes = &lock[offset_begin..offset_end];
-    let result = if bytes.into_iter().map(|x| *x as usize).sum::<usize>() == 0 {
+    let mut lock = file.lock().unwrap();
+    lock.seek(SeekFrom::Start(offset_begin as u64))
+        .map_err(|err| {
+            RingBufferError::from_err(format!("Failed to seek to {}", offset_begin), Box::new(err))
+        })?;
+    let mut bytes= vec![0u8; block_size];
+    lock.read(&mut bytes).map_err(|err| {
+        RingBufferError::from_err(
+            format!("Failed to read at {} for {}", offset_begin, block_size),
+            Box::new(err),
+        )
+    })?;
+    let result = if bytes.iter().map(|x| *x as usize).sum::<usize>() == 0 {
         None
     } else {
-        Some(binary_deserialize(bytes)?)
+        Some(binary_deserialize(&bytes)?)
     };
     Ok(result)
 }
 
-fn mmap_write(
-    mmap: Arc<Mutex<MmapMut>>,
+fn file_write(
+    mmap: Arc<Mutex<File>>,
     block_size: usize,
     file_size: usize,
     write_index: usize,
@@ -45,16 +56,24 @@ fn mmap_write(
     let offset_begin = (write_index * block_size) % file_size;
     let offset_end = offset_begin + block_size;
     let mut lock = mmap.lock().unwrap();
-    lock[offset_begin..offset_end].clone_from_slice(&bytes);
-    // lock.flush_async_range(offset_begin, block_size)
+    lock.seek(SeekFrom::Start(offset_begin as u64))
+        .map_err(|err| {
+            RingBufferError::from_err(format!("Failed to seek to {}", offset_begin), Box::new(err))
+        })?;
+    lock.write(&bytes).map_err(|err| {
+        RingBufferError::from_err(
+            format!("Failed to write at {}", offset_begin),
+            Box::new(err),
+        )
+    }).map(|_| ())
+    // lock.sync_data()
     //     .map_err(|err| {
     //         RingBufferError::from_err("Failed to flush on mmap".to_owned(), Box::new(err))
     //     })
-    Ok(())
 }
 
-fn mmap_delete(
-    mmap: Arc<Mutex<MmapMut>>,
+fn file_delete(
+    mmap: Arc<Mutex<File>>,
     block_size: usize,
     file_size: usize,
     delete_index: usize,
@@ -63,25 +82,33 @@ fn mmap_delete(
     let offset_end = offset_begin + block_size;
     let zeroes = vec![0; block_size];
     let mut lock = mmap.lock().unwrap();
-    lock[offset_begin..offset_end].clone_from_slice(&zeroes);
-    // lock.flush_async_range(offset_begin, block_size)
+      lock.seek(SeekFrom::Start(offset_begin as u64))
+        .map_err(|err| {
+            RingBufferError::from_err(format!("Failed to seek to {}", offset_begin), Box::new(err))
+        })?;
+    lock.write(&zeroes).map_err(|err| {
+        RingBufferError::from_err(
+            format!("Failed to delete at {}", offset_begin),
+            Box::new(err),
+        )
+    }).map(|_| ())
+    // lock.sync_data()
     //     .map_err(|err| {
     //         RingBufferError::from_err("Failed to flush on mmap".to_owned(), Box::new(err))
     //     })
-    Ok(())
 }
 
 #[derive(Debug)]
-pub struct RingBuffer1 {
+pub struct RingBuffer3 {
     write_index: AtomicUsize,
     read_index: AtomicUsize,
     block_size: usize,
     file_size: usize,
-    mmap: Arc<Mutex<MmapMut>>,
+    file: Arc<Mutex<File>>,
 }
 
-impl RingBuffer1 {
-    pub fn new(file_size: usize, block_size: usize, mmap: MmapMut) -> Self {
+impl RingBuffer3 {
+    pub fn new(file_size: usize, block_size: usize, file: File) -> Self {
         if block_size == 0 || file_size == 0 {
             panic!("block_size and file_size must be greater than 0");
         }
@@ -103,7 +130,7 @@ impl RingBuffer1 {
             block_size,
             write_index: AtomicUsize::new(0),
             read_index: AtomicUsize::new(0),
-            mmap: Arc::from(Mutex::from(mmap)),
+            file: Arc::from(Mutex::from(file)),
         }
     }
 
@@ -113,8 +140,8 @@ impl RingBuffer1 {
 
     fn load_block(&self) -> RingBufferResult<Option<(usize, HashedBlock)>> {
         let read_index = self.read_index.fetch_add(1, Ordering::Acquire);
-        let result = if let Some(hashed_block) = mmap_read(
-            self.mmap.clone(),
+        let result = if let Some(hashed_block) = file_read(
+            self.file.clone(),
             self.block_size,
             self.file_size,
             read_index,
@@ -180,7 +207,7 @@ impl RingBuffer1 {
     }
 }
 
-impl RingBuffer for RingBuffer1 {
+impl RingBuffer for RingBuffer3 {
     fn init(&mut self) -> RingBufferResult<()> {
         let maybe_curr_block = self.load_block()?;
         if maybe_curr_block.is_none() {
@@ -209,8 +236,8 @@ impl RingBuffer for RingBuffer1 {
         let fixed_block = FixedBlock::new(self.block_size, value.clone(), write_index);
         let hash = calculate_hash(value);
         let hashed_block = HashedBlock::new(fixed_block, hash);
-        let _ = mmap_write(
-            self.mmap.clone(),
+        let _ = file_write(
+            self.file.clone(),
             self.block_size,
             self.file_size,
             write_index,
@@ -229,7 +256,7 @@ impl RingBuffer for RingBuffer1 {
     }
 
     fn batch_load(&self, batch_size: usize) -> RingBufferResult<VecDeque<(usize, Vec<u8>)>> {
-        let mut results =  VecDeque::default();
+        let mut results = VecDeque::default();
         for _ in 0..batch_size {
             if let Some((index, block)) = self.load_block()? {
                 results.push_back((index, block.fixed_block().data().clone()))
@@ -239,7 +266,7 @@ impl RingBuffer for RingBuffer1 {
     }
 
     fn remove(&self, key: &usize) -> RingBufferResult<()> {
-        mmap_delete(self.mmap.clone(), self.block_size, self.file_size, *key)
+        file_delete(self.file.clone(), self.block_size, self.file_size, *key)
     }
 }
 
@@ -278,21 +305,17 @@ mod tests {
         }
     }
 
-    fn create_mmap(file_name: &'static str) -> RingBufferResult<MmapMut> {
+    fn create_file(file_name: &'static str) -> RingBufferResult<File> {
         let file = create_test_file(file_name)?;
         file.set_len(MAX_FILE_SIZE as u64).map_err(|err| {
             RingBufferError::from_err("Failed to set file size".to_owned(), Box::new(err))
         })?;
-        Ok(unsafe {
-            MmapMut::map_mut(&file).map_err(|err| {
-                RingBufferError::from_err("Failed to create mmap".to_owned(), Box::new(err))
-            })?
-        })
+        Ok(file)
     }
 
-    fn create_ring_buffer(file_name: &'static str) -> RingBufferResult<RingBuffer1> {
-        let mmap = create_mmap(file_name)?;
-        Ok(RingBuffer1::new(MAX_FILE_SIZE, BLOCK_SIZE, mmap))
+    fn create_ring_buffer(file_name: &'static str) -> RingBufferResult<RingBuffer3> {
+        let file = create_file(file_name)?;
+        Ok(RingBuffer3::new(MAX_FILE_SIZE, BLOCK_SIZE, file))
     }
 
     #[test]

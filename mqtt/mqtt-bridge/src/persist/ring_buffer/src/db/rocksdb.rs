@@ -25,11 +25,11 @@ impl Rocksdb {
         let mut db_opts = Options::default();
         db_opts.create_missing_column_families(true);
         db_opts.create_if_missing(true);
-        db_opts.set_use_fsync(false);
         db_opts.set_allow_mmap_reads(true);
         db_opts.set_allow_mmap_writes(true);
         db_opts.set_max_write_buffer_number(4);
         db_opts.set_min_write_buffer_number_to_merge(2);
+        db_opts.set_bytes_per_sync(1024 * 1024 * 1024);
 
         let db = DB::open(&db_opts, &path).unwrap();
 

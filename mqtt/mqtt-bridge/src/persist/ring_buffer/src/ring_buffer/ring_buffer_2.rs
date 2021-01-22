@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::{Mutex, RwLock}};
 use std::{
     cell::UnsafeCell,
     mem::size_of,
@@ -80,7 +80,7 @@ fn mmap_delete(
         })
 }
 
-type SafeVec = Vec<AtomicBool>;
+type SafeVec = Vec<RwLock<()>>;
 
 #[derive(Debug)]
 pub struct RingBuffer2 {
@@ -117,7 +117,7 @@ impl RingBuffer2 {
 
         let mut safe_vec = SafeVec::new();
         for _ in 0..(file_size / block_size) {
-            safe_vec.push(AtomicBool::new(false));
+            safe_vec.push(RwLock::new(()));
         }
 
         Self {
@@ -155,12 +155,13 @@ impl RingBuffer2 {
 
         let index = read_index % (self.file_size / self.block_size);
         let in_use = &self.safe_vec[index];
-        loop {
-            // sleep(LOCK_DELAY);
-            if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
-                break;
-            }
-        }
+        let lock = in_use.read().unwrap();
+        // loop {
+        //     // sleep(LOCK_DELAY);
+        //     if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
+        //         break;
+        //     }
+        // }
         let result = if let Some(hashed_block) =
             mmap_read(&self.mmap, self.block_size, self.file_size, read_index)?
         {
@@ -169,7 +170,8 @@ impl RingBuffer2 {
         } else {
             None
         };
-        let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
+        drop(lock);
+        // let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
         Ok(result)
     }
 
@@ -263,14 +265,16 @@ impl RingBuffer for RingBuffer2 {
         let write_index = self.write_index.fetch_add(1, Ordering::SeqCst);
         let index = write_index % (self.file_size / self.block_size);
         let in_use = &self.safe_vec[index];
-        loop {
-            // sleep(LOCK_DELAY);
-            if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
-                break;
-            }
-        }
+        let lock = in_use.write().unwrap();
+        // loop {
+        //     // sleep(LOCK_DELAY);
+        //     if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
+        //         break;
+        //     }
+        // }
         let _ = self.save_block(write_index, value)?;
-        let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
+        drop(lock);
+        // let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
         Ok(write_index)
     }
 
@@ -296,13 +300,15 @@ impl RingBuffer for RingBuffer2 {
     fn remove(&self, key: &usize) -> RingBufferResult<()> {
         let index = key % (self.file_size / self.block_size);
         let in_use = &self.safe_vec[index];
-        loop {
-            if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
-                break;
-            }
-        }
+        let lock = in_use.write().unwrap();
+        // loop {
+        //     if !in_use.compare_and_swap(false, true, Ordering::SeqCst) {
+        //         break;
+        //     }
+        // }
         mmap_delete(&self.mmap, self.block_size, self.file_size, index)?;
-        let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
+        drop(lock);
+        // let _ = in_use.compare_and_swap(true, false, Ordering::SeqCst);
 
         Ok(())
     }
@@ -374,579 +380,3 @@ mod tests {
         cleanup_test_file(file_name);
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use std::{
-//         fs::{remove_file, File, OpenOptions},
-//         path::PathBuf,
-//     };
-
-//     use super::*;
-
-//     const MAX_FILE_SIZE: usize = 1024 * 1024 /*orig: 1024*/;
-//     const BLOCK_SIZE: usize = 4 * 1024/*orig: 256*/;
-
-//     fn random_data(data_length: usize) -> Vec<u8> {
-//         (0..data_length).map(|_| rand::random::<u8>()).collect()
-//     }
-
-//     fn create_test_file(file_name: &'static str) -> RingBufferResult<File> {
-//         OpenOptions::new()
-//             .read(true)
-//             .write(true)
-//             .create(true)
-//             .open(&PathBuf::from(file_name))
-//             .map_err(|err| {
-//                 RingBufferError::from_err("Failed to open test file".to_owned(), Box::new(err))
-//             })
-//     }
-
-//     fn cleanup_test_file(file_name: &'static str) {
-//         let path = PathBuf::from(file_name);
-//         if path.exists() {
-//             let result = remove_file(path);
-//             assert!(result.is_ok());
-//         }
-//     }
-
-//     fn create_mmap(file_name: &'static str) -> RingBufferResult<MmapMut> {
-//         let file = create_test_file(file_name)?;
-//         file.set_len(MAX_FILE_SIZE as u64).map_err(|err| {
-//             RingBufferError::from_err("Failed to set file size".to_owned(), Box::new(err))
-//         })?;
-//         Ok(unsafe {
-//             MmapMut::map_mut(&file).map_err(|err| {
-//                 RingBufferError::from_err("Failed to create mmap".to_owned(), Box::new(err))
-//             })?
-//         })
-//     }
-
-//     fn create_ring_buffer(file_name: &'static str) -> RingBufferResult<RingBuffer2> {
-//         let mmap = create_mmap(file_name)?;
-//         Ok(RingBuffer2::new(MAX_FILE_SIZE, BLOCK_SIZE, mmap))
-//     }
-
-//     mod new {
-//         use super::*;
-//         #[test]
-//         fn test_new() {
-//             let file_name = "test_new.txt";
-//             cleanup_test_file(file_name);
-//             let result = create_ring_buffer(file_name);
-//             assert!(result.is_ok());
-//             let rb = result.unwrap();
-//             assert_eq!(rb.file_size, MAX_FILE_SIZE);
-//             assert_eq!(rb.read_index.load(Ordering::SeqCst), 0);
-//             assert_eq!(rb.write_index.load(Ordering::SeqCst), 0);
-//             assert_eq!(rb.block_size, BLOCK_SIZE);
-//             cleanup_test_file(file_name);
-//         }
-//     }
-
-//     mod init {
-//         use super::*;
-
-//         #[test]
-//         fn test_init_with_previous_data_written() {
-//             let file_name = "test_init_with_previous_data_written.txt";
-//             cleanup_test_file(file_name);
-//             // Firstly write some garbage data
-//             {
-//                 let result = create_ring_buffer(file_name);
-//                 assert!(result.is_ok());
-//                 let rb = result.unwrap();
-//                 let result = rb.init();
-//                 assert!(result.is_ok());
-//                 let data = random_data(rb.optimal_data_size_for_block());
-//                 let result = rb.save(&0, &data);
-//                 assert!(result.is_ok());
-//             }
-//             // Secondly init a second time
-//             {
-//                 let result = create_ring_buffer(file_name);
-//                 assert!(result.is_ok());
-//                 let rb = result.unwrap();
-//                 let result = rb.init();
-//                 assert!(result.is_ok());
-//             }
-//             cleanup_test_file(file_name);
-//         }
-
-//         #[test]
-//         fn test_init_without_previous_data_written() {
-//             let file_name = "test_init_without_previous_data_written.txt";
-//             cleanup_test_file(file_name);
-
-//             {
-//                 let result = create_ring_buffer(file_name);
-//                 assert!(result.is_ok());
-//                 let rb = result.unwrap();
-//                 let result = rb.init();
-//                 assert!(result.is_ok());
-//             }
-//             {
-//                 let result = create_ring_buffer(file_name);
-//                 assert!(result.is_ok());
-//                 let rb = result.unwrap();
-//                 let result = rb.init();
-//                 assert!(result.is_ok());
-//             }
-
-//             cleanup_test_file(file_name);
-//         }
-
-//         #[test]
-//         fn test_init_with_previous_data_written_and_different_block_sizes() {
-//             let file_name = "test_init_with_previous_data_written_and_different_block_sizes.txt";
-//             cleanup_test_file(file_name);
-
-//             {
-//                 let result = create_mmap(file_name);
-//                 assert!(result.is_ok());
-//                 let mmap = result.unwrap();
-//                 let rb = RingBuffer2::new(MAX_FILE_SIZE, BLOCK_SIZE / 2, mmap);
-//                 let result = rb.init();
-//                 assert!(result.is_ok());
-//                 let result = rb.save(&0, &Vec::from("Hello World!".as_bytes()));
-//                 assert!(result.is_ok());
-//             }
-//             {
-//                 let result = create_ring_buffer(file_name);
-//                 assert!(result.is_ok());
-//                 let rb = result.unwrap();
-//                 let result = rb.init();
-//                 assert!(result.is_err());
-//             }
-//             cleanup_test_file(file_name);
-//         }
-//     }
-
-//     mod load {
-
-//         use std::io::Write;
-
-//         use super::*;
-
-//         #[test]
-//         fn test_load_with_buffer_size_large_enough_for_block() {
-//             let file_name = "test_load_with_buffer_size_large_enough_for_block.txt";
-//             cleanup_test_file(file_name);
-//             let result = create_ring_buffer(file_name);
-//             assert!(result.is_ok());
-//             let rb = result.unwrap();
-//             let optimal_data_size = rb.optimal_data_size_for_block();
-//             let data = random_data(optimal_data_size);
-//             {
-//                 let result = create_test_file(file_name);
-//                 assert!(result.is_ok());
-//                 let mut file = result.unwrap();
-//                 let fixed_block = FixedBlock::new(BLOCK_SIZE, data.clone(), 0);
-//                 let hash = calculate_hash(&data);
-//                 let hashed_block = HashedBlock::new(fixed_block, hash);
-//                 let result = bincode::serialize(&hashed_block);
-//                 assert!(result.is_ok());
-//                 let serialized_block = result.unwrap();
-//                 let result = file.write(&serialized_block);
-//                 assert!(result.is_ok());
-//                 let result = file.sync_all();
-//                 assert!(result.is_ok());
-//             }
-//             let result = rb.load();
-//             assert!(result.is_ok());
-//             let option = result.unwrap();
-//             assert!(option.is_some());
-//             let (_, buf) = option.unwrap();
-//             assert_eq!(data, buf);
-//             cleanup_test_file(file_name);
-//         }
-
-//         #[test]
-//         fn load_with_buffer_size_smaller_than_block() {}
-//         #[test]
-//         fn load_where_previous_write_was_different_block_size() {}
-//         #[test]
-//         fn load_with_hash_mismatch() {}
-//         #[test]
-//         fn load_with_data_size_mismatch() {}
-//         #[test]
-//         fn load_works_after_crash_with_same_block_size() {}
-//     }
-
-//     mod save {
-//         use super::*;
-
-//         #[test]
-//         fn save_with_data_too_large_for_block() {}
-//         #[test]
-//         fn test_save_with_data_within_limits_for_block() {
-//             let file_name = "test_save_with_data_within_limits_for_block.txt";
-//             cleanup_test_file(file_name);
-//             let result = create_ring_buffer(file_name);
-//             assert!(result.is_ok());
-//             let rb = result.unwrap();
-//             let optimal_data_size = rb.optimal_data_size_for_block();
-//             let data = random_data(optimal_data_size);
-//             let result = rb.save(&0, &data);
-//             assert!(result.is_ok());
-//             let result = rb.load();
-//             assert!(result.is_ok());
-//             let option = result.unwrap();
-//             assert!(option.is_some());
-//             let (_, buf) = option.unwrap();
-//             assert_eq!(data, buf);
-//             cleanup_test_file(file_name);
-//         }
-//         #[test]
-//         fn save_where_serialize_fails() {}
-//         #[test]
-//         fn save_where_file_does_not_exist() {}
-//         #[test]
-//         fn save_fails_after_crash_with_different_block_size() {}
-//         #[test]
-//         fn save_works_after_crash_with_same_block_size() {}
-//     }
-
-//     mod enqueue {}
-
-//     mod dequeue {}
-
-//     mod bench {
-
-//         use std::{sync::Arc, thread, time::Instant};
-
-//         use rand::Rng;
-//         use thread::JoinHandle;
-
-//         use super::*;
-
-//         fn random_data(data_length: u16) -> Vec<u8> {
-//             (0..data_length).map(|_| rand::random::<u8>()).collect()
-//         }
-
-//         fn create_test_data(size: usize, min: usize, max: usize) -> Vec<Vec<u8>> {
-//             let mut rng = rand::thread_rng();
-//             let mut data_set = vec![];
-//             for _ in 0..size {
-//                 let data_size = rng.gen_range(min..=max);
-//                 let data = random_data(data_size as u16);
-//                 data_set.push(data);
-//             }
-//             data_set
-//         }
-
-//         fn create_mmap(file_name: &'static str, file_size: usize) -> RingBufferResult<MmapMut> {
-//             let file = create_test_file(file_name)?;
-//             file.set_len(file_size as u64).map_err(|err| {
-//                 RingBufferError::from_err("Failed to set file size".to_owned(), Box::new(err))
-//             })?;
-//             Ok(unsafe {
-//                 MmapMut::map_mut(&file).map_err(|err| {
-//                     RingBufferError::from_err("Failed to create mmap".to_owned(), Box::new(err))
-//                 })?
-//             })
-//         }
-
-//         fn create_ring_buffer(
-//             file_name: &'static str,
-//             file_size: usize,
-//             block_size: usize,
-//         ) -> RingBufferResult<RingBuffer2> {
-//             let mmap = create_mmap(file_name, file_size)?;
-//             Ok(RingBuffer2::new(file_size, block_size, mmap))
-//         }
-
-//         fn save_load_in_thread(
-//             rb: Arc<RingBuffer2>,
-//             vchunk: Vec<Vec<u8>>,
-//             atomic_count: Arc<AtomicUsize>,
-//             dequeue_start: usize,
-//         ) -> JoinHandle<()> {
-//             thread::spawn(move || {
-//                 for data in vchunk {
-//                     let _ = rb.save(&0, &data).expect("Failed to save");
-//                     let count = atomic_count.load(Ordering::SeqCst);
-//                     if count >= dequeue_start {
-//                         let _ = rb.load().expect("Failed to load");
-//                         // rb.remove(count - dequeue_start).expect("Failed to remove");
-//                     }
-//                     atomic_count.store(count + 1, Ordering::SeqCst);
-//                 }
-//             })
-//         }
-
-//         #[derive(Debug)]
-//         struct Parameters {
-//             file_name: &'static str,
-//             file_size: usize,
-//             block_size: usize,
-//             amount_of_packets: usize,
-//             min_packet_size: usize,
-//             max_packet_size: usize,
-//             dequeue_start: usize,
-//             threads: usize,
-//         }
-
-//         fn test_helper(parameters: Parameters) {
-//             cleanup_test_file(parameters.file_name);
-//             let data_set = create_test_data(
-//                 parameters.amount_of_packets,
-//                 parameters.min_packet_size,
-//                 parameters.max_packet_size,
-//             );
-//             let rb = create_ring_buffer(
-//                 parameters.file_name,
-//                 parameters.file_size,
-//                 parameters.block_size,
-//             )
-//             .expect("Failed to get ring buffer");
-//             let arb = Arc::from(rb);
-//             println!("Perf test start");
-//             let start = Instant::now();
-//             let atomic_count = Arc::from(AtomicUsize::new(0));
-//             let mut handles = vec![];
-//             let data_set_partition =
-//                 data_set.chunks(parameters.amount_of_packets / parameters.threads);
-//             for chunk in data_set_partition {
-//                 let vchunk = Vec::from(chunk);
-//                 let handle = save_load_in_thread(
-//                     arb.clone(),
-//                     vchunk,
-//                     atomic_count.clone(),
-//                     parameters.dequeue_start,
-//                 );
-//                 handles.push(handle);
-//             }
-//             for handle in handles {
-//                 handle.join().expect("Failed to join thread");
-//             }
-//             let duration = start.elapsed();
-//             println!("For {:?} duration is {:?}", parameters, duration);
-//             cleanup_test_file(parameters.file_name);
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_1_1() {
-//             test_helper(Parameters {
-//                 file_name: "perf_1_1",
-//                 file_size: 1024 * 1024,
-//                 block_size: 128,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 10,
-//                 max_packet_size: 20,
-//                 dequeue_start: 10,
-//                 threads: 1,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_1_4() {
-//             test_helper(Parameters {
-//                 file_name: "perf_1_4",
-//                 file_size: 1024 * 1024,
-//                 block_size: 128,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 10,
-//                 max_packet_size: 20,
-//                 dequeue_start: 10,
-//                 threads: 4,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_1_8() {
-//             test_helper(Parameters {
-//                 file_name: "perf_1_8",
-//                 file_size: 1024 * 1024,
-//                 block_size: 128,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 10,
-//                 max_packet_size: 20,
-//                 dequeue_start: 10,
-//                 threads: 8,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_1_16() {
-//             test_helper(Parameters {
-//                 file_name: "perf_1_16",
-//                 file_size: 1024 * 1024,
-//                 block_size: 128,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 10,
-//                 max_packet_size: 20,
-//                 dequeue_start: 10,
-//                 threads: 16,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_2_1() {
-//             test_helper(Parameters {
-//                 file_name: "perf_2_1",
-//                 file_size: 1024 * 1024,
-//                 block_size: 256,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 100,
-//                 max_packet_size: 190,
-//                 dequeue_start: 10,
-//                 threads: 1,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_2_4() {
-//             test_helper(Parameters {
-//                 file_name: "perf_2_4",
-//                 file_size: 1024 * 1024,
-//                 block_size: 256,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 100,
-//                 max_packet_size: 190,
-//                 dequeue_start: 10,
-//                 threads: 4,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_2_8() {
-//             test_helper(Parameters {
-//                 file_name: "perf_2_8",
-//                 file_size: 1024 * 1024,
-//                 block_size: 256,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 100,
-//                 max_packet_size: 190,
-//                 dequeue_start: 10,
-//                 threads: 8,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_2_16() {
-//             test_helper(Parameters {
-//                 file_name: "perf_2_16",
-//                 file_size: 1024 * 1024,
-//                 block_size: 256,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 100,
-//                 max_packet_size: 190,
-//                 dequeue_start: 10,
-//                 threads: 16,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_3_1() {
-//             test_helper(Parameters {
-//                 file_name: "perf_3_1",
-//                 file_size: 1024 * 1280,
-//                 block_size: 1280,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 500,
-//                 max_packet_size: 1000,
-//                 dequeue_start: 10,
-//                 threads: 1,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_3_4() {
-//             test_helper(Parameters {
-//                 file_name: "perf_3_4",
-//                 file_size: 1024 * 1280,
-//                 block_size: 1280,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 500,
-//                 max_packet_size: 1000,
-//                 dequeue_start: 10,
-//                 threads: 4,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_3_8() {
-//             test_helper(Parameters {
-//                 file_name: "perf_3_8",
-//                 file_size: 1024 * 1280,
-//                 block_size: 1280,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 500,
-//                 max_packet_size: 1000,
-//                 dequeue_start: 10,
-//                 threads: 8,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_3_16() {
-//             test_helper(Parameters {
-//                 file_name: "perf_3_16",
-//                 file_size: 1024 * 1280,
-//                 block_size: 1280,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 500,
-//                 max_packet_size: 1000,
-//                 dequeue_start: 10,
-//                 threads: 16,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_4_1() {
-//             test_helper(Parameters {
-//                 file_name: "perf_4_1",
-//                 file_size: 1024 * 1024 * 4,
-//                 block_size: 4096,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 2000,
-//                 max_packet_size: 4000,
-//                 dequeue_start: 10,
-//                 threads: 1,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_4_4() {
-//             test_helper(Parameters {
-//                 file_name: "perf_4_4",
-//                 file_size: 1024 * 1024 * 4,
-//                 block_size: 4096,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 2000,
-//                 max_packet_size: 4000,
-//                 dequeue_start: 10,
-//                 threads: 4,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_4_8() {
-//             test_helper(Parameters {
-//                 file_name: "perf_4_8",
-//                 file_size: 1024 * 1024 * 4,
-//                 block_size: 4096,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 2000,
-//                 max_packet_size: 4000,
-//                 dequeue_start: 10,
-//                 threads: 8,
-//             });
-//         }
-
-//         #[test]
-//         fn test_emulated_packet_performance_4_16() {
-//             test_helper(Parameters {
-//                 file_name: "perf_4_16",
-//                 file_size: 1024 * 1024 * 4,
-//                 block_size: 4096,
-//                 amount_of_packets: 100_000,
-//                 min_packet_size: 2000,
-//                 max_packet_size: 4000,
-//                 dequeue_start: 10,
-//                 threads: 16,
-//             });
-//         }
-//     }
-// }
