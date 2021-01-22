@@ -253,6 +253,7 @@ fn execute_inner(
     ) = {
         let old_config::Provisioning {
             provisioning,
+            // TODO: Migrate this to edged config when support for dynamic reprovisioning is reinstated in edged.
             dynamic_reprovisioning: _,
         } = provisioning;
 
