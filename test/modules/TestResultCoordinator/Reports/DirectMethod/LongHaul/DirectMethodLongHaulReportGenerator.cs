@@ -84,7 +84,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 {
                     // ReceiverSource will always be there if ReceiverTestResults is so it's safe to put OrDefault
                     this.ValidateDataSource(r.Current, this.ReceiverSource.OrDefault());
-                    DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
+                    DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(r.Current.Result);
                     receiverResults++;
                 }
 
