@@ -33,4 +33,4 @@ edgelet-client = { path = "../../../mqtt/edgelet-client" }
 mqtt-util = { path = "../../../mqtt/mqtt-util" }
 mqtt-broker-tests-util = { path = "../../../mqtt/mqtt-broker-tests-util" }
 mqtt3 = { path = "../../../mqtt/mqtt3" }
-trc-client = { path = "../../rust-test-util/TestResultReportingClient" }
+trc-client = { path = "../../rust-test-util/test-result-reporting-client" }

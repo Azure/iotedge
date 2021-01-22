@@ -275,7 +275,9 @@ fn process_event(
             for subscription_update in sub_updates {
                 if let SubscriptionUpdateEvent::RejectedByServer(rejection) = subscription_update {
                     error!("received rejected subscription update: {:?}", rejection);
-                    return Err(MessageTesterError::RejectedSubscription(rejection));
+                    return Err(MessageTesterError::RejectedSubscription(
+                        rejection.topic_filter,
+                    ));
                 }
             }
         }
