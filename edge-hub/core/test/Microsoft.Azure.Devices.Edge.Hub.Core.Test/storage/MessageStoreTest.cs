@@ -76,6 +76,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CleanupTestMessageStoreMissingValue(bool checkEntireQueueOnCleanup)
+        {
+            (IMessageStore messageStore, ICheckpointStore checkpointStore, InMemoryDbStore inMemoryDbStore) result = await this.GetMessageStore(checkEntireQueueOnCleanup, 5);
+
+            using (IMessageStore messageStore = result.messageStore)
+            {
+                for (int i = 0; i < 10; i++)
+                {
+                    IMessage input = this.GetMessage(i);
+                    await messageStore.Add("module1", input, 0);
+                    if (i == 1)
+                    {
+                        // remove a message to simulate messageStore not in sync with sequential store
+                        await result.inMemoryDbStore.Remove(input.SystemProperties[SystemProperties.EdgeMessageId].ToBytes());
+                    }
+                   
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                IMessageIterator module1Iterator = messageStore.GetMessageIterator("module1");
+                IEnumerable<IMessage> batch = await module1Iterator.GetNext(100);
+                Assert.Empty(batch);
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
