@@ -20,6 +20,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 : JsonConvert.DeserializeObject<T>(json);
         }
 
+        public static T FromJson<T>(this string json, JsonSerializerSettings jsonSerializerSettings) {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return typeof(T) == typeof(string)
+                    ? (T)(object)json
+                    : default(T);
+            }
+
+            return typeof(T) == typeof(string)
+                ? (T)(object)json
+                : JsonConvert.DeserializeObject<T>(json, jsonSerializerSettings);            
+        }
+
         public static string ToJson(this object value)
         {
             if (value == null)
