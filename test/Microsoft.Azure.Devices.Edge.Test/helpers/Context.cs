@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
+            this.ParentDeviceId = Option.Maybe(Get("parentDeviceId"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -106,7 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
             this.ParentHostname = Option.Maybe(Get("parentHostname"));
+            this.Hostname = Option.Maybe(Get("hostname"));
             this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
+            this.NestedEdge = context.GetValue("nestededge", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -116,6 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
+
+        public Option<string> ParentDeviceId { get; }
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 
@@ -175,6 +180,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> ParentHostname { get; }
 
+        public Option<string> Hostname { get; }
+
         public Option<string> BlobSasUrl { get; }
+
+        public bool NestedEdge { get; }
     }
 }

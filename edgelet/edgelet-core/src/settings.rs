@@ -171,6 +171,9 @@ pub trait RuntimeSettings {
     fn homedir(&self) -> &Path;
     fn watchdog(&self) -> &WatchdogSettings;
     fn endpoints(&self) -> &Endpoints;
+    fn edge_ca_cert(&self) -> Option<&str>;
+    fn edge_ca_key(&self) -> Option<&str>;
+    fn trust_bundle_cert(&self) -> Option<&str>;
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -184,6 +187,9 @@ pub struct Settings<T> {
     pub homedir: PathBuf,
     #[serde(default)]
     pub watchdog: WatchdogSettings,
+    pub edge_ca_cert: Option<String>,
+    pub edge_ca_key: Option<String>,
+    pub trust_bundle_cert: Option<String>,
 
     /// Map of service names to endpoint URIs.
     ///
@@ -233,6 +239,18 @@ where
 
     fn endpoints(&self) -> &Endpoints {
         &self.endpoints
+    }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        self.edge_ca_cert.as_deref()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        self.edge_ca_key.as_deref()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        self.trust_bundle_cert.as_deref()
     }
 }
 
