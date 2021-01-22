@@ -589,7 +589,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         /// <summary>
         /// Class that stores references to stored messages. This is used for maintaining endpoint queues.
         /// </summary>
-        internal class MessageRef
+        class MessageRef
         {
             public MessageRef(string edgeMessageId, TimeSpan timeToLive)
                 : this(edgeMessageId, DateTime.UtcNow, timeToLive)
