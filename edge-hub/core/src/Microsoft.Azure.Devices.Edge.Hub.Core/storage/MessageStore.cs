@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
-           async Task<Option<MessageWrapper>> TryDecrementRefCountUpdate(string messageId, string messageQueueId)
+            async Task<Option<MessageWrapper>> TryDecrementRefCountUpdate(string messageId, string messageQueueId)
             {
                 MessageWrapper message = null;
                 try
