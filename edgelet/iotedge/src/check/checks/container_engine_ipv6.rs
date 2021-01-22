@@ -55,10 +55,10 @@ impl ContainerEngineIPv6 {
         let daemon_config_file = match daemon_config_file {
             Ok(daemon_config_file) => daemon_config_file,
             Err(err) => {
-                if is_edge_ipv6_configured {
-                    return Err(err.context(MESSAGE).into());
+                return if is_edge_ipv6_configured {
+                    Err(err.context(MESSAGE).into())
                 } else {
-                    return Ok(CheckResult::Ignored);
+                    Ok(CheckResult::Ignored)
                 }
             }
         };
@@ -72,11 +72,12 @@ impl ContainerEngineIPv6 {
             .context(MESSAGE)?;
         self.actual_use_ipv6 = daemon_config.ipv6;
 
-        match (daemon_config.ipv6.unwrap_or_default(), is_edge_ipv6_configured) {
-            (true, _) if cfg!(windows) => Err(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()),
-            (true, _) => Ok(CheckResult::Ok),
-            (false, true) => Err(Context::new(MESSAGE).into()),
-            (false, false) => Ok(CheckResult::Ignored),
+        if daemon_config.ipv6.unwrap_or_default() {
+            Ok(CheckResult::Ok)
+        } else if is_edge_ipv6_configured {
+            Err(Context::new(MESSAGE).into())
+        } else {
+            Ok(CheckResult::Ignored)
         }
     }
 }
