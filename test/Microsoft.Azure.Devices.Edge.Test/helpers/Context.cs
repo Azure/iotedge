@@ -56,18 +56,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 // given, then they must *all* be given, otherwise throw an error.
                 string certificate = Get("rootCaCertificatePath");
                 string key = Get("rootCaPrivateKeyPath");
-                string password = Get("ROOT_CA_PASSWORD");
+                string rootCaPassword = Get("ROOT_CA_PASSWORD");
 
                 if (!string.IsNullOrWhiteSpace(certificate) ||
                     !string.IsNullOrWhiteSpace(key) ||
-                    !string.IsNullOrWhiteSpace(password))
+                    !string.IsNullOrWhiteSpace(rootCaPassword))
                 {
                     Preconditions.CheckNonWhiteSpace(certificate, nameof(certificate));
                     Preconditions.CheckNonWhiteSpace(key, nameof(key));
-                    Preconditions.CheckNonWhiteSpace(password, nameof(password));
+                    Preconditions.CheckNonWhiteSpace(rootCaPassword, nameof(rootCaPassword));
                     Preconditions.CheckArgument(File.Exists(certificate));
                     Preconditions.CheckArgument(File.Exists(key));
-                    return Option.Some((certificate, key, password));
+                    return Option.Some((certificate, key, rootCaPassword));
                 }
 
                 return Option.None<(string, string, string)>();

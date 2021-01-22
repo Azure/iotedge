@@ -159,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             ClientOptions options)
         {
+            // BEARWASHERE - LeafDevices.CreateWithCaCertAsync()
             Device edge = await GetEdgeDeviceIdentityAsync(parentId, iotHub, token);
 
             Device leaf = new Device(leafDeviceId)
