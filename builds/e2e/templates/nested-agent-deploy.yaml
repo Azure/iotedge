@@ -91,11 +91,7 @@ steps:
         echo "  Install library"
         sudo dpkg -i --force-confnew ${iotedge_library}
         echo "  Install edgelet"
-        sudo dpkg -i --force-confnew ${iotedge_package}
-        
-        expect -c 'spawn sudo aziot init; expect >; send "1\n"; expect >; send "$(connectionString)\n"; expect ?; send "2\n"; interact'
-        
-        
+        sudo dpkg -i --force-confnew ${iotedge_package}          
   - task: Bash@3
     displayName: 'Deployment iotedge on agent'
     name: deployIoTEdge

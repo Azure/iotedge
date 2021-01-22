@@ -104,8 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Keyd = "/etc/aziot/keyd/config.toml",
                         Certd = "/etc/aziot/certd/config.toml",
                         Identityd = "/etc/aziot/identityd/config.toml",
-                        Edged = "/etc/aziot/edged/config.yaml",
-                        Tpmd = "/etc/aziot/tpmd/config.toml"
+                        Edged = "/etc/aziot/edged/config.yaml"
                     };
 
                     // The name of the default aziot-edged config file differs based on OS.
@@ -115,7 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
                     DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
                     DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
-                    DaemonConfiguration.CreateConfigFile(paths.Tpmd, paths.Tpmd + ".default", "aziottp");
 
                     uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
                     DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);

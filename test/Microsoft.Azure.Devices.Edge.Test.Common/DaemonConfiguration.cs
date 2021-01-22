@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public string Keyd;
         public string Certd;
         public string Identityd;
-        public string Tpmd;
         public string Edged;
     }
 
@@ -25,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Keyd,
             Certd,
             Identityd,
-            Tpmd,
             Edged
         }
 
@@ -46,7 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true);
             this.InitServiceConfig(Service.Certd, configFiles.Certd, true);
             this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true);
-            this.InitServiceConfig(Service.Tpmd, configFiles.Tpmd, true);
             this.InitServiceConfig(Service.Edged, configFiles.Edged, false);
 
             string principalsPath = Path.Combine(
