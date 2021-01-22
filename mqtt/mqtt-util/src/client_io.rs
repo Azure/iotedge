@@ -289,6 +289,9 @@ impl TrustBundleSource {
                 let cert = trust_bundle.certificate();
                 Some(cert.to_owned())
             }
+            Credentials::PlainText(cred_settings) => {
+                cred_settings.trust_bundle().map(str::to_string)
+            }
             _ => None,
         };
 
@@ -376,14 +379,22 @@ pub struct AuthenticationSettings {
     username: String,
 
     password: String,
+
+    trust_bundle: Option<String>,
 }
 
 impl AuthenticationSettings {
-    pub fn new(client_id: String, username: String, password: String) -> Self {
+    pub fn new(
+        client_id: String,
+        username: String,
+        password: String,
+        trust_bundle: Option<String>,
+    ) -> Self {
         Self {
             client_id,
             username,
             password,
+            trust_bundle,
         }
     }
 
@@ -397,5 +408,9 @@ impl AuthenticationSettings {
 
     pub fn password(&self) -> &str {
         &self.password
+    }
+
+    pub fn trust_bundle(&self) -> Option<&str> {
+        self.trust_bundle.as_deref()
     }
 }

@@ -44,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.iotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    Context.Current.NestedEdge);
             }
             catch (Exception) when (!parentId.HasValue)
             {

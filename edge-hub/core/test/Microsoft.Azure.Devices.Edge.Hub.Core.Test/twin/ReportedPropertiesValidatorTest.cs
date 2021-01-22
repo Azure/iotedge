@@ -200,6 +200,80 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 null,
                 string.Empty
             };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
+                    ok = "ok",
+                    array = new string[] { "foo", null, "boo" }
+                })),
+                typeof(InvalidOperationException),
+                "Arrays cannot contain 'null' as value"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
+                    ok = "ok",
+                    complex = new
+                              {
+                                ok = "ok",
+                                pi = 3.14,
+                                sometime = new DateTime(2021, 1, 20),
+                                array = new[]
+                                {
+                                    "one",
+                                    "two",
+                                    null,
+                                    "four",
+                                }
+                              }
+                })),
+                typeof(InvalidOperationException),
+                "Arrays cannot contain 'null' as value"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
+                    ok = "ok",
+                    complex = new
+                              {
+                                ok = "ok",
+                                array = new[]
+                                {
+                                    new[] { "one", "two", "three" },
+                                    new[] { "four", null, "six" },
+                                }
+                              }
+                })),
+                typeof(InvalidOperationException),
+                "Arrays cannot contain 'null' as value"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
+                    ok = "ok",
+                    complex = new
+                              {
+                                ok = "ok",
+                                array = new[]
+                                {
+                                    new[] { "one", "two", "three" },
+                                    new[] { "four", "five", "six" },
+                                },
+                                pi = 3.14,
+                                sometime = new DateTime(2021, 1, 20),
+                              }
+                })),
+                null,
+                string.Empty
+            };
         }
 
         [Unit]

@@ -18,12 +18,14 @@ stages:
     condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     variables:
-     artifactName: iotedged-ubuntu18.04-amd64
-     vsts.project: $(System.TeamProjectId)
-     level: '5'
-     deploymentFile: 'nestededge_topLayerBaseDeployment.json'
-     parentName: ''
-     parentDeviceId: ''
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      vsts.project: $(System.TeamProjectId)
+      level: '5'
+      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
+      parentName: ''
+      parentDeviceId: ''
     pool:
      name: $(pool.name)
      demands:
@@ -34,6 +36,8 @@ stages:
        - status -equals unlocked
     steps:
      - template: templates/nested-get-secrets.yaml
+     - template: templates/e2e-clean-directory.yaml 
+     - template: templates/nested-e2e-clean-directory.yaml            
      - template: templates/lock-test-agent.yaml
      - template: templates/nested-get-root-ca.yaml       
      - template: templates/nested-create-identity.yaml   
@@ -45,12 +49,14 @@ stages:
     condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     variables:
-     artifactName: iotedged-ubuntu18.04-amd64
-     vsts.project: $(System.TeamProjectId)
-     parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-     parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
-     deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
-     level: '4'
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+      vsts.project: $(System.TeamProjectId)
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
+      level: '4'
     pool:
      name: $(pool.name)
      demands:
@@ -60,7 +66,9 @@ stages:
        - run-nested-e2e -equals true 
        - status -equals unlocked    
     steps:
-     - template: templates/nested-get-secrets.yaml     
+     - template: templates/nested-get-secrets.yaml  
+     - template: templates/e2e-clean-directory.yaml
+     - template: templates/nested-e2e-clean-directory.yaml                
      - template: templates/lock-test-agent.yaml
      - template: templates/nested-get-root-ca.yaml         
      - template: templates/nested-create-identity.yaml          
@@ -91,11 +99,16 @@ stages:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
       - template: templates/e2e-clean-directory.yaml
+      - template: templates/nested-e2e-clean-directory.yaml      
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml    
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
-      - template: templates/nested-e2e-run.yaml
+      - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
+          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)
+
   - job:  Clean_up     
     dependsOn: SetupVM_and_RunTest_level3
     condition: always()
