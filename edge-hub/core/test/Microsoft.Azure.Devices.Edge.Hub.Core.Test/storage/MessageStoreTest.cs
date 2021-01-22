@@ -76,7 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             }
         }
 
-
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -95,7 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                         // remove a message to simulate messageStore not in sync with sequential store
                         await result.inMemoryDbStore.Remove(input.SystemProperties[SystemProperties.EdgeMessageId].ToBytes());
                     }
-                   
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(30));
