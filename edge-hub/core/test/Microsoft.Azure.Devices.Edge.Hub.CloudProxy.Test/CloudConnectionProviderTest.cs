@@ -386,8 +386,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         var actual = (AmqpTransportSettings)transportSettings;
                         Assert.True(expected.Equals(actual)); // AmqpTransportSettings impls Equals, but doesn't override Object.Equals
 
-                        if (proxy == Option.None<IWebProxy>())
-                        {
+                        if (proxy == Option.None<IWebProxy>() || upstreamProtocol.Contains(UpstreamProtocol.Amqp))
+                            {
                             Assert.Null(actual.Proxy);
                         }
                         else
@@ -403,8 +403,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     {
                         var expected = (MqttTransportSettings)expectedTransportSettings;
                         var actual = (MqttTransportSettings)transportSettings;
-                        Assert.True(actual.Proxy is WebProxy);
-                        Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
+
+                        if (proxy == Option.None<IWebProxy>() || upstreamProtocol.Contains(UpstreamProtocol.Mqtt))
+                        {
+                            Assert.Null(actual.Proxy);
+                        }
+                        else
+                        {
+                            Assert.True(actual.Proxy is WebProxy);
+                            Assert.Equal(((WebProxy)expected.Proxy).Address, ((WebProxy)actual.Proxy).Address);
+                        }
+
                         break;
                     }
                 }
