@@ -266,15 +266,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         switch (up)
                         {
                             case UpstreamProtocol.Amqp:
-                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain);
+                                return GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, Option.None<IWebProxy>(), useServerHeartbeat, authChain);
 
                             case UpstreamProtocol.AmqpWs:
+                                // Only WebSocket protocols can use an HTTP forward proxy
                                 return GetAmqpTransportSettings(TransportType.Amqp_WebSocket_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain);
 
                             case UpstreamProtocol.Mqtt:
-                                return GetMqttTransportSettings(TransportType.Mqtt_Tcp_Only, proxy, authChain);
+                                return GetMqttTransportSettings(TransportType.Mqtt_Tcp_Only, Option.None<IWebProxy>(), authChain);
 
                             case UpstreamProtocol.MqttWs:
+                                // Only WebSocket protocols can use an HTTP forward proxy
                                 return GetMqttTransportSettings(TransportType.Mqtt_WebSocket_Only, proxy, authChain);
 
                             default:
@@ -282,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         }
                     })
                 .GetOrElse(
-                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, proxy, useServerHeartbeat, authChain));
+                    () => GetAmqpTransportSettings(TransportType.Amqp_Tcp_Only, connectionPoolSize, Option.None<IWebProxy>(), useServerHeartbeat, authChain));
         }
 
         static class Events
