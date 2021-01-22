@@ -37,6 +37,7 @@ url = "2"
 zip = "0.5.3"
 
 aziot-certd-config = { path = "../aziot/cert/aziot-certd-config" }
+aziot-check-common = { path = "../aziot/aziot/aziot-check-common" }
 aziot-identity-common = { path = "../aziot/identity/aziot-identity-common" }
 aziot-identityd-config = { path = "../aziot/identity/aziot-identityd-config" }
 aziot-keyd-config = { path = "../aziot/key/aziot-keyd-config" }
@@ -49,8 +50,8 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-utils = { path = "../edgelet-utils" }
 management = { path = "../management" }
-mini-sntp = { path = "../mini-sntp" }
 support-bundle = { path = "../support-bundle" }
+
 
 [target.'cfg(unix)'.dependencies]
 byte-unit = "3.0.3"
@@ -60,4 +61,3 @@ sysinfo = "0.14.10"
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 tempfile = "3.1.0"
-

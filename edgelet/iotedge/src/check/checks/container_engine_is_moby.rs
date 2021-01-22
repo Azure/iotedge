@@ -38,22 +38,6 @@ impl ContainerEngineIsMoby {
                 return Ok(CheckResult::Skipped);
             };
 
-        #[cfg(windows)]
-        {
-            let settings = if let Some(settings) = &check.settings {
-                settings
-            } else {
-                return Ok(CheckResult::Skipped);
-            };
-
-            let moby_runtime_uri = settings.moby_runtime().uri().to_string();
-            self.moby_runtime_uri = Some(moby_runtime_uri.clone());
-
-            if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
-                return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
-            }
-        }
-
         let docker_server_major_version = docker_server_version
             .split('.')
             .next()
