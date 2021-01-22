@@ -81,12 +81,14 @@ generic-mqtt-tester)
     cp "$ARTIFACTS_SOURCE/target/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/release"
     cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
     cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
+    cp -r "$ARTIFACTS_SOURCE/docker" "$ARTIFACTS_DEST"
     ;;
 
 edge-hub)
     EDGEHUB_ARTIFACTS_SOURCE="$BUILD_BINARIESDIRECTORY/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
     MQTT_ARTIFACTS_SOURCE="mqtt"
     WATCHDOG_ARTIFACTS_SOURCE="edge-hub/watchdog"
+    EDGEHUB_DOCKER_SOURCE="edge-hub/docker"
     ARTIFACTS_DEST="${BUILD_BINARIESDIRECTORY}/publish/$ARTIFACT_NAME"
 
     # make build context structure
@@ -113,6 +115,7 @@ edge-hub)
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release"
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM32V7/release"
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM64V8/release"
+    cp -r "$EDGEHUB_DOCKER_SOURCE" "$ARTIFACTS_DEST"
     ;;
 
 *)
