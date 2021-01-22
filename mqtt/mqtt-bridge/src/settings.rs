@@ -40,6 +40,28 @@ impl BridgeSettings {
         config.try_into()
     }
 
+    pub fn from_upstream_details(
+        addr: String,
+        credentials: Credentials,
+        subs: Vec<Direction>,
+        clean_session: bool,
+        keep_alive: Duration,
+    ) -> Result<Self, ConfigError> {
+        let upstream_connection_settings = ConnectionSettings {
+            name: "$upstream".into(),
+            address: addr,
+            subscriptions: subs,
+            credentials,
+            clean_session,
+            keep_alive,
+        };
+        Ok(Self {
+            upstream: Some(upstream_connection_settings),
+            remotes: vec![],
+            messages: MessagesSettings {},
+        })
+    }
+
     pub fn upstream(&self) -> Option<&ConnectionSettings> {
         self.upstream.as_ref()
     }
@@ -169,6 +191,14 @@ pub struct TopicRule {
 }
 
 impl TopicRule {
+    pub fn new(topic: String, in_prefix: Option<String>, out_prefix: Option<String>) -> Self {
+        Self {
+            topic,
+            out_prefix,
+            in_prefix,
+        }
+    }
+
     pub fn topic(&self) -> &str {
         &self.topic
     }

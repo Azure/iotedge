@@ -2,7 +2,8 @@ use std::fs::File;
 
 use failure::{self, Fail};
 
-use edgelet_docker::Settings;
+use edgelet_core::RuntimeSettings;
+use edgelet_docker::{Settings, UPSTREAM_PARENT_KEYWORD};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -33,24 +34,19 @@ impl WellFormedConfig {
         //
         // So we first try to open the file for reading ourselves.
         if let Err(err) = File::open(config_file) {
-            if err.kind() == std::io::ErrorKind::PermissionDenied {
-                return Ok(CheckResult::Fatal(
+            return if err.kind() == std::io::ErrorKind::PermissionDenied {
+                Ok(CheckResult::Fatal(
                     err.context(format!(
-                        "Could not open file {}. You might need to run this command as {}.",
+                        "Could not open file {}. You might need to run this command as root.",
                         config_file.display(),
-                        if cfg!(windows) {
-                            "Administrator"
-                        } else {
-                            "root"
-                        },
                     ))
                     .into(),
-                ));
+                ))
             } else {
-                return Err(err
+                Err(err
                     .context(format!("Could not open file {}", config_file.display()))
-                    .into());
-            }
+                    .into())
+            };
         }
 
         let settings = match Settings::new(config_file) {
@@ -71,6 +67,15 @@ impl WellFormedConfig {
                 return Err(err.context(message).into());
             }
         };
+
+        if let Some(parent_hostname) = settings.parent_hostname() {
+            if let Some(image_tail) = check
+                .diagnostics_image_name
+                .strip_prefix(UPSTREAM_PARENT_KEYWORD)
+            {
+                check.diagnostics_image_name = format!("{}{}", parent_hostname, image_tail);
+            }
+        }
 
         check.settings = Some(settings);
 

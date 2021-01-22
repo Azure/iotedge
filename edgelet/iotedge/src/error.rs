@@ -56,6 +56,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Unable to call docker inspect")]
     Docker,
+
+    #[fail(display = "Error communicating with 'aziot' binary")]
+    Aziot,
 }
 
 impl Fail for Error {

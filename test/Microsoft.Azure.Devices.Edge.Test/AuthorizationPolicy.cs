@@ -101,7 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.iotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    Context.Current.NestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
@@ -263,7 +264,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
-                Option.None<string>());
+                Option.None<string>(),
+                Context.Current.NestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -290,7 +292,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     this.iotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    Context.Current.NestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);

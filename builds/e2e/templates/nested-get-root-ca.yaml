@@ -5,10 +5,14 @@ steps:
       targetType: inline
       script: |
         az storage blob download --file rootCA.tar.bz2 --container-name test-certificates --name test-certs.tar.bz2 --connection-string "$(edgebuild-blob-core-connection-string)"
-        sudo tar -xjvf rootCA.tar.bz2
+        tar -xjvf rootCA.tar.bz2
 
         #delete previous certs.
         sudo rm -r /certs
         sudo cp -r certs /
         sudo cp /certs/certs/azure-iot-test-only.root.ca.cert.pem /usr/local/share/ca-certificates/azure-iot-test-only.root.ca.cert.pem.crt
         sudo update-ca-certificates
+
+        #clean up
+        sudo rm tar -xjvf rootCA.tar.bz2
+        sudo rm -r ./certs

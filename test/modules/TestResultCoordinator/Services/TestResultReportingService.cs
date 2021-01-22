@@ -22,12 +22,37 @@ namespace TestResultCoordinator.Services
         readonly TimeSpan delayBeforeWork;
         readonly ITestOperationResultStorage storage;
         readonly TestResultReportingServiceSettings serviceSpecificSettings;
+        readonly TimeSpan sendReportFrequency;
         Timer timer;
 
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
-            this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
+            switch (Settings.Current.TestMode)
+            {
+                case TestMode.Connectivity:
+                    {
+                        ConnectivitySpecificSettings connectivitySettings =
+                            Settings.Current.ConnectivitySpecificSettings.Expect(() => new ArgumentException("ConnectivitySpecificSettings must be supplied."));
+                        this.delayBeforeWork = Settings.Current.TestStartDelay +
+                            connectivitySettings.TestDuration +
+                            connectivitySettings.TestVerificationDelay;
+                        // Set sendReportFrequency to -1ms to indicate that the sending report Timer won't repeat
+                        this.sendReportFrequency = TimeSpan.FromMilliseconds(-1);
+                        break;
+                    }
+
+                case TestMode.LongHaul:
+                    {
+                        this.sendReportFrequency = Settings.Current.LongHaulSpecificSettings
+                            .Expect(() => new ArgumentException("LongHaulSpecificSettings must be supplied."))
+                            .SendReportFrequency;
+                        // In long haul mode, wait 1 report frequency before starting
+                        this.delayBeforeWork = this.sendReportFrequency;
+                        break;
+                    }
+            }
+
             this.serviceSpecificSettings = Settings.Current.TestResultReportingServiceSettings.Expect(() => new ArgumentException("TestResultReportingServiceSettings must be supplied."));
         }
 
@@ -35,12 +60,11 @@ namespace TestResultCoordinator.Services
         {
             this.logger.LogInformation("Test Result Reporting Service running.");
 
-            // Specify -1 ms to disable periodic run
             this.timer = new Timer(
                 this.DoWorkAsync,
                 null,
                 this.delayBeforeWork,
-                TimeSpan.FromMilliseconds(-1));
+                this.sendReportFrequency);
 
             return Task.CompletedTask;
         }
