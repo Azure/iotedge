@@ -66,8 +66,9 @@ async fn send_message_upstream_downstream() {
         )),
     ];
 
-    let (local_server_handle, upstream_server_handle, _) = setup_brokers(AllowAll, AllowAll);
-    let _controller_handle = setup_bridge_controller(
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        setup_brokers(AllowAll, AllowAll);
+    let controller_handle = setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -113,13 +114,17 @@ async fn send_message_upstream_downstream() {
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from upstream")
     );
 
+    controller_handle.shutdown();
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
     upstream_client.shutdown().await;
     local_client.shutdown().await;
 }
 
 #[tokio::test]
 async fn bridge_settings_update() {
-    let (local_server_handle, upstream_server_handle, _) = setup_brokers(AllowAll, AllowAll);
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        setup_brokers(AllowAll, AllowAll);
     let mut controller_handle = setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
@@ -199,13 +204,16 @@ async fn bridge_settings_update() {
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local after update")
     );
 
+    controller_handle.shutdown();
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
     upstream_client.shutdown().await;
     local_client.shutdown().await;
 }
 
 #[tokio::test]
 async fn subscribe_to_upstream_rejected_should_retry() {
-    let (local_server_handle, upstream_server_handle, upstream_broker_handle) =
+    let (mut local_server_handle, _, mut upstream_server_handle, upstream_broker_handle) =
         setup_brokers(AllowAll, DummySubscribeAuthorizer(false));
 
     let subs = vec![
@@ -220,7 +228,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
             Some("downstream".into()),
         )),
     ];
-    setup_bridge_controller(
+    let controller_handle = setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -265,11 +273,17 @@ async fn subscribe_to_upstream_rejected_should_retry() {
         local_client.publications().recv().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from upstream after update")
     );
+
+    controller_handle.shutdown();
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    upstream_client.shutdown().await;
+    local_client.shutdown().await;
 }
 
 #[tokio::test]
 async fn connect_to_upstream_failure_should_retry() {
-    let (local_server_handle, _) = setup_local_broker(AllowAll);
+    let (mut local_server_handle, _) = setup_local_broker(AllowAll);
 
     let subs = vec![
         Direction::Out(TopicRule::new(
@@ -285,7 +299,7 @@ async fn connect_to_upstream_failure_should_retry() {
     ];
     let upstream_tcp_address = "localhost:8801".to_string();
     let upstream_tls_address = "localhost:8802".to_string();
-    setup_bridge_controller(
+    let controller_handle = setup_bridge_controller(
         local_server_handle.address(),
         upstream_tls_address.clone(),
         subs,
@@ -323,7 +337,7 @@ async fn connect_to_upstream_failure_should_retry() {
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("{\"status\":\"Disconnected\"}")
     );
 
-    let (_upstream_server_handle, _) = setup_upstream_broker(
+    let (mut upstream_server_handle, _) = setup_upstream_broker(
         AllowAll,
         Some(upstream_tcp_address),
         Some(upstream_tls_address),
@@ -332,22 +346,28 @@ async fn connect_to_upstream_failure_should_retry() {
         local_client.publications().recv().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("{\"status\":\"Connected\"}")
     );
+
+    controller_handle.shutdown();
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    local_client.shutdown().await;
 }
 
 fn setup_brokers<Z, T>(
     local_authorizer: Z,
     upstream_authorizer: T,
-) -> (ServerHandle, ServerHandle, BrokerHandle)
+) -> (ServerHandle, BrokerHandle, ServerHandle, BrokerHandle)
 where
     Z: Authorizer + Send + 'static,
     T: Authorizer + Send + 'static,
 {
-    let (local_server_handle, _) = setup_local_broker(local_authorizer);
+    let (local_server_handle, local_broker_hanlde) = setup_local_broker(local_authorizer);
     let (upstream_server_handle, upstream_broker_handle) =
         setup_upstream_broker(upstream_authorizer, None, None);
 
     (
         local_server_handle,
+        local_broker_hanlde,
         upstream_server_handle,
         upstream_broker_handle,
     )
