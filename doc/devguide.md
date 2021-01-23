@@ -68,6 +68,17 @@ The syntax of the "filter" argument is described [here](https://docs.microsoft.c
 
 The end-to-end tests are documented [here](../test/README.md).
 
+## Build Edge Hub Container Locally
+
+Sometimes it is useful to build the Edge Hub container locally. If you want to do so you can run the below set of scripts:
+```
+scripts/linux/buildBranch.sh
+scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path mqtt/mqttd
+scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path edgehub/watchdog
+scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
+scripts/linux/buildImage.sh -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
+```
+
 ## Build Manifest Image
 There is a script in the repo to build multi-architecture images.
 This script assumes that the platform specific images are already in the docker registry.
