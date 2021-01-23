@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class SasManualProvisioningFixture : ManualProvisioningFixture
     {
         protected EdgeRuntime runtime;
+        protected EdgeDevice device;
 
         protected override Task BeforeTestTimerStarts() => this.SasProvisionEdgeAsync();
 
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 CancellationToken token = cts.Token;
                 DateTime startTime = DateTime.Now;
 
-                EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
+                this.device = await EdgeDevice.GetOrCreateIdentityAsync(
                     DeviceId.Current.Generate(),
                     Context.Current.ParentDeviceId,
                     this.iotHub,
@@ -31,10 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     null,
                     token);
 
-                Context.Current.DeleteList.TryAdd(device.Id, device);
+                Context.Current.DeleteList.TryAdd(this.device.Id, this.device);
 
                 this.runtime = new EdgeRuntime(
-                    device.Id,
+                    this.device.Id,
                     Context.Current.EdgeAgentImage,
                     Context.Current.EdgeHubImage,
                     Context.Current.Proxy,
@@ -43,21 +44,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     this.iotHub);
 
                 TestCertificates testCerts;
-                (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
+                (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(this.device.Id, token);
 
                 await this.ConfigureDaemonAsync(
                     config =>
                     {
                         testCerts.AddCertsToConfig(config);
 
-                        config.SetManualSasProvisioning(Context.Current.ParentHostname.GetOrElse(device.HubHostname), device.Id, device.SharedAccessKey);
+                        config.SetManualSasProvisioning(Context.Current.ParentHostname.GetOrElse(this.device.HubHostname), this.device.Id, this.device.SharedAccessKey);
 
                         config.Update();
                         return Task.FromResult((
                             "with connection string for device '{Identity}'",
-                            new object[] { device.Id }));
+                            new object[] { this.device.Id }));
                     },
-                    device,
+                    this.device,
                     startTime,
                     token);
             }

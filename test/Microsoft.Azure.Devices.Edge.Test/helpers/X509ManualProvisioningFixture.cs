@@ -14,6 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected EdgeRuntime runtime;
 
+        //BEARWASHERE -- TODO: Expose the `device` like what I did for SasManualProvisioningFixture
+        // Then fix the bleeding `Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())`
+        protected EdgeDevice device; 
+
         [OneTimeSetUp]
         public async Task X509ProvisionEdgeAsync()
         {
