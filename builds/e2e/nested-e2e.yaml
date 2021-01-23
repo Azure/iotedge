@@ -32,7 +32,7 @@ stages:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - run-idle -equals true
+       - run-nested-e2e -equals true
        - status -equals unlocked
     steps:
      - template: templates/nested-get-secrets.yaml
@@ -63,7 +63,7 @@ stages:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - run-idle -equals true 
+       - run-nested-e2e -equals true 
        - status -equals unlocked    
     steps:
      - template: templates/nested-get-secrets.yaml  
@@ -93,7 +93,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-idle -equals true 
+        - run-nested-e2e -equals true 
         - status -equals unlocked    
     steps:   
       - template: templates/nested-get-secrets.yaml     
@@ -124,7 +124,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-idle -equals true 
+        - run-nested-e2e -equals true 
         - status -equals unlocked_$(Build.BuildId)  
     strategy:
       parallel: 3          
