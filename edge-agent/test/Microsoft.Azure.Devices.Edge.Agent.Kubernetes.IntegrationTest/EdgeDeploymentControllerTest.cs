@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var moduleName = "module-a";
             var deviceSelector = $"{Kubernetes.Constants.K8sEdgeDeviceLabel}=deviceid";
             var moduleLifeCycleManager = this.CreateModuleLifeCycleManager(moduleName);
-            var persistentVolumeName = "pvname";
+            var persistentVolumeName = "1pvname";
             var controller = this.CreateDeploymentController(deviceSelector, moduleLifeCycleManager, "storagename");
             KubernetesModule km1 = this.CreateKubernetesModuleWithHostConfig(moduleName, persistentVolumeName);
             var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
