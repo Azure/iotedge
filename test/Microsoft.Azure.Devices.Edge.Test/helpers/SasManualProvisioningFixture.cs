@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 CancellationToken token = cts.Token;
                 DateTime startTime = DateTime.Now;
 
+                // BEARWASHERE -- Update this for NestedEdge scenario -- DONE
                 EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                     DeviceId.Current.Generate(),
                     Context.Current.ParentDeviceId,

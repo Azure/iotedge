@@ -12,17 +12,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         readonly Device device;
         readonly IotHub iotHub;
+        readonly string parentDeviceId;
         readonly bool owned;
 
-        EdgeDevice(Device device, bool owned, IotHub iotHub)
+        // Note: We only support a single parent device at the moment (1/22/2021)
+        // This assumption may change down the road and the constructor will need to be updated.
+        EdgeDevice(Device device, bool owned, IotHub iotHub, string parentDeviceId)
         {
             this.device = device;
             this.iotHub = iotHub;
             this.owned = owned;
+            this.parentDeviceId = parentDeviceId;
         }
 
         public string HubHostname => this.iotHub.Hostname;
         public string Id => this.device.Id;
+        public string ParentDeviceId => this.parentDeviceId;
         public string SharedAccessKey => this.device.Authentication.SymmetricKey.PrimaryKey;
 
         public static Task<EdgeDevice> CreateIdentityAsync(
@@ -42,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, parentDeviceId, authType, x509Thumbprint, token);
-                    return new EdgeDevice(device, true, iotHub);
+                    return new EdgeDevice(device, true, iotHub, parentDeviceId.GetOrElse(string.Empty));
                 },
                 "Created edge device '{Device}' on hub '{IotHub}'",
                 deviceId,
@@ -71,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
 
-                return Option.Some(new EdgeDevice(device, takeOwnership, iotHub));
+                return Option.Some(new EdgeDevice(device, takeOwnership, iotHub, parentDeviceId.GetOrElse(string.Empty)));
             }
             else
             {
@@ -87,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {
+            // BEARWASHERE -- Need to keep track of parentDeviceId -- DONE
             Option<EdgeDevice> device = await GetIdentityAsync(deviceId, parentDeviceId, iotHub, token);
             EdgeDevice edgeDevice = await device.Match(
                 d =>
@@ -97,6 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         iotHub.Hostname);
                     return Task.FromResult(d);
                 },
+                // BEARWASHERE -- Need to keep track of parentDeviceId  -- DONE
                 () => CreateIdentityAsync(deviceId, parentDeviceId, iotHub, authType, x509Thumbprint, token));
             return edgeDevice;
         }

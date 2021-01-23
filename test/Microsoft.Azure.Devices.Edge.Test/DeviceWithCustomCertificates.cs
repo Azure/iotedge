@@ -104,7 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         testAuth.ToAuthenticationType(),
                         parentId,
                         testAuth.UseSecondaryCertificate(),
-                        // BEARWASHERE -- We will need to deal w/ this
                         this.ca,
                         this.iotHub,
                         Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
