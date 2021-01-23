@@ -25,7 +25,7 @@ mod snapshot;
 mod state_change;
 mod stream;
 mod subscription;
-mod tls;
+pub mod tls;
 mod transport;
 
 #[cfg(any(test, feature = "proptest"))]

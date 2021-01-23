@@ -38,6 +38,8 @@ fn main() {
 
 #[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
+    let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziot");
+
     let default_mgmt_uri =
         option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock");
 
@@ -45,9 +47,6 @@ fn run() -> Result<(), Error> {
         "/azureiotedge-diagnostics:{}",
         edgelet_core::version().replace("~", "-")
     );
-
-    let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
-    possible_check_id_values.sort_unstable();
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
@@ -99,7 +98,6 @@ fn run() -> Result<(), Error> {
                         .help("Space-separated list of check IDs. The checks listed here will not be run. See 'iotedge check-list' for details of all checks.\n")
                         .multiple(true)
                         .takes_value(true)
-                        .possible_values(&possible_check_id_values),
                 )
                 .arg(
                     Arg::with_name("expected-aziot-edged-version")
@@ -315,10 +313,6 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value")
                     .to_os_string()
                     .into(),
-                // args.value_of("iothub-hostname").map(ToOwned::to_owned),
-                args.value_of("ntp-server")
-                    .expect("arg has a default value")
-                    .to_string(),
                 args.value_of("output")
                     .map(|arg| match arg {
                         "json" => OutputFormat::Json,
@@ -328,11 +322,13 @@ fn run() -> Result<(), Error> {
                     .expect("arg has a default value"),
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
+                aziot_bin.into(),
+                args.value_of("iothub-hostname").map(ToOwned::to_owned),
             );
 
             tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)
         }
-        ("check-list", _) => Check::print_list(),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(

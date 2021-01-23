@@ -81,12 +81,6 @@ impl ConnectManagementUri {
                 connect_management_uri.to_uds_file_path()
                 .context("Could not parse connect.management_uri: does not represent a valid file path")?;
 
-            // On Windows we mount the parent folder because we can't mount the socket files directly
-            #[cfg(windows)]
-            let socket_path =
-                socket_path.parent()
-                .ok_or_else(|| Context::new("Could not parse connect.management_uri: does not have a parent directory"))?;
-
             let socket_path =
                 socket_path.to_str()
                 .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;

@@ -13,7 +13,6 @@ members = [
     "identity-client",
     "iotedge",
     "management",
-    "mini-sntp",
     "systemd",
 ]
 
