@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         (X509Thumbprint thumbprint, string certPath, string keyPath) = await this.CreateIdentityCertAsync(
                             deviceId, token);
 
+                        // BEARWASHERE -- Fix this
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
                             Context.Current.ParentDeviceId,

@@ -24,9 +24,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 CancellationToken token = cts.Token;
                 DateTime startTime = DateTime.Now;
 
+                // BEARWASHERE -- Fix this
                 this.device = await EdgeDevice.GetOrCreateIdentityAsync(
                     DeviceId.Current.Generate(),
                     Context.Current.ParentDeviceId,
+                    // Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                    // Context.Current.NestedEdge,
                     this.iotHub,
                     AuthenticationType.Sas,
                     null,

@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         testAuth.UseSecondaryCertificate(),
                         this.ca,
                         this.iotHub,
-                        Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                        Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()), //BEARWASHERE -- Pass a grandparent here.
                         token,
                         Option.None<string>(),
                         Context.Current.NestedEdge);

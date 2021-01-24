@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using NestedEdgeConfig = Microsoft.Azure.Devices.Edge.Test.Common.EdgeDevice.NestedEdgeConfig;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
     // and even if it were, it doesn't run the teardown method when
@@ -64,6 +65,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             {
                 await NUnitLogs.CollectAsync(startTime, token);
             }
+        }
+
+        protected NestedEdgeConfig GetNestedEdgeConfig()
+        {
+            return new NestedEdgeConfig(Context.Current.NestedEdge,
+                Context.Current.ParentDeviceId,
+                Context.Current.Hostname);
         }
 
         public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime, string deviceId)

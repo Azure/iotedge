@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -13,16 +14,43 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Device device;
         readonly IotHub iotHub;
         readonly bool owned;
+
+        readonly NestedEdgeConfig nestedEdgeConfig;
+
+        // BEARWASHERE -- turn this into a class
         readonly string parentDeviceId;
+
+        public class NestedEdgeConfig
+        {
+            // BEARWASHERE -- NestedEdge
+            readonly public string deviceHostname;
+            readonly public bool isNestedEdge;
+            readonly public Option<string> parentDeviceId;
+
+            public NestedEdgeConfig(bool isNestedEdge, Option<string> parentDeviceId, Option<string> deviceHostname)
+            {
+                this.isNestedEdge = isNestedEdge;
+
+                // Since the Nested Edge Identity of the Edge Device is not managed by the E2E test framework,
+                // the value needs be passed in from the pipeline. Thus, it cannot be empty.
+                if(this.isNestedEdge)
+                {
+                    parentDeviceId.Expect<ArgumentException>(() => throw new ArgumentException($"Expected {nameof(parentDeviceId)} for the Nested Edge"));
+                }
+                this.parentDeviceId = parentDeviceId;
+
+                this.deviceHostname = deviceHostname.GetOrElse(Dns.GetHostName().ToLower());
+            }
+        }
 
         // Note: We only support a single parent device at the moment (1/22/2021)
         // This assumption may change down the road and the constructor will need to be updated.
-        EdgeDevice(Device device, bool owned, IotHub iotHub, string parentDeviceId)
+        EdgeDevice(Device device, bool owned, IotHub iotHub, NestedEdgeConfig nestedEdgeConfig)
         {
             this.device = device;
             this.iotHub = iotHub;
             this.owned = owned;
-            this.parentDeviceId = parentDeviceId;
+            this.nestedEdgeConfig = nestedEdgeConfig;
         }
 
         public string HubHostname => this.iotHub.Hostname;
@@ -56,27 +84,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static async Task<Option<EdgeDevice>> GetIdentityAsync(
             string deviceId,
-            Option<string> parentDeviceId,
             IotHub iotHub,
             CancellationToken token,
-            bool takeOwnership = false)
+            bool takeOwnership = false,
+            NestedEdgeConfig nestedEdgeConfig = default(NestedEdgeConfig))
         {
             Device device = await iotHub.GetDeviceIdentityAsync(deviceId, token);
 
             if (device != null)
             {
-                await parentDeviceId.ForEachAsync(async p =>
+                if (nestedEdgeConfig != default(NestedEdgeConfig))
                 {
-                    Device parentDevice = await iotHub.GetDeviceIdentityAsync(p, token);
-                    device.ParentScopes = new[] { parentDevice.Scope };
-                });
+                    await nestedEdgeConfig.parentDeviceId.ForEachAsync(async p =>
+                    {
+                        Device parentDevice = await iotHub.GetDeviceIdentityAsync(p, token);
+                        device.ParentScopes = new[] { parentDevice.Scope };
+                    });
+                }
 
                 if (!device.Capabilities.IotEdge)
                 {
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
 
-                return Option.Some(new EdgeDevice(device, takeOwnership, iotHub, parentDeviceId.GetOrElse(string.Empty)));
+                return Option.Some(new EdgeDevice(device, takeOwnership, iotHub, nestedEdgeConfig));
             }
             else
             {
@@ -86,13 +117,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
             string deviceId,
-            Option<string> parentDeviceId,
+            NestedEdgeConfig nestedEdgeConfig,
+            // Option<string> parentDeviceId, // BEARWASHERE
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {
-            Option<EdgeDevice> device = await GetIdentityAsync(deviceId, parentDeviceId, iotHub, token);
+            Option<EdgeDevice> device = await GetIdentityAsync(
+                deviceId,
+                iotHub,
+                token,
+                nestedEdgeConfig: nestedEdgeConfig);
             EdgeDevice edgeDevice = await device.Match(
                 d =>
                 {
@@ -102,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         iotHub.Hostname);
                     return Task.FromResult(d);
                 },
-                () => CreateIdentityAsync(deviceId, parentDeviceId, iotHub, authType, x509Thumbprint, token));
+                // BEARWASHERE -- WORKING ON CreateIdentityAsync() function to get the nested edge to work with the test case
+                () => CreateIdentityAsync(deviceId, nestedEdgeConfig, iotHub, authType, x509Thumbprint, token));
             return edgeDevice;
         }
 
