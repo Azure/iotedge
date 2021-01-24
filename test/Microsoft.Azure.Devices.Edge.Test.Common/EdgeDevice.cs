@@ -17,9 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         readonly NestedEdgeConfig nestedEdgeConfig;
 
-        // BEARWASHERE -- turn this into a class
-        readonly string parentDeviceId;
-
         public class NestedEdgeConfig
         {
             // BEARWASHERE -- NestedEdge
@@ -55,12 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public string HubHostname => this.iotHub.Hostname;
         public string Id => this.device.Id;
-        public string ParentDeviceId => this.parentDeviceId;
+        public NestedEdgeConfig NestedEdge => this.nestedEdgeConfig;
         public string SharedAccessKey => this.device.Authentication.SymmetricKey.PrimaryKey;
 
         public static Task<EdgeDevice> CreateIdentityAsync(
             string deviceId,
-            Option<string> parentDeviceId,
+            NestedEdgeConfig nestedEdgeConfig,
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
@@ -74,8 +71,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Profiler.Run(
                 async () =>
                 {
-                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, parentDeviceId, authType, x509Thumbprint, token);
-                    return new EdgeDevice(device, true, iotHub, parentDeviceId.GetOrElse(string.Empty));
+                    Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, nestedEdgeConfig.parentDeviceId, authType, x509Thumbprint, token);
+                    return new EdgeDevice(device, true, iotHub, nestedEdgeConfig);
                 },
                 "Created edge device '{Device}' on hub '{IotHub}'",
                 deviceId,
@@ -118,17 +115,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public static async Task<EdgeDevice> GetOrCreateIdentityAsync(
             string deviceId,
             NestedEdgeConfig nestedEdgeConfig,
-            // Option<string> parentDeviceId, // BEARWASHERE
             IotHub iotHub,
             AuthenticationType authType,
             X509Thumbprint x509Thumbprint,
             CancellationToken token)
         {
-            Option<EdgeDevice> device = await GetIdentityAsync(
-                deviceId,
-                iotHub,
-                token,
-                nestedEdgeConfig: nestedEdgeConfig);
+            Option<EdgeDevice> device = await GetIdentityAsync(deviceId, iotHub, token, nestedEdgeConfig: nestedEdgeConfig);
+
             EdgeDevice edgeDevice = await device.Match(
                 d =>
                 {
@@ -138,7 +131,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         iotHub.Hostname);
                     return Task.FromResult(d);
                 },
-                // BEARWASHERE -- WORKING ON CreateIdentityAsync() function to get the nested edge to work with the test case
                 () => CreateIdentityAsync(deviceId, nestedEdgeConfig, iotHub, authType, x509Thumbprint, token));
             return edgeDevice;
         }

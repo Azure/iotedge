@@ -13,9 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
         protected EdgeRuntime runtime;
-
-        //BEARWASHERE -- TODO: Expose the `device` like what I did for SasManualProvisioningFixture
-        // Then fix the bleeding `Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())`
         protected EdgeDevice device; 
 
         [OneTimeSetUp]
@@ -33,10 +30,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         (X509Thumbprint thumbprint, string certPath, string keyPath) = await this.CreateIdentityCertAsync(
                             deviceId, token);
 
-                        // BEARWASHERE -- Fix this
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
-                            Context.Current.ParentDeviceId,
+                            this.GetNestedEdgeConfig(),
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
