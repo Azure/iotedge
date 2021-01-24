@@ -58,10 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.iotHub,
-                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                this.device.NestedEdge.deviceHostname,
                 token,
                 Option.Some(TestModelId),
-                Context.Current.NestedEdge);
+                this.device.NestedEdge.isNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>

@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                 this.device = await EdgeDevice.GetOrCreateIdentityAsync(
                     DeviceId.Current.Generate(),
-                    this.GetNestedEdgeConfig(),
+                    this.GetNestedEdgeConfig(this.iotHub),
                     this.iotHub,
                     AuthenticationType.Sas,
                     null,

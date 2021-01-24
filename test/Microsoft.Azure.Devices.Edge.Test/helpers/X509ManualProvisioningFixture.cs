@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
-                            this.GetNestedEdgeConfig(),
+                            this.GetNestedEdgeConfig(this.iotHub),
                             this.iotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,

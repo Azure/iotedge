@@ -42,10 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     testAuth.UseSecondaryCertificate(),
                     this.ca,
                     this.iotHub,
-                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                    this.device.NestedEdge.deviceHostname,
                     token,
                     Option.None<string>(),
-                    Context.Current.NestedEdge);
+                    this.device.NestedEdge.isNestedEdge);
             }
             catch (Exception) when (!parentId.HasValue)
             {
@@ -97,12 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 LeafDevice leaf = null;
                 try
                 {
-                    // BEARWASHERE -- TODO
-                    // Turn Hugues's bleeding Context into the `this.device.barf` scope everywhere the LeafDevice.CreateAsync() is called.
-                    //    i)  Context.Current.NestedEdge
-                    //    ii) Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())
-                    // string grandParentId = this.device.ParentDeviceId;
-
                     leaf = await LeafDevice.CreateAsync(
                         leafDeviceId,
                         protocol,
@@ -111,8 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         testAuth.UseSecondaryCertificate(),
                         this.ca,
                         this.iotHub,
-                        // Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()), //BEARWASHERE -- Pass a grandparent here.
-                        this.device.NestedEdge.deviceHostname, // BEARWASHERE -- Change this to grandparent
+                        this.device.NestedEdge.parentHostname,
                         token,
                         Option.None<string>(),
                         this.device.NestedEdge.isNestedEdge);

@@ -67,10 +67,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
         }
 
-        protected NestedEdgeConfig GetNestedEdgeConfig()
+        protected NestedEdgeConfig GetNestedEdgeConfig(IotHub iotHub)
         {
-            return new NestedEdgeConfig(Context.Current.NestedEdge,
+            return new NestedEdgeConfig(
+                iotHub,
+                Context.Current.NestedEdge,
                 Context.Current.ParentDeviceId,
+                Context.Current.ParentHostname,
                 Context.Current.Hostname);
         }
 

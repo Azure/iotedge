@@ -19,12 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public class NestedEdgeConfig
         {
-            // BEARWASHERE -- NestedEdge
             readonly public string deviceHostname;
             readonly public bool isNestedEdge;
             readonly public Option<string> parentDeviceId;
+            readonly public string parentHostname;
 
-            public NestedEdgeConfig(bool isNestedEdge, Option<string> parentDeviceId, Option<string> deviceHostname)
+            public NestedEdgeConfig(IotHub iotHub, bool isNestedEdge, Option<string> parentDeviceId, Option<string> parentHostname, Option<string> deviceHostname)
             {
                 this.isNestedEdge = isNestedEdge;
 
@@ -35,13 +35,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     parentDeviceId.Expect<ArgumentException>(() => throw new ArgumentException($"Expected {nameof(parentDeviceId)} for the Nested Edge"));
                 }
                 this.parentDeviceId = parentDeviceId;
+                this.parentHostname = parentHostname.GetOrElse(iotHub.Hostname);
 
                 this.deviceHostname = deviceHostname.GetOrElse(Dns.GetHostName().ToLower());
             }
         }
 
-        // Note: We only support a single parent device at the moment (1/22/2021)
-        // This assumption may change down the road and the constructor will need to be updated.
         EdgeDevice(Device device, bool owned, IotHub iotHub, NestedEdgeConfig nestedEdgeConfig)
         {
             this.device = device;
