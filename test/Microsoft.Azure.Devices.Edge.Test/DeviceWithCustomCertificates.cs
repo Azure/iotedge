@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     TestAuthenticationType.SelfSignedSecondary)]    TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)]                  Protocol protocol)
             {
-                if(!Context.Current.NestedEdge)
+                if(!this.device.NestedEdge.isNestedEdge)
                 {
                     Assert.Ignore("The test can only be run in the nested edge topology");
                 }
