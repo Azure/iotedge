@@ -54,7 +54,7 @@ impl MessageInitiator {
             let dummy_payload = "a".repeat(self.settings.message_size_in_bytes() as usize);
 
             let publication = Publication {
-                topic_name: self.settings.topic().to_string(),
+                topic_name: self.settings.initiate_topic(),
                 qos: QoS::ExactlyOnce,
                 retain: true,
                 payload: Bytes::from(seq_num.to_string() + " " + dummy_payload.as_str()),

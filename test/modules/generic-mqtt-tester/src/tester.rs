@@ -90,7 +90,7 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let topic = settings.topic();
+        let relay_topic = settings.relay_topic();
         let tracking_id = settings.tracking_id();
         let batch_id = settings.batch_id();
         let test_result_coordinator_url = settings.trc_url();
@@ -102,9 +102,10 @@ impl MessageTester {
                 tracking_id,
                 batch_id,
             )),
-            TestScenario::Relay => {
-                Box::new(RelayingMessageHandler::new(publish_handle.clone(), topic))
-            }
+            TestScenario::Relay => Box::new(RelayingMessageHandler::new(
+                publish_handle.clone(),
+                relay_topic,
+            )),
         };
         let message_channel = MessageChannel::new(message_handler);
 
@@ -154,8 +155,7 @@ impl MessageTester {
         );
 
         // make subscription
-        let topic = self.settings.topic();
-        Self::subscribe(client_sub_handle, topic).await?;
+        Self::subscribe(client_sub_handle, self.settings).await?;
 
         // run message channel
         let message_channel_join = tokio::spawn(
@@ -202,17 +202,25 @@ impl MessageTester {
 
     async fn subscribe(
         mut client_sub_handle: UpdateSubscriptionHandle,
-        topic_filter: String,
+        settings: Settings,
     ) -> Result<(), MessageTesterError> {
         info!("subscribing to test topics");
-
-        client_sub_handle
-            .subscribe(SubscribeTo {
-                topic_filter,
-                qos: QoS::AtLeastOnce,
-            })
-            .await
-            .map_err(MessageTesterError::UpdateSubscription)?;
+        match settings.test_scenario() {
+            TestScenario::Initiate => client_sub_handle
+                .subscribe(SubscribeTo {
+                    topic_filter: settings.relay_topic(),
+                    qos: QoS::AtLeastOnce,
+                })
+                .await
+                .map_err(MessageTesterError::UpdateSubscription)?,
+            TestScenario::Relay => client_sub_handle
+                .subscribe(SubscribeTo {
+                    topic_filter: settings.initiate_topic(),
+                    qos: QoS::AtLeastOnce,
+                })
+                .await
+                .map_err(MessageTesterError::UpdateSubscription)?,
+        };
 
         info!("finished subscribing to test topics");
         Ok(())

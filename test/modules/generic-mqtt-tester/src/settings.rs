@@ -23,7 +23,9 @@ pub struct Settings {
 
     message_size_in_bytes: u32,
 
-    topic: String,
+    initiate_topic: String,
+
+    relay_topic: String,
 }
 
 impl Settings {
@@ -77,8 +79,12 @@ impl Settings {
         self.message_size_in_bytes
     }
 
-    pub fn topic(&self) -> String {
-        self.topic.clone()
+    pub fn initiate_topic(&self) -> String {
+        self.initiate_topic.clone()
+    }
+
+    pub fn relay_topic(&self) -> String {
+        self.relay_topic.clone()
     }
 }
 
