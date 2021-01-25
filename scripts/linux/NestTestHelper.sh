@@ -10,6 +10,7 @@ function clean_up() {
     rm -rf /var/lib/iotedge/
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
+    rm -rf /etc/systemd/system/aziot-edged.service.d/
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'

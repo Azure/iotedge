@@ -16,6 +16,7 @@ function clean_up() {
     echo 'Remove IoT Edge and config file'
     rm -rf /var/lib/aziot/edged/
     rm -rf /etc/aziot/edged/config.yaml
+    rm -rf /etc/systemd/system/aziot-edged.service.d/
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true

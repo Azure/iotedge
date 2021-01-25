@@ -240,6 +240,7 @@ function clean_up() {
     echo 'Remove IoT Edge and config files'
     rm -rf /var/lib/aziot/
     rm -rf /etc/aziot/
+    rm -rf /etc/systemd/system/aziot-edged.service.d/
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
