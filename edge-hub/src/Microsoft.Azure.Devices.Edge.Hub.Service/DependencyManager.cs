@@ -201,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
-                authenticationMode = AuthenticationMode.CloudAndScope;
+                authenticationMode = AuthenticationMode.Scope;
             }
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);

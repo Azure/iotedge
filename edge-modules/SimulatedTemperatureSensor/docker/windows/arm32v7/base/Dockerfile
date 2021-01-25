@@ -1,4 +1,4 @@
-# Base image for arm32v7 dotnet-runtime container
+﻿# Base image for arm32v7 dotnet-runtime container
 FROM mcr.microsoft.com/windows/nanoserver:1809-arm32v7
  
 ENV DOTNET_VERSION 3.1.4
