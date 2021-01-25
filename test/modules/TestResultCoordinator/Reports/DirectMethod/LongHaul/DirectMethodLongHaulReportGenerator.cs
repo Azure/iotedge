@@ -83,7 +83,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 while (await r.MoveNextAsync())
                 {
                     // ReceiverSource will always be there if ReceiverTestResults is so it's safe to put OrDefault
-                    this.ValidateDataSource(r.Current, this.ReceiverSource.OrDefault());
+                    this.ValidateDataSource(r.Current, this.ReceiverSource.Expect<ArgumentException>(
+                        () => throw new ArgumentException("Impossible case. ReceiverSource must be filled in if ReceiverTestResults are")));
                     DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(r.Current.Result);
                     receiverResults++;
                 }

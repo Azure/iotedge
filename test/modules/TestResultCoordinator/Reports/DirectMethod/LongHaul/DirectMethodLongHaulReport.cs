@@ -45,17 +45,21 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public bool IsPassedHelper()
         {
-            bool noUnknownResults = this.Unknown > 0 ? false : true;
+            if (this.Unknown > 0)
+            {
+                // fail if we find any unknowns (anything that's not a 200 or a 0 - most notably, 500's)
+                return false;
+            }
             bool senderAndReceiverSuccessesPass = this.ReceiverSuccesses.Match(r => this.SenderSuccesses == r, () => true);
             // The SDK does not allow edgehub to de-register from iothub subscriptions, which results in DirectMethod clients sometimes receiving status code 0.
             // Github issue: https://github.com/Azure/iotedge/issues/681
             // We expect to get this status sometimes because of edgehub restarts, but if we receive too many we should fail the tests.
             // TODO: When the SDK allows edgehub to de-register from subscriptions and we make the fix in edgehub, then we can fail tests for any status code 0.
             ulong allStatusCount = this.SenderSuccesses + this.StatusCodeZero + this.Unknown;
-            bool statusCodeZeroBelowThreshold = this.StatusCodeZero < ((double)allStatusCount / 100);
+            bool statusCodeZeroBelowThreshold = (this.StatusCodeZero == 0) || (this.StatusCodeZero < ((double)allStatusCount / 100));
 
-            // Pass if there are no unknown results, status code zero is below the threshold, and sender and receiver got same amount of successess (or receiver has no results)
-            return noUnknownResults && statusCodeZeroBelowThreshold && senderAndReceiverSuccessesPass;
+            // Pass if status code zero is below the threshold, and sender and receiver got same amount of successess (or receiver has no results)
+            return statusCodeZeroBelowThreshold && senderAndReceiverSuccessesPass;
         }
     }
 }
