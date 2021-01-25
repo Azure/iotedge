@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string expected = string.Join('\n', Enumerable.Range(0, count)) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.AreEqual(expected, response.Payload.Replace("\r\n", "\n"));
-        } 
+        }
 
         [Test]
         public async Task TestGetModuleLogsSinceRfc3339()
@@ -136,7 +136,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }, token);
             await Task.Delay(30000);
 
-            string sinceDateTime = ((Int32)(DateTime.UtcNow.AddDays(-1).Subtract(new DateTime(1970, 1, 1))).TotalSeconds).ToString();
+            var dateUnixTimeStamp = DateTime.UtcNow.AddDays(-1).ToUnixTimestamp();
+
+            string sinceDateTime = dateUnixTimeStamp.ToString();
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.Some<string>(sinceDateTime), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
@@ -147,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string expected = string.Join('\n', Enumerable.Range(0, count)) + "\n";
             LogResponse response = JsonConvert.DeserializeObject<LogResponse[]>(result.GetPayloadAsJson()).Single();
             Assert.AreEqual(expected, response.Payload.Replace("\r\n", "\n"));
-        }                        
+        }
 
         [Test]
         public async Task TestGetModuleLogsNo500Tail()

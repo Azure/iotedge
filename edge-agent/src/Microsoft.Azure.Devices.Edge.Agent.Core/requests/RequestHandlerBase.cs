@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             try
             {
-                var settings=new JsonSerializerSettings{DateParseHandling = DateParseHandling.None};                
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
                 return payloadJson.Map(p => p.FromJson<TU>(settings));
             }
             catch (Exception ex)
