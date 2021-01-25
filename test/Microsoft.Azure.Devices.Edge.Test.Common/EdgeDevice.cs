@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public class NestedEdgeConfig
         {
-            readonly public string deviceHostname;
-            readonly public bool isNestedEdge;
-            readonly public Option<string> parentDeviceId;
-            readonly public string parentHostname;
+            public readonly string deviceHostname;
+            public readonly bool isNestedEdge;
+            public readonly Option<string> parentDeviceId;
+            public readonly string parentHostname;
 
             public NestedEdgeConfig(IotHub iotHub, bool isNestedEdge, Option<string> parentDeviceId, Option<string> parentHostname, Option<string> deviceHostname)
             {
@@ -30,11 +30,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                 // Since the Nested Edge Identity of the Edge Device is not managed by the E2E test framework,
                 // the value needs be passed in from the pipeline. Thus, it cannot be empty.
-                if(this.isNestedEdge)
+                if (this.isNestedEdge)
                 {
                     parentDeviceId.Expect<ArgumentException>(() => throw new ArgumentException($"Expected {nameof(parentDeviceId)} for the Nested Edge"));
                 }
+
                 this.parentDeviceId = parentDeviceId;
+
                 this.parentHostname = parentHostname.GetOrElse(iotHub.Hostname);
 
                 this.deviceHostname = deviceHostname.GetOrElse(Dns.GetHostName().ToLower());
