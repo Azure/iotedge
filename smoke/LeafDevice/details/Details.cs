@@ -175,9 +175,24 @@ namespace LeafDeviceTest
                         try
                         {
                             await deviceClient.SendEventAsync(message);
+                            if (string.IsNullOrWhiteSpace(this.context.Device.Scope))
+                            {
+                                throw new InvalidOperationException("Expected to throw exception");
+                            }
+
                             Console.WriteLine("Message Sent.");
                             await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
                             Console.WriteLine("Direct method callback is set.");
+                            break;
+                        }
+                        catch (InvalidOperationException) when (string.IsNullOrWhiteSpace(this.context.Device.Scope))
+                        {
+                            Console.WriteLine("Expected exception was not thrown");
+                            throw;
+                        }
+                        catch (UnauthorizedAccessException ex) when (!string.IsNullOrWhiteSpace(this.context.Device.Scope))
+                        {
+                            Console.WriteLine("Expected exception {0}", ex);
                             break;
                         }
                         catch (Exception e)
@@ -244,6 +259,10 @@ namespace LeafDeviceTest
 
         protected async Task VerifyDataOnIoTHubAsync()
         {
+            // Leaf device without parent not expected to send messages
+            if (!this.edgeDeviceId.HasValue)
+                return;
+
             var builder = new EventHubsConnectionStringBuilder(this.eventhubCompatibleEndpointWithEntityPath)
             {
                 TransportType = this.eventHubClientTransportType
@@ -294,6 +313,10 @@ namespace LeafDeviceTest
 
         protected async Task VerifyDirectMethodAsync()
         {
+            // Leaf device without parent not expected to succed dm
+            if (!this.edgeDeviceId.HasValue)
+                return;
+
             // User Service SDK to invoke Direct Method on the device.
             var settings = new ServiceClientTransportSettings();
             this.proxy.ForEach(p => settings.HttpProxy = p);

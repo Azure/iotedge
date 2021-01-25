@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 leafDeviceId,
                 Protocol.Amqp,
                 AuthenticationType.Sas,
-                Option.None<string>(),
+                Option.Some(this.runtime.DeviceId),
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,

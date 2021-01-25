@@ -210,19 +210,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                 .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
                                 .ToList();
 
-                            using (MetricsV0.CloudLatency(id))
+                            if (messages.Count == 1)
                             {
-                                if (messages.Count == 1)
-                                {
-                                    await cp.SendMessageAsync(messages[0]);
-                                }
-                                else
-                                {
-                                    await cp.SendMessageBatchAsync(messages);
-                                }
+                                await cp.SendMessageAsync(messages[0]);
                             }
-
-                            MetricsV0.MessageCount(id, messages.Count);
+                            else
+                            {
+                                await cp.SendMessageBatchAsync(messages);
+                            }
 
                             return new SinkResult<IRoutingMessage>(routingMessages);
                         }
@@ -374,12 +369,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };
-
-            public static void MessageCount(string identity, int count)
-                => Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, count);
-
-            public static IDisposable CloudLatency(string identity)
-                => Util.Metrics.MetricsV0.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
 
             static MetricTags GetTags(string id)
             {

@@ -102,7 +102,7 @@ where
     }
 
     fn read_remaining(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let (result, r) = if let Some(ref remaining) = self.remaining {
+        let (result, r) = self.remaining.as_ref().map_or((Ok(0), None), |remaining| {
             let amt = cmp::min(remaining.len(), buf.len());
             let (a, b) = remaining.split_at(amt);
             buf[..amt].copy_from_slice(a);
@@ -112,9 +112,8 @@ where
             } else {
                 (Ok(amt), Some(Bytes::from(b)))
             }
-        } else {
-            (Ok(0), None)
-        };
+        });
+
         self.remaining = r;
         result
     }
@@ -129,29 +128,33 @@ where
         match self.inner.poll() {
             Ok(Async::Ready(Some(ref t))) => {
                 let read = self.read_remaining(buf)?;
-                let (result, new_remaining) = if let Some(ref mut remaining) = self.remaining {
-                    // There's still some data waiting to be written into the read buffer.
-                    // Append to the remaining buffer
-                    // Return the amount read from remaining
-                    let mut r = BytesMut::with_capacity(remaining.len() + t.as_ref().len());
-                    r.put_slice(remaining);
-                    r.put_slice(t.as_ref());
-                    (Ok(read), Some(r.freeze()))
-                } else {
-                    // The remaining buffer was cleared.
-                    // Attempt to read everything from the poll and add to the remaining buffer
-                    // if needed.
-                    let data = Bytes::from(t.as_ref());
-                    let amt = cmp::min(data.len(), buf.len() - read);
-                    let (a, b) = data.split_at(amt);
-                    buf[read..read + amt].copy_from_slice(a);
+                let (result, new_remaining) = self.remaining.as_mut().map_or_else(
+                    || {
+                        // The remaining buffer was cleared.
+                        // Attempt to read everything from the poll and add to the remaining buffer
+                        // if needed.
+                        let data = Bytes::from(t.as_ref());
+                        let amt = cmp::min(data.len(), buf.len() - read);
+                        let (a, b) = data.split_at(amt);
+                        buf[read..read + amt].copy_from_slice(a);
 
-                    if b.is_empty() {
-                        (Ok(amt + read), None)
-                    } else {
-                        (Ok(amt + read), Some(Bytes::from(b)))
-                    }
-                };
+                        if b.is_empty() {
+                            (Ok(amt + read), None)
+                        } else {
+                            (Ok(amt + read), Some(Bytes::from(b)))
+                        }
+                    },
+                    |remaining| {
+                        // There's still some data waiting to be written into the read buffer.
+                        // Append to the remaining buffer
+                        // Return the amount read from remaining
+                        let mut r = BytesMut::with_capacity(remaining.len() + t.as_ref().len());
+                        r.put_slice(remaining);
+                        r.put_slice(t.as_ref());
+                        (Ok(read), Some(r.freeze()))
+                    },
+                );
+
                 self.remaining = new_remaining;
                 result
             }

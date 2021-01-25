@@ -46,9 +46,6 @@
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
-                "value": "true"
-              },
               "experimentalfeatures__enabled": {
                 "value": "true"
               },

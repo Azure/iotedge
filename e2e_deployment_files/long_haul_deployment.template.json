@@ -24,8 +24,7 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"615m\",\"max-file\":\"2\"}}}}"
             },
-            "env": {
-            }
+            "env": {}
           },
           "edgeHub": {
             "type": "docker",
@@ -33,11 +32,7 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"615m\",\"max-file\":\"2\"}},\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
-            "env": {
-              "CollectMetrics": {
-                "value": "true"
-              }
-            },
+            "env": {},
             "status": "running",
             "restartPolicy": "always"
           }
@@ -81,66 +76,66 @@
           },
           "twinTester1": {
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-                "TransportType": {
-                    "value": "amqp"
-                },
-                "ServiceClientConnectionString": {
-                    "value": "<ServiceClientConnectionString>"
-                },
-                "TwinUpdateSize": {
-                    "value": "<TwinUpdateSize>"
-                },
-                "TwinUpdateFrequency": {
-                    "value": "<TwinUpdateFrequency>"
-                },
-                "TwinUpdateFailureThreshold": {
-                    "value": "<TwinUpdateFailureThreshold>"
-                },
-                "EdgeHubRestartFailureTolerance": {
-                    "value": "<EdgeHubRestartFailureTolerance>"
-                },
-                "testStartDelay": {
-                  "value": "<TestStartDelay>"
-                }
+              "TransportType": {
+                "value": "amqp"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
+              },
+              "TwinUpdateFailureThreshold": {
+                "value": "<TwinUpdateFailureThreshold>"
+              },
+              "EdgeHubRestartFailureTolerance": {
+                "value": "<EdgeHubRestartFailureTolerance>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              }
             },
             "status": "running",
             "restartPolicy": "always"
           },
           "twinTester2": {
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-                "TransportType": {
-                    "value": "mqtt"
-                },
-                "ServiceClientConnectionString": {
-                    "value": "<ServiceClientConnectionString>"
-                },
-                "TwinUpdateSize": {
-                    "value": "<TwinUpdateSize>"
-                },
-                "TwinUpdateFrequency": {
-                    "value": "<TwinUpdateFrequency>"
-                },
-                "TwinUpdateFailureThreshold": {
-                    "value": "<TwinUpdateFailureThreshold>"
-                },
-                "EdgeHubRestartFailureTolerance": {
-                    "value": "<EdgeHubRestartFailureTolerance>"
-                },
-                "testStartDelay": {
-                  "value": "<TestStartDelay>"
-                }
+              "TransportType": {
+                "value": "mqtt"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TwinUpdateSize": {
+                "value": "<TwinUpdateSize>"
+              },
+              "TwinUpdateFrequency": {
+                "value": "<TwinUpdateFrequency>"
+              },
+              "TwinUpdateFailureThreshold": {
+                "value": "<TwinUpdateFailureThreshold>"
+              },
+              "EdgeHubRestartFailureTolerance": {
+                "value": "<EdgeHubRestartFailureTolerance>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -291,8 +286,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ReportingEndpointUrl":
-              {
+              "ReportingEndpointUrl": {
                 "value": "http://analyzer:15000"
               },
               "InvocationSource": {
@@ -334,8 +328,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ReportingEndpointUrl":
-              {
+              "ReportingEndpointUrl": {
                 "value": "http://analyzer:15000"
               },
               "InvocationSource": {
@@ -398,28 +391,28 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-                "LogAnalyticsWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "LogAnalyticsSharedKey": {
-                    "value": "<LogAnalyticsSharedKey>"
-                },
-                "LogAnalyticsLogType": {
-                  "value": "testMetricsV2"
-                },
-                "MetricsEndpointsCSV": {
-                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
-                },
-                "ScrapeFrequencyInSecs": {
-                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-                },
-                "UploadTarget": {
-                  "value": "<MetricsCollector.UploadTarget>"
-                }
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "LogAnalyticsLogType": {
+                "value": "testMetricsV2"
+              },
+              "MetricsEndpointsCSV": {
+                "value": "<MetricsCollector.MetricsEndpointsCSV>"
+              },
+              "ScrapeFrequencyInSecs": {
+                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+              },
+              "UploadTarget": {
+                "value": "<MetricsCollector.UploadTarget>"
+              }
             },
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           }
         }
