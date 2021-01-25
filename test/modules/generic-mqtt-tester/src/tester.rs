@@ -115,11 +115,11 @@ impl MessageTester {
         if let TestScenario::Initiate = settings.test_scenario() {
             let initiator = MessageInitiator::new(
                 publish_handle,
-                tracking_id.clone(),
-                batch_id.clone(),
+                tracking_id,
+                batch_id,
                 reporting_client,
                 settings.message_frequency(),
-                topic.clone(),
+                topic,
                 message_size_in_bytes,
             );
 

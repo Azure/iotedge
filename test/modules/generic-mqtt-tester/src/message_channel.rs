@@ -48,8 +48,8 @@ impl MessageHandler for ReportResultMessageHandler {
         let payload: String = serde_json::from_slice(&received_publication.payload)
             .map_err(MessageTesterError::DeserializePayload)?;
         let sequence_number: u32 = payload
-            .split(" ")
-            .nth(0)
+            .split(' ')
+            .next()
             .ok_or(MessageTesterError::DeserializeSequenceNumber)?
             .parse::<u32>()
             .map_err(MessageTesterError::ParseSequenceNumber)?;
