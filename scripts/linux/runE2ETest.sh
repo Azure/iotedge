@@ -17,6 +17,7 @@ function clean_up() {
     rm -rf /var/lib/aziot/edged/
     rm -rf /etc/systemd/system/aziot-edged.service.d/
     rm -rf /etc/aziot/edged/config.yaml
+    rm -rf /etc/systemd/system/aziot-edged.service.d/
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true
