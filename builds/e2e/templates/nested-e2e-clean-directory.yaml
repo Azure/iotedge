@@ -1,5 +1,0 @@
-steps:
-- task: CmdLine@2
-  inputs:
-    script: 'echo $(Build.StagingDirectory)' 
-  displayName: Clean up files (as sudo)
