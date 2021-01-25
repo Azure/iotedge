@@ -109,7 +109,7 @@ steps:
           -containerRegistry "$(cr.address)" \
           -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
           -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
-          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
+          -iotHubConnectionString "$(TestIotHubConnectionString)" \
           -deploymentFileName "$(deploymentFile)" \
           -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
           -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
