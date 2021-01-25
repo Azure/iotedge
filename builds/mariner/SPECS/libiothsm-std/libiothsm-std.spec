@@ -1,6 +1,6 @@
 Summary:        Azure IoT standard mode HSM lib
 Name:           libiothsm-std
-Version:        1.0.10.4
+Version:        @@VERSION@@
 Release:        1%{?dist}
 
 # A buildable azure-iotedge environments needs functioning submodules that do not work from the archive download
@@ -51,6 +51,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libiothsm.so*
 
 %changelog
+*   Sun Jan 10 2021 Chad Zawistowski <chzawist@microsoft.com> @@VERSION@@-1
+-   Update to version @@VERSION@@.
 *   Mon Jan 04 2021 Chad Zawistowski <chzawist@microsoft.com> 1.0.10.4-1
 -   Update to version 1.0.10.4.
 *   Wed May 27 2020 Andrew Phelps <anphel@microsoft.com> 1.0.9.1-1

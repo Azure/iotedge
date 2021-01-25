@@ -772,6 +772,7 @@ function run_quickstartcerts_test() {
         -d "$device_id-leaf" \
         -ct "${certs[0]}" \
         -ed "$(hostname)" && ret=$? || ret=$?
+        -ed-id "$device_id"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"

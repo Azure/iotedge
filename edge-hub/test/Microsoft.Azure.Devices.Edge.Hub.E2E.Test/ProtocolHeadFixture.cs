@@ -78,7 +78,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
             await ConnectToIotHub(edgeDeviceConnectionString);
 
-            ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
+            // Set edgeHub connection string to config
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(edgeDeviceConnectionString);
+            string iothub = ConnectionStringHelper.GetHostName(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+            var edgeHubModule = await rm.GetModuleAsync(edgeDeviceId, "$edgeHub");
+            if (edgeHubModule.Authentication.Type == AuthenticationType.None)
+            {
+                edgeHubModule.Authentication.Type = AuthenticationType.Sas;
+                edgeHubModule = await rm.UpdateModuleAsync(edgeHubModule);
+            }
+
+            ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString] = $"HostName={iothub};DeviceId={edgeDeviceId};ModuleId=$edgeHub;SharedAccessKey={edgeHubModule.Authentication.SymmetricKey.PrimaryKey}";
 
             IDependencyManager dependencyManager = new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle, this.sslProtocols);
             Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, dependencyManager, true, this.sslProtocols);

@@ -8,13 +8,24 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_REPOSITORY_LOCALPATH="$(realpath "${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}")"
 EDGELET_ROOT="${BUILD_REPOSITORY_LOCALPATH}/edgelet"
 MARINER_BUILD_ROOT="${BUILD_REPOSITORY_LOCALPATH}/builds/mariner"
-VERSION="$(cat "$EDGELET_ROOT/version.txt")"
+
+# Get version from this file, but omit strings like "~dev" which are illegal in Mariner RPM versions.
+VERSION="$(cat "$EDGELET_ROOT/version.txt" | sed 's/~.*//')"
+echo "Edgelet version is ${VERSION}"
+
+# Update versions in specfiles
+pushd "${BUILD_REPOSITORY_LOCALPATH}"
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/azure-iotedge/azure-iotedge.spec
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/libiothsm-std/libiothsm-std.signatures.json
+sed -i "s/@@VERSION@@/${VERSION}/g" builds/mariner/SPECS/libiothsm-std/libiothsm-std.spec
+popd
 
 pushd "${EDGELET_ROOT}"
 
 # Cargo vendored dependencies should be downloaded by the AzureCLI task. Extract them now.
 echo "Vendoring Rust dependencies"
-unzip -q "azure-iotedge-cargo-vendor.zip"
+unzip -qq "azure-iotedge-cargo-vendor.zip"
 rm "azure-iotedge-cargo-vendor.zip"
 
 # Configure Cargo to use vendored the deps
@@ -50,6 +61,7 @@ popd # EDGELET_ROOT
 
 # Create source tarball, including cargo dependencies and license
 pushd "${BUILD_REPOSITORY_LOCALPATH}"
+echo "Creating source tarball azure-iotedge-${VERSION}.tar.gz"
 tar -czf azure-iotedge-${VERSION}.tar.gz --transform="s,^.*edgelet/,azure-iotedge-${VERSION}/edgelet/," "${EDGELET_ROOT}"
 popd
 
@@ -82,6 +94,6 @@ sudo tar xzf toolkit.tar.gz
 pushd toolkit
 
 # Build Mariner RPM packages
-sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc) LOG_LEVEL=trace
+sudo make build-packages PACKAGE_BUILD_LIST="azure-iotedge libiothsm-std" CONFIG_FILE= -j$(nproc)
 popd
 popd

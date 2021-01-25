@@ -303,8 +303,16 @@ where
     fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture {
         let module_id = id.module_id().to_string();
 
-        let result = if let Some(generation_id) = id.generation_id() {
-            match self.get_key_pair(&module_id, generation_id) {
+        let result = id.generation_id().map_or_else(
+            || {
+                Either::B(future::err(Error::from(
+                    ErrorKind::UpdateIdentityWithReason(
+                        id.module_id().to_string(),
+                        IdentityOperationReason::MissingGenerationId,
+                    ),
+                )))
+            },
+            |generation_id| match self.get_key_pair(&module_id, generation_id) {
                 Ok((primary_key, secondary_key)) => {
                     let auth = AuthMechanism::default()
                         .with_type(HubAuthType::Sas)
@@ -328,15 +336,8 @@ where
                 }
 
                 Err(err) => Either::B(future::err(err)),
-            }
-        } else {
-            Either::B(future::err(Error::from(
-                ErrorKind::UpdateIdentityWithReason(
-                    module_id,
-                    IdentityOperationReason::MissingGenerationId,
-                ),
-            )))
-        };
+            },
+        );
 
         Box::new(result)
     }
