@@ -115,8 +115,8 @@ stages:
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
-          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)
+          EventHubCompatibleEndpoint: $(TestEventHubCompatibleEndpoint)
+          IotHubConnectionString: $(TestIotHubConnectionString)
 
   - job:  Clean_up     
     dependsOn: SetupVM_and_RunTest_level3
