@@ -23,6 +23,10 @@ async fn main() -> Result<()> {
     let tester = MessageTester::new(settings.clone()).await?;
     let tester_shutdown = tester.shutdown_handle();
 
+    info!(
+        "waiting for test start delay of {:?}",
+        settings.test_start_delay()
+    );
     time::delay_for(settings.test_start_delay()).await;
 
     let test_fut = tester.run().instrument(info_span!("tester"));
