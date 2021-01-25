@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
+            this.DiagnosticsImage = Option.Maybe(Get("diagnosticsImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
             this.InstallerPath = Option.Maybe(Get("installerPath"));
             this.LogFile = Option.Maybe(Get("logFile"));
@@ -131,6 +132,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> EdgeAgentImage { get; }
 
         public Option<string> EdgeHubImage { get; }
+
+        public Option<string> DiagnosticsImage { get; }
 
         public string EventHubEndpoint { get; }
 

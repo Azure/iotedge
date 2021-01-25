@@ -12,6 +12,11 @@ use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
+use aziot_check_common::{
+    CheckOutputSerializable, CheckOutputSerializableStreaming, CheckResultSerializable,
+    CheckResultsSerializable, CheckerMetaSerializable,
+};
+
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
@@ -21,29 +26,13 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
-// mod upstream_protocol_port;
-
 mod hostname_checks_common;
+mod upstream_protocol_port;
 
 mod checker;
 use checker::Checker;
 
 mod checks;
-// use checks::{
-//     get_host_connect_upstream_tests, get_host_container_upstream_tests, AziotEdgedVersion, CertificatesQuickstart,
-//     ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6, ContainerEngineInstalled,
-//     ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
-//     ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted,
-//     HostConnectDpsEndpoint, HostLocalTime, Hostname, IdentityCertificateExpiry,
-//     ParentHostname, PullAgentFromUpstream, WellFormedConfig, WellFormedConnectionString,
-//     WindowsHostVersion,
-// };
-use checks::{
-    AziotEdgedVersion, ConnectManagementUri, ContainerEngineDns, ContainerEngineIPv6,
-    ContainerEngineInstalled, ContainerEngineIsMoby, ContainerEngineLogrotate, ContainerLocalTime,
-    ContainerResolveParentHostname, EdgeAgentStorageMounted, EdgeHubStorageMounted, HostLocalTime,
-    Hostname, ParentHostname, PullAgentFromUpstream, WellFormedConfig,
-};
 
 pub struct Check {
     config_file: PathBuf,
@@ -52,20 +41,18 @@ pub struct Check {
     dont_run: BTreeSet<String>,
     aziot_edged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
-    ntp_server: String,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
+    aziot_bin: std::ffi::OsString,
 
     additional_info: AdditionalInfo,
 
-    // iothub_hostname: Option<String>,
-
     // These optional fields are populated by the checks
+    iothub_hostname: Option<String>, // populated by `aziot check`
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
-    // device_ca_cert_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -106,11 +93,11 @@ impl Check {
         dont_run: BTreeSet<String>,
         expected_aziot_edged_version: Option<String>,
         aziot_edged: PathBuf,
-        // iothub_hostname: Option<String>,
-        ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
         warnings_as_errors: bool,
+        aziot_bin: std::ffi::OsString,
+        iothub_hostname: Option<String>,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_aziot_edged_version) =
             expected_aziot_edged_version
@@ -157,11 +144,9 @@ impl Check {
                             let uri = response
                                 .headers()
                                 .get(hyper::header::LOCATION)
-                                .ok_or_else(|| {
-                                    ErrorKind::FetchLatestVersions(
-                                        FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
-                                    )
-                                })?
+                                .ok_or(ErrorKind::FetchLatestVersions(
+                                    FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                                ))?
                                 .to_str()
                                 .context(ErrorKind::FetchLatestVersions(
                                     FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
@@ -215,82 +200,89 @@ impl Check {
                 dont_run,
                 aziot_edged,
                 latest_versions: latest_versions.map_err(Some),
-                ntp_server,
                 output_format,
                 verbose,
                 warnings_as_errors,
+                aziot_bin,
 
                 additional_info: AdditionalInfo::new(),
 
+                iothub_hostname,
                 settings: None,
                 docker_host_arg: None,
                 docker_server_version: None,
-                // iothub_hostname,
-                // device_ca_cert_path: None,
             })
         }))
     }
 
-    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 1] {
-        /* Note: keep ordering consistant. Later tests may depend on earlier tests. */
-        [
-            (
-                "Configuration checks",
-                vec![
-                    Box::new(WellFormedConfig::default()),
-                    // Box::new(WellFormedConnectionString::default()),
-                    Box::new(ContainerEngineInstalled::default()),
-                    Box::new(Hostname::default()),
-                    Box::new(ParentHostname::default()),
-                    Box::new(ContainerResolveParentHostname::default()),
-                    Box::new(ConnectManagementUri::default()),
-                    Box::new(AziotEdgedVersion::default()),
-                    Box::new(HostLocalTime::default()),
-                    Box::new(ContainerLocalTime::default()),
-                    Box::new(ContainerEngineDns::default()),
-                    Box::new(ContainerEngineIPv6::default()),
-                    // Box::new(IdentityCertificateExpiry::default()),
-                    // Box::new(CertificatesQuickstart::default()),
-                    Box::new(ContainerEngineIsMoby::default()),
-                    Box::new(ContainerEngineLogrotate::default()),
-                    Box::new(EdgeAgentStorageMounted::default()),
-                    Box::new(EdgeHubStorageMounted::default()),
-                    Box::new(PullAgentFromUpstream::default()),
-                ],
-            ),
-            // ("Connectivity checks", {
-            //     let mut tests: Vec<Box<dyn Checker>> = Vec::new();
-            //     tests.push(Box::new(HostConnectDpsEndpoint::default()));
-            //     tests.extend(get_host_connect_upstream_tests());
-            //     tests.extend(get_host_container_upstream_tests());
-            //     tests
-            // }),
-        ]
-    }
+    pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
+        let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
-    pub fn possible_ids() -> impl Iterator<Item = &'static str> {
-        let result: Vec<&'static str> = Check::checks()
-            .iter()
-            .flat_map(|(_, section_checks)| section_checks)
-            .map(|check| check.id())
-            .collect();
+        // get all the aziot checks by shelling-out to aziot
+        {
+            let aziot_check_out = std::process::Command::new(aziot_bin)
+                .arg("check-list")
+                .arg("--output=json")
+                .output();
 
-        result.into_iter()
-    }
+            match aziot_check_out {
+                Ok(out) => {
+                    let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
+                        serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
 
-    pub fn print_list() -> Result<(), Error> {
+                    all_checks.extend(
+                        aziot_checks
+                            .into_iter()
+                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
+                    );
+                }
+                Err(_) => {
+                    // not being able to shell-out to aziot is bad... but we shouldn't fail here,
+                    // as there might be other iotedge specific checks that don't rely on aziot.
+                    //
+                    // to make sure the user knows that there should me more checks, we add
+                    // this "dummy" entry instead.
+                    all_checks.push((
+                        "(aziot)".into(),
+                        vec![CheckerMetaSerializable {
+                            id: "(aziot-error)".into(),
+                            description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
+                        }]
+                    ));
+                }
+            }
+        }
+
+        // get all the built-in checks
+        {
+            let built_in_checks = checks::built_in_checks();
+            let checks = built_in_checks.iter().map(|(section_name, checks)| {
+                (
+                    (*section_name).to_string(),
+                    checks
+                        .iter()
+                        .map(|c| CheckerMetaSerializable {
+                            id: c.id().into(),
+                            description: c.description().into(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            });
+
+            all_checks.extend(checks);
+        }
+
         // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
-        let checks = Check::checks();
-        let widest_section_name_len = checks
+        let widest_section_name_len = all_checks
             .iter()
             .map(|(section_name, _)| section_name.len())
             .max()
             .expect("Have at least one section");
         let section_name_column_width = widest_section_name_len + 1;
-        let widest_check_id_len = checks
+        let widest_check_id_len = all_checks
             .iter()
             .flat_map(|(_, section_checks)| section_checks)
-            .map(|check| check.id().len())
+            .map(|check_meta| check_meta.id.len())
             .max()
             .expect("Have at least one check");
         let check_id_column_width = widest_check_id_len + 1;
@@ -304,13 +296,13 @@ impl Check {
         );
         println!();
 
-        for (section_name, section_checks) in &checks {
-            for check in section_checks {
+        for (section_name, section_checks) in all_checks {
+            for check_meta in section_checks {
                 println!(
                     "{:section_name_column_width$}{:check_id_column_width$}{}",
                     section_name,
-                    check.id(),
-                    check.description(),
+                    check_meta.id,
+                    check_meta.description,
                     section_name_column_width = section_name_column_width,
                     check_id_column_width = check_id_column_width,
                 );
@@ -322,9 +314,26 @@ impl Check {
         Ok(())
     }
 
+    fn output_section(&self, section_name: &str) {
+        if self.output_format == OutputFormat::Text {
+            println!();
+            println!("{}", section_name);
+            println!("{}", "-".repeat(section_name.len()));
+        }
+    }
+
     pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
-        let mut checks: BTreeMap<&str, CheckOutputSerializable> = Default::default();
-        let mut check_data = Check::checks();
+        // heterogeneous type representing the output of a check, regardless of
+        // whether or not it is built-in, or parsed from `aziot check`
+        #[derive(Debug)]
+        struct CheckOutput {
+            id: String,
+            description: String,
+            result: CheckResult,
+            additional_info: serde_json::Value,
+        };
+
+        let mut checks: BTreeMap<String, CheckOutputSerializable> = Default::default();
 
         let mut stdout = Stdout::new(self.output_format);
 
@@ -334,190 +343,306 @@ impl Check {
         let mut num_fatal = 0_usize;
         let mut num_errors = 0_usize;
 
-        for (section_name, section_checks) in &mut check_data {
+        let mut output_check = |check: CheckOutput,
+                                verbose: bool,
+                                warnings_as_errors: bool|
+         -> Result<bool, Error> {
             if num_fatal > 0 {
-                break;
+                return Ok(true);
             }
 
-            if self.output_format == OutputFormat::Text {
-                println!("{}", section_name);
-                println!("{}", "-".repeat(section_name.len()));
-            }
+            let CheckOutput {
+                id: check_id,
+                description: check_name,
+                result: check_result,
+                additional_info,
+                ..
+            } = check;
 
-            for check in section_checks {
-                let check_id = check.id();
-                let check_name = check.description();
+            match check_result {
+                CheckResult::Ok => {
+                    num_successful += 1;
 
-                if num_fatal > 0 {
-                    break;
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Ok,
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_success(|stdout| {
+                        writeln!(stdout, "\u{221a} {} - OK", check_name)?;
+                        Ok(())
+                    });
                 }
 
+                CheckResult::Warning(ref warning) if !warnings_as_errors => {
+                    num_warnings += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Warning {
+                                details: warning.iter_chain().map(ToString::to_string).collect(),
+                            },
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_warning(|stdout| {
+                        writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+
+                        let message = warning.to_string();
+
+                        write_lines(stdout, "    ", "    ", message.lines())?;
+
+                        if verbose {
+                            for cause in warning.iter_causes() {
+                                write_lines(
+                                    stdout,
+                                    "        caused by: ",
+                                    "                   ",
+                                    cause.to_string().lines(),
+                                )?;
+                            }
+                        }
+
+                        Ok(())
+                    });
+                }
+
+                CheckResult::Ignored => {
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Ignored,
+                            additional_info,
+                        },
+                    );
+                }
+
+                CheckResult::Skipped => {
+                    num_skipped += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Skipped,
+                            additional_info,
+                        },
+                    );
+
+                    if verbose {
+                        stdout.write_warning(|stdout| {
+                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
+                            writeln!(stdout, "    skipping because of previous failures")?;
+                            Ok(())
+                        });
+                    }
+                }
+
+                CheckResult::Fatal(err) => {
+                    num_fatal += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Fatal {
+                                details: err.iter_chain().map(ToString::to_string).collect(),
+                            },
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_error(|stdout| {
+                        writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+
+                        let message = err.to_string();
+
+                        write_lines(stdout, "    ", "    ", message.lines())?;
+
+                        if verbose {
+                            for cause in err.iter_causes() {
+                                write_lines(
+                                    stdout,
+                                    "        caused by: ",
+                                    "                   ",
+                                    cause.to_string().lines(),
+                                )?;
+                            }
+                        }
+
+                        Ok(())
+                    });
+                }
+
+                CheckResult::Warning(err) | CheckResult::Failed(err) => {
+                    num_errors += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Error {
+                                details: err.iter_chain().map(ToString::to_string).collect(),
+                            },
+                            additional_info,
+                        },
+                    );
+
+                    stdout.write_error(|stdout| {
+                        writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
+
+                        let message = err.to_string();
+
+                        write_lines(stdout, "    ", "    ", message.lines())?;
+
+                        if verbose {
+                            for cause in err.iter_causes() {
+                                write_lines(
+                                    stdout,
+                                    "        caused by: ",
+                                    "                   ",
+                                    cause.to_string().lines(),
+                                )?;
+                            }
+                        }
+
+                        Ok(())
+                    });
+                }
+            }
+
+            Ok(false)
+        };
+
+        // run the aziot checks first, as certain bits of `additional_info` from
+        // aziot are required to run iotedge checks. e.g: the "iothub_hostname".
+        {
+            fn to_check_result(res: CheckResultSerializable) -> CheckResult {
+                fn vec_to_err(mut v: Vec<String>) -> failure::Error {
+                    let mut err =
+                        failure::err_msg(v.pop().expect("errors always have at least one source"));
+                    while let Some(s) = v.pop() {
+                        err = err.context(s).into();
+                    }
+                    err
+                }
+
+                match res {
+                    CheckResultSerializable::Ok => CheckResult::Ok,
+                    CheckResultSerializable::Warning { details } => {
+                        CheckResult::Warning(vec_to_err(details))
+                    }
+                    CheckResultSerializable::Ignored => CheckResult::Ignored,
+                    CheckResultSerializable::Skipped => CheckResult::Skipped,
+                    CheckResultSerializable::Fatal { details } => {
+                        CheckResult::Fatal(vec_to_err(details))
+                    }
+                    CheckResultSerializable::Error { details } => {
+                        CheckResult::Failed(vec_to_err(details))
+                    }
+                }
+            }
+
+            let mut aziot_check = std::process::Command::new(&self.aziot_bin);
+            aziot_check
+                .arg("check")
+                .arg("-o=json-stream")
+                .stdout(std::process::Stdio::piped());
+
+            if let Some(iothub_hostname) = &self.iothub_hostname {
+                aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
+            }
+
+            if !self.dont_run.is_empty() {
+                aziot_check
+                    .arg("--dont-run")
+                    .arg(self.dont_run.iter().cloned().collect::<Vec<_>>().join(" "));
+            }
+
+            match aziot_check.spawn() {
+                Ok(child) => {
+                    for val in
+                        serde_json::Deserializer::from_reader(child.stdout.unwrap()).into_iter()
+                    {
+                        let val = val.context(ErrorKind::Aziot)?;
+                        match val {
+                            CheckOutputSerializableStreaming::Section { name } => {
+                                self.output_section(&format!("{} (aziot)", name))
+                            }
+                            CheckOutputSerializableStreaming::Check { meta, output } => {
+                                if output_check(
+                                    CheckOutput {
+                                        id: meta.id,
+                                        description: meta.description,
+                                        result: to_check_result(output.result),
+                                        additional_info: output.additional_info,
+                                    },
+                                    self.verbose,
+                                    self.warnings_as_errors,
+                                )? {
+                                    break;
+                                }
+                            }
+                            CheckOutputSerializableStreaming::AdditionalInfo(info) => {
+                                // if it wasn't manually specified via CLI flag, try to
+                                // extract iothub_hostname from additional_info
+                                if self.iothub_hostname.is_none() {
+                                    self.iothub_hostname = info
+                                        .as_object()
+                                        .and_then(|m| m.get("iothub_hostname"))
+                                        .and_then(serde_json::Value::as_str)
+                                        .map(Into::into)
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    // not being able to shell-out to aziot is bad... but we shouldn't fail here,
+                    // as there might be other iotedge specific checks that don't rely on aziot.
+                    //
+                    // nonetheless, we still need to notify the user that the aziot checks
+                    // could not be run.
+                    self.output_section("(aziot)");
+                    output_check(
+                        CheckOutput {
+                            id: "(aziot-error)".into(),
+                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
+                            additional_info: serde_json::Value::Null,
+                        },
+                        self.verbose,
+                        self.warnings_as_errors,
+                    )?;
+                }
+            };
+        }
+
+        // run the built-in checks
+        'outer: for (section_name, section_checks) in &mut checks::built_in_checks() {
+            self.output_section(&section_name);
+
+            for check in section_checks {
                 let check_result = if self.dont_run.contains(check.id()) {
                     CheckResult::Ignored
                 } else {
                     check.execute(self, runtime)
                 };
 
-                match check_result {
-                    CheckResult::Ok => {
-                        num_successful += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Ok,
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_success(|stdout| {
-                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
-                            Ok(())
-                        });
-                    }
-
-                    CheckResult::Warning(ref warning) if !self.warnings_as_errors => {
-                        num_warnings += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Warning {
-                                    details: warning
-                                        .iter_chain()
-                                        .map(ToString::to_string)
-                                        .collect(),
-                                },
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_warning(|stdout| {
-                            writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
-
-                            let message = warning.to_string();
-
-                            write_lines(stdout, "    ", "    ", message.lines())?;
-
-                            if self.verbose {
-                                for cause in warning.iter_causes() {
-                                    write_lines(
-                                        stdout,
-                                        "        caused by: ",
-                                        "                   ",
-                                        cause.to_string().lines(),
-                                    )?;
-                                }
-                            }
-
-                            Ok(())
-                        });
-                    }
-
-                    CheckResult::Ignored => {
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Ignored,
-                                additional_info: check.get_json(),
-                            },
-                        );
-                    }
-
-                    CheckResult::Skipped => {
-                        num_skipped += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Skipped,
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        if self.verbose {
-                            stdout.write_warning(|stdout| {
-                                writeln!(stdout, "\u{203c} {} - Warning", check_name)?;
-                                writeln!(stdout, "    skipping because of previous failures")?;
-                                Ok(())
-                            });
-                        }
-                    }
-
-                    CheckResult::Fatal(err) => {
-                        num_fatal += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Fatal {
-                                    details: err.iter_chain().map(ToString::to_string).collect(),
-                                },
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
-
-                            let message = err.to_string();
-
-                            write_lines(stdout, "    ", "    ", message.lines())?;
-
-                            if self.verbose {
-                                for cause in err.iter_causes() {
-                                    write_lines(
-                                        stdout,
-                                        "        caused by: ",
-                                        "                   ",
-                                        cause.to_string().lines(),
-                                    )?;
-                                }
-                            }
-
-                            Ok(())
-                        });
-                    }
-
-                    CheckResult::Warning(err) | CheckResult::Failed(err) => {
-                        num_errors += 1;
-
-                        checks.insert(
-                            check_id,
-                            CheckOutputSerializable {
-                                result: CheckResultSerializable::Error {
-                                    details: err.iter_chain().map(ToString::to_string).collect(),
-                                },
-                                additional_info: check.get_json(),
-                            },
-                        );
-
-                        stdout.write_error(|stdout| {
-                            writeln!(stdout, "\u{00d7} {} - Error", check_name)?;
-
-                            let message = err.to_string();
-
-                            write_lines(stdout, "    ", "    ", message.lines())?;
-
-                            if self.verbose {
-                                for cause in err.iter_causes() {
-                                    write_lines(
-                                        stdout,
-                                        "        caused by: ",
-                                        "                   ",
-                                        cause.to_string().lines(),
-                                    )?;
-                                }
-                            }
-
-                            Ok(())
-                        });
-                    }
+                if output_check(
+                    CheckOutput {
+                        id: check.id().into(),
+                        description: check.description().into(),
+                        result: check_result,
+                        additional_info: check.get_json(),
+                    },
+                    self.verbose,
+                    self.warnings_as_errors,
+                )? {
+                    break 'outer;
                 }
-            }
-
-            if self.output_format == OutputFormat::Text {
-                println!();
             }
         }
 
@@ -574,7 +699,7 @@ impl Check {
 
         if self.output_format == OutputFormat::Json {
             let check_results = CheckResultsSerializable {
-                additional_info: &self.additional_info,
+                additional_info: serde_json::to_value(&self.additional_info).unwrap(),
                 checks,
             };
 
@@ -607,40 +732,11 @@ fn write_lines<'a>(
     Ok(())
 }
 
-#[derive(Debug, serde_derive::Serialize)]
-struct CheckResultsSerializable<'a> {
-    additional_info: &'a AdditionalInfo,
-    checks: BTreeMap<&'static str, CheckOutputSerializable>,
-}
-
-#[derive(Debug, serde_derive::Serialize)]
-#[serde(tag = "result")]
-#[serde(rename_all = "snake_case")]
-enum CheckResultSerializable {
-    Ok,
-    Warning { details: Vec<String> },
-    Ignored,
-    Skipped,
-    Fatal { details: Vec<String> },
-    Error { details: Vec<String> },
-}
-
-#[derive(Debug, serde_derive::Serialize)]
-struct CheckOutputSerializable {
-    result: CheckResultSerializable,
-    additional_info: serde_json::Value,
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
-        Check,
-        CheckResult,
-        Checker,
-        ContainerEngineIsMoby,
-        Hostname,
-        WellFormedConfig,
-        // WellFormedConnectionString,
+        checks::{ContainerEngineIsMoby, Hostname, WellFormedConfig},
+        Check, CheckResult, Checker,
     };
 
     #[test]
@@ -661,13 +757,13 @@ mod tests {
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
-                    Some("1.0.0".to_owned()), // unused for this test
-                    "aziot-edged".into(),     // unused for this test
-                    // None,                          // unused for this test
-                    "pool.ntp.org:123".to_owned(), // unused for this test
-                    super::OutputFormat::Text,     // unused for this test
+                    Some("1.0.0".to_owned()),  // unused for this test
+                    "aziot-edged".into(),      // unused for this test
+                    super::OutputFormat::Text, // unused for this test
                     false,
                     false,
+                    "".into(), // unused for this test
+                    None,
                 ))
                 .unwrap();
 
@@ -675,14 +771,6 @@ mod tests {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
-
-            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            //     CheckResult::Ok => (),
-            //     check_result => panic!(
-            //         "checking connection string in {} returned {:?}",
-            //         filename, check_result
-            //     ),
-            // }
 
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
@@ -732,13 +820,13 @@ mod tests {
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
-                    Some("1.0.0".to_owned()), // unused for this test
-                    "aziot-edged".into(),     // unused for this test
-                    // None,                          // unused for this test
-                    "pool.ntp.org:123".to_owned(), // unused for this test
-                    super::OutputFormat::Text,     // unused for this test
+                    Some("1.0.0".to_owned()),  // unused for this test
+                    "aziot-edged".into(),      // unused for this test
+                    super::OutputFormat::Text, // unused for this test
                     false,
                     false,
+                    "".into(), // unused for this test
+                    None,
                 ))
                 .unwrap();
 
@@ -803,13 +891,13 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()), // unused for this test
-                "aziot-edged".into(),     // unused for this test
-                // None,                          // unused for this test
-                "pool.ntp.org:123".to_owned(), // unused for this test
-                super::OutputFormat::Text,     // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
+                "aziot-edged".into(),      // unused for this test
+                super::OutputFormat::Text, // unused for this test
                 false,
                 false,
+                "".into(), // unused for this test
+                None,
             ))
             .unwrap();
 
@@ -832,231 +920,6 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn settings_connection_string_dps_hostname() {
-    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
-    //     let filename = "sample_settings.dps.sym.yaml";
-    //     let config_file = format!(
-    //         "{}/../edgelet-docker/test/{}/{}",
-    //         env!("CARGO_MANIFEST_DIR"),
-    //         "linux",
-    //         filename,
-    //     );
-
-    //     let mut check = runtime
-    //         .block_on(Check::new(
-    //             config_file.into(),
-    //             "daemon.json".into(), // unused for this test
-    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-    //             Default::default(),
-    //             Some("1.0.0".to_owned()), // unused for this test
-    //             "aziot-edged".into(),        // unused for this test
-    //             // Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
-    //             "pool.ntp.org:123".to_owned(), // unused for this test
-    //             super::OutputFormat::Text,     // unused for this test
-    //             false,
-    //             false,
-    //         ))
-    //         .unwrap();
-
-    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-    //         CheckResult::Ok => (),
-    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
-    //     }
-
-    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-    //         CheckResult::Ok => (),
-    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
-    //     }
-    // }
-
-    // This test inexplicably fails in the ci pipeline due to file read errors.
-    // It has been tested on ubuntu 18.04, raspbian buster and windows.
-    // It is disabled until the test pipeline issue is resolved.
-    // use std::fs::File;
-    // use std::io::{BufRead, BufReader, Write};
-
-    // use tempfile::tempdir;
-    // #[test]
-    // fn settings_connection_string_dps_config_file() {
-    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
-    //     let hub_name = "hub_1";
-
-    //     let filename = "sample_settings.dps.sym.yaml";
-    //     let config_file_source = format!(
-    //         "{}/../edgelet-docker/test/{}/{}",
-    //         env!("CARGO_MANIFEST_DIR"),
-    //         "linux",
-    //         filename,
-    //     );
-
-    //     let tmp_dir = tempdir().unwrap();
-    //     let config_file = tmp_dir.path().join(filename);
-    //     let provision_file = tmp_dir
-    //         .path()
-    //         .join("cache")
-    //         .join("provisioning_backup.json");
-    //     std::fs::create_dir(tmp_dir.path().join("cache")).unwrap();
-
-    //     // replace homedir with temp directory
-    //     {
-    //         let mut new_config = File::create(&config_file).unwrap();
-    //         for line in BufReader::new(File::open(config_file_source).unwrap()).lines() {
-    //             if let Ok(line) = line {
-    //                 if line.contains("homedir") {
-    //                     let new_line = format!(
-    //                         r#"homedir: "{}""#,
-    //                         tmp_dir.path().to_str().unwrap().replace(r"\", r"\\")
-    //                     );
-    //                     new_config.write_all(new_line.as_bytes()).unwrap();
-    //                 } else {
-    //                     new_config.write_all(line.as_bytes()).unwrap();
-    //                 }
-    //                 new_config.write_all(b"\n").unwrap();
-    //             }
-    //         }
-    //     }
-
-    //     let fake_result = provisioning::ProvisioningResult::new(
-    //         "a",
-    //         hub_name,
-    //         None,
-    //         provisioning::ReprovisioningStatus::default(),
-    //         None,
-    //     );
-    //     provisioning::backup(&fake_result, &provision_file).unwrap();
-
-    //     let mut check = runtime
-    //         .block_on(Check::new(
-    //             config_file,
-    //             "daemon.json".into(), // unused for this test
-    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-    //             Default::default(),
-    //             Some("1.0.0".to_owned()),      // unused for this test
-    //             "aziot-edged".into(),             // unused for this test
-    //             None,                          // pretend user did not specify --iothub-hostname
-    //             "pool.ntp.org:123".to_owned(), // unused for this test
-    //             super::OutputFormat::Text,     // unused for this test
-    //             false,
-    //             false,
-    //         ))
-    //         .unwrap();
-
-    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-    //         CheckResult::Ok => (),
-    //         check_result => panic!("parsing config {} returned {:?}", filename, check_result),
-    //     }
-
-    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-    //         CheckResult::Ok => {
-    //             assert_eq!(check.iothub_hostname, Some(hub_name.to_owned()));
-    //         }
-    //         check_result => panic!(
-    //             "parsing connection string {} returned {:?}",
-    //             filename, check_result
-    //         ),
-    //     }
-    // }
-
-    // #[test]
-    // fn settings_connection_string_dps_err() {
-    //     let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
-    //     let filename = "sample_settings.dps.sym.yaml";
-    //     let config_file = format!(
-    //         "{}/../edgelet-docker/test/{}/{}",
-    //         env!("CARGO_MANIFEST_DIR"),
-    //         "linux",
-    //         filename,
-    //     );
-
-    //     let mut check = runtime
-    //         .block_on(Check::new(
-    //             config_file.into(),
-    //             "daemon.json".into(), // unused for this test
-    //             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-    //             Default::default(),
-    //             Some("1.0.0".to_owned()), // unused for this test
-    //             "aziot-edged".into(),        // unused for this test
-    //             // None,
-    //             "pool.ntp.org:123".to_owned(), // unused for this test
-    //             super::OutputFormat::Text,     // unused for this test
-    //             false,
-    //             false,
-    //         ))
-    //         .unwrap();
-
-    //     match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-    //         CheckResult::Ok => (),
-    //         check_result => panic!("parsing {} returned {:?}", filename, check_result),
-    //     }
-
-    //     match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-    //         CheckResult::Failed(err) => assert!(err
-    //             .to_string()
-    //             .contains("Could not retrieve iothub_hostname from provisioning file.")),
-    //         check_result => panic!(
-    //             "checking connection string in {} returned {:?}",
-    //             filename, check_result
-    //         ),
-    //     }
-    // }
-
-    #[test]
-    #[cfg(windows)]
-    fn moby_runtime_uri_windows_wants_moby_based_on_runtime_uri() {
-        let mut runtime = tokio::runtime::Runtime::new().unwrap();
-
-        let filename = "sample_settings_notmoby.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
-        );
-
-        let mut check = runtime
-            .block_on(Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()),      // unused for this test
-                "aziot-edged".into(),          // unused for this test
-                None,                          // unused for this test
-                "pool.ntp.org:123".to_owned(), // unused for this test
-                super::OutputFormat::Text,     // unused for this test
-                false,
-                false,
-            ))
-            .unwrap();
-
-        match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Ok => (),
-            check_result => panic!("parsing {} returned {:?}", filename, check_result),
-        }
-
-        // Pretend it's Moby even though named pipe indicates otherwise
-        check.docker_server_version = Some("19.03.12+azure".to_owned());
-
-        match ContainerEngineIsMoby::default().execute(&mut check, &mut runtime) {
-            CheckResult::Warning(warning) => assert!(
-                warning.to_string().contains(
-                    "Device is not using a production-supported container engine (moby-engine)."
-                ),
-                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
-                filename,
-                warning
-            ),
-
-            check_result => panic!(
-                "checking moby_runtime.uri in {} returned {:?}",
-                filename, check_result
-            ),
-        }
-    }
-
     #[test]
     fn moby_runtime_uri_wants_moby_based_on_server_version() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
@@ -1075,13 +938,13 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()), // unused for this test
-                "aziot-edged".into(),     // unused for this test
-                // None,                          // unused for this test
-                "pool.ntp.org:123".to_owned(), // unused for this test
-                super::OutputFormat::Text,     // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
+                "aziot-edged".into(),      // unused for this test
+                super::OutputFormat::Text, // unused for this test
                 false,
                 false,
+                "".into(), // unused for this test
+                None,
             ))
             .unwrap();
 

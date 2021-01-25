@@ -69,7 +69,7 @@ steps:
     artifactName: $(artifactName)
 
 - task: PowerShell@2
-  displayName: Download aziot-identity-service
+  displayName: 'Download aziot-identity-service'
   inputs:
     filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
     workingDirectory: $(Build.SourcesDirectory)
@@ -111,6 +111,7 @@ steps:
     {
       $nestededge = "true"
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
+      $diagnosticImagePrefix ='$(parentName):443/$(cr.labelPrefix)azureiotedge' 
       $caCertScriptPath = Convert-Path "/certs"
       $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
       $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
@@ -118,6 +119,7 @@ steps:
     {
       $nestededge = "false"
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge' 
       $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
@@ -130,6 +132,7 @@ steps:
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
+      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";      
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
       tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";

@@ -209,10 +209,10 @@ namespace IotEdgeQuickstart.Details
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
         }
 
-        protected Task VerifyEdgeIsNotAlreadyActive()
+        protected Task UpdatePackageState()
         {
-            Console.WriteLine("Verifying if edge is not already active.");
-            return this.bootstrapper.VerifyNotActive();
+            Console.WriteLine("Checking if aziot-edge and aziot-identity-service are installed.");
+            return this.bootstrapper.UpdatePackageState();
         }
 
         protected Task VerifyBootstrapperDependencies()
@@ -298,7 +298,7 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
-            Console.WriteLine("Verifying if edge is connected to IoThub");
+            Console.WriteLine("Verifying if edge is connected to IoT Hub.");
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(600))) // Long timeout is needed because registry manager takes a while for the device identity to be usable
             {
                 Exception savedException = null;

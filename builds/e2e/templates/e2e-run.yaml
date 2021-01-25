@@ -1,3 +1,7 @@
+parameters:
+  EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
+  IotHubConnectionString: '$(TestIotHubConnectionString)'
+
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
@@ -13,13 +17,21 @@ steps:
     {
       $filter += '&Category!=UnstableOnArm'
     }
-
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
+    
+    #filter out tests not usable on nested edge
+    if ('$(nestededge)' -eq 'true')
+    {
+      #We are disabling some additional tests. See  PBI #9171870. Once this is fixed we should run what's directly below.
+      #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    }
+    
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
-    E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
-    E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+    E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
+    E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
