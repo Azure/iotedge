@@ -50,6 +50,8 @@ function usage() {
     echo ' -listenWorkloadUri                       Customize listen workload socket'
     echo ' -desiredModulesToRestartCSV              CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
     echo ' -restartIntervalInMins                   Value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
+    echo ' -sendReportFrequency                     Value for long haul specifying how often TRC will send reports to LogAnalytics.'
+    echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
@@ -206,10 +208,13 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
+    
+    sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
+        sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
     fi
 
     if [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
@@ -454,6 +459,12 @@ function process_args() {
         elif [ $saveNextArg -eq 44 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 45 ]; then
+            SEND_REPORT_FREQUENCY="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 46 ]; then
+            TEST_MODE="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -501,6 +512,8 @@ function process_args() {
                 '-listenWorkloadUri' ) saveNextArg=42;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=43;;
                 '-restartIntervalInMins' ) saveNextArg=44;;
+                '-sendReportFrequency' ) saveNextArg=45;;
+                '-testMode' ) saveNextArg=46;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
