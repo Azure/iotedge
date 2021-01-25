@@ -58,10 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.iotHub,
-                this.device.NestedEdge.deviceHostname,
+                this.device.NestedEdge.DeviceHostname,
                 token,
                 Option.Some(TestModelId),
-                this.device.NestedEdge.isNestedEdge);
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>

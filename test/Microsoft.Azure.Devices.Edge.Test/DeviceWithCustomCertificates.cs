@@ -42,10 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     testAuth.UseSecondaryCertificate(),
                     this.ca,
                     this.iotHub,
-                    this.device.NestedEdge.deviceHostname,
+                    this.device.NestedEdge.DeviceHostname,
                     token,
                     Option.None<string>(),
-                    this.device.NestedEdge.isNestedEdge);
+                    this.device.NestedEdge.IsNestedEdge);
             }
             catch (Exception) when (!parentId.HasValue)
             {
@@ -73,15 +73,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [Test, Description("A test to verify a leaf device can be registered under grandparent device scope.")]
+        [Test]
         [Category("NestedEdgeOnly")]
+        [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
         public async Task GrandparentScopeDevice(
-            [Values(TestAuthenticationType.SasInScope,
-                    TestAuthenticationType.SelfSignedPrimary,
-                    TestAuthenticationType.SelfSignedSecondary)]    TestAuthenticationType testAuth,
-            [Values(Protocol.Mqtt, Protocol.Amqp)]                  Protocol protocol)
+            [Values(
+                TestAuthenticationType.SasInScope,
+                TestAuthenticationType.SelfSignedPrimary,
+                TestAuthenticationType.SelfSignedSecondary)] TestAuthenticationType testAuth,
+            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
             {
-                if(!this.device.NestedEdge.isNestedEdge)
+                if (!this.device.NestedEdge.IsNestedEdge)
                 {
                     Assert.Ignore("The test can only be run in the nested edge topology");
                 }
@@ -105,10 +107,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         testAuth.UseSecondaryCertificate(),
                         this.ca,
                         this.iotHub,
-                        this.device.NestedEdge.parentHostname,
+                        this.device.NestedEdge.ParentHostname,
                         token,
                         Option.None<string>(),
-                        this.device.NestedEdge.isNestedEdge);
+                        this.device.NestedEdge.IsNestedEdge);
                 }
                 catch (Exception) when (!parentId.HasValue)
                 {

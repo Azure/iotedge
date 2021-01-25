@@ -99,10 +99,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     this.ca,
                     this.iotHub,
-                    this.device.NestedEdge.deviceHostname,
+                    this.device.NestedEdge.DeviceHostname,
                     token,
                     Option.None<string>(),
-                    this.device.NestedEdge.isNestedEdge);
+                    this.device.NestedEdge.IsNestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 $"HostName={this.iotHub.Hostname};" +
                 $"DeviceId={leaf.Id};" +
                 $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
-                $"GatewayHostName={this.device.NestedEdge.deviceHostname}";
+                $"GatewayHostName={this.device.NestedEdge.DeviceHostname}";
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
@@ -262,10 +262,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.iotHub,
-                this.device.NestedEdge.deviceHostname,
+                this.device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                this.device.NestedEdge.isNestedEdge);
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -290,10 +290,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     false,
                     this.ca,
                     this.iotHub,
-                    this.device.NestedEdge.deviceHostname,
+                    this.device.NestedEdge.DeviceHostname,
                     token,
                     Option.None<string>(),
-                    this.device.NestedEdge.isNestedEdge);
+                    this.device.NestedEdge.IsNestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
