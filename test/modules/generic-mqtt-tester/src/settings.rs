@@ -53,16 +53,16 @@ impl Settings {
         &self.test_scenario
     }
 
-    pub fn trc_url(&self) -> &str {
-        &self.trc_url
+    pub fn trc_url(&self) -> String {
+        self.trc_url.clone()
     }
 
-    pub fn tracking_id(&self) -> &str {
-        &self.tracking_id
+    pub fn tracking_id(&self) -> String {
+        self.tracking_id.clone()
     }
 
-    pub fn batch_id(&self) -> &str {
-        &self.batch_id
+    pub fn batch_id(&self) -> String {
+        self.batch_id.clone()
     }
 
     pub fn message_frequency(&self) -> Duration {
@@ -77,8 +77,8 @@ impl Settings {
         self.message_size_in_bytes
     }
 
-    pub fn topic(&self) -> &str {
-        &self.topic
+    pub fn topic(&self) -> String {
+        self.topic.clone()
     }
 }
 

@@ -90,38 +90,29 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let message_size_in_bytes = settings.message_size_in_bytes();
-        let topic = settings.topic().to_string();
-        let tracking_id = settings.tracking_id().to_string();
-        let batch_id = settings.batch_id().to_string();
-        let test_result_coordinator_url = settings.trc_url().to_string();
+        let topic = settings.topic();
+        let tracking_id = settings.tracking_id();
+        let batch_id = settings.batch_id();
+        let test_result_coordinator_url = settings.trc_url();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
             TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(
                 reporting_client.clone(),
-                tracking_id.clone(),
-                batch_id.clone(),
+                tracking_id,
+                batch_id,
             )),
-            TestScenario::Relay => Box::new(RelayingMessageHandler::new(
-                publish_handle.clone(),
-                topic.clone(),
-            )),
+            TestScenario::Relay => {
+                Box::new(RelayingMessageHandler::new(publish_handle.clone(), topic))
+            }
         };
         let message_channel = MessageChannel::new(message_handler);
 
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
-            let initiator = MessageInitiator::new(
-                publish_handle,
-                tracking_id,
-                batch_id,
-                reporting_client,
-                settings.message_frequency(),
-                topic,
-                message_size_in_bytes,
-            );
+            let initiator =
+                MessageInitiator::new(publish_handle, reporting_client, settings.clone());
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());
             message_initiator = Some(initiator);
@@ -163,7 +154,7 @@ impl MessageTester {
         );
 
         // make subscription
-        let topic = self.settings.topic().to_string();
+        let topic = self.settings.topic();
         Self::subscribe(client_sub_handle, topic).await?;
 
         // run message channel

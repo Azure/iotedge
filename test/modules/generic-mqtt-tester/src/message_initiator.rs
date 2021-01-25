@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use bytes::Bytes;
 use futures_util::{
     future::{self, Either},
@@ -16,7 +14,7 @@ use tokio::{
 use tracing::info;
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{MessageTesterError, ShutdownHandle, SEND_SOURCE};
+use crate::{settings::Settings, MessageTesterError, ShutdownHandle, SEND_SOURCE};
 
 /// Responsible for starting to send the messages that will be relayed and
 /// tracked by the test module.
@@ -24,23 +22,15 @@ pub struct MessageInitiator {
     publish_handle: PublishHandle,
     shutdown_recv: Receiver<()>,
     shutdown_handle: ShutdownHandle,
-    tracking_id: String,
-    batch_id: String,
     reporting_client: TrcClient,
-    message_frequency: Duration,
-    topic: String,
-    message_size_in_bytes: u32,
+    settings: Settings,
 }
 
 impl MessageInitiator {
     pub fn new(
         publish_handle: PublishHandle,
-        tracking_id: String,
-        batch_id: String,
         reporting_client: TrcClient,
-        message_frequency: Duration,
-        topic: String,
-        message_size_in_bytes: u32,
+        settings: Settings,
     ) -> Self {
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
         let shutdown_handle = ShutdownHandle(shutdown_send);
@@ -49,12 +39,8 @@ impl MessageInitiator {
             publish_handle,
             shutdown_recv,
             shutdown_handle,
-            tracking_id,
-            batch_id,
             reporting_client,
-            message_frequency,
-            topic,
-            message_size_in_bytes,
+            settings,
         }
     }
 
@@ -65,10 +51,10 @@ impl MessageInitiator {
         let mut publish_handle = self.publish_handle.clone();
         loop {
             info!("publishing message {} to upstream broker", seq_num);
-            let dummy_payload = "a".repeat(self.message_size_in_bytes as usize);
+            let dummy_payload = "a".repeat(self.settings.message_size_in_bytes() as usize);
 
             let publication = Publication {
-                topic_name: self.topic.clone(),
+                topic_name: self.settings.topic().to_string(),
                 qos: QoS::ExactlyOnce,
                 retain: true,
                 payload: Bytes::from(seq_num.to_string() + " " + dummy_payload.as_str()),
@@ -92,7 +78,7 @@ impl MessageInitiator {
             self.report_message_sent(seq_num).await?;
             seq_num += 1;
 
-            time::delay_for(self.message_frequency).await;
+            time::delay_for(self.settings.message_frequency()).await;
         }
 
         Ok(())
@@ -104,8 +90,8 @@ impl MessageInitiator {
 
     async fn report_message_sent(&self, sequence_number: u32) -> Result<(), MessageTesterError> {
         let result = MessageTestResult::new(
-            self.tracking_id.clone(),
-            self.batch_id.clone(),
+            self.settings.tracking_id(),
+            self.settings.batch_id(),
             sequence_number,
         );
 
