@@ -1,6 +1,6 @@
-// mod certificates_quickstart;
+mod aziot_edged_version;
 mod connect_management_uri;
-// mod container_connect_upstream;
+mod container_connect_upstream;
 mod container_engine_dns;
 mod container_engine_installed;
 mod container_engine_ipv6;
@@ -8,21 +8,15 @@ mod container_engine_is_moby;
 mod container_engine_logrotate;
 mod container_local_time;
 mod container_resolve_parent_hostname;
-// mod host_connect_dps_endpoint;
-// mod host_connect_upstream;
-mod host_local_time;
 mod hostname;
-// mod identity_certificate_expiry;
-mod aziot_edged_version;
 mod parent_hostname;
 mod pull_agent_from_upstream;
 mod storage_mounted_from_host;
 mod well_formed_config;
-// mod well_formed_connection_string;
 
-// pub(crate) use self::certificates_quickstart::CertificatesQuickstart;
+pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
-// pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
+pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
 pub(crate) use self::container_engine_dns::ContainerEngineDns;
 pub(crate) use self::container_engine_installed::ContainerEngineInstalled;
 pub(crate) use self::container_engine_ipv6::ContainerEngineIPv6;
@@ -30,22 +24,18 @@ pub(crate) use self::container_engine_is_moby::ContainerEngineIsMoby;
 pub(crate) use self::container_engine_logrotate::ContainerEngineLogrotate;
 pub(crate) use self::container_local_time::ContainerLocalTime;
 pub(crate) use self::container_resolve_parent_hostname::ContainerResolveParentHostname;
-// pub(crate) use self::host_connect_dps_endpoint::HostConnectDpsEndpoint;
-// pub(crate) use self::host_connect_upstream::get_host_connect_upstream_tests;
-pub(crate) use self::host_local_time::HostLocalTime;
 pub(crate) use self::hostname::Hostname;
-// pub(crate) use self::identity_certificate_expiry::IdentityCertificateExpiry;
-pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::parent_hostname::ParentHostname;
 pub(crate) use self::pull_agent_from_upstream::PullAgentFromUpstream;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
 pub(crate) use self::well_formed_config::WellFormedConfig;
-// pub(crate) use self::well_formed_connection_string::WellFormedConnectionString;
 
 use std::ffi::OsStr;
 use std::process::Command;
 
 use failure::{self, Context, Fail};
+
+use super::Checker;
 
 pub(crate) fn docker<I>(
     docker_host_arg: &str,
@@ -79,4 +69,36 @@ where
     }
 
     Ok(output.stdout)
+}
+
+// built-in checks, as opposed to those that are deferred to `aziot check`
+pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+    /* Note: keep ordering consistent. Later tests may depend on earlier tests. */
+    [
+        (
+            "Configuration checks",
+            vec![
+                Box::new(WellFormedConfig::default()),
+                Box::new(ContainerEngineInstalled::default()),
+                Box::new(Hostname::default()),
+                Box::new(ParentHostname::default()),
+                Box::new(ContainerResolveParentHostname::default()),
+                Box::new(ConnectManagementUri::default()),
+                Box::new(AziotEdgedVersion::default()),
+                Box::new(ContainerLocalTime::default()),
+                Box::new(ContainerEngineDns::default()),
+                Box::new(ContainerEngineIPv6::default()),
+                Box::new(ContainerEngineIsMoby::default()),
+                Box::new(ContainerEngineLogrotate::default()),
+                Box::new(EdgeAgentStorageMounted::default()),
+                Box::new(EdgeHubStorageMounted::default()),
+                Box::new(PullAgentFromUpstream::default()),
+            ],
+        ),
+        ("Connectivity checks", {
+            let mut tests: Vec<Box<dyn Checker>> = Vec::new();
+            tests.extend(get_host_container_upstream_tests());
+            tests
+        }),
+    ]
 }
