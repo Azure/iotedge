@@ -1,6 +1,6 @@
 use std::{
     collections::VecDeque,
-    path::Path,
+    path::PathBuf,
     sync::atomic::{AtomicUsize, Ordering},
     task::Waker,
     time::Instant,
@@ -17,12 +17,9 @@ pub struct Sled {
 }
 
 impl Sled {
-    pub fn new(
-        path: impl AsRef<Path> + Send + Sync + 'static,
-        tree_name: String,
-        flush_options: FlushOptions,
-    ) -> Self {
-        if path.as_ref().exists() {
+    pub fn new(path: String, tree_name: String, flush_options: FlushOptions) -> Self {
+        let path = PathBuf::from(path);
+        if path.exists() && path.is_dir() {
             std::fs::remove_dir_all(&path).unwrap();
         }
 
@@ -64,6 +61,10 @@ impl Storage<usize, Vec<u8>> for Sled {
 
     fn set_waker(&mut self, waker: Waker) {
         self.waker = Some(waker)
+    }
+    
+    fn waker(&mut self) -> &mut Option<Waker> {
+        &mut self.waker
     }
 }
 

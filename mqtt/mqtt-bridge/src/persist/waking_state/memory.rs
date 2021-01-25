@@ -4,6 +4,8 @@ use std::{
     task::Waker,
 };
 
+use async_trait::async_trait;
+
 use tracing::debug;
 
 use mqtt3::proto::Publication;
@@ -28,8 +30,9 @@ impl Default for WakingMemoryStore {
     }
 }
 
+#[async_trait]
 impl StreamWakeableState for WakingMemoryStore {
-    fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
+    async fn insert(&mut self, key: Key, value: Publication) -> Result<(), PersistError> {
         debug!("inserting publication with key {:?}", key);
 
         self.queue.push_back((key, value));
@@ -41,7 +44,7 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(())
     }
 
-    fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
+    async fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
         let count = min(count, self.queue.len());
         let output: VecDeque<_> = self.queue.drain(..count).collect();
 
@@ -52,7 +55,7 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(output)
     }
 
-    fn remove(&mut self, key: Key) -> Result<(), PersistError> {
+    async fn remove(&mut self, key: Key) -> Result<(), PersistError> {
         debug!(
             "Removing publication with key {:?}. Current state of loaded messages: {:?}",
             key, self.loaded

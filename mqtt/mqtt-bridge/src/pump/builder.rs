@@ -6,7 +6,10 @@ use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
     messages::{self, StoreMqttEventHandler, TopicMapper},
-    persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{
+        storage::{ring_buffer::RingBuffer, FlushOptions},
+        PublicationStore, StreamWakeableState,
+    },
     settings::TopicRule,
     upstream::{
         ConnectivityMqttEventHandler, LocalRpcMqttEventHandler, LocalUpstreamMqttEventHandler,
@@ -37,19 +40,36 @@ pub struct Builder<S> {
     store: Box<dyn Fn() -> PublicationStore<S>>,
 }
 
-impl Default for Builder<WakingMemoryStore> {
+// impl Default for Builder<WakingMemoryStore> {
+//     fn default() -> Self {
+//         Self {
+//             local: PumpBuilder::default(),
+//             remote: PumpBuilder::default(),
+//             store: Box::new(|| PublicationStore::new_memory(0)),
+//         }
+//     }
+// }
+
+impl Default for Builder<RingBuffer> {
     fn default() -> Self {
         Self {
             local: PumpBuilder::default(),
             remote: PumpBuilder::default(),
-            store: Box::new(|| PublicationStore::new_memory(0)),
+            store: Box::new(|| {
+                PublicationStore::new_ring_buffer(
+                    "test".to_owned(),
+                    1024 * 1024,
+                    FlushOptions::Off,
+                    100,
+                )
+            }),
         }
     }
 }
 
 impl<S> Builder<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     /// Apples parameters to create local pump.
     pub fn with_local<F>(mut self, mut apply: F) -> Self
