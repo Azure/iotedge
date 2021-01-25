@@ -26,8 +26,6 @@ pub mod message_initiator;
 pub mod settings;
 pub mod tester;
 
-pub const BACKWARDS_TOPIC: &str = "backwards/1";
-pub const FORWARDS_TOPIC: &str = "forwards/1";
 const SEND_SOURCE: &str = "genericMqttTester.send";
 const RECEIVE_SOURCE: &str = "genericMqttTester.receive";
 

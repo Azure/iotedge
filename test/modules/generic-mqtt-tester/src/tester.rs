@@ -19,7 +19,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, FORWARDS_TOPIC,
+    MessageTesterError, ShutdownHandle,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -147,7 +147,7 @@ impl MessageTester {
     }
 
     pub async fn run(self) -> Result<(), MessageTesterError> {
-        // start poll client and make subs
+        // start poll client
         let client_sub_handle = self
             .client
             .update_subscription_handle()
@@ -161,7 +161,10 @@ impl MessageTester {
             )
             .instrument(info_span!("client")),
         );
-        Self::subscribe(client_sub_handle, self.settings.clone()).await?;
+
+        // make subscription
+        let topic = self.settings.topic().to_string();
+        Self::subscribe(client_sub_handle, topic).await?;
 
         // run message channel
         let message_channel_join = tokio::spawn(
@@ -208,25 +211,17 @@ impl MessageTester {
 
     async fn subscribe(
         mut client_sub_handle: UpdateSubscriptionHandle,
-        settings: Settings,
+        topic_filter: String,
     ) -> Result<(), MessageTesterError> {
         info!("subscribing to test topics");
-        match settings.test_scenario() {
-            TestScenario::Initiate => client_sub_handle
-                .subscribe(SubscribeTo {
-                    topic_filter: BACKWARDS_TOPIC.to_string(),
-                    qos: QoS::AtLeastOnce,
-                })
-                .await
-                .map_err(MessageTesterError::UpdateSubscription)?,
-            TestScenario::Relay => client_sub_handle
-                .subscribe(SubscribeTo {
-                    topic_filter: FORWARDS_TOPIC.to_string(),
-                    qos: QoS::AtLeastOnce,
-                })
-                .await
-                .map_err(MessageTesterError::UpdateSubscription)?,
-        };
+
+        client_sub_handle
+            .subscribe(SubscribeTo {
+                topic_filter,
+                qos: QoS::AtLeastOnce,
+            })
+            .await
+            .map_err(MessageTesterError::UpdateSubscription)?;
 
         info!("finished subscribing to test topics");
         Ok(())
