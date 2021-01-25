@@ -240,243 +240,244 @@ where
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        use futures_sink::Sink;
+        // use futures_sink::Sink;
 
-        let this = self.project();
+        // let _ = self.publish_handle();
+        // let this = self.project();
 
-        let reason = loop {
-            match &mut this.0.project() {
-                ClientStateProj::Up {
-                    client_id,
-                    username,
-                    will,
-                    keep_alive,
+        todo!()
 
-                    shutdown_recv,
+        // let reason = loop {
+        //     match self.as_mut().project().0.project() {
+        //         ClientStateProj::Up {
+        //             client_id,
+        //             username,
+        //             will,
+        //             keep_alive,
 
-                    packet_identifiers,
+        //             shutdown_recv,
 
-                    connect,
-                    ping,
-                    publish,
-                    subscriptions,
+        //             packet_identifiers,
 
-                    packets_waiting_to_be_sent,
-                    ..
-                } => {
-                    match std::pin::Pin::new(shutdown_recv).poll_next(cx) {
-                        std::task::Poll::Ready(Some(())) => break None,
+        //             mut connect,
+        //             ping,
+        //             publish,
+        //             subscriptions,
 
-                        std::task::Poll::Ready(None) | std::task::Poll::Pending => (),
-                    }
+        //             packets_waiting_to_be_sent,
+        //             ..
+        //         } => {
+        //             match std::pin::Pin::new(shutdown_recv).poll_next(cx) {
+        //                 std::task::Poll::Ready(Some(())) => break None,
 
-                    let connect::Connected {
-                        framed,
-                        new_connection,
-                        reset_session,
-                    } = match connect.poll(
-                        cx,
-                        username.as_ref().map(AsRef::as_ref),
-                        will.as_ref(),
-                        client_id,
-                        **keep_alive,
-                    ) {
-                        std::task::Poll::Ready(framed) => framed,
-                        std::task::Poll::Pending => return std::task::Poll::Pending,
-                    };
+        //                 std::task::Poll::Ready(None) | std::task::Poll::Pending => (),
+        //             }
 
-                    if new_connection {
-                        log::debug!("New connection established");
+        //             let connect::Connected {
+        //                 framed,
+        //                 new_connection,
+        //                 reset_session,
+        //             } = match connect.as_mut().poll(
+        //                 cx,
+        //                 username.as_ref().map(AsRef::as_ref),
+        //                 will.as_ref(),
+        //                 client_id,
+        //                 *keep_alive,
+        //             ) {
+        //                 std::task::Poll::Ready(framed) => framed,
+        //                 std::task::Poll::Pending => return std::task::Poll::Pending,
+        //             };
 
-                        **packets_waiting_to_be_sent = Default::default();
+        //             if new_connection {
+        //                 log::debug!("New connection established");
 
-                        ping.new_connection();
+        //                 *packets_waiting_to_be_sent = Default::default();
 
-                        packets_waiting_to_be_sent
-                            .extend(publish.new_connection(reset_session, packet_identifiers));
+        //                 ping.new_connection_pin();
 
-                        packets_waiting_to_be_sent.extend(
-                            subscriptions.new_connection(reset_session, packet_identifiers),
-                        );
+        //                 packets_waiting_to_be_sent
+        //                     .extend(publish.new_connection(reset_session, packet_identifiers));
 
-                        return std::task::Poll::Ready(Some(Ok(Event::NewConnection {
-                            reset_session,
-                        })));
-                    }
+        //                 packets_waiting_to_be_sent.extend(
+        //                     subscriptions.new_connection(reset_session, packet_identifiers),
+        //                 );
 
-                    match client_poll(
-                        cx,
-                        framed,
-                        **keep_alive,
-                        packets_waiting_to_be_sent,
-                        packet_identifiers,
-                        ping,
-                        publish,
-                        subscriptions,
-                    ) {
-                        std::task::Poll::Ready(Ok(event)) => {
-                            return std::task::Poll::Ready(Some(Ok(event)))
-                        }
+        //                 return std::task::Poll::Ready(Some(Ok(Event::NewConnection {
+        //                     reset_session,
+        //                 })));
+        //             }
 
-                        std::task::Poll::Ready(Err(err)) => {
-                            if err.is_user_error() {
-                                break Some(err);
-                            } else {
-                                log::warn!("client will reconnect because of error: {}", err);
+        //             match client_poll(
+        //                 cx,
+        //                 framed,
+        //                 *keep_alive,
+        //                 packets_waiting_to_be_sent,
+        //                 packet_identifiers,
+        //                 ping,
+        //                 publish,
+        //                 subscriptions,
+        //             ) {
+        //                 std::task::Poll::Ready(Ok(event)) => {
+        //                     return std::task::Poll::Ready(Some(Ok(event)))
+        //                 }
 
-                                if !err.session_is_resumable() {
-                                    // Ensure clean session if the error is such that the session is not resumable.
-                                    //
-                                    // DEVNOTE: subscriptions::State relies on the fact that the session is reset here.
-                                    // Update that if this ever changes.
-                                    *client_id = match std::mem::replace(
-                                        *client_id,
-                                        crate::proto::ClientId::ServerGenerated,
-                                    ) {
-                                        id @ crate::proto::ClientId::ServerGenerated
-                                        | id @ crate::proto::ClientId::IdWithCleanSession(_) => {
-                                            &mut id
-                                        }
-                                        crate::proto::ClientId::IdWithExistingSession(id) => {
-                                            &mut crate::proto::ClientId::IdWithCleanSession(id)
-                                        }
-                                    };
-                                }
+        //                 std::task::Poll::Ready(Err(err)) => {
+        //                     if err.is_user_error() {
+        //                         break Some(err);
+        //                     } else {
+        //                         log::warn!("client will reconnect because of error: {}", err);
 
-                                connect.reconnect();
+        //                         if !err.session_is_resumable() {
+        //                             // Ensure clean session if the error is such that the session is not resumable.
+        //                             //
+        //                             // DEVNOTE: subscriptions::State relies on the fact that the session is reset here.
+        //                             // Update that if this ever changes.
+        //                             *client_id = match std::mem::replace(
+        //                                 client_id,
+        //                                 crate::proto::ClientId::ServerGenerated,
+        //                             ) {
+        //                                 id @ crate::proto::ClientId::ServerGenerated
+        //                                 | id @ crate::proto::ClientId::IdWithCleanSession(_) => id,
+        //                                 crate::proto::ClientId::IdWithExistingSession(id) => {
+        //                                     crate::proto::ClientId::IdWithCleanSession(id)
+        //                                 }
+        //                             };
+        //                         }
 
-                                if err.is_connection_error() {
-                                    return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
-                                        err.into(),
-                                    ))));
-                                }
-                            }
-                        }
+        //                         connect.reconnect_pin();
 
-                        std::task::Poll::Pending => return std::task::Poll::Pending,
-                    }
-                }
+        //                         if err.is_connection_error() {
+        //                             return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
+        //                                 err.into(),
+        //                             ))));
+        //                         }
+        //                     }
+        //                 }
 
-                ClientStateProj::ShuttingDown {
-                    client_id,
-                    username,
-                    will,
-                    keep_alive,
+        //                 std::task::Poll::Pending => return std::task::Poll::Pending,
+        //             }
+        //         }
 
-                    connect,
+        //         ClientStateProj::ShuttingDown {
+        //             client_id,
+        //             username,
+        //             will,
+        //             keep_alive,
 
-                    sent_disconnect,
+        //             connect,
 
-                    reason,
-                } => {
-                    let connect::Connected { mut framed, .. } = match connect.poll(
-                        cx,
-                        username.as_ref().map(AsRef::as_ref),
-                        will.as_ref(),
-                        client_id,
-                        **keep_alive,
-                    ) {
-                        std::task::Poll::Ready(framed) => framed,
-                        std::task::Poll::Pending => {
-                            // Already disconnected
-                            self.0 = ClientState::ShutDown {
-                                reason: reason.take(),
-                            };
-                            continue;
-                        }
-                    };
+        //             sent_disconnect,
 
-                    loop {
-                        if **sent_disconnect {
-                            match std::pin::Pin::new(&mut framed).poll_flush(cx) {
-                                std::task::Poll::Ready(Ok(())) => {
-                                    self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
-                                    };
-                                    break;
-                                }
+        //             reason,
+        //         } => {
+        //             let connect::Connected { mut framed, .. } = match connect.poll(
+        //                 cx,
+        //                 username.as_ref().map(AsRef::as_ref),
+        //                 will.as_ref(),
+        //                 client_id,
+        //                 *keep_alive,
+        //             ) {
+        //                 std::task::Poll::Ready(framed) => framed,
+        //                 std::task::Poll::Pending => {
+        //                     // Already disconnected
+        //                     self.0 = ClientState::ShutDown {
+        //                         reason: reason.take(),
+        //                     };
+        //                     continue;
+        //                 }
+        //             };
 
-                                std::task::Poll::Ready(Err(err)) => {
-                                    let err = Error::EncodePacket(err);
-                                    log::warn!("couldn't send DISCONNECT: {}", err);
-                                    self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
-                                    };
-                                    break;
-                                }
+        //             loop {
+        //                 if *sent_disconnect {
+        //                     match std::pin::Pin::new(&mut framed).poll_flush(cx) {
+        //                         std::task::Poll::Ready(Ok(())) => {
+        //                             self.0 = ClientState::ShutDown {
+        //                                 reason: reason.take(),
+        //                             };
+        //                             break;
+        //                         }
 
-                                std::task::Poll::Pending => return std::task::Poll::Pending,
-                            }
-                        } else {
-                            match std::pin::Pin::new(&mut framed).poll_ready(cx) {
-                                std::task::Poll::Ready(Ok(())) => {
-                                    let packet =
-                                        crate::proto::Packet::Disconnect(crate::proto::Disconnect);
-                                    match std::pin::Pin::new(&mut framed).start_send(packet) {
-                                        Ok(()) => **sent_disconnect = true,
+        //                         std::task::Poll::Ready(Err(err)) => {
+        //                             let err = Error::EncodePacket(err);
+        //                             log::warn!("couldn't send DISCONNECT: {}", err);
+        //                             self.0 = ClientState::ShutDown {
+        //                                 reason: reason.take(),
+        //                             };
+        //                             break;
+        //                         }
 
-                                        Err(err) => {
-                                            log::warn!("couldn't send DISCONNECT: {}", err);
-                                            self.0 = ClientState::ShutDown {
-                                                reason: reason.take(),
-                                            };
-                                            break;
-                                        }
-                                    }
-                                }
+        //                         std::task::Poll::Pending => return std::task::Poll::Pending,
+        //                     }
+        //                 } else {
+        //                     match std::pin::Pin::new(&mut framed).poll_ready(cx) {
+        //                         std::task::Poll::Ready(Ok(())) => {
+        //                             let packet =
+        //                                 crate::proto::Packet::Disconnect(crate::proto::Disconnect);
+        //                             match std::pin::Pin::new(&mut framed).start_send(packet) {
+        //                                 Ok(()) => *sent_disconnect = true,
 
-                                std::task::Poll::Ready(Err(err)) => {
-                                    log::warn!("couldn't send DISCONNECT: {}", err);
-                                    self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
-                                    };
-                                    break;
-                                }
+        //                                 Err(err) => {
+        //                                     log::warn!("couldn't send DISCONNECT: {}", err);
+        //                                     self.0 = ClientState::ShutDown {
+        //                                         reason: reason.take(),
+        //                                     };
+        //                                     break;
+        //                                 }
+        //                             }
+        //                         }
 
-                                std::task::Poll::Pending => return std::task::Poll::Pending,
-                            }
-                        }
-                    }
-                }
+        //                         std::task::Poll::Ready(Err(err)) => {
+        //                             log::warn!("couldn't send DISCONNECT: {}", err);
+        //                             self.0 = ClientState::ShutDown {
+        //                                 reason: reason.take(),
+        //                             };
+        //                             break;
+        //                         }
 
-                ClientStateProj::ShutDown { reason } => match reason.take() {
-                    Some(err) => return std::task::Poll::Ready(Some(Err(err))),
-                    None => return std::task::Poll::Ready(None),
-                },
-            }
-        };
+        //                         std::task::Poll::Pending => return std::task::Poll::Pending,
+        //                     }
+        //                 }
+        //             }
+        //         }
 
-        // If we're here, then we're transitioning from Up to ShuttingDown
+        //         ClientStateProj::ShutDown { reason } => match reason.take() {
+        //             Some(err) => return std::task::Poll::Ready(Some(Err(err))),
+        //             None => return std::task::Poll::Ready(None),
+        //         },
+        //     }
+        // };
 
-        match std::mem::replace(&mut self.0, ClientState::ShutDown { reason: None }) {
-            ClientState::Up {
-                client_id,
-                username,
-                will,
-                keep_alive,
+        // // If we're here, then we're transitioning from Up to ShuttingDown
 
-                connect,
-                ..
-            } => {
-                log::warn!("Shutting down...");
+        // match std::mem::replace(&mut self.0, ClientState::ShutDown { reason: None }) {
+        //     ClientState::Up {
+        //         client_id,
+        //         username,
+        //         will,
+        //         keep_alive,
 
-                self.0 = ClientState::ShuttingDown {
-                    client_id,
-                    username,
-                    will,
-                    keep_alive,
+        //         connect,
+        //         ..
+        //     } => {
+        //         log::warn!("Shutting down...");
 
-                    connect,
+        //         self.0 = ClientState::ShuttingDown {
+        //             client_id,
+        //             username,
+        //             will,
+        //             keep_alive,
 
-                    sent_disconnect: false,
+        //             connect,
 
-                    reason,
-                };
-                self.poll_next(cx)
-            }
+        //             sent_disconnect: false,
 
-            _ => unreachable!(),
-        }
+        //             reason,
+        //         };
+        //         self.poll_next(cx)
+        //     }
+
+        //     _ => unreachable!(),
+        // }
     }
 }
 
@@ -583,6 +584,7 @@ where
 
         packet_identifiers: PacketIdentifiers,
 
+        #[pin]
         connect: connect::Connect<IoS>,
 
         #[pin]
@@ -601,6 +603,7 @@ where
         will: Option<crate::proto::Publication>,
         keep_alive: std::time::Duration,
 
+        #[pin]
         connect: connect::Connect<IoS>,
 
         /// If the DISCONNECT packet has already been sent
@@ -623,7 +626,7 @@ fn client_poll<S>(
     keep_alive: std::time::Duration,
     packets_waiting_to_be_sent: &mut std::collections::VecDeque<crate::proto::Packet>,
     packet_identifiers: &mut PacketIdentifiers,
-    ping: &mut ping::State,
+    mut ping: std::pin::Pin<&mut ping::State>,
     publish: &mut publish::State,
     subscriptions: &mut subscriptions::State,
 ) -> std::task::Poll<Result<Event, Error>>
@@ -677,7 +680,7 @@ where
         let mut new_packets_to_be_sent = vec![];
 
         // Ping
-        let ping_packet = ping.poll(cx, &mut packet, keep_alive);
+        let ping_packet = ping.as_mut().poll(cx, &mut packet, keep_alive);
         new_packets_to_be_sent.extend(ping_packet);
 
         // Publish

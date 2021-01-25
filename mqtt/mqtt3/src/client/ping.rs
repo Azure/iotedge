@@ -10,7 +10,7 @@ pub(super) enum State {
 
 impl State {
     pub(super) fn poll(
-        self: std::pin::Pin<&mut Self>,
+        mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
 
         packet: &mut Option<crate::proto::Packet>,
@@ -19,7 +19,7 @@ impl State {
         if let Some(crate::proto::Packet::PingResp(crate::proto::PingResp)) = packet {
             let _ = packet.take();
 
-            match self.project() {
+            match self.as_mut().project() {
                 StateProj::BeginWaitingForNextPing => (),
                 StateProj::WaitingForNextPing(ping_timer) => {
                     ping_timer.reset(deadline(tokio::time::Instant::now(), keep_alive))
@@ -30,26 +30,33 @@ impl State {
         loop {
             log::trace!("    {:?}", self);
 
-            match self.project() {
+            match self.as_mut().project() {
                 StateProj::BeginWaitingForNextPing => {
                     let ping_timer = tokio::time::sleep(keep_alive);
-                    *self = State::WaitingForNextPing(ping_timer);
+                    self.set(State::WaitingForNextPing(ping_timer));
                 }
 
-                StateProj::WaitingForNextPing(ping_timer) => match ping_timer.poll(cx) {
-                    std::task::Poll::Ready(()) => {
-                        ping_timer.reset(deadline(ping_timer.deadline(), keep_alive));
-                        return Some(crate::proto::Packet::PingReq(crate::proto::PingReq));
-                    }
+                StateProj::WaitingForNextPing(mut ping_timer) => {
+                    match ping_timer.as_mut().poll(cx) {
+                        std::task::Poll::Ready(()) => {
+                            let deadline = deadline(ping_timer.deadline(), keep_alive);
+                            ping_timer.reset(deadline);
+                            return Some(crate::proto::Packet::PingReq(crate::proto::PingReq));
+                        }
 
-                    std::task::Poll::Pending => return None,
-                },
+                        std::task::Poll::Pending => return None,
+                    }
+                }
             }
         }
     }
 
     pub(super) fn new_connection(&mut self) {
         *self = State::BeginWaitingForNextPing;
+    }
+
+    pub(super) fn new_connection_pin(mut self: std::pin::Pin<&mut Self>) {
+        self.set(State::BeginWaitingForNextPing);
     }
 }
 

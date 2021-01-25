@@ -2,6 +2,7 @@ use std::future::Future;
 
 use pin_project::pin_project;
 
+#[pin_project]
 #[derive(Debug)]
 pub(super) struct Connect<IoS>
 where
@@ -10,6 +11,8 @@ where
     io_source: IoS,
     max_back_off: std::time::Duration,
     current_back_off: std::time::Duration,
+
+    #[pin]
     state: State<IoS>,
 }
 
@@ -74,6 +77,14 @@ where
     pub(super) fn reconnect(&mut self) {
         self.state = State::BeginBackOff;
     }
+
+    pub(super) fn reconnect_pin(mut self: std::pin::Pin<&mut Self>) {
+        self.set_state(State::BeginBackOff);
+    }
+
+    fn set_state(self: &mut std::pin::Pin<&mut Self>, state: State<IoS>) {
+        self.as_mut().project().state.set(state);
+    }
 }
 
 impl<IoS> Connect<IoS>
@@ -84,7 +95,7 @@ where
     <IoS as super::IoSource>::Future: Unpin,
 {
     pub(super) fn poll<'a>(
-        &'a mut self,
+        mut self: std::pin::Pin<&'a mut Self>,
         cx: &mut std::task::Context<'_>,
 
         username: Option<&str>,
@@ -95,57 +106,56 @@ where
         use futures_core::Stream;
         use futures_sink::Sink;
 
-        let state = &mut self.state;
-
         loop {
-            log::trace!("    {:?}", state);
+            // log::trace!("    {:?}", state);
 
-            match state.project() {
-                State::BeginBackOff => match self.current_back_off {
+            let this = self.as_mut();
+
+            match this.project().state.as_mut().project() {
+                StateProj::BeginBackOff => match self.current_back_off {
                     back_off if back_off.as_secs() == 0 => {
                         self.current_back_off = std::time::Duration::from_secs(1);
-                        *state = State::BeginConnecting;
+                        self.set_state(State::BeginConnecting);
                     }
 
                     back_off => {
                         log::debug!("Backing off for {:?}", back_off);
                         self.current_back_off =
                             std::cmp::min(self.max_back_off, self.current_back_off * 2);
-                        *state = State::EndBackOff(tokio::time::sleep(back_off));
+                        self.set_state(State::EndBackOff(tokio::time::sleep(back_off)));
                     }
                 },
 
-                State::EndBackOff(back_off_timer) => {
-                    match std::pin::Pin::new(back_off_timer).poll(cx) {
-                        std::task::Poll::Ready(()) => *state = State::BeginConnecting,
-                        std::task::Poll::Pending => return std::task::Poll::Pending,
-                    }
-                }
+                StateProj::EndBackOff(back_off_timer) => match back_off_timer.poll(cx) {
+                    std::task::Poll::Ready(()) => self.set_state(State::BeginConnecting),
+                    std::task::Poll::Pending => return std::task::Poll::Pending,
+                },
 
-                State::BeginConnecting => {
+                StateProj::BeginConnecting => {
                     let io = self.io_source.connect();
-                    *state = State::WaitingForIoToConnect(io);
+                    self.set_state(State::WaitingForIoToConnect(io))
                 }
 
-                State::WaitingForIoToConnect(io) => match std::pin::Pin::new(io).poll(cx) {
+                StateProj::WaitingForIoToConnect(io) => match std::pin::Pin::new(io).poll(cx) {
                     std::task::Poll::Ready(Ok((io, password))) => {
                         let framed = crate::logging_framed::LoggingFramed::new(io);
-                        *state = State::Framed {
+                        let state = State::Framed {
                             framed,
                             framed_state: FramedState::BeginSendingConnect,
                             password,
                         };
+                        self.set_state(state);
                     }
 
                     std::task::Poll::Ready(Err(err)) => {
                         log::warn!("could not connect to server: {}", err);
-                        *state = State::BeginBackOff;
+                        self.set_state(State::BeginBackOff);
                     }
 
                     std::task::Poll::Pending => return std::task::Poll::Pending,
                 },
 
-                State::Framed {
+                StateProj::Framed {
                     framed,
                     framed_state: framed_state @ FramedState::BeginSendingConnect,
                     password,
@@ -165,20 +175,20 @@ where
                             Ok(()) => *framed_state = FramedState::EndSendingConnect,
                             Err(err) => {
                                 log::warn!("could not connect to server: {}", err);
-                                *state = State::BeginBackOff;
+                                self.set_state(State::BeginBackOff);
                             }
                         }
                     }
 
                     std::task::Poll::Ready(Err(err)) => {
                         log::warn!("could not connect to server: {}", err);
-                        *state = State::BeginBackOff;
+                        self.set_state(State::BeginBackOff);
                     }
 
                     std::task::Poll::Pending => return std::task::Poll::Pending,
                 },
 
-                State::Framed {
+                StateProj::Framed {
                     framed,
                     framed_state: framed_state @ FramedState::EndSendingConnect,
                     ..
@@ -188,12 +198,12 @@ where
                     }
                     std::task::Poll::Ready(Err(err)) => {
                         log::warn!("could not connect to server: {}", err);
-                        *state = State::BeginBackOff;
+                        self.set_state(State::BeginBackOff);
                     }
                     std::task::Poll::Pending => return std::task::Poll::Pending,
                 },
 
-                State::Framed {
+                StateProj::Framed {
                     framed,
                     framed_state: framed_state @ FramedState::WaitingForConnAck,
                     ..
@@ -235,29 +245,29 @@ where
                                 "could not connect to server: connection refused: {:?}",
                                 return_code
                             );
-                            *state = State::BeginBackOff;
+                            self.set_state(State::BeginBackOff);
                         }
 
                         packet => {
                             log::warn!("could not connect to server: expected to receive ConnAck but received {:?}", packet);
-                            *state = State::BeginBackOff;
+                            self.set_state(State::BeginBackOff);
                         }
                     },
 
                     std::task::Poll::Ready(Some(Err(err))) => {
                         log::warn!("could not connect to server: {}", err);
-                        *state = State::BeginBackOff;
+                        self.set_state(State::BeginBackOff);
                     }
 
                     std::task::Poll::Ready(None) => {
                         log::warn!("could not connect to server: connection closed by server");
-                        *state = State::BeginBackOff;
+                        self.set_state(State::BeginBackOff);
                     }
 
                     std::task::Poll::Pending => return std::task::Poll::Pending,
                 },
 
-                State::Framed {
+                StateProj::Framed {
                     framed,
                     framed_state:
                         FramedState::Connected {
