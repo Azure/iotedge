@@ -16,7 +16,7 @@ use tokio::{
 use tracing::info;
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{MessageTesterError, ShutdownHandle, FORWARDS_TOPIC, SEND_SOURCE};
+use crate::{MessageTesterError, ShutdownHandle, SEND_SOURCE};
 
 /// Responsible for starting to send the messages that will be relayed and
 /// tracked by the test module.
@@ -28,6 +28,8 @@ pub struct MessageInitiator {
     batch_id: String,
     reporting_client: TrcClient,
     message_frequency: Duration,
+    topic: String,
+    message_size_in_bytes: u32,
 }
 
 impl MessageInitiator {
@@ -37,6 +39,8 @@ impl MessageInitiator {
         batch_id: String,
         reporting_client: TrcClient,
         message_frequency: Duration,
+        topic: String,
+        message_size_in_bytes: u32,
     ) -> Self {
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
         let shutdown_handle = ShutdownHandle(shutdown_send);
@@ -49,6 +53,8 @@ impl MessageInitiator {
             batch_id,
             reporting_client,
             message_frequency,
+            topic,
+            message_size_in_bytes,
         }
     }
 
@@ -59,11 +65,13 @@ impl MessageInitiator {
         let mut publish_handle = self.publish_handle.clone();
         loop {
             info!("publishing message {} to upstream broker", seq_num);
+            let dummy_payload = "a".repeat(self.message_size_in_bytes as usize);
+
             let publication = Publication {
-                topic_name: FORWARDS_TOPIC.to_string(),
+                topic_name: self.topic.clone(),
                 qos: QoS::ExactlyOnce,
                 retain: true,
-                payload: Bytes::from(seq_num.to_string()),
+                payload: Bytes::from(seq_num.to_string() + " " + dummy_payload.as_str()),
             };
 
             let shutdown_recv_fut = self.shutdown_recv.next();

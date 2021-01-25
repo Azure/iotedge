@@ -14,6 +14,7 @@
 use std::{
     env::VarError,
     io::{self},
+    num::ParseIntError,
 };
 
 use mqtt3::{PublishError, ReceivedPublication, UpdateSubscriptionError};
@@ -84,8 +85,14 @@ pub enum MessageTesterError {
     #[error("received unexpected value from unix signal listener")]
     ListenForUnixSignal,
 
-    #[error("failed to parse sequence number from publication: {0:?}")]
-    DeserializeMessage(#[from] serde_json::Error),
+    #[error("failed to parse publication payload: {0:?}")]
+    DeserializePayload(#[from] serde_json::Error),
+
+    #[error("failed to deserialize sequence number from publication payload")]
+    DeserializeSequenceNumber,
+
+    #[error("failed to parse sequence number from publication payload: {0}")]
+    ParseSequenceNumber(ParseIntError),
 
     #[error("failed to report test result: {0:?}")]
     ReportResult(#[from] ReportResultError),

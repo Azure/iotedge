@@ -13,7 +13,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, RECEIVE_SOURCE};
+use crate::{MessageTesterError, ShutdownHandle, RECEIVE_SOURCE};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -45,8 +45,14 @@ impl MessageHandler for ReportResultMessageHandler {
         &mut self,
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
-        let sequence_number: u32 = serde_json::from_slice(&received_publication.payload)
-            .map_err(MessageTesterError::DeserializeMessage)?;
+        let payload: String = serde_json::from_slice(&received_publication.payload)
+            .map_err(MessageTesterError::DeserializePayload)?;
+        let sequence_number: u32 = payload
+            .split(" ")
+            .nth(0)
+            .ok_or(MessageTesterError::DeserializeSequenceNumber)?
+            .parse::<u32>()
+            .map_err(MessageTesterError::ParseSequenceNumber)?;
         let result = MessageTestResult::new(
             self.tracking_id.clone(),
             self.batch_id.clone(),
@@ -67,11 +73,15 @@ impl MessageHandler for ReportResultMessageHandler {
 /// Responsible for receiving publications and sending them back to the downstream edge.
 pub struct RelayingMessageHandler {
     publish_handle: PublishHandle,
+    topic: String,
 }
 
 impl RelayingMessageHandler {
-    pub fn new(publish_handle: PublishHandle) -> Self {
-        Self { publish_handle }
+    pub fn new(publish_handle: PublishHandle, topic: String) -> Self {
+        Self {
+            publish_handle,
+            topic,
+        }
     }
 }
 
@@ -84,7 +94,7 @@ impl MessageHandler for RelayingMessageHandler {
         info!("relaying publication {:?}", received_publication);
 
         let new_publication = Publication {
-            topic_name: BACKWARDS_TOPIC.to_string(),
+            topic_name: self.topic.clone(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: received_publication.payload,

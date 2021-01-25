@@ -90,8 +90,10 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let tracking_id = settings.tracking_id().clone();
-        let batch_id = settings.batch_id().clone();
+        let message_size_in_bytes = settings.message_size_in_bytes();
+        let topic = settings.topic().to_string();
+        let tracking_id = settings.tracking_id().to_string();
+        let batch_id = settings.batch_id().to_string();
         let test_result_coordinator_url = settings.trc_url().to_string();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
@@ -101,7 +103,10 @@ impl MessageTester {
                 tracking_id.clone(),
                 batch_id.clone(),
             )),
-            TestScenario::Relay => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
+            TestScenario::Relay => Box::new(RelayingMessageHandler::new(
+                publish_handle.clone(),
+                topic.clone(),
+            )),
         };
         let message_channel = MessageChannel::new(message_handler);
 
@@ -110,10 +115,12 @@ impl MessageTester {
         if let TestScenario::Initiate = settings.test_scenario() {
             let initiator = MessageInitiator::new(
                 publish_handle,
-                tracking_id,
-                batch_id,
+                tracking_id.clone(),
+                batch_id.clone(),
                 reporting_client,
                 settings.message_frequency(),
+                topic.clone(),
+                message_size_in_bytes,
             );
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());

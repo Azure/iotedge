@@ -16,10 +16,14 @@ pub struct Settings {
     batch_id: String,
 
     #[serde(with = "humantime_serde")]
-    message_frequency: Duration,
+    test_start_delay: Duration,
 
     #[serde(with = "humantime_serde")]
-    test_start_delay: Duration,
+    message_frequency: Duration,
+
+    message_size_in_bytes: u32,
+
+    topic: String,
 }
 
 impl Settings {
@@ -53,11 +57,11 @@ impl Settings {
         &self.trc_url
     }
 
-    pub fn tracking_id(&self) -> &String {
+    pub fn tracking_id(&self) -> &str {
         &self.tracking_id
     }
 
-    pub fn batch_id(&self) -> &String {
+    pub fn batch_id(&self) -> &str {
         &self.batch_id
     }
 
@@ -67,6 +71,14 @@ impl Settings {
 
     pub fn test_start_delay(&self) -> Duration {
         self.test_start_delay
+    }
+
+    pub fn message_size_in_bytes(&self) -> u32 {
+        self.message_size_in_bytes
+    }
+
+    pub fn topic(&self) -> &str {
+        &self.topic
     }
 }
 
