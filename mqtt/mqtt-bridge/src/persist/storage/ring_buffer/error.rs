@@ -1,8 +1,8 @@
 // use crate::create_error;
 
 // create_error!(RingBufferError);
-use thiserror::Error;
 use std::io::Error as IOError;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum BlockError {
@@ -23,5 +23,5 @@ pub enum RingBufferError {
     #[error("Serialization error occurred")]
     Serialization(#[from] bincode::Error),
     #[error("Flushing failed")]
-    Flush(#[from] IOError)
+    Flush(#[from] IOError),
 }

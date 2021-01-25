@@ -88,7 +88,7 @@ where
                     break;
                 }
                 key = publications.select_next_some() => {
-                    if let Err(e) = store.remove(key) {
+                    if let Err(e) = store.remove(key).await {
                         error!(error = %e, "failed removing publication from store");
                     }
                 }

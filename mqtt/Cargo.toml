@@ -10,7 +10,6 @@ members = [
     "mqtt-util",
     "mqttd",
     "policy",
-    # "mqtt-bridge/src/persist/ring_buffer"
 ]
 
 [profile.release]

@@ -6,7 +6,6 @@ use thiserror::Error;
 
 // create_error!(StorageError);
 
-
 #[derive(Debug, Error)]
 pub enum StorageError {
     #[error("RingBuffer error occurred")]
@@ -14,7 +13,7 @@ pub enum StorageError {
     #[error("Database error occurred")]
     Database(#[from] SledError),
     #[error("Serialization error occurred")]
-    Serialization(#[from] BincodeError)
+    Serialization(#[from] BincodeError),
 }
 
 // impl From<RingBufferError> for StorageError {

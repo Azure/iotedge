@@ -6,6 +6,8 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use crate::persist::storage::serialize::binary_serialize;
+
 use super::{error::BlockError, RingBufferResult};
 
 /// A utility fn to calculate any entity that derives Hash.
@@ -34,7 +36,7 @@ pub(crate) struct BlockHeader {
     #[getset(get = "pub")]
     data_hash: u64,
     #[getset(get = "pub", set = "pub")]
-    overwrite: bool,
+    should_not_overwrite: bool,
 }
 
 impl BlockHeader {
@@ -43,7 +45,7 @@ impl BlockHeader {
             data_size,
             index,
             data_hash,
-            overwrite: false,
+            should_not_overwrite: true,
         }
     }
 }
@@ -91,7 +93,7 @@ impl Data {
 
 pub(crate) fn validate(block: &BlockHeaderWithHash, data: &Data) -> RingBufferResult<()> {
     let data_hash = calculate_hash(&data.inner);
-    let data_size = data.inner.len();
+    let data_size = binary_serialize(data)?.len();
     let actual_block_hash = *block.block_hash();
     let block_hash = calculate_hash(&block.inner);
     if actual_block_hash != block_hash {

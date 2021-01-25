@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, time::Duration};
+use std::{collections::HashMap, convert::TryFrom, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -24,7 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{PublicationStore, StreamWakeableState},
+    persist::{Key, PersistError, PublicationStore, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -58,19 +58,25 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-pub struct StoreMqttEventHandler<S> {
+pub struct StoreMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     topic_mappers: HashMap<String, TopicMapper>,
     topic_mappers_updates: TopicMapperUpdates,
-    store: PublicationStore<S>,
+    store: Arc<PublicationStore<S>>,
     retry_sub_send: Option<UnboundedSender<SubscribeTo>>,
 }
 
-impl<S> StoreMqttEventHandler<S> {
+impl<S> StoreMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     pub fn new(store: PublicationStore<S>, topic_mappers_updates: TopicMapperUpdates) -> Self {
         Self {
             topic_mappers: HashMap::new(),
             topic_mappers_updates,
-            store,
+            store: Arc::from(store),
             retry_sub_send: None,
         }
     }
@@ -122,10 +128,20 @@ impl<S> StoreMqttEventHandler<S> {
     }
 }
 
+async fn push_publication<S>(
+    pub_store: Arc<PublicationStore<S>>,
+    publication: Publication,
+) -> Result<Key, PersistError>
+where
+    S: StreamWakeableState + Send,
+{
+    pub_store.push(publication).await
+}
+
 #[async_trait]
 impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     type Error = BridgeError;
 
@@ -147,7 +163,10 @@ where
 
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
-                    self.store.push(publication).map_err(BridgeError::Store)?;
+                    let store = self.store.clone();
+                    push_publication(store, publication)
+                        .await
+                        .map_err(BridgeError::Store)?;
 
                     return Ok(Handled::Fully);
                 } else {
@@ -226,9 +245,15 @@ mod tests {
     use super::{StoreMqttEventHandler, TopicMapper};
 
     use crate::{
-        client::MqttEventHandler, persist::PublicationStore, pump::TopicMapperUpdates,
+        client::MqttEventHandler,
+        persist::{storage::FlushOptions, PublicationStore},
+        pump::TopicMapperUpdates,
         settings::BridgeSettings,
     };
+
+    const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
+    const FILE_NAME: &'static str = "test_file";
+    const MAX_FILE_SIZE: usize = 1024 * 1024;
 
     #[tokio::test]
     async fn message_handler_updates_topic() {
@@ -250,7 +275,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         handler
@@ -288,7 +318,12 @@ mod tests {
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
         handler.set_retry_sub_sender(tx);
 
@@ -318,7 +353,12 @@ mod tests {
 
         let topics = HashMap::new();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         handler
@@ -354,7 +394,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -409,7 +454,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -465,7 +515,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -520,7 +575,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -576,7 +636,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -626,7 +691,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -668,7 +738,12 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
+        let store = PublicationStore::new_ring_buffer(
+            FILE_NAME.to_owned(),
+            MAX_FILE_SIZE,
+            FLUSH_OPTIONS,
+            batch_size,
+        );
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {

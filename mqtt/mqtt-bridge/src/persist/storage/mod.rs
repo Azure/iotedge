@@ -1,11 +1,14 @@
+use async_trait::async_trait;
 use std::{
     collections::VecDeque,
+    future::Future,
+    pin::Pin,
     sync::atomic::{AtomicUsize, Ordering},
     task::Waker,
 };
 
 pub mod ring_buffer;
-pub mod sled;
+// pub mod sled;
 #[macro_use]
 mod error_macro;
 pub mod error;
@@ -21,11 +24,7 @@ use super::{Key, PersistError, StreamWakeableState};
 
 pub type StorageResult<T> = Result<T, StorageError>;
 
-pub enum IOStatus<T> {
-    Pending,
-    Ready(T),
-}
-
+#[derive(Clone, Copy, Debug)]
 pub enum FlushOptions {
     AfterEachWrite,
     AfterXWrites(usize),
@@ -74,51 +73,60 @@ impl FlushState {
     }
 }
 
-pub trait Storage<Key, Value> {
-    fn insert(&self, value: &Value) -> StorageResult<IOStatus<()>>;
-    fn batch(&self, amount: usize) -> StorageResult<IOStatus<VecDeque<(Key, Value)>>>;
-    fn remove(&self, key: &Key) -> StorageResult<IOStatus<()>>;
+pub trait Storage<Key, Value>: Send + Sync {
+    fn insert_future<'a>(
+        &self,
+        value: &Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = StorageResult<()>> + Send + 'a>>;
+    fn batch_future<'a>(
+        &self,
+        amount: usize,
+    ) -> Pin<Box<dyn Future<Output = StorageResult<VecDeque<(Key, Value)>>> + Send + 'a>>;
+    fn remove_future<'a>(
+        &self,
+        key: &Key,
+    ) -> Pin<Box<dyn Future<Output = StorageResult<()>> + Send + 'a>>;
     fn set_waker(&mut self, waker: Waker);
+    fn waker(&mut self) -> &mut Option<Waker>;
 }
 
+#[async_trait]
 impl<T> StreamWakeableState for T
 where
-    T: Storage<usize, Vec<u8>>,
+    T: Storage<usize, Vec<u8>> + Send + Sync,
 {
-    fn insert(&mut self, _key: Key, value: Publication) -> Result<(), super::PersistError> {
-        let me = self as &mut dyn Storage<usize, Vec<u8>>;
+    async fn insert(&self, _key: Key, value: Publication) -> Result<(), PersistError> {
         let data = binary_serialize(&value)
             .map_err(StorageError::Serialization)
             .map_err(PersistError::Storage)?;
-        me.insert(&data).map(|_| ()).map_err(PersistError::Storage)
+        self.insert_future(&data)
+            .await
+            .map_err(PersistError::Storage)
     }
 
-    fn batch(&mut self, count: usize) -> Result<VecDeque<(Key, Publication)>, super::PersistError> {
-        let me = self as &mut dyn Storage<usize, Vec<u8>>;
-        let results = match me.batch(count).map_err(PersistError::Storage)? {
-            IOStatus::Ready(batch) => {
-                let mut results = VecDeque::new();
-                for (key, value) in batch {
-                    let key_wrapper = Key {
-                        offset: key as u64,
-                    };
-                    let publication = binary_deserialize::<Publication>(&value)
-                        .map_err(StorageError::Serialization)
-                        .map_err(PersistError::Storage)?;
-                    results.push_back((key_wrapper, publication));
-                }
-                results
-            }
-            IOStatus::Pending => VecDeque::new(),
-        };
+    async fn batch(&self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
+        println!("await batch");
+        let batch = self
+            .batch_future(count)
+            .await
+            .map_err(PersistError::Storage)?;
+        let mut results = VecDeque::new();
+        println!("translate batch");
+        for (key, value) in batch {
+            let key_wrapper = Key { offset: key as u64 };
+            let publication = binary_deserialize::<Publication>(&value)
+                .map_err(StorageError::Serialization)
+                .map_err(PersistError::Storage)?;
+            results.push_back((key_wrapper, publication));
+        }
+
         Ok(results)
     }
 
-    fn remove(&mut self, key: Key) -> Result<(), super::PersistError> {
-        let me = self as &mut dyn Storage<usize, Vec<u8>>;
+    async fn remove(&self, key: Key) -> Result<(), PersistError> {
         let real_key = key.offset as usize;
-        me.remove(&real_key)
-            .map(|_| ())
+        self.remove_future(&real_key)
+            .await
             .map_err(PersistError::Storage)
     }
 

@@ -11,7 +11,10 @@ use mqtt_util::client_io::Credentials;
 use crate::{
     client::{ClientError, MqttClientConfig},
     config_update::BridgeDiff,
-    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{
+        storage::{ring_buffer::RingBuffer, FlushOptions},
+        PersistError, PublicationStore, StreamWakeableState,
+    },
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
     settings::ConnectionSettings,
     upstream::{
@@ -69,18 +72,24 @@ impl BridgeHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-pub struct Bridge<S> {
+pub struct Bridge<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 }
 
-impl Bridge<WakingMemoryStore> {
+impl Bridge<RingBuffer> {
     pub fn new_upstream(
         system_address: &str,
         device_id: &str,
         settings: &ConnectionSettings,
     ) -> Result<Self, BridgeError> {
         const BATCH_SIZE: usize = 10;
+        const FILE_NAME: &'static str = "ring_buffer.txt";
+        const FLUSH_OPTIONS: FlushOptions = FlushOptions::AfterXBytes(1024);
+        const MAX_FILE_SIZE: usize = 1024 * 1024;
 
         debug!("creating bridge {}...", settings.name());
 
@@ -103,7 +112,14 @@ impl Bridge<WakingMemoryStore> {
                 ))
                 .with_rules(settings.subscriptions());
             })
-            .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
+            .with_store(|| {
+                PublicationStore::new_ring_buffer(
+                    FILE_NAME.to_owned(),
+                    MAX_FILE_SIZE,
+                    FLUSH_OPTIONS,
+                    BATCH_SIZE,
+                )
+            })
             .build()?;
 
         debug!("created bridge {}...", settings.name());
@@ -117,7 +133,7 @@ impl Bridge<WakingMemoryStore> {
 
 impl<S> Bridge<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     pub async fn run(self) -> Result<(), BridgeError> {
         info!("starting bridge...");
