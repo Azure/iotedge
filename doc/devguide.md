@@ -76,7 +76,7 @@ scripts/linux/buildBranch.sh
 scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path mqtt/mqttd
 scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path edgehub/watchdog
 scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
-scripts/linux/buildImage.sh -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }}"
+scripts/linux/buildImage.sh -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }} --bin-dir target"
 ```
 
 ## Build Manifest Image

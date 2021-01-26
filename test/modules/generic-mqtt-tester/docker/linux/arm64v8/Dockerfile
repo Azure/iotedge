@@ -3,7 +3,7 @@ FROM edgebuilds.azurecr.io/microsoft/azureiotedge-module-base-rust:${base_tag}
 
 WORKDIR /app
 
-COPY aarch64-unknown-linux-gnu/release/generic-mqtt-tester ./
+COPY ./aarch64-unknown-linux-gnu/release/generic-mqtt-tester ./
 
 USER moduleuser
 
