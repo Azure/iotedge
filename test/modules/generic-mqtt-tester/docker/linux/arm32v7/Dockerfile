@@ -9,5 +9,5 @@ COPY $EXE_DIR/generic-mqtt-tester ./
 
 USER moduleuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" &&
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
     exec /app/generic-mqtt-tester

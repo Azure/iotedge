@@ -12,5 +12,5 @@ RUN apt-get update && apt-get install -y libssl-dev
 RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
 
-CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" &&
+CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
     exec /app/generic-mqtt-tester
