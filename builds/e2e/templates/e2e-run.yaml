@@ -28,7 +28,7 @@ steps:
 
     # sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
     # BEARWASHERE -- DEBUG ONLY
-    dotnet test -c release --filter "FullyQualifiedName~GrandparentScopeDevice&FullyQualifiedName~SasInScope&FullyQualifiedName~Amqp"
+    dotnet test -c release --filter "Category!=Bearwashere"
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
