@@ -208,7 +208,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
-    
+
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
@@ -731,8 +731,9 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
+
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-    echo "Nested edge test=$NESTED_EDGE_TEST"
+
     local ret=0
 
     DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
@@ -742,10 +743,15 @@ function run_longhaul_test() {
     echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
     echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
+    if [[ -z "$BYPASS_EDGE_INSTALLATION" ]]; then
+        BYPASS_EDGE_INSTALLATION=--overwrite-packages
+    fi
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
 
+        echo "Running with nested Edge."
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
 
@@ -772,7 +778,7 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
+            $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
@@ -796,7 +802,7 @@ function run_longhaul_test() {
             --device_ca_cert "$DEVICE_CA_CERT" \
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
+            $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
 
@@ -854,7 +860,6 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
 fi
 
 deployment_working_file="$working_folder/deployment.json"
-deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 
 tracking_id=$(cat /proc/sys/kernel/random/uuid)
 TEST_INFO="$TEST_INFO,TestId=$tracking_id"
@@ -875,7 +880,7 @@ elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
 
     is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-    if [ $is_build_canceled -eq 1 ]; then
+    if [ "$is_build_canceled" -eq '1' ]; then
         print_highlighted_message "build is canceled."
         exit 3
     fi
