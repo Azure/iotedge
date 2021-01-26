@@ -796,7 +796,7 @@ function run_longhaul_test() {
             --device_ca_cert "$DEVICE_CA_CERT" \
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
+            $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
 
