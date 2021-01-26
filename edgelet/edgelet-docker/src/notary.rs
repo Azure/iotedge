@@ -64,7 +64,7 @@ pub fn notary_init(
     info!(
         "Certs directory for {} is {}",
         file_name,
-        trust_dir.display()
+        certs_dir.display()
     );
 
     // Delete hostname directory for a clean start.
@@ -96,15 +96,15 @@ pub fn notary_init(
 
     // Create root CA file name
     let root_ca_cert_name = file_name + "_root_ca.pem";
+    let root_ca_file_path = certs_dir.join(root_ca_cert_name);
 
-    fs::write(&root_ca_cert_name, cert_buf).with_context(|_| {
+    fs::write(&root_ca_file_path, cert_buf).with_context(|_| {
         ErrorKind::InitializeNotary(format!(
             "could not create root CA cert for notary hostname directory {}",
             hostname_dir.display()
         ))
     })?;
-    let root_ca_file_path = certs_dir.join(root_ca_cert_name);
-
+    
     // Add https to hostname
     let input_url_https = format!("https://{}", registry_server_hostname);
     debug!("URL with https is {}", input_url_https);
@@ -138,7 +138,7 @@ pub fn notary_init(
     })?;
     serde_json::to_writer(file, &config_contents).with_context(|_| {
         ErrorKind::InitializeNotary(format!(
-            "could not create notary config file in {}",
+            "could not write contents to notary config file in {}",
             config_file_path.display()
         ))
     })?;
