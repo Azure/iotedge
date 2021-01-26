@@ -85,6 +85,8 @@ jobs:
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -176,6 +178,8 @@ jobs:
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -267,6 +271,8 @@ jobs:
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
