@@ -17,7 +17,7 @@ use support_bundle::OutputLocation;
 
 use iotedge::{
     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    Unknown, Version,
+    SystemLogs, Unknown, Version,
 };
 
 fn main() {
@@ -224,6 +224,24 @@ fn run() -> Result<(), Error> {
                 )
         )
         .subcommand(
+            SubCommand::with_name("system")
+                .about("Manage system services for IoT Edge.")
+                .unset_setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("logs")
+                    .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
+                    // .arg(
+                    //     Arg::with_name("config-file")
+                    //         .short("c")
+                    //         .long("config-file")
+                    //         .value_name("FILE")
+                    //         .help("Sets path of old IoT Edge configuration file")
+                    //         .takes_value(true)
+                    //         .default_value("/etc/iotedge/config.yaml"),
+                    // )
+                )
+        )
+        .subcommand(
             SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
@@ -382,6 +400,19 @@ fn run() -> Result<(), Error> {
                 let () =
                     iotedge::init::import::execute(old_config_file).map_err(ErrorKind::Init)?;
                 Ok(())
+            }
+            (command, _) => {
+                eprintln!("Unknown init subcommand {:?}", command);
+                std::process::exit(1);
+            }
+        },
+        ("system", Some(args)) => match args.subcommand() {
+            ("", _) => {
+                let () = iotedge::init::execute().map_err(ErrorKind::Init)?;
+                Ok(())
+            }
+            ("logs", Some(_args)) => {
+                tokio_runtime.block_on(SystemLogs::new("".to_owned(), runtime()?).execute())
             }
             (command, _) => {
                 eprintln!("Unknown init subcommand {:?}", command);

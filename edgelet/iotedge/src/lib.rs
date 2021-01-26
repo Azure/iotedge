@@ -26,6 +26,7 @@ mod list;
 mod logs;
 mod restart;
 mod support_bundle;
+mod system;
 mod unknown;
 mod version;
 
@@ -35,6 +36,7 @@ pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
 pub use crate::support_bundle::SupportBundleCommand;
+pub use crate::system::SystemLogs;
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 
