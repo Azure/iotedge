@@ -82,7 +82,6 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,TestName=$testName"
-        BYPASS_EDGE_INSTALLATION="--bypass-edge-installation"
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
           chmod +x $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh
 
