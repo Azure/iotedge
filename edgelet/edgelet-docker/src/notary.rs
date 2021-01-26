@@ -42,7 +42,7 @@ pub fn notary_init(
     let notary_dir = home_dir.join("notary");
 
     // Create a folder name with santized hostname
-    let mut hostname_dir = notary_dir;
+    let mut hostname_dir = notary_dir.clone();
     let mut file_name = String::new();
     for c in registry_server_hostname.chars() {
         if c.is_ascii_alphanumeric() || !c.is_ascii() {
@@ -67,8 +67,8 @@ pub fn notary_init(
         certs_dir.display()
     );
 
-    // Delete hostname directory for a clean start.
-    if let Err(err) = fs::remove_dir_all(&hostname_dir) {
+    // Delete Notary directory for a clean start.
+    if let Err(err) = fs::remove_dir_all(&notary_dir) {
         if err.kind() != std::io::ErrorKind::NotFound {
             return Err(ErrorKind::InitializeNotary(format!(
                 "could not delete notary hostname directory {}",
@@ -104,7 +104,7 @@ pub fn notary_init(
             hostname_dir.display()
         ))
     })?;
-    
+
     // Add https to hostname
     let input_url_https = format!("https://{}", registry_server_hostname);
     debug!("URL with https is {}", input_url_https);
@@ -126,6 +126,15 @@ pub fn notary_init(
 
     // Generate Notary Config.json path
     let mut config_file_path = hostname_dir.join("config");
+
+    // Create config directory
+    fs::create_dir_all(&certs_dir).with_context(|_| {
+        ErrorKind::InitializeNotary(format!(
+            "could not config directory {}",
+            config_file_path.display()
+        ))
+    })?;
+
     config_file_path.push(r"config.json");
     debug!("Config file path {}", config_file_path.display());
 
