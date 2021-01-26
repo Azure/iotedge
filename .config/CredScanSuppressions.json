@@ -34,11 +34,11 @@
       "_justification": "This is a fake password used in the mqtt-bridge tests (mqtt/mqtt-bridge/tests/config.json)"
     },
     {
-      "file": "mqtt\\mqtt-broker\\test\\tls\\pkey.pem",
+      "file": "mqtt\\mqtt-broker\\tests\\tls\\pkey.pem",
       "_justification": "A synthetic key file used by the mqtt-broker tests"
     },
     {
-      "file": "mqtt\\mqtt-bridge\\test\\tls\\pkey.pem",
+      "file": "mqtt\\mqtt-bridge\\tests\\tls\\pkey.pem",
       "_justification": "A synthetic key file used by the mqtt-bridge tests"
     },
     {
