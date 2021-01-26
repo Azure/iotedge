@@ -50,6 +50,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 // fail if we find any unknowns (anything that's not a 200 or a 0 - most notably, 500's)
                 return false;
             }
+
             bool senderAndReceiverSuccessesPass = this.ReceiverSuccesses.Match(r => this.SenderSuccesses == r, () => true);
             // The SDK does not allow edgehub to de-register from iothub subscriptions, which results in DirectMethod clients sometimes receiving status code 0.
             // Github issue: https://github.com/Azure/iotedge/issues/681
