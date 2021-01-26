@@ -21,11 +21,11 @@ static PROCESSES: &[&str] = &[
 ];
 
 pub struct SystemLogs {
-    options: String,
+    options: Vec<String>,
 }
 
 impl SystemLogs {
-    pub fn new(options: String) -> Self {
+    pub fn new(options: Vec<String>) -> Self {
         Self { options }
     }
 }
@@ -34,16 +34,15 @@ impl Command for SystemLogs {
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(self) -> Self::Future {
-        println!("Hello");
-
         let processes = PROCESSES.iter().flat_map(|p| vec!["-u", p]);
 
-        let mut command = ShellCommand::new("journalctl");
-        command.args(processes);
-
-        let mut command = command.spawn().unwrap();
-
-        command.wait().unwrap();
+        ShellCommand::new("journalctl")
+            .args(processes)
+            .args(self.options)
+            .spawn()
+            .unwrap()
+            .wait()
+            .unwrap();
 
         Box::new(future::ok(()))
     }

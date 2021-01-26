@@ -230,15 +230,12 @@ fn run() -> Result<(), Error> {
                 .subcommand(
                     SubCommand::with_name("logs")
                     .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
-                    // .arg(
-                    //     Arg::with_name("config-file")
-                    //         .short("c")
-                    //         .long("config-file")
-                    //         .value_name("FILE")
-                    //         .help("Sets path of old IoT Edge configuration file")
-                    //         .takes_value(true)
-                    //         .default_value("/etc/iotedge/config.yaml"),
-                    // )
+                    .arg(
+                        Arg::with_name("args")
+                            .last(true)
+                            .help("Additional argumants to pass to journalctl. See journalctl -h for more information.")
+                            .min_values(0),
+                    )
                 )
         )
         .subcommand(
@@ -411,8 +408,12 @@ fn run() -> Result<(), Error> {
                 let () = iotedge::init::execute().map_err(ErrorKind::Init)?;
                 Ok(())
             }
-            ("logs", Some(_args)) => {
-                tokio_runtime.block_on(SystemLogs::new("Hello".to_owned()).execute())
+            ("logs", Some(args)) => {
+                let jctl_args: Vec<String> = args
+                    .values_of("args")
+                    .map_or_else(Vec::new, |a| a.map(ToOwned::to_owned).collect());
+
+                tokio_runtime.block_on(SystemLogs::new(jctl_args).execute())
             }
             (command, _) => {
                 eprintln!("Unknown init subcommand {:?}", command);
