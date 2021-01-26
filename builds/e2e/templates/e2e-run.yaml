@@ -26,10 +26,9 @@ steps:
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
 
+    # sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
     # BEARWASHERE -- DEBUG ONLY
-    $filter += '&FullyQualifiedName~GrandparentScopeDevice(SasInScope,Amqp)'
-
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter 'FullyQualifiedName~GrandparentScopeDevice(SasInScope,Amqp)'
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
