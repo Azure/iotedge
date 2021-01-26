@@ -772,7 +772,7 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
+            $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
