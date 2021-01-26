@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-ARG EXE_DIR=x86_64-unknown-linux-musl/release
+ARG EXE_DIR=release
 
 WORKDIR /app
 
