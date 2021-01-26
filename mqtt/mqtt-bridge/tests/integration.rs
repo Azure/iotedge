@@ -81,6 +81,7 @@ async fn send_message_upstream_downstream() {
     local_client
         .subscribe("downstream/filter/#", QoS::AtLeastOnce)
         .await;
+
     // wait to receive subscription ack
     local_client.subscriptions().recv().await;
 
@@ -91,6 +92,7 @@ async fn send_message_upstream_downstream() {
     upstream_client
         .subscribe("upstream/temp/#", QoS::AtLeastOnce)
         .await;
+
     // wait to receive subscription ack
     upstream_client.subscriptions().recv().await;
 
@@ -139,6 +141,7 @@ async fn bridge_settings_update() {
     local_client
         .subscribe("downstream/filter/#", QoS::AtLeastOnce)
         .await;
+
     // wait to receive subscription ack
     local_client.subscriptions().recv().await;
 
@@ -149,6 +152,7 @@ async fn bridge_settings_update() {
     upstream_client
         .subscribe("upstream/temp/#", QoS::AtLeastOnce)
         .await;
+
     // wait to receive subscription ack
     upstream_client.subscriptions().recv().await;
 
@@ -246,6 +250,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
     local_client
         .subscribe("downstream/filter/#", QoS::AtLeastOnce)
         .await;
+
     // wait to receive subscription ack
     local_client.subscriptions().recv().await;
 
@@ -312,6 +317,7 @@ async fn connect_to_upstream_failure_should_retry() {
     local_client
         .subscribe("$internal/connectivity", QoS::AtLeastOnce)
         .await;
+
     // wait to receive subscription ack
     local_client.subscriptions().recv().await;
 

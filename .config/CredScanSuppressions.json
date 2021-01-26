@@ -38,6 +38,10 @@
       "_justification": "A synthetic key file used by the mqtt-broker tests"
     },
     {
+      "file": "mqtt\\mqtt-bridge\\test\\tls\\pkey.pem",
+      "_justification": "A synthetic key file used by the mqtt-bridge tests"
+    },
+    {
       "file": "http_proxy_io_requirements.md",
       "_justification": "A file in a submodule repo, which we don't control, and which contains a fake password for illustration purposes"
     },
