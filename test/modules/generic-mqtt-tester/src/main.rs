@@ -17,8 +17,11 @@ use generic_mqtt_tester::{settings::Settings, tester::MessageTester, MessageTest
 #[tokio::main]
 async fn main() -> Result<()> {
     init_logging();
-    info!("starting generic mqtt test module");
     let settings = Settings::new()?;
+    info!(
+        "starting generic mqtt test module with settings: {:?}",
+        settings
+    );
 
     let tester = MessageTester::new(settings.clone()).await?;
     let tester_shutdown = tester.shutdown_handle();
