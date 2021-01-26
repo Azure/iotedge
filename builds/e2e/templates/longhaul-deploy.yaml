@@ -40,6 +40,10 @@ parameters:
   testResultCoordinator.storageAccountConnectionString: ''
 
 steps:
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
@@ -84,9 +88,9 @@ steps:
         testInfo="$testInfo,TestName=$testName"
 
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
-          chmod +x $(Build.SourceDirectory)/scripts/linux/trcE2ETest.sh
+          chmod +x $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh
 
-          sudo $(Build.SourceDirectory)/scripts/linux/trcE2ETest.sh \
+          sudo $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \

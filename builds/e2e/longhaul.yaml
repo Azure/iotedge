@@ -36,12 +36,6 @@ variables:
   #test.testMode
   #test.useTRC
 
-steps:
-- checkout: self
-  clean: true
-  fetchDepth: 100
-  submodules: recursive
-
 jobs:
 ################################################################################
   - job: linux_amd64_moby
