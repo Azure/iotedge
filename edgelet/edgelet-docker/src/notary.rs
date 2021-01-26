@@ -128,7 +128,7 @@ pub fn notary_init(
     let mut config_file_path = hostname_dir.join("config");
 
     // Create config directory
-    fs::create_dir_all(&certs_dir).with_context(|_| {
+    fs::create_dir_all(&config_file_path).with_context(|_| {
         ErrorKind::InitializeNotary(format!(
             "could not config directory {}",
             config_file_path.display()
