@@ -412,7 +412,7 @@ fn run() -> Result<(), Error> {
                 Ok(())
             }
             ("logs", Some(_args)) => {
-                tokio_runtime.block_on(SystemLogs::new("".to_owned(), runtime()?).execute())
+                tokio_runtime.block_on(SystemLogs::new("Hello".to_owned()).execute())
             }
             (command, _) => {
                 eprintln!("Unknown init subcommand {:?}", command);

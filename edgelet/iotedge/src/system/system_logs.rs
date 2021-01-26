@@ -13,25 +13,21 @@ use edgelet_core::{LogOptions, ModuleRuntime};
 use crate::error::{Error, ErrorKind};
 use crate::Command;
 
-pub struct SystemLogs<M> {
+pub struct SystemLogs {
     options: String,
-    runtime: M,
 }
 
-impl<M> SystemLogs<M> {
-    pub fn new(options: String, runtime: M) -> Self {
-        Self { options, runtime }
+impl SystemLogs {
+    pub fn new(options: String) -> Self {
+        Self { options }
     }
 }
 
-impl<M> Command for SystemLogs<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-{
+impl Command for SystemLogs {
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(self) -> Self::Future {
-        print!("Hello");
+        println!("Hello");
 
         // let command = {
         //     let mut command = ShellCommand::new("journalctl");
