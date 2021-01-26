@@ -17,7 +17,7 @@ use support_bundle::OutputLocation;
 
 use iotedge::{
     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    SystemLogs, Unknown, Version,
+    SystemLogs, SystemRestart, Unknown, Version,
 };
 
 fn main() {
@@ -237,6 +237,10 @@ fn run() -> Result<(), Error> {
                             .min_values(0),
                     )
                 )
+                .subcommand(
+                    SubCommand::with_name("restart")
+                    .about("Restarts iotedge and all of its dependencies.")
+                )
         )
         .subcommand(
             SubCommand::with_name("support-bundle")
@@ -415,6 +419,7 @@ fn run() -> Result<(), Error> {
 
                 tokio_runtime.block_on(SystemLogs::new(jctl_args).execute())
             }
+            ("restart", Some(_args)) => tokio_runtime.block_on(SystemRestart::default().execute()),
             (command, _) => {
                 eprintln!("Unknown init subcommand {:?}", command);
                 std::process::exit(1);

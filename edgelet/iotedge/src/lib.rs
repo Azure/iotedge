@@ -36,7 +36,7 @@ pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
 pub use crate::support_bundle::SupportBundleCommand;
-pub use crate::system::SystemLogs;
+pub use crate::system::{SystemLogs, SystemRestart};
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 
