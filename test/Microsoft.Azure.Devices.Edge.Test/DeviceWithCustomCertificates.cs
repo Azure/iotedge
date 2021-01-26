@@ -78,8 +78,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("Bearwashere")]
         [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
         public async Task GrandparentScopeDevice(
-            [Values(TestAuthenticationType.SasInScope)] TestAuthenticationType testAuth,
-            [Values(Protocol.Amqp)] Protocol protocol)
+            [Values(
+                TestAuthenticationType.SasInScope,
+                TestAuthenticationType.SelfSignedPrimary,
+                TestAuthenticationType.SelfSignedSecondary)] TestAuthenticationType testAuth,
+            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
             {
                 if (!this.device.NestedEdge.IsNestedEdge)
                 {
