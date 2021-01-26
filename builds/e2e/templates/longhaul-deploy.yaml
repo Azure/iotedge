@@ -53,6 +53,20 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
   - task: Bash@3
+    displayName: 'Generate device certificates'
+    inputs:
+      targetType: inline
+      workingDirectory: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
+      script: |
+        chmod +x certGen.sh
+
+        ./certGen.sh create_root_and_intermediate
+        ./certGen.sh create_edge_device_ca_certificate 'LongHaulTestDeviceCA'
+
+        echo "##vso[task.setvariable variable=TrustBundle]$(pwd)/certs/azure-iot-test-only.intermediate-full-chain.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaCert]$(pwd)/certs/iot-edge-device-ca-LongHaulTestDeviceCA.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-LongHaulTestDeviceCA.key.pem"
+  - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
       targetType: inline
@@ -138,3 +152,7 @@ steps:
             -cleanAll
         fi
       workingDirectory: "$(Agent.HomeDirectory)/.."
+      env:
+        E2E_trustedCaCerts: $(TrustBundle)
+        E2E_deviceCaCert: $(DeviceCaCert)
+        E2E_deviceCaPrivateKey: $(DeviceCaKey)
