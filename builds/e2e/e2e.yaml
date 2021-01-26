@@ -51,7 +51,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu16.04-amd64
+      artifactName: iotedged-ubuntu18.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
