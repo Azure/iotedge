@@ -51,113 +51,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(resultType, reportGenerator.ResultType);
         }
 
-        [Fact]
-        public void TestConstructorThrowsWhenReceiverSourceButNoReceiverResults()
-        {
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-
-            ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    Option.None<ITestResultCollection<TestOperationResult>>(),
-                    "resultType1"));
-
-            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
-        }
-
-        [Fact]
-        public void TestConstructorThrowsWhenReceiverSourceButNoReceiverTestResults()
-        {
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-
-            ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    Option.None<ITestResultCollection<TestOperationResult>>(),
-                    "resultType1"));
-
-            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
-        }
-
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
-        {
-            int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
-
-            ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
-                    resultType));
-
-            Assert.StartsWith("resultType", ex.Message);
-        }
-
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        public void TestConstructorThrowsWhenSenderSourceIsNotProvided(string senderSource)
-        {
-            int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
-
-            ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    senderSource,
-                    mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
-                    "resultType1"));
-
-            Assert.StartsWith("senderSource", ex.Message);
-        }
-
-        [Fact]
-        public void TestConstructorThrowsWhenSenderStoreIsNotProvided()
-        {
-            int batchSize = 10;
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
-
-            ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    null,
-                    Option.Some("receiverSource"),
-                    receiverResults,
-                    "resultType1"));
-
-            Assert.Equal("senderTestResults", ex.ParamName);
-        }
-
         [Theory]
         [InlineData(null)]
         [InlineData("")]
@@ -207,6 +100,114 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         }
 
         [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenSenderSourceIsNotProvided(string senderSource)
+        {
+            int batchSize = 10;
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DirectMethodLongHaulReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    senderSource,
+                    mockSenderResults.Object,
+                    Option.Some("receiverSource"),
+                    receiverResults,
+                    "resultType1"));
+
+            Assert.StartsWith("senderSource", ex.Message);
+        }
+
+        [Fact]
+        public void TestConstructorThrowsWhenSenderStoreIsNotProvided()
+        {
+            int batchSize = 10;
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
+                () => new DirectMethodLongHaulReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "senderSource",
+                    null,
+                    Option.Some("receiverSource"),
+                    receiverResults,
+                    "resultType1"));
+
+            Assert.Equal("senderTestResults", ex.ParamName);
+        }
+
+        [Fact]
+        public void TestConstructorThrowsWhenReceiverResultsButNoReceiverSource()
+        {
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DirectMethodLongHaulReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "senderSource",
+                    mockSenderResults.Object,
+                    Option.None<string>(),
+                    Option.Some(mockReceiverResults.Object),
+                    "resultType1"));
+
+            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
+        }
+
+        [Fact]
+        public void TestConstructorThrowsWhenReceiverSourceButNoReceiverResults()
+        {
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DirectMethodLongHaulReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "senderSource",
+                    mockSenderResults.Object,
+                    Option.Some("receiverSource"),
+                    Option.None<ITestResultCollection<TestOperationResult>>(),
+                    "resultType1"));
+
+            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
+        {
+            int batchSize = 10;
+            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            ArgumentException ex = Assert.Throws<ArgumentException>(
+                () => new DirectMethodLongHaulReportGenerator(
+                    TestDescription,
+                    Guid.NewGuid().ToString(),
+                    "senderSource",
+                    mockSenderResults.Object,
+                    Option.Some("receiverSource"),
+                    receiverResults,
+                    resultType));
+
+            Assert.StartsWith("resultType", ex.Message);
+        }
+
+        [Theory]
         [MemberData(nameof(DirectMethodLongHaulReportData.GetCreateReportData), MemberType = typeof(DirectMethodLongHaulReportData))]
         public async Task TestCreateReportAsync(
             IEnumerable<ulong> senderStoreValues,
@@ -240,15 +241,15 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             Guid guid = Guid.NewGuid();
 
-            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
+            List<(long, TestOperationResult)> senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
             for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
                 mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, guid);
-            for (int j = 0; j < senderStoreData.Count; j += batchSize)
+            List<(long, TestOperationResult)> receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, guid);
+            for (int j = 0; j < receiverStoreData.Count; j += batchSize)
             {
                 int startingOffset = j;
                 mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
