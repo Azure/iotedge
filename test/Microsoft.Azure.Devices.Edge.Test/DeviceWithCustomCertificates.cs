@@ -135,7 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     },
                     async () =>
                     {
-                        await leaf.DeleteIdentityAsync(token);
+                        // BEARWASHERE
+                        // await leaf.DeleteIdentityAsync(token);
+                        await Task.CompletedTask;
                     });
             }
     }
