@@ -13,6 +13,13 @@ use edgelet_core::{LogOptions, ModuleRuntime};
 use crate::error::{Error, ErrorKind};
 use crate::Command;
 
+static PROCESSES: &[&str] = &[
+    "aziot-keyd",
+    "aziot-certd",
+    "aziot-identityd",
+    "aziot-edged",
+];
+
 pub struct SystemLogs {
     options: String,
 }
@@ -29,33 +36,14 @@ impl Command for SystemLogs {
     fn execute(self) -> Self::Future {
         println!("Hello");
 
-        // let command = {
-        //     let mut command = ShellCommand::new("journalctl");
-        //     command
-        //         .arg("-a")
-        //         .args(&["-u", "aziot-keyd"])
-        //         .arg("--no-pager");
+        let processes = PROCESSES.iter().flat_map(|p| vec!["-u", p]);
 
-        //     command.output()
-        // };
+        let mut command = ShellCommand::new("journalctl");
+        command.args(processes);
 
-        // let (file_name, output) = if let Ok(result) = command {
-        //     if result.status.success() {
-        //         (format!("logs/{}.txt", name), result.stdout)
-        //     } else {
-        //         (format!("logs/{}_err.txt", name), result.stderr)
-        //     }
-        // } else {
-        //     let err_message = command.err().unwrap().to_string();
-        //     println!(
-        //         "Could not find system logs for {}. Including error in bundle.\nError message: {}",
-        //         name, err_message
-        //     );
-        //     (
-        //         format!("logs/{}_err.txt", name),
-        //         err_message.as_bytes().to_vec(),
-        //     )
-        // };
+        let mut command = command.spawn().unwrap();
+
+        command.wait().unwrap();
 
         Box::new(future::ok(()))
     }
