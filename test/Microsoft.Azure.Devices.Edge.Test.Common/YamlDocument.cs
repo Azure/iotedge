@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.root = (Node)deserializer.Deserialize(reader);
         }
 
-        public void ReplaceOrAdd(string dottedKey, string value)
+        public void ReplaceOrAdd<T>(string dottedKey, T value)
         {
             Node node = this.root;
             string[] segments = dottedKey.Split('.');
