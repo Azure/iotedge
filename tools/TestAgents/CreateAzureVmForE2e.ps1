@@ -4,15 +4,16 @@ function Create-Azure-VM-For-E2E-Test
     param (
         [Parameter(Mandatory)]
         [string]
-        $VmName
+        $VmName,
 
         [Parameter(Mandatory)]
         [string]
-        $VmRegion
+        $VmRegion,
 
         [Parameter(Mandatory)]
         [string]
         $ResourceGroup
+    )
 
         # Future Iteration:
         # A complete version to do the VM creation is to do the followign 
@@ -39,9 +40,10 @@ function Create-Azure-VM-For-E2E-Test
         #Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
         az login
 
+        $AdminUsername="iotedgeuser"
         # Fetch default subscription
-        $azSubscriptionName=$(az account show --query 'name' -o tsv)
-        echo "Azure Subscription: $azSubscriptionName `n"
+        $AzSubscriptionName=$(az account show --query 'name' -o tsv)
+        echo "Azure Subscription: $AzSubscriptionName `n"
 
         $VmName=$($VmName -replace '[\W_]', '');
 
@@ -53,28 +55,41 @@ function Create-Azure-VM-For-E2E-Test
         # Ref: https://docs.microsoft.com/en-us/cli/azure/vm?view=azure-cli-latest#az_vm_create
         #   For more --image : az vm image list --output table
         az vm create `
-            --name $VmName `
+            --name "$VmName" `
             --resource-group "$ResourceGroup" `
-            --subscription "$azSubscriptionName" `
+            --subscription "$AzSubscriptionName" `
             --accelerated-networking false `
             --authentication-type ssh `
-            --admin-username iotedgeuser `
+            --admin-username "$AdminUsername" `
             --ssh-key-values "$VmPubKey" `
             --image 'Canonical:UbuntuServer:18.04-LTS:latest' `
             --size 'Standard_D4s_v3' `
             --location "$VmRegion"
 
+        # Install necessary E2E dependency
+        az vm extension set `
+            --resource-group "$ResourceGroup" `
+            --vm-name "$VmName" `
+            --name customScript `
+            --publisher Microsoft.Azure.Extensions `
+            --protected-settings '{"fileUris": ["https://iotedgeforiiot.blob.core.windows.net/edge-config-scripts/e2eOneTimeDependencySetup.sh"],"commandToExecute": "./e2eOneTimeDependencySetup.sh;"}' `
+            --output none
 
+        # Other setup command
+        #  - Set AdminUsername to docker group
+        #  - Download the VSTS test agent zip to be used.
+        additionalSetupCommand=" `
+            sudo usermod -aG docker $AdminUsername; `
+            cd /home/${AdminUsername}; `
+            mkdir myagent && cd myagent; `
+            wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz; `
+            tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz; `
+            sudo chown -R ${AdminUsername} . `
+        "
 
-
-
-        # vmName=$(az deployment group create `
-        #     --resource-group $ResourceGroup `
-        #     --template-uri 'https://iotedgeforiiot.blob.core.windows.net/edge-deploy/edgeDeploy.json' \
-        #     --parameters dnsLabelPrefix=$dnsLabelPrefix \
-        #     --parameters adminUsername=$adminUsername \
-        #     --parameters authenticationType='password' \
-        #     --parameters adminPasswordOrKey=$adminPassword \
-        #     --query "properties.dependencies[?resourceType=='Microsoft.Compute/virtualMachines'].{vmName: resourceName}[0].vmName" -o tsv)
-        #     )
+        az vm run-command invoke `
+            -g $ResourceGroup `
+            -n $VmName `
+            --command-id RunShellScript `
+            --scripts "$additionalSetupCommand" >> /dev/null
 }
