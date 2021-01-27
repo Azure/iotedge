@@ -8,7 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     public enum SupportedPackageExtension
     {
         Deb,
-        Rpm
+        RpmCentOS,
+        RpmMariner
     }
 
     public class PackageManagement
@@ -26,16 +27,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.IotedgeServices = extension switch
             {
                 SupportedPackageExtension.Deb => "iotedge.mgmt.socket iotedge.socket iotedge.service",
-                SupportedPackageExtension.Rpm => "iotedge.service",
+                var x when
+                    x == SupportedPackageExtension.RpmCentOS ||
+                    x == SupportedPackageExtension.RpmMariner => "iotedge.service",
                 _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
             };
         }
 
         public string[] GetInstallCommandsFromLocal(string path)
         {
+            string packageExtensionString = this.packageExtension switch
+            {
+                SupportedPackageExtension.Deb => "deb",
+                var x when
+                    x == SupportedPackageExtension.RpmCentOS ||
+                    x == SupportedPackageExtension.RpmMariner => "rpm",
+                _ => throw new NotImplementedException($"Unknown package extension '.{this.packageExtension}'")
+            };
             string[] packages = Directory
-                .GetFiles(path, $"*.{this.packageExtension.ToString().ToLower()}")
-                .Where(p => !p.Contains("debug"))
+                .GetFiles(path, $"*.{packageExtensionString}")
+                .Where(p => !p.Contains("debug") && !p.Contains("rust"))
                 .ToArray();
 
             return this.packageExtension switch
@@ -46,10 +57,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     $"dpkg --force-confnew -i {string.Join(' ', packages)}",
                     $"apt-get install -f"
                 },
-                SupportedPackageExtension.Rpm => new[]
+                SupportedPackageExtension.RpmCentOS => new[]
                 {
                     "set -e",
                     $"yum install -y {string.Join(' ', packages)}",
+                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
+                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                    "sudo systemctl daemon-reload"
+                },
+                SupportedPackageExtension.RpmMariner => new[]
+                {
+                    "set -e",
+                    $"rpm -i {string.Join(' ', packages)}",
                     "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
                     "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
                     "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
@@ -71,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 $"apt-get update",
                 $"apt-get install --yes iotedge"
             },
-            SupportedPackageExtension.Rpm => new[]
+            SupportedPackageExtension.RpmCentOS => new[]
             {
                 $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
                 $"yum updateinfo",
@@ -88,11 +108,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "apt-get purge --yes libiothsm-std iotedge"
+                "apt-get purge --yes aziot-edge aziot-identity-service libiothsm-std iotedge"
             },
-            SupportedPackageExtension.Rpm => new[]
+            SupportedPackageExtension.RpmCentOS => new[]
             {
-                "yum remove -y --remove-leaves libiothsm-std iotedge"
+                "yum remove -y --remove-leaves aziot-edge aziot-identity-service libiothsm-std iotedge"
+            },
+            SupportedPackageExtension.RpmMariner => new[]
+            {
+                "if rpm -qa azure-iotedge | grep -q azure-iotedge; then rpm -e azure-iotedge; fi",
+                "if rpm -qa libiothsm-std | grep -q libiothsm-std; then rpm -e libiothsm-std; fi",
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };
