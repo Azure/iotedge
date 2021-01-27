@@ -55,13 +55,13 @@ pub fn notary_init(
 
     // Build trust collection and certs directory for each hostname
     let trust_dir = hostname_dir.join("trust_collection");
-    info!(
+    debug!(
         "Trust directory for {} is {}",
         file_name,
         trust_dir.display()
     );
     let certs_dir = hostname_dir.join("certs");
-    info!(
+    debug!(
         "Certs directory for {} is {}",
         file_name,
         certs_dir.display()
@@ -111,7 +111,7 @@ pub fn notary_init(
 
     // Create Notary Config.json contents
     let config_contents = json!({
-      "trust_dir": hostname_dir,
+      "trust_dir": trust_dir,
       "remote_server": {
         "url" : input_url_https,
       },

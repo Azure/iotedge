@@ -265,7 +265,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     .content_trust()
                     .and_then(ContentTrust::ca_certs)
                 {
-                    info!("Notary Content Trust is enabled");
+                    debug!("Notary Content Trust is enabled");
                     future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
                         (notary_registries, cert_client),
                         move |(mut notary_registries, cert_client),
@@ -297,7 +297,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         },
                     ))
                 } else {
-                    info!("Notary Content Trust is disabled");
+                    debug!("Notary Content Trust is disabled");
                     future::Either::B(future::ok((notary_registries, cert_client)))
                 };
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
