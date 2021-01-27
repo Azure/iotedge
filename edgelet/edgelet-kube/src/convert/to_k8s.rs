@@ -25,7 +25,7 @@ use crate::constants::{
     PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
     PROXY_TRUST_BUNDLE_VOLUME_NAME,
 };
-use crate::convert::{sanitize_dns_value, sanitize_label_value};
+use crate::convert::{sanitize_dns_value, sanitize_dns_value_rfc1123, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
