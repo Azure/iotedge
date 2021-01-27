@@ -200,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
             internal static void ErrorGettingEdgeHubConfig(Exception ex)
             {
-                Log.LogWarning(
+                Log.LogError(
                     (int)EventIds.ErrorPatchingDesiredProperties,
                     ex,
                     Invariant($"Error getting edge hub config from twin desired properties"));
