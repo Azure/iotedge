@@ -28,7 +28,7 @@ function Create-Azure-VM-For-E2E-Test
     )
 
         # Future Iteration:
-        # A complete version to do the VM creation is to do the followign 
+        # A complete version to do the VM creation is to do the following 
         #  1. Query VSTS to see what's the current index for the test agent there is
         #  2. Name the test agent after that prefix + however many to be created
         #  3. Download the nestedEdge RootCA cert
@@ -41,7 +41,7 @@ function Create-Azure-VM-For-E2E-Test
         #  9. Can we automate (8)?
 
         # Current version:
-        # For this miniture version, we can do 
+        # For this miniature version, we can do 
         #  A. Take the VmName
         #  B. Download the cert somewhere
         #  C. Call AzCli to create the VM with cert
