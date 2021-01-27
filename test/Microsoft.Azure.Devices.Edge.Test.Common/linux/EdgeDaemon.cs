@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         {
                             Log.Verbose($"Uninstall command '{command}' ran successfully");
                         }
-                    }, "Uninstalled edge component");
+                    }, $"Successful: {command}");
                 }
                 catch (Win32Exception e)
                 {
