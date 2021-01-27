@@ -6,9 +6,9 @@ function create_certificates() {
     echo "Installing test root certificate bundle."
 
     echo "Generating edge device certificate"
-    device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
+    device_name=$(curl ipecho.net/plain)
     eval device_name=${device_name}
-    echo "  Hostname FQDN: ${device_name}"
+    echo "  Hostname IP: ${device_name}"
 
     /certs/certGen.sh create_edge_device_certificate ${device_name}
 }
@@ -20,11 +20,23 @@ function setup_iotedge() {
     device_ca_cert_path="file:///certs/certs/iot-edge-device-${device_name}-full-chain.cert.pem"
     trusted_ca_certs_path="file:///certs/certs/azure-iot-test-only.root.ca.cert.pem"
 
+    sudo touch /etc/aziot/certd/config.toml
+    echo "homedir_path = \"/var/lib/aziot/certd\"" | sudo tee  /etc/aziot/certd/config.toml
+    echo "" | sudo tee -a  /etc/aziot/certd/config.toml
+    echo "[cert_issuance]" | sudo tee -a  /etc/aziot/certd/config.toml
+    echo "" | sudo tee -a  /etc/aziot/certd/config.toml
+    echo "[preloaded_certs]" | sudo tee -a  /etc/aziot/certd/config.toml            
     echo "aziot-edged-ca = \"$device_ca_cert_path\"" | sudo tee -a  /etc/aziot/certd/config.toml
     echo "aziot-edged-trust-bundle = \"$trusted_ca_certs_path\"" | sudo tee -a  /etc/aziot/certd/config.toml
     sudo cat /etc/aziot/certd/config.toml
 
     echo "Setup keyd"
+    sudo touch /etc/aziot/keyd/config.toml
+    echo "[aziot_keys]" | sudo tee  /etc/aziot/keyd/config.toml
+    echo "homedir_path = \"/var/lib/aziot/keyd\"" | sudo tee -a  /etc/aziot/keyd/config.toml
+    echo "" | sudo tee -a  /etc/aziot/keyd/config.toml
+    echo "[preloaded_keys]" | sudo tee -a  /etc/aziot/keyd/config.toml   
+    echo "device-id = \"file:///var/secrets/aziot/keyd/device-id\"" | sudo tee -a  /etc/aziot/keyd/config.toml       
     device_ca_pk_path="file:///certs/private/iot-edge-device-${device_name}.key.pem"
     echo "aziot-edged-ca = \"$device_ca_pk_path\"" | sudo tee -a  /etc/aziot/keyd/config.toml
     sudo cat /etc/aziot/keyd/config.toml
@@ -40,20 +52,35 @@ function setup_iotedge() {
         sed -i "53i\      password: \"${CONTAINER_REGISTRY_PASSWORD}\"" /etc/aziot/edged/config.yaml
     fi
 
-
-    sudo sed -i "1s/.*/hostname = \"$device_name\"/" /etc/aziot/identityd/config.toml
     if [ ! -z $PARENT_NAME ]; then
         echo "    Updating the device and parent hostname"
         sudo sed -i "66s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
         echo "    Updating the parent hostname"
         sudo sed -i "79s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/aziot/edged/config.yaml
-
-        sudo sed -i "7s/.*/iothub_hostname = \"$PARENT_NAME\"/" /etc/aziot/identityd/config.toml
     else
         echo "    Updating the device hostname"
         sudo sed -i "69s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
     fi
     sudo cat /etc/aziot/edged/config.yaml
+
+    echo "Setup identityd"   
+    sudo touch /etc/aziot/identityd/config.toml
+    echo "hostname = \"$device_name\"" | sudo tee  /etc/aziot/identityd/config.toml
+    echo "homedir = \"/var/lib/aziot/identityd\"" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "[provisioning]" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "dynamic_reprovisioning = true" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "source = \"manual\"" | sudo tee -a  /etc/aziot/identityd/config.toml
+    if [ ! -z $PARENT_NAME ]; then
+        echo "iothub_hostname = \"$PARENT_NAME\"" | sudo tee -a  /etc/aziot/identityd/config.toml
+    else
+        echo "iothub_hostname = \"${IOT_HUB_NAME}.azure-devices.net\"" | sudo tee -a  /etc/aziot/identityd/config.toml
+    fi    
+    echo "device_id = \"${DEVICE_ID}\"" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "[provisioning.authentication]" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "method = \"sas\"" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "device_id_pk = \"device-id\"" | sudo tee -a  /etc/aziot/identityd/config.toml
     sudo cat /etc/aziot/identityd/config.toml
 
     echo "Setup aziot-edged-principal.toml"
@@ -67,8 +94,17 @@ function setup_iotedge() {
     #deploy the config in azure portal
     az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 
+    echo "Setup /var/secrets/aziot/keyd/device-id"
+    sudo touch /var/secrets/aziot/keyd/device-id
+    deviceSASKey=$(echo "${CONNECTION_STRING}" | sed -n 's/.*SharedAccessKey=\(.*\)/\1/p') 
+    echo "SAS key: $deviceSASKey"
+    echo $deviceSASKey | base64 -d > device-id
+    sudo mv device-id  /var/secrets/aziot/keyd/device-id
+    sudo chmod 600 /var/secrets/aziot/keyd/device-id
+    sudo chown aziotks:aziotks /var/secrets/aziot/keyd/device-id
+
     echo "Start IoT edge"
-    sudo systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged
+    sudo systemctl start aziot-keyd aziot-certd aziot-identityd aziot-edged
 }
 
 function prepare_test_from_artifacts() {
@@ -177,7 +213,7 @@ function process_args() {
                 '-parentName' ) saveNextArg=15;;
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
-                '-iotHubName' ) saveNextArg=18;;
+                '-iotHubName' ) saveNextArg=18;;             
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -199,7 +235,7 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$DEPLOYMENT_FILE_NAME" ]] && { print_error 'Deployment file name is required'; exit 1; }
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
+    [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }   
 
     echo 'Required parameters are provided'
 }

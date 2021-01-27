@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (nestedEdge == true)
             {
-                hubEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures__enabled", "true"), ("experimentalFeatures__nestedEdgeEnabled", "true") };
+                hubEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("experimentalFeatures__enabled", "true"), ("experimentalFeatures__nestedEdgeEnabled", "true"), ("DeviceScopeCacheRefreshDelaySecs", "1") };
             }
             else
             {

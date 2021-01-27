@@ -35,11 +35,7 @@ steps:
       buildId: $(imageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(az.pipeline.images.artifacts)
-      itemPattern: |
-        $(az.pipeline.images.artifacts)/e2e_deployment_files/$(deploymentFileName)
-        $(az.pipeline.images.artifacts)/scripts/connectivityTest.sh
-        $(az.pipeline.images.artifacts)/scripts/testHelper.sh
-        $(az.pipeline.images.artifacts)/artifactInfo.txt 
+      itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt 
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
@@ -67,6 +63,11 @@ steps:
       targetType: inline
       script: |
         echo 'Stop IoT Edge services'
+        sudo systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+        sudo systemctl stop iotedge.socket iotedge.mgmt.socket || true
+        sudo systemctl kill iotedge || true
+        sudo systemctl stop iotedge || true        
+        sudo systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
         sudo dpkg --purge aziot-edge aziot-identity-service
 
         sudo rm -rf /var/lib/aziot/
@@ -86,11 +87,7 @@ steps:
         echo "  Install library"
         sudo dpkg -i --force-confnew ${iotedge_library}
         echo "  Install edgelet"
-        sudo dpkg -i --force-confnew ${iotedge_package}
-        
-        expect -c 'spawn sudo aziot init; expect >; send "1\n"; expect >; send "$(connectionString)\n"; expect ?; send "2\n"; interact'
-        
-        
+        sudo dpkg -i --force-confnew ${iotedge_package}          
   - task: Bash@3
     displayName: 'Deployment iotedge on agent'
     name: deployIoTEdge
@@ -98,7 +95,7 @@ steps:
       targetType: inline
       script: |
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-        . $(Agent.HomeDirectory)/../artifacts/$(az.pipeline.images.artifacts)/artifactInfo.txt
+        . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
 

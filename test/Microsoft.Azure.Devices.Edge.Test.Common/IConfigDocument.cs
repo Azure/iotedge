@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     public interface IConfigDocument
     {
-        void ReplaceOrAdd(string dottedKey, string value);
+        void ReplaceOrAdd<T>(string dottedKey, T value);
         void RemoveIfExists(string dottedKey);
         string ToString();
     }

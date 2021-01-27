@@ -15,7 +15,6 @@ stages:
   jobs:
   - job: SetupVM_level5
     displayName: SettingUp level 5
-    condition: ne(variables['agent.group'], '')
     timeoutInMinutes: 180
     variables:
       artifactName: iotedged-ubuntu18.04-amd64
@@ -37,8 +36,7 @@ stages:
        - status -equals unlocked
     steps:
      - template: templates/nested-get-secrets.yaml
-     - template: templates/e2e-clean-directory.yaml 
-     - template: templates/nested-e2e-clean-directory.yaml            
+     - template: templates/e2e-clean-directory.yaml            
      - template: templates/lock-test-agent.yaml
      - template: templates/nested-get-root-ca.yaml       
      - template: templates/nested-create-identity.yaml   
@@ -47,7 +45,7 @@ stages:
   - job: SetupVM_level4
     dependsOn: SetupVM_level5
     displayName: SettingUp level 4
-    condition: ne(variables['agent.group'], '')
+    condition: succeeded()
     timeoutInMinutes: 180
     variables:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
@@ -69,8 +67,7 @@ stages:
        - status -equals unlocked    
     steps:
      - template: templates/nested-get-secrets.yaml  
-     - template: templates/e2e-clean-directory.yaml
-     - template: templates/nested-e2e-clean-directory.yaml                
+     - template: templates/e2e-clean-directory.yaml                
      - template: templates/lock-test-agent.yaml
      - template: templates/nested-get-root-ca.yaml         
      - template: templates/nested-create-identity.yaml          
@@ -80,6 +77,7 @@ stages:
     dependsOn: SetupVM_level4
     displayName: Set up and run tests
     timeoutInMinutes: 180
+    condition: succeeded()
     variables:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
@@ -101,8 +99,7 @@ stages:
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
-      - template: templates/e2e-clean-directory.yaml
-      - template: templates/nested-e2e-clean-directory.yaml      
+      - template: templates/e2e-clean-directory.yaml     
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml    
       - template: templates/e2e-setup.yaml
@@ -116,6 +113,7 @@ stages:
     dependsOn: SetupVM_and_RunTest_level3
     condition: always()
     displayName: Clean up identities and unlock agents
+    timeoutInMinutes: 1    
     variables:    
       deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ]     
