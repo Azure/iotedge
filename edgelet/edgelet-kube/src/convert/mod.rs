@@ -60,7 +60,7 @@ pub fn sanitize_label_value(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_dns_value, sanitize_label_value, ErrorKind};
+    use super::{sanitize_dns_value, sanitize_dns_value_rfc1123, sanitize_label_value, ErrorKind};
 
     #[test]
     fn sanitize_dns_value_test_63chars() {
