@@ -52,7 +52,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
       - checkout: self
         clean: true
@@ -161,7 +161,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
       aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
     steps:
       - checkout: self
         clean: true
@@ -270,7 +270,7 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
+      aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
     steps:
       - checkout: self
         clean: true
