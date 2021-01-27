@@ -35,7 +35,7 @@ jobs:
         inputs: 
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
-      - template: templates/build-rust-artifacts.yaml
+      - template: templates/build-broker-watchdog.yaml
       - template: templates/consolidate-build-artifacts.yaml
       # Code Sign
       - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign

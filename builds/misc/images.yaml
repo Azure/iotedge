@@ -26,7 +26,8 @@ jobs:
         name: build
         displayName: Build ($(Build.Configuration)) dotnet artifacts
 
-      - template: templates/build-rust-artifacts.yaml
+      - template: templates/build-broker-watchdog.yaml
+      - template: templates/build-rust-test-modules.yaml
 
       - template: templates/consolidate-build-artifacts.yaml
 
