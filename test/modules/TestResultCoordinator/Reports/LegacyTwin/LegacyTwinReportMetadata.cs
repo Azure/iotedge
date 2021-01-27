@@ -5,9 +5,9 @@ namespace TestResultCoordinator.Reports.LegacyTwin
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
 
-    class DirectMethodReportMetadata : TestReportMetadataBase, ITestReportMetadata
+    class LegacyTwinReportMetadata : TestReportMetadataBase, ITestReportMetadata
     {
-        public DirectMethodReportMetadata(
+        public LegacyTwinReportMetadata(
             string testDescription,
             string senderSource)
             : base(testDescription)

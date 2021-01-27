@@ -21,7 +21,6 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             string senderSource,
             ITestResultCollection<TestOperationResult> senderTestResults)
         {
-
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
