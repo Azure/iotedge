@@ -34,36 +34,36 @@ pub fn notary_init(
     // home directory : /home
     // notary directory : /home/notary
     // hostname directory : /home/notary/sanitized_hostname
-    // trust collection directory : /home/notary/santized_hostname/trust_collection
-    // certs directory for each hostname : /home/notary/santized_hostname/certs
-    // notary config file path : /home/notary/santized_hostname/config
+    // trust collection directory : /home/notary/sanitized_hostname/trust_collection
+    // certs directory for each hostname : /home/notary/sanitized_hostname/certs
+    // notary config file path : /home/notary/sanitized_hostname/config
 
     // Create notary directory under home directory
     let notary_dir = home_dir.join("notary");
 
     // Create a folder name with santized hostname
     let mut hostname_dir = notary_dir.clone();
-    let mut file_name = String::new();
+    let mut sanitized_hostname = String::new();
     for c in registry_server_hostname.chars() {
         if c.is_ascii_alphanumeric() || !c.is_ascii() {
-            file_name.push(c);
+            sanitized_hostname.push(c);
         } else {
-            file_name.push_str(&format!("%{:02x}", c as u8));
+            sanitized_hostname.push_str(&format!("%{:02x}", c as u8));
         }
     }
-    hostname_dir.push(&file_name);
+    hostname_dir.push(&sanitized_hostname);
 
     // Build trust collection and certs directory for each hostname
     let trust_dir = hostname_dir.join("trust_collection");
     debug!(
         "Trust directory for {} is {}",
-        file_name,
+        sanitized_hostname,
         trust_dir.display()
     );
     let certs_dir = hostname_dir.join("certs");
     debug!(
         "Certs directory for {} is {}",
-        file_name,
+        sanitized_hostname,
         certs_dir.display()
     );
 
@@ -71,7 +71,7 @@ pub fn notary_init(
     if let Err(err) = fs::remove_dir_all(&notary_dir) {
         if err.kind() != std::io::ErrorKind::NotFound {
             return Err(ErrorKind::InitializeNotary(format!(
-                "could not delete notary hostname directory {}",
+                "could not delete notary directory {}",
                 hostname_dir.display()
             ))
             .into());
@@ -95,7 +95,7 @@ pub fn notary_init(
     })?;
 
     // Create root CA file name
-    let root_ca_cert_name = file_name + "_root_ca.pem";
+    let root_ca_cert_name = sanitized_hostname + "_root_ca.pem";
     let root_ca_file_path = certs_dir.join(root_ca_cert_name);
 
     fs::write(&root_ca_file_path, cert_buf).with_context(|_| {
