@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             {
                                 Log.Information($"Found parent hostname {parentHostname}");
                                 config.SetParentHostname(parentHostname);
-                                msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
+                                msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
 
                                 string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
