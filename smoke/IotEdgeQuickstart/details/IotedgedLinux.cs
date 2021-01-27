@@ -245,15 +245,10 @@ namespace IotEdgeQuickstart.Details
             config.Add(IDENTITYD, ("aziotid", InitDocument(IDENTITYD + ".default", true)));
             config.Add(EDGED, ("iotedge", InitDocument(EDGED + ".template", false)));
 
-            // Directory for storing keys; create it if it doesn't exist.
-            string keyDir = "/var/secrets/aziot/keyd/";
-            Directory.CreateDirectory(keyDir);
-            SetOwner(keyDir, config[KEYD].owner, "700");
-
             method.ManualConnectionString.Match(
                 cs =>
                 {
-                    string keyPath = Path.Combine(keyDir, "device-id");
+                    string keyPath = "/var/secrets/aziot/keyd/device-id";
                     config[IDENTITYD].document.ReplaceOrAdd("provisioning.source", "manual");
                     config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.method", "sas");
                     config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.device_id_pk", "device-id");
@@ -299,7 +294,7 @@ namespace IotEdgeQuickstart.Details
                     switch (dps.AttestationType)
                     {
                         case DPSAttestationType.SymmetricKey:
-                            string dpsKeyPath = Path.Combine(keyDir, "device-id");
+                            string dpsKeyPath = "/var/secrets/aziot/keyd/device-id";
                             string dpsKey = dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key"));
 
                             File.WriteAllBytes(dpsKeyPath, Convert.FromBase64String(dpsKey));

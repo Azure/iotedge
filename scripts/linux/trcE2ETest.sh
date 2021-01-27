@@ -88,8 +88,8 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='aziot-edge_*.deb';;
-        'aziot_is' ) filter='aziot-identity-service_*.deb';;
+        'aziot_edge' ) filter='*/aziot-edge_*.deb';;
+        'aziot_is' ) filter='*/aziot-identity-service_*.deb';;
         'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
         'deployment' ) filter="core-linux/e2e_deployment_files/$3";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
@@ -616,7 +616,7 @@ function run_connectivity_test() {
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
-        -a "$E2E_TEST_DIR/artifacts/" \
+        -a "$testDir/artifacts/" \
         -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
@@ -638,7 +638,7 @@ function run_connectivity_test() {
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$E2E_TEST_DIR/artifacts/" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -751,7 +751,7 @@ function run_longhaul_test() {
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$E2E_TEST_DIR/artifacts/" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -777,7 +777,7 @@ function run_longhaul_test() {
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$E2E_TEST_DIR/artifacts/" \
+            -a "$testDir/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \

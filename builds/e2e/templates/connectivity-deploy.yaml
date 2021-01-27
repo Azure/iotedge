@@ -54,22 +54,6 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
-    displayName: 'Generate device certificates'
-    inputs:
-      targetType: inline
-      workingDirectory: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
-      script: |
-        chmod +x certGen.sh
-
-        ./certGen.sh create_root_and_intermediate
-        ./certGen.sh create_edge_device_ca_certificate 'ConnectivityTestDeviceCA'
-
-        echo "##vso[task.setvariable variable=TrustBundle]$(pwd)/certs/azure-iot-test-only.intermediate-full-chain.cert.pem"
-        echo "##vso[task.setvariable variable=DeviceCaCert]$(pwd)/certs/iot-edge-device-ca-ConnectivityTestDeviceCA.cert.pem"
-        echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-ConnectivityTestDeviceCA.key.pem"
-
-  - task: Bash@3
-    condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
     inputs:
       targetType: inline
@@ -90,8 +74,7 @@ steps:
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
 
-        sudo --preserve-env $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh \
-          -testName 'Connectivity' \
+        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "${{ parameters['release.label'] }}" \
           -artifactImageBuildNumber "$BuildNumber" \
@@ -132,7 +115,3 @@ steps:
         exit $scriptExitCode
 
       workingDirectory: "$(Agent.HomeDirectory)/.."
-    env:
-      E2E_trustedCaCerts: $(TrustBundle)
-      E2E_deviceCaCert: $(DeviceCaCert)
-      E2E_deviceCaPrivateKey: $(DeviceCaKey)
