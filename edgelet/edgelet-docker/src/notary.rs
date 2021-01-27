@@ -8,7 +8,7 @@ use std::process::Command;
 
 use failure::ResultExt;
 use futures::Future;
-use log::{debug, info};
+use log::debug;
 use serde_json::json;
 use tokio_process::CommandExt;
 
