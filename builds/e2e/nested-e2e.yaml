@@ -29,6 +29,7 @@ stages:
     pool:
      name: $(pool.name)
      demands:
+       - Agent.Version -equals 2.181.0
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
@@ -60,6 +61,7 @@ stages:
     pool:
      name: $(pool.name)
      demands:
+       - Agent.Version -equals 2.181.0
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
@@ -90,6 +92,7 @@ stages:
     pool:
       name: $(pool.name)
       demands:
+        - Agent.Version -equals 2.181.0
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
@@ -121,6 +124,7 @@ stages:
     pool:
       name: $(pool.name)
       demands:
+        - Agent.Version -equals 2.181.0
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
