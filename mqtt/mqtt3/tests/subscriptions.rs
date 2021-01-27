@@ -661,7 +661,10 @@ fn should_send_reject_event() {
                     topic_filter: "topic1".to_string(),
                     qos: mqtt3::proto::QoS::AtLeastOnce,
                 }),
-                mqtt3::SubscriptionUpdateEvent::RejectedByServer("topic2".to_owned()),
+                mqtt3::SubscriptionUpdateEvent::RejectedByServer(mqtt3::proto::SubscribeTo {
+                    topic_filter: "topic2".to_string(),
+                    qos: mqtt3::proto::QoS::AtLeastOnce,
+                }),
             ]),
         ],
     );

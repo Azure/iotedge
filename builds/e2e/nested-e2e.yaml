@@ -10,31 +10,122 @@ resources:
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: master
 
-jobs:
-
-################################################################################		
-  - job: linux_amd64_nested_edge_l3	
-################################################################################		
-    displayName: Linux amd64 (Nested Edge L3)
-
-    pool:	
-      name: $(pool.name)	
-      demands:	
-        - Agent.OS -equals Linux	
-        - Agent.OSArchitecture -equals X64
-        - Agent.Name -equals $(agent.name)
-        - nested-edge -equals L3
-
-    # Agent name variable is only used by nested edge test
-    condition: ne(variables['agent.name'], '')
-
+stages:
+- stage: SetupVM
+  jobs:
+  - job: SetupVM_level5
+    displayName: SettingUp level 5
+    timeoutInMinutes: 180
     variables:
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      vsts.project: $(System.TeamProjectId)
+      level: '5'
+      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
+      parentName: ''
+      parentDeviceId: ''
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - run-idle -equals true
+       - status -equals unlocked
+    steps:
+     - template: templates/nested-get-secrets.yaml
+     - template: templates/e2e-clean-directory.yaml            
+     - template: templates/lock-test-agent.yaml
+     - template: templates/nested-get-root-ca.yaml       
+     - template: templates/nested-create-identity.yaml   
+     - template: templates/nested-agent-deploy.yaml
+
+  - job: SetupVM_level4
+    dependsOn: SetupVM_level5
+    displayName: SettingUp level 4
+    condition: succeeded()
+    timeoutInMinutes: 180
+    variables:
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+      vsts.project: $(System.TeamProjectId)
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
+      level: '4'
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - run-idle -equals true 
+       - status -equals unlocked    
+    steps:
+     - template: templates/nested-get-secrets.yaml  
+     - template: templates/e2e-clean-directory.yaml                
+     - template: templates/lock-test-agent.yaml
+     - template: templates/nested-get-root-ca.yaml         
+     - template: templates/nested-create-identity.yaml          
+     - template: templates/nested-agent-deploy.yaml
+
+  - job:  SetupVM_and_RunTest_level3
+    dependsOn: SetupVM_level4
+    displayName: Set up and run tests
+    timeoutInMinutes: 180
+    condition: succeeded()
+    variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu16.04-amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      nestededge: true     
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
+        - status -equals unlocked    
+    steps:   
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/lock-test-agent.yaml     
+      - template: templates/e2e-clean-directory.yaml     
+      - template: templates/nested-get-root-ca.yaml
+      - template: templates/nested-get-device-name.yaml    
+      - template: templates/e2e-setup.yaml
+      - template: templates/e2e-clear-docker-cached-images.yaml
+      - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
+          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)
 
-    steps:	
-    - template: templates/e2e-clean-directory.yaml	
-    - template: templates/e2e-setup.yaml	
-    - template: templates/e2e-clear-docker-cached-images.yaml	
-    - template: templates/e2e-run.yaml
+  - job:  Clean_up     
+    dependsOn: SetupVM_and_RunTest_level3
+    condition: always()
+    displayName: Clean up identities and unlock agents
+    timeoutInMinutes: 1    
+    variables:    
+      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ]     
+      deviceLvl4Name: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level4.outputs['createIdentity.connectionString'] ] 
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-idle -equals true 
+        - status -equals unlocked_$(Build.BuildId)  
+    strategy:
+      parallel: 3          
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/unlock-test-agent.yaml      

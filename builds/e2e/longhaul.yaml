@@ -25,6 +25,7 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #longhaul.desiredModulesToRestartCSV: ''
   #longhaul.restartIntervalInMins: ''
+  #longHaul.sendReportFrequency: 'xx:xx:xx.xx'
   #twinTester.twinUpdateSize: ''
   #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
   #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
@@ -32,6 +33,7 @@ variables:
   #metricsCollector.metricsEndpointsCSV
   #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
   #metricsCollector.uploadTarget
+  #test.testMode
   #test.useTRC
 
 jobs:
@@ -50,7 +52,10 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -107,6 +112,7 @@ jobs:
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
@@ -120,6 +126,7 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_amd64_moby'
+          test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
@@ -139,7 +146,10 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -196,6 +206,7 @@ jobs:
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
@@ -209,6 +220,7 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
+          test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
@@ -228,7 +240,10 @@ jobs:
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
@@ -285,6 +300,7 @@ jobs:
           loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
@@ -298,5 +314,6 @@ jobs:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'

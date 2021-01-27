@@ -33,7 +33,7 @@ impl Handler<Parameters> for DecryptHandler {
         req: Request<Body>,
         params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
-        let key_store = self.key_client.clone();
+        let key_client = self.key_client.clone();
 
         let response = params
             .name("name")
@@ -61,10 +61,10 @@ impl Handler<Parameters> for DecryptHandler {
                     .context(ErrorKind::MalformedRequestBody)?;
                 let initialization_vector = base64::decode(request.initialization_vector())
                     .context(ErrorKind::MalformedRequestBody)?;
-                let ciphertext = get_derived_enc_key_handle(key_store.clone(), id.clone())
+                let ciphertext = get_derived_enc_key_handle(key_client.clone(), id.clone())
                     .and_then(|k| {
                         get_plaintext(
-                            key_store,
+                            key_client,
                             k,
                             initialization_vector,
                             id.into_bytes(),

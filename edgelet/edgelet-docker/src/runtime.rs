@@ -2,7 +2,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::str;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -248,26 +249,57 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
-        let created = init_client(settings.moby_runtime().uri())
-            .and_then(move |client| {
-                let home_dir = settings.homedir();
+        let created = match init_client(settings.moby_runtime().uri()) {
+            Ok(client) => {
+                let home_dir: Arc<Path> = settings.homedir().into();
                 let network_id = settings.moby_runtime().network().name().to_string();
-                let mut notary_registries = BTreeMap::new();
-                if let Some(content_trust_map) = settings
+                let notary_registries = BTreeMap::new();
+                let certd_url = settings.endpoints().aziot_certd_url().clone();
+                let cert_client = cert_client::CertificateClient::new(
+                    aziot_cert_common_http::ApiVersion::V2020_09_01,
+                    &certd_url,
+                );
+
+                let notary_registries = if let Some(content_trust_map) = settings
                     .moby_runtime()
                     .content_trust()
                     .and_then(ContentTrust::ca_certs)
                 {
-                    info!("Notary Content Trust is enabled");
-                    for (registry_server_hostname, path) in content_trust_map {
-                        let config_path =
-                            notary::notary_init(home_dir, registry_server_hostname, path)
-                                .context(ErrorKind::Initialization)?;
-                        notary_registries.insert(registry_server_hostname.clone(), config_path);
-                    }
+                    debug!("Notary Content Trust is enabled");
+                    future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
+                        (notary_registries, cert_client),
+                        move |(mut notary_registries, cert_client),
+                              (registry_server_hostname, cert_id)| {
+                            let home_dir = home_dir.clone();
+                            cert_client
+                                .get_cert(&cert_id)
+                                .then(move |cert_output| -> Result<_> {
+                                    match cert_output {
+                                        Ok(cert_buf) => {
+                                            let config_path = notary::notary_init(
+                                                &home_dir,
+                                                &registry_server_hostname,
+                                                &cert_buf,
+                                            )
+                                            .context(ErrorKind::Initialization)?;
+                                            notary_registries.insert(
+                                                registry_server_hostname.clone(),
+                                                config_path,
+                                            );
+                                            Ok((notary_registries, cert_client))
+                                        }
+                                        Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
+                                            "Notary root CA read error".to_owned(),
+                                        )
+                                        .into()),
+                                    }
+                                })
+                        },
+                    ))
                 } else {
-                    info!("Notary Content Trust is disabled");
-                }
+                    debug!("Notary Content Trust is disabled");
+                    future::Either::B(future::ok((notary_registries, cert_client)))
+                };
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
 
@@ -302,7 +334,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &e);
                         e
                     })
-                    .map(move |client| {
+                    .join(notary_registries)
+                    .map(move |(client, (notary_registries, _))| {
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
@@ -314,13 +347,13 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             notary_lock,
                         }
                     });
-                Ok(future::Either::A(fut))
-            })
-            .unwrap_or_else(|err| {
+                future::Either::A(fut)
+            }
+            Err(err) => {
                 log_failure(Level::Warn, &err);
                 future::Either::B(Err(err).into_future())
-            });
-
+            }
+        };
         Box::new(created)
     }
 }
@@ -1261,9 +1294,6 @@ mod tests {
         Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
     };
     #[cfg(target_os = "linux")]
-    use std::fs;
-    #[cfg(target_os = "linux")]
-    use tempfile::NamedTempFile;
     use tempfile::TempDir;
 
     fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
@@ -1323,123 +1353,6 @@ mod tests {
         assert!(failure::Fail::iter_chain(&err).any(|err| err
             .to_string()
             .contains("URL does not have a recognized scheme")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn invalid_uds_path_fails() {
-        let (settings, _tmp_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "unix:///this/file/does/not/exist"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings)
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err)
-            .any(|err| err.to_string().contains("Socket file could not be found")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn notary_initialization() {
-        // Docker Daemon is not installed in arm32v7 and arm64v8 of the CI build VMs.
-        // This test returns if the docker.sock file does not exist in such scenarios
-        let docker_path = Path::new("unix:///var/run/docker.sock");
-        if !cfg!(target_arch = "x86_64") && !docker_path.exists() {
-            return;
-        }
-
-        let hostname1 = r"myreg1.azurecr.io";
-        let hostname2 = r"myreg2.azurecr.io";
-        let file1 = NamedTempFile::new().unwrap();
-        let file2 = NamedTempFile::new().unwrap();
-        let (settings, tmp_home_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": docker_path,
-                "content_trust" : {
-                    "ca_certs" : {
-                        hostname1 : file1.path(),
-                        hostname2 : file2.path()
-                    }
-                }
-            }
-        })));
-
-        let runtime = DockerModuleRuntime::make_runtime(settings);
-        let runtime = tokio::runtime::current_thread::Runtime::new()
-            .unwrap()
-            .block_on(runtime)
-            .unwrap();
-
-        let mut config_path1 = tmp_home_dir.path().to_owned();
-        config_path1.push("notary");
-        let mut filename1 = String::new();
-        for c in hostname1.chars() {
-            if c.is_ascii_alphanumeric() || !c.is_ascii() {
-                filename1.push(c);
-            } else {
-                filename1.push_str(&format!("%{:02x}", c as u8));
-            }
-        }
-        config_path1.push(filename1);
-        let trust_dir = config_path1.clone();
-        config_path1.push("config.json");
-        let actual_config1 = fs::read(&config_path1).unwrap();
-        let actual_json_content1: serde_json::Value =
-            serde_json::from_slice(&actual_config1).unwrap();
-        let expected_json_content1 = json!({
-            "trust_dir" : trust_dir,
-            "remote_server": {
-              "url": "https://myreg1.azurecr.io"
-            },
-            "trust_pinning": {
-              "ca": {
-                "": file1.path()
-              },
-              "disable_tofu": "true"
-            }
-        });
-
-        let mut config_path2 = tmp_home_dir.path().to_owned();
-        config_path2.push("notary");
-        let mut filename2 = String::new();
-        for c in hostname2.chars() {
-            if c.is_ascii_alphanumeric() || !c.is_ascii() {
-                filename2.push(c);
-            } else {
-                filename2.push_str(&format!("%{:02x}", c as u8));
-            }
-        }
-        config_path2.push(filename2);
-        let trust_dir = config_path2.clone();
-        config_path2.push("config.json");
-        let actual_config2 = fs::read(&config_path2).unwrap();
-        let actual_json_content2: serde_json::Value =
-            serde_json::from_slice(&actual_config2).unwrap();
-        let expected_json_content2 = json!({
-            "trust_dir" : trust_dir,
-            "remote_server": {
-              "url": "https://myreg2.azurecr.io"
-            },
-            "trust_pinning": {
-              "ca": {
-                "": file2.path()
-              },
-              "disable_tofu": "true"
-            }
-        });
-
-        assert_eq!(
-            runtime.notary_registries.get(hostname1),
-            Some(&config_path1)
-        );
-        assert_eq!(
-            runtime.notary_registries.get(hostname2),
-            Some(&config_path2)
-        );
-        assert_eq!(actual_json_content1, expected_json_content1);
-        assert_eq!(actual_json_content2, expected_json_content2);
     }
 
     #[test]
@@ -1665,6 +1578,18 @@ mod tests {
         }
 
         fn endpoints(&self) -> &Endpoints {
+            unimplemented!()
+        }
+
+        fn edge_ca_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn edge_ca_key(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn trust_bundle_cert(&self) -> Option<&str> {
             unimplemented!()
         }
     }

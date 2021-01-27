@@ -47,15 +47,9 @@ impl Handler<Parameters> for CreateIdentity {
 
                         let (module_id, generation_id, auth) = match identity {
                             AziotIdentity::Aziot(spec) => (
-                                spec.module_id
-                                    .ok_or(ErrorKind::IotHub)
-                                    .with_context(|_| ErrorKind::IotHub)?,
-                                spec.gen_id
-                                    .ok_or(ErrorKind::IotHub)
-                                    .with_context(|_| ErrorKind::IotHub)?,
-                                spec.auth
-                                    .ok_or(ErrorKind::IotHub)
-                                    .with_context(|_| ErrorKind::IotHub)?,
+                                spec.module_id.ok_or(ErrorKind::IotHub)?,
+                                spec.gen_id.ok_or(ErrorKind::IotHub)?,
+                                spec.auth.ok_or(ErrorKind::IotHub)?,
                             ),
                             AziotIdentity::Local(_) => {
                                 return Err(Error::from(ErrorKind::InvalidIdentityType))

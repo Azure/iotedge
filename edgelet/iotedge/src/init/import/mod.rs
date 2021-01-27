@@ -20,6 +20,7 @@ use std::path::Path;
 
 use config::Config;
 
+use edgelet_core::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS};
 use edgelet_utils::YamlFileSource;
 
 const AZIOT_KEYD_HOMEDIR_PATH: &str = "/var/lib/aziot/keyd";
@@ -252,7 +253,8 @@ fn execute_inner(
     ) = {
         let old_config::Provisioning {
             provisioning,
-            dynamic_reprovisioning,
+            // TODO: Migrate this to edged config when support for dynamic reprovisioning is reinstated in edged.
+            dynamic_reprovisioning: _,
         } = provisioning;
 
         match provisioning {
@@ -267,7 +269,7 @@ fn execute_inner(
                     ),
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: true,
                     provisioning: aziot_identityd_config::ProvisioningType::Manual {
                         iothub_hostname: hostname.clone(),
                         device_id: device_id.clone(),
@@ -294,7 +296,7 @@ fn execute_inner(
                     }),
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: true,
                     provisioning: aziot_identityd_config::ProvisioningType::Manual {
                         iothub_hostname: iothub_hostname.clone(),
                         device_id: device_id.clone(),
@@ -329,11 +331,10 @@ fn execute_inner(
                             symmetric_key,
                         },
                     ),
-                // TODO: Start migrating this when IS adds support for this flag
-                always_reprovision_on_startup: _,
+                always_reprovision_on_startup,
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: *always_reprovision_on_startup,
                     provisioning: aziot_identityd_config::ProvisioningType::Dps {
                         global_endpoint: global_endpoint.to_string(),
                         scope_id: scope_id.clone(),
@@ -359,11 +360,10 @@ fn execute_inner(
                         identity_cert,
                         identity_pk,
                     }),
-                // TODO: Start migrating this when IS adds support for this flag
-                always_reprovision_on_startup: _,
+                always_reprovision_on_startup,
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: *always_reprovision_on_startup,
                     provisioning: aziot_identityd_config::ProvisioningType::Dps {
                         global_endpoint: global_endpoint.to_string(),
                         scope_id: scope_id.clone(),
@@ -399,11 +399,10 @@ fn execute_inner(
                     old_config::AttestationMethod::Tpm(old_config::TpmAttestationInfo {
                         registration_id,
                     }),
-                // TODO: Start migrating this when IS adds support for this flag
-                always_reprovision_on_startup: _,
+                always_reprovision_on_startup,
             }) => (
                 aziot_identityd_config::Provisioning {
-                    dynamic_reprovisioning: *dynamic_reprovisioning,
+                    always_reprovision_on_startup: *always_reprovision_on_startup,
                     provisioning: aziot_identityd_config::ProvisioningType::Dps {
                         global_endpoint: global_endpoint.to_string(),
                         scope_id: scope_id.clone(),
@@ -465,7 +464,8 @@ fn execute_inner(
         keyd_config
     };
 
-    let certd_config = {
+    // May be mutated later to add content trust certs
+    let mut certd_config = {
         let mut certd_config = aziot_certd_config::Config {
             homedir_path: AZIOT_CERTD_HOMEDIR_PATH.into(),
             cert_issuance: Default::default(),
@@ -608,6 +608,9 @@ fn execute_inner(
             },
 
             endpoints: Default::default(),
+            edge_ca_cert: Some(AZIOT_EDGED_CA_ALIAS.to_owned()),
+            edge_ca_key: Some(AZIOT_EDGED_CA_ALIAS.to_owned()),
+            trust_bundle_cert: Some(TRUST_BUNDLE_ALIAS.to_owned()),
         },
 
         moby_runtime: {
@@ -657,17 +660,42 @@ fn execute_inner(
                     }
                 },
 
-                content_trust: content_trust.as_ref().map(|content_trust| {
-                    let old_config::ContentTrust { ca_certs } = content_trust;
-                    edgelet_docker::ContentTrust {
-                        ca_certs: ca_certs.as_ref().map(|ca_certs| {
-                            ca_certs
-                                .iter()
-                                .map(|(k, v)| (k.clone(), v.clone()))
-                                .collect()
-                        }),
-                    }
-                }),
+                content_trust: content_trust
+                    .as_ref()
+                    .map(
+                        |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
+                            let old_config::ContentTrust { ca_certs } = content_trust;
+
+                            Ok(edgelet_docker::ContentTrust {
+                                ca_certs: ca_certs
+                                    .as_ref()
+                                    .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
+                                        let mut new_ca_certs: std::collections::BTreeMap<_, _> =
+                                            Default::default();
+
+                                        for (hostname, cert_path) in ca_certs {
+                                            let cert_id = format!("content-trust-{}", hostname);
+                                            let cert_uri = url::Url::from_file_path(cert_path)
+                                                .map_err(|()| {
+                                                    format!(
+                                                        "could not convert path {} to file URI",
+                                                        cert_path.display()
+                                                    )
+                                                })?;
+                                            certd_config.preloaded_certs.insert(
+                                                cert_id.clone(),
+                                                aziot_certd_config::PreloadedCert::Uri(cert_uri),
+                                            );
+                                            new_ca_certs.insert(hostname.to_owned(), cert_id);
+                                        }
+
+                                        Ok(new_ca_certs)
+                                    })
+                                    .transpose()?,
+                            })
+                        },
+                    )
+                    .transpose()?,
             }
         },
     };

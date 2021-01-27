@@ -18,10 +18,13 @@ listen:
 homedir: /var/lib/aziot/edged
 watchdog:
   max_retries: ~
+edge_ca_cert: aziot-edged-ca
+edge_ca_key: aziot-edged-ca
+trust_bundle_cert: aziot-edged-trust-bundle
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
   network: azure-iot-edge
   content_trust:
     ca_certs:
-      contoso1.azurecr.io: /var/secrets/contoso1-ca.pem
-      contoso2.azurecr.io: /var/secrets/contoso2-ca.pem
+      contoso1.azurecr.io: content-trust-contoso1.azurecr.io
+      contoso2.azurecr.io: content-trust-contoso2.azurecr.io

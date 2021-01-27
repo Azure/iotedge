@@ -114,7 +114,10 @@ impl State {
                                     // Return an event for rejected subscription instead of retrying to send the subscription
                                     subscription_updates.push(
                                         super::SubscriptionUpdateEvent::RejectedByServer(
-                                            topic_filter,
+                                            crate::proto::SubscribeTo {
+                                                topic_filter,
+                                                qos: expected_qos,
+                                            },
                                         ),
                                     );
                                 }

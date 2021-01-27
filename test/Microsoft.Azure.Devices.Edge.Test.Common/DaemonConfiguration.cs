@@ -187,7 +187,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + cert.KeyPath);
 
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + trustBundle);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + trustBundle);
+        }
+
+        public void SetEdgeAgentImage(string value)
+        {
+            this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", value);
         }
 
         public void SetDeviceHostname(string value)
@@ -218,16 +223,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new InvalidOperationException($"{certs.TrustedCertificatesPath} does not exist");
             }
 
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-device-ca", "file://" + certs.CertificatePath);
-            this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-device-ca", "file://" + certs.KeyPath);
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + certs.TrustedCertificatesPath);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
+            this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
         }
 
         public void RemoveCertificates()
         {
-            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-device-ca");
-            this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-device-ca");
-            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.iotedge-trust-bundle");
+            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-ca");
+            this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-ca");
+            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-trust-bundle");
         }
 
         public void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
@@ -260,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             }
 
-            File.WriteAllText(path, principal);
+            File.WriteAllText(path, principal + "\n");
             OsPlatform.Current.SetOwner(path, "aziotid", "644");
         }
 

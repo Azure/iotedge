@@ -2,6 +2,7 @@
 namespace TestResultCoordinator
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -22,8 +23,8 @@ namespace TestResultCoordinator
         const ushort DefaultWebHostPort = 5001;
         const ushort DefaultUnmatchedResultsMaxSize = 10;
 
-        internal static Settings Current = Create();
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
+        internal static Settings Current = Create();
 
         List<ITestReportMetadata> reportMetadatas = null;
 
@@ -44,11 +45,13 @@ namespace TestResultCoordinator
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             TimeSpan verificationDelay,
+            TimeSpan sendReportFrequency,
             bool logUploadEnabled,
             string storageAccountConnectionString,
             string networkControllerRunProfileName,
             ushort unmatchedResultsMaxSize,
-            string testInfo)
+            string testInfo,
+            TestMode testMode)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -73,6 +76,30 @@ namespace TestResultCoordinator
                 });
             }
 
+            this.ConnectivitySpecificSettings = Option.None<ConnectivitySpecificSettings>();
+            this.LongHaulSpecificSettings = Option.None<LongHaulSpecificSettings>();
+            switch (testMode)
+            {
+                case TestMode.Connectivity:
+                    {
+                        this.ConnectivitySpecificSettings = Option.Some(new ConnectivitySpecificSettings()
+                        {
+                            TestDuration = testDuration,
+                            TestVerificationDelay = verificationDelay
+                        });
+                        break;
+                    }
+
+                case TestMode.LongHaul:
+                    {
+                        this.LongHaulSpecificSettings = Option.Some(new LongHaulSpecificSettings()
+                        {
+                            SendReportFrequency = sendReportFrequency
+                        });
+                        break;
+                    }
+            }
+
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.IoTHubConnectionString = Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -80,14 +107,13 @@ namespace TestResultCoordinator
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
-            this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
-            this.DurationBeforeVerification = verificationDelay;
             this.NetworkControllerType = this.GetNetworkControllerType(networkControllerRunProfileName);
             this.UnmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
 
             this.TestInfo = ModuleUtil.ParseKeyValuePairs(testInfo, Logger, true);
             this.TestInfo.Add("DeviceId", this.DeviceId);
+            this.TestMode = testMode;
         }
 
         private NetworkControllerType GetNetworkControllerType(string networkControllerRunProfileName)
@@ -129,11 +155,13 @@ namespace TestResultCoordinator
                 configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                 configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                 configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)),
+                configuration.GetValue("sendReportFrequency", TimeSpan.FromHours(24)),
                 configuration.GetValue<bool>("logUploadEnabled", true),
                 configuration.GetValue<string>("STORAGE_ACCOUNT_CONNECTION_STRING"),
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
                 configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
-                configuration.GetValue<string>("TEST_INFO"));
+                configuration.GetValue<string>("TEST_INFO"),
+                configuration.GetValue("testMode", TestMode.Connectivity));
         }
 
         public string IoTHubConnectionString { get; }
@@ -150,11 +178,7 @@ namespace TestResultCoordinator
 
         public bool OptimizeForPerformance { get; }
 
-        public TimeSpan TestDuration { get; }
-
         public TimeSpan TestStartDelay { get; }
-
-        public TimeSpan DurationBeforeVerification { get; }
 
         public bool LogUploadEnabled { get; }
 
@@ -168,6 +192,12 @@ namespace TestResultCoordinator
 
         public Option<TestResultReportingServiceSettings> TestResultReportingServiceSettings { get; }
 
+        public Option<ConnectivitySpecificSettings> ConnectivitySpecificSettings { get; }
+
+        public Option<LongHaulSpecificSettings> LongHaulSpecificSettings { get; }
+
+        public TestMode TestMode { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -180,13 +210,18 @@ namespace TestResultCoordinator
                 { nameof(this.StoragePath), this.StoragePath },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
-                { nameof(this.TestDuration), this.TestDuration.ToString() },
-                { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
                 { nameof(this.NetworkControllerType), this.NetworkControllerType.ToString() },
-                { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) }
+                { nameof(this.TestInfo), JsonConvert.SerializeObject(this.TestInfo) },
+                { nameof(this.TestMode), this.TestMode.ToString() }
             };
 
             this.TestResultEventReceivingServiceSettings.ForEach(settings => fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName));
+            this.LongHaulSpecificSettings.ForEach(settings => fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString()));
+            this.ConnectivitySpecificSettings.ForEach(settings =>
+            {
+                fields.Add(nameof(settings.TestDuration), settings.TestDuration.ToString());
+                fields.Add(nameof(settings.TestDuration), settings.TestVerificationDelay.ToString());
+            });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
@@ -230,5 +265,16 @@ namespace TestResultCoordinator
         public string LogAnalyticsSharedKey;
         public string LogAnalyticsLogType;
         public bool LogUploadEnabled;
+    }
+
+    internal struct ConnectivitySpecificSettings
+    {
+        public TimeSpan TestDuration;
+        public TimeSpan TestVerificationDelay;
+    }
+
+    internal struct LongHaulSpecificSettings
+    {
+        public TimeSpan SendReportFrequency;
     }
 }
