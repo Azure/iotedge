@@ -40,7 +40,7 @@ function Create-Azure-VM-For-E2E-Test
         #Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
         #az login
 
-        $AdminUsername="iotedgeuser"
+        $AdminUsername="iotedgeuser";
         # Fetch default subscription
         $AzSubscriptionName=$(az account show --query 'name' -o tsv)
         echo "Azure Subscription: $AzSubscriptionName `n"
@@ -72,20 +72,18 @@ function Create-Azure-VM-For-E2E-Test
             --vm-name "$VmName" `
             --name customScript `
             --publisher Microsoft.Azure.Extensions `
-            --protected-settings '{"fileUris": ["https://iotedgeforiiot.blob.core.windows.net/edge-config-scripts/e2eOneTimeDependencySetup.sh"],"commandToExecute": "./e2eOneTimeDependencySetup.sh;"}' `
+            --protected-settings '{""fileUris"": [""https://iotedgeforiiot.blob.core.windows.net/edge-config-scripts/e2eOneTimeDependencySetup.sh""],""commandToExecute"": ""./e2eOneTimeDependencySetup.sh;""}' `
             --output none
 
         # Other setup command
         #  - Set AdminUsername to docker group
         #  - Download the VSTS test agent zip to be used.
-        $AdditionalSetupCommand=" `
-            sudo usermod -aG docker $AdminUsername; `
-            cd /home/$AdminUsername; `
-            mkdir myagent && cd myagent; `
-            wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz; `
-            tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz; `
-            sudo chown -R $AdminUsername . `
-        "
+        $AdditionalSetupCommand="sudo usermod -aG docker $AdminUsername;"
+        $AdditionalSetupCommand+="cd /home/$AdminUsername;"
+        $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
+        $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
+        $AdditionalSetupCommand+="tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz;"
+        $AdditionalSetupCommand+="sudo chown -R $AdminUsername . ;"
 
         az vm run-command invoke `
             -g $ResourceGroup `
