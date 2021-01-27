@@ -85,7 +85,7 @@ impl ImagePullSecret {
 }
 
 // A variation on Moby project's ConvertToHostname
-fn namify_server_address(server_address: &String) -> String {
+fn namify_server_address(server_address: &str) -> String {
     const HTTP_START: &str = "http://";
     const HTTPS_START: &str = "https://";
     let mut stripped = server_address.to_lowercase();
