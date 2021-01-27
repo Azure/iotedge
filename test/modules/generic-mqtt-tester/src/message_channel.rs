@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use bytes::Buf;
 use futures_util::{
     future::{self, Either},
     stream::StreamExt,
@@ -45,13 +46,7 @@ impl MessageHandler for ReportResultMessageHandler {
         &mut self,
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
-        let payload = String::from_utf8_lossy(&received_publication.payload).to_string();
-        let sequence_number: u32 = payload
-            .split(' ')
-            .next()
-            .ok_or(MessageTesterError::DeserializeSequenceNumber)?
-            .parse::<u32>()
-            .map_err(MessageTesterError::ParseSequenceNumber)?;
+        let sequence_number: u32 = received_publication.payload.slice(0..4).get_u32();
         let result = MessageTestResult::new(
             self.tracking_id.clone(),
             self.batch_id.clone(),

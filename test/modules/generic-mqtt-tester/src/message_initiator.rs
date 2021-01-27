@@ -49,9 +49,9 @@ impl MessageInitiator {
 
         let mut seq_num: u32 = 0;
         let mut publish_handle = self.publish_handle.clone();
+        let dummy_payload = "a".repeat(self.settings.message_size_in_bytes() as usize);
         loop {
             info!("publishing message {} to upstream broker", seq_num);
-            let dummy_payload = "a".repeat(self.settings.message_size_in_bytes() as usize);
 
             let publication = Publication {
                 topic_name: self.settings.initiate_topic(),
