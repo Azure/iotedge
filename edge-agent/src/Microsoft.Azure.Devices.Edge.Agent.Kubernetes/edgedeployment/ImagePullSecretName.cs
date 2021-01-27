@@ -26,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         private static string NamifyServerAddress(string serverAddress)
         {
             string stripped = serverAddress.ToLower();
-            if (serverAddress.StartsWith(HttpsStart))
+            if (stripped.StartsWith(HttpsStart))
             {
                 stripped = stripped.Substring(HttpsStart.Length);
             }
-            else if (serverAddress.StartsWith(HttpStart))
+            else if (stripped.StartsWith(HttpStart))
             {
                 stripped = stripped.Substring(HttpStart.Length);
             }

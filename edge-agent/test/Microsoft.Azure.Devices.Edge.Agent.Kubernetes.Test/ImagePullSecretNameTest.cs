@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 ),
                 (
                     "dockeruser-a-registry.com-8000",
-                    new AuthConfig { Username = "dockeruser", Password = "password", ServerAddress = "http://a-registry.com:8000/v2" }
+                    new AuthConfig { Username = "dockeruser", Password = "password", ServerAddress = "HTTP://a-registry.com:8000/v2" }
                 ),
                 (
                     "dockeruser-docker.io",
