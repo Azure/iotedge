@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use crate::error::{ErrorKind, Result};
-use edgelet_utils::sanitize_dns_label;
+use edgelet_utils::{sanitize_dns_label, sanitize_dns_label_rfc1123};
 
 mod named_secret;
 mod to_docker;
