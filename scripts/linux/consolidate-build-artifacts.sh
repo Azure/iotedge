@@ -65,6 +65,7 @@ cd $BUILD_REPOSITORY_LOCALPATH
 TARGET_ARM32V7="armv7-unknown-linux-gnueabihf"
 TARGET_ARM64V8="aarch64-unknown-linux-gnu"
 TARGET_AMD64_MUSL="x86_64-unknown-linux-musl"
+TARGET_AMD64_GNU="x86_64-unknown-linux-gnu"
 
 case "$ARTIFACT_NAME" in
 generic-mqtt-tester)
@@ -73,12 +74,12 @@ generic-mqtt-tester)
 
     # make build context structure
     mkdir "$ARTIFACTS_DEST"
-    mkdir -p "$ARTIFACTS_DEST/release" #non-musl amd64 does not have arch specific folder
+    mkdir -p "$ARTIFACTS_DEST/$TARGET_AMD64_GNU/release"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
 
     # copy artifacts
-    cp "$ARTIFACTS_SOURCE/target/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/release"
+    cp "$ARTIFACTS_SOURCE/target/$TARGET_AMD64_GNU/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_AMD64_GNU/release"
     cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
     cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
     cp -r "$ARTIFACTS_SOURCE/docker" "$ARTIFACTS_DEST"
