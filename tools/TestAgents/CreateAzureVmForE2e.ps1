@@ -19,7 +19,7 @@ function Create-Azure-VM-For-E2E-Test
         <# Azure Resource Group #>
         [Parameter(Mandatory)]
         [string]
-        $ResourceGroup
+        $ResourceGroup,
 
         <# VSTS Personal Access Token to be used in the test agent enrollment #>
         [Parameter(Mandatory)]
@@ -90,16 +90,19 @@ function Create-Azure-VM-For-E2E-Test
         # Other setup command
         #  - Set AdminUsername to docker group
         #  - Download the VSTS test agent zip to be used.
-        #  - Extract the VSTS test agent & enroll the test VM into the pool
+        #  - Extract the VSTS test agent
         $AdditionalSetupCommand="sudo usermod -aG docker $AdminUsername;"
         $AdditionalSetupCommand+="cd /home/$AdminUsername;"
         $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
         $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="sudo chown -R $AdminUsername . ;"
-        $AdditionalSetupCommand+="./config.sh --unattended --url https://dev.azure.com/msazure --auth pat --token $VstsToken --pool Azure-IoT-Edge-Core --agent $VmName;"
-        $AdditionalSetupCommand+="sudo ./svc.sh install;"
-        $AdditionalSetupCommand+="sudo ./svc.sh start;"
+
+        # Enroll the test VM into the pool
+        $SubCommand="sudo -u $AdminUsername ./config.sh --unattended --url https://dev.azure.com/msazure --auth pat --token $VstsToken --pool Azure-IoT-Edge-Core --agent $VmName"
+        $AdditionalSetupCommand+="bash -c '$SubCommand';"
+        $AdditionalSetupCommand+="./svc.sh install;"
+        $AdditionalSetupCommand+="./svc.sh start;"
 
         az vm run-command invoke `
             -g $ResourceGroup `
@@ -107,4 +110,5 @@ function Create-Azure-VM-For-E2E-Test
             --command-id RunShellScript `
             --scripts "$AdditionalSetupCommand" `
             --output none
+
 }
