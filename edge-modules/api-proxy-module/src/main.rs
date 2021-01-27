@@ -92,21 +92,16 @@ pub fn nginx_controller_start(
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         //This is just to avoid error at the beginning when nginx tries to start
-        //Wait for configuration and for certs to be ready.
+        //Wait for configuration to be ready.
         notify_config_reload_api_proxy.notified().await;
+
+        //Wait for the trust bundle.
+        notify_cert_reload_api_proxy.notified().await;
+
+        //Wait for the server cert and private key.
         notify_cert_reload_api_proxy.notified().await;
 
         loop {
-            //Make sure proxy is stopped by sending stop command. Otherwise port will be blocked
-            let command = Command::new(stop_proxy_program_path)
-                .args(&stop_proxy_args)
-                .spawn()
-                .with_context(|| format!("Failed to start {} process.", stop_proxy_name))
-                .context("Cannot stop proxy!")?;
-            command
-                .await
-                .context("Error while trying to wait on stop proxy future")?;
-
             //Start nginx
             let child_nginx = Command::new(program_path)
                 .args(&args)
@@ -130,6 +125,7 @@ pub fn nginx_controller_start(
             futures::pin_mut!(wait_shutdown_signal);
             let wait_shutdown = future::select(wait_shutdown_ctrl_c, wait_shutdown_signal);
 
+            info!("Starting/Restarting API-Proxy");
             match future::select(wait_shutdown, restart_proxy).await {
                 Either::Left(_) => {
                     warn!("Shutting down ngxing controller!");
@@ -147,7 +143,15 @@ pub fn nginx_controller_start(
                 }
             }
 
-            info!("Restarting Proxy");
+            //Make sure proxy is stopped by sending stop command. Otherwise port will be blocked
+            let command = Command::new(stop_proxy_program_path)
+                .args(&stop_proxy_args)
+                .spawn()
+                .with_context(|| format!("Failed to start {} process.", stop_proxy_name))
+                .context("Cannot stop proxy!")?;
+            command
+                .await
+                .context("Error while trying to wait on stop proxy future")?;
         }
     });
 

@@ -24,7 +24,7 @@ pub const DEFAULTS: &str = include_str!("../config/unix/default.yaml");
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
-const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
+pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {

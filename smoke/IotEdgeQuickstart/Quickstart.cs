@@ -57,7 +57,7 @@ namespace IotEdgeQuickstart
             // invest the effort to guard against it.
             if (!this.bypassEdgeInstallation)
             {
-                await this.VerifyEdgeIsNotAlreadyActive(); // don't accidentally overwrite an edge configuration on a dev machine
+                await this.UpdatePackageState();
                 await this.VerifyBootstrapperDependencies();
                 await this.InstallBootstrapper();
             }
