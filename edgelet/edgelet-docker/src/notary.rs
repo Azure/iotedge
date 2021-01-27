@@ -31,12 +31,12 @@ pub fn notary_init(
     }
 
     // Directory structure example
-    // home directory : /home
-    // notary directory : /home/notary
-    // hostname directory : /home/notary/sanitized_hostname
-    // trust collection directory : /home/notary/sanitized_hostname/trust_collection
-    // certs directory for each hostname : /home/notary/sanitized_hostname/certs
-    // notary config file path : /home/notary/sanitized_hostname/config
+    // home directory : /var/lib/aziot/edged
+    // notary directory : /var/lib/aziot/edged/notary
+    // hostname directory : /var/lib/aziot/edged/notary/sanitized_hostname
+    // trust collection directory : /var/lib/aziot/edged/notary/sanitized_hostname/trust_collection
+    // certs directory for each hostname : /var/lib/aziot/edged/notary/sanitized_hostname/certs
+    // notary config file path : /var/lib/aziot/edged/notary/sanitized_hostname/config
 
     // Create notary directory under home directory
     let notary_dir = home_dir.join("notary");

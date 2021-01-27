@@ -491,12 +491,16 @@ mod tests {
             .and_then(ContentTrust::ca_certs)
         {
             assert_eq!(
-                content_trust_map.get("contoso1.azurcr.io"),
-                Some(&String::from("content-trust-contoso1.azurecr.io"))
+                content_trust_map
+                    .get("contoso1.azurcr.io")
+                    .map(AsRef::as_ref),
+                Some("content-trust-contoso1.azurecr.io")
             );
             assert_eq!(
-                content_trust_map.get("contoso2.azurcr.io"),
-                Some(&String::from("content-trust-contoso2.azurecr.io"))
+                content_trust_map
+                    .get("contoso2.azurcr.io")
+                    .map(AsRef::as_ref),
+                Some("content-trust-contoso2.azurecr.io")
             );
         } else {
             panic!();
