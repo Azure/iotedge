@@ -102,7 +102,6 @@ jobs:
           ARTIFACT_NAME: $(aziotis.artifact.name)
           PACKAGE_FILTER: $(aziotis.package.filter)
           DOWNLOAD_PATH: $(Build.StagingDirectory)
-          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -211,7 +210,6 @@ jobs:
           ARTIFACT_NAME: $(aziotis.artifact.name)
           PACKAGE_FILTER: $(aziotis.package.filter)
           DOWNLOAD_PATH: $(Build.StagingDirectory)
-          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -320,7 +318,6 @@ jobs:
           ARTIFACT_NAME: $(aziotis.artifact.name)
           PACKAGE_FILTER: $(aziotis.package.filter)
           DOWNLOAD_PATH: $(Build.StagingDirectory)
-          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
