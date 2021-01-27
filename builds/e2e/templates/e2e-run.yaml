@@ -21,11 +21,17 @@ steps:
     #filter out tests not usable on nested edge
     if ('$(nestededge)' -eq 'true')
     {
+      $filter += '&Category!=SingleNodeOnly'
+    
       #We are disabling some additional tests. See  PBI #9171870. Once this is fixed we should run what's directly below.
       #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
-    
+    else
+    {
+        $filter += '&Category!=NestedEdgeOnly'
+    }
+
     sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
   displayName: Run tests
   env:

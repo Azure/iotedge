@@ -314,6 +314,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new LeafDevice(device, client, iotHub);
         }
 
+        public Task Close() => this.client.CloseAsync();
+
         public Task SendEventAsync(CancellationToken token)
         {
             var message = new Message(Encoding.ASCII.GetBytes(this.device.Id))
