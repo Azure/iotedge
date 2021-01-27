@@ -36,7 +36,7 @@ steps:
             do
                 leafId="leaf_stress_${i}"
                 echo "Creating leaf: ${leafId} under parent: ${deviceId}"
-                az iot hub device-identity create -n ${iotHubName} -d ${leafId} --ee --pd $(deviceId) --output none
+                az iot hub device-identity create -n ${iotHubName} -d ${leafId} --ee --pd ${deviceId} --output none
             done
         fi
 
