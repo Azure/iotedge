@@ -94,6 +94,7 @@ steps:
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
             -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+            -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -testName "$testName" \
             -waitForTestComplete \
