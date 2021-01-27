@@ -61,12 +61,11 @@ Defaults:
   --proxy                               no proxy is used
   --parent-hostname                     no parent hostname is used
   --parent-edge-device                  no parent edge device is used
-  --overwrite-packages                  program will terminate instead of modifying installed packages
 ")]
     [HelpOption]
     class Program
     {
-        [Option("-a|--bootstrapper-archive <path>", Description = "Path to directory containing packages to install")]
+        [Option("-a|--bootstrapper-archive <path>", Description = "Path to bootstrapper archive")]
         public string BootstrapperArchivePath { get; } = Environment.GetEnvironmentVariable("bootstrapperArchivePath");
 
         [Option("-b|--bootstrapper=<iotedged/iotedgectl>", CommandOptionType.SingleValue, Description = "Which bootstrapper to use")]
@@ -183,9 +182,6 @@ Defaults:
         [Option("--parent-edge-device", Description = "Optional input to specify parent edge device id for nested edge scenario")]
         public string ParentEdgeDevice { get; } = string.Empty;
 
-        [Option("--overwrite-packages", Description = "Overwrite existing aziot packages with those specified in the bootstrapper")]
-        public bool OverwritePackages { get; } = false;
-
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -223,7 +219,8 @@ Defaults:
                     case BootstrapperType.Iotedged:
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            throw new NotImplementedException("Windows support is not available");
+                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
+                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
                         else
                         {
@@ -234,7 +231,7 @@ Defaults:
 
                             UriSocks socks = new UriSocks(this.ConnectManagementUri, this.ConnectWorkloadUri, this.ListenManagementUri, this.ListenWorkloadUri);
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation, this.OverwritePackages);
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
                         }
 
                         break;

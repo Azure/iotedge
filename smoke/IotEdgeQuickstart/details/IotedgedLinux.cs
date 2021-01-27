@@ -2,7 +2,6 @@
 namespace IotEdgeQuickstart.Details
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
@@ -10,7 +9,6 @@ namespace IotEdgeQuickstart.Details
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class HttpUris
@@ -76,9 +74,8 @@ namespace IotEdgeQuickstart.Details
         readonly Option<string> proxy;
         readonly Option<UpstreamProtocolType> upstreamProtocol;
         readonly bool requireEdgeInstallation;
-        readonly bool overwritePackages;
 
-        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
+        public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation)
         {
             this.archivePath = archivePath;
             this.credentials = credentials;
@@ -87,33 +84,14 @@ namespace IotEdgeQuickstart.Details
             this.proxy = proxy;
             this.upstreamProtocol = upstreamProtocol;
             this.requireEdgeInstallation = requireEdgeInstallation;
-            this.overwritePackages = overwritePackages;
         }
 
-        public async Task UpdatePackageState()
+        public async Task VerifyNotActive()
         {
-            string[] packages = new string[] { "aziot-edge", "aziot-identity-service", "iotedge", "libiothsm-std" };
-
-            foreach (string package in packages)
+            string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
+            if (result.First().Split("=").Last() == "active")
             {
-                try
-                {
-                    await Process.RunAsync("bash", $"-c \"dpkg -l | grep {package}\"");
-
-                    if (this.overwritePackages)
-                    {
-                        Console.WriteLine($"{package}: found. Removing package.");
-                        await Process.RunAsync("apt", $"purge -y {package}");
-                    }
-                    else
-                    {
-                        throw new Exception($"{package}: found. Not overwriting existing packages.");
-                    }
-                }
-                catch (Win32Exception)
-                {
-                    Console.WriteLine($"{package}: not found.");
-                }
+                throw new Exception("IoT Edge Security Daemon is already active. If you want this test to overwrite the active configuration, please run `systemctl stop iotedge` first.");
             }
         }
 
@@ -175,38 +153,38 @@ namespace IotEdgeQuickstart.Details
         {
             if (this.requireEdgeInstallation)
             {
-                string[] packages = Directory.GetFiles(this.archivePath, "*.deb");
+                const string PackageName = "iotedge";
 
-                foreach (string package in packages)
+                Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
+
+                string commandName;
+                string commandArgs;
+
+                // Use apt-get if a package name is given, or dpkg if a package file is given.
+                // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
+                // in Raspbian) can't accept a package file.
+                if (string.IsNullOrEmpty(this.archivePath))
                 {
-                    Console.WriteLine($"Will install {package}");
+                    commandName = "apt-get";
+                    commandArgs = $"--yes install {PackageName}";
+                }
+                else
+                {
+                    commandName = "dpkg";
+                    commandArgs = $"--force-confnew -i {this.archivePath}";
                 }
 
-                string packageArguments = string.Join(" ", packages);
-
                 return Process.RunAsync(
-                    "apt-get",
-                    $"install -y {packageArguments}",
+                    commandName,
+                    commandArgs,
                     300); // 5 min timeout because install can be slow on raspberry pi
             }
             else
             {
-                Console.WriteLine("Skipping installation of aziot-edge and aziot-identity-service.");
+                Console.WriteLine("Skipping iotedge installation.");
 
                 return Task.CompletedTask;
             }
-        }
-
-        private static IConfigDocument InitDocument(string template, bool toml)
-        {
-            string text = File.ReadAllText(template);
-
-            if (toml)
-            {
-                return new TomlDocument(text);
-            }
-
-            return new YamlDocument(text);
         }
 
         public async Task Configure(
@@ -222,196 +200,116 @@ namespace IotEdgeQuickstart.Details
             agentImage.ForEach(
                 image =>
                 {
-                    Console.WriteLine($"Setting up aziot-edged with agent image {image}");
+                    Console.WriteLine($"Setting up iotedged with agent image {image}");
                 },
                 () =>
                 {
-                    Console.WriteLine("Setting up aziot-edged with agent image 1.0");
+                    Console.WriteLine("Setting up iotedged with agent image 1.0");
                 });
 
-            const string KEYD = "/etc/aziot/keyd/config.toml";
-            const string CERTD = "/etc/aziot/certd/config.toml";
-            const string IDENTITYD = "/etc/aziot/identityd/config.toml";
-            const string EDGED = "/etc/aziot/edged/config.yaml";
-
-            // Initialize each service's config file.
-            // The mapped values are:
-            // - Path to the config file (/etc/aziot/[service_name]/config.[toml | yaml])
-            // - User owning the config file
-            // - Template used to generate the config file.
-            Dictionary<string, (string owner, IConfigDocument document)> config = new Dictionary<string, (string, IConfigDocument)>();
-            config.Add(KEYD, ("aziotks", InitDocument(KEYD + ".default", true)));
-            config.Add(CERTD, ("aziotcs", InitDocument(CERTD + ".default", true)));
-            config.Add(IDENTITYD, ("aziotid", InitDocument(IDENTITYD + ".default", true)));
-            config.Add(EDGED, ("iotedge", InitDocument(EDGED + ".template", false)));
+            const string YamlPath = "/etc/iotedge/config.yaml";
+            Task<string> text = File.ReadAllTextAsync(YamlPath);
+            var doc = new YamlDocument(await text);
 
             method.ManualConnectionString.Match(
                 cs =>
                 {
-                    string keyPath = "/var/secrets/aziot/keyd/device-id";
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.source", "manual");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.method", "sas");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.device_id_pk", "device-id");
-                    config[KEYD].document.ReplaceOrAdd("preloaded_keys.device-id", $"file://{keyPath}");
-
-                    string[] segments = cs.Split(";");
-
-                    foreach (string s in segments)
-                    {
-                        string[] param = s.Split("=", 2);
-
-                        switch (param[0])
-                        {
-                            case "HostName":
-                                config[IDENTITYD].document.ReplaceOrAdd("provisioning.iothub_hostname", param[1]);
-                                break;
-                            case "SharedAccessKey":
-                                File.WriteAllBytes(keyPath, Convert.FromBase64String(param[1]));
-                                SetOwner(keyPath, config[KEYD].owner, "600");
-                                break;
-                            case "DeviceId":
-                                config[IDENTITYD].document.ReplaceOrAdd("provisioning.device_id", param[1]);
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-
+                    doc.ReplaceOrAdd("provisioning.device_connection_string", cs);
                     return string.Empty;
                 },
                 () =>
                 {
-                    config[IDENTITYD].document.RemoveIfExists("provisioning");
+                    doc.Remove("provisioning.device_connection_string");
                     return string.Empty;
                 });
 
             method.Dps.ForEach(
                 dps =>
                 {
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.source", "dps");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
+                    doc.ReplaceOrAdd("provisioning.source", "dps");
+                    doc.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
+                    doc.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
                     switch (dps.AttestationType)
                     {
                         case DPSAttestationType.SymmetricKey:
-                            string dpsKeyPath = "/var/secrets/aziot/keyd/device-id";
-                            string dpsKey = dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key"));
-
-                            File.WriteAllBytes(dpsKeyPath, Convert.FromBase64String(dpsKey));
-                            SetOwner(dpsKeyPath, config[KEYD].owner, "600");
-
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.symmetric_key", "device-id");
-
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
+                            doc.ReplaceOrAdd("provisioning.attestation.symmetric_key", dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key")));
                             break;
                         case DPSAttestationType.X509:
-                            string certPath = dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate"));
-                            string keyPath = dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key"));
-
-                            SetOwner(certPath, config[CERTD].owner, "444");
-                            SetOwner(keyPath, config[KEYD].owner, "400");
-
-                            config[CERTD].document.ReplaceOrAdd("preloaded_certs.device-id", new Uri(certPath).AbsoluteUri);
-                            config[KEYD].document.ReplaceOrAdd("preloaded_keys.device-id", new Uri(keyPath).AbsoluteUri);
-
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.method", "x509");
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.identity_cert", "device-id");
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.identity_pk", "device-id");
+                            var certUri = new Uri(dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate")));
+                            var keyUri = new Uri(dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key")));
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "x509");
+                            doc.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.AbsoluteUri);
+                            doc.ReplaceOrAdd("provisioning.attestation.identity_pk", keyUri.AbsoluteUri);
                             break;
                         default:
+                            doc.ReplaceOrAdd("provisioning.attestation.method", "tpm");
                             break;
                     }
 
-                    dps.RegistrationId.ForEach(id => { config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
+                    dps.RegistrationId.ForEach(id => { doc.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
                 });
 
             agentImage.ForEach(image =>
             {
-                config[EDGED].document.ReplaceOrAdd("agent.config.image", image);
+                doc.ReplaceOrAdd("agent.config.image", image);
             });
 
-            config[EDGED].document.ReplaceOrAdd("hostname", hostname);
-            config[IDENTITYD].document.ReplaceOrAdd("hostname", hostname);
+            doc.ReplaceOrAdd("hostname", hostname);
 
-            parentHostname.ForEach(v => config[EDGED].document.ReplaceOrAdd("parent_hostname", v));
+            parentHostname.ForEach(v => doc.ReplaceOrAdd("parent_hostname", v));
 
             foreach (RegistryCredentials c in this.credentials)
             {
-                config[EDGED].document.ReplaceOrAdd("agent.config.auth.serveraddress", c.Address);
-                config[EDGED].document.ReplaceOrAdd("agent.config.auth.username", c.User);
-                config[EDGED].document.ReplaceOrAdd("agent.config.auth.password", c.Password);
+                doc.ReplaceOrAdd("agent.config.auth.serveraddress", c.Address);
+                doc.ReplaceOrAdd("agent.config.auth.username", c.User);
+                doc.ReplaceOrAdd("agent.config.auth.password", c.Password);
             }
 
-            config[EDGED].document.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
+            doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
 
             if (this.httpUris.HasValue)
             {
                 HttpUris uris = this.httpUris.OrDefault();
-                config[EDGED].document.ReplaceOrAdd("connect.management_uri", uris.ConnectManagement);
-                config[EDGED].document.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
-                config[EDGED].document.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
-                config[EDGED].document.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
+                doc.ReplaceOrAdd("connect.management_uri", uris.ConnectManagement);
+                doc.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
+                doc.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
+                doc.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
             }
             else
             {
                 UriSocks socks = this.uriSocks;
-                config[EDGED].document.ReplaceOrAdd("connect.management_uri", socks.ConnectManagement);
-                config[EDGED].document.ReplaceOrAdd("connect.workload_uri", socks.ConnectWorkload);
-                config[EDGED].document.ReplaceOrAdd("listen.management_uri", socks.ListenManagement);
-                config[EDGED].document.ReplaceOrAdd("listen.workload_uri", socks.ListenWorkload);
+                doc.ReplaceOrAdd("connect.management_uri", socks.ConnectManagement);
+                doc.ReplaceOrAdd("connect.workload_uri", socks.ConnectWorkload);
+                doc.ReplaceOrAdd("listen.management_uri", socks.ListenManagement);
+                doc.ReplaceOrAdd("listen.workload_uri", socks.ListenWorkload);
             }
 
-            // Clear any existing Identity Service principals.
-            string principalsPath = "/etc/aziot/identityd/config.d";
-
-            config[IDENTITYD].document.RemoveIfExists("principal");
-            if (Directory.Exists(principalsPath))
+            if (!string.IsNullOrEmpty(deviceCaCert) && !string.IsNullOrEmpty(deviceCaPk) && !string.IsNullOrEmpty(deviceCaCerts))
             {
-                Directory.Delete(principalsPath, true);
+                doc.ReplaceOrAdd("certificates.device_ca_cert", deviceCaCert);
+                doc.ReplaceOrAdd("certificates.device_ca_pk", deviceCaPk);
+                doc.ReplaceOrAdd("certificates.trusted_ca_certs", deviceCaCerts);
             }
 
-            Directory.CreateDirectory(principalsPath);
-            SetOwner(principalsPath, "aziotid", "755");
+            this.proxy.ForEach(proxy => doc.ReplaceOrAdd("agent.env.https_proxy", proxy));
 
-            // Add the principal entry for aziot-edge to Identity Service.
-            // This is required so aziot-edge can communicate with Identity Service.
-            uint iotedgeUid = await GetIotedgeUid();
-            AddPrincipal("aziot-edge", iotedgeUid);
+            this.upstreamProtocol.ForEach(upstreamProtocol => doc.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
 
-            foreach (string file in new string[] { deviceCaCert, deviceCaPk, deviceCaCerts })
+            string result = doc.ToString();
+
+            FileAttributes attr = 0;
+            if (File.Exists(YamlPath))
             {
-                if (string.IsNullOrEmpty(file))
-                {
-                    throw new ArgumentException("device_ca_cert, device_ca_pk, and trusted_ca_certs must all be provided.");
-                }
-
-                if (!File.Exists(file))
-                {
-                    throw new ArgumentException($"{file} does not exist.");
-                }
+                attr = File.GetAttributes(YamlPath);
+                File.SetAttributes(YamlPath, attr & ~FileAttributes.ReadOnly);
             }
 
-            // Files must be readable by KS and CS users.
-            SetOwner(deviceCaCerts, config[CERTD].owner, "444");
-            SetOwner(deviceCaCert, config[CERTD].owner, "444");
-            SetOwner(deviceCaPk, config[KEYD].owner, "400");
+            await File.WriteAllTextAsync(YamlPath, result);
 
-            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", new Uri(deviceCaCerts).AbsoluteUri);
-            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", new Uri(deviceCaCert).AbsoluteUri);
-            config[KEYD].document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", new Uri(deviceCaPk).AbsoluteUri);
-
-            this.proxy.ForEach(proxy => config[EDGED].document.ReplaceOrAdd("agent.env.https_proxy", proxy));
-
-            this.upstreamProtocol.ForEach(upstreamProtocol => config[EDGED].document.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
-
-            foreach (KeyValuePair<string, (string owner, IConfigDocument document)> service in config)
+            if (attr != 0)
             {
-                string path = service.Key;
-                string text = service.Value.document.ToString();
-
-                await File.WriteAllTextAsync(path, text);
-                SetOwner(path, service.Value.owner, "644");
-                Console.WriteLine($"Created config {path}");
+                File.SetAttributes(YamlPath, attr);
             }
         }
 
@@ -419,104 +317,42 @@ namespace IotEdgeQuickstart.Details
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
             {
-                await Process.RunAsync("systemctl", "restart aziot-keyd aziot-certd aziot-identityd aziot-edged", cts.Token);
-                Console.WriteLine("Waiting for aziot-edged to start up.");
+                string errorMessage = null;
 
-                // Waiting for the processes to enter the "Running" state doesn't guarantee that
-                // they are fully started and ready to accept requests. Therefore, this function
-                // must wait until a request can be processed.
-                while (true)
+                try
                 {
-                    var processInfo = new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = "iotedge",
-                        Arguments = "list",
-                        RedirectStandardOutput = true
-                    };
-                    var request = System.Diagnostics.Process.Start(processInfo);
+                    await Process.RunAsync("systemctl", "enable iotedge", cts.Token);
+                    await Task.Delay(TimeSpan.FromSeconds(2), cts.Token);
+                    await Process.RunAsync("systemctl", "restart iotedge", cts.Token);
 
-                    if (request.WaitForExit(1000))
+                    // Wait for service to become active
+                    while (true)
                     {
-                        if (request.ExitCode == 0)
+                        await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                        string[] result = await Process.RunAsync("bash", "-c \"systemctl --no-pager show iotedge | grep ActiveState=\"");
+                        if (result.First().Split("=").Last() == "active")
                         {
-                            request.Close();
-                            Console.WriteLine("aziot-edged ready for requests.");
                             break;
                         }
+
+                        errorMessage = result.First();
                     }
-                    else
-                    {
-                        request.Kill(true);
-                        request.WaitForExit();
-                        request.Close();
-                        Console.WriteLine("aziot-edged not yet ready.");
-                    }
+                }
+                catch (OperationCanceledException e)
+                {
+                    throw new Exception($"Error starting iotedged: {errorMessage ?? e.Message}");
                 }
             }
         }
 
         public async Task Stop()
         {
-            await Process.RunAsync("systemctl", "stop aziot-edged", 60);
-            await Process.RunAsync("systemctl", "stop aziot-identityd", 60);
-            await Process.RunAsync("systemctl", "stop aziot-tpmd", 60);
-            await Process.RunAsync("systemctl", "stop aziot-certd", 60);
-            await Process.RunAsync("systemctl", "stop aziot-keyd", 60);
+            // Raspbian's systemctl doesn't support 'disable --now', so do
+            // 'disable' + 'stop' instead
+            await Process.RunAsync("systemctl", "disable iotedge", 60);
+            await Process.RunAsync("systemctl", "stop iotedge", 60);
         }
 
         public Task Reset() => Task.CompletedTask;
-
-        private static async Task<uint> GetIotedgeUid()
-        {
-            string[] output = await Process.RunAsync("id", "-u iotedge");
-            string uid = output[0].Trim();
-
-            return System.Convert.ToUInt32(uid, 10);
-        }
-
-        private static void SetOwner(string path, string owner, string permissions)
-        {
-            var chown = System.Diagnostics.Process.Start("chown", $"{owner}:{owner} {path}");
-            chown.WaitForExit();
-            chown.Close();
-
-            var chmod = System.Diagnostics.Process.Start("chmod", $"{permissions} {path}");
-            chmod.WaitForExit();
-            chmod.Close();
-        }
-
-        private static void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
-        {
-            string path = $"/etc/aziot/identityd/config.d/{name}-principal.toml";
-
-            string principal = string.Join(
-                "\n",
-                "[[principal]]",
-                $"uid = {uid}",
-                $"name = \"{name}\"");
-
-            if (type != null)
-            {
-                // Need to quote each type.
-                for (int i = 0; i < type.Length; i++)
-                {
-                    type[i] = $"\"{type[i]}\"";
-                }
-
-                string types = string.Join(", ", type);
-                principal = string.Join("\n", principal, $"idtype = [{types}]");
-            }
-
-            if (opts != null)
-            {
-                foreach (KeyValuePair<string, string> opt in opts)
-                {
-                    principal = string.Join("\n", principal, $"{opt.Key} = {opt.Value}");
-                }
-            }
-
-            File.WriteAllText(path, principal);
-            SetOwner(path, "aziotid", "644");
-        }
     }
 }

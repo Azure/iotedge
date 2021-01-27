@@ -15,7 +15,6 @@
     <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.5.0" />
     <PackageReference Include="YamlDotNet" Version="6.0.0" />
-    <PackageReference Include="Nett" Version="0.15.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,16 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\test\Microsoft.Azure.Devices.Edge.Test.Common\IConfigDocument.cs" />
-    <Compile Include="..\..\test\Microsoft.Azure.Devices.Edge.Test.Common\TomlDocument.cs" />
-    <Compile Include="..\..\test\Microsoft.Azure.Devices.Edge.Test.Common\YamlDocument.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <AdditionalFiles Include="..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
+  </PropertyGroup>  
   <Import Project="..\..\stylecop.props" />
 </Project>
