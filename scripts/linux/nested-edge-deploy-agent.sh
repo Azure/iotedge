@@ -95,6 +95,9 @@ function setup_iotedge() {
     az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 
     echo "Setup /var/secrets/aziot/keyd/device-id"
+    [ ! -d "/var/secrets" ] && sudo mkdir /var/secrets
+    [ ! -d "/var/secrets/aziot" ] && sudo mkdir /var/secrets/aziot
+    [ ! -d "/var/secrets/aziot/keyd" ] && sudo mkdir /var/secrets/aziot/keyd
     sudo touch /var/secrets/aziot/keyd/device-id
     deviceSASKey=$(echo "${CONNECTION_STRING}" | sed -n 's/.*SharedAccessKey=\(.*\)/\1/p') 
     echo "SAS key: $deviceSASKey"
