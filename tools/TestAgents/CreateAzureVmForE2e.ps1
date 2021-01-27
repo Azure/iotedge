@@ -36,9 +36,9 @@ function Create-Azure-VM-For-E2E-Test
         #  D. Install dependencies for E2E
         #  E. Install software for VSTS test agent.
         
-        # Pre-requ: Install the Azure CLI
+        # Pre-requ: Install the Azure CLI & azure login
         #Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
-        az login
+        #az login
 
         $AdminUsername="iotedgeuser"
         # Fetch default subscription
@@ -78,18 +78,19 @@ function Create-Azure-VM-For-E2E-Test
         # Other setup command
         #  - Set AdminUsername to docker group
         #  - Download the VSTS test agent zip to be used.
-        additionalSetupCommand=" `
+        $AdditionalSetupCommand=" `
             sudo usermod -aG docker $AdminUsername; `
-            cd /home/${AdminUsername}; `
+            cd /home/$AdminUsername; `
             mkdir myagent && cd myagent; `
             wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz; `
             tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz; `
-            sudo chown -R ${AdminUsername} . `
+            sudo chown -R $AdminUsername . `
         "
 
         az vm run-command invoke `
             -g $ResourceGroup `
             -n $VmName `
             --command-id RunShellScript `
-            --scripts "$additionalSetupCommand" >> /dev/null
+            --scripts "$AdditionalSetupCommand" `
+            --output none
 }
