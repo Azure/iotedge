@@ -17,6 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [InlineData("", typeof(ArgumentException))]
         [InlineData(null, typeof(ArgumentException))]
         [InlineData("{\"prop1\":\"foo\",\"prop2\":100}", null)]
+        [InlineData("{\"prop1\":\"1d\",\"prop2\":100}", null)]
+        [InlineData("{\"prop1\":\"yyyy-MM-ddTHH:mm:ssZ\",\"prop2\":100}", null)] // RFC3339 format
+        [InlineData("{\"prop1\":\"999999999\",\"prop2\":100}", null)] // Unix Timestamp
         public async Task GetResponseTest(string payloadJson, Type expectedException)
         {
             // Arrange
