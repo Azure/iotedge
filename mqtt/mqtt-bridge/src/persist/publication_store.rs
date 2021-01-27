@@ -9,16 +9,17 @@ use crate::persist::{
     loader::MessageLoader,
     waking_state::StreamWakeableState,
     Key,
-    PersistError, //WakingMemoryStore,
 };
 
-use super::storage::{ring_buffer::RingBuffer /*, sled::Sled*/, FlushOptions};
+use super::{
+    storage::{ring_buffer::RingBufferStorage, FlushOptions},
+    StorageError,
+};
 
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 struct PublicationStoreInner<S> {
-    state: Arc<S>,
-    offset: u64,
+    state: Arc<Mutex<S>>,
     loader: MessageLoader<S>,
 }
 /// Persistence implementation used for the bridge
@@ -26,25 +27,7 @@ pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 unsafe impl<S> Send for PublicationStore<S> {}
 
-// impl PublicationStore<WakingMemoryStore> {
-//     pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
-//         Self::new(WakingMemoryStore::default(), batch_size)
-//     }
-// }
-
-// TODO: Sled
-// impl PublicationStore<Sled> {
-//     pub fn new_db(
-//         path: String,
-//         tree_name: String,
-//         flush_options: FlushOptions,
-//         batch_size: usize,
-//     ) -> Self {
-//         Self::new(Sled::new(path, tree_name, flush_options), batch_size)
-//     }
-// }
-
-impl PublicationStore<RingBuffer> {
+impl PublicationStore<RingBufferStorage> {
     pub fn new_ring_buffer(
         file_name: String,
         max_file_size: usize,
@@ -52,10 +35,23 @@ impl PublicationStore<RingBuffer> {
         batch_size: usize,
     ) -> Self {
         Self::new(
-            RingBuffer::new(file_name, max_file_size, flush_options),
+            RingBufferStorage::new(file_name, max_file_size, flush_options),
             batch_size,
         )
     }
+}
+
+async fn insert_into_store<S>(
+    pub_store: Arc<Mutex<PublicationStoreInner<S>>>,
+    message: Publication,
+) -> Result<Key, StorageError>
+where
+    S: StreamWakeableState,
+{
+    let borrowed_pub_store = pub_store.lock();
+    let store = borrowed_pub_store.state.clone();
+    let mut borrowed_store = store.lock();
+    borrowed_store.insert(message.clone()).await
 }
 
 impl<S> PublicationStore<S>
@@ -63,71 +59,31 @@ where
     S: StreamWakeableState,
 {
     pub fn new(state: S, batch_size: usize) -> Self {
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
         let loader = MessageLoader::new(state.clone(), batch_size);
 
-        let offset = 0;
-        let inner = PublicationStoreInner {
-            state,
-            offset,
-            loader,
-        };
+        let inner = PublicationStoreInner { state, loader };
         let inner = Arc::new(Mutex::new(inner));
 
         Self(inner)
     }
 
-    async fn insert_into_store(
-        pub_store: Arc<Mutex<PublicationStoreInner<S>>>,
-        key: Key,
-        value: Publication,
-    ) -> Result<(), PersistError> {
-        let state;
-        {
-            let lock = pub_store.lock();
-            state = lock.state.clone();
-        }
-        state.insert(key, value).await
-    }
+    pub async fn push(&self, message: Publication) -> Result<Key, StorageError> {
+        let key = insert_into_store(self.0.clone(), message.clone()).await?;
 
-    pub async fn push(&self, message: Publication) -> Result<Key, PersistError> {
-        let offset;
-        {
-            let inner_borrow = self.0.lock();
-            offset = inner_borrow.offset;
-        }
         debug!(
-            "persisting publication on topic {} with offset {}",
-            message.topic_name, offset
+            "persisting publication on topic {} with key {:?}",
+            message.topic_name, key
         );
 
-        let key = Key { offset };
-
-        Self::insert_into_store(self.0.clone(), key, message).await?;
-
-        {
-            let mut inner_borrow = self.0.lock();
-            inner_borrow.offset += 1;
-        }
         Ok(key)
     }
 
-    async fn remove_from_store(
-        pub_store: Arc<Mutex<PublicationStoreInner<S>>>,
-        key: Key,
-    ) -> Result<(), PersistError> {
-        let state;
-        {
-            let lock = pub_store.lock();
-            state = lock.state.clone();
-        }
-        state.remove(key).await
-    }
-
-    pub async fn remove(&self, key: Key) -> Result<(), PersistError> {
+    pub async fn remove(&self, key: Key) -> Result<(), StorageError> {
         debug!("removing publication with key {:?}", key);
-
-        Self::remove_from_store(self.0.clone(), key).await
+        let lock = self.0.lock();
+        let mut state = lock.state.lock();
+        state.remove(key)
     }
 
     pub fn loader(&self) -> MessageLoader<S> {
@@ -144,7 +100,6 @@ impl<S: StreamWakeableState> Clone for PublicationStore<S> {
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
     use bytes::Bytes;
     use futures_util::stream::TryStreamExt;
     use matches::assert_matches;
@@ -153,13 +108,15 @@ mod tests {
     use std::{
         collections::VecDeque,
         fs::{remove_dir_all, remove_file},
+        future::Future,
         path::PathBuf,
+        pin::Pin,
     };
 
     use crate::persist::{
         publication_store::PublicationStore,
-        storage::{ring_buffer::RingBuffer, FlushOptions},
-        Key, PersistError, StreamWakeableState,
+        storage::{ring_buffer::RingBufferStorage, FlushOptions},
+        Key, StorageError, StreamWakeableState,
     };
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
@@ -188,31 +145,36 @@ mod tests {
             .collect()
     }
 
-    struct TestRingBuffer(RingBuffer, String);
+    struct TestRingBuffer(RingBufferStorage, String);
 
-    #[async_trait]
     impl StreamWakeableState for TestRingBuffer {
-        async fn insert(&self, key: Key, value: Publication) -> Result<(), PersistError> {
-            self.0.insert(key, value).await
+        fn insert<'a>(
+            &mut self,
+            value: Publication,
+        ) -> Pin<Box<dyn Future<Output = Result<Key, StorageError>> + Send + 'a>> {
+            self.0.insert(value)
         }
 
-        async fn batch(&self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-            self.batch(count).await
+        fn batch<'a>(
+            &mut self,
+            count: usize,
+        ) -> Pin<
+            Box<
+                dyn Future<Output = Result<VecDeque<(Key, Publication)>, StorageError>> + Send + 'a,
+            >,
+        > {
+            self.0.batch(count)
         }
 
-        async fn remove(&self, key: Key) -> Result<(), PersistError> {
-            self.0.remove(key).await
-        }
-
-        fn set_waker(&mut self, waker: &std::task::Waker) {
-            self.0.set_waker(waker)
+        fn remove(&mut self, key: Key) -> Result<(), StorageError> {
+            self.0.remove(key)
         }
     }
 
     impl Default for TestRingBuffer {
         fn default() -> Self {
             let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
+            let rb = RingBufferStorage::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
             TestRingBuffer(rb, file_name.clone())
         }
     }
@@ -231,8 +193,6 @@ mod tests {
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
-        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -247,8 +207,8 @@ mod tests {
         };
 
         // insert some elements
-        persistence.push(pub1.clone()).await.unwrap();
-        persistence.push(pub2.clone()).await.unwrap();
+        let key1 = persistence.push(pub1.clone()).await.unwrap();
+        let key2 = persistence.push(pub2.clone()).await.unwrap();
 
         // get loader
         let mut loader = persistence.loader();
@@ -270,7 +230,6 @@ mod tests {
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -295,7 +254,7 @@ mod tests {
         assert_matches!(persistence.remove(key1).await, Ok(_));
 
         // add a second message and verify this is returned by loader
-        persistence.push(pub2.clone()).await.unwrap();
+        let key2 = persistence.push(pub2.clone()).await.unwrap();
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
@@ -308,7 +267,6 @@ mod tests {
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -317,7 +275,7 @@ mod tests {
         };
 
         // can't remove an element that hasn't been seen
-        persistence.push(pub1).await.unwrap();
+        let key1 = persistence.push(pub1).await.unwrap();
         let removed = persistence.remove(key1).await;
         assert_matches!(removed, Err(_));
     }
@@ -341,12 +299,10 @@ mod tests {
     async fn get_loader() {
         // setup state
         let state = TestRingBuffer::default();
-        let batch_size: usize = 1;
+        let batch_size: usize = 2;
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
-        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -361,8 +317,8 @@ mod tests {
         };
 
         // insert 2 elements
-        persistence.push(pub1.clone()).await.unwrap();
-        persistence.push(pub2.clone()).await.unwrap();
+        let key1 = persistence.push(pub1.clone()).await.unwrap();
+        let key2 = persistence.push(pub2.clone()).await.unwrap();
 
         // get loader with batch size
         let mut loader = persistence.loader();

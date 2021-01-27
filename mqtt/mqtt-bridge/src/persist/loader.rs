@@ -10,12 +10,14 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
+use crate::persist::{waking_state::StreamWakeableState, Key};
+
+use super::StorageError;
 
 /// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 pub struct MessageLoaderInner<S> {
-    state: Arc<S>,
+    state: Arc<Mutex<S>>,
     batch: VecDeque<(Key, Publication)>,
     batch_size: usize,
 }
@@ -33,7 +35,7 @@ impl<S> MessageLoader<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(state: Arc<S>, batch_size: usize) -> Self {
+    pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
         let batch = VecDeque::new();
 
         let inner = MessageLoaderInner {
@@ -46,11 +48,11 @@ where
         Self(inner)
     }
 
-    async fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
+    async fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, StorageError> {
         let inner = self.0.lock();
         let state = inner.state.clone();
-        println!("get batch");
-        state.batch(inner.batch_size).await
+        let mut borrowed_state = state.lock();
+        borrowed_state.batch(inner.batch_size).await
     }
 }
 
@@ -64,7 +66,7 @@ impl<S> Stream for MessageLoader<S>
 where
     S: StreamWakeableState,
 {
-    type Item = Result<(Key, Publication), PersistError>;
+    type Item = Result<(Key, Publication), StorageError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut inner = self.0.lock();
@@ -83,7 +85,7 @@ where
                 let mut batch_future = Box::pin(batch_future);
                 poll = batch_future.as_mut().poll(cx);
             }
-            println!("poll {:?}", poll);
+            
             match poll {
                 Poll::Ready(result) => {
                     let next_batch = result?;
@@ -92,12 +94,8 @@ where
 
                     // get next element and return it
                     let maybe_extracted = inner.batch.pop_front();
-                    // let state = inner.state;
                     maybe_extracted.map_or_else(
-                        || {
-                            // state.set_waker(cx.waker());
-                            Poll::Pending
-                        },
+                        || Poll::Pending,
                         |extracted| Poll::Ready(Some(Ok(extracted))),
                     )
                 }
@@ -109,15 +107,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
+
     use bytes::Bytes;
+
     use futures_util::{future::join, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
+    use parking_lot::Mutex;
     use rand::{distributions::Alphanumeric, thread_rng, Rng};
     use std::{
         collections::VecDeque,
         fs::{remove_dir_all, remove_file},
+        future::Future,
         path::PathBuf,
+        pin::Pin,
         sync::Arc,
         time::Duration,
     };
@@ -125,9 +127,9 @@ mod tests {
 
     use crate::persist::{
         loader::{Key, MessageLoader},
-        storage::{ring_buffer::RingBuffer, FlushOptions},
+        storage::{ring_buffer::RingBufferStorage, FlushOptions},
         waking_state::StreamWakeableState,
-        PersistError,
+        StorageError,
     };
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
@@ -156,31 +158,36 @@ mod tests {
             .collect()
     }
 
-    struct TestRingBuffer(RingBuffer, String);
+    struct TestRingBuffer(RingBufferStorage, String);
 
-    #[async_trait]
     impl StreamWakeableState for TestRingBuffer {
-        async fn insert(&self, key: Key, value: Publication) -> Result<(), PersistError> {
-            self.0.insert(key, value).await
+        fn insert<'a>(
+            &mut self,
+            value: Publication,
+        ) -> Pin<Box<dyn Future<Output = Result<Key, StorageError>> + Send + 'a>> {
+            self.0.insert(value)
         }
 
-        async fn batch(&self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-            self.batch(count).await
+        fn batch<'a>(
+            &mut self,
+            count: usize,
+        ) -> Pin<
+            Box<
+                dyn Future<Output = Result<VecDeque<(Key, Publication)>, StorageError>> + Send + 'a,
+            >,
+        > {
+            self.0.batch(count)
         }
 
-        async fn remove(&self, key: Key) -> Result<(), PersistError> {
-            self.0.remove(key).await
-        }
-
-        fn set_waker(&mut self, waker: &std::task::Waker) {
-            self.0.set_waker(waker)
+        fn remove(&mut self, key: Key) -> Result<(), StorageError> {
+            self.0.remove(key)
         }
     }
 
     impl Default for TestRingBuffer {
         fn default() -> Self {
             let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
+            let rb = RingBufferStorage::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
             TestRingBuffer(rb, file_name.clone())
         }
     }
@@ -195,17 +202,15 @@ mod tests {
     async fn smaller_batch_size_respected() {
         // setup state
         let state = TestRingBuffer::default();
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -214,9 +219,12 @@ mod tests {
         };
 
         // insert elements
-        (*state).insert(key1, pub1.clone()).await.unwrap();
-        (*state).insert(key2, pub2).await.unwrap();
-
+        let key1;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
+            let _key2 = borrowed_state.insert(pub2).await.unwrap();
+        }
         // get batch size elements
         let batch_size = 1;
         let mut loader = MessageLoader::new(state, batch_size);
@@ -232,17 +240,15 @@ mod tests {
     async fn larger_batch_size_respected() {
         // setup state
         let state = TestRingBuffer::default();
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -251,8 +257,13 @@ mod tests {
         };
 
         // insert elements
-        (*state).insert(key1, pub1.clone()).await.unwrap();
-        (*state).insert(key2, pub2.clone()).await.unwrap();
+        let key1;
+        let key2;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
+            key2 = borrowed_state.insert(pub2.clone()).await.unwrap();
+        }
 
         // get batch size elements
         let batch_size = 5;
@@ -271,13 +282,13 @@ mod tests {
     async fn ordering_maintained_across_inserts() {
         // setup state
         let state = TestRingBuffer::default();
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
 
         // add many elements
         let num_elements = 10_usize;
+        let mut keys = vec![];
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
-            let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
@@ -285,18 +296,21 @@ mod tests {
                 payload: Bytes::new(),
             };
 
-            (*state).insert(key, publication).await.unwrap();
+            let key;
+            {
+                let mut borrowed_state = state.lock();
+                key = borrowed_state.insert(publication).await.unwrap();
+            }
+            keys.push(key);
         }
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
         let mut elements = loader.next_batch().await.unwrap();
 
-        for count in 0..num_elements {
+        for key in keys {
             #[allow(clippy::cast_possible_truncation)]
-            let num_elements = count as u64;
-
-            assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
+            assert_eq!(elements.pop_front().unwrap().0, key)
         }
     }
 
@@ -304,17 +318,15 @@ mod tests {
     async fn retrieve_elements() {
         // setup state
         let state = TestRingBuffer::default();
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -323,9 +335,13 @@ mod tests {
         };
 
         // insert some elements
-        (*state).insert(key1, pub1.clone()).await.unwrap();
-        (*state).insert(key2, pub2.clone()).await.unwrap();
-
+        let key1;
+        let key2;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
+            key2 = borrowed_state.insert(pub2.clone()).await.unwrap();
+        }
         // get loader
         let batch_size = 5;
         let mut loader = MessageLoader::new(state.clone(), batch_size);
@@ -343,17 +359,15 @@ mod tests {
     async fn delete_and_retrieve_new_elements() {
         // setup state
         let state = TestRingBuffer::default();
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -361,33 +375,42 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        println!("1");
         // insert some elements
-        (*state).insert(key1, pub1.clone()).await.unwrap();
-        (*state).insert(key2, pub2.clone()).await.unwrap();
+        let key1;
+        let key2;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
+            key2 = borrowed_state.insert(pub2.clone()).await.unwrap();
+        }
 
         // get loader
         let batch_size = 5;
         let mut loader = MessageLoader::new(state.clone(), batch_size);
-println!("2");
+
         // process inserted messages
         loader.try_next().await.unwrap().unwrap();
         loader.try_next().await.unwrap().unwrap();
-println!("3");
+
         // remove inserted elements
-        state.remove(key1).await.unwrap();
-        state.remove(key2).await.unwrap();
+        {
+            let mut borrowed_state = state.lock();
+            borrowed_state.remove(key1).unwrap();
+            borrowed_state.remove(key2).unwrap();
+        }
 
         // insert new elements
-        let key3 = Key { offset: 2 };
         let pub3 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
-        };println!("4");
-        (*state).insert(key3, pub3.clone()).await.unwrap();
-println!("5");
+        };
+        let key3;
+        {
+            let mut borrowed_state = state.lock();
+            key3 = borrowed_state.insert(pub3.clone()).await.unwrap();
+        }
         // verify new elements are there
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted.0, key3);
@@ -398,10 +421,9 @@ println!("5");
     async fn poll_stream_does_not_block_when_map_empty() {
         // setup state
         let state = TestRingBuffer::default();
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -414,11 +436,10 @@ println!("5");
         let mut loader = MessageLoader::new(state.clone(), batch_size);
 
         // async function that waits for a message to enter the state
-        let key_copy = key1;
         let pub_copy = pub1.clone();
         let poll_stream = async move {
             let extracted = loader.try_next().await.unwrap().unwrap();
-            assert_eq!((key_copy, pub_copy), extracted);
+            assert_eq!((Key { offset: 0 }, pub_copy), extracted);
         };
 
         // add an element to the state
@@ -427,7 +448,10 @@ println!("5");
             time::delay_for(Duration::from_secs(2)).await;
 
             // insert element once stream is polled
-            (*state).insert(key1, pub1).await.unwrap();
+            {
+                let mut borrowed_state = state.lock();
+                let _key = borrowed_state.insert(pub1).await.unwrap();
+            }
         };
 
         join(poll_stream, insert).await;

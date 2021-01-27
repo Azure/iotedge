@@ -1,8 +1,7 @@
-use async_trait::async_trait;
 use mqtt3::proto::Publication;
-use std::{collections::VecDeque, task::Waker};
+use std::{collections::VecDeque, future::Future, pin::Pin};
 
-use crate::persist::{Key, PersistError};
+use crate::persist::Key;
 
 pub mod memory;
 pub mod ring_buffer;
@@ -19,33 +18,52 @@ pub mod ring_buffer;
 ///
 /// All implementations of this trait should have the same behavior with respect to errors.
 /// Thus all implementations will share the below test suite.
-#[async_trait]
 pub trait StreamWakeableState {
-    async fn insert(&self, key: Key, value: Publication) -> Result<(), PersistError>;
+    fn insert<'a>(
+        &mut self,
+        value: Publication,
+    ) -> Pin<Box<dyn Future<Output = Result<Key, StorageError>> + Send + 'a>>;
 
     /// Get count elements of store, excluding those that have already been loaded
-    async fn batch(&self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError>;
+    fn batch<'a>(
+        &mut self,
+        count: usize,
+    ) -> Pin<Box<dyn Future<Output = Result<VecDeque<(Key, Publication)>, StorageError>> + Send + 'a>>;
 
     // This remove should error if the given element has not yet been returned by batch.
-    async fn remove(&self, key: Key) -> Result<(), PersistError>;
-
-    fn set_waker(&mut self, waker: &Waker);
+    fn remove(&mut self, key: Key) -> Result<(), StorageError>;
 }
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
     use bytes::Bytes;
-    use futures_util::stream::{Stream, StreamExt, TryStreamExt};
+    use futures_util::{
+        stream::{Stream, StreamExt, TryStreamExt},
+        task::noop_waker_ref,
+    };
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use rand::{distributions::Alphanumeric, thread_rng, Rng};
-    use std::{collections::VecDeque, fs::{remove_dir_all, remove_file}, path::PathBuf, pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{
+        collections::VecDeque,
+        fs::{remove_dir_all, remove_file},
+        future::Future,
+        path::PathBuf,
+        pin::Pin,
+        sync::Arc,
+        task::Context,
+        task::Poll,
+    };
     use test_case::test_case;
     use tokio::{sync::Notify, task};
 
-    use crate::persist::{Key, PersistError, loader::MessageLoader, storage::{ring_buffer::RingBuffer, /*sled::Sled,*/ FlushOptions}, waking_state::StreamWakeableState};
+    use crate::persist::{
+        loader::MessageLoader,
+        storage::{ring_buffer::RingBufferStorage, /*sled::Sled,*/ FlushOptions},
+        waking_state::StreamWakeableState,
+        Key, StorageError,
+    };
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
     const FILE_NAME: &'static str = "test_file";
@@ -73,12 +91,12 @@ mod tests {
             .collect()
     }
 
-    struct TestRingBuffer(RingBuffer, String);
+    struct TestRingBuffer(RingBufferStorage, String);
 
     impl Default for TestRingBuffer {
         fn default() -> Self {
             let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
+            let rb = RingBufferStorage::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
             TestRingBuffer(rb, file_name.clone())
         }
     }
@@ -89,75 +107,33 @@ mod tests {
         }
     }
 
-    #[async_trait]
     impl StreamWakeableState for TestRingBuffer {
-        async fn insert(&self, key: Key, value: Publication) -> Result<(), PersistError> {
-            self.0.insert(key, value).await
+        fn insert<'a>(
+            &mut self,
+            value: Publication,
+        ) -> Pin<Box<dyn Future<Output = Result<Key, StorageError>> + Send + 'a>> {
+            self.0.insert(value)
         }
 
-        async fn batch(&self, count: usize) -> Result<VecDeque<(Key, Publication)>, PersistError> {
-            self.0.batch(count).await
+        fn batch<'a>(
+            &mut self,
+            count: usize,
+        ) -> Pin<
+            Box<
+                dyn Future<Output = Result<VecDeque<(Key, Publication)>, StorageError>> + Send + 'a,
+            >,
+        > {
+            self.0.batch(count)
         }
 
-        async fn remove(&self, key: Key) -> Result<(), PersistError> {
-            self.0.remove(key).await
-        }
-
-        fn set_waker(&mut self, waker: &std::task::Waker) {
-            self.0.set_waker(waker)
+        fn remove(&mut self, key: Key) -> Result<(), StorageError> {
+            self.0.remove(key)
         }
     }
 
-    // struct TestSled(Sled, String, String);
-
-    // impl Default for TestSled {
-    //     fn default() -> Self {
-    //         let file_name = FILE_NAME.to_owned() + &create_rand_str();
-    //         let db_name = DB_PATH.to_owned() + &create_rand_str();
-    //         let sled = Sled::new(db_name.clone(), file_name.clone(), FLUSH_OPTIONS);
-    //         TestSled(sled, file_name.clone(), db_name.clone())
-    //     }
-    // }
-
-    // impl Drop for TestSled {
-    //     fn drop(&mut self) {
-    //         cleanup_test_file(self.1.clone());
-    //         cleanup_test_file(self.2.clone());
-    //     }
-    // }
-
-    // impl StreamWakeableState for TestSled {
-    //     fn insert(
-    //         &mut self,
-    //         key: Key,
-    //         value: Publication,
-    //     ) -> Result<(), crate::persist::PersistError> {
-    //         self.0.insert(key, value)
-    //     }
-
-    //     fn batch(
-    //         &mut self,
-    //         count: usize,
-    //     ) -> Result<std::collections::VecDeque<(Key, Publication)>, crate::persist::PersistError>
-    //     {
-    //         self.0.batch(count)
-    //     }
-
-    //     fn remove(&mut self, key: Key) -> Result<(), crate::persist::PersistError> {
-    //         self.0.remove(key)
-    //     }
-
-    //     fn set_waker(&mut self, waker: &std::task::Waker) {
-    //         self.0.set_waker(waker)
-    //     }
-    // }
-
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn insert(state: impl StreamWakeableState) {
-        let key1 = Key { offset: 0 };
+    async fn insert(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -165,7 +141,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1, pub1.clone()).await.unwrap();
+        let _key1 = state.insert(pub1.clone()).await.unwrap();
 
         let current_state = state.batch(1).await.unwrap();
         assert!(!current_state.is_empty());
@@ -174,15 +150,13 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn ordering_maintained_across_insert(state: impl StreamWakeableState) {
+    async fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10_usize;
+        let mut keys = vec![];
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
-            let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
@@ -190,28 +164,26 @@ mod tests {
                 payload: Bytes::new(),
             };
 
-            state.insert(key, publication).await.unwrap();
+            let key = state.insert(publication).await.unwrap();
+            keys.push(key);
         }
 
         // verify they came back in the correct order
         let mut elements = state.batch(num_elements).await.unwrap();
-        for count in 0..num_elements {
+        for key in keys {
             #[allow(clippy::cast_possible_truncation)]
-            let num_elements = count as u64;
-            assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
+            assert_eq!(elements.pop_front().unwrap().0, key)
         }
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn ordering_maintained_across_removal(state: impl StreamWakeableState) {
+    async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10_usize;
+        let mut keys = vec![];
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
-            let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
@@ -219,36 +191,35 @@ mod tests {
                 payload: Bytes::new(),
             };
 
-            state.insert(key, publication).await.unwrap();
+            let key = state.insert(publication).await.unwrap();
+            keys.push(key);
         }
 
         // extract some, check that they are in order
-        let state = Arc::new(state);
+        let state = Arc::new(Mutex::new(state));
         let mut loader = MessageLoader::new(state.clone(), num_elements);
         let (key1, _) = loader.try_next().await.unwrap().unwrap();
         let (key2, _) = loader.try_next().await.unwrap().unwrap();
-        assert_eq!(key1, Key { offset: 0 });
-        assert_eq!(key2, Key { offset: 1 });
+        assert_eq!(key1, keys[0]);
+        assert_eq!(key2, keys[1]);
 
         // remove some
-        state.remove(key1).await.unwrap();
-        state.remove(key2).await.unwrap();
-
+        {
+            let mut borrowed_state = state.lock();
+            borrowed_state.remove(key1).unwrap();
+            borrowed_state.remove(key2).unwrap();
+        }
         // check that the ordering is maintained
-        for count in 2..num_elements {
+        for key in &keys[2..] {
             #[allow(clippy::cast_possible_truncation)]
-            let num_elements = count as u64;
-            let extracted_offset = loader.try_next().await.unwrap().unwrap().0.offset;
-            assert_eq!(extracted_offset, num_elements)
+            let key_received = loader.try_next().await.unwrap().unwrap().0;
+            assert_eq!(*key, key_received);
         }
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn larger_batch_size_respected(state: impl StreamWakeableState) {
-        let key1 = Key { offset: 0 };
+    async fn larger_batch_size_respected(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -256,7 +227,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1, pub1.clone()).await.unwrap();
+        let _key1 = state.insert(pub1.clone()).await.unwrap();
 
         let too_many_elements = 20;
         let current_state = state.batch(too_many_elements).await.unwrap();
@@ -267,11 +238,8 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn smaller_batch_size_respected(state: impl StreamWakeableState) {
-        let key1 = Key { offset: 0 };
+    async fn smaller_batch_size_respected(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -279,7 +247,6 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -287,8 +254,8 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1, pub1.clone()).await.unwrap();
-        state.insert(key2, pub2).await.unwrap();
+        let _key1 = state.insert(pub1.clone()).await.unwrap();
+        let _key2 = state.insert(pub2).await.unwrap();
 
         let smaller_batch_size = 1;
         let current_state = state.batch(smaller_batch_size).await.unwrap();
@@ -299,11 +266,8 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn remove_loaded(state: impl StreamWakeableState) {
-        let key1 = Key { offset: 0 };
+    async fn remove_loaded(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -311,30 +275,26 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1, pub1).await.unwrap();
+        let key1 = state.insert(pub1).await.unwrap();
         state.batch(1).await.unwrap();
-        assert_matches!(state.remove(key1).await, Ok(_));
+        assert_matches!(state.remove(key1), Ok(_));
 
-        let empty_batch = state.batch(1).await.unwrap();
-        assert_eq!(empty_batch.len(), 0);
+        let mut dummy_context = Context::from_waker(noop_waker_ref());
+        let poll = state.batch(1).as_mut().poll(&mut dummy_context);
+        assert_matches!(poll, Poll::Pending);
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn remove_loaded_dne(state: impl StreamWakeableState) {
+    async fn remove_loaded_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
-        let bad_removal = state.remove(key1).await;
+        let bad_removal = state.remove(key1);
         assert_matches!(bad_removal, Err(_));
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn remove_loaded_inserted_but_not_yet_retrieved(state: impl StreamWakeableState) {
-        let key1 = Key { offset: 0 };
+    async fn remove_loaded_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -342,25 +302,21 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        state.insert(key1, pub1).await.unwrap();
-        let bad_removal = state.remove(key1).await;
+        let key1 = state.insert(pub1).await.unwrap();
+        let bad_removal = state.remove(key1);
         assert_matches!(bad_removal, Err(_));
     }
 
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn remove_loaded_out_of_order(state: impl StreamWakeableState) {
+    async fn remove_loaded_out_of_order(mut state: impl StreamWakeableState) {
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -369,18 +325,15 @@ mod tests {
         };
 
         // insert elements and extract
-        state.insert(key1, pub1).await.unwrap();
-        state.insert(key2, pub2).await.unwrap();
+        let _key1 = state.insert(pub1).await.unwrap();
+        let key2 = state.insert(pub2).await.unwrap();
         state.batch(2).await.unwrap();
 
         // remove out of order and verify
-        assert_matches!(state.remove(key2).await, Ok(_))
+        assert_matches!(state.remove(key2), Err(_))
     }
 
-    #[ignore = "Seems to run indefinitely"]
     #[test_case(TestRingBuffer::default())]
-    // #[test_case(TestSled::default())]
-    // #[test_case(WakingMemoryStore::default())]
     // TODO: There is a clippy bug where it shows false positive for this rule.
     // When this issue is closed remove this allow.
     // https://github.com/rust-lang/rust-clippy/issues/6353
@@ -390,7 +343,6 @@ mod tests {
         // setup data
         let state = Arc::new(Mutex::new(state));
 
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -415,8 +367,8 @@ mod tests {
                 notify.notified().await;
 
                 // insert an element to wake the stream, then wait for the other thread to complete
-                let state = state.lock();
-                state.insert(key1, pub1).await.unwrap();
+                let mut state = state.lock();
+                let _key = state.insert(pub1).await.unwrap();
                 poll_stream_handle.await.unwrap();
             })
             .await;

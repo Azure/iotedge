@@ -24,7 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{Key, PersistError, PublicationStore, StreamWakeableState},
+    persist::{Key, PublicationStore, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -128,14 +128,17 @@ where
     }
 }
 
-async fn push_publication<S>(
-    pub_store: Arc<PublicationStore<S>>,
+async fn save_to_store<S>(
+    store: Arc<PublicationStore<S>>,
     publication: Publication,
-) -> Result<Key, PersistError>
+) -> Result<Key, BridgeError>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
-    pub_store.push(publication).await
+    debug!("saving message to store");
+
+    let store = store.clone();
+    store.push(publication).await.map_err(BridgeError::Store)
 }
 
 #[async_trait]
@@ -162,12 +165,7 @@ where
                         });
 
                 if let Some(publication) = forward_publication {
-                    debug!("saving message to store");
-                    let store = self.store.clone();
-                    push_publication(store, publication)
-                        .await
-                        .map_err(BridgeError::Store)?;
-
+                    save_to_store(self.store.clone(), publication).await?;
                     return Ok(Handled::Fully);
                 } else {
                     warn!("no topic matched");
@@ -234,7 +232,13 @@ mod tests {
         stream::StreamExt,
         TryStreamExt,
     };
-    use std::{collections::HashMap, str::FromStr};
+    use rand::{distributions::Alphanumeric, thread_rng, Rng};
+    use std::{
+        collections::HashMap,
+        fs::{remove_dir_all, remove_file},
+        path::PathBuf,
+        str::FromStr,
+    };
 
     use mqtt3::{
         proto::{Publication, QoS, SubscribeTo},
@@ -246,7 +250,10 @@ mod tests {
 
     use crate::{
         client::MqttEventHandler,
-        persist::{storage::FlushOptions, PublicationStore},
+        persist::{
+            storage::{ring_buffer::RingBufferStorage, FlushOptions},
+            PublicationStore,
+        },
         pump::TopicMapperUpdates,
         settings::BridgeSettings,
     };
@@ -255,9 +262,53 @@ mod tests {
     const FILE_NAME: &'static str = "test_file";
     const MAX_FILE_SIZE: usize = 1024 * 1024;
 
+    fn cleanup_test_file(file_name: String) {
+        let path = &PathBuf::from(file_name);
+        if path.exists() {
+            if path.is_file() {
+                let result = remove_file(path);
+                assert!(result.is_ok());
+            }
+            if path.is_dir() {
+                let result = remove_dir_all(path);
+                assert!(result.is_ok());
+            }
+        }
+    }
+
+    fn create_rand_str() -> String {
+        thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(10)
+            .map(char::from)
+            .collect()
+    }
+
+    struct TestPublicationStore(PublicationStore<RingBufferStorage>, String);
+
+    impl Default for TestPublicationStore {
+        fn default() -> Self {
+            let file_name = FILE_NAME.to_owned() + &create_rand_str();
+            Self(
+                PublicationStore::new_ring_buffer(
+                    file_name.clone(),
+                    MAX_FILE_SIZE,
+                    FLUSH_OPTIONS,
+                    5,
+                ),
+                file_name.clone(),
+            )
+        }
+    }
+
+    impl Drop for TestPublicationStore {
+        fn drop(&mut self) {
+            cleanup_test_file(self.1.clone())
+        }
+    }
+
     #[tokio::test]
     async fn message_handler_updates_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -275,13 +326,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         handler
             .handle(Event::SubscriptionUpdates(vec![
@@ -298,7 +344,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_retries_rejected_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -318,13 +363,8 @@ mod tests {
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
         handler.set_retry_sub_sender(tx);
 
         handler
@@ -349,17 +389,10 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_updates_topic_without_pending_update() {
-        let batch_size: usize = 5;
-
         let topics = HashMap::new();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         handler
             .handle(Event::SubscriptionUpdates(vec![
@@ -376,7 +409,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_saves_message_with_local_and_forward_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -394,13 +426,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -436,7 +463,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_saves_message_with_empty_local_and_forward_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -454,13 +480,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "floor2/1".to_string(),
@@ -497,7 +518,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_saves_message_with_forward_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -515,13 +535,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -557,7 +572,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_saves_message_with_no_forward_mapping() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -575,13 +589,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -618,7 +627,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_no_topic_match() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -636,13 +644,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
@@ -673,7 +676,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_with_local_and_forward_not_ack_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -691,13 +693,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -720,7 +717,6 @@ mod tests {
 
     #[tokio::test]
     async fn message_handler_with_local_and_forward_unsubscribed_topic() {
-        let batch_size: usize = 5;
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let connection_settings = settings.upstream().unwrap();
 
@@ -738,13 +734,8 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_ring_buffer(
-            FILE_NAME.to_owned(),
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-            batch_size,
-        );
-        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+        let store = TestPublicationStore::default();
+        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),

@@ -8,21 +8,11 @@ use tracing_futures::Instrument;
 
 use mqtt_util::client_io::Credentials;
 
-use crate::{
-    client::{ClientError, MqttClientConfig},
-    config_update::BridgeDiff,
-    persist::{
-        storage::{ring_buffer::RingBuffer, FlushOptions},
-        PersistError, PublicationStore, StreamWakeableState,
-    },
-    pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
-    settings::ConnectionSettings,
-    upstream::{
+use crate::{client::{ClientError, MqttClientConfig}, config_update::BridgeDiff, persist::{PublicationStore, StorageError, StreamWakeableState, storage::{ring_buffer::RingBufferStorage, FlushOptions}}, pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage}, settings::ConnectionSettings, upstream::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
         RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
-    },
-};
+    }};
 
 pub struct BridgeHandle {
     local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
@@ -80,7 +70,7 @@ where
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 }
 
-impl Bridge<RingBuffer> {
+impl Bridge<RingBufferStorage> {
     pub fn new_upstream(
         system_address: &str,
         device_id: &str,
