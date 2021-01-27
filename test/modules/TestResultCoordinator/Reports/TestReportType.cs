@@ -8,7 +8,8 @@ namespace TestResultCoordinator.Reports
         EdgeHubRestartMessageReport,
         TwinCountingReport,
         DeploymentTestReport,
-        DirectMethodReport,
+        DirectMethodConnectivityReport,
+        DirectMethodLongHaulReport,
         NetworkControllerReport,
         ErrorReport,
         TestInfoReport

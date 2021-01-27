@@ -6,7 +6,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Linq;
     using System.Net;
 
-    public class DirectMethodReportDataWithSenderSourceOnly
+    public class DirectMethodConnectivityReportDataWithSenderSourceOnly
     {
         public static IEnumerable<object[]> GetCreateReportData =>
             // See TestCreateReportAsync for parameters names

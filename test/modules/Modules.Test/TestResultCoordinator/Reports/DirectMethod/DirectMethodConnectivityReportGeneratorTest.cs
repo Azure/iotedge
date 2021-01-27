@@ -8,6 +8,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Threading.Tasks;
     using global::TestResultCoordinator.Reports;
     using global::TestResultCoordinator.Reports.DirectMethod;
+    using global::TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -19,7 +20,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using Xunit;
 
     [Unit]
-    public class DirectMethodReportGeneratorTest
+    public class DirectMethodConnectivityReportGeneratorTest
     {
         static NetworkStatusTimeline NetworkStatusTimeline => MockNetworkStatusTimeline.GetMockAsync(new TimeSpan(0, 0, 0, 0, 5)).Result;
         static readonly string TestDescription = "dummy description";
@@ -39,7 +40,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
-            var reportGenerator = new DirectMethodReportGenerator(
+            var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
@@ -71,7 +72,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
                     trackingId,
                     "senderSource",
@@ -98,7 +99,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     testDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
@@ -125,7 +126,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     senderSource,
@@ -149,7 +150,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
@@ -176,7 +177,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
@@ -198,7 +199,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
@@ -223,7 +224,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodReportGenerator(
+                () => new DirectMethodConnectivityReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
@@ -251,7 +252,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
-            var reportGenerator = new DirectMethodReportGenerator(
+            var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
@@ -262,7 +263,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 NetworkStatusTimeline,
                 networkControllerType);
 
-            var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+            var report = (DirectMethodConnectivityReport)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(0UL, report.NetworkOnSuccess);
             Assert.Equal(0UL, report.NetworkOffSuccess);
@@ -275,7 +276,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         }
 
         [Theory]
-        [MemberData(nameof(DirectMethodReportDataWithSenderAndReceiverSource.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderAndReceiverSource))]
+        [MemberData(nameof(DirectMethodConnectivityReportDataWithSenderAndReceiverSource.GetCreateReportData), MemberType = typeof(DirectMethodConnectivityReportDataWithSenderAndReceiverSource))]
         public async Task TestCreateReportAsync(
             IEnumerable<ulong> senderStoreValues,
             IEnumerable<ulong> receiverStoreValues,
@@ -303,7 +304,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
                 new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
 
-            var reportGenerator = new DirectMethodReportGenerator(
+            var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
@@ -329,7 +330,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+            var report = (DirectMethodConnectivityReport)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
             Assert.Equal(expectedNetworkOffSuccess, report.NetworkOffSuccess);
@@ -343,7 +344,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         }
 
         [Theory]
-        [MemberData(nameof(DirectMethodReportDataWithSenderSourceOnly.GetCreateReportData), MemberType = typeof(DirectMethodReportDataWithSenderSourceOnly))]
+        [MemberData(nameof(DirectMethodConnectivityReportDataWithSenderSourceOnly.GetCreateReportData), MemberType = typeof(DirectMethodConnectivityReportDataWithSenderSourceOnly))]
         public async Task TestCreateReportWithSenderResultsOnlyAsync(
             IEnumerable<ulong> senderStoreValues,
             IEnumerable<HttpStatusCode> statusCodes,
@@ -368,7 +369,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             var receiverResults = Option.None<ITestResultCollection<TestOperationResult>>();
 
-            var reportGenerator = new DirectMethodReportGenerator(
+            var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
@@ -386,7 +387,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+            var report = (DirectMethodConnectivityReport)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
             Assert.Equal(expectedNetworkOffSuccess, report.NetworkOffSuccess);

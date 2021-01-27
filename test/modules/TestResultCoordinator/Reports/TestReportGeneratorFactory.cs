@@ -7,6 +7,8 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports.DirectMethod;
+    using TestResultCoordinator.Reports.DirectMethod.Connectivity;
+    using TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
     using TestResultCoordinator.Storage;
 
@@ -85,15 +87,15 @@ namespace TestResultCoordinator.Reports
                             Settings.Current.UnmatchedResultsMaxSize);
                     }
 
-                case TestReportType.DirectMethodReport:
+                case TestReportType.DirectMethodConnectivityReport:
                     {
-                        var metadata = (DirectMethodReportMetadata)testReportMetadata;
+                        var metadata = (DirectMethodConnectivityReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
                         var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
                         var tolerancePeriod = metadata.TolerancePeriod;
                         var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
-                        return new DirectMethodReportGenerator(
+                        return new DirectMethodConnectivityReportGenerator(
                             metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
@@ -103,6 +105,22 @@ namespace TestResultCoordinator.Reports
                             metadata.TestOperationResultType.ToString(),
                             networkStatusTimeline,
                             this.NetworkControllerType);
+                    }
+
+                case TestReportType.DirectMethodLongHaulReport:
+                    {
+                        var metadata = (DirectMethodLongHaulReportMetadata)testReportMetadata;
+                        var senderTestResults = this.GetResults(metadata.SenderSource);
+                        var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
+
+                        return new DirectMethodLongHaulReportGenerator(
+                            metadata.TestDescription,
+                            trackingId,
+                            metadata.SenderSource,
+                            senderTestResults,
+                            metadata.ReceiverSource,
+                            receiverTestResults,
+                            metadata.TestOperationResultType.ToString());
                     }
 
                 case TestReportType.EdgeHubRestartDirectMethodReport:
