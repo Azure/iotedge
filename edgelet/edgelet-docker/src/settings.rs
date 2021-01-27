@@ -25,6 +25,7 @@ pub const DEFAULTS: &str = include_str!("../config/unix/default.yaml");
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
+const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
@@ -141,6 +142,28 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     agent_networking(settings)?;
 
     agent_labels(settings)?;
+
+    // In nested scenario, Agent image can be pulled from its parent.
+    // It is possible to specify the parent address using the keyword $upstream
+    agent_image_resolve(settings)?;
+
+    Ok(())
+}
+
+fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+    let image = settings.agent().config().image().to_string();
+
+    if let Some(parent_hostname) = settings.parent_hostname() {
+        if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
+            let image_nested = format!(
+                "{}{}",
+                parent_hostname,
+                &image[UPSTREAM_PARENT_KEYWORD.len()..]
+            );
+            let config = settings.agent().config().clone().with_image(image_nested);
+            settings.agent_mut().set_config(config);
+        }
+    }
 
     Ok(())
 }
@@ -294,6 +317,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use crate::settings::agent_image_resolve;
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
 
@@ -309,6 +333,8 @@ mod tests {
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.yaml";
 
     #[test]
     fn network_default() {
@@ -430,6 +456,17 @@ mod tests {
         assert_eq!(
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
+        );
+    }
+
+    #[test]
+    fn agent_image_is_resolved() {
+        let mut settings = Settings::new(Path::new(GOOD_SETTINGS_IMAGE_RESOLVE)).unwrap();
+        agent_image_resolve(&mut settings).unwrap();
+
+        assert_eq!(
+            "parent_hostname:443/microsoft/azureiotedge-agent:1.0",
+            settings.agent().config().image()
         );
     }
 

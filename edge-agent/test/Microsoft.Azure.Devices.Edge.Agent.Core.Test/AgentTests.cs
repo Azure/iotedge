@@ -130,6 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
             mockPlanner.Setup(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
                 .Returns(Task.FromResult(Plan.Empty));
+            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Success))
+                .Returns(Task.CompletedTask);
 
             var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider.Object, mockPlanner.Object, mockPlanRunner.Object, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider, availabilityMetric);
 
@@ -137,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 
             mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Once);
             mockPlanner.Verify(pl => pl.PlanAsync(It.Is<ModuleSet>(ms => ms.Equals(desiredModuleSet)), currentModuleSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
-            mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, runtimeInfo, DeploymentConfigInfo.Empty.Version, DeploymentStatus.Success), Times.Once);
+            mockReporter.Verify(r => r.ReportAsync(token, currentModuleSet, runtimeInfo, deploymentConfigInfo.Version, DeploymentStatus.Success), Times.Once);
             mockPlanRunner.Verify(r => r.ExecuteAsync(1, Plan.Empty, token), Times.Never);
         }
 

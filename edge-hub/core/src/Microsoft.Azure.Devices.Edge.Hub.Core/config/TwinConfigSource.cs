@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -69,8 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
                         if (twin.Properties.Desired.Count > 0)
                         {
-                            var desiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(twin.Properties.Desired.ToJson());
-                            return Option.Some(this.configParser.GetEdgeHubConfig(desiredProperties));
+                            return Option.Some(this.configParser.GetEdgeHubConfig(twin.Properties.Desired.ToJson()));
                         }
                         else
                         {
@@ -126,8 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 this.lastDesiredProperties = Option.Some(desiredProperties);
                 try
                 {
-                    var edgeHubDesiredProperties = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredProperties.ToJson());
-                    edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(edgeHubDesiredProperties));
+                    edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(twin.Properties.Desired.ToJson()));
                     await this.UpdateReportedProperties(twin.Properties.Desired.Version, new LastDesiredStatus(200, string.Empty));
                     Events.GetConfigSuccess();
                 }
@@ -199,9 +196,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     }
                 }
 
-                this.lastDesiredProperties = Option.Some(desiredProperties);
-                var desiredPropertiesPatch = JsonConvert.DeserializeObject<EdgeHubDesiredProperties>(desiredPropertiesJson);
-                edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(desiredPropertiesPatch));
+                this.lastDesiredProperties = Option.Some(new TwinCollection(desiredPropertiesJson));
+                edgeHubConfig = Option.Some(this.configParser.GetEdgeHubConfig(desiredPropertiesJson));
                 lastDesiredStatus = new LastDesiredStatus(200, string.Empty);
                 Events.PatchConfigSuccess();
             }

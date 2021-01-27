@@ -1,3 +1,4 @@
 {
-    "test_scenario": "Initiate"
+    "test_scenario": "Initiate",
+    "test_result_coordinator_url": "http://testResultCoordinator:5001/api/testoperationresult"
 }

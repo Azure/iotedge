@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             this.WithDesiredProperties(
                 new Dictionary<string, object>
                 {
-                    ["schemaVersion"] = "1.1",
+                    ["schemaVersion"] = "1.2",
                     ["routes"] = new { route1 = "from /* INTO $upstream" },
                     ["storeAndForwardConfiguration"] = new { timeToLiveSecs = 7200 }
                 });

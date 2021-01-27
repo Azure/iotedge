@@ -199,7 +199,7 @@ mod tests {
 
         // add many elements
         let mut state_lock = state.lock();
-        let num_elements = 10 as usize;
+        let num_elements = 10_usize;
         for i in 0..num_elements {
             #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };

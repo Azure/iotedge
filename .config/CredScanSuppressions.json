@@ -88,6 +88,14 @@
     {
       "placeholder": "h+N0UYSXsVACJYgLNMRMWnBYxWyPc7MO+HFFpIm+MRz71T7Z9lfL7COQW8eo3eDi/QUPCkv4ldXB0SZY0GmBCDj7H+IVh7BW6DmxXcj9zzhCzcZFcypoik14tdiE6JywQw/w4jvJu7w+ljFtrPOnzY+LzGNTPqocsVOl/lj4Vj3HlYPqdMocKfJTN6gEYPZ7iKesRzNjarAH44StdoIzvCYRbiHPcuLXNhsaUFZ6yanopCyiYzAgJkdCNbWnEl2wgIqr/0wBe3baDNuOROWNhR4FjfD0AhUR3urvuVnuU6zCeg6cWgESdxnAUrl3TfeVK724kzkMFANY1CeiUyQQrGmwlWanQhCKcKxeKTM7A6TSbvhVo4vcgb6i0apXiFPsjFp991/Vl71MgYVnepdWNmIS0K+B1fw1gkajPgBZARI7v9CS0TTVd00BuvruQRkliXhVXRAQ9132jh4py1pXqSUGMWDd0yXq36Fppm7CflGfDczzARMsYhA5CYAhJ0zDOz6jHJ0prZtqLQeQnbp00H9uQvvNa+8a35LAjGRle4c3AtKGCa427qRe7JS9n2S4YCsdwfQvclHh0+S6sKlCsWS6pqUsBcTplzrp44HuLx18yTpsnnoYe4srj9r/yuBn1xk2AiThPvc4wXAKccl7xY1U2p27ZFMXQIn2t1gyCus=",
       "_justification": "This is a test RSA signature string that is generated for a test edge agent twin data and is not a credential"
+    },
+    {
+      "placeholder": "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU=",
+      "_justification": "This is a fake key generated for testing purposes"
+    },
+    {
+      "placeholder": "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg==",
+      "_justification": "This is a fake key generated for testing purposes"
     }
   ]
 }

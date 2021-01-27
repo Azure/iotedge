@@ -67,7 +67,6 @@ use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
 
-use crate::error::ExternalProvisioningErrorReason;
 use crate::watchdog::Watchdog;
 use crate::workload::WorkloadData;
 
@@ -182,6 +181,9 @@ const AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 90 * 24 * 3600;
 
 const STOP_TIME: Duration = Duration::from_secs(30);
 
+/// This is the interval at which to poll Identity Service for device information.
+const IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS: Duration = Duration::from_secs(5);
+
 #[derive(PartialEq)]
 enum StartApiReturnStatus {
     Restart,
@@ -246,64 +248,69 @@ where
 
             let device_info = get_device_info(&client)
                 .map_err(|e| {
-                    Error::from(e.context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    )))
+                    Error::from(
+                        e.context(ErrorKind::Initialize(InitializeErrorReason::GetDeviceInfo)),
+                    )
                 })
                 .map(|(hub_name, device_id)| {
                     debug!("{}:{}", hub_name, device_id);
                     (hub_name, device_id)
                 });
+            let result = tokio_runtime.block_on(device_info);
 
-            let (hub, device_id) =
-                tokio_runtime
-                    .block_on(device_info)
-                    .context(ErrorKind::Initialize(
-                        InitializeErrorReason::DpsProvisioningClient,
-                    ))?;
+            match result {
+                Ok((hub, device_id)) => {
+                    info!("Finished provisioning edge device.");
 
-            info!("Finished provisioning edge device.");
+                    // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
+                    // modules will continue to run. On Linux systems where aziot-edged is responsible for
+                    // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
+                    // support systemd socket activation), modules will be left holding stale file
+                    // descriptors for the workload and management APIs and calls on these APIs will
+                    // begin to fail. Resilient modules should be able to deal with this, but we'll
+                    // restart all modules to ensure a clean start.
+                    info!("Stopping all modules...");
+                    tokio_runtime
+                        .block_on(runtime.stop_all(Some(STOP_TIME)))
+                        .context(ErrorKind::Initialize(
+                            InitializeErrorReason::StopExistingModules,
+                        ))?;
+                    info!("Finished stopping modules.");
 
-            // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
-            // modules will continue to run. On Linux systems where aziot-edged is responsible for
-            // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
-            // support systemd socket activation), modules will be left holding stale file
-            // descriptors for the workload and management APIs and calls on these APIs will
-            // begin to fail. Resilient modules should be able to deal with this, but we'll
-            // restart all modules to ensure a clean start.
-            info!("Stopping all modules...");
-            tokio_runtime
-                .block_on(runtime.stop_all(Some(STOP_TIME)))
-                .context(ErrorKind::Initialize(
-                    InitializeErrorReason::StopExistingModules,
-                ))?;
-            info!("Finished stopping modules.");
+                    tokio_runtime
+                        .block_on(runtime.remove_all())
+                        .context(ErrorKind::Initialize(
+                            InitializeErrorReason::RemoveExistingModules,
+                        ))?;
 
-            tokio_runtime
-                .block_on(runtime.remove_all())
-                .context(ErrorKind::Initialize(
-                    InitializeErrorReason::RemoveExistingModules,
-                ))?;
+                    let cfg = WorkloadData::new(
+                        hub,
+                        settings.parent_hostname().map(String::from),
+                        device_id,
+                        AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
+                        AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
+                    );
 
-            let cfg = WorkloadData::new(
-                hub,
-                settings.parent_hostname().map(String::from),
-                device_id,
-                AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
-                AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
-            );
+                    let (code, should_reprovision) = start_api::<_, _, M>(
+                        &settings,
+                        &runtime,
+                        cfg.clone(),
+                        make_shutdown_signal(),
+                        &mut tokio_runtime,
+                    )?;
 
-            let (code, should_reprovision) = start_api::<_, _, M>(
-                &settings,
-                &runtime,
-                cfg.clone(),
-                make_shutdown_signal(),
-                &mut tokio_runtime,
-            )?;
+                    if code != StartApiReturnStatus::Restart {
+                        break;
+                    }
+                }
+                Err(err) => {
+                    log_failure(Level::Warn, &err);
 
-            if code != StartApiReturnStatus::Restart {
-                break;
-            }
+                    std::thread::sleep(IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS);
+
+                    log::warn!("Retrying getting edge device provisioning information.");
+                }
+            };
         }
 
         info!("Shutdown complete.");
@@ -318,9 +325,7 @@ fn get_device_info(
     id_mgr
         .get_device()
         .map_err(|err| {
-            Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::DpsProvisioningClient,
-            )))
+            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::GetDeviceInfo)))
         })
         .and_then(|identity| match identity {
             aziot_identity_common::Identity::Aziot(spec) => Ok((spec.hub_name, spec.device_id.0)),
@@ -689,8 +694,8 @@ mod tests {
 
     use super::{
         env, signal, CertificateIssuer, CertificateProperties, CreateCertificate, Digest,
-        ErrorKind, ExternalProvisioningErrorReason, Fail, File, Future, GetIssuerAlias,
-        InitializeErrorReason, Main, MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
+        ErrorKind, Fail, File, Future, GetIssuerAlias, InitializeErrorReason, Main,
+        MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
         EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
     };
     use docker::models::ContainerCreateBody;

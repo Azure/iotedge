@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class MqttBrokerConnector : IMqttBrokerConnector
     {
         const int ReconnectDelayMs = 2000;
-        const int SubAckTimeoutSecs = 10;
+        const int DefaultAckTimeoutSecs = 10;
 
         readonly IComponentDiscovery components;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
@@ -32,10 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         AtomicBoolean isRetrying = new AtomicBoolean(false);
 
+        public TimeSpan AckTimeout { get; set; }
+
         public Task EnsureConnected => this.onConnectedTcs.Task;
 
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
+            this.AckTimeout = TimeSpan.FromSeconds(DefaultAckTimeoutSecs);
+
             this.components = Preconditions.CheckNotNull(components);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
 
@@ -175,9 +179,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             // need the lock, otherwise it can happen the ACK comes back sooner as the id is
             // put into the dictionary next line, causing the ACK being unknown.
+            ushort messageId;
             lock (this.guard)
             {
-                var messageId = client.Publish(topic, payload, 1, retain);
+                messageId = client.Publish(topic, payload, 1, retain);
                 added = this.pendingAcks.TryAdd(messageId, tcs);
             }
 
@@ -189,7 +194,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 new Exception("Could not store message id to monitor Mqtt ACK");
             }
 
-            var result = await tcs.Task;
+            bool result;
+
+            try
+            {
+                result = await tcs.Task.TimeoutAfter(this.AckTimeout);
+            }
+            catch
+            {
+                lock (this.guard)
+                {
+                    this.pendingAcks.TryRemove(messageId, out TaskCompletionSource<bool> _);
+                }
+
+                throw;
+            }
 
             return result;
         }
@@ -415,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     try
                     {
-                        await acksArrived.WaitAsync(TimeSpan.FromSeconds(SubAckTimeoutSecs));
+                        await acksArrived.WaitAsync(TimeSpan.FromSeconds(DefaultAckTimeoutSecs));
                     }
                     catch (Exception ex)
                     {

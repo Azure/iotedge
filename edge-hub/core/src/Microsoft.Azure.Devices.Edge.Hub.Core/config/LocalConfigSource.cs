@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
 
             this.edgeHubConfig = new EdgeHubConfig(
-                Constants.ConfigSchemaVersion.ToString(),
+                Constants.LatestSchemaVersion.ToString(),
                 new ReadOnlyDictionary<string, RouteConfig>(parsedRoutes),
                 storeAndForwardConfiguration,
                 Option.None<BrokerConfig>(),

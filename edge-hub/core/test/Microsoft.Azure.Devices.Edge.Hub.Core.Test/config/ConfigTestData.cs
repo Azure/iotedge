@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
     public class ConfigTestData
     {
-        public static EdgeHubDesiredProperties GetTestData()
+        public static EdgeHubDesiredProperties_1_2 GetTestData()
         {
             var statement1 = new AuthorizationProperties.Statement(
                 identities: new List<string>
@@ -72,8 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                 deny: new List<AuthorizationProperties.Rule>());
 
             var authzProperties = new AuthorizationProperties { statement1, statement2 };
-            var integrity = new ManifestIntegrity(new TwinHeader(new string[] { "signercert1", "signercert2" }, new string[] { "intermediatecacert1", "intermediatecacert2" }), new TwinSignature("bytes", "algo"));
-
             var bridgeConfig = new BridgeConfig
             {
                 new Bridge("$upstream", new List<Settings>
@@ -87,12 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             };
 
             var brokerProperties = new BrokerProperties(bridgeConfig, authzProperties);
-            var properties = new EdgeHubDesiredProperties(
+            var properties = new EdgeHubDesiredProperties_1_2(
                 "1.2.0",
-                new Dictionary<string, RouteConfiguration>(),
+                new Dictionary<string, RouteSpec>(),
                 new StoreAndForwardConfiguration(100),
-                brokerProperties,
-                integrity);
+                brokerProperties);
 
             return properties;
         }
