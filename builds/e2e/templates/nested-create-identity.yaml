@@ -31,6 +31,15 @@ steps:
         fi
         connectionString=$(az iot hub device-identity connection-string show -d ${deviceId} -n ${iotHubName} --query 'connectionString' -o tsv)
 
+        if [ "$LEVEL" = "4" ]; then
+            for i in {1..120}
+            do
+                leafId="leaf_stress_${i}"
+                echo "Creating leaf: ${leafId} under parent: ${deviceId}"
+                az iot hub device-identity create -n ${iotHubName} -d ${leafId} --ee --pd $(deviceId) --output none
+            done
+        fi
+
         #set output variable to use later in the job
         echo "##vso[task.setvariable variable=deviceId]${deviceId}"
         echo "##vso[task.setvariable variable=iotHubName]${iotHubName}"
