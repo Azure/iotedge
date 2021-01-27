@@ -2,17 +2,29 @@ function Create-Azure-VM-For-E2E-Test
 {
     [CmdletBinding()]
     param (
+        <# VM Name #>
         [Parameter(Mandatory)]
         [string]
         $VmName,
 
+        <# Azure VM Location.  The supported locations are 'eastus, eastus2, westus, centralus, northcentralus, 
+        southcentralus, northeurope, westeurope, eastasia, southeastasia, japaneast, japanwest, australiaeast,
+        australiasoutheast, australiacentral, brazilsouth, southindia, centralindia, westindia, canadacentral,
+        canadaeast, westus2, westcentralus, uksouth, ukwest, koreacentral, koreasouth, francecentral, 
+        southafricanorth, uaenorth, switzerlandnorth, germanywestcentral, norwayeast' #>
         [Parameter(Mandatory)]
         [string]
         $VmRegion,
 
+        <# Azure Resource Group #>
         [Parameter(Mandatory)]
         [string]
         $ResourceGroup
+
+        <# VSTS Personal Access Token to be used in the test agent enrollment #>
+        [Parameter(Mandatory)]
+        [string]
+        $VstsToken
     )
 
         # Future Iteration:
@@ -78,12 +90,16 @@ function Create-Azure-VM-For-E2E-Test
         # Other setup command
         #  - Set AdminUsername to docker group
         #  - Download the VSTS test agent zip to be used.
+        #  - Extract the VSTS test agent & enroll the test VM into the pool
         $AdditionalSetupCommand="sudo usermod -aG docker $AdminUsername;"
         $AdditionalSetupCommand+="cd /home/$AdminUsername;"
         $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
         $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="sudo chown -R $AdminUsername . ;"
+        $AdditionalSetupCommand+="./config.sh --unattended --url https://dev.azure.com/msazure --auth pat --token $VstsToken --pool Azure-IoT-Edge-Core --agent $VmName;"
+        $AdditionalSetupCommand+="sudo ./svc.sh install;"
+        $AdditionalSetupCommand+="sudo ./svc.sh start;"
 
         az vm run-command invoke `
             -g $ResourceGroup `
