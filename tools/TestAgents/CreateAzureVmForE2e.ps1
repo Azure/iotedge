@@ -92,6 +92,8 @@ function Create-Azure-VM-For-E2E-Test
         #  - Download the VSTS test agent zip to be used.
         #  - Extract the VSTS test agent
         $AdditionalSetupCommand="sudo usermod -aG docker $AdminUsername;"
+        $AdditionalSetupCommand+="sudo usermod -aG users iotedge;"
+        $AdditionalSetupCommand+="sudo usermod -aG root iotedge;"
         $AdditionalSetupCommand+="cd /home/$AdminUsername;"
         $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
         $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
