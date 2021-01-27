@@ -13,8 +13,20 @@ pub use to_k8s::{
     spec_to_deployment, spec_to_role_binding, spec_to_service_account, trust_bundle_to_config_map,
 };
 
+// Services (and consequently module names which are tied to the Service)
+// must start with an alphabet.
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
+    if name_string.is_empty() {
+        Err(ErrorKind::InvalidModuleName(name.to_owned()).into())
+    } else {
+        Ok(name_string)
+    }
+}
+
+// Some K8s objects may begin with alphanumerics as per RFC 1123
+pub fn sanitize_dns_value_rfc1123(name: &str) -> Result<String> {
+    let name_string = sanitize_dns_label_rfc1123(name);
     if name_string.is_empty() {
         Err(ErrorKind::InvalidModuleName(name.to_owned()).into())
     } else {
@@ -70,6 +82,36 @@ mod tests {
     fn error_from_empty_string() {
         let should_be_empty = " ------  ";
         let result = sanitize_dns_value(should_be_empty).expect_err("Expected error result");
+        assert_eq!(
+            should_be_empty,
+            match result.kind() {
+                ErrorKind::InvalidModuleName(x) => x,
+                _ => panic!("Expected Result not Found"),
+            }
+        );
+    }
+
+    #[test]
+    fn sanitize_dns_value_rfc1123_test_63chars() {
+        let result = sanitize_dns_value_rfc1123(
+            "01234567890123456789012345678901234567890123456789012345678901234567890123456789",
+        )
+        .unwrap();
+        assert_eq!(
+            result,
+            "012345678901234567890123456789012345678901234567890123456789012"
+        );
+    }
+    #[test]
+    fn sanitize_dns_value_rfc1123_trim_and_lowercase() {
+        let result = sanitize_dns_value_rfc1123("$edgeHub").unwrap();
+        assert_eq!(result, "edgehub");
+    }
+    #[test]
+    fn error_rfc1123_from_empty_string() {
+        let should_be_empty = " ------  ";
+        let result =
+            sanitize_dns_value_rfc1123(should_be_empty).expect_err("Expected error result");
         assert_eq!(
             should_be_empty,
             match result.kind() {

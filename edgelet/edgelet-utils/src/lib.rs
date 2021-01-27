@@ -59,7 +59,19 @@ const DNS_MAX_SIZE: usize = 63;
 ///  - must start with an alphabet
 ///  - must end with an alphanumeric character
 pub fn sanitize_dns_label(name: &str) -> String {
-    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
+    sanitize_dns_label_with(name, char::is_ascii_alphabetic)
+}
+
+/// The name returned from here must conform to following rules (as per RFC 1035/1123):
+///  - length must be <= 63 characters
+///  - must be all lower case alphanumeric characters or '-'
+///  - must start and end with an alphanumeric character
+pub fn sanitize_dns_label_rfc1123(name: &str) -> String {
+    sanitize_dns_label_with(name, char::is_ascii_alphanumeric)
+}
+
+fn sanitize_dns_label_with(name: &str, start_criteria: fn(&char) -> bool) -> String {
+    name.trim_start_matches(|c: char| !start_criteria(&c))
         .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
         .to_lowercase()
         .chars()
@@ -104,7 +116,7 @@ pub fn append_dns_san_entries(sans: &str, names: &[&str]) -> String {
 mod tests {
     use super::{
         append_dns_san_entries, parse_query, prepare_cert_uri_module, prepare_dns_san_entries,
-        sanitize_dns_label, DNS_MAX_SIZE,
+        sanitize_dns_label, sanitize_dns_label_rfc1123, DNS_MAX_SIZE,
     };
 
     #[test]
@@ -190,7 +202,41 @@ mod tests {
             sanitize_dns_label("$a23456789-123456789-123456789-123456789-123456789-123456789-1234")
         );
     }
+    #[test]
+    fn dns_label_1123() {
+        assert_eq!(
+            "abcdefg-hijklmnop-qrs-tuv-wxyz",
+            sanitize_dns_label_rfc1123(" -abcdefg-hijklmnop-qrs-tuv-wxyz- ")
+        );
+        assert!('\u{4eac}'.is_alphanumeric());
+        assert_eq!(
+            "abcdefg-hijklmnop-qrs-tuv-wxyz",
+            sanitize_dns_label_rfc1123("\u{4eac}ABCDEFG-\u{4eac}HIJKLMNOP-QRS-TUV-WXYZ\u{4eac}")
+        );
+        assert_eq!(
+            String::default(),
+            sanitize_dns_label_rfc1123("--------------")
+        );
+        assert_eq!("a", sanitize_dns_label_rfc1123("a"));
+        assert_eq!("1", sanitize_dns_label_rfc1123("1"));
+        assert_eq!("a-1", sanitize_dns_label_rfc1123("a -  1"));
+        assert_eq!("edgehub", sanitize_dns_label_rfc1123("$edgeHub"));
+        let expected_name = "123456789-123456789-123456789-123456789-123456789-123456789-123";
+        assert_eq!(expected_name.len(), DNS_MAX_SIZE);
+        assert_eq!(
+            expected_name,
+            sanitize_dns_label_rfc1123(
+                "123456789-123456789-123456789-123456789-123456789-123456789-1234"
+            )
+        );
 
+        assert_eq!(
+            expected_name,
+            sanitize_dns_label_rfc1123(
+                "$123456789-123456789-123456789-123456789-123456789-123456789-1234"
+            )
+        );
+    }
     #[test]
     fn dns_san() {
         assert_eq!("DNS:edgehub", prepare_dns_san_entries(&["edgehub"]));

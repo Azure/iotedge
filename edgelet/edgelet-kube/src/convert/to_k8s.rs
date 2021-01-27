@@ -200,7 +200,7 @@ fn spec_to_podspec(
             if element_count >= 2 {
                 // If we have a valid bind mount, create a Volume with the
                 // bind source as a host path.
-                let bind_name = sanitize_dns_value(bind_elements[0])?;
+                let bind_name = sanitize_dns_value_rfc1123(bind_elements[0])?;
                 let host_path_volume_source = api_core::HostPathVolumeSource {
                     path: bind_elements[0].to_string(),
                     type_: Some("DirectoryOrCreate".to_string()),
@@ -239,7 +239,7 @@ fn spec_to_podspec(
                 Some("bind") => {
                     // Treat bind options as above: Host Path Volume Source.
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
-                        let bind_name = sanitize_dns_value(source)?;
+                        let bind_name = sanitize_dns_value_rfc1123(source)?;
 
                         let host_path_volume_source = api_core::HostPathVolumeSource {
                             path: source.to_string(),
@@ -266,7 +266,7 @@ fn spec_to_podspec(
                 }
                 Some("volume") => {
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
-                        let volume_name = sanitize_dns_value(source)?;
+                        let volume_name = sanitize_dns_value_rfc1123(source)?;
 
                         let volume = api_core::Volume {
                             name: volume_name.clone(),
