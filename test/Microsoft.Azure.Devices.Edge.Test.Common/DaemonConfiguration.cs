@@ -265,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 }
             }
 
-            File.WriteAllText(path, principal);
+            File.WriteAllText(path, principal + "\n");
             OsPlatform.Current.SetOwner(path, "aziotid", "644");
         }
 
