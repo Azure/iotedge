@@ -83,6 +83,9 @@ pub enum ErrorKind {
     NotaryDigestMismatch(String),
 
     #[fail(display = "{}", _0)]
+    NotaryRootCAReadError(String),
+
+    #[fail(display = "{}", _0)]
     NotFound(String),
 
     #[fail(display = "Target of operation already in this state")]

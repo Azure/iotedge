@@ -464,7 +464,8 @@ fn execute_inner(
         keyd_config
     };
 
-    let certd_config = {
+    // May be mutated later to add content trust certs
+    let mut certd_config = {
         let mut certd_config = aziot_certd_config::Config {
             homedir_path: AZIOT_CERTD_HOMEDIR_PATH.into(),
             cert_issuance: Default::default(),
@@ -659,17 +660,42 @@ fn execute_inner(
                     }
                 },
 
-                content_trust: content_trust.as_ref().map(|content_trust| {
-                    let old_config::ContentTrust { ca_certs } = content_trust;
-                    edgelet_docker::ContentTrust {
-                        ca_certs: ca_certs.as_ref().map(|ca_certs| {
-                            ca_certs
-                                .iter()
-                                .map(|(k, v)| (k.clone(), v.clone()))
-                                .collect()
-                        }),
-                    }
-                }),
+                content_trust: content_trust
+                    .as_ref()
+                    .map(
+                        |content_trust| -> Result<_, std::borrow::Cow<'static, str>> {
+                            let old_config::ContentTrust { ca_certs } = content_trust;
+
+                            Ok(edgelet_docker::ContentTrust {
+                                ca_certs: ca_certs
+                                    .as_ref()
+                                    .map(|ca_certs| -> Result<_, std::borrow::Cow<'static, str>> {
+                                        let mut new_ca_certs: std::collections::BTreeMap<_, _> =
+                                            Default::default();
+
+                                        for (hostname, cert_path) in ca_certs {
+                                            let cert_id = format!("content-trust-{}", hostname);
+                                            let cert_uri = url::Url::from_file_path(cert_path)
+                                                .map_err(|()| {
+                                                    format!(
+                                                        "could not convert path {} to file URI",
+                                                        cert_path.display()
+                                                    )
+                                                })?;
+                                            certd_config.preloaded_certs.insert(
+                                                cert_id.clone(),
+                                                aziot_certd_config::PreloadedCert::Uri(cert_uri),
+                                            );
+                                            new_ca_certs.insert(hostname.to_owned(), cert_id);
+                                        }
+
+                                        Ok(new_ca_certs)
+                                    })
+                                    .transpose()?,
+                            })
+                        },
+                    )
+                    .transpose()?,
             }
         },
     };
