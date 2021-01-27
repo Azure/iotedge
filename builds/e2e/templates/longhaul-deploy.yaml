@@ -50,7 +50,7 @@ steps:
     displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
   - task: CopyFiles@2
     displayName: 'Copy aziot-identity-service'
     inputs:
