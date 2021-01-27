@@ -300,8 +300,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 return await what();
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Information($"Catch DeleteIdentityIfFailedAsync - BEARWASHERE\n DeviceId:{device.Id}\nEx:{ex}");
                 await DeleteIdentityAsync(device, iotHub, token);
                 throw;
             }
