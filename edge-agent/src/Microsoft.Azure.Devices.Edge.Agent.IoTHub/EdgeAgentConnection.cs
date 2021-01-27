@@ -3,6 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using System.Security.Cryptography;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -13,9 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
+
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     public class EdgeAgentConnection : IEdgeAgentConnection
@@ -262,10 +268,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 {
                     try
                     {
-                        this.desiredProperties = Option.Some(twin.Properties.Desired);
-                        this.reportedProperties = Option.Some(twin.Properties.Reported);
-                        await this.UpdateDeploymentConfig(twin.Properties.Desired);
-                        Events.TwinRefreshSuccess();
+                        Events.LogDesiredPropertiesAfterFullTwin(twin.Properties.Desired);
+                        if (CheckIfTwinSignatureIsValid(twin.Properties.Desired))
+                        {
+                            this.desiredProperties = Option.Some(twin.Properties.Desired);
+                            await this.UpdateDeploymentConfig(twin.Properties.Desired);
+                            this.reportedProperties = Option.Some(twin.Properties.Reported);
+                            Events.TwinRefreshSuccess();
+                        }
                     }
                     catch (Exception ex) when (!ex.IsFatal())
                     {
@@ -331,9 +341,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
                 desiredProperties = new TwinCollection(mergedJson);
-                this.desiredProperties = Option.Some(desiredProperties);
-                await this.UpdateDeploymentConfig(desiredProperties);
-                Events.DesiredPropertiesPatchApplied();
+                Events.LogDesiredPropertiesAfterPatch(desiredProperties);
+                if (CheckIfTwinSignatureIsValid(desiredProperties))
+                {
+                    this.desiredProperties = Option.Some(desiredProperties);
+                    await this.UpdateDeploymentConfig(desiredProperties);
+                    Events.DesiredPropertiesPatchApplied();
+                }
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -390,6 +404,73 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         async Task<bool> WaitForDeviceClientInitialization() =>
             await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
 
+        internal static bool CheckIfTwinSignatureIsValid(TwinCollection twinDesiredProperties)
+        {
+            // This function call returns false only when the signature verification fails
+            // It returns true when there is no signature data or when the signature is verified
+            if (!CheckIfTwinPropertiesAreSigned(twinDesiredProperties))
+            {
+                Events.TwinPropertiesAreNotSigned();
+            }
+            else
+            {
+                Events.TwinPropertiesAreSigned();
+                if (ExtractAgentTwinAndVerify(twinDesiredProperties))
+                {
+                    Events.VerifyTwinSignatureSuceeded();
+                }
+                else
+                {
+                    Events.VerifyTwinSignatureFailed();
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        internal static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
+        {
+            // If there is no integrity section in the desired twin properties then it is unsigned twin
+            JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
+            return integrity != null && integrity.HasValues != false;
+        }
+
+        internal static bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
+        {
+            try
+            {
+                // Extract Desired properties
+                JObject desiredProperties = new JObject();
+                JObject twinJobject = JObject.Parse(twinDesiredProperties.ToString());
+                desiredProperties["modules"] = twinJobject["modules"];
+                desiredProperties["runtime"] = twinJobject["runtime"];
+                desiredProperties["schemaVersion"] = twinJobject["schemaVersion"];
+                desiredProperties["systemModules"] = twinJobject["systemModules"];
+
+                // Extract Integrity section
+                JToken integrity = twinJobject["integrity"];
+                JToken header = integrity["header"];
+                JToken signerCertJtoken = integrity["header"]["signercert"];
+                string combinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
+                JToken signature = integrity["signature"]["bytes"];
+
+                // Extract Signature and algorithm
+                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
+                JToken algo = integrity["signature"]["algorithm"];
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
+                Events.ExtractAgentTwinSucceeded();
+
+                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+            }
+            catch (Exception ex)
+            {
+                Events.ExtractAgentTwinAndVerifyFailed(ex);
+                throw ex;
+            }
+        }
+
         static class Events
         {
             public static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeAgentConnection>();
@@ -422,6 +503,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 SendEventClientEmpty,
                 ErrorSendingEvent,
                 ErrorClosingModuleClient,
+                LogDesiredPropertiesAfterPatch,
+                LogDesiredPropertiesAfterFullTwin,
+                ExtractAgentTwinAndVerifyFailed,
+                ExtractAgentTwinSucceeded,
+                VerifyTwinSignatureFailed,
+                VerifyTwinSignatureSuceeded,
+                VerifyTwinSignatureException,
+                TwinPropertiesAreSigned,
+                TwinPropertiesAreNotSigned
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -549,6 +639,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ErrorClosingModuleClientForRetry(Exception e)
             {
                 Log.LogWarning((int)EventIds.ErrorClosingModuleClient, e, "Error closing module client for retry");
+            }
+
+            internal static void LogDesiredPropertiesAfterPatch(TwinCollection twinCollection)
+            {
+                Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterPatch, $"Obtained desired properties after apply patch: {twinCollection}");
+            }
+
+            internal static void LogDesiredPropertiesAfterFullTwin(TwinCollection twinCollection)
+            {
+                Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
+            }
+
+            internal static void ExtractAgentTwinAndVerifyFailed(Exception exception)
+            {
+                Log.LogError((int)EventIds.ExtractAgentTwinAndVerifyFailed, exception, "Extract Edge agent twin and verify failed");
+            }
+
+            internal static void ExtractAgentTwinSucceeded()
+            {
+                Log.LogDebug((int)EventIds.ExtractAgentTwinSucceeded, "Successfully Extracted twin for signature verification");
+            }
+
+            internal static void VerifyTwinSignatureException(Exception exception)
+            {
+                Log.LogError((int)EventIds.VerifyTwinSignatureException, exception, "Verify Twin Signature Failed Exception");
+            }
+
+            internal static void VerifyTwinSignatureFailed()
+            {
+                Log.LogError((int)EventIds.VerifyTwinSignatureFailed, "Twin Signature is not verified");
+            }
+
+            internal static void VerifyTwinSignatureSuceeded()
+            {
+                Log.LogInformation((int)EventIds.VerifyTwinSignatureSuceeded, "Twin Signature is verified");
+            }
+
+            internal static void TwinPropertiesAreSigned()
+            {
+                Log.LogDebug((int)EventIds.TwinPropertiesAreSigned, $"Twin Properties are signed");
+            }
+
+            internal static void TwinPropertiesAreNotSigned()
+            {
+                Log.LogDebug((int)EventIds.TwinPropertiesAreNotSigned, $"Twin Properties are not signed");
             }
         }
     }
