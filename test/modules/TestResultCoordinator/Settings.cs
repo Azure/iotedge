@@ -75,6 +75,7 @@ namespace TestResultCoordinator
                     LogUploadEnabled = logUploadEnabled
                 });
             }
+
             this.ConnectivitySpecificSettings = Option.None<ConnectivitySpecificSettings>();
             this.LongHaulSpecificSettings = Option.None<LongHaulSpecificSettings>();
             switch (testMode)

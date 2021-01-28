@@ -6,9 +6,9 @@ function create_certificates() {
     echo "Installing test root certificate bundle."
 
     echo "Generating edge device certificate"
-    device_name=$(az vm show -d  -g "iotedge-deploy" -n $(hostname) --query fqdns)
+    device_name=$(curl ipecho.net/plain)
     eval device_name=${device_name}
-    echo "  Hostname FQDN: ${device_name}"
+    echo "  Hostname IP: ${device_name}"
 
     /certs/certGen.sh create_edge_device_certificate ${device_name}
 }

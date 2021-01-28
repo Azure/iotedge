@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Reports.DirectMethod
+namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 {
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Reports;
@@ -7,9 +7,9 @@ namespace TestResultCoordinator.Reports.DirectMethod
     /// <summary>
     /// This is a DirectMethod report to show test results for DirectMethods.
     /// </summary>
-    class DirectMethodReport : TestResultReportBase
+    class DirectMethodConnectivityReport : TestResultReportBase
     {
-        public DirectMethodReport(
+        public DirectMethodConnectivityReport(
             string testDescription,
             string trackingId,
             string senderSource,
@@ -66,7 +66,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
         public ulong MismatchFailure { get; }
 
         public override string Title => this.ReceiverSource.HasValue ?
-            $"DirectMethod Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
+            $"DirectMethod Connectivity Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
 
         public override bool IsPassed =>
             this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0 && (this.NetworkOnSuccess + this.NetworkOffSuccess + this.NetworkOnToleratedSuccess + this.NetworkOffToleratedSuccess > 0);

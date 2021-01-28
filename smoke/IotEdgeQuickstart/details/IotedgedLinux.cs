@@ -250,6 +250,10 @@ namespace IotEdgeQuickstart.Details
             Directory.CreateDirectory(keyDir);
             SetOwner(keyDir, config[KEYD].owner, "700");
 
+            // Need to always reprovision so previous test runs don't affect this one.
+            config[IDENTITYD].document.RemoveIfExists("provisioning");
+            config[IDENTITYD].document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+
             method.ManualConnectionString.Match(
                 cs =>
                 {
