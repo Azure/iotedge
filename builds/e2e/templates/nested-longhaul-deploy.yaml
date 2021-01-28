@@ -1,0 +1,94 @@
+parameters:
+  release.label: ''
+  test.buildNumber: ''
+  test.buildId: ''
+  test.startDelay: ''
+  build.source.branch: ''
+  edgelet.source.branch: ''
+  images.source.branch: ''
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  container.registry: ''
+  container.registry.username: ''
+  container.registry.password: ''
+  iotHub.connectionString: ''
+  eventHub.connectionString: ''
+  loadGen.message.frequency: ''
+  longHaul.desiredModulesToRestartCSV: ''
+  longHaul.restartIntervalInMins: ''
+  analyzer.consumerGroupId: ''
+  logAnalytics.workspaceId: ''
+  logAnalytics.sharedKey: ''
+  twinTester.twinUpdateSize: ''
+  twinTester.twinUpdateFrequency: ''
+  twinTester.twinUpdateFailureThreshold: ''
+  twinTester.edgeHubRestartFailureTolerance: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
+  metricsCollector.hostPlatform: ''
+  test.runtimeLogLevel: ''
+  longHaul.parentHostname: ''
+  longHaul.parentEdgeDevice: ''
+steps:
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: Bash@3
+    displayName: 'Run Long Haul Deployment'
+    inputs:
+      targetType: inline
+      script: |
+        declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        testName="LongHaul"
+        
+        testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
+        testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
+        testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
+        testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
+        testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
+        testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
+        testInfo="$testInfo,TestName=$testName"
+        testInfo="$testInfo,UpstreamProtocol=amqp"
+        
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
+        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "${{ parameters['release.label'] }}" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -testName "$testName" \
+          -containerRegistry "${{ parameters['container.registry'] }}" \
+          -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+          -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+          -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+          -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+          -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
+          -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+          -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+          -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+          -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+          -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+          -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
+          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
+          -testInfo "$testInfo" \
+          -testStartDelay "${{ parameters['test.startDelay'] }}" \
+          -runtimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
+          -parentHostname "${{ parameters['longHaul.parentHostname'] }}" \
+          -parentEdgeDevice "${{ parameters['longHaul.parentEdgeDevice'] }}" \
+          -cleanAll
+      workingDirectory: "$(Agent.HomeDirectory)/.."
