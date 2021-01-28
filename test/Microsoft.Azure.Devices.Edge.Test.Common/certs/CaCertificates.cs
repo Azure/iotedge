@@ -10,11 +10,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         public string TrustedCertificatesPath { get; }
 
-        public IEnumerable<X509Certificate2> TrustedCertificates =>
-            new[]
+        public IEnumerable<X509Certificate2> TrustedCertificates()
+        {
+            X509Chain chain = new X509Chain();
+            chain.Build(new X509Certificate2(this.TrustedCertificatesPath));
+            int chainLength = chain.ChainElements.Count;
+
+            X509Certificate2[] trustedCerts = new X509Certificate2[chainLength];
+
+            for (int i = 0; i < chainLength; i++)
             {
-                new X509Certificate2(X509Certificate.CreateFromCertFile(this.TrustedCertificatesPath))
-            };
+                trustedCerts[i] = chain.ChainElements[i].Certificate;
+            }
+
+            return trustedCerts;
+        }
 
         string[] GetEdgeCertFileLocation(string deviceId)
         {
