@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task, object shutdownCtsObject)
         {
             HttpOperationResponse<object> response = await task;
+            // The cts object is coming from an external source, check it and put it into an Option for safe handling. 
             Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
             this.operatorWatch = Option.Some(

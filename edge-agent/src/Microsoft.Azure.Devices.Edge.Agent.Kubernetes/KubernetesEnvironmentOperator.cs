@@ -45,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         async Task OnListPodsCompleted(Task<HttpOperationResponse<V1PodList>> task, object shutdownCtsObject)
         {
             HttpOperationResponse<V1PodList> podListResp = await task;
+            // The cts object is coming from an external source, check it and put it into an Option for safe handling. 
             Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
             this.podWatch = Option.Some(
