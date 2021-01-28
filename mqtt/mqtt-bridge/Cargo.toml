@@ -33,6 +33,7 @@ edgelet-client = { path = "../edgelet-client" }
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }
 mqtt-util = { path = "../mqtt-util" }
+memmap = "0.7.0"
 
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
@@ -43,3 +44,4 @@ test-case = "1.0"
 tokio = { version = "0.2", features = ["macros"] }
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
+rand = "0.8.3"
