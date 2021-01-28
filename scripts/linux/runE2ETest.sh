@@ -99,9 +99,7 @@ function get_long_haul_deployment_artifact_file() {
     local path
     path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
 
-    local nestedEdgeTest=$(printenv E2E_nestedEdgeTest)
-
-    if [[ ! -z "$nestedEdgeTest" ]]; then
+    if [[ ! -z "$PARENT_HOSTNAME" ]]; then
       path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nested_long_haul_deployment.template.json"
     fi
 
@@ -176,7 +174,6 @@ function prepare_test_from_artifacts() {
                     sed -i -e "s@<mqttSettings__enabled>@$MQTT_SETTINGS_ENABLED@g" "$deployment_working_file"
                 fi
 
-                local escapedSnitchAlertUrl
                 local escapedBuildId
 
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
@@ -188,16 +185,8 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
                 sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
                 sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
-                escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
                 sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.BuildNumber>@$SNITCH_BUILD_NUMBER@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.BuildId>@$RELEASE_LABEL-$image_architecture_label-linux-$escapedBuildId@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.ReportingIntervalInSecs>@$SNITCH_REPORTING_INTERVAL_IN_SECS@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
-                sed -i -e "s@<Snitch.TestDurationInSecs>@$SNITCH_TEST_DURATION_IN_SECS@g" "$deployment_working_file"
                 sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
@@ -437,7 +426,13 @@ function process_args() {
         elif [ $saveNextArg -eq 48 ]; then
             LISTEN_WORKLOAD_URI="$arg"
             saveNextArg=0
-        else
+		elif [ $saveNextArg -eq 49 ]; then
+            PARENT_HOSTNAME="$arg"
+            saveNextArg=0
+		elif [ $saveNextArg -eq 50 ]; then
+            PARENT_EDGE_DEVICE="$arg"
+            saveNextArg=0									
+       else
             case "$arg" in
                 '-h' | '--help' ) usage;;
                 '-testDir' ) saveNextArg=1;;
@@ -488,6 +483,8 @@ function process_args() {
                 '-connectWorkloadUri' ) saveNextArg=46;;
                 '-listenManagementUri' ) saveNextArg=47;;
                 '-listenWorkloadUri' ) saveNextArg=48;;
+				'-parentHostname' ) saveNextArg=49;;
+				'-parentEdgeDevice' ) saveNextArg=50;;
                 '-bypassEdgeInstallation' ) BYPASS_EDGE_INSTALLATION="--bypass-edge-installation";;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -749,17 +746,21 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-    echo "Nested edge test=$NESTED_EDGE_TEST"
     local ret=0
+    
+	if [[ ! -z "$PARENT_HOSTNAME" ]]; then
+		echo "Starting Nested edge longhaul test..."
+		echo "Installing test root certificate bundle."    
+												   
+		echo "Generating edge device certificate"
+		echo "  Hostname FQDN: ${device_id}" 
 
-    if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
-        PARENT_HOSTNAME=$(printenv E2E_parentHostname)
-        PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
-        DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
-        DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
-        TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
-
+		/certs/certGen.sh create_edge_device_certificate ${device_id}
+		
+		DEVICE_CA_CERT="/certs/certs/iot-edge-device-${device_id}-full-chain.cert.pem"
+		DEVICE_CA_PRIVATE_KEY="/certs/private/iot-edge-device-${device_id}.key.pem"
+		TRUSTED_CA_CERTS="/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+	
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
         echo "Device CA cert=$DEVICE_CA_CERT"
@@ -1109,21 +1110,6 @@ function validate_test_parameters() {
 
     if [[ "${TEST_NAME,,}" == "longhaul" ]] ||
        [[ "${TEST_NAME,,}" == "stress" ]]; then
-        if [[ -z "$SNITCH_ALERT_URL" ]]; then
-            print_error "Required snitch alert URL."
-            ((error++))
-        fi
-
-        if [[ -z "$SNITCH_STORAGE_ACCOUNT" ]]; then
-            print_error "Required snitch storage account."
-            ((error++))
-        fi
-
-        if [[ -z "$SNITCH_STORAGE_MASTER_KEY" ]]; then
-            print_error "Required snitch storage master key."
-            ((error++))
-        fi
-
         if [[ -z "$TEST_INFO" ]]; then
             print_error "Required test info."
             ((error++))
@@ -1139,6 +1125,28 @@ function validate_test_parameters() {
             ((error++))
         fi
     fi
+	
+		if [[ ! -z "$PARENT_HOSTNAME" ]]; then
+		if [[ -z "$PARENT_EDGE_DEVICE" ]]; then
+            print_error "Required parent edge device info."
+            ((error++))
+        fi
+
+        if [[ -z "$DEVICE_CA_CERT" ]]; then
+            print_error "Required device CA cert."
+            ((error++))
+        fi
+
+        if [[ -z "$DEVICE_CA_PRIVATE_KEY" ]]; then
+            print_error "Required device CA private key."
+            ((error++))
+        fi
+		
+		if [[ -z "$TRUSTED_CA_CERTS" ]]; then
+            print_error "Required trusted CA cert."
+            ((error++))
+        fi
+	fi
 
     if (( error > 0 )); then
         exit 1
@@ -1165,13 +1173,7 @@ function usage() {
     echo ' -eventHubConnectionString                      Event hub connection string for receive D2C messages.'
     echo ' -eventHubConsumerGroupId                       Optional Event Hub Consumer Group ID for the Analyzer module.'
     echo ' -loadGenMessageFrequency                       Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
-    echo ' -snitchAlertUrl                                Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
-    echo ' -snitchBuildNumber                             Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
-    echo ' -snitchReportingIntervalInSecs                 Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
-    echo ' -snitchStorageAccount                          Azure blob Storage account for store logs used in status email for long haul and stress test.'
-    echo ' -snitchStorageMasterKey                        Master key of snitch storage account for long haul and stress test.'
-    echo ' -snitchTestDurationInSecs                      Test duration in seconds for long haul and stress test.'
-    echo ' -transportType1                                Transport type for LoadGen1 and TwinTester1 for stress test. Default is amqp.'
+   echo ' -transportType1                                Transport type for LoadGen1 and TwinTester1 for stress test. Default is amqp.'
     echo ' -transportType2                                Transport type for LoadGen2 and TwinTester2 for stress test. Default is amqp.'
     echo ' -transportType3                                Transport type for LoadGen3 and TwinTester3 for stress test. Default is mqtt.'
     echo ' -transportType4                                Transport type for LoadGen4 and TwinTester4 for stress test. Default is mqtt.'
@@ -1203,6 +1205,11 @@ function usage() {
     echo ' -listenManagementUri                           Customize listen management socket'
     echo ' -listenWorkloadUri                             Customize listen workload socket'
     echo ' -bypassEdgeInstallation                        Skip installing iotedge (if already preinstalled)'
+	echo ' -parentHostname                        		  parent host name for nested edge tests'
+	echo ' -parentEdgeDevice                        	  parent device id for nested edge tests'
+	echo ' -deviceCaCert                        	  	  device CA cert path'
+	echo ' -deviceCaPrivateKey                        	  device CA private key path'
+	echo ' -trustedCaCerts                        	  	  trusted bundle path'
     exit 1;
 }
 
@@ -1232,8 +1239,6 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
     RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
-    SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
-    SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
@@ -1241,8 +1246,6 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
-    SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-1700000}"
-    SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-14400}"
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-100}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:01}"
 fi
