@@ -92,9 +92,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             // Generated credentials need to be copied out of the script path because future runs
             // of the script will overwrite them.
-            string path = $"/etc/aziot/e2e_tests/{deviceId}";
-            string certPath = $"{path}/device_id_cert.pem";
-            string keyPath = $"{path}/device_id_cert_key.pem";
+            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, deviceId);
+            string certPath = Path.Combine(path, "device_id_cert.pem");
+            string keyPath = Path.Combine(path, "device_id_cert_key.pem");
 
             Directory.CreateDirectory(path);
             File.Copy(identityCerts.CertificatePath, certPath);

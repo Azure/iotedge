@@ -57,8 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
 
-                    // Create a directory for the tests to store certs, keys, etc.
-                    Directory.CreateDirectory("/etc/aziot/e2e_tests");
+                    // Clean the directory for test certs, keys, etc.
+                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    {
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    }
+                    Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
 
                     // Backup any existing service config files.
                     foreach (string file in this.configFiles)
@@ -125,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
 
                     // Delete test certs, keys, etc.
-                    Directory.Delete("/etc/aziot/e2e_tests", true);
+                    Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
 
                     // Restore backed up config files.
                     foreach (string file in this.configFiles)
@@ -178,10 +182,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public void AddCertsToConfig(DaemonConfiguration config)
         {
-            string path = $"/etc/aziot/e2e_tests/{this.deviceId}";
-            string certPath = $"{path}/device_ca_cert.pem";
-            string keyPath = $"{path}/device_ca_cert_key.pem";
-            string trustBundlePath = $"{path}/trust_bundle.pem";
+            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
+            string certPath = Path.Combine(path, "device_ca_cert.pem");
+            string keyPath = Path.Combine(path, "device_ca_cert_key.pem");
+            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
 
             Directory.CreateDirectory(path);
             File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);

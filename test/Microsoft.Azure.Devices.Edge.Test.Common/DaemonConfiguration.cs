@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // All names passed to this function must be sanitized with DaemonConfiguration.SanitizeName
         private void CreatePreloadedKey(string name, string value)
         {
-            string filePath = $"/etc/aziot/e2e_tests/{name}.key";
+            string filePath = Path.Combine(FixedPaths.E2E_TEST_DIR, $"{name}.key");
 
             File.WriteAllBytes(filePath, Convert.FromBase64String(value));
             OsPlatform.Current.SetOwner(filePath, "aziotks", "600");
