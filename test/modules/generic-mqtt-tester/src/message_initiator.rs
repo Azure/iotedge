@@ -1,4 +1,5 @@
-use bytes::Bytes;
+use bytes::BufMut;
+use bytes::BytesMut;
 use futures_util::{
     future::{self, Either},
     pin_mut, StreamExt,
@@ -49,15 +50,20 @@ impl MessageInitiator {
 
         let mut seq_num: u32 = 0;
         let mut publish_handle = self.publish_handle.clone();
-        let dummy_payload = "a".repeat(self.settings.message_size_in_bytes() as usize);
+
+        let payload_size = self.settings.message_size_in_bytes() as usize;
+        let dummy_data = &vec![b'a'; payload_size];
         loop {
             info!("publishing message {} to upstream broker", seq_num);
 
+            let mut payload = BytesMut::with_capacity(payload_size + 4);
+            payload.put_u32(seq_num);
+            payload.put_slice(&dummy_data);
             let publication = Publication {
                 topic_name: self.settings.initiate_topic(),
                 qos: QoS::ExactlyOnce,
                 retain: true,
-                payload: Bytes::from(seq_num.to_string() + " " + dummy_payload.as_str()),
+                payload: payload.into(),
             };
 
             let shutdown_recv_fut = self.shutdown_recv.next();
