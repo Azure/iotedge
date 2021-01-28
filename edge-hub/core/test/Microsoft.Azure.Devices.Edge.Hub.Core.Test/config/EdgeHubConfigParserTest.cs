@@ -143,8 +143,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
                       },
                       'integrity': {
                         'header' : {
-                          'signercert' : '[ signercert1, signercert2] ',
-                          'intermediatecacert' : '[ intermediateca1, intermediatecacert2 ]',
+                          'signercert' : ['signercert1', 'signercert2'],
+                          'intermediatecacert' : ['intermediateca1', 'intermediatecacert2'],
                          },
                         'signature' : {
                           'bytes' : 'signaturebytes',
