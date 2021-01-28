@@ -32,7 +32,9 @@ pub trait StreamWakeableState {
 mod tests {
     use crate::persist::{
         loader::MessageLoader,
-        storage::{ring_buffer::RingBuffer, FlushOptions, StorageResult},
+        storage::{
+            memory::WakingMemoryStore, ring_buffer::RingBuffer, FlushOptions, StorageResult,
+        },
         waking_state::StreamWakeableState,
         Key,
     };
@@ -118,6 +120,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn insert(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -135,6 +138,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn ordering_maintained_across_insert(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
         let num_elements = 10_usize;
@@ -161,6 +165,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
     async fn ordering_maintained_across_removal(mut state: impl StreamWakeableState) {
         // insert a bunch of elements
@@ -202,6 +207,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn larger_batch_size_respected(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -221,6 +227,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn smaller_batch_size_respected(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -248,6 +255,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn remove_loaded(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -265,6 +273,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn remove_loaded_dne(mut state: impl StreamWakeableState) {
         let key1 = Key { offset: 0 };
         let bad_removal = state.remove(key1);
@@ -272,6 +281,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn remove_loaded_inserted_but_not_yet_retrieved(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
@@ -286,6 +296,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     fn remove_loaded_out_of_order(mut state: impl StreamWakeableState) {
         // setup data
         let pub1 = Publication {
@@ -311,6 +322,7 @@ mod tests {
     }
 
     #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     // TODO: There is a clippy bug where it shows false positive for this rule.
     // When this issue is closed remove this allow.
     // https://github.com/rust-lang/rust-clippy/issues/6353
@@ -336,7 +348,7 @@ mod tests {
             let mut test_stream = TestStream::new(state_copy, notify2);
             assert_eq!(test_stream.next().await.unwrap(), 1);
         };
-        
+
         let local = LocalSet::new();
         local
             .run_until(async move {

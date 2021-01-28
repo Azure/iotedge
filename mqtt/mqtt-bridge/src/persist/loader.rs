@@ -1,17 +1,14 @@
+use super::StorageError;
+use crate::persist::{waking_state::StreamWakeableState, Key};
+use futures_util::stream::Stream;
+use mqtt3::proto::Publication;
+use parking_lot::Mutex;
 use std::{
     collections::VecDeque,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
-
-use futures_util::stream::Stream;
-use mqtt3::proto::Publication;
-use parking_lot::Mutex;
-
-use crate::persist::{waking_state::StreamWakeableState, Key};
-
-use super::StorageError;
 
 /// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
@@ -98,9 +95,14 @@ where
 
 #[cfg(test)]
 mod tests {
-
+    use crate::persist::{
+        loader::{Key, MessageLoader},
+        storage::{
+            memory::WakingMemoryStore, ring_buffer::RingBuffer, FlushOptions, StorageResult,
+        },
+        waking_state::StreamWakeableState,
+    };
     use bytes::Bytes;
-
     use futures_util::{future::join, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
@@ -112,9 +114,8 @@ mod tests {
         sync::Arc,
         time::Duration,
     };
+    use test_case::test_case;
     use tokio::time;
-
-    use crate::persist::{loader::{Key, MessageLoader}, storage::{FlushOptions, StorageResult, ring_buffer::RingBuffer}, waking_state::StreamWakeableState};
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
     const FILE_NAME: &'static str = "test_file";
@@ -176,10 +177,11 @@ mod tests {
         }
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn smaller_batch_size_respected() {
+    async fn smaller_batch_size_respected(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -214,10 +216,11 @@ mod tests {
         assert_eq!((extracted.0, extracted.1), (key1, pub1));
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn larger_batch_size_respected() {
+    async fn larger_batch_size_respected(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -256,10 +259,11 @@ mod tests {
         assert_eq!((extracted2.0, extracted2.1), (key2, pub2));
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn ordering_maintained_across_inserts() {
+    async fn ordering_maintained_across_inserts(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
@@ -292,10 +296,11 @@ mod tests {
         }
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn retrieve_elements() {
+    async fn retrieve_elements(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -333,10 +338,11 @@ mod tests {
         assert_eq!(extracted2.1, pub2);
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn delete_and_retrieve_new_elements() {
+    async fn delete_and_retrieve_new_elements(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
@@ -395,10 +401,11 @@ mod tests {
         assert_eq!(extracted.1, pub3);
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn poll_stream_does_not_block_when_map_empty() {
+    async fn poll_stream_does_not_block_when_map_empty(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data

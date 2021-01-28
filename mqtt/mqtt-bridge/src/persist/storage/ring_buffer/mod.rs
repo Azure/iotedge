@@ -2,13 +2,10 @@ mod block;
 pub mod error;
 mod mmap;
 
-use crate::persist::{
-    storage::{
+use crate::persist::{Key, StreamWakeableState, storage::{
         serialize::{binary_deserialize, binary_serialize},
         FlushOptions, FlushState, StorageResult,
-    },
-    Key, StorageError,
-};
+    }};
 use bincode::Result as BincodeResult;
 use block::{
     calculate_hash, serialized_block_size, validate, BlockHeaderWithHash, Data, BLOCK_HINT,
@@ -31,7 +28,6 @@ use std::{
     task::Waker,
     time::Instant,
 };
-use std::{io::Result as IOResult, mem::size_of};
 
 #[allow(dead_code)]
 fn create_file(file_name: &String) -> IOResult<File> {
@@ -287,7 +283,7 @@ impl RingBuffer {
         // As trying later might be successful.
         if write_index < read_index {
             if write_index + total_size > read_index {
-                return Err(StorageError::RingBuffer(RingBufferError::Full));
+                return Err(RingBufferError::Full.into());
             }
         }
 
@@ -301,7 +297,7 @@ impl RingBuffer {
             let deserialized_block = result.unwrap();
             let should_not_overwrite = deserialized_block.inner().should_not_overwrite();
             if should_not_overwrite {
-                return Err(StorageError::RingBuffer(RingBufferError::Full));
+                return Err(RingBufferError::Full.into());
             }
         }
 
@@ -402,25 +398,25 @@ impl RingBuffer {
         let timer = Instant::now();
         let read_index = self.pointers.read.load(Ordering::SeqCst);
         if key != read_index {
-            return Err(StorageError::RingBuffer(RingBufferError::RemovalIndex));
+            return Err(RingBufferError::RemovalIndex.into());
         }
         let block_size = serialized_block_size()?;
 
         let start = key;
         let mut end = start + block_size;
         if end > self.max_file_size {
-            return Err(StorageError::RingBuffer(RingBufferError::WrapAround.into()));
+            return Err(RingBufferError::WrapAround.into());
         }
 
         let maybe_block = deserialize_block(self.inner.clone(), start, end);
         if maybe_block.is_err() {
-            return Err(StorageError::RingBuffer(RingBufferError::NonExistantKey));
+            return Err(RingBufferError::NonExistantKey.into());
         }
 
         let data_size;
         let mut block = maybe_block.unwrap();
         if block.inner().hint() != BLOCK_HINT {
-            return Err(StorageError::RingBuffer(RingBufferError::NonExistantKey));
+            return Err(RingBufferError::NonExistantKey.into());
         }
 
         {
@@ -464,6 +460,24 @@ impl Drop for RingBuffer {
     fn drop(&mut self) {
         let mmap = self.inner.lock();
         mmap.flush().expect("Failed to flush");
+    }
+}
+
+impl StreamWakeableState for RingBuffer {
+    fn insert(&mut self, value: Publication) -> StorageResult<Key> {
+        RingBuffer::insert(self, value)
+    }
+
+    fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
+        RingBuffer::batch(self, count)
+    }
+
+    fn remove(&mut self, key: Key) -> StorageResult<()> {
+        RingBuffer::remove(self, key.offset as usize)
+    }
+
+    fn set_waker(&mut self, waker: &Waker) {
+        RingBuffer::set_waker(self, waker)
     }
 }
 

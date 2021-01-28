@@ -88,7 +88,7 @@ impl<S: StreamWakeableState> Clone for PublicationStore<S> {
 mod tests {
     use crate::persist::{
         publication_store::PublicationStore,
-        storage::{ring_buffer::RingBuffer, FlushOptions},
+        storage::{memory::WakingMemoryStore, ring_buffer::RingBuffer, FlushOptions},
         Key, StreamWakeableState,
     };
     use bytes::Bytes;
@@ -101,6 +101,7 @@ mod tests {
         fs::{remove_dir_all, remove_file},
         path::PathBuf,
     };
+    use test_case::test_case;
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
     const FILE_NAME: &'static str = "test_file";
@@ -165,10 +166,11 @@ mod tests {
         }
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn insert() {
+    async fn insert(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let batch_size: usize = 5;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -202,10 +204,11 @@ mod tests {
         assert_eq!(extracted2.1, pub2);
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn remove() {
+    async fn remove(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -239,10 +242,10 @@ mod tests {
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
 
-    #[test]
-    fn remove_key_inserted_but_not_retrieved() {
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
+    fn remove_key_inserted_but_not_retrieved(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -260,10 +263,10 @@ mod tests {
         assert_matches!(removed, Err(_));
     }
 
-    #[test]
-    fn remove_key_dne() {
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
+    fn remove_key_dne(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let batch_size: usize = 1;
         let persistence = PublicationStore::new(state, batch_size);
 
@@ -275,10 +278,11 @@ mod tests {
         assert_matches!(removal, Err(_));
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(WakingMemoryStore::default())]
     #[tokio::test]
-    async fn get_loader() {
+    async fn get_loader(state: impl StreamWakeableState) {
         // setup state
-        let state = TestRingBuffer::default();
         let batch_size: usize = 2;
         let persistence = PublicationStore::new(state, batch_size);
 
