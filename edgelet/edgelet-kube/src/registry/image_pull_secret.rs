@@ -100,7 +100,7 @@ fn namify_server_address(server_address: &str) -> String {
     let mut nameparts = stripped.split('/');
     nameparts
         .next()
-        .map_or_else(|| String::new(), |part| part.replace(":", "-"))
+        .map_or_else(String::new, |part| part.replace(":", "-"))
 }
 
 // AuthEntry models the JSON string needed for entryies in the image pull secrets.
