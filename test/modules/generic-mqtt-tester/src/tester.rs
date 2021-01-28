@@ -19,7 +19,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    MessageTesterError, ShutdownHandle, BACKWARDS_TOPIC, FORWARDS_TOPIC,
+    MessageTesterError, ShutdownHandle,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -90,31 +90,30 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let tracking_id = settings.tracking_id().clone();
-        let batch_id = settings.batch_id().clone();
-        let test_result_coordinator_url = settings.trc_url().to_string();
+        let relay_topic = settings.relay_topic();
+        let tracking_id = settings.tracking_id();
+        let batch_id = settings.batch_id();
+        let test_result_coordinator_url = settings.trc_url();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
             TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(
                 reporting_client.clone(),
-                tracking_id.clone(),
-                batch_id.clone(),
+                tracking_id,
+                batch_id,
             )),
-            TestScenario::Relay => Box::new(RelayingMessageHandler::new(publish_handle.clone())),
+            TestScenario::Relay => Box::new(RelayingMessageHandler::new(
+                publish_handle.clone(),
+                relay_topic,
+            )),
         };
         let message_channel = MessageChannel::new(message_handler);
 
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
-            let initiator = MessageInitiator::new(
-                publish_handle,
-                tracking_id,
-                batch_id,
-                reporting_client,
-                settings.message_frequency(),
-            );
+            let initiator =
+                MessageInitiator::new(publish_handle, reporting_client, settings.clone());
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());
             message_initiator = Some(initiator);
@@ -140,7 +139,7 @@ impl MessageTester {
     }
 
     pub async fn run(self) -> Result<(), MessageTesterError> {
-        // start poll client and make subs
+        // start poll client
         let client_sub_handle = self
             .client
             .update_subscription_handle()
@@ -154,7 +153,9 @@ impl MessageTester {
             )
             .instrument(info_span!("client")),
         );
-        Self::subscribe(client_sub_handle, self.settings.clone()).await?;
+
+        // make subscription
+        Self::subscribe(client_sub_handle, self.settings).await?;
 
         // run message channel
         let message_channel_join = tokio::spawn(
@@ -207,14 +208,14 @@ impl MessageTester {
         match settings.test_scenario() {
             TestScenario::Initiate => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: BACKWARDS_TOPIC.to_string(),
+                    topic_filter: settings.relay_topic(),
                     qos: QoS::AtLeastOnce,
                 })
                 .await
                 .map_err(MessageTesterError::UpdateSubscription)?,
             TestScenario::Relay => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: FORWARDS_TOPIC.to_string(),
+                    topic_filter: settings.initiate_topic(),
                     qos: QoS::AtLeastOnce,
                 })
                 .await
