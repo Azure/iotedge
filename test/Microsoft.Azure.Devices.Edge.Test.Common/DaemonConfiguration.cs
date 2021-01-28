@@ -289,13 +289,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public static void ResetConfigFile(string configFile, string defaultFile, string owner)
-        {
-            // Reset the config file to the default.
-            File.Copy(defaultFile, configFile, true);
-            OsPlatform.Current.SetOwner(configFile, owner, "644");
-        }
-
         private static string SanitizeName(string name)
         {
             // Due to '.' being used as a delimiter for config file tables, names cannot contain '.'
