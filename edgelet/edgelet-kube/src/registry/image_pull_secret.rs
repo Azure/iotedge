@@ -231,7 +231,7 @@ mod tests {
             ],
         ];
 
-        for e in secrets_and_names.iter() {
+        for e in &secrets_and_names {
             let image_pull_secret = ImagePullSecret::default()
                 .with_registry(e[1])
                 .with_username(e[0]);
