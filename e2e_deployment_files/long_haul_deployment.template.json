@@ -196,9 +196,6 @@
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
-              "TargetModuleId": {
-                "value": "twinTester2"
-              },
               "TwinUpdateSize": {
                 "value": "<TwinUpdateSize>"
               },
@@ -567,12 +564,12 @@
           },
           "reportMetadata5": {
             "TestReportType": "TwinLegacyReport",
-            "ExpectedSource": "twinTester1",
+            "SenderSource": "twinTester1",
             "TestDescription": "twin legacy | amqp"
           },
           "reportMetadata6": {
             "TestReportType": "TwinLegacyReport",
-            "ExpectedSource": "twinTester2",
+            "SenderSource": "twinTester2",
             "TestDescription": "twin legacy | mqtt"
           },
           "reportMetadata7": {
@@ -590,10 +587,15 @@
             "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata9": {
+            "TestReportType": "NetworkControllerReport",
+            "Source": "networkController",
+            "TestDescription": "network controller"
+          },
+          "reportMetadata10": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata10": {
+          "reportMetadata11": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }
