@@ -262,7 +262,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 NetworkStatusTimeline,
                 networkControllerType);
 
-            var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+            var report = (LegacyTwinReport)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(0UL, report.NetworkOnSuccess);
             Assert.Equal(0UL, report.NetworkOffSuccess);
@@ -329,7 +329,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+            var report = (LegacyTwinReport)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
             Assert.Equal(expectedNetworkOffSuccess, report.NetworkOffSuccess);
@@ -386,7 +386,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var report = (DirectMethodReport)await reportGenerator.CreateReportAsync();
+            var report = (LegacyTwinReport)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(expectedNetworkOnSuccess, report.NetworkOnSuccess);
             Assert.Equal(expectedNetworkOffSuccess, report.NetworkOffSuccess);

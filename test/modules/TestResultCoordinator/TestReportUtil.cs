@@ -16,6 +16,7 @@ namespace TestResultCoordinator
     using TestResultCoordinator.Reports;
     using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
+    using TestResultCoordinator.Reports.LegacyTwin;
 
     static class TestReportUtil
     {
@@ -91,6 +92,9 @@ namespace TestResultCoordinator
                             break;
                         case TestReportType.TwinCountingReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<TwinCountingReportMetadata>(((JProperty)metadata).Value.ToString()));
+                            break;
+                        case TestReportType.LegacyTwinReport:
+                            reportMetadataList.Add(JsonConvert.DeserializeObject<LegacyTwinReportMetadata>(((JProperty)metadata).Value.ToString()));
                             break;
                         case TestReportType.DeploymentTestReport:
                             reportMetadataList.Add(JsonConvert.DeserializeObject<DeploymentTestReportMetadata>(((JProperty)metadata).Value.ToString()));

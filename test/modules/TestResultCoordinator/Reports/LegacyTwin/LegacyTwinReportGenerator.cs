@@ -43,7 +43,7 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             bool isPassed = true;
             while (await this.SenderTestResults.MoveNextAsync())
             {
-                int status = int.Parse(this.SenderTestResults.Current.Result);
+                int status = int.Parse(this.SenderTestResults.Current.Result.Substring(0,3));
                 if (status > 299)
                 {
                     isPassed = false;
