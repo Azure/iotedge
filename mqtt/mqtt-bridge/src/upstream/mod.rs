@@ -21,19 +21,25 @@ use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
     messages::StoreMqttEventHandler,
-    persist::StreamWakeableState,
+    persist::waking_state::StreamWakeableState,
 };
 
 /// Handles all events that local clients received for upstream bridge.
 ///
 /// Contains several event handlers to process RPC and regular MQTT events
 /// in a chain.
-pub struct LocalUpstreamMqttEventHandler<S> {
+pub struct LocalUpstreamMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     messages: StoreMqttEventHandler<S>,
     rpc: LocalRpcMqttEventHandler,
 }
 
-impl<S> LocalUpstreamMqttEventHandler<S> {
+impl<S> LocalUpstreamMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     pub fn new(messages: StoreMqttEventHandler<S>, rpc: LocalRpcMqttEventHandler) -> Self {
         Self { messages, rpc }
     }
@@ -42,7 +48,7 @@ impl<S> LocalUpstreamMqttEventHandler<S> {
 #[async_trait]
 impl<S> MqttEventHandler for LocalUpstreamMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     type Error = BridgeError;
 
@@ -68,13 +74,19 @@ where
 ///
 /// Contains several event handlers to process Connectivity, RPC and regular
 /// MQTT events in a chain.
-pub struct RemoteUpstreamMqttEventHandler<S> {
+pub struct RemoteUpstreamMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     messages: StoreMqttEventHandler<S>,
     rpc: RemoteRpcMqttEventHandler,
     connectivity: ConnectivityMqttEventHandler,
 }
 
-impl<S> RemoteUpstreamMqttEventHandler<S> {
+impl<S> RemoteUpstreamMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     pub fn new(
         messages: StoreMqttEventHandler<S>,
         rpc: RemoteRpcMqttEventHandler,
@@ -91,7 +103,7 @@ impl<S> RemoteUpstreamMqttEventHandler<S> {
 #[async_trait]
 impl<S> MqttEventHandler for RemoteUpstreamMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     type Error = BridgeError;
 

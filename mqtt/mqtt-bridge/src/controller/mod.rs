@@ -16,7 +16,7 @@ use tracing::{debug, error, info};
 use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandleError};
 
 use crate::{
-    bridge::{Bridge, BridgeError},
+    bridge::{builder::bridge_builder, BridgeError},
     config_update::{BridgeControllerUpdate, BridgeUpdate},
     persist::{RingBuffer, WakingMemoryStore},
     settings::{BridgeSettings, StorageSettings},
@@ -171,6 +171,31 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     } else {
         debug!("{} bridge update is empty", UPSTREAM);
         bridges.send_update(BridgeUpdate::new(UPSTREAM)).await;
+    }
+}
+
+async fn start_bridge(
+    settings: &BridgeSettings,
+    system_address: &str,
+    device_id: &str,
+    bridges: &mut Bridges,
+) {
+    if let Some(upstream_settings) = settings.upstream() {
+        let bridge_result = bridge_builder::<WakingMemoryStore>()
+            .with_system_address(String::from(system_address))
+            .with_device_id(String::from(device_id))
+            .with_connection_settings(upstream_settings.clone())
+            .build();
+        match bridge_result {
+            Ok(bridge) => {
+                bridges.start_bridge(bridge, upstream_settings).await;
+            }
+            Err(e) => {
+                error!(err = %e, "failed to create {} bridge", UPSTREAM);
+            }
+        }
+    } else {
+        info!("no upstream settings detected")
     }
 }
 

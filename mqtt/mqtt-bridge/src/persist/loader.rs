@@ -1,3 +1,8 @@
+use super::StorageError;
+use crate::persist::{waking_state::StreamWakeableState, Key};
+use futures_util::stream::Stream;
+use mqtt3::proto::Publication;
+use parking_lot::Mutex;
 use std::{
     collections::VecDeque,
     num::NonZeroUsize,
@@ -48,10 +53,9 @@ where
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, StorageError> {
         let inner = self.0.lock();
-        let mut state_lock = inner.state.lock();
-        let batch = state_lock.batch(inner.batch_size)?;
-
-        Ok(batch)
+        let state = inner.state.clone();
+        let mut borrowed_state = state.lock();
+        borrowed_state.batch(inner.batch_size)
     }
 }
 

@@ -1,3 +1,5 @@
+pub mod memory;
+
 use std::{collections::VecDeque, task::Waker};
 
 use mqtt3::proto::Publication;
@@ -6,6 +8,8 @@ use crate::persist::{Key, PersistResult};
 
 pub mod memory;
 pub mod ring_buffer;
+
+pub type StorageResult<T> = Result<T, StorageError>;
 
 pub type StorageResult<T> = Result<T, StorageError>;
 

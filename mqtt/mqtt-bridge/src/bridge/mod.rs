@@ -71,7 +71,10 @@ impl BridgeHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-pub struct Bridge<S> {
+pub struct Bridge<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 }
@@ -180,7 +183,7 @@ impl Bridge<RingBuffer> {
 
 impl<S> Bridge<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     pub async fn run(self) -> Result<(), BridgeError> {
         info!("starting bridge...");
