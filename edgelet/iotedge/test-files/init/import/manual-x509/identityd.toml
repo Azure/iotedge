@@ -2,7 +2,7 @@ hostname = "my-device"
 homedir = "/var/lib/aziot/identityd"
 
 [provisioning]
-dynamic_reprovisioning = true
+always_reprovision_on_startup = true
 source = "manual"
 iothub_hostname = "example.azure-devices.net"
 device_id = "my-device"

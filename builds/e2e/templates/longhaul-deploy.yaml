@@ -20,6 +20,7 @@ parameters:
   loadGen.message.frequency: ''
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
+  longHaul.sendReportFrequency: ''
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
@@ -33,6 +34,7 @@ parameters:
   metricsCollector.uploadTarget: ''
   metricsCollector.hostPlatform: ''
   test.runtimeLogLevel: ''
+  test.testMode: ''
   test.useTRC: ''
   test.deploymentFileName: 'long_haul_deployment.template.json'
   testResultCoordinator.storageAccountConnectionString: ''
@@ -96,6 +98,8 @@ steps:
             -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+            -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
+            -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
             -waitForTestComplete \
             -cleanAll
