@@ -8,11 +8,21 @@ use tracing_futures::Instrument;
 
 use mqtt_util::client_io::Credentials;
 
-use crate::{client::{ClientError, MqttClientConfig}, config_update::BridgeDiff, persist::{PublicationStore, StorageError, StreamWakeableState, storage::{ring_buffer::RingBufferStorage, FlushOptions}}, pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage}, settings::ConnectionSettings, upstream::{
+use crate::{
+    client::{ClientError, MqttClientConfig},
+    config_update::BridgeDiff,
+    persist::{
+        storage::{ring_buffer::RingBuffer, FlushOptions},
+        PublicationStore, StorageError, StreamWakeableState,
+    },
+    pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
+    settings::ConnectionSettings,
+    upstream::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
         RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
-    }};
+    },
+};
 
 pub struct BridgeHandle {
     local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
@@ -70,7 +80,7 @@ where
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 }
 
-impl Bridge<RingBufferStorage> {
+impl Bridge<RingBuffer> {
     pub fn new_upstream(
         system_address: &str,
         device_id: &str,
@@ -78,8 +88,8 @@ impl Bridge<RingBufferStorage> {
     ) -> Result<Self, BridgeError> {
         const BATCH_SIZE: usize = 10;
         const FILE_NAME: &'static str = "ring_buffer.txt";
-        const FLUSH_OPTIONS: FlushOptions = FlushOptions::AfterXBytes(1024);
-        const MAX_FILE_SIZE: usize = 1024 * 1024;
+        const FLUSH_OPTIONS: FlushOptions = FlushOptions::AfterXBytes(128);
+        const MAX_FILE_SIZE: usize = 1024;
 
         debug!("creating bridge {}...", settings.name());
 

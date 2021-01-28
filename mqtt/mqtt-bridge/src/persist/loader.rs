@@ -1,6 +1,5 @@
 use std::{
     collections::VecDeque,
-    future::Future,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
@@ -48,11 +47,11 @@ where
         Self(inner)
     }
 
-    async fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, StorageError> {
+    fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, StorageError> {
         let inner = self.0.lock();
         let state = inner.state.clone();
         let mut borrowed_state = state.lock();
-        borrowed_state.batch(inner.batch_size).await
+        borrowed_state.batch(inner.batch_size)
     }
 }
 
@@ -79,28 +78,20 @@ where
 
             // refresh next batch
             // if error, either someone forged the database or we have a database schema change
-            let poll;
-            {
-                let batch_future = self.next_batch();
-                let mut batch_future = Box::pin(batch_future);
-                poll = batch_future.as_mut().poll(cx);
-            }
-            
-            match poll {
-                Poll::Ready(result) => {
-                    let next_batch = result?;
-                    let mut inner = self.0.lock();
-                    inner.batch = next_batch;
+            let next_batch = self.next_batch()?;
+            let mut inner = self.0.lock();
+            inner.batch = next_batch;
 
-                    // get next element and return it
-                    let maybe_extracted = inner.batch.pop_front();
-                    maybe_extracted.map_or_else(
-                        || Poll::Pending,
-                        |extracted| Poll::Ready(Some(Ok(extracted))),
-                    )
-                }
-                Poll::Pending => Poll::Pending,
-            }
+            // get next element and return it
+            let maybe_extracted = inner.batch.pop_front();
+            let mut state_lock = inner.state.lock();
+            maybe_extracted.map_or_else(
+                || {
+                    state_lock.set_waker(cx.waker());
+                    Poll::Pending
+                },
+                |extracted| Poll::Ready(Some(Ok(extracted))),
+            )
         }
     }
 }
@@ -117,24 +108,17 @@ mod tests {
     use std::{
         collections::VecDeque,
         fs::{remove_dir_all, remove_file},
-        future::Future,
         path::PathBuf,
-        pin::Pin,
         sync::Arc,
         time::Duration,
     };
     use tokio::time;
 
-    use crate::persist::{
-        loader::{Key, MessageLoader},
-        storage::{ring_buffer::RingBufferStorage, FlushOptions},
-        waking_state::StreamWakeableState,
-        StorageError,
-    };
+    use crate::persist::{loader::{Key, MessageLoader}, storage::{FlushOptions, StorageResult, ring_buffer::RingBuffer}, waking_state::StreamWakeableState};
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
     const FILE_NAME: &'static str = "test_file";
-    const MAX_FILE_SIZE: usize = 1024 * 1024;
+    const MAX_FILE_SIZE: usize = 1024;
 
     fn cleanup_test_file(file_name: String) {
         let path = &PathBuf::from(file_name);
@@ -158,36 +142,30 @@ mod tests {
             .collect()
     }
 
-    struct TestRingBuffer(RingBufferStorage, String);
+    struct TestRingBuffer(RingBuffer, String);
 
     impl StreamWakeableState for TestRingBuffer {
-        fn insert<'a>(
-            &mut self,
-            value: Publication,
-        ) -> Pin<Box<dyn Future<Output = Result<Key, StorageError>> + Send + 'a>> {
+        fn insert(&mut self, value: Publication) -> StorageResult<Key> {
             self.0.insert(value)
         }
 
-        fn batch<'a>(
-            &mut self,
-            count: usize,
-        ) -> Pin<
-            Box<
-                dyn Future<Output = Result<VecDeque<(Key, Publication)>, StorageError>> + Send + 'a,
-            >,
-        > {
+        fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
             self.0.batch(count)
         }
 
-        fn remove(&mut self, key: Key) -> Result<(), StorageError> {
+        fn remove(&mut self, key: Key) -> StorageResult<()> {
             self.0.remove(key)
+        }
+
+        fn set_waker(&mut self, waker: &std::task::Waker) {
+            self.0.set_waker(waker)
         }
     }
 
     impl Default for TestRingBuffer {
         fn default() -> Self {
             let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBufferStorage::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
+            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
             TestRingBuffer(rb, file_name.clone())
         }
     }
@@ -222,13 +200,13 @@ mod tests {
         let key1;
         {
             let mut borrowed_state = state.lock();
-            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
-            let _key2 = borrowed_state.insert(pub2).await.unwrap();
+            key1 = borrowed_state.insert(pub1.clone()).unwrap();
+            let _key2 = borrowed_state.insert(pub2).unwrap();
         }
         // get batch size elements
         let batch_size = 1;
         let mut loader = MessageLoader::new(state, batch_size);
-        let mut elements = loader.next_batch().await.unwrap();
+        let mut elements = loader.next_batch().unwrap();
 
         // verify
         assert_eq!(elements.len(), 1);
@@ -261,14 +239,14 @@ mod tests {
         let key2;
         {
             let mut borrowed_state = state.lock();
-            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
-            key2 = borrowed_state.insert(pub2.clone()).await.unwrap();
+            key1 = borrowed_state.insert(pub1.clone()).unwrap();
+            key2 = borrowed_state.insert(pub2.clone()).unwrap();
         }
 
         // get batch size elements
         let batch_size = 5;
         let mut loader = MessageLoader::new(state, batch_size);
-        let mut elements = loader.next_batch().await.unwrap();
+        let mut elements = loader.next_batch().unwrap();
 
         // verify
         assert_eq!(elements.len(), 2);
@@ -299,14 +277,14 @@ mod tests {
             let key;
             {
                 let mut borrowed_state = state.lock();
-                key = borrowed_state.insert(publication).await.unwrap();
+                key = borrowed_state.insert(publication).unwrap();
             }
             keys.push(key);
         }
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
-        let mut elements = loader.next_batch().await.unwrap();
+        let mut elements = loader.next_batch().unwrap();
 
         for key in keys {
             #[allow(clippy::cast_possible_truncation)]
@@ -339,8 +317,8 @@ mod tests {
         let key2;
         {
             let mut borrowed_state = state.lock();
-            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
-            key2 = borrowed_state.insert(pub2.clone()).await.unwrap();
+            key1 = borrowed_state.insert(pub1.clone()).unwrap();
+            key2 = borrowed_state.insert(pub2.clone()).unwrap();
         }
         // get loader
         let batch_size = 5;
@@ -380,8 +358,8 @@ mod tests {
         let key2;
         {
             let mut borrowed_state = state.lock();
-            key1 = borrowed_state.insert(pub1.clone()).await.unwrap();
-            key2 = borrowed_state.insert(pub2.clone()).await.unwrap();
+            key1 = borrowed_state.insert(pub1.clone()).unwrap();
+            key2 = borrowed_state.insert(pub2.clone()).unwrap();
         }
 
         // get loader
@@ -409,7 +387,7 @@ mod tests {
         let key3;
         {
             let mut borrowed_state = state.lock();
-            key3 = borrowed_state.insert(pub3.clone()).await.unwrap();
+            key3 = borrowed_state.insert(pub3.clone()).unwrap();
         }
         // verify new elements are there
         let extracted = loader.try_next().await.unwrap().unwrap();
@@ -450,7 +428,7 @@ mod tests {
             // insert element once stream is polled
             {
                 let mut borrowed_state = state.lock();
-                let _key = borrowed_state.insert(pub1).await.unwrap();
+                let _key = borrowed_state.insert(pub1).unwrap();
             }
         };
 

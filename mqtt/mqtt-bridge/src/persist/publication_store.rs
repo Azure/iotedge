@@ -5,14 +5,10 @@ use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use tracing::debug;
 
-use crate::persist::{
-    loader::MessageLoader,
-    waking_state::StreamWakeableState,
-    Key,
-};
+use crate::persist::{loader::MessageLoader, waking_state::StreamWakeableState, Key};
 
 use super::{
-    storage::{ring_buffer::RingBufferStorage, FlushOptions},
+    storage::{ring_buffer::RingBuffer, FlushOptions},
     StorageError,
 };
 
@@ -27,7 +23,7 @@ pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 unsafe impl<S> Send for PublicationStore<S> {}
 
-impl PublicationStore<RingBufferStorage> {
+impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
         file_name: String,
         max_file_size: usize,
@@ -35,23 +31,10 @@ impl PublicationStore<RingBufferStorage> {
         batch_size: usize,
     ) -> Self {
         Self::new(
-            RingBufferStorage::new(file_name, max_file_size, flush_options),
+            RingBuffer::new(file_name, max_file_size, flush_options),
             batch_size,
         )
     }
-}
-
-async fn insert_into_store<S>(
-    pub_store: Arc<Mutex<PublicationStoreInner<S>>>,
-    message: Publication,
-) -> Result<Key, StorageError>
-where
-    S: StreamWakeableState,
-{
-    let borrowed_pub_store = pub_store.lock();
-    let store = borrowed_pub_store.state.clone();
-    let mut borrowed_store = store.lock();
-    borrowed_store.insert(message.clone()).await
 }
 
 impl<S> PublicationStore<S>
@@ -68,18 +51,21 @@ where
         Self(inner)
     }
 
-    pub async fn push(&self, message: Publication) -> Result<Key, StorageError> {
-        let key = insert_into_store(self.0.clone(), message.clone()).await?;
+    pub fn push(&self, message: Publication) -> Result<Key, StorageError> {
+        let inner_borrow = self.0.lock();
+
+        let mut borrowed_store = inner_borrow.state.lock();
+        let key = borrowed_store.insert(message.clone())?;
 
         debug!(
-            "persisting publication on topic {} with key {:?}",
+            "persisted publication on topic {} with key {:?}",
             message.topic_name, key
         );
 
         Ok(key)
     }
 
-    pub async fn remove(&self, key: Key) -> Result<(), StorageError> {
+    pub fn remove(&self, key: Key) -> Result<(), StorageError> {
         debug!("removing publication with key {:?}", key);
         let lock = self.0.lock();
         let mut state = lock.state.lock();
@@ -100,6 +86,11 @@ impl<S: StreamWakeableState> Clone for PublicationStore<S> {
 
 #[cfg(test)]
 mod tests {
+    use crate::persist::{
+        publication_store::PublicationStore,
+        storage::{ring_buffer::RingBuffer, FlushOptions},
+        Key, StreamWakeableState,
+    };
     use bytes::Bytes;
     use futures_util::stream::TryStreamExt;
     use matches::assert_matches;
@@ -108,20 +99,12 @@ mod tests {
     use std::{
         collections::VecDeque,
         fs::{remove_dir_all, remove_file},
-        future::Future,
         path::PathBuf,
-        pin::Pin,
-    };
-
-    use crate::persist::{
-        publication_store::PublicationStore,
-        storage::{ring_buffer::RingBufferStorage, FlushOptions},
-        Key, StorageError, StreamWakeableState,
     };
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
     const FILE_NAME: &'static str = "test_file";
-    const MAX_FILE_SIZE: usize = 1024 * 1024;
+    const MAX_FILE_SIZE: usize = 1024;
 
     fn cleanup_test_file(file_name: String) {
         let path = &PathBuf::from(file_name);
@@ -145,36 +128,33 @@ mod tests {
             .collect()
     }
 
-    struct TestRingBuffer(RingBufferStorage, String);
+    struct TestRingBuffer(RingBuffer, String);
 
     impl StreamWakeableState for TestRingBuffer {
-        fn insert<'a>(
-            &mut self,
-            value: Publication,
-        ) -> Pin<Box<dyn Future<Output = Result<Key, StorageError>> + Send + 'a>> {
+        fn insert(&mut self, value: Publication) -> crate::persist::storage::StorageResult<Key> {
             self.0.insert(value)
         }
 
-        fn batch<'a>(
+        fn batch(
             &mut self,
             count: usize,
-        ) -> Pin<
-            Box<
-                dyn Future<Output = Result<VecDeque<(Key, Publication)>, StorageError>> + Send + 'a,
-            >,
-        > {
+        ) -> crate::persist::storage::StorageResult<VecDeque<(Key, Publication)>> {
             self.0.batch(count)
         }
 
-        fn remove(&mut self, key: Key) -> Result<(), StorageError> {
+        fn remove(&mut self, key: Key) -> crate::persist::storage::StorageResult<()> {
             self.0.remove(key)
+        }
+
+        fn set_waker(&mut self, waker: &std::task::Waker) {
+            self.0.set_waker(waker)
         }
     }
 
     impl Default for TestRingBuffer {
         fn default() -> Self {
             let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBufferStorage::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
+            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
             TestRingBuffer(rb, file_name.clone())
         }
     }
@@ -207,8 +187,8 @@ mod tests {
         };
 
         // insert some elements
-        let key1 = persistence.push(pub1.clone()).await.unwrap();
-        let key2 = persistence.push(pub2.clone()).await.unwrap();
+        let key1 = persistence.push(pub1.clone()).unwrap();
+        let key2 = persistence.push(pub2.clone()).unwrap();
 
         // get loader
         let mut loader = persistence.loader();
@@ -244,23 +224,23 @@ mod tests {
         };
 
         // insert some elements
-        persistence.push(pub1.clone()).await.unwrap();
+        persistence.push(pub1.clone()).unwrap();
 
         // get loader
         let mut loader = persistence.loader();
 
         // process first message, forcing loader to get new batch on the next read
         let (key1, _) = loader.try_next().await.unwrap().unwrap();
-        assert_matches!(persistence.remove(key1).await, Ok(_));
+        assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
-        let key2 = persistence.push(pub2.clone()).await.unwrap();
+        let key2 = persistence.push(pub2.clone()).unwrap();
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
 
-    #[tokio::test]
-    async fn remove_key_inserted_but_not_retrieved() {
+    #[test]
+    fn remove_key_inserted_but_not_retrieved() {
         // setup state
         let state = TestRingBuffer::default();
         let batch_size: usize = 1;
@@ -275,13 +255,13 @@ mod tests {
         };
 
         // can't remove an element that hasn't been seen
-        let key1 = persistence.push(pub1).await.unwrap();
-        let removed = persistence.remove(key1).await;
+        let key1 = persistence.push(pub1).unwrap();
+        let removed = persistence.remove(key1);
         assert_matches!(removed, Err(_));
     }
 
-    #[tokio::test]
-    async fn remove_key_dne() {
+    #[test]
+    fn remove_key_dne() {
         // setup state
         let state = TestRingBuffer::default();
         let batch_size: usize = 1;
@@ -291,7 +271,7 @@ mod tests {
         let key1 = Key { offset: 0 };
 
         // verify failed removal
-        let removal = persistence.remove(key1).await;
+        let removal = persistence.remove(key1);
         assert_matches!(removal, Err(_));
     }
 
@@ -317,8 +297,8 @@ mod tests {
         };
 
         // insert 2 elements
-        let key1 = persistence.push(pub1.clone()).await.unwrap();
-        let key2 = persistence.push(pub2.clone()).await.unwrap();
+        let key1 = persistence.push(pub1.clone()).unwrap();
+        let key2 = persistence.push(pub2.clone()).unwrap();
 
         // get loader with batch size
         let mut loader = persistence.loader();

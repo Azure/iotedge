@@ -24,7 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{Key, PublicationStore, StreamWakeableState},
+    persist::{PublicationStore, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -128,19 +128,6 @@ where
     }
 }
 
-async fn save_to_store<S>(
-    store: Arc<PublicationStore<S>>,
-    publication: Publication,
-) -> Result<Key, BridgeError>
-where
-    S: StreamWakeableState + Send + Sync,
-{
-    debug!("saving message to store");
-
-    let store = store.clone();
-    store.push(publication).await.map_err(BridgeError::Store)
-}
-
 #[async_trait]
 impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
@@ -165,7 +152,8 @@ where
                         });
 
                 if let Some(publication) = forward_publication {
-                    save_to_store(self.store.clone(), publication).await?;
+                    debug!("saving message to store");
+                    self.store.push(publication).map_err(BridgeError::Store)?;
                     return Ok(Handled::Fully);
                 } else {
                     warn!("no topic matched");
@@ -251,7 +239,7 @@ mod tests {
     use crate::{
         client::MqttEventHandler,
         persist::{
-            storage::{ring_buffer::RingBufferStorage, FlushOptions},
+            storage::{ring_buffer::RingBuffer, FlushOptions},
             PublicationStore,
         },
         pump::TopicMapperUpdates,
@@ -260,7 +248,7 @@ mod tests {
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
     const FILE_NAME: &'static str = "test_file";
-    const MAX_FILE_SIZE: usize = 1024 * 1024;
+    const MAX_FILE_SIZE: usize = 1024;
 
     fn cleanup_test_file(file_name: String) {
         let path = &PathBuf::from(file_name);
@@ -284,7 +272,7 @@ mod tests {
             .collect()
     }
 
-    struct TestPublicationStore(PublicationStore<RingBufferStorage>, String);
+    struct TestPublicationStore(PublicationStore<RingBuffer>, String);
 
     impl Default for TestPublicationStore {
         fn default() -> Self {
@@ -327,7 +315,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         handler
             .handle(Event::SubscriptionUpdates(vec![
@@ -364,7 +353,8 @@ mod tests {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
         handler.set_retry_sub_sender(tx);
 
         handler
@@ -392,7 +382,8 @@ mod tests {
         let topics = HashMap::new();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         handler
             .handle(Event::SubscriptionUpdates(vec![
@@ -427,7 +418,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/floor/1".to_string(),
@@ -481,7 +473,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "floor2/1".to_string(),
@@ -536,7 +529,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "temp/1".to_string(),
@@ -590,7 +584,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -645,7 +640,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
@@ -694,7 +690,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),
@@ -735,7 +732,8 @@ mod tests {
             .collect();
 
         let store = TestPublicationStore::default();
-        let mut handler = StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
+        let mut handler =
+            StoreMqttEventHandler::new(store.0.clone(), TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "pattern/p1".to_string(),

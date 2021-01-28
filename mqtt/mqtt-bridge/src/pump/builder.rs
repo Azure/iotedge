@@ -7,7 +7,7 @@ use crate::{
     client::{MqttClient, MqttClientConfig, MqttClientExt},
     messages::{self, StoreMqttEventHandler, TopicMapper},
     persist::{
-        storage::{ring_buffer::RingBufferStorage, FlushOptions},
+        storage::{ring_buffer::RingBuffer, FlushOptions},
         PublicationStore, StreamWakeableState,
     },
     settings::TopicRule,
@@ -40,7 +40,7 @@ pub struct Builder<S> {
     store: Box<dyn Fn() -> PublicationStore<S>>,
 }
 
-impl Default for Builder<RingBufferStorage> {
+impl Default for Builder<RingBuffer> {
     fn default() -> Self {
         Self {
             local: PumpBuilder::default(),
@@ -48,7 +48,7 @@ impl Default for Builder<RingBufferStorage> {
             store: Box::new(|| {
                 PublicationStore::new_ring_buffer(
                     "test".to_owned(),
-                    1024 * 1024,
+                    1024,
                     FlushOptions::Off,
                     100,
                 )
