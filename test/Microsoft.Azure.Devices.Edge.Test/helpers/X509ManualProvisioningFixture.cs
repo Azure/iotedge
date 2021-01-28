@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             File.Copy(identityCerts.KeyPath, keyPath);
             OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
-            X509Certificate2 deviceCert = new X509Certificate2(identityCerts.CertificatePath);
+            X509Certificate2 deviceCert = new X509Certificate2(certPath);
 
             return (new X509Thumbprint()
             {

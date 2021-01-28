@@ -289,23 +289,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public static void CreateConfigFile(string configFile, string defaultFile, string owner)
+        public static void ResetConfigFile(string configFile, string defaultFile, string owner)
         {
-            // If the config file does not exist, create it from the default file.
-            // If the default file does not exist, create an empty config file.
-            if (!File.Exists(configFile))
-            {
-                if (File.Exists(defaultFile))
-                {
-                    File.Copy(defaultFile, configFile);
-                }
-                else
-                {
-                    File.Create(configFile).Dispose();
-                }
-            }
-
-            // Change owner of config file.
+            // Reset the config file to the default.
+            File.Copy(defaultFile, configFile, true);
             OsPlatform.Current.SetOwner(configFile, owner, "644");
         }
 

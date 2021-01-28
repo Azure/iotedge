@@ -110,10 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     // The name of the default aziot-edged config file differs based on OS.
                     string edgedDefault = this.packageManagement.GetDefaultEdgedConfig();
 
-                    DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
-                    DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
-                    DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
-                    DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
+                    DaemonConfiguration.ResetConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
+                    DaemonConfiguration.ResetConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
+                    DaemonConfiguration.ResetConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
+                    DaemonConfiguration.ResetConfigFile(paths.Edged, edgedDefault, "iotedge");
 
                     uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
                     DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
