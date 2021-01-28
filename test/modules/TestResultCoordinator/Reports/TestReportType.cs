@@ -9,7 +9,8 @@ namespace TestResultCoordinator.Reports
         TwinCountingReport,
         LegacyTwinReport,
         DeploymentTestReport,
-        DirectMethodReport,
+        DirectMethodConnectivityReport,
+        DirectMethodLongHaulReport,
         NetworkControllerReport,
         ErrorReport,
         TestInfoReport

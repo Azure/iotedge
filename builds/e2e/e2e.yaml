@@ -5,22 +5,18 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: iiot
+    branch: master
     trigger:
       branches:
       - master
       - release/*
-      - iiot
-      - preview/iiot
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: iiot
+    branch: master
     trigger:
       branches:
       - master
       - release/*
-      - iiot
-      - preview/iiot
 
 jobs:
 

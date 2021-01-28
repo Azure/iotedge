@@ -26,5 +26,5 @@ moby_runtime:
   network: azure-iot-edge
   content_trust:
     ca_certs:
-      contoso1.azurecr.io: /var/secrets/contoso1-ca.pem
-      contoso2.azurecr.io: /var/secrets/contoso2-ca.pem
+      contoso1.azurecr.io: content-trust-contoso1.azurecr.io
+      contoso2.azurecr.io: content-trust-contoso2.azurecr.io

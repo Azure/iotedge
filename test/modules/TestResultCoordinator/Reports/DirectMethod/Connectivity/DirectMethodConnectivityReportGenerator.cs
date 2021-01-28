@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Reports.DirectMethod
+namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 {
     using System;
     using System.IO;
@@ -13,13 +13,13 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
-    sealed class DirectMethodReportGenerator : ITestResultReportGenerator
+    sealed class DirectMethodConnectivityReportGenerator : ITestResultReportGenerator
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DirectMethodReportGenerator));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DirectMethodConnectivityReportGenerator));
 
         readonly string trackingId;
 
-        internal DirectMethodReportGenerator(
+        internal DirectMethodConnectivityReportGenerator(
             string testDescription,
             string trackingId,
             string senderSource,
@@ -66,7 +66,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            Logger.LogInformation($"Start to generate report by {nameof(DirectMethodReportGenerator)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
+            Logger.LogInformation($"Start to generate report by {nameof(DirectMethodConnectivityReportGenerator)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
 
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;
@@ -121,7 +121,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             }
 
             Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
-            return new DirectMethodReport(
+            return new DirectMethodConnectivityReport(
                 this.TestDescription,
                 this.trackingId,
                 this.SenderSource,
@@ -204,7 +204,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
             ulong mismatchFailure = 0;
             ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
 
-            Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Receiver test result source has unexpected results.");
+            Logger.LogError($"[{nameof(DirectMethodConnectivityReportGenerator)}] Receiver test result source has unexpected results.");
 
             mismatchFailure++;
 

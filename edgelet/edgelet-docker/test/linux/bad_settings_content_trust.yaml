@@ -27,4 +27,4 @@ homedir: "/tmp"
 moby_runtime:
   uri: "http://localhost:2375"
   network: "azure-iot-edge"
-  content_trust : "/path/to/root_registry1.ca"
+  content_trust : "content-trust-contoso2.azurecr.io"
