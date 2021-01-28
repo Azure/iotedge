@@ -58,6 +58,7 @@ function Create-Azure-VM-For-E2E-Test
         echo "Azure Subscription: $AzSubscriptionName `n"
 
         $VmName=$($VmName -replace '[\W_]', '');
+        $VmName=$VmName.ToLower();
 
         # The public key was generated from private key using : ssh-keygen -f <Path/To/PrivateKey> -y 
         $VmPubKey=$(az keyvault secret show --vault-name nestededgeVMkeys --name nestededgePubkey --query value);
