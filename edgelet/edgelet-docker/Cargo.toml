@@ -23,6 +23,8 @@ tokio-process = "0.2"
 url = { version = "2", features = ["serde"] }
 url_serde = "0.2"
 
+aziot-cert-common-http = { path = "../aziot/cert/aziot-cert-common-http" }
+cert-client = { path = "../cert-client" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }

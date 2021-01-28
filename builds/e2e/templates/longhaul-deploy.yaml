@@ -44,14 +44,34 @@ steps:
     displayName: 'Copy Edgelet Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
       CleanTargetFolder: true
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
-      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy aziot-identity-service'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)"
+      Contents: "$(aziotis.package.filter)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+  - task: Bash@3
+    displayName: 'Generate device certificates'
+    inputs:
+      targetType: inline
+      workingDirectory: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/CACertificates"
+      script: |
+        chmod +x certGen.sh
+
+        ./certGen.sh create_root_and_intermediate
+        ./certGen.sh create_edge_device_ca_certificate 'ConnectivityTestDeviceCA'
+
+        echo "##vso[task.setvariable variable=TrustBundle]$(pwd)/certs/azure-iot-test-only.intermediate-full-chain.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaCert]$(pwd)/certs/iot-edge-device-ca-ConnectivityTestDeviceCA.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaKey]$(pwd)/private/iot-edge-device-ca-ConnectivityTestDeviceCA.key.pem"
+
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
@@ -60,7 +80,7 @@ steps:
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         testName="LongHaul"
-        
+
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
         testInfo="$testInfo,TestBuildId=${{ parameters['test.buildId'] }}"
         testInfo="$testInfo,BuildSourceBranch=${{ parameters['build.source.branch'] }}"
@@ -70,9 +90,9 @@ steps:
         testInfo="$testInfo,TestName=$testName"
 
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
-          chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
+          chmod +x $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh
 
-          sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh \
+          sudo --preserve-env $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \
@@ -105,7 +125,7 @@ steps:
         else
           chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
 
-          sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
+          sudo --preserve-env $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \
@@ -138,3 +158,7 @@ steps:
             -cleanAll
         fi
       workingDirectory: "$(Agent.HomeDirectory)/.."
+    env:
+      E2E_trustedCaCerts: $(TrustBundle)
+      E2E_deviceCaCert: $(DeviceCaCert)
+      E2E_deviceCaPrivateKey: $(DeviceCaKey)

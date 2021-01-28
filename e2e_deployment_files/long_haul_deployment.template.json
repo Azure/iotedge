@@ -678,17 +678,15 @@
             "TestDescription": "twin | reported property | mqtt"
           },
           "reportMetadata10": {
-            "TestReportType": "DirectMethodReport",
+            "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | amqp"
           },
           "reportMetadata11": {
-            "TestReportType": "DirectMethodReport",
+            "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata16": {

@@ -24,10 +24,8 @@ use hyper::Uri;
 use hyperlocal::{UnixConnector, Uri as HyperlocalUri};
 use url::{ParseError, Url};
 
-use edgelet_core::UrlExt;
-
 use crate::error::{Error, ErrorKind, InvalidUrlReason};
-use crate::util::{socket_file_exists, StreamSelector};
+use crate::util::StreamSelector;
 use crate::{HTTP_SCHEME, UNIX_SCHEME};
 
 #[derive(Clone)]
@@ -39,20 +37,7 @@ pub enum UrlConnector {
 impl UrlConnector {
     pub fn new(url: &Url) -> Result<Self, Error> {
         match url.scheme() {
-            UNIX_SCHEME => {
-                let file_path = url
-                    .to_uds_file_path()
-                    .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                if socket_file_exists(&file_path) {
-                    Ok(UrlConnector::Unix(UnixConnector::new()))
-                } else {
-                    Err(ErrorKind::InvalidUrlWithReason(
-                        url.to_string(),
-                        InvalidUrlReason::FileNotFound,
-                    )
-                    .into())
-                }
-            }
+            UNIX_SCHEME => Ok(UrlConnector::Unix(UnixConnector::new())),
 
             HTTP_SCHEME => {
                 // NOTE: We are defaulting to using 4 threads here. Is this a good
@@ -146,17 +131,6 @@ mod tests {
         assert!(failure::Fail::iter_chain(&err).any(|err| err
             .to_string()
             .contains("URL does not have a recognized scheme")));
-    }
-
-    #[test]
-    fn invalid_uds_url() {
-        let err = match UrlConnector::new(&Url::parse("unix:///this/file/does/not/exist").unwrap())
-        {
-            Ok(_) => panic!("Expected UrlConnector::new to fail"),
-            Err(err) => err,
-        };
-
-        assert!(err.to_string().contains("Socket file could not be found"));
     }
 
     #[test]
