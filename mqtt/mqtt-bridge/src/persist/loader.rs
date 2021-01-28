@@ -1,15 +1,14 @@
+use super::StorageError;
+use crate::persist::{waking_state::StreamWakeableState, Key};
+use futures_util::stream::Stream;
+use mqtt3::proto::Publication;
+use parking_lot::Mutex;
 use std::{
     collections::VecDeque,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
 };
-
-use futures_util::stream::Stream;
-use mqtt3::proto::Publication;
-use parking_lot::Mutex;
-
-use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
 
 /// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
@@ -45,12 +44,11 @@ where
         Self(inner)
     }
 
-    fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
+    fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, StorageError> {
         let inner = self.0.lock();
-        let mut state_lock = inner.state.lock();
-        let batch = state_lock.batch(inner.batch_size)?;
-
-        Ok(batch)
+        let state = inner.state.clone();
+        let mut borrowed_state = state.lock();
+        borrowed_state.batch(inner.batch_size)
     }
 }
 
@@ -64,7 +62,7 @@ impl<S> Stream for MessageLoader<S>
 where
     S: StreamWakeableState,
 {
-    type Item = Result<(Key, Publication), PersistError>;
+    type Item = Result<(Key, Publication), StorageError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut inner = self.0.lock();

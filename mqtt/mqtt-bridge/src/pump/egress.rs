@@ -2,7 +2,7 @@ use futures_util::{pin_mut, stream::StreamExt};
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
-use crate::persist::{Key, PublicationStore, StreamWakeableState};
+use crate::persist::{waking_state::StreamWakeableState, Key, PublicationStore};
 
 // Import and use mocks when run tests, real implementation when otherwise
 #[cfg(test)]

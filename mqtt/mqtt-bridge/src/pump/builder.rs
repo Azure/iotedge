@@ -40,7 +40,7 @@ pub struct Builder<S> {
     store: Option<BoxedStorageCreatedFn<S>>,
 }
 
-impl Default for Builder<WakingMemoryStore> {
+impl<S> Default for Builder<S> {
     fn default() -> Self {
         Self {
             local: PumpBuilder::default(),
@@ -52,7 +52,7 @@ impl Default for Builder<WakingMemoryStore> {
 
 impl<S> Builder<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     /// Apples parameters to create local pump.
     pub fn with_local<F>(mut self, mut apply: F) -> Self

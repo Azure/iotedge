@@ -5,6 +5,11 @@
         "subscriptions": [],
         "forwards": []
     },
+    "storage": {
+        "max_file_size": 1048576,
+        "batch_size": 10,
+        "file_name": "/tmp/mqttd/test.txt"
+    },
     "remotes": [],
     "storage": {
         "type": "ring_buffer",

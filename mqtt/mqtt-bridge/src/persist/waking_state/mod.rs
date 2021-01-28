@@ -1,3 +1,5 @@
+pub mod memory;
+
 use std::{collections::VecDeque, task::Waker};
 
 use mqtt3::proto::Publication;
@@ -11,6 +13,8 @@ pub mod ring_buffer;
 //       Once we fix compilation we can add this module back.
 //       If we decide fixing compilation is not efficient, we can reuse code in rocksdb.rs by substituting rocksdb wrapping abstraction.
 // pub mod rocksdb;
+
+pub type StorageResult<T> = Result<T, StorageError>;
 
 /// Responsible for waking waiting streams when new elements are added.
 /// Exposes a get method for retrieving a count of elements in order of insertion.

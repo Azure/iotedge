@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, time::Duration};
+use std::{collections::HashMap, convert::TryFrom, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -24,7 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{PublicationStore, StreamWakeableState},
+    persist::{waking_state::StreamWakeableState, PublicationStore},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -58,19 +58,25 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-pub struct StoreMqttEventHandler<S> {
+pub struct StoreMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     topic_mappers: HashMap<String, TopicMapper>,
     topic_mappers_updates: TopicMapperUpdates,
-    store: PublicationStore<S>,
+    store: Arc<PublicationStore<S>>,
     retry_sub_send: Option<UnboundedSender<SubscribeTo>>,
 }
 
-impl<S> StoreMqttEventHandler<S> {
+impl<S> StoreMqttEventHandler<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     pub fn new(store: PublicationStore<S>, topic_mappers_updates: TopicMapperUpdates) -> Self {
         Self {
             topic_mappers: HashMap::new(),
             topic_mappers_updates,
-            store,
+            store: Arc::from(store),
             retry_sub_send: None,
         }
     }
@@ -125,7 +131,7 @@ impl<S> StoreMqttEventHandler<S> {
 #[async_trait]
 impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     type Error = BridgeError;
 

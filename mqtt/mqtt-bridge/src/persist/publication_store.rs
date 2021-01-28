@@ -13,6 +13,8 @@ use crate::{
     settings::{MemorySettings, RingBufferSettings},
 };
 
+use crate::persist::StorageError;
+
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 struct PublicationStoreInner<S> {

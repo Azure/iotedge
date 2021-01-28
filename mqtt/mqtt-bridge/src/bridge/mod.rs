@@ -8,10 +8,8 @@ use mqtt3::ShutdownError;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
-use mqtt_util::Credentials;
-
 use crate::{
-    client::{ClientError, MqttClientConfig},
+    client::ClientError,
     config_update::BridgeDiff,
     persist::{PersistError, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
@@ -71,7 +69,10 @@ impl BridgeHandle {
 }
 
 /// Bridge implementation that connects to local broker and remote broker and handles messages flow
-pub struct Bridge<S> {
+pub struct Bridge<S>
+where
+    S: StreamWakeableState + Send + Sync,
+{
     local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 }
@@ -175,7 +176,7 @@ impl Bridge<RingBuffer> {
 
 impl<S> Bridge<S>
 where
-    S: StreamWakeableState + Send,
+    S: StreamWakeableState + Send + Sync,
 {
     pub async fn run(self) -> Result<(), BridgeError> {
         info!("starting bridge...");
@@ -251,7 +252,7 @@ where
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store. Caused by: {0}")]
-    Store(#[from] PersistError),
+    Store(#[from] StorageError),
 
     #[error("failed to subscribe to topic. Caused by: {0}")]
     Subscribe(#[source] ClientError),
