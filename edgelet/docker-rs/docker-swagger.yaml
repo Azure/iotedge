@@ -3821,7 +3821,7 @@ definitions:
         example: "4.9.38-moby"
       OperatingSystem:
         description: |
-          Name of the host's operating system, for example: "Ubuntu 16.04.2 LTS"
+          Name of the host's operating system, for example: "Ubuntu 18.04.5 LTS"
           or "Windows Server 2016 Datacenter"
         type: "string"
         example: "Alpine Linux v3.5"
