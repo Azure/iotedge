@@ -35,8 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public async Task InitializeAsync()
         {
+            var mainCts = new CancellationTokenSource();
             await this.client.AddNamespaceAsync();
-            this.environmentOperator.Start();
+            this.environmentOperator.Start(mainCts);
         }
 
         public Task DisposeAsync()
