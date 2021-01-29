@@ -97,7 +97,7 @@ steps:
       script: |
         chmod +x certGen.sh
         
-        deviceId="${{ parameters['release.label'] }}-Linux-${{ parameters['metricsCollector.hostPlatform'] }}-longhaul-$((1 + RANDOM % 100))"
+        deviceId="${{ parameters['release.label'] }}-Linux-${{ parameters['metricsCollector.hostPlatform'] }}-longhaul-${{ parameters['test.buildId'] }}"
         echo "Installing test certificate bundle for edge device id ${deviceId}"
         ./certGen.sh create_edge_device_certificate '${deviceId}'
         
