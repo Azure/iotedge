@@ -72,14 +72,14 @@ steps:
         $(images.artifact.name)/CACertificates/certGen.sh
         $(images.artifact.name)/CACertificates/openssl_root_ca.cnf
   - task: PowerShell@2
-        displayName: 'Download aziot-identity-service'
-        inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name)/scripts/local/test/DownloadIdentityService.ps1
-        env:
-          GITHUB_TOKEN: $(GitHubAccessToken)
-          ARTIFACT_NAME: $(aziotis.artifact.name)
-          PACKAGE_FILTER: $(aziotis.package.filter)
-          DOWNLOAD_PATH: $(Build.StagingDirectory)
+      displayName: 'Download aziot-identity-service'
+      inputs:
+        filePath: $(Build.StagingDirectory)/$(images.artifact.name)/scripts/local/test/DownloadIdentityService.ps1
+      env:
+        GITHUB_TOKEN: $(GitHubAccessToken)
+        ARTIFACT_NAME: $(aziotis.artifact.name)
+        PACKAGE_FILTER: $(aziotis.package.filter)
+        DOWNLOAD_PATH: $(Build.StagingDirectory)
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
