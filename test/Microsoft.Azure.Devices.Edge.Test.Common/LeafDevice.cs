@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates, transport);
+                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates(), transport);
 
                     switch (auth)
                     {
