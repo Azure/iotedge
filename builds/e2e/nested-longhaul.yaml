@@ -79,7 +79,6 @@ stages:
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm32
-    dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Arm32
     condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
@@ -141,7 +140,6 @@ stages:
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm64
-    dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Linux Arm64
     condition: eq(variables['run.linux.arm64v8.docker'], 'true')  
     pool:
