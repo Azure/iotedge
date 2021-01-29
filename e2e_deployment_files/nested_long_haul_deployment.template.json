@@ -255,7 +255,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}},\"Binds\":[\"/var/lib/aziot/edged/aziot-edged.mgmt.sock:/var/lib/aziot/edged/aziot-edged.mgmt.sock\"]}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}},\"Binds\":[\"/var/lib/iotedge/mgmt.sock:/var/lib/iotedge/mgmt.sock\"]}}"
             }
           },
           "analyzer": {
