@@ -1,5 +1,5 @@
 jobs:
-  - job: SetupVM_level5
+  - job: ${{ parameters['job.name'] }}
     displayName: SettingUp level 5
     timeoutInMinutes: 20
     variables:
@@ -20,12 +20,12 @@ jobs:
        - run-idle -equals true
        - status -equals unlocked
     steps:
-     - template: templates/nested-get-secrets.yaml
-     - template: templates/e2e-clean-directory.yaml            
-     - template: templates/lock-test-agent.yaml
-     - template: templates/nested-get-root-ca.yaml       
-     - template: templates/nested-create-identity.yaml   
-     - template: templates/nested-agent-deploy.yaml
+     - template: nested-get-secrets.yaml
+     - template: e2e-clean-directory.yaml            
+     - template: lock-test-agent.yaml
+     - template: nested-get-root-ca.yaml       
+     - template: nested-create-identity.yaml   
+     - template: nested-agent-deploy.yaml
   - job: SetupVM_level4
     dependsOn: SetupVM_level5
     displayName: SettingUp level 4
@@ -49,9 +49,9 @@ jobs:
        - run-idle -equals true 
        - status -equals unlocked    
     steps:
-     - template: templates/nested-get-secrets.yaml  
-     - template: templates/e2e-clean-directory.yaml                
-     - template: templates/lock-test-agent.yaml
-     - template: templates/nested-get-root-ca.yaml         
-     - template: templates/nested-create-identity.yaml          
-     - template: templates/nested-agent-deploy.yaml
+     - template: nested-get-secrets.yaml  
+     - template: e2e-clean-directory.yaml                
+     - template: lock-test-agent.yaml
+     - template: nested-get-root-ca.yaml         
+     - template: nested-create-identity.yaml          
+     - template: nested-agent-deploy.yaml
