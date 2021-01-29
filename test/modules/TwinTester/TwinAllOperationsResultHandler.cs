@@ -5,6 +5,7 @@ namespace TwinTester
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
@@ -64,24 +65,19 @@ namespace TwinTester
 
         public Task HandleTwinValidationStatusAsync(string status)
         {
-            return this.CallAnalyzer(status);
+            return this.SendStatus(status);
         }
 
         public Task HandleReportedPropertyUpdateExceptionAsync(string failureStatus)
         {
-            return this.CallAnalyzer(failureStatus);
+            return this.SendStatus(failureStatus);
         }
 
-        async Task CallAnalyzer(string result)
+        async Task SendStatus(string status)
         {
-            try
-            {
-                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = result, CreatedAt = DateTime.UtcNow, Type = TestOperationResultType.LegacyTwin.ToString() });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Failed call to report status to analyzer.");
-            }
+            var result = new LegacyTwinTestResult(this.moduleId, DateTime.UtcNow, status);
+            Logger.LogDebug($"Sending report {result.GetFormattedResult()}");
+            await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, Logger, result);
         }
     }
 }
