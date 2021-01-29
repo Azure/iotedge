@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
         V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
-            string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
+            string volumeName = KubeUtils.SanitizeDNSLabel(mount.Source);
             string pvcName = volumeName;
             bool readOnly = mount.ReadOnly;
 

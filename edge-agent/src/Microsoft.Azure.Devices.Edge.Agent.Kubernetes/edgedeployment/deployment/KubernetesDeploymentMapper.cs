@@ -324,7 +324,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     hostBinds => hostBinds
                         .Select(bind => bind.Split(':'))
                         .Where(bind => bind.Length >= 2)
-                        .Select(bind => new { Name = KubeUtils.SanitizeDNSValue(bind[0]), HostPath = bind[0], MountPath = bind[1], IsReadOnly = bind.Length > 2 && bind[2].Contains("ro") })
+                        .Select(bind => new { Name = KubeUtils.SanitizeDNSLabel(bind[0]), HostPath = bind[0], MountPath = bind[1], IsReadOnly = bind.Length > 2 && bind[2].Contains("ro") })
                         .ToList());
 
             binds.Map(hostBinds => hostBinds.Select(bind => new V1Volume(bind.Name, hostPath: new V1HostPathVolumeSource(bind.HostPath, "DirectoryOrCreate"))))
@@ -338,10 +338,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-            bindMounts.Map(mounts => mounts.Select(mount => new V1Volume(KubeUtils.SanitizeDNSValue(mount.Source), hostPath: new V1HostPathVolumeSource(mount.Source, "DirectoryOrCreate"))))
+            bindMounts.Map(mounts => mounts.Select(mount => new V1Volume(KubeUtils.SanitizeDNSLabel(mount.Source), hostPath: new V1HostPathVolumeSource(mount.Source, "DirectoryOrCreate"))))
                 .ForEach(volumes => volumeList.AddRange(volumes));
 
-            bindMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
+            bindMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSLabel(mount.Source), readOnlyProperty: mount.ReadOnly)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
             // collect volumes and volume mounts from HostConfig.Mounts section for volumes
@@ -438,7 +438,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         V1Volume GetVolume(KubernetesModule module, Mount mount)
         {
             // Volume name will be mount.Source
-            string volumeName = KubeUtils.SanitizeDNSValue(mount.Source);
+            string volumeName = KubeUtils.SanitizeDNSLabel(mount.Source);
             // PVC name will be volume name
             string pvcName = volumeName;
 
@@ -452,7 +452,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         V1VolumeMount GetVolumeMount(Mount mount)
         {
             // Volume name will be mount.Source
-            string volumeName = KubeUtils.SanitizeDNSValue(mount.Source);
+            string volumeName = KubeUtils.SanitizeDNSLabel(mount.Source);
 
             return new V1VolumeMount(mount.Target, volumeName, readOnlyProperty: mount.ReadOnly);
         }

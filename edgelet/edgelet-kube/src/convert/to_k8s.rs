@@ -25,7 +25,7 @@ use crate::constants::{
     PROXY_CONFIG_VOLUME_NAME, PROXY_CONTAINER_NAME, PROXY_TRUST_BUNDLE_FILENAME,
     PROXY_TRUST_BUNDLE_VOLUME_NAME,
 };
-use crate::convert::{sanitize_dns_value, sanitize_label_value};
+use crate::convert::{sanitize_dns_value, sanitize_dns_value_rfc1123, sanitize_label_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
@@ -200,7 +200,7 @@ fn spec_to_podspec(
             if element_count >= 2 {
                 // If we have a valid bind mount, create a Volume with the
                 // bind source as a host path.
-                let bind_name = sanitize_dns_value(bind_elements[0])?;
+                let bind_name = sanitize_dns_value_rfc1123(bind_elements[0])?;
                 let host_path_volume_source = api_core::HostPathVolumeSource {
                     path: bind_elements[0].to_string(),
                     type_: Some("DirectoryOrCreate".to_string()),
@@ -239,7 +239,7 @@ fn spec_to_podspec(
                 Some("bind") => {
                     // Treat bind options as above: Host Path Volume Source.
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
-                        let bind_name = sanitize_dns_value(source)?;
+                        let bind_name = sanitize_dns_value_rfc1123(source)?;
 
                         let host_path_volume_source = api_core::HostPathVolumeSource {
                             path: source.to_string(),
@@ -266,7 +266,7 @@ fn spec_to_podspec(
                 }
                 Some("volume") => {
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
-                        let volume_name = sanitize_dns_value(source)?;
+                        let volume_name = sanitize_dns_value_rfc1123(source)?;
 
                         let volume = api_core::Volume {
                             name: volume_name.clone(),
