@@ -101,14 +101,14 @@ steps:
       targetType: inline
       workingDirectory: "/certs"
       script: |
-        sudo chmod 777 /certs
+        sudo chmod -R 777 /certs
         deviceId="${{ parameters['release.label'] }}-${{ parameters['metricsCollector.hostPlatform'] }}-longhaul-${{ parameters['test.buildId'] }}"
-        echo "Installing test certificate bundle for edge device id $deviceId"
-        ./certGen.sh create_edge_device_certificate '$deviceId'
+        echo "Installing test certificate bundle for edge device id ${deviceId}"
+        ./certGen.sh create_edge_device_certificate '${deviceId}'
         
         echo "##vso[task.setvariable variable=TrustBundle]/certs/certs/azure-iot-test-only.root.ca.cert.pem"
-        echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-$deviceId-full-chain.cert.pem"
-        echo "##vso[task.setvariable variable=DeviceCaKey]/certs/private/iot-edge-device-$deviceId.key.pem"
+        echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${deviceId}-full-chain.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaKey]/certs/private/iot-edge-device-${deviceId}.key.pem"
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
