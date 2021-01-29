@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
         const string DeviceNamespace = "a-namespace";
         const string ExceptionMessage = "ExceptionMessage";
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
+        static readonly Option<CancellationTokenSource> Cts = Option.Some(new CancellationTokenSource());
 
         [Unit]
         [Fact]
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
 
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(returnedStatus, reportedStatus.OrDefault());
@@ -95,8 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Modified, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Modified, edgeDefinition, Cts);
 
             Mock.Get(controller).Verify(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()), Times.Exactly(2));
             Mock.Get(client).Verify(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Once);
@@ -117,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Error, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Error, edgeDefinition, Cts);
 
             Mock.Get(controller).VerifyAll();
             Mock.Get(client).VerifyAll();
@@ -138,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
+
             Mock.Get(controller).VerifyAll();
             Mock.Get(client).VerifyAll();
         }
@@ -177,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(expectedStatus, reportedStatus.OrDefault());
             Mock.Get(controller).VerifyAll();
@@ -221,9 +223,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             Assert.True(reportedStatus.HasValue);
             Assert.Equal(expectedStatus, reportedStatus.OrDefault());
+            Mock.Get(controller).VerifyAll();
+            Mock.Get(client).VerifyAll();
+        }
+
+        [Unit]
+        [Fact]
+        public void CtsIsCancelledOnRestartFailure()
+        {
+            Option<CancellationTokenSource> cts = Option.Some(new CancellationTokenSource());
+            Exception controllerException = new Exception(ExceptionMessage);
+
+            var controller = Mock.Of<IEdgeDeploymentController>();
+
+            var client = Mock.Of<IKubernetes>();
+            Mock.Get(client).Setup(c => c.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, null, null, null, It.IsAny<int?>(), true, null, null, It.IsAny<CancellationToken>()))
+                .Throws(controllerException);
+
+            var edgeOperator = new EdgeDeploymentOperator(
+                ResourceName,
+                DeviceNamespace,
+                client,
+                controller);
+
+            Assert.Throws<Exception>(() => edgeOperator.RestartWatch(cts));
+            Assert.True(cts.OrDefault().IsCancellationRequested);
+            Mock.Get(controller).VerifyAll();
+            Mock.Get(client).VerifyAll();
+        }
+
+        [Unit]
+        [Fact]
+        public void CtsIsCancelledOnError()
+        {
+            Option<CancellationTokenSource> cts = Option.Some(new CancellationTokenSource());
+            Exception controllerException = new Exception(ExceptionMessage);
+
+            var controller = Mock.Of<IEdgeDeploymentController>();
+
+            var client = Mock.Of<IKubernetes>();
+            var edgeOperator = new EdgeDeploymentOperator(
+                ResourceName,
+                DeviceNamespace,
+                client,
+                controller);
+
+            Assert.Throws<Exception>(() => edgeOperator.HandleError(controllerException, cts));
+            Assert.True(cts.OrDefault().IsCancellationRequested);
             Mock.Get(controller).VerifyAll();
             Mock.Get(client).VerifyAll();
         }
@@ -262,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             EdgeDeploymentStatusCommand commandResult = new EdgeDeploymentStatusCommand(reportedStatus);
             ConfigOperationFailureException ex = await Assert.ThrowsAsync<ConfigOperationFailureException>(
                 () => commandResult.ExecuteAsync(CancellationToken.None));
@@ -306,7 +355,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 client,
                 controller);
 
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
+            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             EdgeDeploymentStatusCommand commandResult = new EdgeDeploymentStatusCommand(reportedStatus);
             ConfigOperationFailureException ex = await Assert.ThrowsAsync<ConfigOperationFailureException>(
                 () => commandResult.ExecuteAsync(CancellationToken.None));

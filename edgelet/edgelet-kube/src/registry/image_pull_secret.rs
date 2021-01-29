@@ -52,7 +52,7 @@ impl ImagePullSecret {
             (Some(user), Some(registry)) => Some(format!(
                 "{}-{}",
                 user.to_lowercase(),
-                registry.to_lowercase()
+                namify_server_address(registry)
             )),
             _ => None,
         }
@@ -82,6 +82,25 @@ impl ImagePullSecret {
 
         Auth::new(auths).secret_data()
     }
+}
+
+// A variation on Moby project's ConvertToHostname
+fn namify_server_address(server_address: &str) -> String {
+    const HTTP_START: &str = "http://";
+    const HTTPS_START: &str = "https://";
+    let mut stripped = server_address.to_lowercase();
+    if stripped.starts_with(HTTP_START) {
+        let (_, remainder) = stripped.split_at(HTTP_START.len());
+        stripped = remainder.to_string();
+    } else if stripped.starts_with(HTTPS_START) {
+        let (_, remainder) = stripped.split_at(HTTPS_START.len());
+        stripped = remainder.to_string();
+    }
+
+    let mut nameparts = stripped.split('/');
+    nameparts
+        .next()
+        .map_or_else(String::new, |part| part.replace(":", "-"))
 }
 
 // AuthEntry models the JSON string needed for entryies in the image pull secrets.
@@ -171,13 +190,56 @@ mod tests {
 
     #[test]
     fn it_returns_some_secret_name() {
-        let image_pull_secret = ImagePullSecret::default()
-            .with_registry("REGISTRY")
-            .with_username("USER");
+        let secrets_and_names: [[&str; 3]; 10] = [
+            ["USER", "REGISTRY", "user-registry"],
+            [
+                "dockeruser",
+                "https://index.docker.io/v1/",
+                "dockeruser-index.docker.io",
+            ],
+            [
+                "dockeruser",
+                "http://a-registry.com:8000",
+                "dockeruser-a-registry.com-8000",
+            ],
+            [
+                "dockeruser",
+                "https://a-registry.com:8000",
+                "dockeruser-a-registry.com-8000",
+            ],
+            [
+                "dockeruser",
+                "http://a-registry.com:8000/v2/",
+                "dockeruser-a-registry.com-8000",
+            ],
+            [
+                "dockeruser",
+                "http://a-registry.com:8000/v2",
+                "dockeruser-a-registry.com-8000",
+            ],
+            ["dockeruser", "docker.io", "dockeruser-docker.io"],
+            ["dockeruser", "my-acr.io:8080", "dockeruser-my-acr.io-8080"],
+            [
+                "dockeruser",
+                "any-acr-server.azurecr.io",
+                "dockeruser-any-acr-server.azurecr.io",
+            ],
+            [
+                "dockeruser",
+                "any-acr-server.azurecr.io:3030",
+                "dockeruser-any-acr-server.azurecr.io-3030",
+            ],
+        ];
 
-        let name = image_pull_secret.name();
+        for e in &secrets_and_names {
+            let image_pull_secret = ImagePullSecret::default()
+                .with_registry(e[1])
+                .with_username(e[0]);
 
-        assert_eq!(name, Some("user-registry".to_string()));
+            let name = image_pull_secret.name();
+
+            assert_eq!(name, Some(e[2].to_string()));
+        }
     }
 
     #[test]

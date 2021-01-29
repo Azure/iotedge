@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     [JsonConverter(typeof(ImagePullSecretNameConverter))]
     public class ImagePullSecretName
     {
+        const string HttpStart = "http://";
+        const string HttpsStart = "https://";
+
         readonly string value;
 
         public ImagePullSecretName(string name)
@@ -15,9 +18,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.value = Preconditions.CheckNonWhiteSpace(name, nameof(name));
         }
 
-        public static ImagePullSecretName Create(AuthConfig auth) => new ImagePullSecretName($"{auth.Username.ToLower()}-{auth.ServerAddress.ToLower()}");
+        public static ImagePullSecretName Create(AuthConfig auth) => new ImagePullSecretName(KubeUtils.SanitizeDNSDomain($"{auth.Username.ToLower()}-{NamifyServerAddress(auth.ServerAddress)}"));
 
         public static implicit operator string(ImagePullSecretName name) => name.ToString();
+
+        // A variation on Moby project's ConvertToHostname
+        private static string NamifyServerAddress(string serverAddress)
+        {
+            string stripped = serverAddress.ToLower();
+            if (stripped.StartsWith(HttpsStart))
+            {
+                stripped = stripped.Substring(HttpsStart.Length);
+            }
+            else if (stripped.StartsWith(HttpStart))
+            {
+                stripped = stripped.Substring(HttpStart.Length);
+            }
+
+            string[] nameparts = stripped.Split('/', 2);
+            return nameparts[0].Replace(':', '-');
+        }
 
         public override bool Equals(object obj)
         {
