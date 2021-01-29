@@ -64,8 +64,8 @@ stages:
        - run-nested-e2e -equals true 
        - status -equals unlocked    
     steps:
-      - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-secrets.yaml  
+      - template: templates/e2e-clean-directory.yaml                
       - template: templates/lock-test-agent.yaml
       - template: templates/nested-get-root-ca.yaml         
       - template: templates/nested-create-identity.yaml          
@@ -115,15 +115,21 @@ stages:
           IotHubConnectionString: $(TestIotHubConnectionString)
 
   - job:  Clean_up     
-    dependsOn: SetupVM_and_RunTest_level3
+    dependsOn:
+      - SetupVM_level5 
+      - SetupVM_level4
+      - SetupVM_and_RunTest_level3
     condition: always()
     displayName: Clean up identities and unlock agents
     timeoutInMinutes: 1    
     variables:    
-      deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-      deviceLvl5ConnectionString: $[ dependencies.SetupVM_level5.outputs['createIdentity.connectionString'] ]     
-      deviceLvl4Name: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      deviceLvl4ConnectionString: $[ dependencies.SetupVM_level4.outputs['createIdentity.connectionString'] ] 
+      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ] 
+      deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]         
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]       
+      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['lock_test_agent.agentName'] ]  
     pool:
       name: $(pool.name)
       demands:
@@ -135,5 +141,26 @@ stages:
     strategy:
       parallel: 3          
     steps:
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/unlock-test-agent.yaml      
+      - template: templates/nested-get-secrets.yaml  
+      - template: templates/unlock-test-agent.yaml
+        parameters:
+          agentName: $(deviceLvl5AgentName)
+          lvl: 5
+      - template: templates/unlock-test-agent.yaml
+        parameters:
+          agentName: $(deviceLvl4AgentName)
+          lvl: 4          
+      - template: templates/unlock-test-agent.yaml
+        parameters:
+          agentName: $(deviceLvl3AgentName)
+          lvl: 3     
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          iotHubName: $(deviceLvl5IoTHubName)
+          deviceId: $(deviceLvl5DeviceId)
+          lvl: 5    
+      - template: templates/nested-clean-identity.yaml
+        parameters:
+          iotHubName: $(deviceLvl4IoTHubName)
+          deviceId: $(deviceLvl4DeviceId) 
+          lvl: 4              
