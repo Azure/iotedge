@@ -11,65 +11,12 @@ resources:
     branch: master
 
 stages:
-- stage: SetupVM
+- stage: SetupParentVMs
   jobs:
     - template: templates/nested-parent-vm-setup.yaml
-#  - job: SetupVM_level5
-#    displayName: SettingUp level 5
-#    timeoutInMinutes: 180
-#    variables:
-#      artifactName: iotedged-ubuntu18.04-amd64
-#      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-#      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-#      vsts.project: $(System.TeamProjectId)
-#      level: '5'
-#      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
-#      parentName: ''
-#      parentDeviceId: ''
-#    pool:
-#     name: $(pool.name)
-#     demands:
-#       - agent-group -equals $(agent.group)
-#       - Agent.OS -equals Linux
-#       - Agent.OSArchitecture -equals X64
-#       - run-idle -equals true
-#       - status -equals unlocked
-#    steps:
-#     - template: templates/nested-get-secrets.yaml
-#     - template: templates/e2e-clean-directory.yaml            
-#     - template: templates/lock-test-agent.yaml
-#     - template: templates/nested-get-root-ca.yaml       
-#     - template: templates/nested-create-identity.yaml   
-#     - template: templates/nested-agent-deploy.yaml
-  - job: SetupVM_level4
-    dependsOn: SetupVM_level5
-    displayName: SettingUp level 4
-    condition: succeeded()
-    timeoutInMinutes: 180
-    variables:
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
-      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
-      artifactName: iotedged-ubuntu18.04-amd64
-      vsts.project: $(System.TeamProjectId)
-      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
-      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
-      level: '4'
-    pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - run-idle -equals true 
-       - status -equals unlocked    
-    steps:
-     - template: templates/nested-get-secrets.yaml  
-     - template: templates/e2e-clean-directory.yaml                
-     - template: templates/lock-test-agent.yaml
-     - template: templates/nested-get-root-ca.yaml         
-     - template: templates/nested-create-identity.yaml          
-     - template: templates/nested-agent-deploy.yaml
+
+- stage: Run nested long haul tests
+  jobs:
   - job:  Deploy_Longhaul_Linux_Amd64
     dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Linux Amd64
@@ -97,40 +44,6 @@ stages:
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-longhaul-deploy.yaml
         parameters:
-          release.label: 'lh$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(az.pipeline.images.artifacts)'
-          container.registry: '$(cr.address)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
-          eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: '$(hostPlatform)'
-          longHaul.parentHostname: '$(parentName)'
-          longHaul.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
-          quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm32
     dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Arm32
@@ -255,6 +168,9 @@ stages:
           quickstart.package.name: '$(quickstart.package.name)'
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
+
+- stage: Clean up
+  jobs:
   - job:  Clean_up     
     dependsOn: 
       - Deploy_Longhaul_Linux_Amd64
