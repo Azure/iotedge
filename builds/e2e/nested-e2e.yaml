@@ -34,11 +34,7 @@ stages:
        - run-nested-e2e -equals true
        - status -equals unlocked
     steps:
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-
+      - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-secrets.yaml
       - template: templates/lock-test-agent.yaml
       - template: templates/nested-get-root-ca.yaml       
@@ -68,11 +64,7 @@ stages:
        - run-nested-e2e -equals true 
        - status -equals unlocked    
     steps:
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-
+      - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-secrets.yaml  
       - template: templates/lock-test-agent.yaml
       - template: templates/nested-get-root-ca.yaml         
@@ -102,11 +94,7 @@ stages:
         - run-nested-e2e -equals true 
         - status -equals unlocked    
     steps:
-      - checkout: self
-        clean: true
-        fetchDepth: 100
-        submodules: recursive
-
+      - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml
 
