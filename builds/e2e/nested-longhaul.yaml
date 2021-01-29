@@ -200,7 +200,11 @@ stages:
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Clean_up      
-    condition: true
+    dependsOn:
+      - Deploy_Longhaul_Linux_Amd64
+      - Deploy_Longhaul_Linux_Arm32
+      - Deploy_Longhaul_Linux_Arm64
+    condition: always()
     displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5Name: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
