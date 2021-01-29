@@ -16,9 +16,9 @@ stages:
     - template: templates/nested-parent-vm-setup.yaml
 
 - stage: RunNestedLongHaulTests
+  dependsOn: SetupParentVMs
   jobs:
   - job:  Deploy_Longhaul_Linux_Amd64
-    dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Linux Amd64
     condition: eq(variables['run.linux.amd64.moby'], 'true')
     pool:
@@ -204,12 +204,9 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
 
 - stage: CleanUp
+  dependsOn: RunNestedLongHaulTests
   jobs:
   - job:  Clean_up      
-    dependsOn: 
-      - Deploy_Longhaul_Linux_Amd64
-      - Deploy_Longhaul_Linux_Arm64
-      - Deploy_Longhaul_Linux_Arm32
     condition: true
     displayName: Clean up identities and unlock agents
     variables:    
