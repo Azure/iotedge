@@ -286,26 +286,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 return 1;
             }
 
-            // TODO move this code to Agent
-            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
-            {
-                // Block agent startup routine until proxy sidecar container is ready
-                string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
-                ProxyReadinessProbe probe = new ProxyReadinessProbe(new Uri(managementUri), apiVersion);
-
-                CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-                await probe.WaitUntilProxyIsReady(tokenSource.Token);
-
-                // Start environment operator
-                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
-                environmentOperator.Start();
-
-                // Start the edge deployment operator
-                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
-                edgeDeploymentOperator.Start();
-            }
-
             // Initialize metrics
             if (metricsConfig.Enabled)
             {
@@ -324,6 +304,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+
+            // TODO move this code to Agent
+            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
+            {
+                await SetupKubernetesOperators(configuration, container, cts);
+            }
 
             // Register request handlers
             await RegisterRequestHandlers(container);
@@ -400,6 +386,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Logger.SetLogLevel(logLevel);
             ILogger logger = Logger.Factory.CreateLogger<Program>();
             return logger;
+        }
+
+        static async Task SetupKubernetesOperators(IConfiguration configuration, IContainer container, CancellationTokenSource shutdownCts)
+        {
+                // Block agent startup routine until proxy sidecar container is ready
+                string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
+                string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                ProxyReadinessProbe probe = new ProxyReadinessProbe(new Uri(managementUri), apiVersion);
+
+                CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+                await probe.WaitUntilProxyIsReady(tokenSource.Token);
+
+                // Start environment operator
+                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
+                environmentOperator.Start(shutdownCts);
+
+                // Start the edge deployment operator
+                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
+                edgeDeploymentOperator.Start(shutdownCts);
         }
 
         static Task Cleanup(Option<Agent> agentOption, ILogger logger)

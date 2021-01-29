@@ -86,13 +86,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return output.ToString();
         }
 
-        // DNS label (as per RFC 1035)
-        public static string SanitizeDNSValue(string name)
+        /// DNS label (as per RFC 1035
+        public static string SanitizeDNSValue(string name) => SanitizeDNSValue(name, IsAlpha);
+
+        // DNS label (as per RFC 1035/1123)
+        public static string SanitizeDNSLabel(string name) => SanitizeDNSValue(name, IsAlphaNumeric);
+
+        private static string SanitizeDNSValue(string name, Func<char, bool> startCriteria)
         {
-            // The name returned from here must conform to following rules (as per RFC 1035):
+            // The name returned from here must conform to following rules (as per RFC 1035/1123):
             //  - length must be <= 63 characters
             //  - must be all lower case alphanumeric characters or '-'
-            //  - must start with an alphabet
+            //  - (RFC 1123) must start and end with an alphanumeric character
+            //  - (RFC 1035) must start with an alphabet
             //  - must end with an alphanumeric character
             if (string.IsNullOrEmpty(name))
             {
@@ -101,9 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             name = name.ToLower();
 
-            // get index of first character from the left that is an alphabet
+            // get index of first character from the left that is an alphanumeric
             int start = 0;
-            while (start < name.Length && !IsAlpha(name[start]))
+            while (start < name.Length && !startCriteria(name[start]))
             {
                 start++;
             }
