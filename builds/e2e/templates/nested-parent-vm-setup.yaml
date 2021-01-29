@@ -1,0 +1,57 @@
+jobs:
+  - job: SetupVM_level5
+    displayName: SettingUp level 5
+    timeoutInMinutes: 20
+    variables:
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      vsts.project: $(System.TeamProjectId)
+      level: '5'
+      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
+      parentName: ''
+      parentDeviceId: ''
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - run-idle -equals true
+       - status -equals unlocked
+    steps:
+     - template: templates/nested-get-secrets.yaml
+     - template: templates/e2e-clean-directory.yaml            
+     - template: templates/lock-test-agent.yaml
+     - template: templates/nested-get-root-ca.yaml       
+     - template: templates/nested-create-identity.yaml   
+     - template: templates/nested-agent-deploy.yaml
+  - job: SetupVM_level4
+    dependsOn: SetupVM_level5
+    displayName: SettingUp level 4
+    condition: succeeded()
+    timeoutInMinutes: 20
+    variables:
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+      vsts.project: $(System.TeamProjectId)
+      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
+      level: '4'
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - run-idle -equals true 
+       - status -equals unlocked    
+    steps:
+     - template: templates/nested-get-secrets.yaml  
+     - template: templates/e2e-clean-directory.yaml                
+     - template: templates/lock-test-agent.yaml
+     - template: templates/nested-get-root-ca.yaml         
+     - template: templates/nested-create-identity.yaml          
+     - template: templates/nested-agent-deploy.yaml
