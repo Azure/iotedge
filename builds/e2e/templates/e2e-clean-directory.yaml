@@ -1,12 +1,4 @@
 steps:
-- task: CmdLine@2
-  inputs:
-    script: "echo $(pwd)"
-  displayName: Current Dir
-- task: CmdLine@2
-  inputs:
-    script: "ls"
-  displayName: List Dir
 # This task might run before checkout, so we have to use filesystem commands instead of 'git clean`
 - task: CmdLine@2
   inputs:
