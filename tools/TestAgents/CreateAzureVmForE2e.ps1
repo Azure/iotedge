@@ -99,14 +99,16 @@ function Create-Azure-VM-For-E2E-Test
         $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
         $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz;"
-        $AdditionalSetupCommand+="sudo chown -R $AdminUsername:$AdminUsername . ;"
+        $AdditionalSetupCommand+="sudo chown -R $AdminUsername\:$AdminUsername . ;"
 
         # Enroll the test VM into the pool
         $SubCommand="sudo -u $AdminUsername ./config.sh --unattended --url https://dev.azure.com/msazure --auth pat --token $VstsToken --pool Azure-IoT-Edge-Core --agent $VmName"
         $AdditionalSetupCommand+="bash -c '$SubCommand';"
-        $AdditionalSetupCommand+="./svc.sh install;"
-        $AdditionalSetupCommand+="./svc.sh start;"
-        $AdditionalSetupCommand+="sudo chown -R $AdminUsername:$AdminUsername . ;"
+        # Start the service as a 'sudo' on $AdminUsername behalf
+        $SubCommand="sudo -u $AdminUsername sudo ./svc.sh install"
+        $AdditionalSetupCommand+="bash -c '$SubCommand';"
+        $SubCommand="sudo -u $AdminUsername sudo ./svc.sh start"
+        $AdditionalSetupCommand+="bash -c '$SubCommand';"
 
         az vm run-command invoke `
             -g $ResourceGroup `
@@ -115,4 +117,6 @@ function Create-Azure-VM-For-E2E-Test
             --scripts "$AdditionalSetupCommand" `
             --output none
 
+        #Note: For nested edge user needs to manually add the azure-iot extension to Az cli. Since there is not work around tty requirement for it.
+        # az extension add --name azure-iot
 }
