@@ -43,6 +43,7 @@ function usage() {
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -twinUpdateSize                          Specifies the char count (i.e. size) of each twin update.'
     echo ' -twinUpdateFrequency                     Frequency to make twin updates. This should be specified in DateTime format.'
+    echo ' -edgeHubRestartFailureTolerance          Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00'
     echo " -testName                                Name of test to run. Either 'LongHaul' or 'Connectivity'"
     echo ' -connectManagementUri                    Customize connect management socket'
     echo ' -connectWorkloadUri                      Customize connect workload socket'
@@ -204,6 +205,7 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
     sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartFailureTolerance>@$EDGEHUB_RESTART_FAILURE_TOLERANCE@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
@@ -441,30 +443,33 @@ function process_args() {
             TWIN_UPDATE_FREQUENCY="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 38 ]; then
+            EDGEHUB_RESTART_FAILURE_TOLERANCE="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 39 ]; then
             TEST_NAME="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 39 ]; then
+        elif [ $saveNextArg -eq 40 ]; then
             CONNECT_MANAGEMENT_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 40 ]; then
+        elif [ $saveNextArg -eq 41 ]; then
             CONNECT_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
+        elif [ $saveNextArg -eq 42 ]; then
             LISTEN_MANAGEMENT_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 42 ]; then
+        elif [ $saveNextArg -eq 43 ]; then
             LISTEN_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 43 ]; then
+        elif [ $saveNextArg -eq 44 ]; then
             DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 44 ]; then
+        elif [ $saveNextArg -eq 45 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 45 ]; then
+        elif [ $saveNextArg -eq 46 ]; then
             SEND_REPORT_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 46 ]; then
+        elif [ $saveNextArg -eq 47 ]; then
             TEST_MODE="$arg"
             saveNextArg=0;
         else
@@ -507,15 +512,16 @@ function process_args() {
                 '-testInfo' ) saveNextArg=35;;
                 '-twinUpdateSize' ) saveNextArg=36;;
                 '-twinUpdateFrequency' ) saveNextArg=37;;
-                '-testName' ) saveNextArg=38;;
-                '-connectManagementUri' ) saveNextArg=39;;
-                '-connectWorkloadUri' ) saveNextArg=40;;
-                '-listenManagementUri' ) saveNextArg=41;;
-                '-listenWorkloadUri' ) saveNextArg=42;;
-                '-desiredModulesToRestartCSV' ) saveNextArg=43;;
-                '-restartIntervalInMins' ) saveNextArg=44;;
-                '-sendReportFrequency' ) saveNextArg=45;;
-                '-testMode' ) saveNextArg=46;;
+                '-edgeHubRestartFailureTolerance' ) saveNextArg=38;;
+                '-testName' ) saveNextArg=39;;
+                '-connectManagementUri' ) saveNextArg=40;;
+                '-connectWorkloadUri' ) saveNextArg=41;;
+                '-listenManagementUri' ) saveNextArg=42;;
+                '-listenWorkloadUri' ) saveNextArg=43;;
+                '-desiredModulesToRestartCSV' ) saveNextArg=44;;
+                '-restartIntervalInMins' ) saveNextArg=45;;
+                '-sendReportFrequency' ) saveNextArg=46;;
+                '-testMode' ) saveNextArg=47;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -848,6 +854,7 @@ UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
 TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
 TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
+EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"

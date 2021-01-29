@@ -16,10 +16,16 @@ pub struct Settings {
     batch_id: String,
 
     #[serde(with = "humantime_serde")]
-    message_frequency: Duration,
+    test_start_delay: Duration,
 
     #[serde(with = "humantime_serde")]
-    test_start_delay: Duration,
+    message_frequency: Duration,
+
+    message_size_in_bytes: u32,
+
+    initiate_topic: String,
+
+    relay_topic: String,
 }
 
 impl Settings {
@@ -49,16 +55,16 @@ impl Settings {
         &self.test_scenario
     }
 
-    pub fn trc_url(&self) -> &str {
-        &self.trc_url
+    pub fn trc_url(&self) -> String {
+        self.trc_url.clone()
     }
 
-    pub fn tracking_id(&self) -> &String {
-        &self.tracking_id
+    pub fn tracking_id(&self) -> String {
+        self.tracking_id.clone()
     }
 
-    pub fn batch_id(&self) -> &String {
-        &self.batch_id
+    pub fn batch_id(&self) -> String {
+        self.batch_id.clone()
     }
 
     pub fn message_frequency(&self) -> Duration {
@@ -67,6 +73,18 @@ impl Settings {
 
     pub fn test_start_delay(&self) -> Duration {
         self.test_start_delay
+    }
+
+    pub fn message_size_in_bytes(&self) -> u32 {
+        self.message_size_in_bytes
+    }
+
+    pub fn initiate_topic(&self) -> String {
+        self.initiate_topic.clone()
+    }
+
+    pub fn relay_topic(&self) -> String {
+        self.relay_topic.clone()
     }
 }
 
