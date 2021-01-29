@@ -88,7 +88,7 @@ stages:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
-      hostPlatform: 'linux_arm64v8_docker'
+      hostPlatform: 'linux_amd64_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
     steps:   
