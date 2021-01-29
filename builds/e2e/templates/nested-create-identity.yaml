@@ -39,3 +39,4 @@ steps:
         #set output variable outside job
         echo "##vso[task.setvariable variable=connectionString;isOutput=true]${connectionString}"
         echo "##vso[task.setvariable variable=parentDeviceId;isOutput=true]${deviceId}"
+        echo "##vso[task.setvariable variable=iotHubName;isOutput=true]${iotHubName}"
