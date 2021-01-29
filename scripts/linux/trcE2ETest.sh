@@ -519,8 +519,8 @@ function process_args() {
                 '-listenWorkloadUri' ) saveNextArg=43;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=44;;
                 '-restartIntervalInMins' ) saveNextArg=45;;
-                '-sendReportFrequency' ) saveNextArg=45;;
-                '-testMode' ) saveNextArg=46;;
+                '-sendReportFrequency' ) saveNextArg=46;;
+                '-testMode' ) saveNextArg=47;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
