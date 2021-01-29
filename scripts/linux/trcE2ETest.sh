@@ -465,10 +465,10 @@ function process_args() {
         elif [ $saveNextArg -eq 45 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 45 ]; then
+        elif [ $saveNextArg -eq 46 ]; then
             SEND_REPORT_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 46 ]; then
+        elif [ $saveNextArg -eq 47 ]; then
             TEST_MODE="$arg"
             saveNextArg=0;
         else
