@@ -62,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
                     }
+
                     Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
 
                     // Backup any existing service config files.
