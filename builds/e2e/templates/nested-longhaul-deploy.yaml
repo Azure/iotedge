@@ -48,7 +48,7 @@ steps:
       branchName: $(edgelet.package.branchName)
       buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
-      artifactName: $(edgelet.artifact.name)
+      artifactName: ${{ parameters['edgelet.artifact.name'] }}
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Images Artifacts'
     inputs:
@@ -58,20 +58,20 @@ steps:
       branchName: $(images.branchName)
       buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
-      artifactName: $(images.artifact.name)
+      artifactName: ${{ parameters['images.artifact.name'] }}
       itemPattern: |
-        $(images.artifact.name)/$(quickstart.package.name)
-        $(images.artifact.name)/e2e_deployment_files/long_haul_deployment.template.json
-        $(images.artifact.name)/scripts/linux/runE2ETest.sh
-        $(images.artifact.name)/scripts/linux/trcE2ETest.sh
-        $(images.artifact.name)/artifactInfo.txt
-        $(images.artifact.name)/scripts/local/test/DownloadIdentityService.ps1
-        $(images.artifact.name)/CACertificates/certGen.sh
-        $(images.artifact.name)/CACertificates/openssl_root_ca.cnf
+        ${{ parameters['images.artifact.name'] }}/$(quickstart.package.name)
+        ${{ parameters['images.artifact.name'] }}/e2e_deployment_files/long_haul_deployment.template.json
+        ${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
+        ${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
+        ${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        ${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
+        ${{ parameters['images.artifact.name'] }}/CACertificates/certGen.sh
+        ${{ parameters['images.artifact.name'] }}/CACertificates/openssl_root_ca.cnf
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
     inputs:
-      filePath: $(Build.StagingDirectory)/$(images.artifact.name)/scripts/local/test/DownloadIdentityService.ps1
+      filePath: $(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
     env:
       GITHUB_TOKEN: $(GitHubAccessToken)
       ARTIFACT_NAME: $(aziotis.artifact.name)
