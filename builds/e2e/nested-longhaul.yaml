@@ -15,7 +15,7 @@ stages:
   jobs:
     - template: templates/nested-parent-vm-setup.yaml
 
-- stage: Run nested long haul tests
+- stage: RunNestedLongHaulTests
   jobs:
   - job:  Deploy_Longhaul_Linux_Amd64
     dependsOn: SetupVM_level4
@@ -203,7 +203,7 @@ stages:
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
 
-- stage: Clean up
+- stage: CleanUp
   jobs:
   - job:  Clean_up      
     dependsOn: 

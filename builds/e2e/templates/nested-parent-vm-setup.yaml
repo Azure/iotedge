@@ -1,5 +1,5 @@
 jobs:
-  - job: ${{ parameters['job.name'] }}
+  - job: SetupVM_level5
     displayName: SettingUp level 5
     timeoutInMinutes: 20
     variables:
