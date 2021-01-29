@@ -73,14 +73,7 @@ stages:
   - job:  Deploy_Longhaul_Linux_Amd64
     dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Linux Amd64
-    condition: ne(variables['agent.group'], '')
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu16.04-amd64
-      nestededge: true
+    condition: eq(variables['run.linux.amd64.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -88,7 +81,16 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true 
-        - status -equals unlocked   
+        - status -equals unlocked  
+    variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
+      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
+      hostPlatform: 'linux_arm64v8_docker'
+      quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      nestededge: true
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
@@ -98,7 +100,7 @@ stages:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay.arm)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -109,11 +111,10 @@ stages:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
           eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
+          loadGen.message.frequency: '$(loadGen.message.frequency)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -123,22 +124,17 @@ stages:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          metricsCollector.hostPlatform: '$(hostPlatform)'
           longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          quickstart.package.name: '$(quickstart.package.name)'
+          aziotis.artifact.name: '$(aziotis.artifact.name)'
+          aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm32
     dependsOn: SetupVM_level4
-    displayName: Set up and run longhaul tests on Arm3
-    condition: ne(variables['agent.group'], '')
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-#      parentName: nestededgetest02.eastus2.cloudapp.azure.com
-#      parentDeviceId: level_4_20201210.99
-      os: linux
-      arch: amd64
-      artifactName: iotedged-debian9-arm32v7
-      nestededge: true
+    displayName: Set up and run longhaul tests on Arm32
+    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
       demands:
@@ -148,6 +144,15 @@ stages:
         - agent-osbits -equals 32
         - run-idle -equals true 
         - status -equals unlocked   
+    variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+      aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
+      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
+      hostPlatform: 'linux_arm32v7_moby'
+      quickstart.package.name: 'IotEdgeQuickstart.linux-arm.tar.gz'
+      nestededge: true
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
@@ -157,7 +162,7 @@ stages:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay.arm)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -168,11 +173,10 @@ stages:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
           eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
+          loadGen.message.frequency: '$(loadGen.message.frequency)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -182,22 +186,17 @@ stages:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          metricsCollector.hostPlatform: '$(hostPlatform)'
           longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          quickstart.package.name: '$(quickstart.package.name)'
+          aziotis.artifact.name: '$(aziotis.artifact.name)'
+          aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm64
     dependsOn: SetupVM_level4
     displayName: Set up and run longhaul tests on Linux Arm64
-    condition: ne(variables['agent.group'], '')
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-#      parentName: nestededgetest02.eastus2.cloudapp.azure.com
-#      parentDeviceId: level_4_20201210.99
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-aarch64
-      nestededge: true  
+    condition: eq(variables['run.linux.arm64v8.docker'], 'true')  
     pool:
       name: $(pool.name)
       demands:
@@ -206,7 +205,16 @@ stages:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
         - run-idle -equals true 
-        - status -equals unlocked     
+        - status -equals unlocked
+    variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
+      aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
+      aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
+      hostPlatform: 'linux_arm64v8_docker'
+      quickstart.package.name: 'IotEdgeQuickstart.linux-arm64.tar.gz'
+      nestededge: true     
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
@@ -216,7 +224,7 @@ stages:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay.arm)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -227,11 +235,10 @@ stages:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
           eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
+          loadGen.message.frequency: '$(loadGen.message.frequency)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
@@ -241,9 +248,13 @@ stages:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: 'linux_arm64v8_docker'
+          metricsCollector.hostPlatform: '$(hostPlatform)'
           longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          quickstart.package.name: '$(quickstart.package.name)'
+          aziotis.artifact.name: '$(aziotis.artifact.name)'
+          aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Clean_up     
     dependsOn: 
       - Deploy_Longhaul_Linux_Amd64
