@@ -44,7 +44,7 @@ steps:
     inputs:
       buildType: specific
       project: $(System.TeamProjectId)
-      pipeline: $(az.pipeline.packages.buildId)
+      pipeline: $(edgelet.package.build)
       branchName: $(edgelet.package.branchName)
       buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
@@ -54,7 +54,7 @@ steps:
     inputs:
       buildType: specific
       project: $(System.TeamProjectId)
-      pipeline: $(az.pipeline.images.buildId)
+      pipeline: $(images.build)
       branchName: $(images.branchName)
       buildVersionToDownload: latestFromBranch
       downloadPath: '$(Build.StagingDirectory)'
