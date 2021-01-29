@@ -104,7 +104,7 @@ steps:
         deviceId="${{ parameters['release.label'] }}-${{ parameters['metricsCollector.hostPlatform'] }}-longhaul-${{ parameters['test.buildId'] }}"
         echo "Installing test certificate bundle for edge device id ${deviceId}"
         sudo chmod +x certGen.sh
-        sudo certGen.sh create_edge_device_ca_certificate ${deviceId}
+        sudo certGen.sh create_edge_device_certificate ${deviceId}
         
         echo "##vso[task.setvariable variable=TrustBundle]/certs/certs/azure-iot-test-only.root.ca.cert.pem"
         echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${deviceId}-full-chain.cert.pem"
