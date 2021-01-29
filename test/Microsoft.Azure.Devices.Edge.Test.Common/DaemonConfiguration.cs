@@ -159,16 +159,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
         }
 
-        public void SetDpsX509(string idScope, string registrationId, IdCertificates cert, string trustBundle)
+        public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath, string trustBundle)
         {
-            if (!File.Exists(cert.CertificatePath))
+            if (!File.Exists(identityCertPath))
             {
-                throw new InvalidOperationException($"{cert.CertificatePath} does not exist");
+                throw new InvalidOperationException($"{identityCertPath} does not exist");
             }
 
-            if (!File.Exists(cert.KeyPath))
+            if (!File.Exists(identityPkPath))
             {
-                throw new InvalidOperationException($"{cert.KeyPath} does not exist");
+                throw new InvalidOperationException($"{identityPkPath} does not exist");
             }
 
             if (!File.Exists(trustBundle))
@@ -180,15 +180,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
 
-            string certFileName = Path.GetFileName(cert.CertificatePath);
+            string certFileName = Path.GetFileName(identityCertPath);
             string certName = DaemonConfiguration.SanitizeName(certFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", certName);
-            this.config[Service.Certd].Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + cert.CertificatePath);
+            this.config[Service.Certd].Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
 
-            string keyFileName = Path.GetFileName(cert.KeyPath);
+            string keyFileName = Path.GetFileName(identityPkPath);
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
-            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + cert.KeyPath);
+            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
 
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + trustBundle);
         }
@@ -289,26 +289,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public static void CreateConfigFile(string configFile, string defaultFile, string owner)
-        {
-            // If the config file does not exist, create it from the default file.
-            // If the default file does not exist, create an empty config file.
-            if (!File.Exists(configFile))
-            {
-                if (File.Exists(defaultFile))
-                {
-                    File.Copy(defaultFile, configFile);
-                }
-                else
-                {
-                    File.Create(configFile).Dispose();
-                }
-            }
-
-            // Change owner of config file.
-            OsPlatform.Current.SetOwner(configFile, owner, "644");
-        }
-
         private static string SanitizeName(string name)
         {
             // Due to '.' being used as a delimiter for config file tables, names cannot contain '.'
@@ -319,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // All names passed to this function must be sanitized with DaemonConfiguration.SanitizeName
         private void CreatePreloadedKey(string name, string value)
         {
-            string filePath = $"/etc/aziot/e2e_tests/{name}.key";
+            string filePath = Path.Combine(FixedPaths.E2E_TEST_DIR, $"{name}.key");
 
             File.WriteAllBytes(filePath, Convert.FromBase64String(value));
             OsPlatform.Current.SetOwner(filePath, "aziotks", "600");
