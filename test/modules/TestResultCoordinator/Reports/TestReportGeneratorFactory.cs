@@ -10,6 +10,7 @@ namespace TestResultCoordinator.Reports
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using TestResultCoordinator.Reports.EdgeHubRestartTest;
+    using TestResultCoordinator.Reports.LegacyTwin;
     using TestResultCoordinator.Storage;
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
@@ -69,6 +70,19 @@ namespace TestResultCoordinator.Reports
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
                             Settings.Current.UnmatchedResultsMaxSize);
+                    }
+
+                case TestReportType.LegacyTwinReport:
+                    {
+                        var metadata = (LegacyTwinReportMetadata)testReportMetadata;
+                        var testResults = this.GetResults(metadata.SenderSource);
+
+                        return new LegacyTwinReportGenerator(
+                            metadata.TestDescription,
+                            trackingId,
+                            testReportMetadata.TestOperationResultType.ToString(),
+                            metadata.SenderSource,
+                            testResults);
                     }
 
                 case TestReportType.DeploymentTestReport:
