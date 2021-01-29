@@ -80,6 +80,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         ResetConfigFile(file, configDefault, owner);
                     }
 
+                    // Delete old Edge Hub certs and keys.
+                    string[] directories = new string[] { "/var/lib/aziot/certd/certs", "/var/lib/aziot/keyd/keys" };
+
+                    foreach (string directory in directories)
+                    {
+                        if (Directory.Exists(directory))
+                        {
+                            FileInfo[] files = new DirectoryInfo(directory).GetFiles();
+
+                            foreach (FileInfo file in files)
+                            {
+                                file.Delete();
+                            }
+                        }
+                    }
+
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
