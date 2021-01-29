@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.podWatch = Option.None<Watcher<V1Pod>>();
         }
 
-        public void Start() => this.StartListPods();
+        public void Start(CancellationTokenSource shutdownCts) => this.StartListPods(shutdownCts);
 
         public void Stop()
         {
@@ -37,43 +38,68 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public void Dispose() => this.Stop();
 
-        void StartListPods() =>
+        void StartListPods(CancellationTokenSource shutdownCts) =>
             this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, watch: true)
-                .ContinueWith(this.OnListPodsCompleted);
+                .ContinueWith(this.OnListPodsCompleted, shutdownCts);
 
-        async Task OnListPodsCompleted(Task<HttpOperationResponse<V1PodList>> task)
+        async Task OnListPodsCompleted(Task<HttpOperationResponse<V1PodList>> task, object shutdownCtsObject)
         {
             HttpOperationResponse<V1PodList> podListResp = await task;
+            // The cts object is coming from an external source, check it and put it into an Option for safe handling.
+            Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
             this.podWatch = Option.Some(
                 podListResp.Watch<V1Pod, V1PodList>(
-                    onEvent: (type, item) =>
-                    {
-                        try
-                        {
-                            this.HandlePodChangedAsync(type, item);
-                        }
-                        catch (Exception ex) when (!ex.IsFatal())
-                        {
-                            Events.PodWatchFailed(ex);
-                        }
-                    },
-                    onClosed: () =>
-                    {
-                        Events.PodWatchClosed();
+                    onEvent: (type, item) => this.PodOnEventHandlerAsync(type, item, shutdownCts),
+                    onClosed: () => this.RestartWatch(shutdownCts),
+                    onError: (ex) => this.HandleError(ex, shutdownCts)));
+        }
 
-                        // get rid of the current pod watch object since we got closed
-                        this.podWatch.ForEach(watch => watch.Dispose());
-                        this.podWatch = Option.None<Watcher<V1Pod>>();
+        internal void PodOnEventHandlerAsync(WatchEventType type, V1Pod item, Option<CancellationTokenSource> shutdownCts)
+        {
+            try
+            {
+                this.HandlePodChangedAsync(type, item);
+            }
+            catch (Exception ex)
+            {
+                Events.PodHandlerFailed(ex);
+                if (ex.IsFatal())
+                {
+                    shutdownCts.ForEach(cts => cts.Cancel());
+                    throw;
+                }
+            }
+        }
 
-                        // kick off a new watch
-                        this.StartListPods();
-                    },
-                    onError: (ex) =>
-                    {
-                        Events.PodWatchFailed(ex);
-                        throw ex;
-                    }));
+        internal void RestartWatch(Option<CancellationTokenSource> shutdownCts)
+        {
+            Events.PodWatchClosed();
+
+            // get rid of the current pod watch object since watch was closed.
+            this.podWatch.ForEach(watch => watch.Dispose());
+            this.podWatch = Option.None<Watcher<V1Pod>>();
+
+            // kick off a new watch
+            try
+            {
+                this.StartListPods(shutdownCts.OrDefault());
+            }
+            catch (Exception ex)
+            {
+                // Failure to start a new watch is a critical failure, request shutdown.
+                Events.PodWatchRestartFailed(ex);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
+        }
+
+        internal void HandleError(Exception ex, Option<CancellationTokenSource> shutdownCts)
+        {
+            // Some unknown error happened while starting watch, request shutdown.
+            Events.PodWatchFailed(ex);
+            shutdownCts.ForEach(cts => cts.Cancel());
+            throw ex;
         }
 
         void HandlePodChangedAsync(WatchEventType type, V1Pod pod)
@@ -115,14 +141,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         enum EventIds
         {
             WatchFailed = IdStart,
+            HandlerFailed,
             PodStatus,
             PodStatusRemoveError,
-            WatchClosed
+            WatchClosed,
+            WatchRestartFailed,
         }
 
         public static void PodWatchFailed(Exception ex)
         {
-            Log.LogError((int)EventIds.WatchFailed, ex, "Exception caught in Pod Watch task.");
+            Log.LogError((int)EventIds.WatchFailed, ex, "Error event in Pod Watch task, requesting shutdown.");
+        }
+
+        public static void PodHandlerFailed(Exception ex)
+        {
+            Log.LogError((int)EventIds.WatchFailed, ex, "Exception caught in Pod Watch Event Handler.");
         }
 
         public static void PodStatus(WatchEventType type, V1Pod pod)
@@ -138,6 +171,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public static void PodWatchClosed()
         {
             Log.LogInformation((int)EventIds.WatchClosed, $"K8s closed the pod watch. Attempting to reopen watch.");
+        }
+
+        public static void PodWatchRestartFailed(Exception ex)
+        {
+            Log.LogError((int)EventIds.WatchRestartFailed, ex, "Exception caught while attempting Pod Watch restart, requesting shutdown.");
         }
     }
 }
