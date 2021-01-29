@@ -99,13 +99,14 @@ function Create-Azure-VM-For-E2E-Test
         $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
         $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz;"
-        $AdditionalSetupCommand+="sudo chown -R $AdminUsername . ;"
+        $AdditionalSetupCommand+="sudo chown -R $AdminUsername:$AdminUsername . ;"
 
         # Enroll the test VM into the pool
         $SubCommand="sudo -u $AdminUsername ./config.sh --unattended --url https://dev.azure.com/msazure --auth pat --token $VstsToken --pool Azure-IoT-Edge-Core --agent $VmName"
         $AdditionalSetupCommand+="bash -c '$SubCommand';"
         $AdditionalSetupCommand+="./svc.sh install;"
         $AdditionalSetupCommand+="./svc.sh start;"
+        $AdditionalSetupCommand+="sudo chown -R $AdminUsername:$AdminUsername . ;"
 
         az vm run-command invoke `
             -g $ResourceGroup `
