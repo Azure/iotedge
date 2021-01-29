@@ -11,15 +11,12 @@ resources:
     branch: master
 
 stages:
-- stage: SetupParentVMs
+- stage: SetupVMs
   jobs:
-    - template: templates/nested-parent-vm-setup.yaml
-
-- stage: RunNestedLongHaulTests
-  dependsOn: SetupParentVMs
-  jobs:
+  - template: templates/nested-parent-vm-setup.yaml
   - job:  Deploy_Longhaul_Linux_Amd64
     displayName: Set up and run longhaul tests on Linux Amd64
+    dependsOn: SetupVM_level4
     condition: eq(variables['run.linux.amd64.moby'], 'true')
     pool:
       name: $(pool.name)
@@ -80,6 +77,7 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm32
     displayName: Set up and run longhaul tests on Arm32
+    dependsOn: SetupVM_level4
     condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
@@ -141,6 +139,7 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Deploy_Longhaul_Linux_Arm64
     displayName: Set up and run longhaul tests on Linux Arm64
+    dependsOn: SetupVM_level4
     condition: eq(variables['run.linux.arm64v8.docker'], 'true')  
     pool:
       name: $(pool.name)
@@ -200,10 +199,6 @@ stages:
           quickstart.package.name: '$(quickstart.package.name)'
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
-
-- stage: CleanUp
-  dependsOn: RunNestedLongHaulTests
-  jobs:
   - job:  Clean_up      
     condition: true
     displayName: Clean up identities and unlock agents
