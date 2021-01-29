@@ -102,7 +102,7 @@ pub struct SystemInfo {
     /// Kernel version of the host.  On Linux, this information obtained from `uname`. On Windows this information is queried from the <kbd>HKEY_LOCAL_MACHINE\\\\SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVersion\\\\</kbd> registry value, for example _\"10.0 14393 (14393.1198.amd64fre.rs1_release_sec.170427-1353)\"_.
     #[serde(rename = "KernelVersion", skip_serializing_if = "Option::is_none")]
     kernel_version: Option<String>,
-    /// Name of the host's operating system, for example: \"Ubuntu 16.04.2 LTS\" or \"Windows Server 2016 Datacenter\"
+    /// Name of the host's operating system, for example: \"Ubuntu 18.04.5 LTS\" or \"Windows Server 2016 Datacenter\"
     #[serde(rename = "OperatingSystem", skip_serializing_if = "Option::is_none")]
     operating_system: Option<String>,
     /// Generic type of the operating system of the host, as returned by the Go runtime (`GOOS`).  Currently returned values are \"linux\" and \"windows\". A full list of possible values can be found in the [Go documentation](https://golang.org/doc/install/source#environment).

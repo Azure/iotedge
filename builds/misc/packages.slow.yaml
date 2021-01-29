@@ -17,7 +17,6 @@ jobs:
     displayName: Linux
     timeoutInMinutes: 180 # Observed to take just under 2h30m, so round up
     pool:
-      # qemu on ubuntu-16.04 is too old to support some syscalls used by CentOS 7 containers, so ensure this is ubuntu-18.04 or newer.
       vmImage: 'ubuntu-18.04'
     strategy:
       matrix:

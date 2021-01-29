@@ -46,7 +46,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-stress -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
