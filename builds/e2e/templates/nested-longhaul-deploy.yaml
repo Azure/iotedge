@@ -1,6 +1,3 @@
-variables:
-  images.artifact.name: 'core-linux'
-  vsts.project: $(System.TeamProjectId)
 parameters:
   release.label: ''
   test.buildNumber: ''
@@ -46,7 +43,7 @@ steps:
     displayName: 'Download Edgelet Artifacts'
     inputs:
       buildType: specific
-      project: $(vsts.project)
+      project: $(System.TeamProjectId)
       pipeline: $(edgelet.package.build)
       branchName: $(edgelet.package.branchName)
       buildVersionToDownload: latestFromBranch
@@ -56,7 +53,7 @@ steps:
     displayName: 'Download Images Artifacts'
     inputs:
       buildType: specific
-      project: $(vsts.project)
+      project: $(System.TeamProjectId)
       pipeline: $(images.build)
       branchName: $(images.branchName)
       buildVersionToDownload: latestFromBranch
