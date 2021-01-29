@@ -104,7 +104,7 @@ steps:
         deviceId="${{ parameters['release.label'] }}-${{ parameters['metricsCollector.hostPlatform'] }}-longhaul-${{ parameters['test.buildId'] }}"
         echo "Installing test certificate bundle for edge device id ${deviceId}"
         sudo chmod +x certGen.sh
-        sudo ./certGen.sh create_edge_device_certificate ${deviceId}
+        sudo certGen.sh create_edge_device_ca_certificate ${deviceId}
         
         echo "##vso[task.setvariable variable=TrustBundle]/certs/certs/azure-iot-test-only.root.ca.cert.pem"
         echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${deviceId}-full-chain.cert.pem"
@@ -163,5 +163,5 @@ steps:
       E2E_trustedCaCerts: $(TrustBundle)
       E2E_deviceCaCert: $(DeviceCaCert)
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
-      E2E_parentHostname: $(longHaul.parentHostname)
-      E2E_parentEdgeDevice: $(longHaul.parentEdgeDevice) 
+      E2E_parentHostname: ${{ parameters['longHaul.parentHostname'] }}
+      E2E_parentEdgeDevice: ${{ parameters['longHaul.parentEdgeDevice'] }} 
