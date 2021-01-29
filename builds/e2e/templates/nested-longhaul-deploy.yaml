@@ -62,7 +62,6 @@ steps:
       itemPattern: |
         ${{ parameters['images.artifact.name'] }}/$(quickstart.package.name)
         ${{ parameters['images.artifact.name'] }}/e2e_deployment_files/long_haul_deployment.template.json
-        ${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
         ${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
         ${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         ${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
