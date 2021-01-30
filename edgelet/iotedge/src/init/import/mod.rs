@@ -28,6 +28,9 @@ const AZIOT_CERTD_HOMEDIR_PATH: &str = "/var/lib/aziot/certd";
 const AZIOT_IDENTITYD_HOMEDIR_PATH: &str = "/var/lib/aziot/identityd";
 const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 
+const AZIOT_EDGED_LISTEN_MGMT_SOCKET_ACTIVATED_URI: &str = "fd://aziot-edged.mgmt.socket";
+const AZIOT_EDGED_LISTEN_WORKLOAD_SOCKET_ACTIVATED_URI: &str = "fd://aziot-edged.workload.socket";
+
 /// The ID used for the device ID key (symmetric or X.509 private) and the device ID cert.
 const DEVICE_ID_ID: &str = "device-id";
 
@@ -570,23 +573,54 @@ fn execute_inner(
 
             connect: {
                 let old_config::Connect {
-                    workload_uri,
                     management_uri,
+                    workload_uri,
                 } = connect;
                 edgelet_core::Connect {
-                    workload_uri: workload_uri.clone(),
                     management_uri: management_uri.clone(),
+                    workload_uri: workload_uri.clone(),
                 }
             },
             listen: {
+                fn map_listen_uri(uri: &url::Url) -> Result<url::Url, ()> {
+                    if uri.scheme() == "fd" {
+                        match uri.host_str() {
+                            Some(old_config::DEFAULT_MGMT_SOCKET_UNIT) => {
+                                Ok(AZIOT_EDGED_LISTEN_MGMT_SOCKET_ACTIVATED_URI
+                                    .parse()
+                                    .expect("hard-coded URI must parse successfully"))
+                            }
+                            Some(old_config::DEFAULT_WORKLOAD_SOCKET_UNIT) => {
+                                Ok(AZIOT_EDGED_LISTEN_WORKLOAD_SOCKET_ACTIVATED_URI
+                                    .parse()
+                                    .expect("hard-coded URI must parse successfully"))
+                            }
+                            _ => Err(()),
+                        }
+                    } else {
+                        Ok(uri.clone())
+                    }
+                }
+
                 let old_config::Listen {
-                    workload_uri,
                     management_uri,
+                    workload_uri,
                     min_tls_version,
                 } = listen;
+
+                let management_uri = map_listen_uri(management_uri).map_err(|()| {
+                    format!(
+                        "unexpected value of listen.management_uri {}",
+                        management_uri
+                    )
+                })?;
+                let workload_uri = map_listen_uri(workload_uri).map_err(|()| {
+                    format!("unexpected value of listen.workload_uri {}", workload_uri)
+                })?;
+
                 edgelet_core::Listen {
-                    workload_uri: workload_uri.clone(),
-                    management_uri: management_uri.clone(),
+                    management_uri,
+                    workload_uri,
                     min_tls_version: match min_tls_version {
                         old_config::Protocol::Tls10 => edgelet_core::Protocol::Tls10,
                         old_config::Protocol::Tls11 => edgelet_core::Protocol::Tls11,
@@ -798,7 +832,7 @@ fn create_dir_all(
 }
 
 fn write_file(
-    path: &(impl AsRef<std::path::Path> + ?Sized),
+    path: impl AsRef<std::path::Path>,
     content: &[u8],
     user: &nix::unistd::User,
     mode: u32,
@@ -862,8 +896,8 @@ mod tests {
                 preloaded_device_id_pk_bytes: actual_preloaded_device_id_pk_bytes,
             } = super::execute_inner(&old_config_file, nix::unistd::Uid::from_raw(5555)).unwrap();
 
-            // Convert the five configs to bytes::Bytes before asserting, because bytes::Bytes's Debug format prints strings.
-            // It doesn't matter for the device ID file since it's binary anyway.
+            // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
+            // prints human-readable strings instead of raw u8s.
             assert_eq!(
                 bytes::Bytes::from(expected_keyd_config),
                 bytes::Bytes::from(actual_keyd_config),
@@ -895,7 +929,8 @@ mod tests {
                 "edged config does not match"
             );
             assert_eq!(
-                expected_preloaded_device_id_pk_bytes, actual_preloaded_device_id_pk_bytes,
+                expected_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
+                actual_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
                 "device ID key bytes do not match"
             );
         }
