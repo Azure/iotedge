@@ -220,8 +220,6 @@ stages:
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true 
         - status -equals unlocked_$(Build.BuildId)  
-    strategy:
-      parallel: 3          
     steps:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agent.yaml 
