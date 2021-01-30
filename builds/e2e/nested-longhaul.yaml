@@ -201,6 +201,8 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
   - job:  Clean_up      
     dependsOn:
+      - SetupVM_level5 
+      - SetupVM_level4
       - Deploy_Longhaul_Linux_Amd64
       - Deploy_Longhaul_Linux_Arm32
       - Deploy_Longhaul_Linux_Arm64
