@@ -37,6 +37,7 @@ stages:
      - template: templates/nested-get-secrets.yaml
      - template: templates/e2e-clean-directory.yaml            
      - template: templates/lock-test-agent.yaml
+     - template: templates/nested-az-login.yaml     
      - template: templates/nested-get-root-ca.yaml       
      - template: templates/nested-create-identity.yaml   
      - template: templates/nested-agent-deploy.yaml
@@ -65,8 +66,9 @@ stages:
        - status -equals unlocked    
     steps:
       - template: templates/nested-get-secrets.yaml  
-      - template: templates/e2e-clean-directory.yaml                
+      - template: templates/e2e-clean-directory.yaml                      
       - template: templates/lock-test-agent.yaml
+      - template: templates/nested-az-login.yaml     
       - template: templates/nested-get-root-ca.yaml         
       - template: templates/nested-create-identity.yaml          
       - template: templates/nested-agent-deploy.yaml
@@ -88,23 +90,28 @@ stages:
     pool:
       name: $(pool.name)
       demands:
-        - agent-group -equals $(agent.group)
+        - agent-group -equals NestedEdge_ISA95
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-idle -equals true 
         - status -equals unlocked    
     steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/e2e-clean-directory.yaml     
+      - template: templates/nested-get-secrets.yaml           
+      - template: templates/e2e-clean-directory.yaml
+      - template: templates/lock-test-agent.yaml
+      - template: templates/nested-az-login.yaml                  
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml    
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
+      #- template: templates/nested-lock-network.yaml 
+      #  parameters:     
+      #    lvl: 3      
       - template: templates/e2e-run.yaml
-        parameters:
-          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
-          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)
+      #- template: templates/nested-unlock-network.yaml
+      #  parameters:     
+      #    lvl: 3 
+      #    network_interface: $(network_interface)      
 
   - job:  Clean_up     
     dependsOn:
@@ -121,7 +128,7 @@ stages:
       deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
       deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]         
       deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]       
-      deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['lock_test_agent.agentName'] ]  
+      deviceLvl3AgentName: $[ dependencies.SetupVM_and_RunTest_level3.outputs['lock_test_agent.agentName'] ]  
     pool:
       name: $(pool.name)
       demands:

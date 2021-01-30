@@ -4,7 +4,7 @@ parameters:
 
 steps:
   - task: Bash@3
-    displayName: 'Release ${{ parameters.lvl }}'
+    displayName: 'Release ${{ parameters.agentName }} lvl${{ parameters.lvl }}'
     condition: always()
     env:
       POOL_ID: 123

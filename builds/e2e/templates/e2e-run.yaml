@@ -32,6 +32,7 @@ steps:
         $filter += '&Category!=NestedEdgeOnly'
     }
 
+    $filter = 'FullyQualifiedName~QuickstartChangeSasKey'
     sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
   displayName: Run tests
   env:

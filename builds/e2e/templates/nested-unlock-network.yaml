@@ -1,0 +1,13 @@
+parameters:
+  network_interface: ''
+  lvl: ''
+
+steps:  
+  - task: Bash@3
+    displayName: 'Unlock network  lvl${{ parameters.lvl }}'
+    condition: always()
+    inputs:
+      targetType: inline
+      script: |
+           az network nic update -g IOTEDGE-DEPLOY -n ${{ parameters.network_interface }} --remove networkSecurityGroup
+

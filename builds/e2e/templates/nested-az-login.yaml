@@ -1,0 +1,7 @@
+steps: 
+  - task: Bash@3
+    displayName: 'Az login'
+    inputs:
+      targetType: inline
+      script: |     
+        az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId) 

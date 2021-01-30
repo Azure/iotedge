@@ -1,0 +1,15 @@
+parameters:
+  lvl: ''
+
+steps:  
+  - task: Bash@3
+    displayName: 'Lock network  ${{ parameters.lvl }}'
+    inputs:
+      targetType: inline
+      script: |
+        tmp=$(az vm nic list --resource-group IOTEDGE-DEPLOY --vm-name $(Agent.Name) --query '[].id' | jq -r '.[]')
+        network_interface=$(echo "$tmp" | sed -n 's/.*\/\(.*\)/\1/p')
+        echo "Locking network interface $network_interface"
+        az network nic update -g IOTEDGE-DEPLOY -n $network_interface --network-security-group ISA95_lock  
+        echo "##vso[task.setvariable variable=network_interface]${network_interface}"
+
