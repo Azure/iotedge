@@ -17,7 +17,7 @@ stages:
   - job:  Deploy_Longhaul_Linux_Amd64
     displayName: Set up and run longhaul tests on Linux Amd64
     dependsOn: SetupVM_level4
-    condition: eq(variables['run.linux.amd64.moby'], 'true')
+    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -78,7 +78,7 @@ stages:
   - job:  Deploy_Longhaul_Linux_Arm32
     displayName: Set up and run longhaul tests on Arm32
     dependsOn: SetupVM_level4
-    condition: eq(variables['run.linux.arm32v7.moby'], 'true')
+    condition: and(succeeded(), eq(variables['run.linux.arm32v7.moby'], 'true'))
     pool:
       name: $(pool.name)
       demands:
@@ -140,7 +140,7 @@ stages:
   - job:  Deploy_Longhaul_Linux_Arm64
     displayName: Set up and run longhaul tests on Linux Arm64
     dependsOn: SetupVM_level4
-    condition: eq(variables['run.linux.arm64v8.docker'], 'true')  
+    condition: and(succeeded(), eq(variables['run.linux.arm64v8.docker'], 'true'))  
     pool:
       name: $(pool.name)
       demands:
