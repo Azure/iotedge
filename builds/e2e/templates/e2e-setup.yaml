@@ -2,6 +2,7 @@ steps:
 - checkout: self
   clean: true
   fetchDepth: 100
+  submodules: recursive
 
 - task: AzureKeyVault@1
   displayName: Get secrets
@@ -12,6 +13,8 @@ steps:
       TestContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
+      TestGitHubAccessToken,
+      TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
       TestRootCaCertificate,
@@ -37,6 +40,9 @@ steps:
 
     Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
     Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+    Write-Output '>> Package Build ID=$(packageBuildId)'
+    Write-Output '>> Image Build ID=$(imageBuildId)'
   displayName: Override artifacts with user-supplied args
 
 - task: DownloadBuildArtifacts@0
@@ -62,6 +68,17 @@ steps:
     downloadType: single
     artifactName: $(artifactName)
 
+- task: PowerShell@2
+  displayName: 'Download aziot-identity-service'
+  inputs:
+    filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+    workingDirectory: $(Build.SourcesDirectory)
+  env:
+    GITHUB_TOKEN: $(TestGitHubAccessToken)
+    ARTIFACT_NAME: $(identityServiceArtifactName)
+    PACKAGE_FILTER: $(identityServicePackageFilter)
+    DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
+
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null
@@ -85,16 +102,37 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
-    $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
 
+    if ('$(nestededge)' -eq 'true')
+    {
+      $nestededge = "true"
+      $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
+      $diagnosticImagePrefix ='$(parentName):443/$(cr.labelPrefix)azureiotedge'
+      $caCertScriptPath = Convert-Path "/certs"
+      $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
+      $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
+    }else
+    {
+      $nestededge = "false"
+      $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+      $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
+      $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+    }
+
+    echo "Edge agent image: $imagePrefix-agent:$imageTag"
+
     $context = @{
+      nestededge = "$nestededge"
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
+      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
       tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
@@ -114,18 +152,25 @@ steps:
         }
       );
       packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactName)';
-      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
-      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
-      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      caCertScriptPath = "$caCertScriptPath";
+      rootCaCertificatePath = "$rootCaCertificatePath";
+      rootCaPrivateKeyPath = "$rootCaPrivateKeyPath";
       logFile = Join-Path '$(binDir)' 'testoutput.log';
+    }
+
+    if ('$(nestededge)' -eq 'true')
+    {
+      $context['hostname'] = '$(deviceName)'
+      $context['parentHostname'] = '$(parentName)'
+      $context['parentDeviceId'] = '$(parentDeviceId)'
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
       $context['setupTimeoutMinutes'] = 10
-      $context['teardownTimeoutMinutes'] = 5
-      $context['testTimeoutMinutes'] = 6
+      $context['teardownTimeoutMinutes'] = 10
+      $context['testTimeoutMinutes'] = 10
     }
 
     if ($env:AGENT_PROXYURL)

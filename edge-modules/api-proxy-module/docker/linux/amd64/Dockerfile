@@ -5,7 +5,7 @@
 
 ARG DIR=.
 
-FROM alpine:3.12.0
+FROM alpine:3.13.1
 WORKDIR /app
 COPY ./docker/linux/amd64/api-proxy-module .
 COPY ./docker/linux/amd64/templates .

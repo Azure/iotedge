@@ -129,19 +129,8 @@ fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
 }
 
 fn get_default_config_path() -> PathBuf {
-    #[cfg(not(windows))]
     {
-        Path::new("/etc/iotedge/config.yaml").to_owned()
-    }
-
-    #[cfg(windows)]
-    {
-        Path::new(
-            env::var("CSIDL_COMMON_APPDATA")
-                .or_else(|| env::var("ProgramData"))
-                .unwrap_or("C:/ProgramData/iotedge/config.yaml"),
-        )
-        .to_owned()
+        Path::new("/etc/aziot/edged/config.yaml").to_owned()
     }
 }
 

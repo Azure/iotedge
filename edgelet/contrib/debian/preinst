@@ -4,7 +4,7 @@ set -e
 add_groups()
 {
     if ! getent passwd iotedge >/dev/null; then
-        adduser --system iotedge --home /var/lib/iotedge --shell /bin/false
+        adduser --system iotedge --home /var/lib/aziot/edged --shell /bin/false
     fi
 
     if ! getent group iotedge >/dev/null; then
@@ -14,6 +14,16 @@ add_groups()
     # add iotedge user to docker group so that it can talk to the docker socket
     if getent group docker >/dev/null; then
         adduser iotedge docker
+    fi
+
+    if getent group aziotcs >/dev/null; then
+        adduser iotedge aziotcs
+    fi
+    if getent group aziotks >/dev/null; then
+        adduser iotedge aziotks
+    fi
+    if getent group aziotid >/dev/null; then
+        adduser iotedge aziotid
     fi
 
     # Add each admin user to the iotedge group - for systems installed before precise

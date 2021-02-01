@@ -89,9 +89,12 @@ impl RemoteRpcMqttEventHandler {
                     return Ok(true);
                 }
             }
-            SubscriptionUpdateEvent::RejectedByServer(topic_filter) => {
-                if let Some(command_id) = self.subscriptions.remove(topic_filter) {
-                    let reason = format!("subscription rejected by server {}", topic_filter);
+            SubscriptionUpdateEvent::RejectedByServer(rejected_from) => {
+                if let Some(command_id) = self.subscriptions.remove(&rejected_from.topic_filter) {
+                    let reason = format!(
+                        "subscription rejected by server {}",
+                        rejected_from.topic_filter
+                    );
                     self.local_pump.send_nack(command_id, reason).await?;
                     return Ok(true);
                 }
@@ -231,7 +234,10 @@ mod tests {
                 topic_filter: "/foo/subscribed".into(),
                 qos: QoS::AtLeastOnce,
             }),
-            SubscriptionUpdateEvent::RejectedByServer("/foo/rejected".into()),
+            SubscriptionUpdateEvent::RejectedByServer(SubscribeTo {
+                qos: QoS::AtLeastOnce,
+                topic_filter: "/foo/rejected".into(),
+            }),
             SubscriptionUpdateEvent::Unsubscribe("/foo/unsubscribed".into()),
         ]);
 

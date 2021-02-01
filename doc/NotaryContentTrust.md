@@ -1,4 +1,6 @@
 # Notary Content Trust in IoT Edge
+**Note: This feature is currently in experimental phase. Its is not released yet and not to be used in production**
+
 Content Trust is achieved in IoT edge with [Notary](https://github.com/theupdateframework/notary) which is based on The Update Framework (TUF). Notary aims to make the internet more secure by making it easy for people to publish and verify content. The goal of Content Trust in IoT edge is to secure the docker container images of the Edge modules with its trust pinned to the Edge device via a root Certificate Authority(CA). When Content Trust is enabled, IoT Edge device only deploys signed images and rejects any other images that are tampered or modified in the transfer over the internet. Feature is supported in Linux OS only for now. 
 
 ## Sign and Publish Container Images in Azure Container Registry
@@ -107,7 +109,9 @@ To check if the image is signed or not, `az` tools can be used. Before that logi
 
 The root CA of each Container Registry i.e `root_ca_exampleregistry.crt` must be copied out of band into the device in a specific location.
 
-In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and location of its corresponding root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/config/linux/config.yaml)
+In the `config.yaml`, in the Moby runtime section, content trust can be enabled by specifiying the registry server name and certificate ID of the root CA as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/edged.yaml)
+
+In the `certd.toml`, under `preloaded_certs`, the mapping of the certificate ID and file path of the root CA must be configured as shown in [sample](https://github.com/Azure/iotedge/blob/master/edgelet/iotedge/test-files/init/import/moby-runtime-content-trust/certd.toml)
 
 Recommendation is to create another Service Principal with Pull access for the edge device and ensure the login credentials are applied in the deployment manifest. 
 

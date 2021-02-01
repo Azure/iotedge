@@ -10,16 +10,16 @@ use crate::error::{ErrorKind, Result};
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
-    image: String,
+    pub image: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "imageHash")]
-    image_id: Option<String>,
+    pub image_id: Option<String>,
     #[serde(default = "ContainerCreateBody::new")]
-    create_options: ContainerCreateBody,
+    pub create_options: ContainerCreateBody,
     #[serde(skip_serializing_if = "Option::is_none")]
-    digest: Option<String>,
+    pub digest: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    auth: Option<AuthConfig>,
+    pub auth: Option<AuthConfig>,
 }
 
 impl DockerConfig {

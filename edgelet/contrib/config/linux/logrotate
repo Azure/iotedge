@@ -1,4 +1,4 @@
-/var/log/iotedge/iotedge.log {
+/var/log/aziot-edged/aziot-edged.log {
        copytruncate
        daily
        rotate 7

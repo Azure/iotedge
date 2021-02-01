@@ -2,12 +2,15 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
@@ -18,6 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class SetupFixture
     {
         IEdgeDaemon daemon;
+
+        private (string, string)[] configFiles =
+        {
+            ("/etc/aziot/keyd/config.toml", "aziotks"),
+            ("/etc/aziot/certd/config.toml", "aziotcs"),
+            ("/etc/aziot/identityd/config.toml", "aziotid"),
+            ("/etc/aziot/edged/config.yaml", "iotedge")
+        };
 
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
@@ -46,22 +57,49 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
 
+                    // Clean the directory for test certs, keys, etc.
+                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    {
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    }
+
+                    Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
+
+                    // Backup any existing service config files.
+                    foreach ((string file, string owner) in this.configFiles)
+                    {
+                        if (File.Exists(file))
+                        {
+                            File.Move(file, file + ".backup", true);
+                        }
+
+                        // The name of the default aziot-edged config file differs based on OS.
+                        string configDefault = file.Contains("edged") ? this.daemon.GetDefaultEdgedConfig() : file + ".default";
+
+                        // Reset all config files to the default file.
+                        ResetConfigFile(file, configDefault, owner);
+                    }
+
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
                             var msgBuilder = new StringBuilder();
                             var props = new List<object>();
 
-                            string hostname = Dns.GetHostName();
+                            string hostname = Context.Current.Hostname.GetOrElse(Dns.GetHostName());
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
-
+                            Log.Information("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
+                                Log.Information($"Found parent hostname {parentHostname}");
                                 config.SetParentHostname(parentHostname);
-                                msgBuilder.AppendLine(", parent hostname '{parentHostname}'");
+                                msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
+
+                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
+                                config.SetEdgeAgentImage(edgeAgent);
                             });
 
                             Context.Current.Proxy.ForEach(proxy =>
@@ -93,11 +131,86 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         await device.MaybeDeleteIdentityAsync(token);
                     }
+
+                    // Remove packages installed by this run.
+                    await this.daemon.UninstallAsync(token);
+
+                    // Delete test certs, keys, etc.
+                    Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+
+                    // Restore backed up config files.
+                    foreach ((string file, string _) in this.configFiles)
+                    {
+                        string backupFile = file + ".backup";
+
+                        if (File.Exists(backupFile))
+                        {
+                            File.Move(backupFile, file, true);
+                        }
+                        else
+                        {
+                            File.Delete(file);
+                        }
+                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>
             {
                 Log.CloseAndFlush();
             });
+
+        private static void ResetConfigFile(string configFile, string defaultFile, string owner)
+        {
+            // Reset the config file to the default.
+            Log.Information($"Resetting {configFile} to {defaultFile}");
+            File.Copy(defaultFile, configFile, true);
+            OsPlatform.Current.SetOwner(configFile, owner, "644");
+        }
+    }
+
+    // Generates a test CA cert, test CA key, and trust bundle.
+    // TODO: Remove this once iotedge init is finished?
+    public class TestCertificates
+    {
+        private string deviceId;
+        private CaCertificates certs;
+
+        TestCertificates(string deviceId, CaCertificates certs)
+        {
+            this.deviceId = deviceId;
+            this.certs = certs;
+        }
+
+        public static async Task<(TestCertificates, CertificateAuthority ca)> GenerateCertsAsync(string deviceId, CancellationToken token)
+        {
+            string scriptPath = Context.Current.CaCertScriptPath.Expect(
+                () => new System.InvalidOperationException("Missing CA cert script path"));
+            (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
+                () => new System.InvalidOperationException("Missing root CA"));
+
+            CertificateAuthority ca = await CertificateAuthority.CreateAsync(deviceId, rootCa, scriptPath, token);
+            CaCertificates certs = await ca.GenerateCaCertificatesAsync(deviceId, token);
+            ca.EdgeCertificates = certs;
+
+            return (new TestCertificates(deviceId, certs), ca);
+        }
+
+        public void AddCertsToConfig(DaemonConfiguration config)
+        {
+            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
+            string certPath = Path.Combine(path, "device_ca_cert.pem");
+            string keyPath = Path.Combine(path, "device_ca_cert_key.pem");
+            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
+
+            Directory.CreateDirectory(path);
+            File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);
+            OsPlatform.Current.SetOwner(trustBundlePath, "aziotcs", "644");
+            File.Copy(this.certs.CertificatePath, certPath);
+            OsPlatform.Current.SetOwner(certPath, "aziotcs", "644");
+            File.Copy(this.certs.KeyPath, keyPath);
+            OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
+
+            config.SetCertificates(new CaCertificates(certPath, keyPath, trustBundlePath));
+        }
     }
 }

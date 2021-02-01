@@ -528,7 +528,7 @@ pub enum Event {
 pub enum SubscriptionUpdateEvent {
     Subscribe(crate::proto::SubscribeTo),
     Unsubscribe(String),
-    RejectedByServer(String),
+    RejectedByServer(crate::proto::SubscribeTo),
 }
 
 /// A message that was received from the server
@@ -783,7 +783,6 @@ pub enum Error {
     ServerClosedConnection,
     SubAckDoesNotContainEnoughQoS(crate::proto::PacketIdentifier, usize, usize),
     SubscriptionDowngraded(String, crate::proto::QoS, crate::proto::QoS),
-    SubscriptionRejectedByServer,
     UnexpectedSubAck(crate::proto::PacketIdentifier, UnexpectedSubUnsubAckReason),
     UnexpectedUnsubAck(crate::proto::PacketIdentifier, UnexpectedSubUnsubAckReason),
 }
@@ -854,9 +853,6 @@ impl std::fmt::Display for Error {
 			Error::SubscriptionDowngraded(topic_name, expected, actual) =>
 				write!(f, "Server downgraded subscription for topic filter {:?} with QoS {:?} to {:?}", topic_name, expected, actual),
 
-			Error::SubscriptionRejectedByServer =>
-				write!(f, "Server rejected one or more subscriptions"),
-
 			Error::UnexpectedSubAck(packet_identifier, reason) =>
 				write!(f, "received SUBACK {} but {}", packet_identifier, reason),
 
@@ -878,7 +874,6 @@ impl std::error::Error for Error {
             Error::ServerClosedConnection => None,
             Error::SubAckDoesNotContainEnoughQoS(_, _, _) => None,
             Error::SubscriptionDowngraded(_, _, _) => None,
-            Error::SubscriptionRejectedByServer => None,
             Error::UnexpectedSubAck(_, _) => None,
             Error::UnexpectedUnsubAck(_, _) => None,
         }

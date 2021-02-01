@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn it_makes_hyper_uri() {
-        let scheme = Scheme::Unix("unix:///var/iotedge/workload.sock".into());
+        let scheme = Scheme::Unix("unix:///var/iotedge/aziot-edged.workload.sock".into());
         let path = "/modules/$edgeHub/genid/12345678/certificate/server?api-version=2019-01-30";
 
         let uri = make_hyper_uri(&scheme, &path).unwrap();

@@ -1,6 +1,3 @@
-provisioning:
-  source: "manual"
-  device_connection_string": 2,
 agent:
   name: "edgeAgent"
   type: "docker"

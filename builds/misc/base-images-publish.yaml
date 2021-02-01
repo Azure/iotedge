@@ -13,7 +13,7 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
         - run-base-image-release -equals true
-
+    timeoutInMinutes: 120
     variables:
       os: linux
       arch: arm32v7
