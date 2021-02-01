@@ -3,7 +3,7 @@ parameters:
 
 steps:  
   - task: Bash@3
-    displayName: 'Lock network  ${{ parameters.lvl }}'
+    displayName: 'Lock network  lvl${{ parameters.lvl }}'
     inputs:
       targetType: inline
       script: |

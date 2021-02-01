@@ -104,14 +104,14 @@ stages:
       - template: templates/nested-get-device-name.yaml    
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
-      #- template: templates/nested-lock-network.yaml 
-      #  parameters:     
-      #    lvl: 3      
+      - template: templates/nested-lock-network.yaml 
+        parameters:     
+          lvl: 3      
       - template: templates/e2e-run.yaml
-      #- template: templates/nested-unlock-network.yaml
-      #  parameters:     
-      #    lvl: 3 
-      #    network_interface: $(network_interface)      
+      - template: templates/nested-unlock-network.yaml
+        parameters:     
+          lvl: 3 
+          network_interface: $(network_interface)      
 
   - job:  Clean_up     
     dependsOn:

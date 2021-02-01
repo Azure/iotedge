@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using Serilog;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
     // and even if it were, it doesn't run the teardown method when
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
                 Context.Current.Proxy);
+            Log.Information($"proxy: {Context.Current.Proxy}");
         }
 
         [OneTimeSetUp]

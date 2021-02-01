@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -90,6 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
+                            Log.Information($"HTTP PROXY {Environment.GetEnvironmentVariable("https_proxy")}\n");
+
                             Log.Information("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {

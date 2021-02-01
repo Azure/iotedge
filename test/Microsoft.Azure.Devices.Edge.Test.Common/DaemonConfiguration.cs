@@ -68,12 +68,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void AddHttpsProxy(Uri proxy)
         {
-            this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.https_proxy", proxy.ToString());
+            //this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.https_proxy", proxy.ToString());
             // The config.yaml file is configured during test suite
             // initialization, before we know which protocol a given test
             // will use. Always use AmqpWs, and when each test deploys a
             // configuration, it can use whatever it wants.
-            this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
+            this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "Amqp");
         }
 
         void InitServiceConfig(Service service, string path, bool toml)
