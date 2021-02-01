@@ -2,7 +2,6 @@
 
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::path::PathBuf;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
@@ -51,11 +50,11 @@ impl MobyRuntime {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct ContentTrust {
-    pub ca_certs: Option<BTreeMap<String, PathBuf>>,
+    pub ca_certs: Option<BTreeMap<String, String>>,
 }
 
 impl ContentTrust {
-    pub fn ca_certs(&self) -> Option<&BTreeMap<String, PathBuf>> {
+    pub fn ca_certs(&self) -> Option<&BTreeMap<String, String>> {
         self.ca_certs.as_ref()
     }
 }
@@ -492,26 +491,16 @@ mod tests {
             .and_then(ContentTrust::ca_certs)
         {
             assert_eq!(
-                content_trust_map.get("contoso1.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso1.crt"))
+                content_trust_map
+                    .get("contoso1.azurcr.io")
+                    .map(AsRef::as_ref),
+                Some("content-trust-contoso1.azurecr.io")
             );
             assert_eq!(
-                content_trust_map.get("contoso2.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso2.crt"))
-            );
-            assert_eq!(
-                content_trust_map.get(""),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso3.crt"))
-            );
-            assert_eq!(
-                content_trust_map.get("contoso4.azurcr.io"),
-                Some(&std::path::PathBuf::from(
-                    "/path/to/root_ca_contoso4_replaced.crt"
-                ))
-            );
-            assert_eq!(
-                content_trust_map.get("contoso5.azurcr.io"),
-                Some(&std::path::PathBuf::from(""))
+                content_trust_map
+                    .get("contoso2.azurcr.io")
+                    .map(AsRef::as_ref),
+                Some("content-trust-contoso2.azurecr.io")
             );
         } else {
             panic!();

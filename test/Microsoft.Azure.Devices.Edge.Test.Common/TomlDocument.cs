@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.document = Toml.ReadString(input);
         }
 
-        public void ReplaceOrAdd(string dottedKey, string value)
+        public void ReplaceOrAdd<T>(string dottedKey, T value)
         {
             string[] segments = dottedKey.Split(".");
             TomlTable table = this.document;
@@ -43,11 +43,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string key = segments[segments.Length - 1];
             if (table.ContainsKey(key))
             {
-                table.Update(key, value);
+                table.Update(key, value.ToString()); // May need to fix to support other types.
             }
             else
             {
-                table.Add(key, value);
+                table.Add(key, value.ToString()); // May need to fix to support other types.
             }
         }
 
@@ -77,12 +77,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return this.document.ToString();
         }
 
-        void AddTable(string tableName, string key, string value)
+        void AddTable<T>(string tableName, string key, T value)
         {
+            string v = value is string ? $"\"{value}\"" : value.ToString().ToLower();
+
             this.document = Toml.ReadString(
                 this.document.ToString() + "\n" +
                 $"[{tableName}]\n" +
-                $"{key} = \"{value}\"\n");
+                $"{key} = {v}\n");
         }
     }
 }

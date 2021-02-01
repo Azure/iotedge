@@ -35,11 +35,7 @@ steps:
       buildId: $(imageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(az.pipeline.images.artifacts)
-      itemPattern: |
-        $(az.pipeline.images.artifacts)/e2e_deployment_files/$(deploymentFileName)
-        $(az.pipeline.images.artifacts)/scripts/connectivityTest.sh
-        $(az.pipeline.images.artifacts)/scripts/testHelper.sh
-        $(az.pipeline.images.artifacts)/artifactInfo.txt 
+      itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt 
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
@@ -75,6 +71,7 @@ steps:
         sudo dpkg --purge aziot-edge aziot-identity-service
 
         sudo rm -rf /var/lib/aziot/
+        sudo rm -rf /var/lib/iotedge/
         sudo rm -rf /etc/aziot/
 
         echo 'Restart docker'
@@ -99,7 +96,7 @@ steps:
       targetType: inline
       script: |
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-        . $(Agent.HomeDirectory)/../artifacts/$(az.pipeline.images.artifacts)/artifactInfo.txt
+        . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
 
         chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
 

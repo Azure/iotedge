@@ -2,6 +2,7 @@
 %define iotedge_group %{iotedge_user}
 %define iotedge_home %{_localstatedir}/lib/aziot/edged
 %define iotedge_logdir %{_localstatedir}/log/aziot/edged
+%define iotedge_socketdir %{_localstatedir}/lib/iotedge
 %define iotedge_confdir %{_sysconfdir}/aziot/edged
 
 Name:           aziot-edge
@@ -131,12 +132,13 @@ echo "==========================================================================
 %{_unitdir}/aziot-edged.service
 
 # sockets
-%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.mgmt.sock
-%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_home}/aziot-edged.workload.sock
+%attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/mgmt.sock
+%attr(666, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/workload.sock
 
 # dirs
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_home}
 %attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_logdir}
+%attr(-, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_socketdir}
 
 %doc %{_docdir}/%{name}/LICENSE.gz
 %doc %{_docdir}/%{name}/ThirdPartyNotices.gz

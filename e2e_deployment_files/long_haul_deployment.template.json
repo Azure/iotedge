@@ -187,9 +187,6 @@
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
-              "TwinTestMode": {
-                "value": "TwinCloudOperations"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -199,14 +196,14 @@
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
-              "TargetModuleId": {
-                "value": "twinTester2"
-              },
               "TwinUpdateSize": {
                 "value": "<TwinUpdateSize>"
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "EdgeHubRestartFailureTolerance": {
+                "value": "<EdgeHubRestartFailureTolerance>"
               }
             },
             "settings": {
@@ -226,87 +223,6 @@
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
-              "TwinTestMode": {
-                "value": "TwinEdgeOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TransportType": {
-                "value": "Amqp"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "twinTester3": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinCloudOperations"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "twinTester4"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "twinTester4": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "TwinTestMode": {
-                "value": "TwinEdgeOperations"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -324,6 +240,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "EdgeHubRestartFailureTolerance": {
+                "value": "<EdgeHubRestartFailureTolerance>"
               }
             },
             "settings": {
@@ -650,52 +569,37 @@
             "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
-            "TestReportType": "TwinCountingReport",
-            "TwinTestPropertyType": "Desired",
-            "ExpectedSource": "twinTester1.desiredUpdated",
-            "ActualSource": "twinTester2.desiredReceived",
-            "TestDescription": "twin | desired property | amqp"
+            "TestReportType": "TwinLegacyReport",
+            "SenderSource": "twinTester1",
+            "TestDescription": "twin legacy | amqp"
           },
           "reportMetadata6": {
-            "TestReportType": "TwinCountingReport",
-            "TwinTestPropertyType": "Reported",
-            "ExpectedSource": "twinTester2.reportedReceived",
-            "ActualSource": "twinTester2.reportedUpdated",
-            "TestDescription": "twin | reported property | amqp"
+            "TestReportType": "TwinLegacyReport",
+            "SenderSource": "twinTester2",
+            "TestDescription": "twin legacy | mqtt"
           },
           "reportMetadata7": {
-            "TestReportType": "TwinCountingReport",
-            "TwinTestPropertyType": "Desired",
-            "ExpectedSource": "twinTester3.desiredUpdated",
-            "ActualSource": "twinTester4.desiredReceived",
-            "TestDescription": "twin | desired property | mqtt"
-          },
-          "reportMetadata8": {
-            "TestReportType": "TwinCountingReport",
-            "TwinTestPropertyType": "Reported",
-            "ExpectedSource": "twinTester4.reportedReceived",
-            "ActualSource": "twinTester4.reportedUpdated",
-            "TestDescription": "twin | reported property | mqtt"
-          },
-          "reportMetadata10": {
-            "TestReportType": "DirectMethodReport",
+            "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender1.send",
             "ReceiverSource": "directMethodReceiver1.receive",
-            "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | amqp"
           },
-          "reportMetadata11": {
-            "TestReportType": "DirectMethodReport",
+          "reportMetadata8": {
+            "TestReportType": "DirectMethodLongHaulReport",
             "SenderSource": "directMethodSender2.send",
             "ReceiverSource": "directMethodReceiver2.receive",
-            "TolerancePeriod": "00:01:00",
             "TestDescription": "direct method | cloud | mqtt"
           },
-          "reportMetadata16": {
+          "reportMetadata9": {
+            "TestReportType": "NetworkControllerReport",
+            "Source": "networkController",
+            "TestDescription": "network controller"
+          },
+          "reportMetadata10": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata17": {
+          "reportMetadata11": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }
