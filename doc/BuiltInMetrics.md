@@ -54,7 +54,7 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_command_latency_seconds` | `command` | How long it took docker to execute the given command. Possible commands are: create, update,  remove, start, stop, restart | Gauge |
 | `edgeAgent_iothub_syncs_total` |  | The amount of times edgeAgent attempted to sync its twin with iotHub, both successful and unsuccessful. This incudes both agent requesting a twin and hub notifying of a twin update | Counter |
 | `edgeAgent_unsuccessful_iothub_syncs_total` |  | The amount of times edgeAgent failed to sync its twin with iotHub. | Counter |
-| `edgeAgent_deployment_time_seconds` |  | The amount of time it took to complete a new deployment after recieving a change. | Counter |
+| `edgeAgent_deployment_time_seconds` |  | The amount of time it took to complete a new deployment after receiving a change. | Counter |
 | `edgeagent_direct_method_invocations_count` | `method_name` | Number of times a built-in edgeAgent direct method is called, such as Ping or Restart. | Counter |
 |||
 | `edgeAgent_host_uptime_seconds` || How long the host has been on | Gauge |
@@ -65,7 +65,7 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgeAgent_total_memory_bytes` | `module_name` | RAM available | Gauge |
 | `edgeAgent_used_cpu_percent` | `module_name` | Percent of cpu used by all processes | Histogram |
 | `edgeAgent_created_pids_total` | `module_name` | The number of processes or threads the container has created | Gauge |
-| `edgeAgent_total_network_in_bytes` | `module_name` | The amount of bytes recieved from the network | Gauge |
+| `edgeAgent_total_network_in_bytes` | `module_name` | The amount of bytes received from the network | Gauge |
 | `edgeAgent_total_network_out_bytes` | `module_name` | The amount of bytes sent to network | Gauge |
 | `edgeAgent_total_disk_read_bytes` | `module_name` | The amount of bytes read from the disk | Gauge |
 | `edgeAgent_total_disk_write_bytes` | `module_name` | The amount of bytes written to disk | Gauge |
