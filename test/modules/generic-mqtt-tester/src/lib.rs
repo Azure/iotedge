@@ -25,8 +25,6 @@ pub mod message_initiator;
 pub mod settings;
 pub mod tester;
 
-pub const BACKWARDS_TOPIC: &str = "backwards/1";
-pub const FORWARDS_TOPIC: &str = "forwards/1";
 const SEND_SOURCE: &str = "genericMqttTester.send";
 const RECEIVE_SOURCE: &str = "genericMqttTester.receive";
 
@@ -84,8 +82,8 @@ pub enum MessageTesterError {
     #[error("received unexpected value from unix signal listener")]
     ListenForUnixSignal,
 
-    #[error("failed to parse sequence number from publication: {0:?}")]
-    DeserializeMessage(#[from] serde_json::Error),
+    #[error("failed to parse publication payload: {0:?}")]
+    DeserializePayload(#[from] serde_json::Error),
 
     #[error("failed to report test result: {0:?}")]
     ReportResult(#[from] ReportResultError),

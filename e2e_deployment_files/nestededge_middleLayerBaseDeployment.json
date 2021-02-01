@@ -35,6 +35,9 @@
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               },
+              "DeviceScopeCacheRefreshDelaySecs": {
+                "value": 1
+              },
               "RuntimeLogLevel": {
                 "value": "debug"
               }                   

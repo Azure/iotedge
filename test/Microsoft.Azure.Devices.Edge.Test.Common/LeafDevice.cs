@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates, transport);
+                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates(), transport);
 
                     switch (auth)
                     {
@@ -313,6 +313,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
             return new LeafDevice(device, client, iotHub);
         }
+
+        public Task Close() => this.client.CloseAsync();
 
         public Task SendEventAsync(CancellationToken token)
         {

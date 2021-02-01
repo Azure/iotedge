@@ -43,6 +43,7 @@ function usage() {
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -twinUpdateSize                          Specifies the char count (i.e. size) of each twin update.'
     echo ' -twinUpdateFrequency                     Frequency to make twin updates. This should be specified in DateTime format.'
+    echo ' -edgeHubRestartFailureTolerance          Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00'
     echo " -testName                                Name of test to run. Either 'LongHaul' or 'Connectivity'"
     echo ' -connectManagementUri                    Customize connect management socket'
     echo ' -connectWorkloadUri                      Customize connect workload socket'
@@ -88,8 +89,8 @@ function get_artifact_file() {
 
     local filter
     case "$fileType" in
-        'aziot_edge' ) filter='*/aziot-edge_*.deb';;
-        'aziot_is' ) filter='*/aziot-identity-service_*.deb';;
+        'aziot_edge' ) filter='aziot-edge_*.deb';;
+        'aziot_is' ) filter='aziot-identity-service_*.deb';;
         'quickstart' ) filter='core-linux/IotEdgeQuickstart.linux*.tar.gz';;
         'deployment' ) filter="core-linux/e2e_deployment_files/$3";;
         *) print_error "Unknown file type: $fileType"; exit 1;;
@@ -204,11 +205,12 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
     sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
+    sed -i -e "s@<EdgeHubRestartFailureTolerance>@$EDGEHUB_RESTART_FAILURE_TOLERANCE@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@${NETWORK_CONTROLLER_FREQUENCIES[2]}@g" "$deployment_working_file"
-    
+
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
@@ -239,7 +241,9 @@ function clean_up() {
 
     echo 'Remove IoT Edge and config files'
     rm -rf /var/lib/aziot/
+    rm -rf /var/lib/iotedge/
     rm -rf /etc/aziot/
+    rm -rf /etc/systemd/system/aziot-*.service.d/
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -439,30 +443,33 @@ function process_args() {
             TWIN_UPDATE_FREQUENCY="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 38 ]; then
+            EDGEHUB_RESTART_FAILURE_TOLERANCE="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 39 ]; then
             TEST_NAME="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 39 ]; then
+        elif [ $saveNextArg -eq 40 ]; then
             CONNECT_MANAGEMENT_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 40 ]; then
+        elif [ $saveNextArg -eq 41 ]; then
             CONNECT_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
+        elif [ $saveNextArg -eq 42 ]; then
             LISTEN_MANAGEMENT_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 42 ]; then
+        elif [ $saveNextArg -eq 43 ]; then
             LISTEN_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 43 ]; then
+        elif [ $saveNextArg -eq 44 ]; then
             DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 44 ]; then
+        elif [ $saveNextArg -eq 45 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 45 ]; then
+        elif [ $saveNextArg -eq 46 ]; then
             SEND_REPORT_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 46 ]; then
+        elif [ $saveNextArg -eq 47 ]; then
             TEST_MODE="$arg"
             saveNextArg=0;
         else
@@ -505,15 +512,16 @@ function process_args() {
                 '-testInfo' ) saveNextArg=35;;
                 '-twinUpdateSize' ) saveNextArg=36;;
                 '-twinUpdateFrequency' ) saveNextArg=37;;
-                '-testName' ) saveNextArg=38;;
-                '-connectManagementUri' ) saveNextArg=39;;
-                '-connectWorkloadUri' ) saveNextArg=40;;
-                '-listenManagementUri' ) saveNextArg=41;;
-                '-listenWorkloadUri' ) saveNextArg=42;;
-                '-desiredModulesToRestartCSV' ) saveNextArg=43;;
-                '-restartIntervalInMins' ) saveNextArg=44;;
-                '-sendReportFrequency' ) saveNextArg=45;;
-                '-testMode' ) saveNextArg=46;;
+                '-edgeHubRestartFailureTolerance' ) saveNextArg=38;;
+                '-testName' ) saveNextArg=39;;
+                '-connectManagementUri' ) saveNextArg=40;;
+                '-connectWorkloadUri' ) saveNextArg=41;;
+                '-listenManagementUri' ) saveNextArg=42;;
+                '-listenWorkloadUri' ) saveNextArg=43;;
+                '-desiredModulesToRestartCSV' ) saveNextArg=44;;
+                '-restartIntervalInMins' ) saveNextArg=45;;
+                '-sendReportFrequency' ) saveNextArg=46;;
+                '-testMode' ) saveNextArg=47;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -616,7 +624,7 @@ function run_connectivity_test() {
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
         -d "$device_id" \
-        -a "$testDir/artifacts/" \
+        -a "$E2E_TEST_DIR/artifacts/" \
         -c "$IOT_HUB_CONNECTION_STRING" \
         -e "$EVENTHUB_CONNECTION_STRING" \
         -r "$CONTAINER_REGISTRY" \
@@ -638,7 +646,7 @@ function run_connectivity_test() {
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$testDir/artifacts/" \
+            -a "$E2E_TEST_DIR/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -731,8 +739,9 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
+
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
-    echo "Nested edge test=$NESTED_EDGE_TEST"
+
     local ret=0
 
     DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
@@ -742,16 +751,21 @@ function run_longhaul_test() {
     echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
     echo "Trusted CA certs=$TRUSTED_CA_CERTS"
 
+    if [[ -z "$BYPASS_EDGE_INSTALLATION" ]]; then
+        BYPASS_EDGE_INSTALLATION=--overwrite-packages
+    fi
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
 
+        echo "Running with nested Edge."
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$testDir/artifacts/" \
+            -a "$E2E_TEST_DIR/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -772,12 +786,12 @@ function run_longhaul_test() {
             --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
             --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
             --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
-            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
+            $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     else
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
-            -a "$testDir/artifacts/" \
+            -a "$E2E_TEST_DIR/artifacts/" \
             -c "$IOT_HUB_CONNECTION_STRING" \
             -e "$EVENTHUB_CONNECTION_STRING" \
             -r "$CONTAINER_REGISTRY" \
@@ -796,7 +810,7 @@ function run_longhaul_test() {
             --device_ca_cert "$DEVICE_CA_CERT" \
             --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
             --trusted_ca_certs "$TRUSTED_CA_CERTS" \
-            $BYPASS_EDGE_INSTALLATION \ # Need to pass --overwrite-packages if not bypassing
+            $BYPASS_EDGE_INSTALLATION \
             --no-verify && ret=$? || ret=$?
     fi
 
@@ -840,6 +854,7 @@ UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
 TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
 TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
+EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"
@@ -854,7 +869,6 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
 fi
 
 deployment_working_file="$working_folder/deployment.json"
-deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 
 tracking_id=$(cat /proc/sys/kernel/random/uuid)
 TEST_INFO="$TEST_INFO,TestId=$tracking_id"
@@ -875,7 +889,7 @@ elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
 
     is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
-    if [ $is_build_canceled -eq 1 ]; then
+    if [ "$is_build_canceled" -eq '1' ]; then
         print_highlighted_message "build is canceled."
         exit 3
     fi
