@@ -1,12 +1,9 @@
 mod block;
 pub mod error;
-mod mmap;
+mod flush;
+mod serialize;
 
 use crate::persist::{
-    storage::{
-        serialize::{binary_deserialize, binary_serialize},
-        FlushOptions, FlushState, StorageResult,
-    },
     Key, StorageError,
 };
 use bincode::Result as BincodeResult;
@@ -15,7 +12,7 @@ use block::{
 };
 use error::RingBufferError;
 use memmap::MmapMut;
-use mmap::{mmap_read, mmap_write};
+// use mmap::{mmap_read, mmap_write};
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -28,9 +25,41 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
+    fmt::Debug,
     task::Waker,
     time::Instant,
 };
+
+use self::{flush::{FlushOptions, FlushState}, serialize::{binary_deserialize, binary_serialize}};
+
+#[allow(dead_code)]
+pub type StorageResult<T> = Result<T, StorageError>;
+
+
+
+#[allow(dead_code)]
+pub(crate) fn mmap_read(mmap: Arc<Mutex<MmapMut>>, start: usize, end: usize) -> Vec<u8> {
+    let mmap = mmap.lock();
+    let bytes = &mmap[start..end];
+    Vec::from(bytes)
+}
+
+#[allow(dead_code)]
+pub(crate) fn mmap_write(
+    mmap: Arc<Mutex<MmapMut>>,
+    start: usize,
+    end: usize,
+    bytes: &[u8],
+    should_flush: bool,
+) -> StorageResult<()> {
+    let mut mmap = mmap.lock();
+    mmap[start..end].clone_from_slice(&bytes);
+    if should_flush {
+        mmap.flush_async_range(start, end - start)
+            .map_err(RingBufferError::Flush)?;
+    }
+    Ok(())
+}
 
 #[allow(dead_code)]
 fn create_file(file_name: &String) -> IOResult<File> {
