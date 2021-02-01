@@ -18,7 +18,7 @@ where
 }
 
 #[allow(dead_code)]
-pub const BLOCK_HINT: usize = 0xdeadbeef;
+pub const BLOCK_HINT: usize = 0xdead_beef;
 
 /// + ------------+------+---------+
 /// | BlockHeader | hash | data... |
