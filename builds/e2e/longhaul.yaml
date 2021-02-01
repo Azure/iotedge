@@ -27,7 +27,7 @@ variables:
   #longhaul.restartIntervalInMins: ''
   #longHaul.sendReportFrequency: 'xx:xx:xx.xx'
   #twinTester.twinUpdateSize: ''
-  #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
+  #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx'
   #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
   #twinTester.edgeHubRestartFailureTolerance: 'xx:xx:xx.xx'
   #metricsCollector.metricsEndpointsCSV
@@ -51,14 +51,19 @@ jobs:
         - run-long-haul -equals true
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
+      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -85,6 +90,18 @@ jobs:
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+      - task: PowerShell@2
+        displayName: 'Download aziot-identity-service'
+        inputs:
+          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+        env:
+          GITHUB_TOKEN: $(GitHubAccessToken)
+          ARTIFACT_NAME: $(aziotis.artifact.name)
+          PACKAGE_FILTER: $(aziotis.package.filter)
+          DOWNLOAD_PATH: $(Build.StagingDirectory)
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -142,14 +159,19 @@ jobs:
         - run-long-haul -equals true
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+      aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
+      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,GitHubAccessToken'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -176,6 +198,18 @@ jobs:
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+      - task: PowerShell@2
+        displayName: 'Download aziot-identity-service'
+        inputs:
+          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+        env:
+          GITHUB_TOKEN: $(GitHubAccessToken)
+          ARTIFACT_NAME: $(aziotis.artifact.name)
+          PACKAGE_FILTER: $(aziotis.package.filter)
+          DOWNLOAD_PATH: $(Build.StagingDirectory)
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
@@ -233,14 +267,19 @@ jobs:
         - run-long-haul -equals true
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
+      aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
+      aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
     steps:
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
       - task: AzureKeyVault@1
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,GitHubAccessToken'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -267,6 +306,18 @@ jobs:
             $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+      - task: PowerShell@2
+        displayName: 'Download aziot-identity-service'
+        inputs:
+          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+        env:
+          GITHUB_TOKEN: $(GitHubAccessToken)
+          ARTIFACT_NAME: $(aziotis.artifact.name)
+          PACKAGE_FILTER: $(aziotis.package.filter)
+          DOWNLOAD_PATH: $(Build.StagingDirectory)
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
