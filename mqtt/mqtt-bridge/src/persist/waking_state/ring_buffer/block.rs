@@ -4,11 +4,7 @@ use std::{
     fmt::Debug,
     hash::{Hash, Hasher},
 };
-use crate::persist::storage::{
-    serialize::{binary_serialize, binary_serialize_size},
-    StorageResult,
-};
-use super::error::{BlockError, RingBufferError};
+use super::{StorageResult, error::{BlockError, RingBufferError}, serialize::{binary_serialize, binary_serialize_size}};
 
 /// A utility fn to calculate any entity that derives Hash.
 #[allow(dead_code)]
@@ -215,7 +211,7 @@ mod tests {
         use std::hash::Hash;
         use std::hash::Hasher;
 
-        use crate::persist::storage::serialize::{binary_deserialize, binary_serialize};
+        use crate::persist::waking_state::ring_buffer::serialize::binary_deserialize;
 
         use super::*;
 

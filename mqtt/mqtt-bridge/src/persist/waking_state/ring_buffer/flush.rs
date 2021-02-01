@@ -1,11 +1,4 @@
-pub mod ring_buffer;
-pub mod serialize;
-
-use super::StorageError;
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-#[allow(dead_code)]
-pub type StorageResult<T> = Result<T, StorageError>;
 
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug)]
@@ -19,14 +12,14 @@ pub enum FlushOptions {
 
 #[allow(dead_code)]
 pub struct FlushState {
-    writes: AtomicUsize,
-    bytes_written: AtomicUsize,
-    millis_elapsed: AtomicUsize,
+    pub writes: AtomicUsize,
+    pub bytes_written: AtomicUsize,
+    pub millis_elapsed: AtomicUsize,
 }
 
 #[allow(dead_code)]
 impl FlushState {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             writes: AtomicUsize::default(),
             bytes_written: AtomicUsize::default(),
@@ -34,7 +27,7 @@ impl FlushState {
         }
     }
 
-    fn reset(&self, flush_option: &FlushOptions) {
+    pub(crate) fn reset(&self, flush_option: &FlushOptions) {
         match flush_option {
             FlushOptions::AfterEachWrite => {}
             FlushOptions::AfterXWrites(_) => {
@@ -50,7 +43,7 @@ impl FlushState {
         }
     }
 
-    fn update(&self, writes: usize, bytes_written: usize, millis_elapsed: usize) {
+    pub(crate) fn update(&self, writes: usize, bytes_written: usize, millis_elapsed: usize) {
         self.bytes_written
             .fetch_add(bytes_written, Ordering::SeqCst);
         self.millis_elapsed
