@@ -186,9 +186,9 @@ pub enum BridgeControllerMessage {
 /// Error for `BridgeController`.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("An error occurred sending a message to the controller.")]
+    #[error("An error occurred sending a message to the controller. Caused by: {0}")]
     SendControllerMessage(#[source] tokio::sync::mpsc::error::SendError<BridgeControllerMessage>),
 
-    #[error("An error occurred sending a message to the bridge.")]
+    #[error("An error occurred sending a message to the bridge. Caused by: {0}")]
     SendBridgeMessage(#[from] BridgeError),
 }
