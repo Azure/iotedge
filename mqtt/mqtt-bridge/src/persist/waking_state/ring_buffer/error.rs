@@ -3,6 +3,9 @@ use std::io::Error as IOError;
 #[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
+    #[error("Bad hint")]
+    Hint,
+
     #[error("Unexpected data hash {found:?} expected {expected:?}")]
     DataHash { found: u64, expected: u64 },
 

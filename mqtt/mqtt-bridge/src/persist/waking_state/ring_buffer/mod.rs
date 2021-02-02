@@ -401,10 +401,15 @@ impl RingBuffer {
                 if bytes.into_iter().map(|&x| x as usize).sum::<usize>() == 0 {
                     break;
                 }
+
                 block = binary_deserialize::<BlockHeaderWithHash>(bytes)?;
+                // this means we read bytes that don't make a block, this is
+                // a really bad state to be in as somehow the pointers don't
+                // match to where data really is at.
+                if block.inner().hint() != BLOCK_HINT {
+                    return Err(RingBufferError::Validate(BlockError::Hint).into());
+                }
             }
-            let data_size = block.inner().data_size();
-            let index = block.inner().write_index();
             start = start + block_size;
             let end = start + data_size;
             let bytes =
