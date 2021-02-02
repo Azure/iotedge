@@ -17,8 +17,8 @@ agent:
 hostname: 'my-device'
 
 connect:
-  management_uri: 'unix:///var/run/aziot/aziot-edged.mgmt.sock'
-  workload_uri: 'unix:///var/run/aziot/aziot-edged.workload.sock'
+  management_uri: 'unix:///var/run/iotedge/mgmt.sock'
+  workload_uri: 'unix:///var/run/iotedge/workload.sock'
 
 listen:
   management_uri: 'fd://iotedge.mgmt.socket'

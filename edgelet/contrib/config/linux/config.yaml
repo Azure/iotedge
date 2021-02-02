@@ -127,8 +127,8 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 
 connect:
-  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 ###############################################################################
 # Listen settings
@@ -147,7 +147,7 @@ connect:
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
 #     listen address is fd://aziot-edged.workload.socket,
-#     connect address is unix:///var/lib/aziot/edged/aziot-edged.workload.sock
+#     connect address is unix:///var/lib/iotedge/workload.sock
 #
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
@@ -157,8 +157,8 @@ connect:
 ###############################################################################
 
 listen:
-  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 ###############################################################################
 # Home Directory

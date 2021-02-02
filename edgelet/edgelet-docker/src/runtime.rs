@@ -1315,12 +1315,12 @@ mod tests {
             },
             "hostname": "zoo",
             "connect": {
-                "management_uri": "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock",
-                "workload_uri": "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+                "management_uri": "unix:///var/lib/iotedge/mgmt.sock",
+                "workload_uri": "unix:///var/lib/iotedge/workload.sock"
             },
             "listen": {
-                "management_uri": "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock",
-                "workload_uri": "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+                "management_uri": "unix:///var/lib/iotedge/mgmt.sock",
+                "workload_uri": "unix:///var/lib/iotedge/workload.sock"
             },
             "homedir": tmp_dir.path(),
             "moby_runtime": {

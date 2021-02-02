@@ -37,14 +37,14 @@ pub(crate) struct Config {
 
 #[derive(Debug, serde_derive::Deserialize)]
 pub(crate) struct Connect {
-    pub(crate) workload_uri: Url,
     pub(crate) management_uri: Url,
+    pub(crate) workload_uri: Url,
 }
 
 #[derive(Debug, serde_derive::Deserialize)]
 pub(crate) struct Listen {
-    pub(crate) workload_uri: Url,
     pub(crate) management_uri: Url,
+    pub(crate) workload_uri: Url,
     #[serde(default = "Protocol::default")]
     pub(crate) min_tls_version: Protocol,
 }
@@ -136,6 +136,9 @@ impl Default for RetryLimit {
         RetryLimit::Infinite
     }
 }
+
+pub(crate) const DEFAULT_MGMT_SOCKET_UNIT: &str = "iotedge.mgmt.socket";
+pub(crate) const DEFAULT_WORKLOAD_SOCKET_UNIT: &str = "iotedge.socket";
 
 pub(crate) const DEFAULTS: &str = "
 provisioning:

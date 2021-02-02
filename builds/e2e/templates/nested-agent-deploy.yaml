@@ -71,6 +71,7 @@ steps:
         sudo dpkg --purge aziot-edge aziot-identity-service
 
         sudo rm -rf /var/lib/aziot/
+        sudo rm -rf /var/lib/iotedge/
         sudo rm -rf /etc/aziot/
 
         echo 'Restart docker'
