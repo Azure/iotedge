@@ -33,7 +33,7 @@ pub enum RingBufferError {
 
     #[error("Key does not exist")]
     NonExistantKey,
-    
+
     #[error("Buffer is full and messages must be drained to continue")]
     Full,
 }

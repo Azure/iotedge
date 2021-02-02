@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use bincode::Result as BincodeResult;
+use serde::{Deserialize, Serialize};
 
 #[allow(dead_code)]
 pub(crate) fn binary_serialize<T>(something: &T) -> BincodeResult<Vec<u8>>
