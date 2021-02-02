@@ -15,11 +15,11 @@ use crate::persist::waking_state::ring_buffer::{
 #[allow(dead_code)]
 pub const BLOCK_HINT: usize = 0xdead_beef;
 
-/// + ------------+------+---------+
-/// | BlockHeader | hash | data... |
-/// +-------------+------+---------+
+/// + --------------+------+---------+
+/// | `BlockHeader` | hash | data... |
+/// +---------------+------+---------+
 ///
-/// The BlockHeader contains attributes meaningful for data storage and
+/// The `BlockHeader` contains attributes meaningful for data storage and
 /// validation.
 #[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
@@ -90,11 +90,11 @@ impl BlockHeader {
     }
 }
 
-/// + --------------------+---------+
-/// | BlockHeaderWithHash | data... |
-/// +---------------------+---------+
+/// + ----------------------+---------+
+/// | `BlockHeaderWithHash` | data... |
+/// +-----------------------+---------+
 ///
-/// The BlockHeaderWithHash is a wrapper over the BlockHeader but also
+/// The `BlockHeaderWithHash` is a wrapper over the `BlockHeader` but also
 /// contains a hash over the header for validation.
 #[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
@@ -135,7 +135,7 @@ impl BlockHeaderWithHash {
 }
 
 /// A typed representation of byte data that should always follow a
-/// BlockHeaderWithHash.
+/// `BlockHeaderWithHash`.
 #[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
@@ -145,7 +145,7 @@ pub(crate) struct Data {
 
 #[allow(dead_code)]
 impl Data {
-    pub fn new<'a>(data: &'a [u8]) -> Self {
+    pub fn new(data: &[u8]) -> Self {
         Self {
             inner: Vec::from(data),
         }
@@ -172,7 +172,7 @@ pub(crate) fn serialized_block_size() -> bincode::Result<usize> {
 }
 
 #[allow(dead_code)]
-pub(crate) fn validate<'a>(block: &BlockHeaderWithHash, data: &Data) -> StorageResult<()> {
+pub(crate) fn validate(block: &BlockHeaderWithHash, data: &Data) -> StorageResult<()> {
     let actual_block_hash = block.block_hash();
     let block_hash = calculate_hash(&block.inner);
     if actual_block_hash != block_hash {

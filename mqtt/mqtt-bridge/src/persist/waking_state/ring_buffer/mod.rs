@@ -88,9 +88,9 @@ impl<'a> RingBuffer<'a> {
         }
     }
 
-    fn insert(&mut self, publication: Publication) -> StorageResult<Key> {
+    fn insert(&mut self, publication: &Publication) -> StorageResult<Key> {
         let timer = Instant::now();
-        let data = binary_serialize(&publication)?;
+        let data = binary_serialize(publication)?;
         let data = Data::new(&data);
         let data_size = binary_serialize_size(&data)?;
         let data_hash = calculate_hash(&data);
@@ -116,12 +116,12 @@ impl<'a> RingBuffer<'a> {
             return Err(StorageError::RingBuffer(RingBufferError::Full));
         }
 
-        let start = write_index;
+        let mut start = write_index;
 
         // Check if an existing block header is present. If the block is there
         // and if the overwrite flag is not set then we shouldn't write.
         let result = load_block_header(self.mmap, start, block_size, self.max_file_size);
-        if let Some(block_header) = result.ok() {
+        if let Ok(block_header) = result {
             let should_not_overwrite = block_header.inner().should_not_overwrite();
             if should_not_overwrite {
                 return Err(StorageError::RingBuffer(RingBufferError::Full));
@@ -138,12 +138,12 @@ impl<'a> RingBuffer<'a> {
             should_flush,
         )?;
 
-        let end = start + block_size;
-        let start = end % self.max_file_size;
+        let mut end = start + block_size;
+        start = end % self.max_file_size;
 
         save_data(self.mmap, &data, start, self.max_file_size, should_flush)?;
 
-        let end = start + data_size;
+        end = start + data_size;
         self.pointers.write = end % self.max_file_size;
 
         self.wake_up_task();
@@ -184,7 +184,7 @@ impl<'a> RingBuffer<'a> {
 
             let bytes = &self.mmap[start..end];
             // this is unused memory
-            if bytes.into_iter().map(|&x| x as usize).sum::<usize>() == 0 {
+            if bytes.iter().map(|&x| x as usize).sum::<usize>() == 0 {
                 break;
             }
 
@@ -199,7 +199,7 @@ impl<'a> RingBuffer<'a> {
             let inner_block = block.inner();
             let data_size = inner_block.data_size();
             let index = inner_block.write_index();
-            start = start + block_size;
+            start += block_size;
             let end = start + data_size;
             let data = load_data(self.mmap, start, data_size, self.max_file_size)?;
             start = end % self.max_file_size;
@@ -228,7 +228,7 @@ impl<'a> RingBuffer<'a> {
         let start = key;
         let mut end = start + block_size;
         if end > self.max_file_size {
-            return Err(StorageError::RingBuffer(RingBufferError::WrapAround.into()));
+            return Err(StorageError::RingBuffer(RingBufferError::WrapAround));
         }
 
         let maybe_block = load_block_header(self.mmap, start, block_size, self.max_file_size);
@@ -322,22 +322,21 @@ fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResu
         if end > max_file_size {
             return Ok(FilePointers { write, read });
         }
-        block = match load_block_header(mmap.clone(), start, block_size, max_file_size) {
-            Ok(block) => {
-                if block.inner().hint() == BLOCK_HINT {
-                    block
-                } else {
-                    start += 1;
-                    end += 1;
-                    continue;
-                }
-            }
-            Err(_) => {
+
+        if let Ok(next_block) = load_block_header(mmap, start, block_size, max_file_size) {
+            if next_block.inner().hint() == BLOCK_HINT {
+                block = next_block
+            } else {
                 start += 1;
                 end += 1;
                 continue;
             }
-        };
+        } else {
+            start += 1;
+            end += 1;
+            continue;
+        }
+
         break;
     }
     let mut order = 0;
@@ -365,7 +364,7 @@ fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResu
         order = inner.order();
         start = end + data_size;
         end = start + block_size;
-        block = match load_block_header(mmap.clone(), start, block_size, max_file_size) {
+        block = match load_block_header(mmap, start, block_size, max_file_size) {
             Ok(block) => block,
             Err(_) => return Ok(FilePointers { write, read }),
         };
@@ -373,7 +372,7 @@ fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResu
 }
 
 #[allow(dead_code)]
-fn load_block_header<'a>(
+fn load_block_header(
     mmap: &MmapMut,
     start: usize,
     size: usize,
@@ -396,7 +395,7 @@ fn save_block_header(
 }
 
 #[allow(dead_code)]
-fn save_data<'a>(
+fn save_data(
     mmap: &mut MmapMut,
     data: &Data,
     start: usize,
@@ -408,19 +407,18 @@ fn save_data<'a>(
 }
 
 #[allow(dead_code)]
-fn load_data<'a>(
-    mmap: &MmapMut,
-    start: usize,
-    size: usize,
-    file_size: usize,
-) -> BincodeResult<Data> {
+fn load_data(mmap: &MmapMut, start: usize, size: usize, file_size: usize) -> BincodeResult<Data> {
     let bytes = mmap_read(mmap, start, size, file_size);
     binary_deserialize::<Data>(&bytes)
 }
 
 #[allow(dead_code)]
-fn mmap_read<'a>(mmap: &'a MmapMut, start: usize, size: usize, file_size: usize) -> Vec<u8> {
+fn mmap_read(mmap: &MmapMut, start: usize, size: usize, file_size: usize) -> Vec<u8> {
     // TODO: look into avoiding this copy
+    // Options:
+    // 1. split this in two and only do the copy on the wrap around
+    // 2. see if there is a way to fudge two slices into one?
+    // Probably will talk to dmolokanov about how to best do this...
     let end = start + size;
     if end > file_size {
         let file_split = end - file_size;
@@ -484,8 +482,7 @@ mod tests {
         assert!(result.is_ok());
         let result = unsafe { MmapMut::map_mut(&file) };
         assert!(result.is_ok());
-        let mmap = result.unwrap();
-        mmap
+        result.unwrap()
     }
 
     #[test]
@@ -522,7 +519,7 @@ mod tests {
                 let mut mmap = result.unwrap();
                 let mut rb = RingBuffer::new(&mut mmap, MAX_FILE_SIZE, FLUSH_OPTIONS);
                 for _ in 0..10 {
-                    let result = rb.insert(publication.clone());
+                    let result = rb.insert(&publication);
                     assert!(result.is_ok());
                     keys.push(result.unwrap());
                 }
@@ -534,9 +531,25 @@ mod tests {
                 for key in &keys[..4] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
                 }
-                assert!(rb.remove(keys[0].offset as usize).is_ok());
-                assert!(rb.remove(keys[1].offset as usize).is_ok());
-                assert!(rb.remove(keys[2].offset as usize).is_ok());
+
+                {
+                    #[allow(clippy::cast_possible_truncation)]
+                    let key = keys[0].offset as usize;
+                    assert!(rb.remove(key).is_ok());
+                }
+
+                {
+                    #[allow(clippy::cast_possible_truncation)]
+                    let key = keys[1].offset as usize;
+                    assert!(rb.remove(key).is_ok());
+                }
+
+                {
+                    #[allow(clippy::cast_possible_truncation)]
+                    let key = keys[2].offset as usize;
+                    assert!(rb.remove(key).is_ok());
+                }
+
                 read = rb.pointers.read;
                 write = rb.pointers.write;
             }
@@ -572,7 +585,7 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let result = rb.insert(publication);
+        let result = rb.insert(&publication);
         assert!(result.is_ok());
     }
 
@@ -604,10 +617,10 @@ mod tests {
 
         let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
-            let result = rb.insert(publication.clone());
+            let result = rb.insert(&publication);
             assert!(result.is_ok());
         }
-        let result = rb.insert(publication.clone());
+        let result = rb.insert(&publication);
         assert!(result.is_err());
         assert_matches!(
             result.unwrap_err(),
@@ -627,7 +640,7 @@ mod tests {
         };
 
         // first with 1
-        let result = rb.insert(publication.clone());
+        let result = rb.insert(&publication);
         assert!(result.is_ok());
         let key = result.unwrap();
         let result = rb.batch(1);
@@ -640,7 +653,7 @@ mod tests {
         let mut keys = vec![];
         keys.push(key);
         for _ in 0..9 {
-            let result = rb.insert(publication.clone());
+            let result = rb.insert(&publication);
             assert!(result.is_ok());
             let key = result.unwrap();
             keys.push(key)
@@ -691,8 +704,8 @@ mod tests {
         };
 
         let mut keys = vec![];
-        for _ in 0..10usize {
-            let result = rb.insert(publication.clone());
+        for _ in 0..10_usize {
+            let result = rb.insert(&publication);
             assert!(result.is_ok());
             let key = result.unwrap();
             keys.push(key)
@@ -705,6 +718,8 @@ mod tests {
         for key in keys {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
+
+            #[allow(clippy::cast_possible_truncation)]
             let result = rb.remove(key.offset as usize);
             assert!(result.is_ok());
         }

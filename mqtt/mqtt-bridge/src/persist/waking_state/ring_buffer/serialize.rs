@@ -14,6 +14,7 @@ pub(crate) fn binary_serialize_size<T>(something: &T) -> BincodeResult<usize>
 where
     T: Serialize,
 {
+    #[allow(clippy::cast_possible_truncation)]
     bincode::serialized_size(something).map(|x| x as usize)
 }
 
