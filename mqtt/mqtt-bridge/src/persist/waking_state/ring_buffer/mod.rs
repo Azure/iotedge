@@ -74,7 +74,7 @@ pub(crate) struct RingBuffer<'a> {
 
 #[allow(dead_code)]
 impl<'a> RingBuffer<'a> {
-    pub fn new(mmap: &'a mut MmapMut, max_file_size: usize, flush_options: FlushOptions) -> Self {
+    fn new(mmap: &'a mut MmapMut, max_file_size: usize, flush_options: FlushOptions) -> Self {
         let file_pointers =
             find_pointers_post_crash(&mmap, max_file_size).expect("Failed to init file pointers");
         Self {
@@ -128,7 +128,7 @@ impl<'a> RingBuffer<'a> {
             }
         }
 
-        let should_flush = should_flush(self.flush_options, &self.flush_state);
+        let should_flush = self.should_flush();
 
         save_block_header(
             self.mmap,
@@ -146,6 +146,8 @@ impl<'a> RingBuffer<'a> {
         let end = start + data_size;
         self.pointers.write = end % self.max_file_size;
 
+        self.wake_up_task();
+
         self.order += 1;
 
         self.flush_state
@@ -153,8 +155,6 @@ impl<'a> RingBuffer<'a> {
         if should_flush {
             self.flush_state.reset(&self.flush_options);
         }
-
-        self.wake_up_task();
 
         Ok(Key { offset: key as u64 })
     }
@@ -176,26 +176,24 @@ impl<'a> RingBuffer<'a> {
             if start >= write_index {
                 break;
             }
-            let block;
-            {
-                let end = start + block_size;
-                if end > self.max_file_size {
-                    return Err(RingBufferError::WrapAround.into());
-                }
 
-                let bytes = &self.mmap[start..end];
-                // this is unused memory
-                if bytes.into_iter().map(|&x| x as usize).sum::<usize>() == 0 {
-                    break;
-                }
+            let end = start + block_size;
+            if end > self.max_file_size {
+                return Err(RingBufferError::WrapAround.into());
+            }
 
-                block = binary_deserialize::<BlockHeaderWithHash>(bytes)?;
-                // this means we read bytes that don't make a block, this is
-                // a really bad state to be in as somehow the pointers don't
-                // match to where data really is at.
-                if block.inner().hint() != BLOCK_HINT {
-                    return Err(RingBufferError::Validate(BlockError::Hint).into());
-                }
+            let bytes = &self.mmap[start..end];
+            // this is unused memory
+            if bytes.into_iter().map(|&x| x as usize).sum::<usize>() == 0 {
+                break;
+            }
+
+            let block = binary_deserialize::<BlockHeaderWithHash>(bytes)?;
+            // this means we read bytes that don't make a block, this is
+            // a really bad state to be in as somehow the pointers don't
+            // match to where data really is at.
+            if block.inner().hint() != BLOCK_HINT {
+                return Err(RingBufferError::Validate(BlockError::Hint).into());
             }
 
             let inner_block = block.inner();
@@ -250,7 +248,7 @@ impl<'a> RingBuffer<'a> {
             data_size = inner_block.data_size();
         }
 
-        let should_flush = should_flush(self.flush_options, &self.flush_state);
+        let should_flush = self.should_flush();
         save_block_header(self.mmap, &block, start, self.max_file_size, should_flush)?;
 
         end += data_size;
@@ -268,6 +266,18 @@ impl<'a> RingBuffer<'a> {
 
     fn set_waker(&mut self, waker: &Waker) {
         self.waker = Some(waker.clone());
+    }
+
+    fn should_flush(&self) -> bool {
+        match self.flush_options {
+            FlushOptions::AfterEachWrite => true,
+            FlushOptions::AfterXWrites(xwrites) => self.flush_state.writes >= xwrites,
+            FlushOptions::AfterXBytes(xbytes) => self.flush_state.bytes_written >= xbytes,
+            FlushOptions::AfterXMilliseconds(xmillis_elapsed) => {
+                self.flush_state.millis_elapsed >= xmillis_elapsed
+            }
+            FlushOptions::Off => false,
+        }
     }
 
     fn wake_up_task(&mut self) {
@@ -371,19 +381,6 @@ fn load_block_header<'a>(
 ) -> BincodeResult<BlockHeaderWithHash> {
     let bytes = mmap_read(mmap, start, size, file_size);
     binary_deserialize(&bytes)
-}
-
-#[allow(dead_code)]
-fn should_flush(flush_options: FlushOptions, flush_state: &FlushState) -> bool {
-    match flush_options {
-        FlushOptions::AfterEachWrite => true,
-        FlushOptions::AfterXWrites(xwrites) => flush_state.writes >= xwrites,
-        FlushOptions::AfterXBytes(xbytes) => flush_state.bytes_written >= xbytes,
-        FlushOptions::AfterXMilliseconds(xmillis_elapsed) => {
-            flush_state.millis_elapsed >= xmillis_elapsed
-        }
-        FlushOptions::Off => false,
-    }
 }
 
 #[allow(dead_code)]
@@ -529,7 +526,7 @@ mod tests {
                     assert!(result.is_ok());
                     keys.push(result.unwrap());
                 }
-                
+
                 let result = rb.batch(4);
                 assert!(result.is_ok());
                 let mut batch = result.unwrap();
