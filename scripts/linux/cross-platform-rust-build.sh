@@ -82,6 +82,30 @@ if [ -z "$DOCKER_IMAGE" ]; then
 fi
 
 case "$PACKAGE_OS.$PACKAGE_ARCH" in
+    ubuntu18.04.amd64)
+        RUST_TARGET='x86_64-unknown-linux-gnu'
+
+        SETUP_COMMAND=$'
+            sources="$(cat /etc/apt/sources.list | grep -E \'^[^#]\')" &&
+            # Update existing repos to be specifically for amd64
+            echo "$sources" | sed -e \'s/^deb /deb [arch=amd64] /g\' > /etc/apt/sources.list
+
+            apt-get update &&
+            apt-get upgrade -y &&
+            apt-get install -y --no-install-recommends \
+                binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git make \
+                gcc g++ libssl-dev pkg-config
+
+            cd /project/$BUILD_PATH &&
+            echo \'Installing rustup\' &&
+            curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
+            . ~/.cargo/env &&
+        '
+        MAKE_FLAGS="'CARGOFLAGS=$CARGOFLAGS --target $RUST_TARGET'"
+        MAKE_FLAGS="$MAKE_FLAGS 'TARGET=target/$RUST_TARGET/release'"
+        MAKE_FLAGS="$MAKE_FLAGS 'STRIP_COMMAND=strip'"
+        ;;
+
     alpine.amd64)
         RUST_TARGET='x86_64-unknown-linux-musl'
         # The below SETUP was copied from https://github.com/emk/rust-musl-builder/blob/master/Dockerfile.

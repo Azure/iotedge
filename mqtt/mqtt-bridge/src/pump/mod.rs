@@ -36,10 +36,10 @@ pub fn channel<M: Debug + Send + 'static>() -> (PumpHandle<M>, mpsc::Receiver<Pu
 
 #[derive(Debug, thiserror::Error)]
 pub enum PumpError {
-    #[error("unable to send command to pump. {0:?}")]
+    #[error("unable to send command to pump. Caused by: {0:?}")]
     Send(Box<dyn StdError + Send>),
 
-    #[error("error ocurred when running pump. {0}")]
+    #[error("error ocurred when running pump. Caused by: {0}")]
     Run(Box<dyn StdError + Send + Sync>),
 }
 
