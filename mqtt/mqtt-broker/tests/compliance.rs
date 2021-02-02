@@ -188,7 +188,7 @@ async fn retained_messages() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .filter(|(topic, _)| !topic.contains("$edgehub/"))
             .count(),
         3
     );
@@ -242,7 +242,7 @@ async fn retained_messages_zero_payload() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .filter(|(topic, _)| !topic.contains("$edgehub/"))
             .count(),
         0
     );
@@ -358,10 +358,11 @@ async fn will_message() {
 }
 
 /// Scenario:
-/// - Client A connects with clean session, will message for TopicA.
-/// - Client B connects with clean session and subscribes to TopicA
+/// - Client A connects with clean session and will message for TopicA with retain=true.
 /// - Broker shuts down.
-/// - Expects client B to receive will message.
+/// - Expects will message to appear in retained messages.
+/// Notes: we need to use retained will message as the best way to deterministically show
+/// that will indeed is being sent out.
 #[tokio::test]
 async fn will_message_on_broker_shutdown() {
     let topic = "topic/A";
@@ -370,36 +371,36 @@ async fn will_message_on_broker_shutdown() {
 
     let mut server_handle = start_server(broker, DummyAuthenticator::anonymous());
 
-    let mut client_b = TestClientBuilder::new(server_handle.address())
-        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
-        .build();
-
-    client_b.subscribe(topic, QoS::AtLeastOnce).await;
-
-    client_b.subscriptions().recv().await; // wait for SubAck.
-
+    // connect a client with retained will message
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
         .with_will(Publication {
             topic_name: topic.into(),
             qos: QoS::AtLeastOnce,
-            retain: false,
+            retain: true,
             payload: "will_msg_a".into(),
         })
         .build();
 
-    client_a.connections().recv().await; // wait for ConnAck
+    // wait for ConnAck
+    client_a.connections().recv().await;
 
     // shutdown broker.
-    server_handle.shutdown().await;
+    let state = server_handle.shutdown().await;
 
-    // expect will message
-    assert_matches!(
-        client_b.publications().recv().await,
-        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
+    // inspect broker state after shutdown to
+    // deterministically verify presence of retained will messages.
+    // filter out edgehub messages
+    let (retained, _) = state.into_parts();
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|(topic, _)| !topic.contains("$edgehub/"))
+            .count(),
+        1
     );
 
-    client_b.shutdown().await;
+    client_a.shutdown().await;
 }
 
 /// Scenario:

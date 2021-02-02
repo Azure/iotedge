@@ -454,6 +454,7 @@ where
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
+                debug!("sending will for {}", client_id);
                 self.publish_all(will)?;
             }
         } else {
@@ -470,6 +471,7 @@ where
 
             // Ungraceful disconnect - send the will
             if let Some(will) = session.into_will() {
+                debug!("sending will for {}", client_id);
                 self.publish_all(will)?;
             }
         } else {
@@ -921,6 +923,7 @@ where
 
             // Ungraceful drop session - send the will
             if let Some(will) = session.into_will() {
+                debug!("sending will for {}", client_id);
                 self.publish_all(will)?;
             }
         };
