@@ -41,7 +41,7 @@ fn run() -> Result<(), Error> {
     let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziot");
 
     let default_mgmt_uri =
-        option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/lib/iotedge/mgmt.sock");
+        option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/run/iotedge/mgmt.sock");
 
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
