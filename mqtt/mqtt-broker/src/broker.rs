@@ -453,10 +453,7 @@ where
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
-            if let Some(will) = session.into_will() {
-                debug!("sending will for {}", client_id);
-                self.publish_all(will)?;
-            }
+            self.try_send_will(client_id, session)?
         } else {
             debug!("no session for {}", client_id);
         }
@@ -470,10 +467,7 @@ where
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
-            if let Some(will) = session.into_will() {
-                debug!("sending will for {}", client_id);
-                self.publish_all(will)?;
-            }
+            self.try_send_will(client_id, session)?
         } else {
             debug!("no session for {}", client_id);
         }
@@ -922,12 +916,17 @@ where
             self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?)?;
 
             // Ungraceful drop session - send the will
-            if let Some(will) = session.into_will() {
-                debug!("sending will for {}", client_id);
-                self.publish_all(will)?;
-            }
+            self.try_send_will(client_id, session)?
         };
 
+        Ok(())
+    }
+
+    fn try_send_will(&mut self, client_id: &ClientId, session: Session) -> Result<(), Error> {
+        if let Some(will) = session.into_will() {
+            debug!("sending will for {}", client_id);
+            self.publish_all(will)?;
+        }
         Ok(())
     }
 

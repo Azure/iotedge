@@ -188,7 +188,7 @@ async fn retained_messages() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("$edgehub/"))
+            .filter(|(topic, _)| !topic.starts_with("$edgehub/"))
             .count(),
         3
     );
@@ -242,7 +242,7 @@ async fn retained_messages_zero_payload() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("$edgehub/"))
+            .filter(|(topic, _)| !topic.starts_with("$edgehub/"))
             .count(),
         0
     );
@@ -365,7 +365,7 @@ async fn will_message() {
 /// that will indeed is being sent out.
 #[tokio::test]
 async fn will_message_on_broker_shutdown() {
-    let topic = "topic/A";
+    let will_topic = "topic/A";
 
     let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
@@ -375,7 +375,7 @@ async fn will_message_on_broker_shutdown() {
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
         .with_will(Publication {
-            topic_name: topic.into(),
+            topic_name: will_topic.into(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: "will_msg_a".into(),
@@ -395,7 +395,7 @@ async fn will_message_on_broker_shutdown() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("$edgehub/"))
+            .filter(|(topic, _)| topic.as_str() == will_topic)
             .count(),
         1
     );
