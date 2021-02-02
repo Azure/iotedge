@@ -35,6 +35,7 @@ async fn disconnect_client() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
     test_client.next().await; // skip connack
