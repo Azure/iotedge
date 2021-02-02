@@ -192,16 +192,16 @@ where
 /// Bridge error.
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
-    #[error("failed to save to store.")]
+    #[error("failed to save to store. Caused by: {0}")]
     Store(#[from] PersistError),
 
-    #[error("failed to subscribe to topic.")]
+    #[error("failed to subscribe to topic. Caused by: {0}")]
     Subscribe(#[source] ClientError),
 
-    #[error("failed to parse topic pattern.")]
+    #[error("failed to parse topic pattern. Caused by: {0}")]
     TopicFilterParse(#[from] mqtt_broker::Error),
 
-    #[error("failed to load settings.")]
+    #[error("failed to load settings. Caused by: {0}")]
     LoadingSettings(#[from] config::ConfigError),
 
     #[error("Failed to get send pump message.")]
@@ -210,24 +210,24 @@ pub enum BridgeError {
     #[error("Failed to send message to pump: {0}")]
     SendBridgeUpdate(#[from] PumpError),
 
-    #[error("failed to execute RPC command")]
+    #[error("failed to execute RPC command. Caused by: {0}")]
     Rpc(#[from] RpcError),
 
-    #[error("failed to execute connectivity event")]
+    #[error("failed to execute connectivity event. Caused by: {0}")]
     Connectivity(#[from] ConnectivityError),
 
     #[error("failed to signal bridge shutdown.")]
-    ShutdownBridge(()),
+    ShutdownBridge,
 
-    #[error("failed to get publish handle from client.")]
+    #[error("failed to get publish handle from client. Caused by: {0}")]
     PublishHandle(#[source] ClientError),
 
-    #[error("failed to validate client settings: {0}")]
+    #[error("failed to validate client settings. Caused by: {0}")]
     ValidationError(#[source] ClientError),
 
-    #[error("failed to get subscribe handle from client.")]
+    #[error("failed to get subscribe handle from client. Caused by: {0}")]
     UpdateSubscriptionHandle(#[source] ClientError),
 
-    #[error("failed to get publish handle from client.")]
+    #[error("failed to get publish handle from client. Caused by: {0}")]
     ClientShutdown(#[from] ShutdownError),
 }
