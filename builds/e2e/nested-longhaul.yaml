@@ -73,6 +73,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Images Artifacts'
         inputs:
@@ -83,6 +84,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
+          allowPartiallySucceededBuilds: true
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/nested_long_haul_deployment.template.json
