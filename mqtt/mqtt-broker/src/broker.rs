@@ -282,20 +282,12 @@ where
     }
 
     fn process_shutdown(&mut self) -> Result<(), Error> {
-        let mut sessions = vec![];
         let client_ids = self.sessions.keys().cloned().collect::<Vec<ClientId>>();
 
         for client_id in client_ids {
-            if let Some(session) = self.close_session(&client_id)? {
-                sessions.push(session)
-            }
+            self.process_drop_connection(&client_id)?;
         }
 
-        for session in sessions {
-            if let Err(e) = session.send(ClientEvent::DropConnection) {
-                warn!(error = %e, message = "an error occurred closing the session", client_id = %session.client_id());
-            }
-        }
         Ok(())
     }
 
