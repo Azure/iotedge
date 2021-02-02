@@ -1,21 +1,16 @@
-use serde::{Deserialize, Serialize};
 use std::{
     collections::hash_map::DefaultHasher,
     fmt::Debug,
     hash::{Hash, Hasher},
 };
-use super::{StorageResult, error::{BlockError, RingBufferError}, serialize::{binary_serialize, binary_serialize_size}};
 
-/// A utility fn to calculate any entity that derives Hash.
-#[allow(dead_code)]
-pub(crate) fn calculate_hash<T>(t: &T) -> u64
-where
-    T: Hash + ?Sized,
-{
-    let mut hasher = DefaultHasher::new();
-    t.hash(&mut hasher);
-    hasher.finish()
-}
+use serde::{Deserialize, Serialize};
+
+use crate::persist::waking_state::ring_buffer::{
+    error::{BlockError, RingBufferError},
+    serialize::{binary_serialize, binary_serialize_size},
+    StorageResult,
+};
 
 #[allow(dead_code)]
 pub const BLOCK_HINT: usize = 0xdead_beef;
@@ -24,8 +19,8 @@ pub const BLOCK_HINT: usize = 0xdead_beef;
 /// | BlockHeader | hash | data... |
 /// +-------------+------+---------+
 ///
-/// The BlockHeader contains attributes meaningful for data
-/// storage and validation.
+/// The BlockHeader contains attributes meaningful for data storage and
+/// validation.
 #[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
@@ -99,8 +94,8 @@ impl BlockHeader {
 /// | BlockHeaderWithHash | data... |
 /// +---------------------+---------+
 ///
-/// The BlockHeaderWithHash is a wrapper over the BlockHeader
-/// but also contains a hash over the header for validation.
+/// The BlockHeaderWithHash is a wrapper over the BlockHeader but also
+/// contains a hash over the header for validation.
 #[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
@@ -143,8 +138,8 @@ pub fn serialized_block_size() -> bincode::Result<usize> {
     binary_serialize_size(&BlockHeaderWithHash::new(0, 0, 0, 0, 0))
 }
 
-/// A typed representation of byte data that should always
-/// follow a BlockHeaderWithHash.
+/// A typed representation of byte data that should always follow a
+/// BlockHeaderWithHash.
 #[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
@@ -154,17 +149,30 @@ pub(crate) struct Data {
 
 #[allow(dead_code)]
 impl Data {
-    pub fn new(data: Vec<u8>) -> Self {
-        Self { inner: data }
+    pub fn new<'a>(data: &'a [u8]) -> Self {
+        Self {
+            inner: Vec::from(data),
+        }
     }
 
-    pub fn inner(&self) -> &Vec<u8> {
+    pub fn inner(&self) -> &[u8] {
         &self.inner
     }
 }
 
+/// A utility fn to calculate any entity that derives Hash.
 #[allow(dead_code)]
-pub(crate) fn validate(block: &BlockHeaderWithHash, data: &Data) -> StorageResult<()> {
+pub(crate) fn calculate_hash<T>(t: &T) -> u64
+where
+    T: Hash + ?Sized,
+{
+    let mut hasher = DefaultHasher::new();
+    t.hash(&mut hasher);
+    hasher.finish()
+}
+
+#[allow(dead_code)]
+pub(crate) fn validate<'a>(block: &BlockHeaderWithHash, data: &Data) -> StorageResult<()> {
     let data_hash = calculate_hash(&data.inner);
     let data_size = binary_serialize(data)?.len();
     let actual_block_hash = block.block_hash();
@@ -198,8 +206,14 @@ pub(crate) fn validate(block: &BlockHeaderWithHash, data: &Data) -> StorageResul
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        collections::hash_map::DefaultHasher,
+        hash::{Hash, Hasher},
+    };
 
-    use std::collections::hash_map::DefaultHasher;
+    use matches::assert_matches;
+
+    use crate::persist::{waking_state::ring_buffer::serialize::binary_deserialize, StorageError};
 
     use super::*;
 
@@ -207,70 +221,106 @@ mod tests {
         (0..data_length).map(|_| rand::random::<u8>()).collect()
     }
 
-    mod serialize {
-        use std::hash::Hash;
-        use std::hash::Hasher;
+    fn test_serialize_helper(inner_data: &[u8]) {
+        let mut hasher = DefaultHasher::new();
+        inner_data.hash(&mut hasher);
+        let data_hash = hasher.finish();
 
-        use crate::persist::waking_state::ring_buffer::serialize::binary_deserialize;
+        let block_header_with_hash = BlockHeaderWithHash::new(data_hash, inner_data.len(), 0, 0, 0);
+        let data = Data::new(inner_data);
 
-        use super::*;
+        let result = binary_serialize(&block_header_with_hash);
+        assert!(result.is_ok());
+        let serialized_block = result.unwrap();
 
-        #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
-        #[repr(C)]
-        struct TestBlock {
-            block_header_with_hash: BlockHeaderWithHash,
-            data: Data,
-        }
+        let result = binary_deserialize::<BlockHeaderWithHash>(&serialized_block);
+        assert!(result.is_ok());
+        let deserialized_block = result.unwrap();
 
-        fn test_serialize_helper(inner_data: &[u8]) {
-            let mut hasher = DefaultHasher::new();
-            inner_data.hash(&mut hasher);
-            let data_hash = hasher.finish();
+        let result = binary_serialize(&data);
+        assert!(result.is_ok());
+        let serialized_data = result.unwrap();
 
-            let block_header_with_hash =
-                BlockHeaderWithHash::new(data_hash, inner_data.len(), 0, 0, 0);
-            let data = Data::new(Vec::from(inner_data));
+        let result = binary_deserialize::<Data>(&serialized_data);
+        assert!(result.is_ok());
+        let deserialized_data = result.unwrap();
 
-            let test_block = TestBlock {
-                block_header_with_hash,
-                data,
-            };
+        let block_hash = calculate_hash(&block_header_with_hash.inner);
+        assert_eq!(block_hash, deserialized_block.block_hash());
 
-            let result = binary_serialize(&test_block);
-            assert!(result.is_ok());
-            let serialized_block = result.unwrap();
+        let deserialized_header = deserialized_block.inner;
+        assert_eq!(0, deserialized_header.read_index());
+        assert_eq!(0, deserialized_header.write_index());
+        assert_eq!(data_hash, deserialized_header.data_hash());
+        assert_eq!(inner_data.len(), deserialized_header.data_size());
 
-            let result = binary_deserialize::<TestBlock>(&serialized_block);
-            assert!(result.is_ok());
-            let deserialized_block = result.unwrap();
+        assert_eq!(inner_data, deserialized_data.inner);
+    }
 
-            let deserialized_header_with_hash = deserialized_block.block_header_with_hash;
-            let block_hash = calculate_hash(&block_header_with_hash.inner);
-            assert_eq!(block_hash, deserialized_header_with_hash.block_hash());
+    #[test]
+    fn it_deserializes_serialized_empty_content() {
+        test_serialize_helper(b"");
+    }
 
-            let deserialized_header = deserialized_header_with_hash.inner;
-            assert_eq!(0, deserialized_header.read_index());
-            assert_eq!(0, deserialized_header.write_index());
-            assert_eq!(data_hash, deserialized_header.data_hash());
-            assert_eq!(inner_data.len(), deserialized_header.data_size());
+    #[test]
+    fn it_deserializes_serialized_content() {
+        test_serialize_helper(b"Hello World");
+    }
 
-            let deserialized_data = deserialized_block.data;
-            assert_eq!(inner_data, deserialized_data.inner);
-        }
+    #[test]
+    fn it_deserializes_serialized_random_content() {
+        test_serialize_helper(&random_data(100));
+    }
 
-        #[test]
-        fn test_serialize_deserialize_without_data() {
-            test_serialize_helper(b"");
-        }
+    #[test]
+    fn validate_errs_when_data_hash_do_not_match() {
+        let block = BlockHeaderWithHash::new(0x0000_0bad, 19, 0, 0, 0);
+        let data = Data::new(b"Hello World");
+        let result = validate(&block, &data);
+        assert!(result.is_err());
+        let _expected = calculate_hash(&data);
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::Validate(BlockError::DataHash {
+                found: 0x0000_0bad,
+                expected: _expected,
+            }))
+        );
+    }
 
-        #[test]
-        fn test_serialize_deserialize_with_data() {
-            test_serialize_helper(b"Hello World");
-        }
+    #[test]
+    fn validate_errs_when_data_size_do_not_match() {
+        let data = Data::new(b"Hello World");
+        let data_hash = calculate_hash(&data);
+        let block = BlockHeaderWithHash::new(data_hash, 0, 0, 0, 0);
+        let result = validate(&block, &data);
+        assert!(result.is_err());
+        let expected_result = binary_serialize_size(&data);
+        assert!(expected_result.is_ok());
+        let _expected = expected_result.unwrap();
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::Validate(BlockError::DataSize {
+                found: 0,
+                expected: _expected,
+            }))
+        );
+    }
 
-        #[test]
-        fn test_serialize_deserialize_with_random_data() {
-            test_serialize_helper(&random_data(100));
-        }
+    #[test]
+    fn validate_errs_when_block_hash_do_not_match() {
+        let data = Data::new(b"Hello World");
+        let data_hash = calculate_hash(&data);
+        let mut block = BlockHeaderWithHash::new(data_hash, 19, 1, 0, 0);
+        block.block_hash = 0x1;
+        let result = validate(&block, &data);
+        assert!(result.is_err());
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::Validate(BlockError::BlockHash {
+                found: 0x1,
+                expected: 0x7e02_796d_a121_4d26,
+            }))
+        );
     }
 }
