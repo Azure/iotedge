@@ -368,31 +368,31 @@ pub enum Handled {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
-    #[error("failed to subscribe topic")]
+    #[error("failed to subscribe topic. Caused by: {0}")]
     Subscribe(#[from] UpdateSubscriptionError),
 
-    #[error("failed to poll client")]
+    #[error("failed to poll client. Caused by: {0}")]
     PollClient(#[from] mqtt3::Error),
 
-    #[error("failed to shutdown custom mqtt client: {0}")]
+    #[error("failed to shutdown custom mqtt client. Caused by: {0}")]
     ShutdownClient(#[from] mqtt3::ShutdownError),
 
-    #[error("failed to obtain publish handle: {0}")]
+    #[error("failed to obtain publish handle. Caused by: {0}")]
     PublishHandle(#[source] mqtt3::PublishError),
 
-    #[error("failed to publish event: {0}")]
+    #[error("failed to publish event. Caused by: {0}")]
     PublishError(#[source] mqtt3::PublishError),
 
-    #[error("failed to obtain subscribe handle: {0}")]
+    #[error("failed to obtain subscribe handle. Caused by: {0}")]
     UpdateSubscriptionHandle(#[source] mqtt3::UpdateSubscriptionError),
 
-    #[error("failed to send update subscription: {0}")]
+    #[error("failed to send update subscription. Caused by: {0}")]
     UpdateSubscriptionError(#[source] mqtt3::UpdateSubscriptionError),
 
     #[error("failed to connect")]
     SslHandshake,
 
-    #[error("string too large: {0}")]
+    #[error("string too large. Caused by: {0}")]
     StringTooLarge(#[from] TryFromIntError),
 }
 
