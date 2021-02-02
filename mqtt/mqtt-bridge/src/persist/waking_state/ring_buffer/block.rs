@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::persist::waking_state::ring_buffer::{
     error::{BlockError, RingBufferError},
-    serialize::{binary_serialize, binary_serialize_size},
+    serialize::binary_serialize_size,
     StorageResult,
 };
 
@@ -134,10 +134,6 @@ impl BlockHeaderWithHash {
     }
 }
 
-pub fn serialized_block_size() -> bincode::Result<usize> {
-    binary_serialize_size(&BlockHeaderWithHash::new(0, 0, 0, 0, 0))
-}
-
 /// A typed representation of byte data that should always follow a
 /// BlockHeaderWithHash.
 #[allow(dead_code)]
@@ -171,10 +167,12 @@ where
     hasher.finish()
 }
 
+pub(crate) fn serialized_block_size() -> bincode::Result<usize> {
+    binary_serialize_size(&BlockHeaderWithHash::new(0, 0, 0, 0, 0))
+}
+
 #[allow(dead_code)]
 pub(crate) fn validate<'a>(block: &BlockHeaderWithHash, data: &Data) -> StorageResult<()> {
-    let data_hash = calculate_hash(&data.inner);
-    let data_size = binary_serialize(data)?.len();
     let actual_block_hash = block.block_hash();
     let block_hash = calculate_hash(&block.inner);
     if actual_block_hash != block_hash {
@@ -184,8 +182,10 @@ pub(crate) fn validate<'a>(block: &BlockHeaderWithHash, data: &Data) -> StorageR
         })
         .into());
     }
+
     let inner_block = block.inner;
     let actual_data_size = inner_block.data_size();
+    let data_size = binary_serialize_size(&*data)?;
     if actual_data_size != data_size {
         return Err(RingBufferError::Validate(BlockError::DataSize {
             found: actual_data_size,
@@ -193,6 +193,8 @@ pub(crate) fn validate<'a>(block: &BlockHeaderWithHash, data: &Data) -> StorageR
         })
         .into());
     }
+
+    let data_hash = calculate_hash(&data.inner);
     let actual_data_hash = inner_block.data_hash();
     if actual_data_hash != data_hash {
         return Err(RingBufferError::Validate(BlockError::DataHash {
@@ -201,6 +203,7 @@ pub(crate) fn validate<'a>(block: &BlockHeaderWithHash, data: &Data) -> StorageR
         })
         .into());
     }
+
     Ok(())
 }
 
@@ -213,7 +216,10 @@ mod tests {
 
     use matches::assert_matches;
 
-    use crate::persist::{waking_state::ring_buffer::serialize::binary_deserialize, StorageError};
+    use crate::persist::{
+        waking_state::ring_buffer::serialize::{binary_deserialize, binary_serialize},
+        StorageError,
+    };
 
     use super::*;
 
