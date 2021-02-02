@@ -128,8 +128,9 @@ install: release
 	$(GZIP) $(DESTDIR)$(man8)/aziot-edged.8
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/aziot/edged
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/aziot/edged
-	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/aziot/edged/aziot-edged.mgmt.sock
-	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/aziot/edged/aziot-edged.workload.sock
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
+	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(DESTDIR)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark
