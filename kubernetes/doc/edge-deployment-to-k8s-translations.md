@@ -49,6 +49,7 @@ objects that will be created.
 | createOptions.HostConfig.Mounts | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
 | createOptions.HostConfig.IpcMode | [Deployment](#podtemplate) |
 | createOptions.HostConfig.NetworkMode | [Deployment](#podtemplate) |
+| createOptions.HostConfig.PidMode | [Deployment](#podtemplate) |
 | createOptions.HostConfig.ExposedPorts | [Service](#service) |
 | createOptions.HostConfig.PortBindings | [Service](#service) |
 
@@ -177,6 +178,7 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
 - **nodeSelector** = `settings.k8s-extensions.nodeSelector` Placed in spec as provided.
 - **hostIPC** = `settings.createOptions.HostConfig.IpcMode` if IpcMode=host, we will set hostIPC to true
 - **hostNetwork** = `settings.createOptions.HostConfig.NetworkMode` if NetworkMode=host, we will set hostNetwork to true
+- **hostPID** = `settings.createOptions.HostConfig.PidMode` if PidMode=host, we will set hostPID to true
 - **dnsPolicy** = `settings.createOptions.HostConfig.NetworkMode` if NetworkMode=host, we will set hostNetwork to `ClusterFirstWithHostNet`
 
 ## Service
