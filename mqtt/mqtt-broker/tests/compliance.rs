@@ -743,6 +743,152 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
 }
 
 /// Scenario:
+/// - Client A connects with clean session
+/// - Client B connects with existing session
+/// - Client B subscribes to a topic
+/// - Client A sends QoS0 and several QoS1 packets
+/// - Client B receives packets and don't send PUBACKs
+/// - Broker restarts
+/// - Client B connects and expects to receive only QoS1 packets with dup=true in correct order.
+#[tokio::test]
+async fn inflight_qos1_messages_redelivered_on_server_restart() {
+    let topic_a = "topic/A";
+
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+
+    let mut server_handle = start_server(broker, DummyAuthenticator::anonymous());
+
+    let mut client_a = PacketStream::connect(
+        ClientId::IdWithCleanSession("test-client-a".into()),
+        server_handle.address(),
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    client_a.next().await; // skip connack
+
+    let mut client_b = PacketStream::connect(
+        ClientId::IdWithExistingSession("test-client-b".into()),
+        server_handle.address(),
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    client_b.next().await; // skip connack
+
+    client_b
+        .send_packet(Packet::Subscribe(Subscribe {
+            packet_identifier: PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![SubscribeTo {
+                topic_filter: topic_a.into(),
+                qos: QoS::AtLeastOnce,
+            }],
+        }))
+        .await;
+
+    assert_eq!(
+        client_b.next().await,
+        Some(Packet::SubAck(SubAck {
+            packet_identifier: PacketIdentifier::new(1).unwrap(),
+            qos: vec![SubAckQos::Success(QoS::AtLeastOnce)]
+        }))
+    );
+
+    client_a
+        .send_publish(Publish {
+            packet_identifier_dup_qos: PacketIdentifierDupQoS::AtMostOnce,
+            retain: false,
+            topic_name: topic_a.into(),
+            payload: Bytes::from("qos 0"),
+        })
+        .await;
+
+    const QOS1_MESSAGES: u16 = 3;
+
+    for i in 1..=QOS1_MESSAGES {
+        client_a
+            .send_publish(Publish {
+                packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+                    PacketIdentifier::new(i).unwrap(),
+                    false,
+                ),
+                retain: false,
+                topic_name: topic_a.into(),
+                payload: Bytes::from(format!("qos 1-{}", i)),
+            })
+            .await;
+    }
+
+    // receive all messages but don't send puback for QoS1/2.
+    assert_matches!(
+        client_b.next().await,
+        Some(Packet::Publish(Publish {
+            payload,
+            ..
+        })) if payload == Bytes::from("qos 0")
+    );
+
+    for i in 1..=QOS1_MESSAGES {
+        let publish = match client_b.next().await {
+            Some(Packet::Publish(publish)) => publish,
+            x => panic!("Expected publish but {:?} found", x),
+        };
+
+        assert_matches!(
+            publish.packet_identifier_dup_qos,
+            PacketIdentifierDupQoS::AtLeastOnce(_, false)
+        );
+        assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
+    }
+
+    // restart broker.
+    let state = server_handle.shutdown().await;
+    dbg!(&state);
+    let broker = BrokerBuilder::default()
+        .with_state(state)
+        .with_authorizer(AllowAll)
+        .build();
+
+    let server_handle = start_server(broker, DummyAuthenticator::anonymous());
+
+    // reconnect client_b
+    let mut client_b = PacketStream::connect(
+        ClientId::IdWithExistingSession("test-client-b".into()),
+        server_handle.address(),
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    assert_eq!(
+        client_b.next().await,
+        Some(Packet::ConnAck(ConnAck {
+            session_present: true,
+            return_code: ConnectReturnCode::Accepted
+        }))
+    );
+
+    // expect messages to be redelivered (QoS 1).
+    for i in 1..=QOS1_MESSAGES {
+        let publish = match client_b.next().await {
+            Some(Packet::Publish(publish)) => publish,
+            x => panic!("Expected publish but {:?} found", x),
+        };
+
+        assert_matches!(
+            publish.packet_identifier_dup_qos,
+            PacketIdentifierDupQoS::AtLeastOnce(_, true)
+        );
+        assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
+    }
+}
+
+/// Scenario:
 /// - Client A connects with clean session.
 /// - Client A subscribes to Topic/A
 /// - Client A subscribes to Topic/+
