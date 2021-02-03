@@ -3,6 +3,7 @@ parameters:
   test.buildNumber: ''
   test.buildId: ''
   build.source.branch: ''
+  build.checkout.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
   edgelet.artifact.name: ''
@@ -124,6 +125,7 @@ steps:
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
           -testInfo "$testInfo" \
+          -checkoutPath "${{ parameters['build.checkout.path'] }}" \
           -waitForTestComplete \
           -cleanAll
 
