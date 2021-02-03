@@ -75,6 +75,7 @@ steps:
         sudo rm -rf /var/lib/aziot/
         sudo rm -rf /var/lib/iotedge/
         sudo rm -rf /etc/aziot/
+        sudo rm -rf /etc/systemd/system/aziot-*.service.d/ 
 
         echo 'Restart docker'
         sudo systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
