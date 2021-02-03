@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         public Task VerifyAsync(IotHub iotHub, CancellationToken token)
         {
             EdgeAgent agent = new EdgeAgent(this.deviceId, iotHub);
-            Log.Verbose($"DRB - expected config: {this.expectedConfig}");
+            Log.Information($"DRB - expected config: {this.expectedConfig}");
             return agent.WaitForReportedConfigurationAsync(this.expectedConfig, token);
         }
 

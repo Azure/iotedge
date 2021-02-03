@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("Unstable")]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
