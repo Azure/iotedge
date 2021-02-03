@@ -36,9 +36,6 @@
               "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               },
@@ -47,7 +44,7 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }                   
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -109,18 +106,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
-                  ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
                   ]
-              }
+                }
+              ]
+            }
           ]
         }
       }
