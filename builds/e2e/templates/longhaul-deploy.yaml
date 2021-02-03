@@ -4,6 +4,7 @@ parameters:
   test.buildId: ''
   test.startDelay: ''
   build.source.branch: ''
+  build.checkout.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
   edgelet.artifact.name: ''
@@ -121,6 +122,7 @@ steps:
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
+            -checkoutPath "${{ parameters['build.checkout.path'] }}"
             -waitForTestComplete \
             -cleanAll
         else

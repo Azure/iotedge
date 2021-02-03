@@ -53,6 +53,7 @@ function usage() {
     echo ' -restartIntervalInMins                   Value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
     echo ' -sendReportFrequency                     Value for long haul specifying how often TRC will send reports to LogAnalytics.'
     echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
+    echo " -checkoutPath                            Path of the checked-out iotedge repository for getting the deployment file."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
@@ -161,7 +162,7 @@ function prepare_test_from_artifacts() {
     tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
     echo "Copy deployment artifact to $deployment_working_file"
-    cp "${Build.SourcesDirectory}/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
+    cp "$CHECKOUT_PATH/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
 
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
@@ -471,6 +472,9 @@ function process_args() {
         elif [ $saveNextArg -eq 47 ]; then
             TEST_MODE="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 48 ]; then
+            CHECKOUT_PATH="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -521,6 +525,7 @@ function process_args() {
                 '-restartIntervalInMins' ) saveNextArg=45;;
                 '-sendReportFrequency' ) saveNextArg=46;;
                 '-testMode' ) saveNextArg=47;;
+                '-checkoutPath' ) saveNextArg=48;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
