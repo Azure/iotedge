@@ -136,12 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Retry.Do(
                 async () =>
                 {
-                    Log.Information("DRB - getting twin");
                     Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, Option.Some(this.Id), token);
-                    Log.Information($"DRB - got twin: {twin.ToString()}");
-                    Log.Information($"DRB - RP: {twin.Properties.Reported}");
-                    Log.Information($"DRB - expected {expected.ToString()}");
-                    Log.Information($"DRB - expected {JsonConvert.ToString(expected)}");
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
