@@ -1,3 +1,5 @@
+pub mod builder;
+
 use futures_util::{
     future::{self, Either},
     pin_mut,
@@ -6,17 +8,11 @@ use mqtt3::ShutdownError;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
-use mqtt_util::client_io::Credentials;
-
 use crate::{
-    client::{ClientError, MqttClientConfig},
+    client::ClientError,
     config_update::BridgeDiff,
-    persist::{
-        storage::{ring_buffer::RingBuffer, FlushOptions},
-        PublicationStore, StorageError, StreamWakeableState,
-    },
-    pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
-    settings::ConnectionSettings,
+    persist::{waking_state::StreamWakeableState, StorageError},
+    pump::{Pump, PumpError, PumpHandle, PumpMessage},
     upstream::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
@@ -78,57 +74,6 @@ where
 {
     local_pump: Pump<S, LocalUpstreamMqttEventHandler<S>, LocalUpstreamPumpEventHandler>,
     remote_pump: Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
-}
-
-impl Bridge<RingBuffer> {
-    pub fn new_upstream(
-        system_address: &str,
-        device_id: &str,
-        settings: &ConnectionSettings,
-    ) -> Result<Self, BridgeError> {
-        const BATCH_SIZE: usize = 10;
-        const FILE_NAME: &'static str = "ring_buffer.txt";
-        const FLUSH_OPTIONS: FlushOptions = FlushOptions::AfterXBytes(128);
-        const MAX_FILE_SIZE: usize = 1024;
-
-        debug!("creating bridge {}...", settings.name());
-
-        let (local_pump, remote_pump) = Builder::default()
-            .with_local(|pump| {
-                pump.with_config(MqttClientConfig::new(
-                    system_address,
-                    settings.keep_alive(),
-                    settings.clean_session(),
-                    Credentials::Anonymous(format!("{}/{}/$bridge", device_id, settings.name())),
-                ))
-                .with_rules(settings.forwards());
-            })
-            .with_remote(|pump| {
-                pump.with_config(MqttClientConfig::new(
-                    settings.address(),
-                    settings.keep_alive(),
-                    settings.clean_session(),
-                    settings.credentials().clone(),
-                ))
-                .with_rules(settings.subscriptions());
-            })
-            .with_store(|| {
-                PublicationStore::new_ring_buffer(
-                    FILE_NAME.to_owned(),
-                    MAX_FILE_SIZE,
-                    FLUSH_OPTIONS,
-                    BATCH_SIZE,
-                )
-            })
-            .build()?;
-
-        debug!("created bridge {}...", settings.name());
-
-        Ok(Bridge {
-            local_pump,
-            remote_pump,
-        })
-    }
 }
 
 impl<S> Bridge<S>
@@ -246,4 +191,7 @@ pub enum BridgeError {
 
     #[error("failed to get publish handle from client. Caused by: {0}")]
     ClientShutdown(#[from] ShutdownError),
+
+    #[error("storage not set")]
+    UnsetStorage,
 }

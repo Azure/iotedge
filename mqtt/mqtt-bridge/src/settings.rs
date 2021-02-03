@@ -5,6 +5,8 @@ use serde::Deserialize;
 
 use mqtt_util::client_io::{CredentialProviderSettings, Credentials};
 
+use crate::persist::waking_state::ring_buffer::flush::FlushOptions;
+
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
@@ -15,6 +17,8 @@ pub struct BridgeSettings {
     remotes: Vec<ConnectionSettings>,
 
     messages: MessagesSettings,
+
+    storage: Option<StorageSettings>,
 }
 
 impl BridgeSettings {
@@ -47,6 +51,7 @@ impl BridgeSettings {
         clean_session: bool,
         keep_alive: Duration,
     ) -> Result<Self, ConfigError> {
+        let mut me = Self::new()?;
         let upstream_connection_settings = ConnectionSettings {
             name: "$upstream".into(),
             address: addr,
@@ -55,11 +60,8 @@ impl BridgeSettings {
             clean_session,
             keep_alive,
         };
-        Ok(Self {
-            upstream: Some(upstream_connection_settings),
-            remotes: vec![],
-            messages: MessagesSettings {},
-        })
+        me.upstream = Some(upstream_connection_settings);
+        Ok(me)
     }
 
     pub fn upstream(&self) -> Option<&ConnectionSettings> {
@@ -72,6 +74,10 @@ impl BridgeSettings {
 
     pub fn messages(&self) -> &MessagesSettings {
         &self.messages
+    }
+
+    pub fn storage(&self) -> Option<&StorageSettings> {
+        self.storage.as_ref()
     }
 }
 
@@ -90,6 +96,8 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             remotes: Vec<ConnectionSettings>,
 
             messages: MessagesSettings,
+
+            storage: StorageSettings,
         }
 
         let Inner {
@@ -97,6 +105,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream,
             remotes,
             messages,
+            storage,
         } = serde::Deserialize::deserialize(deserializer)?;
 
         let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
@@ -116,6 +125,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
+            storage: Some(storage),
         })
     }
 }
@@ -249,6 +259,32 @@ struct UpstreamSettings {
     clean_session: bool,
 
     subscriptions: Vec<Direction>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct StorageSettings {
+    flush_options: FlushOptions,
+    max_file_size: usize,
+    file_name: String,
+    batch_size: usize,
+}
+
+impl StorageSettings {
+    pub fn flush_options(&self) -> &FlushOptions {
+        &self.flush_options
+    }
+
+    pub fn max_file_size(&self) -> usize {
+        self.max_file_size
+    }
+
+    pub fn file_name(&self) -> &str {
+        &self.file_name
+    }
+
+    pub fn batch_size(&self) -> usize {
+        self.batch_size
+    }
 }
 
 #[cfg(test)]

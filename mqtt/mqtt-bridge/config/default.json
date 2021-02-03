@@ -5,6 +5,12 @@
         "subscriptions": [],
         "forwards": []
     },
+    "storage": {
+        "flush_options": "aftereachwrite",
+        "max_file_size": 1024,
+        "batch_size": 10,
+        "file_name": "test.txt"
+    },
     "remotes": [],
     "messages": {}
 }

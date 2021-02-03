@@ -25,7 +25,7 @@ use crate::{
     client::{MqttClient, MqttClientExt, MqttEventHandler},
     config_update::PumpDiff,
     messages::TopicMapper,
-    persist::{PublicationStore, StreamWakeableState},
+    persist::{waking_state::StreamWakeableState, PublicationStore},
 };
 
 #[cfg(test)]

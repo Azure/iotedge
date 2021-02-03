@@ -1,13 +1,18 @@
-use super::storage::StorageResult;
-use crate::persist::Key;
-
 pub mod memory;
 pub mod ring_buffer;
+
+use std::{collections::VecDeque, task::Waker};
+
+use mqtt3::proto::Publication;
+
+use crate::persist::{Key, StorageError};
 
 // TODO: Currently rocksdb does not compile on musl.
 //       Once we fix compilation we can add this module back.
 //       If we decide fixing compilation is not efficient, we can reuse code in rocksdb.rs by substituting rocksdb wrapping abstraction.
 // pub mod rocksdb;
+
+pub type StorageResult<T> = Result<T, StorageError>;
 
 /// Responsible for waking waiting streams when new elements are added.
 /// Exposes a get method for retrieving a count of elements in order of insertion.
@@ -30,76 +35,39 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use crate::persist::{
-        loader::MessageLoader,
-        storage::{
-            memory::WakingMemoryStore, ring_buffer::RingBuffer, FlushOptions, StorageResult,
-        },
-        waking_state::StreamWakeableState,
-        Key,
-    };
-    use bytes::Bytes;
-    use futures_util::stream::{Stream, StreamExt, TryStreamExt};
-    use matches::assert_matches;
-    use mqtt3::proto::{Publication, QoS};
-    use parking_lot::Mutex;
-    use rand::{distributions::Alphanumeric, thread_rng, Rng};
     use std::{
         collections::VecDeque,
-        fs::{remove_dir_all, remove_file},
-        path::PathBuf,
         pin::Pin,
         sync::Arc,
         task::Context,
         task::{Poll, Waker},
     };
+
+    use bytes::Bytes;
+    use futures_util::stream::{Stream, StreamExt, TryStreamExt};
+    use matches::assert_matches;
+    use mqtt3::proto::{Publication, QoS};
+    use parking_lot::Mutex;
     use test_case::test_case;
     use tokio::{
         sync::Notify,
         task::{self, LocalSet},
     };
 
+    use crate::persist::{
+        loader::MessageLoader,
+        waking_state::{
+            memory::WakingMemoryStore,
+            ring_buffer::{flush::FlushOptions, RingBuffer},
+            StorageResult, StreamWakeableState,
+        },
+        Key,
+    };
+
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
-    const FILE_NAME: &'static str = "test_file";
     const MAX_FILE_SIZE: usize = 1024;
 
-    fn cleanup_test_file(file_name: String) {
-        let path = &PathBuf::from(file_name);
-        if path.exists() {
-            if path.is_file() {
-                let result = remove_file(path);
-                assert!(result.is_ok());
-            }
-            if path.is_dir() {
-                let result = remove_dir_all(path);
-                assert!(result.is_ok());
-            }
-        }
-    }
-
-    fn create_rand_str() -> String {
-        thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(10)
-            .map(char::from)
-            .collect()
-    }
-
-    struct TestRingBuffer(RingBuffer, String);
-
-    impl Default for TestRingBuffer {
-        fn default() -> Self {
-            let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
-            TestRingBuffer(rb, file_name.clone())
-        }
-    }
-
-    impl Drop for TestRingBuffer {
-        fn drop(&mut self) {
-            cleanup_test_file(self.1.clone())
-        }
-    }
+    struct TestRingBuffer(RingBuffer);
 
     impl StreamWakeableState for TestRingBuffer {
         fn insert(&mut self, value: Publication) -> StorageResult<Key> {
@@ -116,6 +84,16 @@ mod tests {
 
         fn set_waker(&mut self, waker: &Waker) {
             self.0.set_waker(waker)
+        }
+    }
+
+    impl Default for TestRingBuffer {
+        fn default() -> Self {
+            let result = tempfile::NamedTempFile::new();
+            assert!(result.is_ok());
+            let file = result.unwrap();
+            let file_path = file.path();
+            Self(RingBuffer::new(file_path, MAX_FILE_SIZE, &FLUSH_OPTIONS))
         }
     }
 

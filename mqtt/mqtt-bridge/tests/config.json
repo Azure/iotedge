@@ -53,5 +53,11 @@
             ]
         }
     ],
+    "storage": {
+        "flush_options": "off",
+        "max_file_size": 1024,
+        "file_name": "test.txt",
+        "batch_size": 10
+    },
     "messages": {}
 }

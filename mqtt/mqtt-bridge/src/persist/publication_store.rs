@@ -1,14 +1,18 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use anyhow::Result;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use tracing::debug;
 
-use crate::persist::{loader::MessageLoader, waking_state::StreamWakeableState, Key};
+use crate::persist::{
+    loader::MessageLoader,
+    waking_state::{memory::WakingMemoryStore, StreamWakeableState},
+    Key,
+};
 
-use super::{
-    storage::{ring_buffer::RingBuffer, FlushOptions},
+use crate::persist::{
+    waking_state::{ring_buffer::flush::FlushOptions, ring_buffer::RingBuffer},
     StorageError,
 };
 
@@ -21,17 +25,21 @@ struct PublicationStoreInner<S> {
 /// Persistence implementation used for the bridge
 pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
-unsafe impl<S> Send for PublicationStore<S> {}
+impl PublicationStore<WakingMemoryStore> {
+    pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
+        Self::new(WakingMemoryStore::default(), batch_size)
+    }
+}
 
 impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
-        file_name: String,
+        file_path: &Path,
         max_file_size: usize,
-        flush_options: FlushOptions,
+        flush_options: &FlushOptions,
         batch_size: usize,
     ) -> Self {
         Self::new(
-            RingBuffer::new(file_name, max_file_size, flush_options),
+            RingBuffer::new(file_path, max_file_size, flush_options),
             batch_size,
         )
     }
@@ -86,83 +94,54 @@ impl<S: StreamWakeableState> Clone for PublicationStore<S> {
 
 #[cfg(test)]
 mod tests {
-    use crate::persist::{
-        publication_store::PublicationStore,
-        storage::{memory::WakingMemoryStore, ring_buffer::RingBuffer, FlushOptions},
-        Key, StreamWakeableState,
-    };
+    use std::{collections::VecDeque, task::Waker};
+
     use bytes::Bytes;
     use futures_util::stream::TryStreamExt;
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
-    use rand::{distributions::Alphanumeric, thread_rng, Rng};
-    use std::{
-        collections::VecDeque,
-        fs::{remove_dir_all, remove_file},
-        path::PathBuf,
-    };
     use test_case::test_case;
 
+    use crate::persist::{
+        publication_store::PublicationStore,
+        waking_state::StreamWakeableState,
+        waking_state::{
+            memory::WakingMemoryStore, ring_buffer::flush::FlushOptions, ring_buffer::RingBuffer,
+            StorageResult,
+        },
+        Key,
+    };
+
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
-    const FILE_NAME: &'static str = "test_file";
     const MAX_FILE_SIZE: usize = 1024;
 
-    fn cleanup_test_file(file_name: String) {
-        let path = &PathBuf::from(file_name);
-        if path.exists() {
-            if path.is_file() {
-                let result = remove_file(path);
-                assert!(result.is_ok());
-            }
-            if path.is_dir() {
-                let result = remove_dir_all(path);
-                assert!(result.is_ok());
-            }
-        }
-    }
-
-    fn create_rand_str() -> String {
-        thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(10)
-            .map(char::from)
-            .collect()
-    }
-
-    struct TestRingBuffer(RingBuffer, String);
+    struct TestRingBuffer(RingBuffer);
 
     impl StreamWakeableState for TestRingBuffer {
-        fn insert(&mut self, value: Publication) -> crate::persist::storage::StorageResult<Key> {
+        fn insert(&mut self, value: Publication) -> StorageResult<Key> {
             self.0.insert(value)
         }
 
-        fn batch(
-            &mut self,
-            count: usize,
-        ) -> crate::persist::storage::StorageResult<VecDeque<(Key, Publication)>> {
+        fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
             self.0.batch(count)
         }
 
-        fn remove(&mut self, key: Key) -> crate::persist::storage::StorageResult<()> {
+        fn remove(&mut self, key: Key) -> StorageResult<()> {
             self.0.remove(key)
         }
 
-        fn set_waker(&mut self, waker: &std::task::Waker) {
+        fn set_waker(&mut self, waker: &Waker) {
             self.0.set_waker(waker)
         }
     }
 
     impl Default for TestRingBuffer {
         fn default() -> Self {
-            let file_name = FILE_NAME.to_owned() + &create_rand_str();
-            let rb = RingBuffer::new(file_name.clone(), MAX_FILE_SIZE, FLUSH_OPTIONS);
-            TestRingBuffer(rb, file_name.clone())
-        }
-    }
-
-    impl Drop for TestRingBuffer {
-        fn drop(&mut self) {
-            cleanup_test_file(self.1.clone())
+            let result = tempfile::NamedTempFile::new();
+            assert!(result.is_ok());
+            let file = result.unwrap();
+            let file_path = file.path();
+            Self(RingBuffer::new(file_path, MAX_FILE_SIZE, &FLUSH_OPTIONS))
         }
     }
 

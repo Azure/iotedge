@@ -1,5 +1,7 @@
-#[allow(dead_code)]
-#[derive(Clone, Copy, Debug)]
+use serde::Deserialize;
+
+#[derive(Clone, Copy, Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum FlushOptions {
     AfterEachWrite,
     AfterXWrites(usize),
@@ -8,14 +10,12 @@ pub enum FlushOptions {
     Off,
 }
 
-#[allow(dead_code)]
 pub struct FlushState {
     pub writes: usize,
     pub bytes_written: usize,
     pub millis_elapsed: usize,
 }
 
-#[allow(dead_code)]
 impl FlushState {
     pub(crate) fn new() -> Self {
         Self {

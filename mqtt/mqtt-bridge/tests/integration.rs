@@ -68,7 +68,7 @@ async fn send_message_upstream_downstream() {
             Some("downstream".into()),
         )),
     ];
-
+    println!("setup");
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         setup_brokers(AllowAll, AllowAll);
     let controller_handle = setup_bridge_controller(
@@ -77,14 +77,15 @@ async fn send_message_upstream_downstream() {
         subs,
     )
     .await;
-
+    println!("client build");
     let mut local_client = TestClientBuilder::new(local_server_handle.address())
         .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
         .build();
+    println!("client sub");
     local_client
         .subscribe("downstream/filter/#", QoS::AtLeastOnce)
         .await;
-
+    println!("wait for ack 1");
     // wait to receive subscription ack
     local_client.subscriptions().next().await;
 
@@ -96,6 +97,7 @@ async fn send_message_upstream_downstream() {
         .subscribe("upstream/temp/#", QoS::AtLeastOnce)
         .await;
 
+    println!("wait for ack 2");
     // wait to receive subscription ack
     upstream_client.subscriptions().next().await;
 

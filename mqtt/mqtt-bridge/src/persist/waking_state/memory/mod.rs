@@ -1,21 +1,17 @@
 pub mod error;
 
-use std::{
-    cmp::min,
-    collections::{HashSet, VecDeque},
-    task::Waker,
-};
-use crate::persist::{waking_state::StreamWakeableState, Key};
-use mqtt3::proto::Publication;
-use tracing::debug;
-use error::MemoryError;
 use super::StorageResult;
+use crate::persist::{waking_state::StreamWakeableState, Key};
+use error::MemoryError;
+use mqtt3::proto::Publication;
+use std::{cmp::min, collections::VecDeque, task::Waker};
+use tracing::debug;
 
 /// When elements are retrieved they are moved to the loaded collection.
 /// This loaded collection is necessary so it behaves the same as other `StreamWakeableState` implementations
 pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
-    loaded: HashSet<Key>,
+    loaded: VecDeque<Key>,
     waker: Option<Waker>,
 }
 
@@ -23,7 +19,7 @@ impl Default for WakingMemoryStore {
     fn default() -> Self {
         Self {
             queue: VecDeque::new(),
-            loaded: HashSet::new(),
+            loaded: VecDeque::new(),
             waker: None,
         }
     }
@@ -51,7 +47,7 @@ impl StreamWakeableState for WakingMemoryStore {
         let output: VecDeque<_> = self.queue.drain(..count).collect();
 
         for (key, _) in &output {
-            self.loaded.insert(*key);
+            self.loaded.push_back(*key);
         }
 
         Ok(output)
@@ -63,10 +59,11 @@ impl StreamWakeableState for WakingMemoryStore {
             key, self.loaded
         );
 
-        if self.loaded.remove(&key) {
+        if !self.loaded.is_empty() && self.loaded[0] == key {
+            self.loaded.pop_front();
             Ok(())
         } else {
-            Err(MemoryError::NonExistantKey.into())
+            Err(MemoryError::BadKey.into())
         }
     }
 

@@ -16,8 +16,9 @@ use tracing::{debug, error, info, warn};
 use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandleError};
 
 use crate::{
-    bridge::{Bridge, BridgeError},
+    bridge::{builder::bridge_builder, BridgeError},
     config_update::{BridgeControllerUpdate, BridgeUpdate},
+    persist::{waking_state::ring_buffer::RingBuffer, WakingMemoryStore},
     settings::BridgeSettings,
 };
 
@@ -68,18 +69,13 @@ impl Sidecar for BridgeController {
 
         let mut bridges = Bridges::default();
 
-        if let Some(upstream_settings) = self.settings.upstream() {
-            match Bridge::new_upstream(&self.system_address, &self.device_id, upstream_settings) {
-                Ok(bridge) => {
-                    bridges.start_bridge(bridge, upstream_settings).await;
-                }
-                Err(e) => {
-                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
-                }
-            }
-        } else {
-            info!("no upstream settings detected")
-        }
+        start_bridge(
+            &self.settings,
+            &self.system_address,
+            &self.device_id,
+            &mut bridges,
+        )
+        .await;
 
         loop {
             let wait_bridge_or_pending = if bridges.is_terminated() {
@@ -109,20 +105,13 @@ impl Sidecar for BridgeController {
                     // always restart upstream bridge
                     if name == UPSTREAM {
                         info!("restarting bridge...");
-                        if let Some(upstream_settings) = self.settings.upstream() {
-                            match Bridge::new_upstream(
-                                &self.system_address,
-                                &self.device_id,
-                                upstream_settings,
-                            ) {
-                                Ok(bridge) => {
-                                    bridges.start_bridge(bridge, upstream_settings).await;
-                                }
-                                Err(e) => {
-                                    error!(err = %e, "failed to create {} bridge", name);
-                                }
-                            }
-                        }
+                        start_bridge(
+                            &self.settings,
+                            &self.system_address,
+                            &self.device_id,
+                            &mut bridges,
+                        )
+                        .await;
                     }
                 }
                 Either::Right((None, _)) => {
@@ -150,6 +139,48 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     } else {
         debug!("{} bridge update is empty", UPSTREAM);
         bridges.send_update(BridgeUpdate::new(UPSTREAM)).await;
+    }
+}
+
+async fn start_bridge(
+    settings: &BridgeSettings,
+    system_address: &str,
+    device_id: &str,
+    bridges: &mut Bridges,
+) {
+    if let Some(upstream_settings) = settings.upstream() {
+        if let Some(storage_settings) = settings.storage() {
+            let bridge_result = bridge_builder::<RingBuffer>()
+                .with_system_address(String::from(system_address))
+                .with_device_id(String::from(device_id))
+                .with_connection_settings(upstream_settings.clone())
+                .with_storage_settings(storage_settings.clone())
+                .build();
+            match bridge_result {
+                Ok(bridge) => {
+                    bridges.start_bridge(bridge, upstream_settings).await;
+                }
+                Err(e) => {
+                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
+                }
+            }
+        } else {
+            let bridge_result = bridge_builder::<WakingMemoryStore>()
+                .with_system_address(String::from(system_address))
+                .with_device_id(String::from(device_id))
+                .with_connection_settings(upstream_settings.clone())
+                .build();
+            match bridge_result {
+                Ok(bridge) => {
+                    bridges.start_bridge(bridge, upstream_settings).await;
+                }
+                Err(e) => {
+                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
+                }
+            }
+        }
+    } else {
+        info!("no upstream settings detected")
     }
 }
 

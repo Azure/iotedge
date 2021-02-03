@@ -12,7 +12,6 @@ use crate::persist::waking_state::ring_buffer::{
     StorageResult,
 };
 
-#[allow(dead_code)]
 pub const BLOCK_HINT: usize = 0xdead_beef;
 
 /// + --------------+------+---------+
@@ -21,7 +20,6 @@ pub const BLOCK_HINT: usize = 0xdead_beef;
 ///
 /// The `BlockHeader` contains attributes meaningful for data storage and
 /// validation.
-#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
 pub(crate) struct BlockHeader {
@@ -32,26 +30,17 @@ pub(crate) struct BlockHeader {
     data_hash: u64,
     data_size: usize,
     order: usize,
-    read_index: usize,
     should_not_overwrite: bool,
     write_index: usize,
 }
 
-#[allow(dead_code)]
 impl BlockHeader {
-    pub fn new(
-        data_hash: u64,
-        data_size: usize,
-        order: usize,
-        read_index: usize,
-        write_index: usize,
-    ) -> Self {
+    pub fn new(data_hash: u64, data_size: usize, order: usize, write_index: usize) -> Self {
         Self {
             data_hash,
             data_size,
             hint: BLOCK_HINT,
             order,
-            read_index,
             should_not_overwrite: true,
             write_index,
         }
@@ -73,10 +62,6 @@ impl BlockHeader {
         self.write_index
     }
 
-    pub fn read_index(&self) -> usize {
-        self.read_index
-    }
-
     pub fn data_hash(&self) -> u64 {
         self.data_hash
     }
@@ -96,7 +81,6 @@ impl BlockHeader {
 ///
 /// The `BlockHeaderWithHash` is a wrapper over the `BlockHeader` but also
 /// contains a hash over the header for validation.
-#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
 pub(crate) struct BlockHeaderWithHash {
@@ -104,16 +88,9 @@ pub(crate) struct BlockHeaderWithHash {
     block_hash: u64,
 }
 
-#[allow(dead_code)]
 impl BlockHeaderWithHash {
-    pub fn new(
-        data_hash: u64,
-        data_size: usize,
-        order: usize,
-        read_index: usize,
-        write_index: usize,
-    ) -> Self {
-        let header = BlockHeader::new(data_hash, data_size, order, read_index, write_index);
+    pub fn new(data_hash: u64, data_size: usize, order: usize, write_index: usize) -> Self {
+        let header = BlockHeader::new(data_hash, data_size, order, write_index);
         let header_hash = calculate_hash(&header);
         Self {
             inner: header,
@@ -136,14 +113,12 @@ impl BlockHeaderWithHash {
 
 /// A typed representation of byte data that should always follow a
 /// `BlockHeaderWithHash`.
-#[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
 pub(crate) struct Data {
     inner: Vec<u8>,
 }
 
-#[allow(dead_code)]
 impl Data {
     pub fn new(data: &[u8]) -> Self {
         Self {
@@ -157,7 +132,6 @@ impl Data {
 }
 
 /// A utility fn to calculate any entity that derives Hash.
-#[allow(dead_code)]
 pub(crate) fn calculate_hash<T>(t: &T) -> u64
 where
     T: Hash + ?Sized,
@@ -168,10 +142,9 @@ where
 }
 
 pub(crate) fn serialized_block_size() -> bincode::Result<usize> {
-    binary_serialize_size(&BlockHeaderWithHash::new(0, 0, 0, 0, 0))
+    binary_serialize_size(&BlockHeaderWithHash::new(0, 0, 0, 0))
 }
 
-#[allow(dead_code)]
 pub(crate) fn validate(block: &BlockHeaderWithHash, data: &Data) -> StorageResult<()> {
     let actual_block_hash = block.block_hash();
     let block_hash = calculate_hash(&block.inner);
@@ -232,7 +205,7 @@ mod tests {
         inner_data.hash(&mut hasher);
         let data_hash = hasher.finish();
 
-        let block_header_with_hash = BlockHeaderWithHash::new(data_hash, inner_data.len(), 0, 0, 0);
+        let block_header_with_hash = BlockHeaderWithHash::new(data_hash, inner_data.len(), 0, 0);
         let data = Data::new(inner_data);
 
         let result = binary_serialize(&block_header_with_hash);
@@ -255,7 +228,6 @@ mod tests {
         assert_eq!(block_hash, deserialized_block.block_hash());
 
         let deserialized_header = deserialized_block.inner;
-        assert_eq!(0, deserialized_header.read_index());
         assert_eq!(0, deserialized_header.write_index());
         assert_eq!(data_hash, deserialized_header.data_hash());
         assert_eq!(inner_data.len(), deserialized_header.data_size());
@@ -280,7 +252,7 @@ mod tests {
 
     #[test]
     fn validate_errs_when_data_hash_do_not_match() {
-        let block = BlockHeaderWithHash::new(0x0000_0bad, 19, 0, 0, 0);
+        let block = BlockHeaderWithHash::new(0x0000_0bad, 19, 0, 0);
         let data = Data::new(b"Hello World");
         let result = validate(&block, &data);
         assert!(result.is_err());
@@ -298,7 +270,7 @@ mod tests {
     fn validate_errs_when_data_size_do_not_match() {
         let data = Data::new(b"Hello World");
         let data_hash = calculate_hash(&data);
-        let block = BlockHeaderWithHash::new(data_hash, 0, 0, 0, 0);
+        let block = BlockHeaderWithHash::new(data_hash, 0, 0, 0);
         let result = validate(&block, &data);
         assert!(result.is_err());
         let expected_result = binary_serialize_size(&data);
@@ -317,7 +289,7 @@ mod tests {
     fn validate_errs_when_block_hash_do_not_match() {
         let data = Data::new(b"Hello World");
         let data_hash = calculate_hash(&data);
-        let mut block = BlockHeaderWithHash::new(data_hash, 19, 1, 0, 0);
+        let mut block = BlockHeaderWithHash::new(data_hash, 19, 1, 0);
         block.block_hash = 0x1;
         let result = validate(&block, &data);
         assert!(result.is_err());
@@ -325,7 +297,7 @@ mod tests {
             result.unwrap_err(),
             StorageError::RingBuffer(RingBufferError::Validate(BlockError::BlockHash {
                 found: 0x1,
-                expected: 0x7e02_796d_a121_4d26,
+                expected: 0x5f41_0d03_497c_1cb0,
             }))
         );
     }

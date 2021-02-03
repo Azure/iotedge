@@ -1,6 +1,5 @@
 use std::io::Error as IOError;
 
-#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
     #[error("Bad hint")]
@@ -16,14 +15,10 @@ pub enum BlockError {
     DataSize { found: usize, expected: usize },
 }
 
-#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum RingBufferError {
     #[error("Failed to validate internal details {0}")]
     Validate(#[from] BlockError),
-
-    #[error("Unable to fit data and possible corruption")]
-    WrapAround,
 
     #[error("Serialization error occurred {0}")]
     Serialization(#[from] bincode::Error),
@@ -39,4 +34,7 @@ pub enum RingBufferError {
 
     #[error("Buffer is full and messages must be drained to continue")]
     Full,
+
+    #[error("Cannot remove before reading")]
+    RemoveBeforeRead
 }
