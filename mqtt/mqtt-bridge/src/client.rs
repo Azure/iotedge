@@ -11,10 +11,7 @@ use mqtt3::{
     proto::{self, Publication, SubscribeTo},
     Client, Event, ShutdownError, UpdateSubscriptionError,
 };
-
-use mqtt_util::client_io::{
-    ClientIoSource, Credentials, SasTokenSource, TcpConnection, TrustBundleSource,
-};
+use mqtt_util::{ClientIoSource, Credentials, SasTokenSource, TcpConnection, TrustBundleSource};
 
 const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(60);
 // TODO: get QOS from topic settings
@@ -399,7 +396,7 @@ pub enum ClientError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mqtt_util::client_io::AuthenticationSettings;
+    use mqtt_util::AuthenticationSettings;
 
     #[derive(Default)]
     struct EventHandler {}
