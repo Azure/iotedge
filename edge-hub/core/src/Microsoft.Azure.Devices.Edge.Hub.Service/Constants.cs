@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string StorageLogLevel = "Storage_LogLevel";
             public const string ExperimentalFeatures = "experimentalFeatures";
             public const string NestedEdgeEnabled = "NestedEdgeEnabled";
-            public const string MqttBrokerEnabled = "mqttBrokerEnabled";
+            public const string MqttBrokerEnabled = "MqttBrokerEnabled";
         }
     }
 }

@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
-            ExperimentalFeatures experimentalFeatures = CreateExperimentalFeatures(configuration);
+            bool mqttBrokerEnabled = configuration.GetValue<bool>(Constants.ConfigKey.MqttBrokerEnabled, false);
             var configUpdaterStartupFailed = new TaskCompletionSource<bool>();
             var configDownloadTask = configUpdater.Init(configSource);
 
@@ -112,8 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
-            using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(experimentalFeatures, container))
-            using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, experimentalFeatures, container, hosting))
+            using (IProtocolHead mqttBrokerProtocolHead = await GetMqttBrokerProtocolHeadAsync(container, mqttBrokerEnabled))
+            using (IProtocolHead edgeHubProtocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting, mqttBrokerEnabled))
             using (var renewal = new CertificateRenewal(certificates, logger))
             {
                 try
@@ -140,13 +140,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return 0;
         }
 
-        static ExperimentalFeatures CreateExperimentalFeatures(IConfigurationRoot configuration)
-        {
-            IConfiguration experimentalFeaturesConfig = configuration.GetSection(Constants.ConfigKey.ExperimentalFeatures);
-            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(experimentalFeaturesConfig, Logger.Factory.CreateLogger("EdgeHub"));
-            return experimentalFeatures;
-        }
-
         static void LogVersionInfo(ILogger logger)
         {
             VersionInfo versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
@@ -156,9 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
         }
 
-        static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(ExperimentalFeatures experimentalFeatures, IContainer container)
+        static async Task<IProtocolHead> GetMqttBrokerProtocolHeadAsync(IContainer container, bool enableMqttBroker)
         {
-            if (!experimentalFeatures.EnableMqttBroker)
+            if (!enableMqttBroker)
             {
                 return EmptyProtocolHead.GetInstance();
             }
@@ -169,12 +162,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return new OrderedProtocolHead(orderedProtocolHeads);
         }
 
-        static async Task<IProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, ExperimentalFeatures experimentalFeatures, IContainer container, Hosting hosting)
+        static async Task<IProtocolHead> GetEdgeHubProtocolHeadAsync(ILogger logger, IConfigurationRoot configuration, IContainer container, Hosting hosting, bool mqttBrokerEnabled)
         {
             var protocolHeads = new List<IProtocolHead>();
 
             // MQTT broker overrides the legacy MQTT protocol head
-            if (configuration.GetValue("mqttSettings:enabled", true) && !experimentalFeatures.EnableMqttBroker)
+            if (configuration.GetValue("mqttSettings:enabled", true) && !mqttBrokerEnabled)
             {
                 protocolHeads.Add(await container.Resolve<Task<MqttProtocolHead>>());
             }

@@ -117,8 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             builder.GetModule(ModuleName.EdgeHub)
                 .WithEnvironment(new[]
                 {
-                    ("experimentalFeatures__enabled", "true"),
-                    ("experimentalFeatures__mqttBrokerEnabled", "true"),
+                    ("MqttBrokerEnabled", "true"),
                 })
                 .WithDesiredProperties(new Dictionary<string, object>
                 {

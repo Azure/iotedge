@@ -33,10 +33,7 @@
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "experimentalFeatures__enabled": {
-                "value": "true"
-              },
-              "experimentalFeatures__mqttBrokerEnabled": {
+              "MqttBrokerEnabled": {
                 "value": "true"
               },
               "DeviceScopeCacheRefreshDelaySecs": {

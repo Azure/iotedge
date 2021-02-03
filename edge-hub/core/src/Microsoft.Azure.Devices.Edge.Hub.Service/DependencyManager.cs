@@ -125,14 +125,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
             bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, true);
+            bool mqttBrokerEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.MqttBrokerEnabled, false);
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled);
-            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled);
-            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled, mqttBrokerEnabled);
+            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, mqttBrokerEnabled);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname));
 
-            if (experimentalFeatures.EnableMqttBroker)
+            if (mqttBrokerEnabled)
             {
                 var authConfig = this.configuration.GetSection("authAgentSettings");
                 builder.RegisterModule(new AuthModule(authConfig));
@@ -158,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ContainerBuilder builder,
             StoreAndForward storeAndForward,
             bool optimizeForPerformance,
-            ExperimentalFeatures experimentalFeatures)
+            bool mqttBrokerEnabled)
         {
             var topics = new MessageAddressConversionConfiguration(
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
@@ -169,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
 
             // MQTT broker overrides the legacy MQTT protocol head
-            if (mqttSettingsConfiguration.GetValue("enabled", true) && !experimentalFeatures.EnableMqttBroker)
+            if (mqttSettingsConfiguration.GetValue("enabled", true) && !mqttBrokerEnabled)
             {
                 builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.IsEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
             }
@@ -179,7 +180,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ContainerBuilder builder,
             StoreAndForward storeAndForward,
             ExperimentalFeatures experimentalFeatures,
-            bool nestedEdgeEnabled)
+            bool nestedEdgeEnabled,
+            bool mqttBrokerEnabled)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -213,8 +215,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             int messageCleanupIntervalSecs = this.configuration.GetValue("MessageCleanupIntervalSecs", 1800);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-            bool isLegacyUpstream = ExperimentalFeatures.IsViaBrokerUpstream(
-                    experimentalFeatures,
+            bool isLegacyUpstream = IsViaBrokerUpstream(
+                    nestedEdgeEnabled,
+                    mqttBrokerEnabled,
                     this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue);
 
             builder.RegisterModule(
@@ -391,6 +394,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             long value = this.configuration.GetValue(key, long.MinValue);
             return value == long.MinValue ? Option.None<long>() : Option.Some(value);
+        }
+
+        static bool IsViaBrokerUpstream(bool nestedEdgeEnabled, bool mqttBrokerEnabled, bool hasGatewayHostname)
+        {
+            bool isLegacyUpstream = !nestedEdgeEnabled
+                || !mqttBrokerEnabled
+                || !hasGatewayHostname;
+
+            return isLegacyUpstream;
         }
     }
 }
