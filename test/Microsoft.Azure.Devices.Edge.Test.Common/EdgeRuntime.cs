@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public class EdgeRuntime
     {
@@ -50,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 hubEnvVar = new[] { ("RuntimeLogLevel", "debug") };
             }
+            Log.Verbose("DRB TESTING ANY LOG2");
 
             var builder = new EdgeConfigBuilder(this.DeviceId);
             builder.AddRegistries(this.registries);
@@ -64,11 +66,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
+            Log.Verbose("DRB TESTING ANY LOG3");
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))
                 .ToArray();
+            Log.Verbose("DRB TESTING ANY LOG4");
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
+            Log.Verbose("DRB TESTING ANY LOG5");
             await edgeConfiguration.VerifyAsync(this.iotHub, token);
             return new EdgeDeployment(deployTime, modules);
         }

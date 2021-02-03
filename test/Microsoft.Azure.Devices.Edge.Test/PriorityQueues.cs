@@ -45,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
+            Log.Verbose("DRB TESTING ANY LOG");
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
