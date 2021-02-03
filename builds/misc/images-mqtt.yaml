@@ -31,13 +31,6 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os alpine --arch amd64 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
-      - template: templates/copy-rust-binaries.yaml
-        parameters:
-          should.publish.amd64: "true"
-          artifact.folder.path: "mqtt/target"
-          destination.folder.path: "mqtt/build-context"
-          artifact.name: "mqttd"
-
       - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
         displayName: Consolidate MQTT Broker artifacts
 
