@@ -5,6 +5,10 @@
 
 # When copying rust artifacts into the build context we try to mimic the
 # directory structure of the target folder.
+
+# For some build pipelines, the amd64, arm32v7, arm64v8 artifacts are handled
+# in separate jobs. For simplicity, this script tries to move all artifact types,
+# regardless if they have been produced by a build step.
 ###############################################################################
 
 ###############################################################################
@@ -117,6 +121,24 @@ edge-hub)
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM32V7/release"
     cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM64V8/release"
     cp -r "$EDGEHUB_DOCKER_SOURCE" "$ARTIFACTS_DEST"
+    ;;
+
+mqttd)
+    MQTT_ARTIFACTS_SOURCE="mqtt"
+    ARTIFACTS_DEST="mqtt/build-context"
+
+    # make build context structure
+    mkdir "$ARTIFACTS_DEST"
+    mkdir -p "$ARTIFACTS_DEST/$TARGET_AMD64_MUSL/release"
+    mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
+    mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
+
+    # copy mqtt artifacts
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/$TARGET_AMD64_MUSL/release"
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
+
+    # this script is used for the mqtt image pipeline, which doesn't need the docker folder in the artifact location because it uses the Docker@2 task
     ;;
 
 *)

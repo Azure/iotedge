@@ -38,6 +38,9 @@ jobs:
           destination.folder.path: "mqtt/build-context"
           artifact.name: "mqttd"
 
+      - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
+        displayName: Consolidate MQTT Broker artifacts
+
       - task: Docker@2
         displayName: Build amd64 image
         inputs:
