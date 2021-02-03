@@ -16,6 +16,8 @@ parameters:
   loadGen.message.frequency: ''
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
+  longHaul.sendReportFrequency: '00:10:00'
+  longHaul.testDuration: '48:00:00'
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
@@ -34,6 +36,7 @@ parameters:
   quickstart.package.name: ''
   aziotis.artifact.name: ''
   aziotis.package.filter: ''
+  test.deploymentFileName: 'long_haul_deployment.template.json'
 steps:
   - checkout: self
     clean: true
@@ -61,7 +64,7 @@ steps:
       artifactName: ${{ parameters['images.artifact.name'] }}
       itemPattern: |
         ${{ parameters['images.artifact.name'] }}/$(quickstart.package.name)
-        ${{ parameters['images.artifact.name'] }}/e2e_deployment_files/long_haul_deployment.template.json
+        ${{ parameters['images.artifact.name'] }}/e2e_deployment_files/${{ parameters['test.deploymentFileName'] }}
         ${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
         ${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         ${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
@@ -138,7 +141,7 @@ steps:
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
             -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-            -testDuration  24:00:00 \
+            -testDuration  "${{ longHaul.testDuration }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
@@ -147,7 +150,7 @@ steps:
             -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
             -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
             -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
-            -deploymentFileName "long_haul_deployment.template.json" \
+            -deploymentFileName "${{ parameters['test.deploymentFileName'] }}" \
             -storageAccountConnectionString "${{ parameters['testResultCoordinator.storageAccountConnectionString'] }}" \
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \

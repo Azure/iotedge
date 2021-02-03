@@ -24,7 +24,6 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-idle -equals true 
         - status -equals unlocked  
     variables:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
@@ -53,11 +52,12 @@ stages:
           container.registry: '$(cr.address)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
-          eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
           loadGen.message.frequency: '$(loadGen.message.frequency)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
@@ -86,7 +86,6 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
-        - run-idle -equals true 
         - status -equals unlocked   
     variables:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
@@ -115,11 +114,12 @@ stages:
           container.registry: '$(cr.address)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
-          eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
           loadGen.message.frequency: '$(loadGen.message.frequency)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
@@ -148,7 +148,6 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
-        - run-idle -equals true 
         - status -equals unlocked
     variables:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
@@ -177,11 +176,12 @@ stages:
           container.registry: '$(cr.address)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
-          eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
           loadGen.message.frequency: '$(loadGen.message.frequency)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
+          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
@@ -220,7 +220,6 @@ stages:
 #        - agent-group -equals $(agent.group)
 #        - Agent.OS -equals Linux
 #        - Agent.OSArchitecture -equals X64
-#        - run-idle -equals true 
 #        - status -equals unlocked_$(Build.BuildId)  
 #    steps:
 #      - template: templates/nested-get-secrets.yaml     
