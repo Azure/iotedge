@@ -7,7 +7,7 @@
 # directory structure of the target folder.
 
 # For some build pipelines, the amd64, arm32v7, arm64v8 artifacts are handled
-# in separate jobs. For simplicity, this script tries to move all artifact types,
+# in separate jobs. For simplicity this script tries to move all artifact types,
 # regardless if they have been produced by a build step.
 ###############################################################################
 
