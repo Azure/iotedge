@@ -36,7 +36,7 @@ parameters:
   quickstart.package.name: ''
   aziotis.artifact.name: ''
   aziotis.package.filter: ''
-  test.deploymentFileName: 'long_haul_deployment.template.json'
+  test.deploymentFileName: 'nested_long_haul_deployment.template.template.json'
 steps:
   - checkout: self
     clean: true
