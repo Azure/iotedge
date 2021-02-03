@@ -91,9 +91,9 @@ steps:
         testInfo="$testInfo,TestName=$testName"
 
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
-          chmod +x $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh
+          chmod +x ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh
 
-          sudo --preserve-env $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh \
+          sudo --preserve-env ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \

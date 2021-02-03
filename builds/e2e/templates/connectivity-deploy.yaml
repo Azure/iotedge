@@ -77,7 +77,7 @@ steps:
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh
+        chmod +x ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
 
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
@@ -91,7 +91,7 @@ steps:
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
 
-        sudo --preserve-env $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/trcE2ETest.sh \
+        sudo --preserve-env ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "${{ parameters['release.label'] }}" \
