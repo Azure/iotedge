@@ -17,7 +17,6 @@ jobs:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - run-idle -equals true
        - status -equals unlocked
     steps:
      - template: nested-get-secrets.yaml
@@ -46,7 +45,6 @@ jobs:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - run-idle -equals true 
        - status -equals unlocked    
     steps:
      - template: nested-get-secrets.yaml  

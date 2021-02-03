@@ -34,7 +34,6 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-idle -equals true 
         - status -equals unlocked    
     steps:   
       - template: templates/nested-get-secrets.yaml     
@@ -46,8 +45,8 @@ stages:
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
-          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)
+          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
+          IotHubConnectionString: $(IotHubStressConnString)
 
   - job:  Clean_up     
     dependsOn:
@@ -71,7 +70,6 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-idle -equals true 
         - status -equals unlocked_$(Build.BuildId)          
     steps:
       - template: templates/nested-get-secrets.yaml  
