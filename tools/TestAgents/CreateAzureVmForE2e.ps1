@@ -16,6 +16,16 @@ function Create-Azure-VM-For-E2E-Test
         [string]
         $VmRegion,
 
+        <# Azure Vnet name that is in the same region as the VM: 
+            Region : ExistingVnetName
+            westus2 : iotedge-deploy-vnet
+            eastus  : iotedge-deploy-vnet3
+            eastus2 : iotedge-deploy-vnet2
+         #>
+        [Parameter(Mandatory)]
+        [string]
+        $VnetName,
+
         <# Azure Resource Group #>
         [Parameter(Mandatory)]
         [string]
@@ -65,6 +75,15 @@ function Create-Azure-VM-For-E2E-Test
         # Get ride of the " at the begging and " at the end along with an extra \n
         $VmPubKey = $VmPubKey.substring(1, $VmPubKey.length-4);
 
+        $SubnetId=$( `
+            az network vnet subnet show `
+                --resource-group $ResourceGroup `
+                --name 'default' `
+                --vnet-name "$VnetName" `
+                --query id `
+                -o tsv
+        );
+
         # Ref: https://docs.microsoft.com/en-us/cli/azure/vm?view=azure-cli-latest#az_vm_create
         #   For more --image : az vm image list --output table
         az vm create `
@@ -77,7 +96,8 @@ function Create-Azure-VM-For-E2E-Test
             --ssh-key-values "$VmPubKey" `
             --image 'Canonical:UbuntuServer:18.04-LTS:latest' `
             --size 'Standard_D4s_v3' `
-            --location "$VmRegion"
+            --location "$VmRegion" `
+            --subnet "$SubnetId"
 
         # Install necessary E2E dependency
         az vm extension set `
