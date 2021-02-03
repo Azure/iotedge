@@ -6,9 +6,9 @@
 # When copying rust artifacts into the build context we try to mimic the
 # directory structure of the target folder.
 
-# For some build pipelines, the amd64, arm32v7, arm64v8 artifacts are handled
-# in separate jobs. For simplicity this script tries to move all artifact types,
-# regardless if they have been produced by a build step.
+# For simplicity this script tries to move all artifact types regardless if
+# they have been produced by a build step. This is helpful for local builds
+# and the mqtt image build.
 ###############################################################################
 
 ###############################################################################
@@ -83,9 +83,9 @@ generic-mqtt-tester)
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
 
     # copy artifacts
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_AMD64_GNU/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_AMD64_GNU/release"
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
+    cp "$ARTIFACTS_SOURCE/target/$TARGET_AMD64_GNU/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_AMD64_GNU/release" || true
+    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release" || true
+    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release" || true
     cp -r "$ARTIFACTS_SOURCE/docker" "$ARTIFACTS_DEST"
     ;;
 
@@ -111,15 +111,15 @@ edge-hub)
     cp -r "$EDGEHUB_ARTIFACTS_SOURCE" "$ARTIFACTS_DEST"
 
     # copy mqtt artifacts
-    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release"
-    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release"
-    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release"
-    cp "$MQTT_ARTIFACTS_SOURCE/contrib/edgehub/broker.json" "$ARTIFACTS_DEST/mqtt"
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_AMD64_MUSL/release" || true
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM32V7/release" || true
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/mqtt/$TARGET_ARM64V8/release" || true
+    cp "$MQTT_ARTIFACTS_SOURCE/contrib/edgehub/broker.json" "$ARTIFACTS_DEST/mqtt" || true
 
     # copy watchdog artifacts
-    cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release"
-    cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM32V7/release"
-    cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM64V8/release"
+    cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_AMD64_MUSL/release" || true
+    cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM32V7/release" || true
+    cp "$WATCHDOG_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/watchdog" "$ARTIFACTS_DEST/watchdog/$TARGET_ARM64V8/release" || true
     cp -r "$EDGEHUB_DOCKER_SOURCE" "$ARTIFACTS_DEST"
     ;;
 
@@ -134,9 +134,9 @@ mqttd)
     mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
 
     # copy mqtt artifacts
-    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/$TARGET_AMD64_MUSL/release"
-    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
-    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_AMD64_MUSL/release/mqttd" "$ARTIFACTS_DEST/$TARGET_AMD64_MUSL/release" || true
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/mqttd" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release" || true
+    cp "$MQTT_ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/mqttd" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release" || true
 
     # this script is used for the mqtt image pipeline, which doesn't need the docker folder in the artifact location because it uses the Docker@2 task
     ;;
