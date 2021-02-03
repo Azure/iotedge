@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string LoadGenTestDuration = "00:00:20";
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
-        [Test, Timeout(60000)]
+        [Test]
         [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
