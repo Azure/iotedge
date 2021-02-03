@@ -161,7 +161,7 @@ function prepare_test_from_artifacts() {
     tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
     echo "Copy deployment artifact to $deployment_working_file"
-    cp ${Build.SourcesDirectory}"/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
+    cp "${Build.SourcesDirectory}/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
 
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
     sed -i -e "s/<Build.BuildNumber>/$ARTIFACT_IMAGE_BUILD_NUMBER/g" "$deployment_working_file"
