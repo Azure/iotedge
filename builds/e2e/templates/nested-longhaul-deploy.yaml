@@ -141,7 +141,7 @@ steps:
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
             -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-            -testDuration  "${{ longHaul.testDuration }}" \
+            -testDuration  "${{ parameters['longHaul.testDuration'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
