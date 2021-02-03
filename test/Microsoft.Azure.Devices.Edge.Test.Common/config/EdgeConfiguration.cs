@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
     using System.Threading.Tasks;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Serilog;
 
     public class EdgeConfiguration
     {
@@ -111,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         public Task VerifyAsync(IotHub iotHub, CancellationToken token)
         {
             EdgeAgent agent = new EdgeAgent(this.deviceId, iotHub);
+            Log.Verbose($"DRB - expected config: {this.expectedConfig}");
             return agent.WaitForReportedConfigurationAsync(this.expectedConfig, token);
         }
 
