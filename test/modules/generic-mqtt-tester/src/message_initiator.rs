@@ -54,7 +54,7 @@ impl MessageInitiator {
         let payload_size = self.settings.message_size_in_bytes() as usize;
         let dummy_data = &vec![b'a'; payload_size];
         loop {
-            info!("publishing message {} to upstream broker", seq_num);
+            info!("publishing message {}", seq_num);
 
             let mut payload = BytesMut::with_capacity(payload_size + 4);
             payload.put_u32(seq_num);
