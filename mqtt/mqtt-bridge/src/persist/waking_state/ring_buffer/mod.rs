@@ -8,6 +8,7 @@ use std::{
     fmt::Debug,
     fs::{File, OpenOptions},
     io::Result as IOResult,
+    mem::size_of,
     path::Path,
     task::Waker,
     time::Instant,
@@ -71,6 +72,7 @@ pub(crate) struct RingBuffer {
     pointers: FilePointers,
     waker: Option<Waker>,
     has_read: bool,
+    can_read_from_wrap_around: bool,
 }
 
 impl RingBuffer {
@@ -83,17 +85,19 @@ impl RingBuffer {
         file.set_len(max_file_size as u64)
             .expect("Failed to set file size");
         let mmap = unsafe { MmapMut::map_mut(&file).expect("Failed to create mmap") };
-        let file_pointers =
-            find_pointers_post_crash(&mmap, max_file_size).expect("Failed to init file pointers");
+        let (file_pointers, order) = find_pointers_and_order_post_crash(&mmap, max_file_size)
+            .expect("Failed to init file pointers");
+
         Self {
             flush_options: flush_options.clone(),
             flush_state: FlushState::new(),
             mmap,
             max_file_size,
-            order: usize::default(),
+            order,
             pointers: file_pointers,
             waker: None,
             has_read: false,
+            can_read_from_wrap_around: false,
         }
     }
 
@@ -121,6 +125,13 @@ impl RingBuffer {
         }
         // 2. write has reached the end (or close enough) but read has not moved
         if read_index == 0 && write_index + total_size > self.max_file_size {
+            return Err(StorageError::RingBuffer(RingBufferError::Full));
+        }
+        // 3. check if write would wrap around end and corrupt
+        if write_index > read_index
+            && write_index + total_size > self.max_file_size
+            && (write_index + total_size) % self.max_file_size > read_index
+        {
             return Err(StorageError::RingBuffer(RingBufferError::Full));
         }
 
@@ -160,6 +171,11 @@ impl RingBuffer {
         end = start + data_size;
         self.pointers.write = end % self.max_file_size;
 
+        // should only happen if we wrap around
+        if self.pointers.write == self.pointers.read_begin {
+            self.can_read_from_wrap_around = true;
+        }
+
         self.wake_up_task();
 
         self.order += 1;
@@ -179,18 +195,16 @@ impl RingBuffer {
         let block_size = serialized_block_size()?;
 
         // If read would go into where writes are happening then we don't have data to read.
-        if self.pointers.read_end == write_index {
+        if self.pointers.read_end == write_index && !self.can_read_from_wrap_around {
             return Ok(VecDeque::new());
         }
+
+        // If we are reading then we can reset wrap around flag
+        self.can_read_from_wrap_around = false;
 
         let mut start = read_index;
         let mut vdata = VecDeque::new();
         for _ in 0..count {
-            // This case shouldn't be pending, as we must have gotten something we can process.
-            if start >= write_index {
-                break;
-            }
-
             let end = start + block_size;
             let bytes = &self.mmap[start..end];
             // this is unused memory
@@ -220,9 +234,15 @@ impl RingBuffer {
             let key = Key {
                 offset: index as u64,
             };
+
             vdata.push_back((key, publication));
 
             self.has_read = true;
+
+            // This case shouldn't be pending, as we must have gotten something we can process.
+            if start == write_index {
+                break;
+            }
         }
 
         Ok(vdata)
@@ -322,7 +342,10 @@ fn create_file(file_path: &Path) -> IOResult<File> {
         .open(file_path)
 }
 
-fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResult<FilePointers> {
+fn find_pointers_and_order_post_crash(
+    mmap: &MmapMut,
+    max_file_size: usize,
+) -> StorageResult<(FilePointers, usize)> {
     let mut block: BlockHeaderWithHash;
     let block_size = serialized_block_size()?;
 
@@ -330,21 +353,29 @@ fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResu
     let mut end = start + block_size;
     let mut read = 0;
     let mut write = 0;
+    let mut order = 0;
+
     // First we need to find *a* block header to work with.
     // Once we find one, if any, then we can skip more efficiently
     // to others.
     loop {
         if end > max_file_size {
-            return Ok(FilePointers {
-                write,
-                read_begin: read,
-                read_end: read,
-            });
+            return Ok((
+                FilePointers {
+                    write,
+                    read_begin: read,
+                    read_end: read,
+                },
+                order,
+            ));
         }
 
-        if let Ok(next_block) = load_block_header(mmap, start, block_size, max_file_size) {
-            if next_block.inner().hint() == BLOCK_HINT {
-                block = next_block
+        let hint_result = binary_deserialize::<usize>(&mmap[start..(start + size_of::<usize>())]);
+
+        if let Ok(hint) = hint_result {
+            if hint == BLOCK_HINT {
+                block = load_block_header(mmap, start, block_size, max_file_size)?;
+                order = block.inner().order();
             } else {
                 start += 1;
                 end += 1;
@@ -359,7 +390,7 @@ fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResu
         // We have found a block and can break the loop.
         break;
     }
-    let mut order = 0;
+
     // Now that a block has been found, we can find the last write.
     // Note read pointer is found a different way.
     // Read is found by scanning blocks marked for overwrite
@@ -377,25 +408,48 @@ fn find_pointers_post_crash(mmap: &MmapMut, max_file_size: usize) -> StorageResu
         // and return the pointers.
         if inner.order() < order {
             write = start;
-            return Ok(FilePointers {
-                write,
-                read_begin: read,
-                read_end: read,
-            });
+
+            return Ok((
+                FilePointers {
+                    write,
+                    read_begin: read,
+                    read_end: read,
+                },
+                order,
+            ));
         }
 
         // Check next block
         order = inner.order();
-        start = end + data_size;
-        end = start + block_size;
-        block = match load_block_header(mmap, start, block_size, max_file_size) {
-            Ok(block) => block,
-            Err(_) => {
-                return Ok(FilePointers {
+        start = (end + data_size) % max_file_size;
+        end = (start + block_size) % max_file_size;
+
+        let bytes = &mmap[start..end];
+        // this is unused memory
+        if bytes.iter().map(|&x| x as usize).sum::<usize>() == 0 {
+            write = start;
+
+            return Ok((
+                FilePointers {
                     write,
                     read_begin: read,
                     read_end: read,
-                })
+                },
+                order,
+            ));
+        }
+
+        block = match load_block_header(mmap, start, block_size, max_file_size) {
+            Ok(block) => block,
+            Err(_) => {
+                return Ok((
+                    FilePointers {
+                        write,
+                        read_begin: read,
+                        read_end: read,
+                    },
+                    order,
+                ));
             }
         };
     }
@@ -502,7 +556,7 @@ fn mmap_write(
 
 #[cfg(test)]
 mod tests {
-    use std::panic;
+    use std::{fs::write, panic};
 
     use bytes::Bytes;
     use matches::assert_matches;
@@ -619,6 +673,70 @@ mod tests {
     }
 
     #[test]
+    fn it_inserts_ok_after_leftover() {
+        let result = tempfile::NamedTempFile::new();
+        assert!(result.is_ok());
+        let file = result.unwrap();
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let mut keys = vec![];
+        {
+            let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE, &FLUSH_OPTIONS);
+
+            // write some
+            for _ in 0..5 {
+                let result = rb.insert(&publication);
+                assert!(result.is_ok());
+                let key = result.unwrap();
+                keys.push(key);
+            }
+
+            let result = rb.batch(5);
+            assert!(result.is_ok());
+            let mut batch = result.unwrap();
+            assert!(!batch.is_empty());
+
+            for key in &keys[..5] {
+                let maybe_entry = batch.remove(0);
+                assert!(maybe_entry.is_some());
+                let entry = maybe_entry.unwrap();
+                assert_eq!(*key, entry.0);
+                assert_eq!(publication, entry.1);
+                let result = rb.remove(key.offset as usize);
+                assert!(result.is_ok());
+            }
+        }
+        {
+            let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE, &FLUSH_OPTIONS);
+
+            // write some more
+            for _ in 0..5 {
+                let result = rb.insert(&publication);
+                assert!(result.is_ok());
+                let key = result.unwrap();
+                keys.push(key);
+            }
+
+            let result = rb.batch(5);
+            assert!(result.is_ok());
+            let mut batch = result.unwrap();
+            assert!(!batch.is_empty());
+
+            for key in &keys[5..] {
+                let maybe_entry = batch.remove(0);
+                assert!(maybe_entry.is_some());
+                let entry = maybe_entry.unwrap();
+                assert_eq!(*key, entry.0);
+                assert_eq!(publication, entry.1);
+            }
+        }
+    }
+
+    #[test]
     fn it_errs_on_insert_when_full() {
         let mut rb = TestRingBuffer::default();
         let publication = Publication {
@@ -649,6 +767,60 @@ mod tests {
             assert!(result.is_ok());
         }
         let result = rb.0.insert(&publication);
+        assert!(result.is_err());
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::Full)
+        );
+    }
+
+    #[test]
+    fn it_errs_on_insert_when_full_and_had_batched_and_removed() {
+        let mut rb = TestRingBuffer::default();
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let result = serialized_block_size();
+        assert!(result.is_ok());
+        let block_size = result.unwrap();
+
+        let result = binary_serialize(&publication);
+        assert!(result.is_ok());
+        let data = result.unwrap();
+        let data = Data::new(&data);
+
+        let result = binary_serialize_size(&data);
+        assert!(result.is_ok());
+        let data_size = result.unwrap();
+
+        let total_size = block_size + data_size;
+
+        let inserts = MAX_FILE_SIZE / total_size;
+        for _ in 0..inserts {
+            let result = rb.0.insert(&publication);
+            assert!(result.is_ok());
+        }
+
+        let result = rb.0.batch(1);
+        assert!(result.is_ok());
+        let batch = result.unwrap();
+
+        let result = rb.0.remove(batch[0].0.offset as usize);
+        assert!(result.is_ok());
+
+        // need bigger pub to pass read
+        let big_publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::from("It was the best of times, it was the worst of times..."),
+        };
+
+        let result = rb.0.insert(&big_publication);
         assert!(result.is_err());
         assert_matches!(
             result.unwrap_err(),
@@ -703,17 +875,204 @@ mod tests {
     }
 
     #[test]
-    fn it_errs_on_remove_with_key_not_equal_to_read() {
+    fn it_batches_ok_when_leftover_from_file() {
+        let result = tempfile::NamedTempFile::new();
+        assert!(result.is_ok());
+        let file = result.unwrap();
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let mut keys = vec![];
+        {
+            let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE, &FLUSH_OPTIONS);
+
+            // write some
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert!(result.is_ok());
+                let key = result.unwrap();
+                keys.push(key);
+            }
+
+            let result = rb.batch(5);
+            assert!(result.is_ok());
+            let mut batch = result.unwrap();
+            assert!(!batch.is_empty());
+
+            for key in &keys[..5] {
+                let maybe_entry = batch.remove(0);
+                assert!(maybe_entry.is_some());
+                let entry = maybe_entry.unwrap();
+                assert_eq!(*key, entry.0);
+                assert_eq!(publication, entry.1);
+                let result = rb.remove(key.offset as usize);
+                assert!(result.is_ok());
+            }
+        }
+        {
+            let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE, &FLUSH_OPTIONS);
+
+            let result = rb.batch(5);
+            assert!(result.is_ok());
+            let mut batch = result.unwrap();
+            assert!(!batch.is_empty());
+
+            for key in &keys[5..] {
+                let maybe_entry = batch.remove(0);
+                assert!(maybe_entry.is_some());
+                let entry = maybe_entry.unwrap();
+                assert_eq!(*key, entry.0);
+                assert_eq!(publication, entry.1);
+            }
+        }
+    }
+
+    #[test]
+    fn it_batches_err_when_bad_block_from_file() {
+        let result = tempfile::NamedTempFile::new();
+        assert!(result.is_ok());
+        let file = result.unwrap();
+
+        let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE, &FLUSH_OPTIONS);
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let result = rb.insert(&publication);
+        assert!(result.is_ok());
+
+        let result = write(file.path(), "garbage");
+        assert!(result.is_ok());
+
+        let result = rb.batch(1);
+        assert!(result.is_err());
+
+        assert_matches!(
+            result.err().unwrap(),
+            StorageError::RingBuffer(RingBufferError::Validate(BlockError::Hint))
+        );
+    }
+
+    #[test]
+    fn it_batches_ok_when_write_reaches_begin_again() {
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let result = binary_serialize(&publication);
+        assert!(result.is_ok());
+
+        let inner = result.unwrap();
+        let data = Data::new(&inner);
+
+        let result = serialized_block_size();
+        assert!(result.is_ok());
+        let block_size = result.unwrap();
+
+        let result = binary_serialize_size(&data);
+        assert!(result.is_ok());
+        let data_size = result.unwrap();
+
+        let file_size = 10 * (block_size + data_size);
+
+        let result = tempfile::NamedTempFile::new();
+        assert!(result.is_ok());
+        let file = result.unwrap();
+
+        let mut rb = RingBuffer::new(file.path(), file_size, &FLUSH_OPTIONS);
+
+        let mut keys = vec![];
+        for _ in 0..10 {
+            let result = rb.insert(&publication);
+            assert!(result.is_ok());
+            keys.push(result.unwrap());
+        }
+
+        let result = rb.batch(10);
+        assert!(result.is_ok());
+        let batch = result.unwrap();
+        assert!(!batch.is_empty());
+
+        assert_eq!(
+            batch.iter().map(|(k, _)| k.offset).collect::<Vec<_>>(),
+            keys.iter().map(|k| k.offset).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn it_errs_on_remove_when_no_read() {
         let mut rb = TestRingBuffer::default();
         let result = rb.0.remove(1);
         assert!(result.is_err());
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::RemoveBeforeRead)
+        );
+    }
+
+    #[test]
+    fn it_errs_on_remove_with_key_not_equal_to_read() {
+        let mut rb = TestRingBuffer::default();
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let result = rb.0.insert(&publication);
+        assert!(result.is_ok());
+
+        let result = rb.0.batch(1);
+        assert!(result.is_ok());
+
+        let result = rb.0.remove(1);
+        assert!(result.is_err());
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::RemovalIndex)
+        );
     }
 
     #[test]
     fn it_errs_on_remove_with_key_that_does_not_exist() {
-        let mut rb = TestRingBuffer::default();
-        let result = rb.0.remove(0);
+        let result = tempfile::NamedTempFile::new();
+        assert!(result.is_ok());
+        let file = result.unwrap();
+
+        let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE, &FLUSH_OPTIONS);
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let result = rb.insert(&publication);
+        assert!(result.is_ok());
+
+        let result = rb.batch(1);
+        assert!(result.is_ok());
+
+        let result = write(file.path(), "garbage");
+        assert!(result.is_ok());
+
+        let result = rb.remove(0);
         assert!(result.is_err());
+        assert_matches!(
+            result.unwrap_err(),
+            StorageError::RingBuffer(RingBufferError::NonExistantKey)
+        );
     }
 
     #[test]

@@ -234,7 +234,7 @@ impl UpstreamBridgeBuilder<WakingMemoryStore, Yes, Yes, Yes, No> {
                 ))
                 .with_rules(connection_settings.subscriptions());
             })
-            .with_store(|| {
+            .with_store(|_suffix| {
                 const BATCH_SIZE: usize = 10;
                 PublicationStore::new_memory(BATCH_SIZE)
             })
@@ -280,9 +280,11 @@ impl UpstreamBridgeBuilder<RingBuffer, Yes, Yes, Yes, Yes> {
                 ))
                 .with_rules(connection_settings.subscriptions());
             })
-            .with_store(move || {
+            .with_store(move |suffix| {
                 PublicationStore::new_ring_buffer(
-                    &Path::new(storage_settings.file_name()),
+                    &Path::new(
+                        &(storage_settings.file_name().to_owned() + "." + &device_id + "." + suffix),
+                    ),
                     storage_settings.max_file_size(),
                     storage_settings.flush_options(),
                     storage_settings.batch_size(),

@@ -34,7 +34,7 @@ pub type PumpPair<S> = (
 pub struct Builder<S> {
     local: PumpBuilder,
     remote: PumpBuilder,
-    store: Option<Box<dyn Fn() -> PublicationStore<S>>>,
+    store: Option<Box<dyn Fn(&'static str) -> PublicationStore<S>>>,
 }
 
 impl<S> Default for Builder<S> {
@@ -72,7 +72,7 @@ where
     /// Setups a factory to create publication store.
     pub fn with_store<F, S1>(self, store: F) -> Builder<S1>
     where
-        F: Fn() -> PublicationStore<S1> + 'static,
+        F: Fn(&'static str) -> PublicationStore<S1> + 'static,
     {
         Builder {
             local: self.local,
@@ -84,8 +84,8 @@ where
     /// Creates a pair of local and remote pump.
     pub fn build(&mut self) -> Result<PumpPair<S>, BridgeError> {
         if let Some(store) = &self.store {
-            let remote_store = (store)();
-            let local_store = (store)();
+            let remote_store = (store)("remote");
+            let local_store = (store)("local");
 
             let (remote_messages_send, remote_messages_recv) = mpsc::channel(100);
             let (local_messages_send, local_messages_recv) = mpsc::channel(100);

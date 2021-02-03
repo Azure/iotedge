@@ -54,7 +54,7 @@
         }
     ],
     "storage": {
-        "flush_options": "off",
+        "flush_options": "aftereachwrite",
         "max_file_size": 1024,
         "file_name": "test.txt",
         "batch_size": 10

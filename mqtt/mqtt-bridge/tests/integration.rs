@@ -68,24 +68,24 @@ async fn send_message_upstream_downstream() {
             Some("downstream".into()),
         )),
     ];
-    println!("setup");
+
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         setup_brokers(AllowAll, AllowAll);
     let controller_handle = setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        "send_message_upstream_downstream",
     )
     .await;
-    println!("client build");
+
     let mut local_client = TestClientBuilder::new(local_server_handle.address())
         .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
         .build();
-    println!("client sub");
     local_client
         .subscribe("downstream/filter/#", QoS::AtLeastOnce)
         .await;
-    println!("wait for ack 1");
+
     // wait to receive subscription ack
     local_client.subscriptions().next().await;
 
@@ -97,7 +97,6 @@ async fn send_message_upstream_downstream() {
         .subscribe("upstream/temp/#", QoS::AtLeastOnce)
         .await;
 
-    println!("wait for ack 2");
     // wait to receive subscription ack
     upstream_client.subscriptions().next().await;
 
@@ -129,6 +128,83 @@ async fn send_message_upstream_downstream() {
 }
 
 #[tokio::test]
+async fn send_message_upstream_with_crash_is_lossless() {
+    let subs = vec![Direction::Out(TopicRule::new(
+        "temp/#".into(),
+        Some("to".into()),
+        Some("upstream".into()),
+    ))];
+
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        setup_brokers(AllowAll, AllowAll);
+    let mut controller_handle = setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs.clone(),
+        "send_message_upstream_with_crash_is_lossless",
+    )
+    .await;
+
+    let mut local_client = TestClientBuilder::new(local_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
+        .build();
+
+    local_client
+        .subscribe("downstream/filter/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    local_client.subscriptions().next().await;
+
+    let mut upstream_client = TestClientBuilder::new(upstream_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
+        .build();
+
+    upstream_client
+        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    upstream_client.subscriptions().next().await;
+
+    // send upstream
+    local_client
+        .publish_qos1("to/temp/1", "from local", false)
+        .await;
+
+    assert_matches!(
+        upstream_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+    );
+
+    // send upstream but disconnet afterwards
+    local_client
+        .publish_qos1("to/temp/1", "from local again", false)
+        .await;
+
+    controller_handle.shutdown();
+
+    controller_handle = setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs,
+        "send_message_upstream_with_crash_is_lossless",
+    )
+    .await;
+
+    assert_matches!(
+        upstream_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local again")
+    );
+
+    controller_handle.shutdown();
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    upstream_client.shutdown().await;
+    local_client.shutdown().await;
+}
+
+#[tokio::test]
 async fn bridge_settings_update() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         setup_brokers(AllowAll, AllowAll);
@@ -136,6 +212,7 @@ async fn bridge_settings_update() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         vec![],
+        "bridge_settings_update",
     )
     .await;
 
@@ -241,6 +318,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        "subscribe_to_upstream_rejected_should_retry",
     )
     .await;
 
@@ -313,6 +391,7 @@ async fn connect_to_upstream_failure_should_retry() {
         local_server_handle.address(),
         upstream_tls_address.clone(),
         subs,
+        "connect_to_upstream_failure_should_retry",
     )
     .await;
     let mut local_client = TestClientBuilder::new(local_server_handle.address())
@@ -515,6 +594,7 @@ async fn setup_bridge_controller(
     local_address: String,
     upstream_address: String,
     subs: Vec<Direction>,
+    id: &'static str,
 ) -> BridgeControllerHandle {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
         "bridge".into(),
@@ -532,7 +612,7 @@ async fn setup_bridge_controller(
     )
     .unwrap();
 
-    let controller = BridgeController::new(local_address, "bridge".into(), settings);
+    let controller = BridgeController::new(local_address, id.into(), settings);
     let controller_handle = controller.handle();
     let controller: Box<dyn Sidecar + Send> = Box::new(controller);
 
