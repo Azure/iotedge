@@ -3,7 +3,7 @@ parameters:
   test.buildNumber: ''
   test.buildId: ''
   build.source.branch: ''
-  build.checkout.path: ''
+  build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
   edgelet.artifact.name: ''
@@ -77,7 +77,7 @@ steps:
       script: |
         declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
-        chmod +x ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh
+        chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         testName="Connectivity"
 
         testInfo="TestBuildNumber=${{ parameters['test.buildNumber'] }}"
@@ -91,7 +91,7 @@ steps:
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
 
-        sudo --preserve-env ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh \
+        sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
           -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "${{ parameters['release.label'] }}" \
@@ -125,7 +125,7 @@ steps:
           -customEdgeHubImage "${{ parameters['customEdgeHub.image'] }}" \
           -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
           -testInfo "$testInfo" \
-          -checkoutPath "${{ parameters['build.checkout.path'] }}" \
+          -repoPath "${{ parameters['build.repo.path'] }}" \
           -waitForTestComplete \
           -cleanAll
 

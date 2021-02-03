@@ -4,7 +4,7 @@ parameters:
   test.buildId: ''
   test.startDelay: ''
   build.source.branch: ''
-  build.checkout.path: ''
+  build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
   edgelet.artifact.name: ''
@@ -91,9 +91,9 @@ steps:
         testInfo="$testInfo,TestName=$testName"
 
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
-          chmod +x ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh
+          chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
 
-          sudo --preserve-env ${{ parameters['build.checkout.path'] }}/scripts/linux/trcE2ETest.sh \
+          sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \
@@ -122,7 +122,7 @@ steps:
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
-            -checkoutPath "${{ parameters['build.checkout.path'] }}" \
+            -repoPath "${{ parameters['build.repo.path'] }}" \
             -waitForTestComplete \
             -cleanAll
         else
