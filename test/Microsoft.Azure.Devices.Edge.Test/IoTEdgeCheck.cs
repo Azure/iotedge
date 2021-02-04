@@ -33,8 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     // Arguments = $"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password} & iotedge check --diagnostics-image-name {diagnosticImageName} --verbose",
-                    ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password } 
-                    //    "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
+                    ArgumentList = { // "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password } 
+                        "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
             };
             Log.Information($"drb - {process.StartInfo}");
