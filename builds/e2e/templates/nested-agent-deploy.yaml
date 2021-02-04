@@ -121,5 +121,6 @@ steps:
           -connectionString "$(connectionString)" \
           -iotHubName "$(iotHubName)" \
           -deviceId "$(deviceId)" \
+          -proxyAddress "$(proxyAddress)" \
           -waitForTestComplete \
           -cleanAll

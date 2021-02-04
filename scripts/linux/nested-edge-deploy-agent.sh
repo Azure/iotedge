@@ -6,7 +6,7 @@ function create_certificates() {
     echo "Installing test root certificate bundle."
 
     echo "Generating edge device certificate"
-    device_name=$(curl ipecho.net/plain)
+    device_name=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
     eval device_name=${device_name}
     echo "  Hostname IP: ${device_name}"
 
@@ -114,6 +114,27 @@ function setup_iotedge() {
     sudo chmod 600 /var/secrets/aziot/keyd/device-id
     sudo chown aziotks:aziotks /var/secrets/aziot/keyd/device-id
 
+    if [ ! -z $PROXY_ADDRESS ]; then
+        echo "Configuring the bootstrapping edgeAgent to use http proxy"
+        sudo sed -i "47s|.*|  env:|" /etc/aziot/edged/config.yaml
+        sudo sed -i "48i\    https_proxy: \"${PROXY_ADDRESS}\"" /etc/aziot/edged/config.yaml
+
+        echo "Adding proxy configuration to docker"
+        sudo mkdir -p /etc/systemd/system/docker.service.d/
+        { echo "[Service]";
+        echo "Environment=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+
+        echo "Adding proxy configuration to IoT Edge daemon"
+        sudo mkdir -p /etc/systemd/system/iotedge.service.d/
+        { echo "[Service]";
+        echo "Environment=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/iotedge.service.d/proxy.conf
+        sudo systemctl daemon-reload
+    fi   
+
     echo "Start IoT edge"
     sudo systemctl start aziot-keyd aziot-certd aziot-identityd aziot-edged
 }
@@ -135,6 +156,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<proxyAddress>@$PROXY_ADDRESS@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -204,6 +226,9 @@ function process_args() {
         elif [ $saveNextArg -eq 18 ]; then
             IOT_HUB_NAME="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 19 ]; then
+            PROXY_ADDRESS="$arg"
+            saveNextArg=0            
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -225,6 +250,7 @@ function process_args() {
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
                 '-iotHubName' ) saveNextArg=18;;
+                '-proxyAddress' ) saveNextArg=19;;                
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
