@@ -220,7 +220,7 @@ namespace TestResultCoordinator
             this.ConnectivitySpecificSettings.ForEach(settings =>
             {
                 fields.Add(nameof(settings.TestDuration), settings.TestDuration.ToString());
-                fields.Add(nameof(settings.TestDuration), settings.TestVerificationDelay.ToString());
+                fields.Add(nameof(settings.TestVerificationDelay), settings.TestVerificationDelay.ToString());
             });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
