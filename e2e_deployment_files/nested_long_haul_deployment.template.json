@@ -26,12 +26,6 @@
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
-              },
-              "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              },
-              "ExperimentalFeatures__EnableUploadLogs": {
-                "value": "true"
               }
             },
             "settings": {
@@ -47,10 +41,7 @@
               "experimentalfeatures__enabled": {
                 "value": "true"
               },
-              "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              },
-              "NestedEdgeEnabled": {
+              "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
               }
             },
