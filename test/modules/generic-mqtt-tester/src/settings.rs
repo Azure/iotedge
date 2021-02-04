@@ -26,6 +26,8 @@ pub struct Settings {
     initiate_topic: String,
 
     relay_topic: String,
+
+    messages_to_send: Option<u32>,
 }
 
 impl Settings {
@@ -85,6 +87,10 @@ impl Settings {
 
     pub fn relay_topic(&self) -> String {
         self.relay_topic.clone()
+    }
+
+    pub fn messages_to_send(&self) -> Option<u32> {
+        self.messages_to_send
     }
 }
 
