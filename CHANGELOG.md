@@ -1,6 +1,6 @@
 # 1.1.0 (2021-02-03)
-## Product-wide changes
-* **Remove support for Ubuntu 16.04, add support for 18.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match.
+## Change to Supported Systems
+* **Remove support for Ubuntu 16.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match. Ubuntu 18.04 continues to be supported.
 ## Edge Agent
 ### Bug Fixes
 * Fix `since` parameter in `GetModuleLogs` direct method [8d9a8e0](https://github.com/Azure/iotedge/commit/8d9a8e0eff2b47b99a4bfb28af2d3501f901c8af)
@@ -11,7 +11,7 @@
 
 ## Edge Hub
 ### Changes
-* **Edge Hub will now default to using scope-only authentication for leaf devices**. Prior to this release, the default was to try scope auth, but fall back to cloud auth. Because of this change, users must either (1) [establish a parent/child relationship](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities?view=iotedge-2018-06#set-up-parent-and-child-devices) between the edge device and leaf devices (recommended), or (2) change the default back to its previous value (i.e., set Edge Hub's "AuthenticationMode" environment variable to "CloudAndScope").
+* **Edge Hub allows only child devices to connect by default**. To connect a leaf device to the Edge Hub, users must [establish a parent/child relationship](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities?view=iotedge-2018-06#set-up-parent-and-child-devices) between the edge device and the leaf device. In previous versions, this was required only for offline scenarios, as for online scenarios Edge Hub would fall back to cloud-based authentication for leaf devices that were not children of the edge device. You can configure Edge Hub to go back to the previous behavior by setting the environment variable "AuthenticationMode" to the value "CloudAndScope".
 ### Bug Fixes
 * Continue message store cleanup after encountering db error [4a196f0](https://github.com/Azure/iotedge/commit/4a196f0b4a2f04f9bd8988fdea4c3f308fd67546)
 * Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
