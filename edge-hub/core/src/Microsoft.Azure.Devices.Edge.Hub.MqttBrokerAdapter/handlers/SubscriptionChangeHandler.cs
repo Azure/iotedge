@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                          () => throw new ArgumentException("Invalid topic structure for subscriptions - no Device name matched")));
 
             var listener = default(IDeviceListener);
-            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity, true);
+            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity, true);
 
             if (maybeListener.HasValue)
             {
@@ -124,37 +124,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 foreach (var subscriptionPattern in this.subscriptionPatterns)
                 {
                     var subscribes = false;
-
                     foreach (var subscription in subscriptionList)
                     {
-                        var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
-                        if (subscriptionMatch.Success)
+                        if (this.TryMatchSubscription(subscriptionPattern, subscription, deviceId, moduleId))
                         {
-                            var subscribedDevId = subscriptionMatch.Groups["id1"].Success ? Option.Some<string>(subscriptionMatch.Groups["id1"].Value) : Option.None<string>();
-                            var subscribedModId = subscriptionMatch.Groups["id2"].Success ? Option.Some<string>(subscriptionMatch.Groups["id2"].Value) : Option.None<string>();
-
-                            if (IsMatchingIds(subscribedDevId, subscribedModId, deviceId, moduleId))
-                            {
-                                subscribes = true;
-                                break;
-                            }
+                            subscribes = true;
+                            break;
                         }
                     }
 
-                    try
-                    {
-                        await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscription);
-                    }
-                    catch (Exception e)
-                    {
-                        Events.FailedToChangeSubscriptionState(e, subscriptionPattern.Subscription.ToString(), identity.Id);
-                    }
+                    await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscription);
                 }
             }
             else
             {
                 Events.CouldNotObtainListener(identity.Id);
             }
+        }
+
+        bool TryMatchSubscription(SubscriptionPattern subscriptionPattern, string subscription, Option<string> deviceId, Option<string> moduleId)
+        {
+            var subscriptionMatch = Regex.Match(subscription, subscriptionPattern.Pattern);
+            if (subscriptionMatch.Success)
+            {
+                var subscribedDevId = subscriptionMatch.Groups["id1"].Success ? Option.Some<string>(subscriptionMatch.Groups["id1"].Value) : Option.None<string>();
+                var subscribedModId = subscriptionMatch.Groups["id2"].Success ? Option.Some<string>(subscriptionMatch.Groups["id2"].Value) : Option.None<string>();
+
+                if (IsMatchingIds(subscribedDevId, subscribedModId, deviceId, moduleId))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // A connection is nested when happens through a lower level edge device. In this case the
@@ -167,17 +169,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         //     found in the subscription list. E.g. if there is a device2 and the subscription list
         //     is ['device1/twin/res#'], then this notification also means that device2 is unsubscribed
         //     from all iothub related topics.
-        // To solve 1), the connectionRegistry.GetDeviceListenerAsync() creates the device if it has never
+        // To solve 1), the connectionRegistry.GetOrCreateDeviceListenerAsync() creates the device if it has never
         // been seen before.
         // To solve 2), we need to take all known devices and unsubscribe from all topics not listed in the
         // current notification.
         async Task HandleNestedSubscriptionChanges(List<string> subscriptionList)
         {
-            // Collect all added subscriptions to this dictionary for every client. At the end we are going to
-            // unsubscribe from everything not in this collection
+            // As a first step, go through the sent subscription list and subscribe to everything it says.
+            // The call returns all clients that had a subscription and ans also returns their subscriptions.
+            // In the next step a second loop is going to unsubscribe from everything not in the list.
+            var affectedClients = await this.SubscribeAndGetAffectedClients(subscriptionList);
+
+            // At this point we have a collection about 'affectedClients'. Those are the clients subscribed to something.
+            // What we don't know are the unsubscribtions. That is because the broker sends only the current subscription list,
+            // so when a client unsubscribes, that is only a shorter list of subscriptions sent.
+            // The information we want to gain is that what the unsubscriptions are, and the answer is that what we have not seen
+            // previously as subscribed, that is unsubscribed. E.g. if a client subscribed to 'methods' only, then we say that
+            // it unsubscribed from twin responses, c2d, m2m, etc. The underlaying layers take care of the optimization doing
+            // nothing when unsubscribed twice from a topic.
+            await this.UnsubscribeNotListedSubscriptions(affectedClients);
+        }
+
+        async Task<Dictionary<IIdentity, HashSet<DeviceSubscription>>> SubscribeAndGetAffectedClients(List<string> subscriptionList)
+        {
             var affectedClients = new Dictionary<IIdentity, HashSet<DeviceSubscription>>();
 
-            // As a first step, go through the sent subscription list and subscribe to everything it says.
             // We are trying to fit all possible subscription pattern to every item in the list
             foreach (var subscriptionPattern in this.subscriptionPatterns)
             {
@@ -197,82 +213,54 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                             ? this.identityProvider.Create(deviceId.Value, moduleId.Value)
                                             : this.identityProvider.Create(deviceId.Value);
 
-                        var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity, false);
-                        if (maybeListener.HasValue)
-                        {
-                            try
+                        var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity, false);
+                        await maybeListener.Match(
+                            async listener =>
                             {
-                                var listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
                                 await AddOrRemoveSubscription(listener, true, subscriptionPattern.Subscription);
 
-                                var subscriptions = default(HashSet<DeviceSubscription>);
-                                if (!affectedClients.TryGetValue(identity, out subscriptions))
+                                if (!affectedClients.TryGetValue(identity, out var subscriptions))
                                 {
                                     subscriptions = new HashSet<DeviceSubscription>();
                                     affectedClients.Add(identity, subscriptions);
                                 }
 
                                 subscriptions.Add(subscriptionPattern.Subscription);
-                            }
-                            catch (Exception e)
-                            {
-                                Events.FailedToChangeSubscriptionState(e, subscriptionPattern.Subscription.ToString(), identity.Id);
-                            }
-                        }
-                        else
-                        {
-                            Events.CouldNotObtainListenerForSubscription(subscriptionPattern.Subscription.ToString(), identity.Id);
-                        }
+                            },
+                            () => Events.CouldNotObtainListenerForSubscription(subscription.ToString(), identity.Id));
                     }
                 }
             }
 
-            // At this point we have a collection about 'affectedClients'. Those are the clients subscribed to something.
-            // What we don't know are the unsubscribtions. That is because the broker sends only the current subscription list,
-            // so when a client unsubscribes, that is only a shorter list of subscriptions sent.
-            // The information we want to gain is that what the unsubscriptions are, and the answer is that what we have not seen
-            // previously as subscribed, that is unsubscribed. E.g. if a client subscribed to 'methods' only, then we say that
-            // it unsubscribed from twin responses, c2d, m2m, etc. The underlaying layers take care of the optimization doing
-            // nothing when unsubscribed twice from a topic.
-            // As a first step we need all nested connections, because it is possible that the subscribtion list above did not
-            // cover all clients. It can happen when a client had only a single subscription before, but now it unsubscribed.
+            return affectedClients;
+        }
+
+        async Task UnsubscribeNotListedSubscriptions(Dictionary<IIdentity, HashSet<DeviceSubscription>> affectedClients)
+        {
+            // As a first step we need all nested connections, because it is possible that affectedClients does not
+            // cover all clients. It can happen when a client had only a single subscription before, but now it unsubscribed even from that.
             // In that case that client will not be contained by the subscription event sent by the broker, because it has no
             // subscription at all.
             var nestConnections = await this.connectionRegistry.GetNestedConnectionsAsync();
-
             foreach (var connection in nestConnections)
             {
                 // for a given client we are going to unsubscribe from everything that was not marked as subscribed
                 // from the broker subscription event. Every subscription marked in the broker event is stored in the
                 // 'affectedClients' collection built previously.
-                var subscriptions = default(HashSet<DeviceSubscription>);
-                if (!affectedClients.TryGetValue(connection, out subscriptions))
+                if (!affectedClients.TryGetValue(connection, out var subscriptions))
                 {
                     subscriptions = new HashSet<DeviceSubscription>();
                 }
 
-                var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(connection, false);
+                var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(connection, false);
 
                 foreach (var subscription in this.allSubscriptions)
                 {
                     if (!subscriptions.Contains(subscription))
                     {
-                        if (maybeListener.HasValue)
-                        {
-                            try
-                            {
-                                var listener = maybeListener.Expect(() => new Exception($"No device listener found for {connection}"));
-                                await AddOrRemoveSubscription(listener, false, subscription);
-                            }
-                            catch (Exception e)
-                            {
-                                Events.FailedToChangeSubscriptionState(e, subscription.ToString(), connection.Id);
-                            }
-                        }
-                        else
-                        {
-                            Events.CouldNotObtainListenerForSubscription(subscription.ToString(), connection.Id);
-                        }
+                        await maybeListener.Match(
+                            listener => AddOrRemoveSubscription(listener, false, subscription),
+                            () => Events.CouldNotObtainListenerForSubscription(subscription.ToString(), connection.Id));
                     }
                 }
             }
@@ -300,13 +288,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         static Task AddOrRemoveSubscription(IDeviceListener listener, bool add, DeviceSubscription subscription)
         {
-            if (add)
+            try
             {
-                return listener.AddSubscription(subscription);
+                if (add)
+                {
+                    return listener.AddSubscription(subscription);
+                }
+                else
+                {
+                    return listener.RemoveSubscription(subscription);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return listener.RemoveSubscription(subscription);
+                Events.FailedToChangeSubscriptionState(e, subscription.ToString(), listener.Identity.Id);
+                return Task.CompletedTask;
             }
         }
 
@@ -326,9 +322,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToChangeSubscriptionState(Exception e, string subscription, string id) => Log.LogError((int)EventIds.FailedToChangeSubscriptionState, e, $"Failed to change subscrition status {subscription} for {id}");
-            public static void CouldNotObtainListenerForSubscription(string subscription, string id) => Log.LogError((int)EventIds.CouldNotObtainListenerForSubscription, $"Could not obtain DeviceListener to change subscrition status {subscription} for {id}");
             public static void CouldNotObtainListener(string id) => Log.LogError((int)EventIds.CouldNotObtainListener, $"Could not obtain DeviceListener to change subscrition status for {id}");
             public static void HandlingSubscriptionChange(string content) => Log.LogDebug((int)EventIds.HandlingSubscriptionChange, $"Handling subscription change {content}");
+
+            // This is called from Option.Match, where the Some() case is async - Task.CompletedTask is hidden here to make it look better at the match
+            public static Task CouldNotObtainListenerForSubscription(string subscription, string id)
+            {
+                Log.LogError((int)EventIds.CouldNotObtainListenerForSubscription, $"Could not obtain DeviceListener to change subscrition status {subscription} for {id}");
+                return Task.CompletedTask;
+            }
         }
     }
 }

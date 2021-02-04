@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly AsyncLock timerGuard = new AsyncLock();
         readonly bool closeOnIdleTimeout;
 
-        Subscriptions subscriptions = Subscriptions.None;
+        SubscriptionState subscriptionState = new SubscriptionState();
 
         public CloudProxy(
             IClient client,
@@ -364,7 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             using (await this.timerGuard.LockAsync())
             {
-                this.subscriptions |= subscription;
+                this.subscriptionState.Set(subscription);
                 this.timer.Disable();
             }
         }
@@ -373,9 +373,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             using (await this.timerGuard.LockAsync())
             {
-                this.subscriptions &= ~subscription;
+                this.subscriptionState.Remove(subscription);
 
-                if (this.subscriptions == Subscriptions.None)
+                if (!this.subscriptionState.HasSubscription)
                 {
                     this.timer.EnableAndReset();
                 }
@@ -402,6 +402,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
 
             return Task.CompletedTask;
+        }
+
+        class SubscriptionState
+        {
+            Subscriptions subscriptions = Subscriptions.None;
+
+            public void Set(Subscriptions subscription) => this.subscriptions |= subscription;
+            public void Remove(Subscriptions subscription) => this.subscriptions &= ~subscription;
+            public bool HasSubscription => this.subscriptions != Subscriptions.None;
         }
 
         internal class CloudReceiver

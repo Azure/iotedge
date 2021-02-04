@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var connectionRegistry = Mock.Of<IConnectionRegistry>();
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
+                .Setup(cr => cr.GetOrCreateDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
                 .Returns((IIdentity i, bool _) => CreateListenerFromIdentity(i));
 
             return connectionRegistry;
