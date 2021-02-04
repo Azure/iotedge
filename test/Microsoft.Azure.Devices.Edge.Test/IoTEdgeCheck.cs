@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
             };
             Log.Information($"drb - {process.StartInfo}");
+            Log.Information($"drb errors? - {process.StandardError.ReadLine()}");
             string errors_number = string.Empty;
             process.Start();
             await Task.Run(() =>
