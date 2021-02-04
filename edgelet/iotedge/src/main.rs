@@ -85,7 +85,7 @@ fn run() -> Result<(), Error> {
     );
 
     let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
-    possible_check_id_values.sort();
+    possible_check_id_values.sort_unstable();
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())

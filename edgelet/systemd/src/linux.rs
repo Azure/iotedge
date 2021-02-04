@@ -275,7 +275,7 @@ mod tests {
             match socket {
                 Socket::Inet(n, _) => unistd::close(n).unwrap(),
                 Socket::Unix(u) => unistd::close(u).unwrap(),
-                _ => (),
+                Socket::Unknown => (),
             }
         }
     }

@@ -46,12 +46,12 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      vmImage: ubuntu-16.04
+      vmImage: ubuntu-18.04
 
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu16.04-amd64
+      artifactName: iotedged-ubuntu18.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml

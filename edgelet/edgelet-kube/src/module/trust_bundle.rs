@@ -45,35 +45,46 @@ where
                 )
                 .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |config_maps| {
-                    if let Some(current) = config_maps.items.into_iter().find(|config_map| {
-                        config_map.metadata.as_ref().map_or(false, |meta| {
-                            meta.name.as_ref().map_or(false, |n| *n == name)
+                    config_maps
+                        .items
+                        .into_iter()
+                        .find(|config_map| {
+                            config_map.metadata.as_ref().map_or(false, |meta| {
+                                meta.name.as_ref().map_or(false, |n| *n == name)
+                            })
                         })
-                    }) {
-                        if current == new_config_map {
-                            Either::A(Either::A(future::ok(())))
-                        } else {
-                            let fut = client_copy
-                                .lock()
-                                .expect("Unexpected lock error")
-                                .borrow_mut()
-                                .replace_config_map(namespace_copy.as_str(), &name, &new_config_map)
-                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                                .map(|_| ());
-
-                            Either::A(Either::B(fut))
-                        }
-                    } else {
-                        let fut = client_copy
-                            .lock()
-                            .expect("Unexpected lock error")
-                            .borrow_mut()
-                            .create_config_map(namespace_copy.as_str(), &new_config_map)
-                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                            .map(|_| ());
-
-                        Either::B(fut)
-                    }
+                        .map_or_else(
+                            || {
+                                let fut = client_copy
+                                    .lock()
+                                    .expect("Unexpected lock error")
+                                    .borrow_mut()
+                                    .create_config_map(namespace_copy.as_str(), &new_config_map)
+                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
+                                    .map(|_| ());
+                                Either::B(fut)
+                            },
+                            |current| {
+                                if current == new_config_map {
+                                    Either::A(Either::A(future::ok(())))
+                                } else {
+                                    let fut = client_copy
+                                        .lock()
+                                        .expect("Unexpected lock error")
+                                        .borrow_mut()
+                                        .replace_config_map(
+                                            namespace_copy.as_str(),
+                                            &name,
+                                            &new_config_map,
+                                        )
+                                        .map_err(|err| {
+                                            Error::from(err.context(ErrorKind::KubeClient))
+                                        })
+                                        .map(|_| ());
+                                    Either::A(Either::B(fut))
+                                }
+                            },
+                        )
                 })
                 .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
         })

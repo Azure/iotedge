@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
@@ -27,16 +28,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 ? Option.None<string>()
                 : Option.Some(this.runtime.DeviceId);
 
-            var leaf = await LeafDevice.CreateAsync(
-                leafDeviceId,
-                protocol,
-                testAuth.ToAuthenticationType(),
-                parentId,
-                testAuth.UseSecondaryCertificate(),
-                this.ca,
-                this.iotHub,
-                token,
-                Option.None<string>());
+            LeafDevice leaf = null;
+            try
+            {
+                leaf = await LeafDevice.CreateAsync(
+                    leafDeviceId,
+                    protocol,
+                    testAuth.ToAuthenticationType(),
+                    parentId,
+                    testAuth.UseSecondaryCertificate(),
+                    this.ca,
+                    this.iotHub,
+                    token,
+                    Option.None<string>());
+            }
+            catch (Exception) when (!parentId.HasValue)
+            {
+                return;
+            }
+
+            if (!parentId.HasValue)
+            {
+                Assert.Fail("Expected to fail when not in scope.");
+            }
+
+            Assert.NotNull(leaf);
 
             await TryFinally.DoAsync(
                 async () =>
