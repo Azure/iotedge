@@ -5,7 +5,7 @@
 
 ARG DIR=.
 
-FROM arm64v8/nginx:1.19.2
+FROM arm64v8/nginx:1.19.6-alpine
 WORKDIR /app
 COPY ./docker/linux/arm64v8/api-proxy-module .
 COPY ./docker/linux/arm64v8/templates .

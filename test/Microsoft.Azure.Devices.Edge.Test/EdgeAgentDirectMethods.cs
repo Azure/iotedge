@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Logs;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
@@ -25,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task TestPing()
         {
             CancellationToken token = this.TestToken;
-            await this.runtime.DeployConfigurationAsync(token);
+            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
 
@@ -47,10 +46,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(30000);
 
-            var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
+            string since = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd'T'HH:mm:sZ");
+            string until = DateTime.Now.AddDays(+1).ToString("yyyy-MM-dd'T'HH:mm:sZ");
+
+            var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.Some(10), Option.Some(since), Option.Some(until), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("GetModuleLogs", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)).SetPayloadJson(JsonConvert.SerializeObject(request)), token);
 
@@ -75,7 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(30000);
 
             var request = new ModuleLogsRequest("1.0", new List<LogRequestItem> { new LogRequestItem(moduleName, new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<string>())) }, LogsContentEncoding.None, LogsContentType.Text);
@@ -103,7 +107,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             // restart module
@@ -140,7 +145,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             var request = new
@@ -179,7 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     builder.AddModule(moduleName, numberLoggerImage)
                         .WithEnvironment(new[] { ("Count", count.ToString()) });
-                }, token);
+                }, token,
+                Context.Current.NestedEdge);
             await Task.Delay(10000);
 
             var request = new

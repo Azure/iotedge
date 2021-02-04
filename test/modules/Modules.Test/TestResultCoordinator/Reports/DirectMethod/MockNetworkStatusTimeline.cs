@@ -6,7 +6,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using System.Linq;
     using System.Threading.Tasks;
     using global::TestResultCoordinator.Reports;
-    using global::TestResultCoordinator.Reports.DirectMethod;
+    using global::TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -14,7 +14,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
     using Moq;
 
     /// <summary>
-    /// This is a helper class for DirectMethodReportGeneratorTest. It simply creates a static mocked NetworkStatusTimeline.
+    /// This is a helper class for DirectMethodReportConnectivityGeneratorTest. It simply creates a static mocked NetworkStatusTimeline.
     /// It's not so easy to mock the timeline, so to avoid clutter in the test class we build the mock here.
     /// </summary>
     class MockNetworkStatusTimeline

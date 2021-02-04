@@ -122,13 +122,13 @@ hostname: "<ADD HOSTNAME HERE>"
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
 # the path of the underlying socket in the systemd socket files
-# (aziot-edged.workload.sock and aziot-edged.mgmt.sock).
+# (mgmt.sock and workload.sock).
 #
 ###############################################################################
 
 connect:
-  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 ###############################################################################
 # Listen settings
@@ -147,18 +147,18 @@ connect:
 # These values can be different from the connect URIs. For instance, when
 # using the fd:// scheme for systemd:
 #     listen address is fd://aziot-edged.workload.socket,
-#     connect address is unix:///var/lib/aziot/edged/aziot-edged.workload.sock
+#     connect address is unix:///var/lib/iotedge/workload.sock
 #
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
 # the path of the underlying socket in the systemd socket files
-# (aziot-edged.workload.sock and aziot-edged.mgmt.sock).
+# (mgmt.sock and workload.sock).
 #
 ###############################################################################
 
 listen:
-  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 ###############################################################################
 # Home Directory
@@ -233,3 +233,18 @@ moby_runtime:
   #           gateway: '2021:ffff:e0:3b1:1::1'
   #           subnet: '2021:ffff:e0:3b1:1::/80'
   #           ip_range: '2021:ffff:e0:3b1:1::/80'
+
+###############################################################################
+# Edge CA Settings 
+###############################################################################
+#
+# Optional. This entry should only be specified to override the certificate
+# and keypair name of the CA certificate created by IoT Edge to issue identity
+# and server certificates for Edge modules. The name corresponds to the 
+# cert-id in the Certificate Service and key-id in the Key Service that are
+# pre-configured manually or by invoking the iotedge init command.
+###############################################################################
+
+#edge_ca_cert: "<ADD EDGE CA CERT ID HERE>"
+#edge_ca_key: "<ADD EDGE CA KEY ID HERE>"
+#trust_bundle_cert: "<ADD TRUST BUNDLE CERT ID HERE>"

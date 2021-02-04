@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             const int ConnectionPoolSize = 10;
 
-            string edgeHubConnectionString = $"{this.configuration[EdgeHubConstants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
+            string edgeHubConnectionString = $"{this.configuration[EdgeHubConstants.ConfigKey.IotHubConnectionString]}";
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 
@@ -159,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     iotHubConnectionStringBuilder.ModuleId,
                     string.Empty,
                     Option.None<string>(),
-                    AuthenticationMode.CloudAndScope,
+                    AuthenticationMode.Scope,
                     Option.Some(edgeHubConnectionString),
                     false,
                     usePersistentStorage,

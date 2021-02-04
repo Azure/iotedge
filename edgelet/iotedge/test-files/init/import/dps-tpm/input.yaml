@@ -1,0 +1,30 @@
+provisioning:
+  source: 'dps'
+  global_endpoint: 'https://global.azure-devices-provisioning.net'
+  scope_id: '0ab1234C5D6'
+  attestation:
+    method: 'tpm'
+    registration_id: 'abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrst'
+  always_reprovision_on_startup: true
+  dynamic_reprovisioning: true
+
+agent:
+  name: 'edgeAgent'
+  type: 'docker'
+  config:
+    image: 'mcr.microsoft.com/azureiotedge-agent:1.0'
+
+hostname: 'my-device'
+
+connect:
+  management_uri: 'unix:///var/run/iotedge/mgmt.sock'
+  workload_uri: 'unix:///var/run/iotedge/workload.sock'
+
+listen:
+  management_uri: 'fd://iotedge.mgmt.socket'
+  workload_uri: 'fd://iotedge.socket'
+
+homedir: '/var/lib/iotedge'
+
+moby_runtime:
+  uri: 'unix:///var/run/docker.sock'

@@ -4,6 +4,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
+    clippy::let_and_return,
+    clippy::let_unit_value,
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
@@ -19,6 +21,7 @@ use serde_derive::Deserialize;
 
 mod check;
 mod error;
+pub mod init;
 mod list;
 mod logs;
 mod restart;

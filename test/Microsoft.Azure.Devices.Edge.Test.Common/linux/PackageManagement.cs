@@ -72,49 +72,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy)
         {
-            var curl = "curl";
-            var prefix = string.Empty;
-            proxy.ForEach(url =>
-            {
-                curl += $" -x {url}";
-                prefix = $"http_proxy={url} https_proxy={url} ";
-            });
-
-            return this.packageExtension switch
-            {
-                SupportedPackageExtension.Deb => new[]
-                {
-                    // Based on instructions at:
-                    // https://github.com/MicrosoftDocs/azure-docs/blob/058084949656b7df518b64bfc5728402c730536a/articles/iot-edge/how-to-install-iot-edge-linux.md
-                    $"{curl} https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
-                    $"{curl} https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
-                    $"{prefix}apt-get update",
-                    $"{prefix}apt-get install --yes iotedge"
-                },
-                SupportedPackageExtension.Rpm => new[]
-                {
-                    // No proxy support here because our proxy test environment uses Ubuntu.
-                    $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
-                    $"yum updateinfo",
-                    $"yum install --yes iotedge",
-                    "pathToSystemdConfig=$(systemctl cat iotedge | head -n 1)",
-                    "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
-                    "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
-                    "sudo systemctl daemon-reload"
-                },
-                _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
-            };
+            throw new NotImplementedException("aziot-edge and aziot-identity-service currently aren't available in package repos");
         }
 
         public string[] GetUninstallCommands() => this.packageExtension switch
         {
             SupportedPackageExtension.Deb => new[]
             {
-                "dpkg --purge libiothsm-std aziot-edge aziot-identity-service iotedge"
+                "dpkg --purge aziot-edge",
+                "dpkg --purge aziot-identity-service",
+                "dpkg --purge iotedge",
+                "dpkg --purge libiothsm-std",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             SupportedPackageExtension.Rpm => new[]
             {
-                "yum remove -y libiothsm-std aziot-edge aziot-identity-service iotedge"
+                "yum remove -y --remove-leaves aziot-edge",
+                "yum remove -y --remove-leaves aziot-identity-service",
+                "yum remove -y --remove-leaves iotedge",
+                "yum remove -y --remove-leaves libiothsm-std",
+                "systemctl restart docker" // we can remove after this is fixed (https://github.com/moby/moby/issues/23302)
             },
             _ => throw new NotImplementedException($"Don't know how to uninstall daemon on for '.{this.packageExtension}'")
         };

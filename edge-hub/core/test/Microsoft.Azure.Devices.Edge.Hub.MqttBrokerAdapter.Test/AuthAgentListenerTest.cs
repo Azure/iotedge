@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 await Assert.ThrowsAsync<InvalidOperationException>(async () => await sut.StartAsync());
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodToken("good_token");
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             (_, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
             var authenticator = SetupAcceptGoodThumbprint(ThumbprintTestCertThumbprint2);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var authenticator = SetupAcceptGoodCa(goodCa);
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -283,7 +283,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 
@@ -304,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody);
@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(NonJSONRequestBody);
@@ -346,7 +346,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             (var authenticator, var metadataStore, var usernameParser, var credFactory, var sysIdProvider) = SetupAcceptEverything();
 
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
                 var result = await SendDirectRequest(RequestBody, contentLengthOverride: RequestBody.Length - 10);
@@ -363,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
             var metadataStore = new MetadataStore(store, "productInfo");
             string modelIdString = "dtmi:test:modelId;1";
-            using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
+            await using (var sut = new AuthAgentProtocolHead(authenticator, metadataStore, usernameParser, credFactory, sysIdProvider, config))
             {
                 await sut.StartAsync();
 

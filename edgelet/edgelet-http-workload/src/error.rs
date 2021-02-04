@@ -37,8 +37,17 @@ pub enum ErrorKind {
     #[fail(display = "Invalid certificate type")]
     InvalidCertificateType,
 
+    #[fail(display = "Invalid Identity auth type")]
+    InvalidIdentityAuthType,
+
     #[fail(display = "Invalid Identity type")]
     InvalidIdentityType,
+
+    #[fail(display = "Key Client error")]
+    KeyClient,
+
+    #[fail(display = "Failed to load OpenSSL engine")]
+    LoadKeyOpensslEngine,
 
     #[fail(display = "Request body is malformed")]
     MalformedRequestBody,

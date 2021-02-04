@@ -96,26 +96,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             // entity store. But that should be rare enough that it might be okay. Also it is better than not being able to forward the message.
             // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.
             // TODO - Need to support transactions for these operations. The underlying storage layers support it.
-            using (MetricsV0.MessageStoreLatency(endpointId))
-            {
-                await this.messageEntityStore.PutOrUpdate(
-                    edgeMessageId,
-                    new MessageWrapper(message),
-                    (m) =>
-                    {
-                        m.RefCount++;
-                        return m;
-                    });
-            }
+            await this.messageEntityStore.PutOrUpdate(
+                edgeMessageId,
+                new MessageWrapper(message),
+                (m) =>
+                {
+                    m.RefCount++;
+                    return m;
+                });
 
             try
             {
-                using (MetricsV0.SequentialStoreLatency(endpointId))
-                {
-                    long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
-                    Events.MessageAdded(offset, edgeMessageId, endpointId);
-                    return new MessageWithOffset(message, offset);
-                }
+                long offset = await sequentialStore.Append(new MessageRef(edgeMessageId, timeToLive));
+                Events.MessageAdded(offset, edgeMessageId, endpointId);
+                return new MessageWithOffset(message, offset);
             }
             catch (Exception)
             {
@@ -255,6 +249,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
+            async Task<Option<MessageWrapper>> TryDecrementRefCountUpdate(string messageId, string messageQueueId)
+            {
+                MessageWrapper message = null;
+                try
+                {
+                    // Decrement ref count.
+                    message = await this.messageStore.messageEntityStore.Update(
+                        messageId,
+                        m =>
+                        {
+                            if (m.RefCount > 0)
+                            {
+                                m.RefCount--;
+                            }
+
+                            return m;
+                        });
+                }
+                catch (InvalidOperationException e)
+                {
+                    Events.ErrorUpdatingMessage(e, messageQueueId);
+                }
+
+                return Option.Maybe<MessageWrapper>(message);
+            }
+
             private async Task CleanQueue(bool checkEntireQueueOnCleanup)
             {
                 long totalCleanupCount = 0;
@@ -295,36 +315,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 }
 
                                 headOffset = Math.Max(headOffset, offset);
-                                bool deleteMessage = false;
 
-                                // Decrement ref count.
-                                var message = await this.messageStore.messageEntityStore.Update(
-                                    messageRef.EdgeMessageId,
-                                    m =>
-                                    {
-                                        if (m.RefCount > 0)
-                                        {
-                                            m.RefCount--;
-                                        }
+                                var message = await this.TryDecrementRefCountUpdate(messageRef.EdgeMessageId, messageQueueId);
 
-                                        if (m.RefCount == 0)
-                                        {
-                                            deleteMessage = true;
-                                        }
-
-                                        return m;
-                                    });
-
-                                if (deleteMessage)
+                                await message.ForEachAsync(async msg =>
                                 {
-                                    if (offset > checkpointData.Offset && expiry <= DateTime.UtcNow)
+                                    if (msg.RefCount == 0)
                                     {
-                                        this.expiredCounter.Increment(1, new[] { "ttl_expiry", message?.Message.GetSenderId(), message?.Message.GetOutput(), bool.TrueString });
-                                    }
+                                        if (offset > checkpointData.Offset && expiry <= DateTime.UtcNow)
+                                        {
+                                            this.expiredCounter.Increment(1, new[] { "ttl_expiry", msg.Message.GetSenderId(), msg.Message.GetOutput(), bool.TrueString });
+                                        }
 
-                                    await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
-                                    cleanupEntityStoreCount++;
-                                }
+                                        await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
+                                        cleanupEntityStoreCount++;
+                                    }
+                                });
 
                                 return true;
                             }
@@ -410,7 +416,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 CleanupCheckpointState,
                 MessageAdded,
                 ErrorGettingMessagesBatch,
-                CreatedCleanupProcessor
+                CreatedCleanupProcessor,
+                ErrorUpdatingMessageForEndpoint
             }
 
             public static void MessageStoreCreated()
@@ -441,6 +448,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public static void ErrorCleaningMessages(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
+            }
+
+            public static void ErrorUpdatingMessage(Exception ex, string endpointId)
+            {
+                Log.LogWarning((int)EventIds.ErrorUpdatingMessageForEndpoint, ex, Invariant($"Error cleaning up message from message store for endpoint {endpointId}"));
             }
 
             public static void CleanupCompleted(string endpointId, int queueMessagesCount, int storeMessagesCount, long totalQueueMessagesCount, long totalStoreMessagesCount)
@@ -651,10 +663,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 DurationUnit = TimeUnit.Milliseconds,
                 RateUnit = TimeUnit.Seconds
             };
-
-            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
-
-            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
 
             internal static MetricTags GetTags(string id)
             {

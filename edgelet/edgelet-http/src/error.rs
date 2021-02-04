@@ -219,7 +219,6 @@ impl Display for BindListenerType {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InvalidUrlReason {
     FdNeitherNumberNorName,
-    FileNotFound,
     InvalidScheme,
     InvalidCredentials,
     NoAddress,
@@ -233,7 +232,6 @@ impl Display for InvalidUrlReason {
             InvalidUrlReason::FdNeitherNumberNorName => {
                 write!(f, "URL could not be parsed as fd number nor fd name")
             }
-            InvalidUrlReason::FileNotFound => write!(f, "Socket file could not be found"),
             InvalidUrlReason::InvalidScheme => write!(f, "URL does not have a recognized scheme"),
             InvalidUrlReason::InvalidCredentials => {
                 write!(f, "Username or password could not be parsed from URL")

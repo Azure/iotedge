@@ -9,6 +9,7 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
 
 use cert_client::client::CertificateClient;
+use edgelet_core::WorkloadConfig;
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use workload::models::TrustBundleResponse;
@@ -16,27 +17,35 @@ use workload::models::TrustBundleResponse;
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
 
-pub struct TrustBundleHandler {
+pub struct TrustBundleHandler<W: WorkloadConfig> {
     cert_client: Arc<Mutex<CertificateClient>>,
+    config: W,
 }
 
-impl TrustBundleHandler {
-    pub fn new(cert_client: Arc<Mutex<CertificateClient>>) -> Self {
-        TrustBundleHandler { cert_client }
+impl<W: WorkloadConfig> TrustBundleHandler<W> {
+    pub fn new(cert_client: Arc<Mutex<CertificateClient>>, config: W) -> Self {
+        TrustBundleHandler {
+            cert_client,
+            config,
+        }
     }
 }
 
-impl Handler<Parameters> for TrustBundleHandler {
+impl<W> Handler<Parameters> for TrustBundleHandler<W>
+where
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
+{
     fn handle(
         &self,
         _req: Request<Body>,
         _params: Parameters,
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
+        let config = self.config.clone();
         let response = self
             .cert_client
             .lock()
             .expect("cert client lock failed")
-            .get_cert("iotedge-trust-bundle")
+            .get_cert(config.trust_bundle_cert())
             .map_err(|_| Error::from(ErrorKind::GetIdentity))
             .and_then(|cert| -> Result<_, Error> {
                 let cert = str::from_utf8(cert.as_ref())

@@ -107,15 +107,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Edged = "/etc/aziot/edged/config.yaml"
                     };
 
-                    // The name of the default aziot-edged config file differs based on OS.
-                    string edgedDefault = this.packageManagement.GetDefaultEdgedConfig();
-
-                    DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
-                    DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
-                    DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
-                    DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
-
-                    DaemonConfiguration conf = new DaemonConfiguration(paths);
+                    uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -196,19 +189,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = this.packageManagement.GetUninstallCommands();
 
-            try
+            foreach (string command in commands)
             {
-                await Profiler.Run(
+                try
+                {
+                    await Profiler.Run(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
-                        Log.Verbose(string.Join("\n", output));
-                    },
-                    "Uninstalled edge daemon");
-            }
-            catch (Win32Exception e)
-            {
-                Log.Verbose(e, "Failed to uninstall edge daemon, probably because it isn't installed");
+                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
+                        if (output.Length > 0)
+                        {
+                            Log.Verbose($"Uninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output:\n" + string.Join("\n", output));
+                        }
+                        else
+                        {
+                            Log.Verbose($"Uninstall command '{command}' ran successfully");
+                        }
+                    }, $"Successful: {command}");
+                }
+                catch (Win32Exception e)
+                {
+                    Log.Verbose(e, $"Failed to uninstall edge component with command '{command}', probably because this component isn't installed");
+                }
             }
         }
 
@@ -243,6 +245,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await Task.Delay(250, token).ConfigureAwait(false);
                 }
             }
+        }
+
+        public string GetDefaultEdgedConfig()
+        {
+            return this.packageManagement.GetDefaultEdgedConfig();
+        }
+
+        private static async Task<uint> GetIotedgeUid(CancellationToken token)
+        {
+            string[] output = await Process.RunAsync("id", "-u iotedge", token);
+            string uid = output[0].Trim();
+
+            return System.Convert.ToUInt32(uid, 10);
         }
     }
 }

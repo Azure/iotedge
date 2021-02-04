@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
-use std::path::PathBuf;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
@@ -25,12 +24,14 @@ pub const DEFAULTS: &str = include_str!("../config/unix/default.yaml");
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
+pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
-    uri: Url,
-    network: MobyNetwork,
-    content_trust: Option<ContentTrust>,
+    pub uri: Url,
+    pub network: MobyNetwork,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_trust: Option<ContentTrust>,
 }
 
 impl MobyRuntime {
@@ -49,11 +50,11 @@ impl MobyRuntime {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct ContentTrust {
-    ca_certs: Option<HashMap<String, PathBuf>>,
+    pub ca_certs: Option<BTreeMap<String, String>>,
 }
 
 impl ContentTrust {
-    pub fn ca_certs(&self) -> Option<&HashMap<String, PathBuf>> {
+    pub fn ca_certs(&self) -> Option<&BTreeMap<String, String>> {
         self.ca_certs.as_ref()
     }
 }
@@ -66,14 +67,14 @@ impl ContentTrust {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
-    base: BaseSettings<DockerConfig>,
-    moby_runtime: MobyRuntime,
+    pub base: BaseSettings<DockerConfig>,
+    pub moby_runtime: MobyRuntime,
 }
 
 impl Settings {
     pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
         let mut config = Config::default();
-        config.merge(YamlFileSource::String(DEFAULTS))?;
+        config.merge(YamlFileSource::String(DEFAULTS.into()))?;
         config.merge(YamlFileSource::File(filename.into()))?;
         config.merge(Environment::with_prefix("iotedge"))?;
 
@@ -127,6 +128,18 @@ impl RuntimeSettings for Settings {
     fn endpoints(&self) -> &Endpoints {
         self.base.endpoints()
     }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        self.base.edge_ca_cert()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        self.base.edge_ca_key()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        self.base.trust_bundle_cert()
+    }
 }
 
 fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
@@ -140,6 +153,28 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     agent_networking(settings)?;
 
     agent_labels(settings)?;
+
+    // In nested scenario, Agent image can be pulled from its parent.
+    // It is possible to specify the parent address using the keyword $upstream
+    agent_image_resolve(settings)?;
+
+    Ok(())
+}
+
+fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+    let image = settings.agent().config().image().to_string();
+
+    if let Some(parent_hostname) = settings.parent_hostname() {
+        if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
+            let image_nested = format!(
+                "{}{}",
+                parent_hostname,
+                &image[UPSTREAM_PARENT_KEYWORD.len()..]
+            );
+            let config = settings.agent().config().clone().with_image(image_nested);
+            settings.agent_mut().set_config(config);
+        }
+    }
 
     Ok(())
 }
@@ -293,6 +328,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use crate::settings::agent_image_resolve;
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
 
@@ -308,6 +344,8 @@ mod tests {
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.yaml";
 
     #[test]
     fn network_default() {
@@ -432,6 +470,17 @@ mod tests {
         );
     }
 
+    #[test]
+    fn agent_image_is_resolved() {
+        let mut settings = Settings::new(Path::new(GOOD_SETTINGS_IMAGE_RESOLVE)).unwrap();
+        agent_image_resolve(&mut settings).unwrap();
+
+        assert_eq!(
+            "parent_hostname:443/microsoft/azureiotedge-agent:1.0",
+            settings.agent().config().image()
+        );
+    }
+
     #[cfg(unix)]
     #[test]
     fn content_trust_env_are_set_properly() {
@@ -442,26 +491,16 @@ mod tests {
             .and_then(ContentTrust::ca_certs)
         {
             assert_eq!(
-                content_trust_map.get("contoso1.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso1.crt"))
+                content_trust_map
+                    .get("contoso1.azurcr.io")
+                    .map(AsRef::as_ref),
+                Some("content-trust-contoso1.azurecr.io")
             );
             assert_eq!(
-                content_trust_map.get("contoso2.azurcr.io"),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso2.crt"))
-            );
-            assert_eq!(
-                content_trust_map.get(""),
-                Some(&std::path::PathBuf::from("/path/to/root_ca_contoso3.crt"))
-            );
-            assert_eq!(
-                content_trust_map.get("contoso4.azurcr.io"),
-                Some(&std::path::PathBuf::from(
-                    "/path/to/root_ca_contoso4_replaced.crt"
-                ))
-            );
-            assert_eq!(
-                content_trust_map.get("contoso5.azurcr.io"),
-                Some(&std::path::PathBuf::from(""))
+                content_trust_map
+                    .get("contoso2.azurcr.io")
+                    .map(AsRef::as_ref),
+                Some("content-trust-contoso2.azurecr.io")
             );
         } else {
             panic!();

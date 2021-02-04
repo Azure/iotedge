@@ -96,7 +96,7 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock
+rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 rpm:
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
 	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
@@ -128,8 +128,9 @@ install: release
 	$(GZIP) $(DESTDIR)$(man8)/aziot-edged.8
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/aziot/edged
 	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/log/aziot/edged
-	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/aziot/edged/aziot-edged.mgmt.sock
-	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/aziot/edged/aziot-edged.workload.sock
+	$(INSTALL) -d -m 0755 $(DESTDIR)$(localstatedir)/lib/iotedge
+	$(INSTALL) -m 0660 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/mgmt.sock
+	$(INSTALL) -m 0666 /dev/null $(DESTDIR)$(localstatedir)/lib/iotedge/workload.sock
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(DESTDIR)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(DESTDIR)$(docdir)/ThirdPartyNotices
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/trademark $(DESTDIR)$(docdir)/trademark

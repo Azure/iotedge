@@ -139,15 +139,15 @@ impl ModuleRuntimeState {
 
 #[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
 pub struct ModuleSpec<T> {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    type_: String,
-    config: T,
+    pub type_: String,
+    pub config: T,
     #[serde(default = "BTreeMap::new")]
-    env: BTreeMap<String, String>,
+    pub env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
-    image_pull_policy: ImagePullPolicy,
+    pub image_pull_policy: ImagePullPolicy,
 }
 
 impl<T> Clone for ModuleSpec<T>

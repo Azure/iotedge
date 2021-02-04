@@ -1,0 +1,14 @@
+hostname = "my-device"
+homedir = "/var/lib/aziot/identityd"
+
+[provisioning]
+always_reprovision_on_startup = true
+source = "dps"
+global_endpoint = "https://global.azure-devices-provisioning.net/"
+scope_id = "0ab1234C5D6"
+
+[provisioning.attestation]
+method = "x509"
+registration_id = "my-x509-devices"
+identity_cert = "device-id"
+identity_pk = "device-id"

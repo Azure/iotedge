@@ -68,7 +68,7 @@ All of the accompanying files in the debian package can be found in the `contrib
 
 ### Directories
 
-The `/var/lib/aziot/edged` and `/var/log/aziot/edged` directories are both created with mode/user `755 iotedge:iotedge`.
+The `/var/lib/aziot/edged`, `/var/lib/iotedge` (only on CentOS) and `/var/log/aziot/edged` directories are created with mode/user `755 iotedge:iotedge`.
 
 ### Pre-install script
 The pre-install script is [here](https://github.com/Azure/iotedge/blob/master/edgelet/contrib/debian/preinst).

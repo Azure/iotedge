@@ -35,14 +35,35 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         private Dictionary<Service, Config> config;
+        private string principalsPath;
 
-        public DaemonConfiguration(ConfigFilePaths configFiles)
+        public DaemonConfiguration(ConfigFilePaths configFiles, uint iotedgeUid)
         {
             this.config = new Dictionary<Service, Config>();
+
             this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true);
             this.InitServiceConfig(Service.Certd, configFiles.Certd, true);
             this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true);
             this.InitServiceConfig(Service.Edged, configFiles.Edged, false);
+
+            string principalsPath = Path.Combine(
+                Path.GetDirectoryName(configFiles.Identityd),
+                "config.d");
+            this.principalsPath = principalsPath;
+
+            // Clear any existing Identity Service principals.
+            this.config[Service.Identityd].Document.RemoveIfExists("principal");
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+            }
+
+            Directory.CreateDirectory(principalsPath);
+            OsPlatform.Current.SetOwner(principalsPath, "aziotid", "755");
+
+            // Add the principal entry for aziot-edge to Identity Service.
+            // This is required so aziot-edge can communicate with Identity Service.
+            this.AddPrincipal("aziot-edge", iotedgeUid);
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -76,6 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         void SetBasicDpsParam(string idScope)
         {
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "dps");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
@@ -87,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.CreatePreloadedKey(keyName, key);
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
@@ -107,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
+            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
@@ -135,16 +159,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
         }
 
-        public void SetDpsX509(string idScope, string registrationId, IdCertificates cert, string trustBundle)
+        public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath, string trustBundle)
         {
-            if (!File.Exists(cert.CertificatePath))
+            if (!File.Exists(identityCertPath))
             {
-                throw new InvalidOperationException($"{cert.CertificatePath} does not exist");
+                throw new InvalidOperationException($"{identityCertPath} does not exist");
             }
 
-            if (!File.Exists(cert.KeyPath))
+            if (!File.Exists(identityPkPath))
             {
-                throw new InvalidOperationException($"{cert.KeyPath} does not exist");
+                throw new InvalidOperationException($"{identityPkPath} does not exist");
             }
 
             if (!File.Exists(trustBundle))
@@ -156,17 +180,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
 
-            string certFileName = Path.GetFileName(cert.CertificatePath);
+            string certFileName = Path.GetFileName(identityCertPath);
             string certName = DaemonConfiguration.SanitizeName(certFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", certName);
-            this.config[Service.Certd].Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + cert.CertificatePath);
+            this.config[Service.Certd].Document.ReplaceOrAdd($"preloaded_certs.{certName}", "file://" + identityCertPath);
 
-            string keyFileName = Path.GetFileName(cert.KeyPath);
+            string keyFileName = Path.GetFileName(identityPkPath);
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", keyName);
-            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + cert.KeyPath);
+            this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
 
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + trustBundle);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + trustBundle);
+        }
+
+        public void SetEdgeAgentImage(string value)
+        {
+            this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", value);
         }
 
         public void SetDeviceHostname(string value)
@@ -197,16 +226,50 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new InvalidOperationException($"{certs.TrustedCertificatesPath} does not exist");
             }
 
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-device-ca", "file://" + certs.CertificatePath);
-            this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-device-ca", "file://" + certs.KeyPath);
-            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.iotedge-trust-bundle", "file://" + certs.TrustedCertificatesPath);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", "file://" + certs.CertificatePath);
+            this.config[Service.Keyd].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", "file://" + certs.KeyPath);
+            this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + certs.TrustedCertificatesPath);
         }
 
         public void RemoveCertificates()
         {
-            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-device-ca");
-            this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-device-ca");
-            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.iotedge-trust-bundle");
+            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-ca");
+            this.config[Service.Keyd].Document.RemoveIfExists("preloaded_keys.aziot-edged-ca");
+            this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-trust-bundle");
+        }
+
+        public void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
+        {
+            string path = Path.Combine(this.principalsPath, $"{name}-principal.toml");
+
+            string principal = string.Join(
+                "\n",
+                "[[principal]]",
+                $"uid = {uid}",
+                $"name = \"{name}\"");
+
+            if (type != null)
+            {
+                // Need to quote each type.
+                for (int i = 0; i < type.Length; i++)
+                {
+                    type[i] = $"\"{type[i]}\"";
+                }
+
+                string types = string.Join(", ", type);
+                principal = string.Join("\n", principal, $"idtype = [{types}]");
+            }
+
+            if (opts != null)
+            {
+                foreach (KeyValuePair<string, string> opt in opts)
+                {
+                    principal = string.Join("\n", principal, $"{opt.Key} = {opt.Value}");
+                }
+            }
+
+            File.WriteAllText(path, principal + "\n");
+            OsPlatform.Current.SetOwner(path, "aziotid", "644");
         }
 
         public void Update()
@@ -226,26 +289,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
-        public static void CreateConfigFile(string configFile, string defaultFile, string owner)
-        {
-            // If the config file does not exist, create it from the default file.
-            // If the default file does not exist, create an empty config file.
-            if (!File.Exists(configFile))
-            {
-                if (File.Exists(defaultFile))
-                {
-                    File.Copy(defaultFile, configFile);
-                }
-                else
-                {
-                    File.Create(configFile).Dispose();
-                }
-            }
-
-            // Change owner of config file.
-            OsPlatform.Current.SetFileOwner(configFile, owner, "644");
-        }
-
         private static string SanitizeName(string name)
         {
             // Due to '.' being used as a delimiter for config file tables, names cannot contain '.'
@@ -256,10 +299,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // All names passed to this function must be sanitized with DaemonConfiguration.SanitizeName
         private void CreatePreloadedKey(string name, string value)
         {
-            string filePath = $"/etc/aziot/e2e_tests/{name}.key";
+            string filePath = Path.Combine(FixedPaths.E2E_TEST_DIR, $"{name}.key");
 
             File.WriteAllBytes(filePath, Convert.FromBase64String(value));
-            OsPlatform.Current.SetFileOwner(filePath, "aziotks", "600");
+            OsPlatform.Current.SetOwner(filePath, "aziotks", "600");
 
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
         }

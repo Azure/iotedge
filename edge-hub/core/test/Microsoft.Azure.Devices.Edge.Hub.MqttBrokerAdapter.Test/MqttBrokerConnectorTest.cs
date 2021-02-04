@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     {
         const string HOST = "localhost";
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public void WhenStartedThenHooksUpToProducers()
         {
             var producers = new[] { new ProducerStub(), new ProducerStub() };
@@ -30,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.All(producers, p => Assert.Equal(sut, p.Connector));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenStartedThenConnectsToServer()
         {
             using var broker = new MiniMqttServer();
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(1, broker.ConnectionCounter);
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenStartedTwiceThenSecondFails()
         {
             using var broker = new MiniMqttServer();
@@ -56,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(1, broker.ConnectionCounter);
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenStartedThenSubscribesForConsumers()
         {
             using var broker = new MiniMqttServer();
@@ -77,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(expected, broker.Subscriptions.OrderBy(s => s));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenMessageReceivedThenForwardsToConsumers()
         {
             using var broker = new MiniMqttServer();
@@ -105,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.All(consumers, c => Assert.Equal("hoo", Encoding.ASCII.GetString(c.PacketsToHandle.First().Payload)));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenMessageHandledThenForwardingLoopBreaks()
         {
             using var broker = new MiniMqttServer();
@@ -136,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(0, Volatile.Read(ref callCounter));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenConsumerThrowsThenProcessingLoopContinues()
         {
             using var broker = new MiniMqttServer();
@@ -163,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(consumers[1].PacketsToHandle.First().Payload));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task ProducersCanSendMessages()
         {
             using var broker = new MiniMqttServer();
@@ -187,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task ProducersWaitForAck()
         {
             using var broker = new MiniMqttServer();
@@ -224,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task SendAsyncCancelsWhenDisconnecting()
         {
             using var broker = new MiniMqttServer();
@@ -247,7 +248,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await Assert.ThrowsAsync<TaskCanceledException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
+        public async Task SendAsyncCancelsWhenTimeout()
+        {
+            using var broker = new MiniMqttServer();
+            var sut = default(MqttBrokerConnector);
+
+            broker.OnPublish =
+                () =>
+                {
+                    throw new Exception(); // this stops sending ACK back
+                };
+
+            var producer = new ProducerStub();
+
+            sut = new ConnectorBuilder()
+                .WithProducer(producer)
+                .Build();
+
+            sut.AckTimeout = TimeSpan.FromSeconds(2);
+
+            await sut.ConnectAsync(HOST, broker.Port);
+            await Assert.ThrowsAsync<TimeoutException>(async () => await producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo")));
+        }
+
+        [Fact]
         public async Task TriesReconnect()
         {
             using var broker = new MiniMqttServer();
@@ -265,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Assert.Equal(2, broker.ConnectionCounter);
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task WhenReconnectsThenResubscribes()
         {
             using var broker = new MiniMqttServer();
@@ -286,17 +311,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             broker.Subscriptions.Clear();
 
-            var milestone = new SemaphoreSlim(0, 1);
-            broker.OnConnect = () => milestone.Release();
+            var milestoneConnected = new SemaphoreSlim(0, 1);
+            broker.OnConnect = () => milestoneConnected.Release();
+
+            var milestoneSubscribed = new SemaphoreSlim(0, 1);
+            var subscriptionCount = consumers.SelectMany(c => c.Subscriptions).Count();
+            broker.OnSubscribe = () =>
+            {
+                if (Interlocked.Decrement(ref subscriptionCount) == 0)
+                {
+                    milestoneSubscribed.Release();
+                }
+            };
+
             broker.DropActiveClient();
 
-            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.True(await milestoneConnected.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.True(await milestoneSubscribed.WaitAsync(TimeSpan.FromSeconds(5)));
 
-            var expected = consumers.SelectMany(c => c.Subscriptions).OrderBy(s => s);
-            Assert.Equal(expected, broker.Subscriptions.OrderBy(s => s));
+            var expected = consumers.SelectMany(c => c.Subscriptions).OrderBy(s => s).ToArray();
+            var actual = broker.Subscriptions.OrderBy(s => s).ToArray();
+
+            Assert.Equal(expected, actual);
         }
 
-        [Fact(Skip = "Fails in CI pipeline. Temporarily disabling while we investigate what is wrong")]
+        [Fact]
         public async Task OfflineSendGetSentAfterReconnect()
         {
             var producer = new ProducerStub();
@@ -320,6 +359,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 broker.DropActiveClient();
             }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(200)); // give time to settle with dropped connection
 
             var sendTask = producer.Connector.SendAsync("boo", Encoding.ASCII.GetBytes("hoo"));
             await Task.Delay(TimeSpan.FromSeconds(3)); // let the connector work a bit on reconnect
@@ -418,6 +459,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
     class MiniMqttServer : IDisposable
     {
+        CancellationTokenSource cts;
+
         TcpListener listener;
         Task processingTask;
 
@@ -430,6 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         public List<(string, byte[])> Publications { get; private set; }
 
         public Action OnPublish { private get; set; }
+        public Action OnSubscribe { private get; set; }
         public Action OnConnect { private get; set; }
 
         public MiniMqttServer(int? port = null)
@@ -440,12 +484,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 this.Publications = new List<(string, byte[])>();
 
                 this.OnPublish = () => { };
+                this.OnSubscribe = () => { };
                 this.OnConnect = () => { };
 
                 this.listener = TcpListener.Create(port.GetValueOrDefault());
                 this.listener.Start();
 
-                processingTask = ProcessingLoop(listener);
+                this.cts = new CancellationTokenSource();
+                processingTask = ProcessingLoop(listener, this.cts.Token);
             }
             catch (Exception e)
             {
@@ -472,44 +518,57 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         public void Dispose()
         {
+            cts.Cancel();
             this.listener.Stop();
             DropActiveClient();
             this.processingTask.Wait();
         }
 
-        async Task ProcessingLoop(TcpListener listener)
+        async Task ProcessingLoop(TcpListener listener, CancellationToken token)
         {
             var hasStopped = false;
-            do
+            while (!(hasStopped || token.IsCancellationRequested))
             {
                 try
                 {
                     var newClient = await listener.AcceptTcpClientAsync();
-                    _ = ProcessClient(newClient);
+                    _ = ProcessClient(newClient, token);
                 }
                 catch
                 {
                     hasStopped = true;
                 }
-
             }
-            while (!hasStopped);
         }
 
-        async Task ProcessClient(TcpClient client)
+        async Task ProcessClient(TcpClient client, CancellationToken token)
         {
             var clientStream = client.GetStream();
             this.lastClient = clientStream; // so Publish() has something to work with
 
             do
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 var firstTwoBytes = await ReadBytesAsync(clientStream, 2);
+                if (!firstTwoBytes.HasValue)
+                {
+                    break;
+                }
 
-                var type = firstTwoBytes[0];
-                var size = firstTwoBytes[1];
+                var (type, size) = firstTwoBytes.Map(h => (h[0], h[1]))
+                    .Expect(() => new InvalidOperationException("mqtt header"));
 
-                var content = await ReadBytesAsync(clientStream, size);
+                var packet = await ReadBytesAsync(clientStream, size);
+                if (!packet.HasValue)
+                {
+                    break;
+                }
 
+                var content = packet.Expect(() => new InvalidOperationException("mqtt packet"));
                 switch (type)
                 {
                     case 0x10:
@@ -552,7 +611,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             return result;
         }
 
-        static async Task<byte[]> ReadBytesAsync(NetworkStream stream, int count)
+        static async Task<Option<byte[]>> ReadBytesAsync(NetworkStream stream, int count)
         {
             var result = new byte[count];
             var toRead = count;
@@ -562,11 +621,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             {
                 var readBytes = await stream.ReadAsync(result, totalRead, toRead);
 
+                // assume the connection was closed by the peer when can read only 0 bytes
+                if (readBytes == 0)
+                {
+                    return Option.None<byte[]>();
+                }
+
                 totalRead += readBytes;
                 toRead -= readBytes;
             }
 
-            return result;
+            return Option.Some(result);
         }
 
         async Task HandleConnect(NetworkStream stream)
@@ -595,6 +660,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 var newSubscription = Encoding.UTF8.GetString(content, currentPos + 2, len);
                 this.Subscriptions.Add(newSubscription);
+                this.OnSubscribe();
 
                 currentPos += 2 + len + 1; // +1 for QoS
                 remaining -= 2 + len + 1;

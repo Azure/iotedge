@@ -473,6 +473,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Try.Success(cloudConnection as ICloudConnection));
 
             var deviceProxy = new Mock<IDeviceProxy>(MockBehavior.Strict);
+            deviceProxy.Setup(dp => dp.IsActive).Returns(true);
 
             var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
             credentialsCache.Setup(c => c.Get(deviceIdentity)).ReturnsAsync(Option.Some((IClientCredentials)updatedDeviceCredentials));

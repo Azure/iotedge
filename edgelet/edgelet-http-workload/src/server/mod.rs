@@ -62,10 +62,9 @@ impl WorkloadService {
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/decrypt"  => DecryptHandler::new(key_client.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/encrypt"  => EncryptHandler::new(key_client.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/certificate/identity"            => IdentityCertHandler::new(key_client.clone(), cert_client.clone(), config.clone()),
-            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client, cert_client.clone(), config),
-
-            get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client.clone()),
-            get   Version2018_06_28 runtime Policy::Anonymous => "/manifest-trust-bundle" => ManifestTrustBundleHandler::new(cert_client.clone()),
+            post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/certificate/server" => ServerCertHandler::new(key_client, cert_client.clone(), config.clone()),
+            get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client, config),
+            get   Version2018_06_28 runtime Policy::Anonymous => "/manifest-trust-bundle" => ManifestTrustBundleHandler::new(cert_client, config),
         );
 
         router.new_service().then(|inner| {
@@ -104,18 +103,18 @@ fn get_derived_identity_key_handle(
     name: &str,
 ) -> impl Future<Item = KeyHandle, Error = Error> {
     let id_client = identity_client.lock().unwrap();
-    id_client
-        .get_module(name)
-        .map_err(|_| Error::from(ErrorKind::GetIdentity))
-        .and_then(|identity| match identity {
-            aziot_identity_common::Identity::Aziot(spec) => spec
-                .auth
-                .map(|authinfo| Ok(authinfo.key_handle))
-                .expect("keyhandle missing"),
-            aziot_identity_common::Identity::Local(_) => {
-                Err(Error::from(ErrorKind::InvalidIdentityType))
-            }
-        })
+    id_client.get_module(name).then(|identity| match identity {
+        Ok(aziot_identity_common::Identity::Aziot(spec)) => spec
+            .auth
+            .and_then(|authinfo| authinfo.key_handle)
+            .ok_or_else(|| failure::err_msg("keyhandle missing"))
+            .context(ErrorKind::GetIdentity)
+            .map_err(Into::into),
+        Ok(aziot_identity_common::Identity::Local(_)) => {
+            Err(Error::from(ErrorKind::InvalidIdentityType))
+        }
+        Err(err) => Err(err.context(ErrorKind::GetIdentity).into()),
+    })
 }
 
 fn get_master_encryption_key(
