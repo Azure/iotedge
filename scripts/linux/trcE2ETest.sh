@@ -552,7 +552,7 @@ function process_args() {
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
-    [[ -z "$REPO_PATH" ]] && { print_error 'Checkout path is required'; exit 1; }
+    [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
 
     echo 'Required parameters are provided'
