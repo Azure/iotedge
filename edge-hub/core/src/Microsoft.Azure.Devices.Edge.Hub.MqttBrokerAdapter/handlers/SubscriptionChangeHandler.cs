@@ -114,32 +114,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                          dev => this.identityProvider.Create(dev),
                                          () => throw new ArgumentException("Invalid topic structure for subscriptions - no Device name matched")));
 
-            var listener = default(IDeviceListener);
             var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity, true);
 
-            if (maybeListener.HasValue)
-            {
-                listener = maybeListener.Expect(() => new Exception($"No device listener found for {identity.Id}"));
-
-                foreach (var subscriptionPattern in this.subscriptionPatterns)
-                {
-                    var subscribes = false;
-                    foreach (var subscription in subscriptionList)
-                    {
-                        if (this.TryMatchSubscription(subscriptionPattern, subscription, deviceId, moduleId))
+            await maybeListener.Match(
+                        async listener =>
                         {
-                            subscribes = true;
-                            break;
-                        }
-                    }
+                            foreach (var subscriptionPattern in this.subscriptionPatterns)
+                            {
+                                var subscribes = false;
+                                foreach (var subscription in subscriptionList)
+                                {
+                                    if (this.TryMatchSubscription(subscriptionPattern, subscription, deviceId, moduleId))
+                                    {
+                                        subscribes = true;
+                                        break;
+                                    }
+                                }
 
-                    await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscription);
-                }
-            }
-            else
-            {
-                Events.CouldNotObtainListener(identity.Id);
-            }
+                                await AddOrRemoveSubscription(listener, subscribes, subscriptionPattern.Subscription);
+                            }
+                        },
+                        () => Events.CouldNotObtainListener(identity.Id));
         }
 
         bool TryMatchSubscription(SubscriptionPattern subscriptionPattern, string subscription, Option<string> deviceId, Option<string> moduleId)
@@ -322,13 +317,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize subscription update");
             public static void FailedToChangeSubscriptionState(Exception e, string subscription, string id) => Log.LogError((int)EventIds.FailedToChangeSubscriptionState, e, $"Failed to change subscrition status {subscription} for {id}");
-            public static void CouldNotObtainListener(string id) => Log.LogError((int)EventIds.CouldNotObtainListener, $"Could not obtain DeviceListener to change subscrition status for {id}");
             public static void HandlingSubscriptionChange(string content) => Log.LogDebug((int)EventIds.HandlingSubscriptionChange, $"Handling subscription change {content}");
 
-            // This is called from Option.Match, where the Some() case is async - Task.CompletedTask is hidden here to make it look better at the match
+            // These are called from Option.Match, where the Some() case is async - Task.CompletedTask is hidden here to make it look better at the match
             public static Task CouldNotObtainListenerForSubscription(string subscription, string id)
             {
                 Log.LogError((int)EventIds.CouldNotObtainListenerForSubscription, $"Could not obtain DeviceListener to change subscrition status {subscription} for {id}");
+                return Task.CompletedTask;
+            }
+
+            public static Task CouldNotObtainListener(string id)
+            {
+                Log.LogError((int)EventIds.CouldNotObtainListener, $"Could not obtain DeviceListener to change subscrition status for {id}");
                 return Task.CompletedTask;
             }
         }

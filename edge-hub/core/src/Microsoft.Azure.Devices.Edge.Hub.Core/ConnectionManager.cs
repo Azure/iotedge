@@ -173,15 +173,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>
                 {
-                    var subscriptions = d.Subscriptions.Keys.ToArray();
-                    foreach (var deviceSubscription in subscriptions)
+                    foreach (var deviceSubscription in d.Subscriptions.Keys)
                     {
                         d.Subscriptions.AddOrUpdate(
                             deviceSubscription,
                             false,
                             (_, old) =>
                             {
-                                if (old != false)
+                                if (old)
                                 {
                                     toRemove.Add(deviceSubscription);
                                 }
