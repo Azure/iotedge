@@ -78,7 +78,7 @@ namespace ManifestSignerClient
             }
             else
             {
-                Console.WriteLine($"Device Root CA path is {DeviceRootCaPath}");
+                Console.WriteLine($"Intermdiate CA path is {IntermediateCaPath}");
             }
 
             if (string.IsNullOrEmpty(SignerPrivateKeyPath))
