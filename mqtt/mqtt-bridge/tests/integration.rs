@@ -479,3 +479,77 @@ async fn bridge_forwards_messages_after_restart() {
     upstream_client.shutdown().await;
     local_client.shutdown().await;
 }
+
+#[tokio::test]
+async fn recreate_upstream_bridge_when_fails() {
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        common::setup_brokers(AllowAll, AllowAll);
+
+    let subs = vec![
+        Direction::Out(TopicRule::new(
+            "temp/#".into(),
+            Some("to".into()),
+            Some("upstream".into()),
+        )),
+        Direction::In(TopicRule::new(
+            "filter/#".into(),
+            Some("to".into()),
+            Some("downstream".into()),
+        )),
+    ];
+    let (mut controller_handle, _) = common::setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs,
+    )
+    .await;
+
+    controller_handle.shutdown_bridge("$upstream");
+    let mut local_client = TestClientBuilder::new(local_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
+        .build();
+
+    local_client
+        .subscribe("downstream/filter/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    local_client.subscriptions().next().await;
+
+    let mut upstream_client = TestClientBuilder::new(upstream_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
+        .build();
+
+    upstream_client
+        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    upstream_client.subscriptions().next().await;
+
+    // send upstream
+    local_client
+        .publish_qos1("to/temp/1", "from local", false)
+        .await;
+
+    // send downstream
+    upstream_client
+        .publish_qos1("to/filter/1", "from upstream", false)
+        .await;
+
+    assert_matches!(
+        local_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from upstream")
+    );
+
+    assert_matches!(
+        upstream_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+    );
+
+    controller_handle.shutdown();
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    upstream_client.shutdown().await;
+    local_client.shutdown().await;
+}
