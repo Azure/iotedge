@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Diagnostics;
-    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -26,39 +25,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string diagnosticImageName = Context.Current
                 .DiagnosticsImage.Expect(() => new ArgumentException("Missing diagnostic image"));
 
-            Process process = new Process();
-            ProcessStartInfo info = new ProcessStartInfo();
-            info.FileName = "sudo";
-            info.RedirectStandardInput = true;
-            info.UseShellExecute = false;
-            info.RedirectStandardOutput = true;
-
-            process.StartInfo = info;
-            process.Start();
-
-            using (StreamWriter sw = process.StandardInput)
+            var process = new System.Diagnostics.Process
             {
-                if (sw.BaseStream.CanWrite)
+                StartInfo = new ProcessStartInfo
                 {
-                    //sw.WriteLine($"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password}");
-                    sw.WriteLine($"iotedge check --diagnostics-image-name {diagnosticImageName} --verbose");
+                    FileName = "sudo",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    Arguments = $"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password} & iotedge check --diagnostics-image-name {diagnosticImageName} --verbose",
+                    // ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password,
+                    //    "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
-            }
-
-            //var process = new System.Diagnostics.Process
-            //{
-            //    StartInfo = new ProcessStartInfo
-            //    {
-            //        FileName = "sudo",
-            //        UseShellExecute = false,
-            //        RedirectStandardOutput = true,
-            //        Arguments = $"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password} & iotedge check --diagnostics-image-name {diagnosticImageName} --verbose",
-            //        // ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password,
-            //        //    "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
-            //    }
-            //};
+            };
+            Log.Information($"drb - {process.StartInfo}");
             string errors_number = string.Empty;
-            // process.Start();
+            process.Start();
             await Task.Run(() =>
             {
                 Log.Information("drb - anything here?");
