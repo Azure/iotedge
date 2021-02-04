@@ -1,3 +1,22 @@
+# 1.1.0 (2021-02-03)
+## Product-wide changes
+* **Remove support for Ubuntu 16.04, add support for 18.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match.
+## Edge Agent
+### Bug Fixes
+* Fix `since` parameter in `GetModuleLogs` direct method [8d9a8e0](https://github.com/Azure/iotedge/commit/8d9a8e0eff2b47b99a4bfb28af2d3501f901c8af)
+* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
+* Update config version even when plan is empty [97532d0](https://github.com/Azure/iotedge/commit/97532d05f8ec0777dc41290dc25b2cee0813b66e)
+* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6)
+
+
+## Edge Hub
+### Changes
+* **Edge Hub will now default to using scope-only authentication for leaf devices**. Prior to this release, the default was to try scope auth, but fall back to cloud auth. Because of this change, users must either (1) [establish a parent/child relationship](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities?view=iotedge-2018-06#set-up-parent-and-child-devices) between the edge device and leaf devices (recommended), or (2) change the default back to its previous value (i.e., set Edge Hub's "AuthenticationMode" environment variable to "CloudAndScope").
+### Bug Fixes
+* Continue message store cleanup after encountering db error [4a196f0](https://github.com/Azure/iotedge/commit/4a196f0b4a2f04f9bd8988fdea4c3f308fd67546)
+* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
+* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6)
+
 # 1.0.10.4 (2020-12-18)
 ## Edge Agent
 ### Bug Fixes
