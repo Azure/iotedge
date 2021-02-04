@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 if (sw.BaseStream.CanWrite)
                 {
-                    sw.WriteLine($"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password}");
+                    //sw.WriteLine($"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password}");
                     sw.WriteLine($"iotedge check --diagnostics-image-name {diagnosticImageName} --verbose");
                 }
             }
