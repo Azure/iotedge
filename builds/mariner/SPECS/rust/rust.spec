@@ -1,6 +1,6 @@
 Summary:        Rust Programming Language
 Name:           rust
-Version:        1.44.1
+Version:        1.47.0
 Release:        1%{?dist}
 License:        ASL 2.0 and MIT
 URL:            https://www.rust-lang.org/
