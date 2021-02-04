@@ -43,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             string edgeHostname,
             CancellationToken token,
-            Option<string> modelId)
+            Option<string> modelId,
+            bool nestedEdge)
         {
             ClientOptions options = new ClientOptions();
             modelId.ForEach(m => options.ModelId = m);
@@ -63,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 transport,
                                 edgeHostname,
                                 token,
-                                options);
+                                options,
+                                nestedEdge);
 
                         case AuthenticationType.CertificateAuthority:
                             {
@@ -110,7 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             ITransportSettings transport,
             string edgeHostname,
             CancellationToken token,
-            ClientOptions options )
+            ClientOptions options,
+            bool nestedEdge)
         {
             Device leaf = new Device(leafDeviceId)
             {
@@ -127,6 +130,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     leaf.Scope = edge.Scope;
                 });
 
+            // @To Remove this is a hack to be able to create lea. See PBI: 9171870
+            string hostname = iotHub.Hostname;
+            if (nestedEdge)
+            {
+                hostname = edgeHostname;
+            }
+
             leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
 
             return await DeleteIdentityIfFailedAsync(
@@ -136,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 () =>
                 {
                     string connectionString =
-                        $"HostName={iotHub.Hostname};" +
+                        $"HostName={hostname};" +
                         $"DeviceId={leaf.Id};" +
                         $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
                         $"GatewayHostName={edgeHostname}";
@@ -303,6 +313,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
             return new LeafDevice(device, client, iotHub);
         }
+
+        public Task Close() => this.client.CloseAsync();
 
         public Task SendEventAsync(CancellationToken token)
         {

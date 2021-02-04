@@ -124,9 +124,9 @@ mod tests {
     use super::{parse_openssl_time, ServerCertificate};
     use crate::transport::Transport;
 
-    const PRIVATE_KEY: &str = include_str!("../test/tls/pkey.pem");
+    const PRIVATE_KEY: &str = include_str!("../tests/tls/pkey.pem");
 
-    const CERTIFICATE: &str = include_str!("../test/tls/cert.pem");
+    const CERTIFICATE: &str = include_str!("../tests/tls/cert.pem");
 
     #[tokio::test]
     async fn it_converts_into_identity() {

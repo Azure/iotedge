@@ -108,6 +108,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
@@ -119,12 +120,15 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
+          allowPartiallySucceededBuilds: true
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
             $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       - task: PowerShell@2
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
@@ -143,6 +147,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
@@ -266,7 +271,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubARM32ConnString,EdgeConnectivityEventHubARM32ConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubARM32ConnString,EdgeConnectivityEventHubARM32ConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString,GitHubAccessToken'
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -278,6 +283,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
@@ -289,11 +295,14 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
+          allowPartiallySucceededBuilds: true
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
             $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
@@ -301,6 +310,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'

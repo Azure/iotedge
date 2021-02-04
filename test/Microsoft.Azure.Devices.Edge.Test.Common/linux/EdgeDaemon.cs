@@ -107,14 +107,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Edged = "/etc/aziot/edged/config.yaml"
                     };
 
-                    // The name of the default aziot-edged config file differs based on OS.
-                    string edgedDefault = this.packageManagement.GetDefaultEdgedConfig();
-
-                    DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
-                    DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
-                    DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
-                    DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
-
                     uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
                     DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
                     (string msg, object[] props) = await config(conf);
@@ -207,13 +199,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
                         if (output.Length > 0)
                         {
-                            Log.Verbose($"Uninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output: {output}");
+                            Log.Verbose($"Uninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output:\n" + string.Join("\n", output));
                         }
                         else
                         {
                             Log.Verbose($"Uninstall command '{command}' ran successfully");
                         }
-                    }, "Uninstalled edge component");
+                    }, $"Successful: {command}");
                 }
                 catch (Win32Exception e)
                 {
@@ -253,6 +245,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await Task.Delay(250, token).ConfigureAwait(false);
                 }
             }
+        }
+
+        public string GetDefaultEdgedConfig()
+        {
+            return this.packageManagement.GetDefaultEdgedConfig();
         }
 
         private static async Task<uint> GetIotedgeUid(CancellationToken token)

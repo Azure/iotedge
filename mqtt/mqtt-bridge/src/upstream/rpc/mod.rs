@@ -47,19 +47,19 @@ impl Display for CommandId {
 /// RPC command execution error.
 #[derive(Debug, thiserror::Error)]
 pub enum RpcError {
-    #[error("failed to deserialize command from received publication")]
+    #[error("failed to deserialize command from received publication. Caused by: {0}")]
     DeserializeCommand(#[from] bson::de::Error),
 
-    #[error("unable to send nack for {0}. {1}")]
+    #[error("unable to send nack for {0}. Caused by: {1}")]
     SendNack(CommandId, #[source] PumpError),
 
-    #[error("unable to send ack for {0}. {1}")]
+    #[error("unable to send ack for {0}. Caused by: {1}")]
     SendAck(CommandId, #[source] PumpError),
 
-    #[error("unable to send command for {0} to remote pump. {1}")]
+    #[error("unable to send command for {0} to remote pump. Caused by: {1}")]
     SendToRemotePump(CommandId, #[source] PumpError),
 
-    #[error("unable to send publication on {0} to remote pump. {1}")]
+    #[error("unable to send publication on {0} to remote pump. Caused by: {1}")]
     SendPublicationToLocalPump(String, #[source] PumpError),
 }
 
