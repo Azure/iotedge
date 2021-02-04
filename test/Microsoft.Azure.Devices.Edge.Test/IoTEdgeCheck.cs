@@ -32,8 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     FileName = "sudo",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password,
-                        "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
+                    Arguments = $"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password} & iotedge check --diagnostics-image-name {diagnosticImageName} --verbose",
+                    // ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password,
+                    //    "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
             };
             string errors_number = string.Empty;
