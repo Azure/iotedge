@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             process.Start();
             await Task.Run(() =>
             {
+                Log.Information("drb - anything here?");
                 while (!process.StandardOutput.EndOfStream)
                 {
                     string line = process.StandardOutput.ReadLine();
