@@ -8,17 +8,11 @@ use mqtt3::ShutdownError;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
-use crate::{
-    client::ClientError,
-    config_update::BridgeDiff,
-    persist::{waking_state::StreamWakeableState, StorageError},
-    pump::{Pump, PumpError, PumpHandle, PumpMessage},
-    upstream::{
+use crate::{client::ClientError, config_update::BridgeDiff, persist::{StorageError, waking_state::StreamWakeableState}, pump::{Pump, PumpError, PumpHandle, PumpMessage}, upstream::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
         RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
-    },
-};
+    }};
 
 pub struct BridgeHandle {
     local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
@@ -154,7 +148,7 @@ where
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store. Caused by: {0}")]
-    Store(#[from] PersistError),
+    Store(#[from] StorageError),
 
     #[error("failed to subscribe to topic. Caused by: {0}")]
     Subscribe(#[source] ClientError),
