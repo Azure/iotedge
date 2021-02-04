@@ -141,6 +141,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 catch (Exception e)
                                 {
                                     Log.Verbose($"DRB ERROR - {e}");
+                                    Log.Verbose($"drb printing contents of data - {data.ToString()}");
+                                    foreach (var x in data.Properties)
+                                    {
+                                        Log.Verbose($"drb - key: {x.Key}, value: {x.Value}");
+                                    }
                                 }
                             }
                             else
