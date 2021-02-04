@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -130,7 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
                                     Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                                    if (data.Properties["trackingId"].Equals(trackingId))
+                                    var receivedTrackingId = (string)data.Properties["trackingId"];
+                                    if (!receivedTrackingId.IsNullOrWhiteSpace() && data.Properties["trackingId"].Equals(trackingId))
                                     {
                                         messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
                                         {
