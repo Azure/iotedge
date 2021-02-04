@@ -126,15 +126,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 data.Properties.ContainsKey("batchId") &&
                                 data.Properties.ContainsKey("sequenceNumber"))
                             {
-                                int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
-                                Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                try
                                 {
-                                    TrackingId = data.Properties["trackingId"].ToString(),
-                                    BatchId = data.Properties["batchId"].ToString(),
-                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                                });
-                                results.Add(sequenceNumber);
+                                    int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
+                                    Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
+                                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                    {
+                                        TrackingId = data.Properties["trackingId"].ToString(),
+                                        BatchId = data.Properties["batchId"].ToString(),
+                                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                    });
+                                    results.Add(sequenceNumber);
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.Verbose($"DRB ERROR - {e}");
+                                }
                             }
                             else
                             {
