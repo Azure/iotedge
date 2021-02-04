@@ -185,7 +185,7 @@ async fn bridge_settings_update() {
         .unwrap();
 
     // delay to propagate the update
-    // tokio::time::delay_for(Duration::from_secs(2)).await;
+    tokio::time::delay_for(Duration::from_secs(2)).await;
 
     // send upstream
     local_client
