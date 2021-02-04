@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     FileName = "sudo",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    ArgumentList = { "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
+                    ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password, "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
             };
             string errors_number = string.Empty;
