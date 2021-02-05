@@ -32,19 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     FileName = "sudo",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    // Arguments = $"docker pull {diagnosticImageName} --username {Context.Current.Registries.First().Username} --password {Context.Current.Registries.First().Password} & iotedge check --diagnostics-image-name {diagnosticImageName} --verbose",
-                    ArgumentList = { // "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password } 
-                        "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose", "&", "docker", "ps" }
+                    ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password }
+                        // "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
             };
-            Log.Information($"drb - {process.StartInfo}");
-            Log.Information($"drb errors? - {process.StandardError.ReadLine()}");
             string errors_number = string.Empty;
             process.Start();
             await Task.Run(() =>
             {
-                Log.Information("drb - anything here?");
                 while (!process.StandardOutput.EndOfStream)
                 {
                     string line = process.StandardOutput.ReadLine();
