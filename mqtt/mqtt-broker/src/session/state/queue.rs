@@ -129,8 +129,8 @@ impl LimitReached {
 impl Display for LimitReached {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Self::Memory(_) => write!(f, "out of memory limits"),
-            Self::QueueLength(_) => write!(f, "out of queue length limits"),
+            Self::Memory(_) => write!(f, "message queue reached configured size limits, check 'max_queued_size' settings"),
+            Self::QueueLength(_) => write!(f, "message queue reached configured length limits, check 'max_queued_messages' settings"),
         }
     }
 }
