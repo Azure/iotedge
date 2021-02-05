@@ -58,6 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     string line = process1.StandardOutput.ReadLine();
                     Log.Information(line);
                 }
+                while (!process1.StandardError.EndOfStream)
+                {
+                    string line = process1.StandardError.ReadLine();
+                    Log.Information(line);
+                }
 
                 while (!process.StandardOutput.EndOfStream)
                 {
