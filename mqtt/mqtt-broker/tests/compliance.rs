@@ -780,6 +780,7 @@ async fn inflight_qos1_messages_redelivered_on_server_restart() {
 
     client_b.next().await; // skip connack
 
+    // connect client B with persisted session.
     client_b
         .send_packet(Packet::Subscribe(Subscribe {
             packet_identifier: PacketIdentifier::new(1).unwrap(),
@@ -847,7 +848,6 @@ async fn inflight_qos1_messages_redelivered_on_server_restart() {
 
     // restart broker.
     let state = server_handle.shutdown().await;
-    dbg!(&state);
     let broker = BrokerBuilder::default()
         .with_state(state)
         .with_authorizer(AllowAll)
@@ -873,7 +873,7 @@ async fn inflight_qos1_messages_redelivered_on_server_restart() {
         }))
     );
 
-    // expect messages to be redelivered (QoS 1).
+    // expect messages to be redelivered in order (QoS 1).
     for i in 1..=QOS1_MESSAGES {
         let publish = match client_b.next().await {
             Some(Packet::Publish(publish)) => publish,
@@ -882,7 +882,7 @@ async fn inflight_qos1_messages_redelivered_on_server_restart() {
 
         assert_matches!(
             publish.packet_identifier_dup_qos,
-            PacketIdentifierDupQoS::AtLeastOnce(_, true)
+            PacketIdentifierDupQoS::AtLeastOnce(id, true) if id == PacketIdentifier::new(i).unwrap()
         );
         assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
     }
