@@ -52,5 +52,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Assert.AreEqual(string.Empty, errors_number);
         }
+
+        private async Task<bool> IsCentos(CancellationToken token)
+        {
+            string[] platformInfo = await Microsoft.Azure.Devices.Edge.Test.Common.Process.RunAsync("lsb_release", "-sir", token);
+            if (platformInfo.Length == 1)
+            {
+                platformInfo = platformInfo[0].Split(' ');
+            }
+
+            string os = platformInfo[0].Trim();
+            switch (os)
+            {
+                case "CentOS":
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 }
