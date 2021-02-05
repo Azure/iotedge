@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -45,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
+            Log.Information("DRB TESTING ANY LOG");
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
@@ -54,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("Unstable")]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
@@ -76,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ToggleConnectivity(networkOn, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
-            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, token);
+            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, trackingId, token);
             while (messages.TryDequeue(out MessageTestResult messageTestResult))
             {
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
@@ -110,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
+        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
         {
             await Profiler.Run(
                 async () =>
@@ -125,15 +127,35 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 data.Properties.ContainsKey("batchId") &&
                                 data.Properties.ContainsKey("sequenceNumber"))
                             {
-                                int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
-                                Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                try
                                 {
-                                    TrackingId = data.Properties["trackingId"].ToString(),
-                                    BatchId = data.Properties["batchId"].ToString(),
-                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                                });
-                                results.Add(sequenceNumber);
+                                    int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
+                                    Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
+                                    var receivedTrackingId = (string)data.Properties["trackingId"];
+                                    if (!receivedTrackingId.IsNullOrWhiteSpace() && data.Properties["trackingId"].Equals(trackingId))
+                                    {
+                                        messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                        {
+                                            TrackingId = data.Properties["trackingId"].ToString(),
+                                            BatchId = data.Properties["batchId"].ToString(),
+                                            SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                        });
+                                        results.Add(sequenceNumber);
+                                    }
+                                    else
+                                    {
+                                        Log.Verbose($"Message contains incorrect tracking id {data.Properties["trackingId"]}. Ignoring.");
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.Verbose($"DRB ERROR - {e}");
+                                    Log.Verbose($"drb printing contents of data - {data.ToString()}");
+                                    foreach (var x in data.Properties)
+                                    {
+                                        Log.Verbose($"drb - key: {x.Key}, value: {x.Value}");
+                                    }
+                                }
                             }
                             else
                             {

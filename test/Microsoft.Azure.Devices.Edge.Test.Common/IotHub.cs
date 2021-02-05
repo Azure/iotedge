@@ -200,33 +200,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Func<EventData, bool> onEventReceived,
             CancellationToken token)
         {
-            EventHubClient client = this.EventHubClient;
-            int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
-            string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
-            seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
-            EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
-            PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
-
-            var result = new TaskCompletionSource<bool>();
-            using (token.Register(() => result.TrySetCanceled()))
+            try
             {
-                receiver.SetReceiveHandler(
-                    new PartitionReceiveHandler(
-                        data =>
-                        {
-                            bool done = onEventReceived(data);
-                            if (done)
+                EventHubClient client = this.EventHubClient;
+                int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
+                string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
+                seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
+                EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
+                PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
+
+                var result = new TaskCompletionSource<bool>();
+                using (token.Register(() => result.TrySetCanceled()))
+                {
+                    receiver.SetReceiveHandler(
+                        new PartitionReceiveHandler(
+                            data =>
                             {
-                                result.TrySetResult(true);
-                            }
+                                bool done = onEventReceived(data);
+                                if (done)
+                                {
+                                    result.TrySetResult(true);
+                                }
 
-                            return done;
-                        }));
+                                return done;
+                            }));
 
-                await result.Task;
+                    await result.Task;
+                }
+
+                await receiver.CloseAsync();
             }
-
-            await receiver.CloseAsync();
+            catch (Exception e)
+            {
+                Log.Verbose($"DRB - ERROR2 - {e}");
+            }
         }
     }
 }
