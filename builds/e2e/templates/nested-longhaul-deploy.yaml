@@ -105,7 +105,7 @@ steps:
       workingDirectory: "/certs"
       script: |
         sudo chmod -R 777 /certs
-        deviceId="${{ parameters['release.label'] }}-${{ parameters['metricsCollector.hostPlatform'] }}-longhaul-${{ parameters['test.buildId'] }}"
+        deviceId=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
         echo "Installing test certificate bundle for edge device id ${deviceId}"
         ./certGen.sh create_edge_device_certificate "${deviceId}"
         
