@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using NUnit.Framework;
@@ -30,8 +31,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // until the top layer, which has permissions, can get it, and send it back down.
             // Non-nested configuration needs it because we are calling out to a new process, and this process
             // needs auth
-            if (!Context.Current.NestedEdge)
+            // We can also skip if the user has provided a public image from mcr.microsoft.com that requires no auth
+            if (!Context.Current.NestedEdge || diagnosticImageName.Contains("mcr.microsoft.com"))
             {
+                Registry diagnosticsRegistry = Context.Current.Registries.First();
+                foreach(var registry in Context.Current.Registries)
+                {
+                    if (diagnosticImageName.Contains(registry.Address))
+                    {
+                        // Get the registry that corresponds to the diagnosticImageName in case there are multiple registries.
+                        diagnosticsRegistry = registry;
+                    }
+                }
                 var dockerLoginProcess = new System.Diagnostics.Process
                 {
                     StartInfo = new ProcessStartInfo
@@ -39,7 +50,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         FileName = "sudo",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
-                        ArgumentList = { "docker", "login", "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password, Context.Current.Registries.First().Address }
+                        ArgumentList = {
+                            "docker",
+                            "login",
+                            "--username",
+                            diagnosticsRegistry.Username,
+                            "--password",
+                            diagnosticsRegistry.Password,
+                            diagnosticsRegistry.Address }
                     }
                 };
                 dockerLoginProcess.Start();
