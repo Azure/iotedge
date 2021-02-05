@@ -100,11 +100,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
             });
 
-            // TODO: iotedge check currently has 2 legitimate errors in it. When we update the aziot-submodule, the errors
-            // will go away, and we should change this assertion to empty string instead of passing on 2 errors.
+            // TODO: iotedge check currently has a legitimate error in it. When we update the aziot-submodule, the error
+            // will go away, and we should change this assertion to empty string instead of passing on an errors.
             // This is better than disabling the test, because it still tests iotedge check to some extent, and it will
             // remind us with a failed run to update this test.
-            Assert.AreEqual("1 check(s) raised errors.", errors_number);
+            if (await this.IsCentos(token))
+            {
+                // CentOS actually has 2 errors
+                Assert.AreEqual("2 check(s) raised errors.", errors_number);
+            }
+            else
+            {
+                Assert.AreEqual("1 check(s) raised errors.", errors_number);
+            }
         }
 
         private async Task<bool> IsCentos(CancellationToken token)
