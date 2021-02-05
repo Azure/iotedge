@@ -58,7 +58,7 @@ impl BoundedQueue {
             if self.inner.len() >= max_len.get() {
                 return self
                     .handle_queue_limit(publication)
-                    .map(LimitReached::QueueLength);
+                    .map(|publication| LimitReached::QueueLength(max_len.get(), publication));
             }
         }
 
@@ -67,7 +67,7 @@ impl BoundedQueue {
             if self.current_size + pub_len > max_size.get() {
                 return self
                     .handle_queue_limit(publication)
-                    .map(LimitReached::Memory);
+                    .map(|publication| LimitReached::QueueSize(max_size.get(), publication));
             }
         }
 
@@ -113,15 +113,15 @@ impl Extend<proto::Publication> for BoundedQueue {
 
 #[derive(Debug)]
 pub enum LimitReached {
-    Memory(proto::Publication),
-    QueueLength(proto::Publication),
+    QueueSize(usize, proto::Publication),
+    QueueLength(usize, proto::Publication),
 }
 
 impl LimitReached {
     pub fn publication(&self) -> &proto::Publication {
         match self {
-            Self::Memory(publication) => publication,
-            Self::QueueLength(publication) => publication,
+            Self::QueueSize(_, publication) => publication,
+            Self::QueueLength(_, publication) => publication,
         }
     }
 }
@@ -129,8 +129,8 @@ impl LimitReached {
 impl Display for LimitReached {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
-            Self::Memory(_) => write!(f, "message queue reached configured size limits, check 'max_queued_size' settings"),
-            Self::QueueLength(_) => write!(f, "message queue reached configured length limits, check 'max_queued_messages' settings"),
+            Self::QueueSize(limit, _) => write!(f, "message queue reached configured size limits of {}, check 'max_queued_size' settings", limit),
+            Self::QueueLength(limit, _) => write!(f, "message queue reached configured length limits of {}, check 'max_queued_messages' settings", limit),
         }
     }
 }
