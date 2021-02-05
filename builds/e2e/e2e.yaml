@@ -46,7 +46,11 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.name)
+      demands:
+        - agent-group -equals b3are2e
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
 
     variables:
       os: linux
@@ -65,6 +69,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - false
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
@@ -112,6 +117,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - false
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
@@ -136,6 +142,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - false
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
