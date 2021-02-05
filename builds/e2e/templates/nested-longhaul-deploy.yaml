@@ -105,14 +105,15 @@ steps:
       workingDirectory: "/certs"
       script: |
         sudo chmod -R 777 /certs
-        deviceId=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
-        echo "Installing test certificate bundle for edge device id ${deviceId}"
-        ./certGen.sh create_edge_device_certificate "${deviceId}"
+        hostName=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+        echo "  Hostname IP: ${hostName}"
+        echo "Installing test certificate bundle"
+        ./certGen.sh create_edge_device_certificate "${hostName}"
         
-        echo "##vso[task.setvariable variable=DeviceId]${deviceId}"
+        echo "##vso[task.setvariable variable=HostName]${hostName}"
         echo "##vso[task.setvariable variable=TrustBundle]/certs/certs/azure-iot-test-only.root.ca.cert.pem"
-        echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${deviceId}-full-chain.cert.pem"
-        echo "##vso[task.setvariable variable=DeviceCaKey]/certs/private/iot-edge-device-${deviceId}.key.pem"
+        echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${hostName}-full-chain.cert.pem"
+        echo "##vso[task.setvariable variable=DeviceCaKey]/certs/private/iot-edge-device-${hostName}.key.pem"
   - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
@@ -171,4 +172,4 @@ steps:
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
       E2E_parentHostname: ${{ parameters['longHaul.parentHostname'] }}
       E2E_parentEdgeDevice: ${{ parameters['longHaul.parentEdgeDevice'] }} 
-      E2E_deviceId: $(DeviceId)
+      E2E_hostname: $(Hostname)

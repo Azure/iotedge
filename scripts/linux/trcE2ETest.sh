@@ -737,13 +737,9 @@ function run_longhaul_test() {
 
 	NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
 
-	if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
-		local device_id=$(printenv E2E_deviceId)
-	else
-		local hash
-		hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
-		local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
-	fi
+	local hash
+	hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
+	local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -764,12 +760,14 @@ function run_longhaul_test() {
     fi
 
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
+        HOSTNAME=$(printenv E2E_hostname)
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
 
         echo "Running with nested Edge."
-        echo "Parent hostname=$PARENT_HOSTNAME"
-        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
+        echo "HostName=$HOSTNAME"
+        echo "ParentHostName=$PARENT_HOSTNAME"
+        echo "ParentEdgeDevice=$PARENT_EDGE_DEVICE"
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
@@ -779,7 +777,7 @@ function run_longhaul_test() {
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
-            -n "$(device_id)" \
+            -n "$HOSTNAME" \
             --parent-hostname "$PARENT_HOSTNAME" \
             --parent-edge-device "$PARENT_EDGE_DEVICE" \
             --device_ca_cert "$DEVICE_CA_CERT" \

@@ -37,7 +37,7 @@ stages:
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml
+      - template: templates/nested-get-root-ca.yaml 
       - template: templates/nested-longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -100,7 +100,7 @@ stages:
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml
+      - template: templates/nested-get-root-ca.yaml   
       - template: templates/nested-longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
@@ -163,7 +163,7 @@ stages:
     steps:   
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml
+      - template: templates/nested-get-root-ca.yaml  
       - template: templates/nested-longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
