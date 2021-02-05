@@ -132,10 +132,20 @@ stages:
     condition: succeeded()
     timeoutInMinutes: 180
     variables:   
-      lowestDeviceId: $[ dependencies.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
+      Lvl3DeviceId: $[ dependencies.SetupVM_level3.outputs['createIdentity.parentDeviceId'] ]
       deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['exportAgentName.agentName'] ]         
       deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['exportAgentName.agentName'] ]       
       deviceLvl3AgentName: $[ dependencies.SetupVM_level3.outputs['exportAgentName.agentName'] ]  
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      nestededge: true
+      proxyAddress: $(otProxy)
+      test_type: nestededge_isa95      
     pool:
      name: $(pool.name)
      demands:
@@ -158,9 +168,13 @@ stages:
         parameters:
           agentName: $(deviceLvl3AgentName)
           lvl: 3
+      - template: templates/nested-get-root-ca.yaml    
       - template: templates/e2e-setup.yaml
-      - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: $(ConnectivityNestedEdge-EventHubConnectionString)
+          IotHubConnectionString: $(ConnectivityNestedEdge-ConnectionString)  
+          test_type: $(test_type)
 
 #      - task: Bash@3
 #        displayName: 'Deployment iotedge on agent'

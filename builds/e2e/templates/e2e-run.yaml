@@ -1,10 +1,12 @@
 parameters:
   EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
   IotHubConnectionString: '$(TestIotHubConnectionString)'
+  test_type: '' 
 
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+    $test_type = '${{ parameters.test_type }}'
 
     # Filter out unstable tests.
     $filter = 'Category!=Unstable'
@@ -18,8 +20,7 @@ steps:
       $filter += '&Category!=UnstableOnArm'
     }
     
-    #filter out tests not usable on nested edge
-    if ('$(nestededge)' -eq 'true')
+    if ($test_type -eq 'nestededge_mqtt')
     {
       $filter += '&Category!=SingleNodeOnly'
     
@@ -27,13 +28,22 @@ steps:
       #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
+    elseif ($test_type -eq 'nestededge_amqp')
+    {
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+    }
+    elseif ($test_type -eq 'nestededge_isa95')
+    {
+      $filter = 'Category=nestededge_isa95'
+    }
     else
     {
-        $filter += '&Category!=NestedEdgeOnly'
-    }
+      $filter += '&Category!=NestedEdgeOnly' 
+    } 
 
     sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
-  displayName: Run tests
+  displayName: Run tests ${{ parameters.test_type }}
+  continueOnError: true
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
     E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}

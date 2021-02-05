@@ -80,7 +80,7 @@ steps:
     ARTIFACT_NAME: $(identityServiceArtifactName)
     PACKAGE_FILTER: $(identityServicePackageFilter)
     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-
+    IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null
@@ -130,8 +130,9 @@ steps:
     echo "Edge agent image: $imagePrefix-agent:$imageTag"
 
     $context = @{
-      nestededge = "$nestededge"
-      dpsIdScope = '$(dps.idScope)'
+      nestededge = "$nestededge";
+      dpsIdScope = '$(dps.idScope)';
+      isa95Tag = 'false';
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
       diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";
@@ -165,6 +166,13 @@ steps:
       $context['hostname'] = '$(deviceName)'
       $context['parentHostname'] = '$(parentName)'
       $context['parentDeviceId'] = '$(parentDeviceId)'
+
+      if ('$(test_type)' -eq 'nestededge_isa95')
+      {
+        $context['deviceId'] = '$(Lvl3DeviceId)'
+        $context['edgeProxy'] = '$(proxyAddress)'
+        $context['isa95Tag'] = 'true'
+      }
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
@@ -177,7 +185,8 @@ steps:
 
     if ($env:AGENT_PROXYURL)
     {
-      $context['proxy'] = $env:AGENT_PROXYURL
+      $context['agentProxy'] = $env:AGENT_PROXYURL
+      $context['edgeProxy'] = $env:AGENT_PROXYURL
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'

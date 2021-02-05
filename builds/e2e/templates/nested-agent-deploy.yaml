@@ -58,6 +58,7 @@ steps:
       ARTIFACT_NAME: $(identityServiceArtifactName)
       PACKAGE_FILTER: $(identityServicePackageFilter)
       DOWNLOAD_PATH: $(Build.StagingDirectory) 
+      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
   - task: Bash@3     
     displayName: 'Install artifacts'
     name: InstallArtifacts
@@ -91,36 +92,8 @@ steps:
         sudo dpkg -i --force-confnew ${iotedge_library}
         echo "  Install edgelet"
         sudo dpkg -i --force-confnew ${iotedge_package}          
-  - task: Bash@3
-    displayName: 'Deployment iotedge on agent'
-    name: deployIoTEdge
-    inputs:
-      targetType: inline
-      script: |
-        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-        . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
-
-        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
-
-        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
-          -testDir "$(Agent.HomeDirectory)/.." \
-          -releaseLabel "ct$(agent.group)" \
-          -artifactImageBuildNumber "$BuildNumber" \
-          -containerRegistry "$(cr.address)" \
-          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
-          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
-          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
-          -deploymentFileName "$(deploymentFile)" \
-          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
-          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
-          -customEdgeAgentImage "$(customEdgeAgent.image)" \
-          -customEdgeHubImage "$(customEdgeHub.image)" \
-          -subscription "$(azure.subscription)" \
-          -level "$(level)" \
-          -parentName "$(parentName)" \
-          -connectionString "$(connectionString)" \
-          -iotHubName "$(iotHubName)" \
-          -deviceId "$(deviceId)" \
-          -proxyAddress "$(proxyAddress)" \
-          -waitForTestComplete \
-          -cleanAll
+  - template: nested-deploy-config.yaml
+    parameters:
+      deploymentFile: $(deploymentFile)
+      deviceId: $(deviceId)
+      level: $(level)

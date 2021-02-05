@@ -17,9 +17,7 @@
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
-            "https_proxy": {	
-              "value": "<proxyAddress>"
-            }
+            "env": {}
           },
           "edgeHub": {
             "type": "docker",
@@ -34,39 +32,34 @@
               "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
               },
-              "experimentalFeatures__mqttBrokerEnabled": {
-                "value": "true"
-              },
               "DeviceScopeCacheRefreshDelaySecs": {
                 "value": 1
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              },
-              "https_proxy": {	
-                "value": "<proxyAddress>"
-              }                                 
+              }                   
             },
             "status": "running",
             "restartPolicy": "always"
           }
         },
         "modules": {
-          "tempSensor": {
+          "iotedgeApiProxy": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "startupOrder": 3,
             "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>"
+              "image": "$upstream:443/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
-              "MessageCount": {
-                "value": "-1"
+              "NGINX_DEFAULT_PORT": {
+                "value": "443"
               }
             }
-          }          
+          }
         }
       }
     },

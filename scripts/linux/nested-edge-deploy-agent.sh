@@ -99,9 +99,6 @@ function setup_iotedge() {
     echo "name = \"aziot-edge\"" | sudo tee -a  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
     sudo chown "$(id -u aziotid):$(id -g aziotid)" /etc/aziot/identityd/config.d/aziot-edged-principal.toml
 
-    #deploy the config in azure portal
-    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
-
     echo "Setup /var/secrets/aziot/keyd/device-id"
     sudo mkdir -p /var/secrets
     sudo mkdir -p /var/secrets/aziot
@@ -165,6 +162,9 @@ function prepare_test_from_artifacts() {
     if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
     fi
+
+    #deploy the config in azure portal
+    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
 
 function process_args() {
@@ -228,7 +228,10 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 19 ]; then
             PROXY_ADDRESS="$arg"
-            saveNextArg=0            
+            saveNextArg=0    
+        elif [ $saveNextArg -eq 20 ]; then
+            CHANGE_DEPLOY_CONFIG_ONLY="$arg"
+            saveNextArg=0                       
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -250,7 +253,8 @@ function process_args() {
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
                 '-iotHubName' ) saveNextArg=18;;
-                '-proxyAddress' ) saveNextArg=19;;                
+                '-proxyAddress' ) saveNextArg=19;; 
+                '-changeDeployConfigOnly' ) saveNextArg=20;;               
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -263,7 +267,6 @@ function process_args() {
     done
 
     # Required parameters
-    [[ -z "$CONNECTION_STRING" ]] && { print_error 'CONNECTION_STRING is required.'; exit 1; }
     [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
@@ -275,16 +278,6 @@ function process_args() {
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
 
     echo 'Required parameters are provided'
-}
-
-function test_setup() {
-    local funcRet=0
-
-    prepare_test_from_artifacts && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-
-    create_iotedge_service_config && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
 }
 
 function set_output_params() {
@@ -324,10 +317,15 @@ working_folder="$E2E_TEST_DIR/working"
 connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
-test_setup
-create_certificates
-setup_iotedge
-set_output_params
+prepare_test_from_artifacts
+
+
+if [ "$CHANGE_DEPLOY_CONFIG_ONLY" != "true" ]; then
+    create_iotedge_service_config
+    create_certificates
+    setup_iotedge
+    set_output_params
+fi
 
 #clean up
 #az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}

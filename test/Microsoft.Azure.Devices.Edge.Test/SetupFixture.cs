@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
-                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
+                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
                     // Clean the directory for test certs, keys, etc.
                     if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 config.SetEdgeAgentImage(edgeAgent);
                             });
 
-                            Context.Current.Proxy.ForEach(proxy =>
+                            Context.Current.EdgeProxy.ForEach(proxy =>
                             {
                                 config.AddHttpsProxy(proxy);
                                 msgBuilder.AppendLine(", proxy '{ProxyUri}'");

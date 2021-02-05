@@ -91,7 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
             this.OptimizeForPerformance = context.GetValue("optimizeForPerformance", true);
             this.PackagePath = Option.Maybe(Get("packagePath"));
-            this.Proxy = Option.Maybe(context.GetValue<Uri>("proxy"));
+            this.AgentProxy = Option.Maybe(context.GetValue<Uri>("agentProxy"));
+            this.EdgeProxy = Option.Maybe(context.GetValue<Uri>("edgeProxy"));
             this.Registries = GetAndValidateRegistries();
             this.RootCaKeys = GetAndValidateRootCaKeys();
             this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
@@ -111,6 +112,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.Hostname = Option.Maybe(Get("hostname"));
             this.BlobSasUrl = Option.Maybe(Get("BLOB_STORE_SAS"));
             this.NestedEdge = context.GetValue("nestededge", false);
+            this.DeviceId = Option.Maybe(Get("deviceId"));
+            this.ISA95Tag = context.GetValue("isa95Tag", false);
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -149,7 +152,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> PackagePath { get; }
 
-        public Option<Uri> Proxy { get; }
+        public Option<Uri> AgentProxy { get; }
+
+        public Option<Uri> EdgeProxy { get; }
 
         public IEnumerable<Registry> Registries { get; }
 
@@ -183,10 +188,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> ParentHostname { get; }
 
+        public Option<string> DeviceId { get; }
+
         public Option<string> Hostname { get; }
 
         public Option<string> BlobSasUrl { get; }
 
         public bool NestedEdge { get; }
+
+        public bool ISA95Tag { get; }
     }
 }
