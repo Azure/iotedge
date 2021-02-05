@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // will go away, and we should change this assertion to empty string instead of passing on 2 errors.
             // This is better than disabling the test, because it still tests iotedge check to some extent, and it will
             // remind us with a failed run to update this test.
-            Assert.AreEqual("2 check(s) raised errors.", errors_number);
+            Assert.AreEqual("1 check(s) raised errors.", errors_number);
         }
     }
 }
