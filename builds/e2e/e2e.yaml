@@ -25,7 +25,9 @@ jobs:
 
     pool:
       name: $(pool.name)
-      demands: rpi3-e2e-tests
+      demands: 
+        - rpi3-e2e-tests
+        - false
 
     variables:
       os: linux
