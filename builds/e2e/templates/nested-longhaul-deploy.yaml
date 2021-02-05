@@ -164,6 +164,7 @@ steps:
             -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
     env:
+      E2E_nestedEdgeTest: true
       E2E_trustedCaCerts: $(TrustBundle)
       E2E_deviceCaCert: $(DeviceCaCert)
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
