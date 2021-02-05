@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     FileName = "sudo",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
                     ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password }
                         // "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
@@ -49,6 +50,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         // Extract the number of errors
                         errors_number = line;
                     }
+                }
+                while (!process.StandardError.EndOfStream)
+                {
+                    string line = process.StandardError.ReadLine();
+                    Log.Information(line);
                 }
             });
 
