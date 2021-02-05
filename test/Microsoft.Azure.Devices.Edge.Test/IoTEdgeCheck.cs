@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             if (!Context.Current.NestedEdge || diagnosticImageName.Contains("mcr.microsoft.com"))
             {
                 Registry diagnosticsRegistry = Context.Current.Registries.First();
-                foreach(var registry in Context.Current.Registries)
+                foreach (var registry in Context.Current.Registries)
                 {
                     if (diagnosticImageName.Contains(registry.Address))
                     {
@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         diagnosticsRegistry = registry;
                     }
                 }
+
                 var dockerLoginProcess = new System.Diagnostics.Process
                 {
                     StartInfo = new ProcessStartInfo
@@ -50,14 +51,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         FileName = "sudo",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
-                        ArgumentList = {
+                        ArgumentList =
+                        {
                             "docker",
                             "login",
                             "--username",
                             diagnosticsRegistry.Username,
                             "--password",
                             diagnosticsRegistry.Password,
-                            diagnosticsRegistry.Address }
+                            diagnosticsRegistry.Address
+                        }
                     }
                 };
                 dockerLoginProcess.Start();
