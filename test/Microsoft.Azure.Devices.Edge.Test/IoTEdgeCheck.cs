@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string diagnosticImageName = Context.Current
                 .DiagnosticsImage.Expect(() => new ArgumentException("Missing diagnostic image"));
 
-            var process = new System.Diagnostics.Process
+            var process1 = new System.Diagnostics.Process
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -34,7 +34,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     ArgumentList = { "docker", "pull", diagnosticImageName, "--username", Context.Current.Registries.First().Username, "--password", Context.Current.Registries.First().Password }
-                        // "&", "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
+                }
+            };
+            process1.Start();
+
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "sudo",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    ArgumentList = { "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
             };
             string errors_number = string.Empty;
