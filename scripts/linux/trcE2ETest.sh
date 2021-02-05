@@ -735,16 +735,20 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
-    local hash
-    hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
+	NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
+
+	if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
+		local device_id=$(printenv E2E_deviceId)
+	else
+		local hash
+		hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
+		local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
+	fi
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-
-    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
 
     local ret=0
 
@@ -775,7 +779,7 @@ function run_longhaul_test() {
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
-            -n "$(hostname)" \
+            -n "$(device_id)" \
             --parent-hostname "$PARENT_HOSTNAME" \
             --parent-edge-device "$PARENT_EDGE_DEVICE" \
             --device_ca_cert "$DEVICE_CA_CERT" \

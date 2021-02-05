@@ -109,6 +109,7 @@ steps:
         echo "Installing test certificate bundle for edge device id ${deviceId}"
         ./certGen.sh create_edge_device_certificate "${deviceId}"
         
+        echo "##vso[task.setvariable variable=DeviceId]${deviceId}"
         echo "##vso[task.setvariable variable=TrustBundle]/certs/certs/azure-iot-test-only.root.ca.cert.pem"
         echo "##vso[task.setvariable variable=DeviceCaCert]/certs/certs/iot-edge-device-${deviceId}-full-chain.cert.pem"
         echo "##vso[task.setvariable variable=DeviceCaKey]/certs/private/iot-edge-device-${deviceId}.key.pem"
@@ -170,3 +171,4 @@ steps:
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
       E2E_parentHostname: ${{ parameters['longHaul.parentHostname'] }}
       E2E_parentEdgeDevice: ${{ parameters['longHaul.parentEdgeDevice'] }} 
+      E2E_deviceId: $(DeviceId)
