@@ -53,6 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             process.Start();
             await Task.Run(() =>
             {
+                while (!process1.StandardOutput.EndOfStream)
+                {
+                    string line = process1.StandardOutput.ReadLine();
+                    Log.Information(line);
+                }
+
                 while (!process.StandardOutput.EndOfStream)
                 {
                     string line = process.StandardOutput.ReadLine();
@@ -62,11 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         // Extract the number of errors
                         errors_number = line;
                     }
-                }
-                while (!process.StandardError.EndOfStream)
-                {
-                    string line = process.StandardError.ReadLine();
-                    Log.Information(line);
                 }
             });
 
