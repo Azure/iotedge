@@ -38,6 +38,8 @@ chmod 755 %{buildroot}%{_libdir}/lib*.so
 %{_mandir}/man1/*
 %doc %{_docdir}/%{name}/html/*
 %{_docdir}/%{name}/html/.stamp
+%doc %{_docdir}/miri/*
+%doc %{_docdir}/rust-analyzer/*
 %doc %{_docdir}/%{name}/*
 %doc %{_docdir}/cargo/*
 %doc %{_docdir}/clippy/*
