@@ -9,7 +9,7 @@
         "flush_options": "off",
         "max_file_size": 1048576,
         "batch_size": 10,
-        "file_name": "test.txt"
+        "file_name": "/tmp/mqttd/test.txt"
     },
     "remotes": [],
     "messages": {}
