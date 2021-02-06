@@ -40,6 +40,15 @@ impl<K, V> SmallIndexMap<K, V> {
 
         Iter(ordered.into_iter())
     }
+
+    pub fn into_iter(self) -> IterOwned<K, V> {
+        let mut ordered = BTreeMap::new();
+        for (key, (order, value)) in self.items {
+            ordered.insert(order, (key, value));
+        }
+
+        IterOwned(ordered.into_iter())
+    }
 }
 
 impl<K, V> SmallIndexMap<K, V>
@@ -105,6 +114,15 @@ impl<'a, K, V> IntoIterator for &'a SmallIndexMap<K, V> {
     }
 }
 
+impl<K, V> IntoIterator for SmallIndexMap<K, V> {
+    type Item = (K, V);
+    type IntoIter = IterOwned<K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.into_iter()
+    }
+}
+
 pub struct Iter<'a, K, V>(IntoIter<&'a u64, (&'a K, &'a V)>);
 
 impl<'a, K, V> Iterator for Iter<'a, K, V> {
@@ -112,6 +130,24 @@ impl<'a, K, V> Iterator for Iter<'a, K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|(_, v)| v)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+
+pub struct IterOwned<K, V>(IntoIter<u64, (K, V)>);
+
+impl<K, V> Iterator for IterOwned<K, V> {
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|(_, v)| v)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
     }
 }
 
