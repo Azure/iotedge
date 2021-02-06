@@ -1,6 +1,6 @@
 Summary:        Rust Programming Language
 Name:           rust
-Version:        1.44.1
+Version:        1.47.0
 Release:        1%{?dist}
 License:        ASL 2.0 and MIT
 URL:            https://www.rust-lang.org/
@@ -41,7 +41,9 @@ chmod 755 %{buildroot}%{_libdir}/lib*.so
 %doc %{_docdir}/%{name}/*
 %doc %{_docdir}/cargo/*
 %doc %{_docdir}/clippy/*
+%doc %{_docdir}/miri/*
 %doc %{_docdir}/rls/*
+%doc %{_docdir}/rust-analyzer/*
 %doc %{_docdir}/rustfmt/*
 %{_datadir}/zsh/*
 %{_prefix}%{_sysconfdir}/bash_completion.d/cargo
