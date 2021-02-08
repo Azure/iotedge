@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -34,14 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string DefaultLoadGenTestStartDelay = "00:00:20";
 
         [Test]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToModuleMessages()
         {
-            // TODO: Fix PriorityQueue E2E tests for Windows and ARM
-            if (OsPlatform.IsWindows() || OsPlatform.IsArm())
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -50,23 +46,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
         }
 
         [Test]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToHubMessages()
         {
-            // TODO: Add Windows and ARM. Windows won't be able to work for this test until we add NetworkController Windows implementation
-            if (OsPlatform.IsWindows() || OsPlatform.IsArm())
-            {
-                Assert.Ignore("Priority Queue module to module messages test has been disabled for Windows and Arm until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -79,14 +70,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token, Context.Current.NestedEdge);
             bool networkOn = true;
             await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(testInfo.LoadGenStartDelay) + TimeSpan.FromSeconds(10));
             await this.ToggleConnectivity(networkOn, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
-            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, token);
+            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, trackingId, token);
             while (messages.TryDequeue(out MessageTestResult messageTestResult))
             {
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
@@ -96,14 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueTimeToLive()
         {
-            // TODO: Fix PriorityQueue TTL E2E tests for Windows and ARM
-            if (OsPlatform.IsWindows() || OsPlatform.IsArm())
-            {
-                Assert.Ignore("Priority Queue time to live test has been disabled for Windows and Arm until we can fix it.");
-            }
-
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -112,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
             Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
             // Wait long enough for TTL to expire for some of the messages
@@ -120,12 +106,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await Task.Delay(testInfo.TtlThreshold * 1000);
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token);
+            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
             await this.ValidateResultsAsync();
         }
 
-        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
+        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
         {
             await Profiler.Run(
                 async () =>
@@ -142,13 +128,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             {
                                 int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
                                 Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+
+                                var receivedTrackingId = (string)data.Properties["trackingId"];
+                                if (!receivedTrackingId.IsNullOrWhiteSpace() && receivedTrackingId.Equals(trackingId))
                                 {
-                                    TrackingId = data.Properties["trackingId"].ToString(),
-                                    BatchId = data.Properties["batchId"].ToString(),
-                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                                });
-                                results.Add(sequenceNumber);
+                                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                    {
+                                        TrackingId = data.Properties["trackingId"].ToString(),
+                                        BatchId = data.Properties["batchId"].ToString(),
+                                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                    });
+                                    results.Add(sequenceNumber);
+                                }
+                                else
+                                {
+                                    var message = receivedTrackingId.IsNullOrWhiteSpace() ? "EMPTY" : receivedTrackingId;
+                                    Log.Verbose($"Message contains incorrect tracking id: {message}. Ignoring.");
+                                }
                             }
                             else
                             {
@@ -171,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
             if (!isPassed)
             {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
             }
 
             Assert.IsTrue(isPassed);

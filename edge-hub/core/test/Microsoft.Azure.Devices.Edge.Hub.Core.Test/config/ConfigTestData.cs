@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 {
     using System;
@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
     public class ConfigTestData
     {
-        public static EdgeHubDesiredProperties GetTestData()
+        public static EdgeHubDesiredProperties_1_2 GetTestData()
         {
             var statement1 = new AuthorizationProperties.Statement(
                 identities: new List<string>
@@ -86,9 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             };
 
             var brokerProperties = new BrokerProperties(bridgeConfig, authzProperties);
-            var properties = new EdgeHubDesiredProperties(
+            var properties = new EdgeHubDesiredProperties_1_2(
                 "1.2.0",
-                new Dictionary<string, RouteConfiguration>(),
+                new Dictionary<string, RouteSpec>(),
                 new StoreAndForwardConfiguration(100),
                 brokerProperties);
 

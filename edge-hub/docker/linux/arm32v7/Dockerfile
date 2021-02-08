@@ -1,8 +1,8 @@
-ARG base_tag=1.0.6.4-linux-arm32v7
+ARG base_tag=1.0.6.6-linux-arm32v7
 FROM azureiotedge/azureiotedge-hub-base:${base_tag}
 
-ADD ./watchdog/target/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
-ADD ./mqtt/target/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
+ADD ./watchdog/armv7-unknown-linux-gnueabihf/release/watchdog /usr/local/bin/watchdog
+ADD ./mqtt/armv7-unknown-linux-gnueabihf/release/mqttd /usr/local/bin/mqttd
 ADD ./mqtt/broker.json /app/mqttd/broker.json
 
 WORKDIR /app

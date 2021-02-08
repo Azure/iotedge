@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     {
         const string TelemetryTopicTemplate = "$iothub/{0}/messages/events/{1}";
         const string TwinDesiredUpdateSubscriptionTemplate = "$iothub/{0}/twin/desired/#";
+        const string TwinResultSubscriptionTemplate = "$iothub/{0}/twin/res/#";
         const string DirectMethodSubscriptionTemplate = "$iothub/{0}/methods/post/#";
         const string GetTwinTemplate = "$iothub/{0}/twin/get/?$rid={1}";
         const string UpdateReportedTemplate = "$iothub/{0}/twin/reported/?$rid={1}";
@@ -147,6 +148,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             await this.SendUpstreamMessageAsync(RpcCmdUnsub, topic, this.emptyArray);
         }
 
+        public async Task RemoveTwinResponseAsync(IIdentity identity)
+        {
+            Events.RemovingTwinResultSubscription(identity.Id);
+
+            var topic = string.Format(TwinResultSubscriptionTemplate, identity.Id);
+            await this.SendUpstreamMessageAsync(RpcCmdUnsub, topic, this.emptyArray);
+        }
+
         public Task SendFeedbackMessageAsync(IIdentity identity, string messageId, FeedbackStatus feedbackStatus)
         {
             // TODO: when M2M/C2D is implemented, this may need to do something
@@ -177,13 +186,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.CompletedTask;
         }
 
+        public Task StopListening(IIdentity identity)
+        {
+            // No listener
+            return Task.CompletedTask;
+        }
+
         public async Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage, bool needSubscribe)
         {
             if (needSubscribe)
             {
                 // TODO c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
                 // and how to handle the related state (the needSubscribe flag)
-                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
+                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format(TwinResultSubscriptionTemplate, identity.Id), this.emptyArray);
             }
 
             var rid = this.GetRid();
@@ -207,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 // TODO c# sdk subscribes automatically when needed, so do we. Needs to reconsider if this is the good place
                 // and how to handle the related state (the needSubscribe flag)
-                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format("$iothub/{0}/twin/res/#", identity.Id), this.emptyArray);
+                await this.SendUpstreamMessageAsync(RpcCmdSub, string.Format(TwinResultSubscriptionTemplate, identity.Id), this.emptyArray);
             }
 
             var rid = this.GetRid();
@@ -508,6 +523,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             RemovingDirectMethodCallSubscription,
             RemovingDesiredPropertyUpdateSubscription,
+            RemovingTwinResultSubscription,
             AddingDirectMethodCallSubscription,
             AddingDesiredPropertyUpdateSubscription,
 
@@ -552,6 +568,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         public static void AddingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.AddingDesiredPropertyUpdateSubscription, $"Adding desired property update subscriptions for client: {id}");
         public static void RemovingDirectMethodCallSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDirectMethodCallSubscription, $"Removing direct method call subscriptions for client: {id}");
         public static void RemovingDesiredPropertyUpdateSubscription(string id) => Log.LogDebug((int)EventIds.RemovingDesiredPropertyUpdateSubscription, $"Removing desired property update subscriptions for client: {id}");
+        public static void RemovingTwinResultSubscription(string id) => Log.LogDebug((int)EventIds.RemovingTwinResultSubscription, $"Removing twin result subscriptions for client: {id}");
 
         public static void ErrorHandlingDownstreamMessage(string topic, Exception e) => Log.LogError((int)EventIds.ErrorHandlingDownstreamMessage, e, $"Error handling downstream message on topic: {topic}");
         public static void CannotParseGuid(string guid) => Log.LogError((int)EventIds.CannotParseGuid, $"Cannot parse guid: {guid}");

@@ -28,6 +28,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return experimentalFeatures;
         }
 
+        public static bool IsViaBrokerUpstream(ExperimentalFeatures experimentalFeatures, bool hasGatewayHostname)
+        {
+            bool isLegacyUpstream = !experimentalFeatures.Enabled
+                || !experimentalFeatures.EnableMqttBroker
+                || !experimentalFeatures.EnableNestedEdge
+                || !hasGatewayHostname;
+
+            return isLegacyUpstream;
+        }
+
         public bool Enabled { get; }
 
         public bool DisableCloudSubscriptions { get; }

@@ -3,8 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
@@ -25,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Update deployment with new policy that allows the connection.
         /// - Validate that new device can connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task AuthorizationPolicyUpdateTest()
         {
@@ -64,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -93,10 +97,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    this.ca,
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    Context.Current.NestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);
@@ -133,40 +139,41 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
+
+            // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
+            // idempotent and cannot be retried reliably.
+            Devices.Device edge = await this.iotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
+            Devices.Device leaf = new Devices.Device(deviceId2)
+            {
+                Authentication = new AuthenticationMechanism
+                {
+                    Type = AuthenticationType.Sas
+                },
+                Scope = edge.Scope
+            };
+
+            leaf = await this.iotHub.CreateDeviceIdentityAsync(leaf, token);
+
+            string connectionString =
+                $"HostName={this.iotHub.Hostname};" +
+                $"DeviceId={leaf.Id};" +
+                $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
+                $"GatewayHostName={Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())}";
 
             // There is no reliable way to signal when the policy
             // is updated in $edgehub, so need to retry several times.
             //
             // DefaultProgressive => 55 sec max.
-            LeafDevice leaf = null;
             await RetryPolicy.DefaultProgressive.ExecuteAsync(
                 async () =>
             {
-                leaf = await LeafDevice.CreateAsync(
-                    deviceId2,
-                    Protocol.Mqtt,
-                    AuthenticationType.Sas,
-                    Option.Some(this.runtime.DeviceId),
-                    false,
-                    CertificateAuthority.GetQuickstart(),
-                    this.iotHub,
-                    token,
-                    Option.None<string>());
+                using var client = DeviceClient.CreateFromConnectionString(connectionString, Client.TransportType.Mqtt);
+                await client.OpenAsync();
             }, token);
 
-            // verify device is authorized after policy update.
-            await TryFinally.DoAsync(
-                 async () =>
-                 {
-                     DateTime seekTime = DateTime.Now;
-                     await leaf.SendEventAsync(token);
-                     await leaf.WaitForEventsReceivedAsync(seekTime, token);
-                 },
-                 async () =>
-                 {
-                     await leaf.DeleteIdentityAsync(token);
-                 });
+            await this.iotHub.DeleteDeviceIdentityAsync(leaf, token);
         }
 
         /// <summary>
@@ -175,6 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         ///     allow device1 connect, deny device2 connect.
         /// - Create devices and validate that they can/cannot connect.
         /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
@@ -224,7 +232,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             }
                         });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule edgeHub = deployment.Modules[ModuleName.EdgeHub];
             await edgeHub.WaitForReportedPropertyUpdatesAsync(
@@ -251,10 +260,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(),
+                this.ca,
                 this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
-                Option.None<string>());
+                Option.None<string>(),
+                Context.Current.NestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -277,10 +288,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     AuthenticationType.Sas,
                     Option.Some(this.runtime.DeviceId),
                     false,
-                    CertificateAuthority.GetQuickstart(),
+                    this.ca,
                     this.iotHub,
+                    Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
-                    Option.None<string>());
+                    Option.None<string>(),
+                    Context.Current.NestedEdge);
                 DateTime seekTime = DateTime.Now;
                 await leaf.SendEventAsync(token);
                 await leaf.WaitForEventsReceivedAsync(seekTime, token);

@@ -1,10 +1,7 @@
-provisioning:
-  source: "manual"
-
 agent:
   name: "edgeAgent"
   type: "docker"
-  env": {}
+  env: {}
   config:
     image: "mcr.microsoft.com/azureiotedge-agent:1.0"
     auth: {}
@@ -12,18 +9,20 @@ agent:
 hostname: "localhost"
 
 connect:
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 listen:
-  management_uri: "unix:///var/run/iotedge/mgmt.sock"
-  workload_uri: "unix:///var/run/iotedge/workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
-homedir: "/var/lib/iotedge"
+homedir: "/var/lib/aziot/edged"
 
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
   network: "azure-iot-edge"
 
-certificates:
-  auto_generated_ca_lifetime_days: 90
+endpoints:
+  aziot_keyd_url: "unix:///run/aziot/keyd.sock"
+  aziot_certd_url: "unix:///run/aziot/certd.sock"
+  aziot_identityd_url: "unix:///run/aziot/identityd.sock"

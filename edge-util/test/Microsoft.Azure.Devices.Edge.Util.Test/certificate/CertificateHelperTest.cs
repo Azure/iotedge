@@ -367,5 +367,41 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Certificate
 
             Assert.False(CertificateHelper.ValidateClientCert(issuedClientCert, new List<X509Certificate2>() { }, Option.Some(trustedCACerts), Logger.Factory.CreateLogger("something")));
         }
+
+        [Fact]
+        public void ValidatesCertificateThumbprintBySha1()
+        {
+            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var thumbprints = new[] { "abcdeae53da1f86112acb008cac657b8dd259e76", TestCertificateHelper.CertificateThumbprintSha1 };
+
+            Assert.True(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
+        }
+
+        [Fact]
+        public void InvalidatesCertificateThumbprintBySha1()
+        {
+            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var thumbprints = new[] { "abcdeae53da1f86112acb008cac657b8dd259e76", "1234567890a1f86112acb008cac657b8dd259e76" };
+
+            Assert.False(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
+        }
+
+        [Fact]
+        public void ValidatesCertificateThumbprintBySha256()
+        {
+            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var thumbprints = new[] { "1826331953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071", TestCertificateHelper.CertificateThumbprintSha256 };
+
+            Assert.True(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
+        }
+
+        [Fact]
+        public void InvalidatesCertificateThumbprintBySha256()
+        {
+            var certificate = new X509Certificate2(Encoding.ASCII.GetBytes(TestCertificateHelper.CertificatePem));
+            var thumbprints = new[] { "abcdef1953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071", "1234567893f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071" };
+
+            Assert.False(CertificateHelper.ValidateCertificateThumbprint(certificate, thumbprints));
+        }
     }
 }

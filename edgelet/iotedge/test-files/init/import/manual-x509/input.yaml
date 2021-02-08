@@ -1,0 +1,30 @@
+provisioning:
+  source: 'manual'
+  authentication:
+    method: 'x509'
+    iothub_hostname: 'example.azure-devices.net'
+    device_id: 'my-device'
+    identity_cert: 'file:///var/secrets/device-id.pem'
+    identity_pk: 'file:///var/secrets/device-id.key.pem'
+  dynamic_reprovisioning: true
+
+agent:
+  name: 'edgeAgent'
+  type: 'docker'
+  config:
+    image: 'mcr.microsoft.com/azureiotedge-agent:1.0'
+
+hostname: 'my-device'
+
+connect:
+  management_uri: 'unix:///var/run/iotedge/mgmt.sock'
+  workload_uri: 'unix:///var/run/iotedge/workload.sock'
+
+listen:
+  management_uri: 'fd://iotedge.mgmt.socket'
+  workload_uri: 'fd://iotedge.socket'
+
+homedir: '/var/lib/iotedge'
+
+moby_runtime:
+  uri: 'unix:///var/run/docker.sock'

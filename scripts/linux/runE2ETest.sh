@@ -9,15 +9,15 @@ function clean_up() {
     print_highlighted_message 'Clean up'
 
     echo 'Stop IoT Edge services'
-    systemctl stop iotedge.socket iotedge.mgmt.socket || true
-    systemctl kill iotedge || true
-    systemctl stop iotedge || true
+    systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+    systemctl kill aziot-edged || true
+    systemctl stop aziot-edged || true
 
     echo 'Remove IoT Edge and config file'
-    apt-get purge libiothsm-std --yes || true
+    rm -rf /var/lib/aziot/
     rm -rf /var/lib/iotedge/
-    rm -rf /var/run/iotedge/
-    rm -rf /etc/iotedge/config.yaml
+    rm -rf /etc/aziot/
+    rm -rf /etc/systemd/system/aziot-*.service.d/
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true
@@ -33,9 +33,9 @@ function clean_up() {
 
 function create_iotedge_service_config {
     print_highlighted_message 'Create IoT Edge service config'
-    mkdir /etc/systemd/system/iotedge.service.d/ || true
+    mkdir /etc/systemd/system/aziot-edged.service.d/ || true
     bash -c "echo '[Service]
-Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
+Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf"
 }
 
 function set_certificate_generation_tools_dir() {
@@ -248,7 +248,7 @@ function print_logs() {
 
     print_highlighted_message 'Print logs'
     print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    journalctl -u aziot-edged -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message 'EDGE AGENT LOGS'
     docker logs edgeAgent || true
@@ -508,7 +508,6 @@ function process_args() {
 }
 
 function get_hash() {
-    # TODO: testHelper.sh needs to be shared across build pipelines
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
 
@@ -753,20 +752,20 @@ function run_longhaul_test() {
     NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
     echo "Nested edge test=$NESTED_EDGE_TEST"
     local ret=0
-    
+
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
         DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
         DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
         TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
-        
+
         echo "Parent hostname=$PARENT_HOSTNAME"
         echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
         echo "Device CA cert=$DEVICE_CA_CERT"
         echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
         echo "Trusted CA certs=$TRUSTED_CA_CERTS"
-        
+
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
             -a "$iotedge_package" \
@@ -852,7 +851,7 @@ function run_quickstartcerts_test() {
         $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
-    declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
+    declare -a certs=( /var/lib/aziot/edged/hsm/certs/edge_owner_ca*.pem )
     echo "cert: ${certs[0]}"
     # Workaround for multiple certificates in the x509store - remove this after quick start certs have Authority Key Identifier
     rm -rf ~/.dotnet/corefx/cryptography/x509stores/root/
@@ -863,6 +862,7 @@ function run_quickstartcerts_test() {
         -d "$device_id-leaf" \
         -ct "${certs[0]}" \
         -ed "$(hostname)" && ret=$? || ret=$?
+        -ed-id "$device_id"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -1123,7 +1123,7 @@ function validate_test_parameters() {
             print_error "Required snitch storage master key."
             ((error++))
         fi
-        
+
         if [[ -z "$TEST_INFO" ]]; then
             print_error "Required test info."
             ((error++))
@@ -1195,7 +1195,7 @@ function usage() {
     echo ' -metricsScrapeFrequencyInSecs                  Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget                           Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     echo ' -initializeWithAgentArtifact                   Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
-    echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
+    echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
     echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
     echo ' -connectManagementUri                          Customize connect management socket'
@@ -1237,6 +1237,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
+    EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"

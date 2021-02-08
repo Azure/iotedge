@@ -210,11 +210,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool checkEntireQueueOnCleanup = this.configuration.GetValue("CheckEntireQueueOnCleanup", false);
             int messageCleanupIntervalSecs = this.configuration.GetValue("MessageCleanupIntervalSecs", 1800);
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
-
-            bool isLegacyUpstream = !experimentalFeatures.Enabled
-                                 || !experimentalFeatures.EnableMqttBroker
-                                 || !experimentalFeatures.EnableNestedEdge
-                                 || !this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
+            bool isLegacyUpstream = ExperimentalFeatures.IsViaBrokerUpstream(
+                    experimentalFeatures,
+                    this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -267,18 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
             {
-                if (!hasParentEdge)
-                {
-                    // Default setting should be local auth with fallback to cloud auth
-                    authenticationMode = AuthenticationMode.CloudAndScope;
-                }
-                else
-                {
-                    // If the Edge is nested and connects to a parent Edge, then we
-                    // should only allow local authentication as we don't expect to
-                    // have internet connectivity.
-                    authenticationMode = AuthenticationMode.Scope;
-                }
+                authenticationMode = AuthenticationMode.Scope;
             }
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);

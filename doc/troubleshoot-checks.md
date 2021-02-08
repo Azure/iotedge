@@ -79,7 +79,7 @@ This check validates that the value of the `connect.management_uri` field in the
 
 This check validates that the version of the IoT Edge daemon is the same as the value specified in <https://aka.ms/latest-iotedge-stable>
 
-You can override the expected version using the `--expected-iotedged-version` switch, in which case the tool will not query that URL.
+You can override the expected version using the `--expected-aziot-edged-version` switch, in which case the tool will not query that URL.
 
 Note that the tool does *not* validate the versions of the Edge Agent and Edge Hub modules.
 

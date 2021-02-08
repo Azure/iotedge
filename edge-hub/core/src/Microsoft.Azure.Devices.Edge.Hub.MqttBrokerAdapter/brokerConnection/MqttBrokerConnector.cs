@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class MqttBrokerConnector : IMqttBrokerConnector
     {
         const int ReconnectDelayMs = 2000;
-        const int SubAckTimeoutSecs = 10;
+        const int DefaultAckTimeoutSecs = 10;
 
         readonly IComponentDiscovery components;
         readonly ISystemComponentIdProvider systemComponentIdProvider;
@@ -32,10 +32,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         AtomicBoolean isRetrying = new AtomicBoolean(false);
 
+        public TimeSpan AckTimeout { get; set; }
+
         public Task EnsureConnected => this.onConnectedTcs.Task;
 
         public MqttBrokerConnector(IComponentDiscovery components, ISystemComponentIdProvider systemComponentIdProvider)
         {
+            this.AckTimeout = TimeSpan.FromSeconds(DefaultAckTimeoutSecs);
+
             this.components = Preconditions.CheckNotNull(components);
             this.systemComponentIdProvider = Preconditions.CheckNotNull(systemComponentIdProvider);
 
@@ -175,9 +179,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             // need the lock, otherwise it can happen the ACK comes back sooner as the id is
             // put into the dictionary next line, causing the ACK being unknown.
+            ushort messageId;
             lock (this.guard)
             {
-                var messageId = client.Publish(topic, payload, 1, retain);
+                messageId = client.Publish(topic, payload, 1, retain);
                 added = this.pendingAcks.TryAdd(messageId, tcs);
             }
 
@@ -189,7 +194,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 new Exception("Could not store message id to monitor Mqtt ACK");
             }
 
-            var result = await tcs.Task;
+            bool result;
+
+            try
+            {
+                result = await tcs.Task.TimeoutAfter(this.AckTimeout);
+            }
+            catch
+            {
+                lock (this.guard)
+                {
+                    this.pendingAcks.TryRemove(messageId, out TaskCompletionSource<bool> _);
+                }
+
+                throw;
+            }
 
             return result;
         }
@@ -224,39 +243,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void TriggerReconnect(object sender, EventArgs e)
         {
-            Task.Run(async () =>
-            {
-                if (this.isRetrying.GetAndSet(true))
+            Task.Factory.StartNew(
+                async () =>
                 {
-                    return;
-                }
-
-                var client = default(MqttClient);
-
-                try
-                {
-                    lock (this.guard)
+                    if (this.isRetrying.GetAndSet(true))
                     {
-                        if (!this.mqttClient.HasValue)
-                        {
-                            return;
-                        }
-
-                        client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                        return;
                     }
 
-                    // don't trigger it to ourselves while we are trying
-                    client.ConnectionClosed -= this.TriggerReconnect;
+                    var client = default(MqttClient);
 
-                    var isConnected = false;
-
-                    while (!isConnected)
+                    try
                     {
-                        await Task.Delay(ReconnectDelayMs);
-
                         lock (this.guard)
                         {
-                            // seems Disconnect has been called since.
                             if (!this.mqttClient.HasValue)
                             {
                                 return;
@@ -265,28 +265,49 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                             client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
                         }
 
-                        isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                        // don't trigger it to ourselves while we are trying
+                        client.ConnectionClosed -= this.TriggerReconnect;
+
+                        var isConnected = false;
+
+                        while (!isConnected)
+                        {
+                            await Task.Delay(ReconnectDelayMs);
+
+                            lock (this.guard)
+                            {
+                                // seems Disconnect has been called since.
+                                if (!this.mqttClient.HasValue)
+                                {
+                                    return;
+                                }
+
+                                client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to use"));
+                            }
+
+                            isConnected = await TryConnectAsync(client, this.components.Consumers, this.systemComponentIdProvider.EdgeHubBridgeId);
+                        }
+
+                        client.ConnectionClosed += this.TriggerReconnect;
+                    }
+                    finally
+                    {
+                        this.isRetrying.Set(false);
                     }
 
-                    client.ConnectionClosed += this.TriggerReconnect;
-                }
-                finally
-                {
-                    this.isRetrying.Set(false);
-                }
-
-                if (!client.IsConnected)
-                {
-                    // at this point it is not known that 'TriggerReconnect' was subscribed in time,
-                    // let's trigger it manually - if started twice, that is not a problem
-                    this.TriggerReconnect(this, new EventArgs());
-                }
-            });
+                    if (!client.IsConnected)
+                    {
+                        // at this point it is not known that 'TriggerReconnect' was subscribed in time,
+                        // let's trigger it manually - if started twice, that is not a problem
+                        this.TriggerReconnect(this, new EventArgs());
+                    }
+                },
+                TaskCreationOptions.LongRunning);
         }
 
         Task StartForwardingLoop()
         {
-            var loopTask = Task.Run(
+            var loopTask = Task.Factory.StartNew(
                                 async () =>
                                 {
                                     Events.ForwardingLoopStarted();
@@ -330,7 +351,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                     }
 
                                     Events.ForwardingLoopStopped();
-                                });
+                                },
+                                TaskCreationOptions.LongRunning);
 
             return loopTask;
 
@@ -412,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                     try
                     {
-                        await acksArrived.WaitAsync(TimeSpan.FromSeconds(SubAckTimeoutSecs));
+                        await acksArrived.WaitAsync(TimeSpan.FromSeconds(DefaultAckTimeoutSecs));
                     }
                     catch (Exception ex)
                     {

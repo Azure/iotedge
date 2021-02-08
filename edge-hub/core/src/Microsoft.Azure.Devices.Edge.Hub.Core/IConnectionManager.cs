@@ -43,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         bool RemoveSubscription(string id, DeviceSubscription deviceSubscription);
 
+        public IReadOnlyCollection<DeviceSubscription> RemoveSubscriptions(string id);
+
         Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id);
 
         bool CheckClientSubscription(string id, DeviceSubscription subscription);

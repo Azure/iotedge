@@ -100,7 +100,7 @@ do
 done
 
 if [ "${REDUCED_LINKER}" = '1' ]; then
-    # ld crashes in the VSTS CI's Linux amd64 job while trying to link iotedged
+    # ld crashes in the VSTS CI's Linux amd64 job while trying to link aziot-edged
     # with a generic exit code 1 and no indicative error message. It seems to
     # work fine if we reduce the number of objects given to the linker,
     # by disabling parallel codegen and incremental compile.

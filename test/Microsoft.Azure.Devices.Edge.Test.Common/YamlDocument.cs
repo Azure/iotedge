@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     // https://yaml.org/spec/1.1/#id861435). Specifically, it assumes that
     // each node in the deserialized document can be represented by
     // Dictionary<object, object>.
-    class YamlDocument
+    class YamlDocument : IConfigDocument
     {
         readonly Node root;
 
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.root = (Node)deserializer.Deserialize(reader);
         }
 
-        public void ReplaceOrAdd(string dottedKey, string value)
+        public void ReplaceOrAdd<T>(string dottedKey, T value)
         {
             Node node = this.root;
             string[] segments = dottedKey.Split('.');

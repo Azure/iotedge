@@ -39,10 +39,8 @@ jobs:
         displayName: Install Rust
       - bash: edgelet/build/linux/check-submodules.sh
         displayName: Check submodules
-      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedge;iotedged;iotedge-proxy" --reduced-linker
+      - bash: scripts/linux/generic-rust/build.sh --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker
         displayName: Build
-      - bash: edgelet/build/linux/build-k8s.sh
-        displayName: Build (runtime-kubernetes)
       - bash: edgelet/build/linux/test.sh
         displayName: Test
 
@@ -103,26 +101,6 @@ jobs:
       - script: "cross test --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-
-################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: "vs2017-win2016"
-    steps:
-      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set env variables
-      - powershell: edgelet/build/windows/install.ps1
-        displayName: Install Rust
-      - powershell: edgelet/build/windows/build.ps1
-        displayName: Build
-      - powershell: edgelet/build/windows/test.ps1
-        displayName: Test
-      - powershell: edgelet/build/windows/clippy.ps1
-        displayName: Clippy
 
 ################################################################################
   - job: style_check

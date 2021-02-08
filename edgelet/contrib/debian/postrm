@@ -3,14 +3,14 @@ set -e
 
 case "$1" in
     purge)
-        if [ -f /etc/iotedge/config.yaml ]; then
-            rm /etc/iotedge/config.yaml
+        if [ -f /etc/aziot/edged/config.yaml ]; then
+            rm /etc/aziot/edged/config.yaml
         fi
-        if [ -d /var/lib/iotedge ]; then
-            rm -rf /var/lib/iotedge
+        if [ -d /var/lib/aziot/edged ]; then
+            rm -rf /var/lib/aziot/edged
         fi
-        if [ -d /var/log/iotedge ]; then
-            rm -rf /var/log/iotedge
+        if [ -d /var/log/aziot/edged ]; then
+            rm -rf /var/log/aziot/edged
         fi
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

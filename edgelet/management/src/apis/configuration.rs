@@ -28,7 +28,7 @@ impl<C: Connect> Configuration<C> {
             uri_composer: Box::new(|base_path, path| {
                 format!("{}{}", base_path, path)
                     .parse()
-                    .map_err(|_| format_err!("Url parse error"))
+                    .map_err(|e| format_err!("Url parse error: {}", e))
             }),
         }
     }

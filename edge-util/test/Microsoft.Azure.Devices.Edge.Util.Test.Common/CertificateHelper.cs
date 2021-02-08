@@ -47,6 +47,9 @@ jakkDyV11Q==
 -----END CERTIFICATE-----
 ";
 
+        public const string CertificateThumbprintSha1 = "4b763ae53da1f86112acb008cac657b8dd259e76";
+        public const string CertificateThumbprintSha256 = "1826331953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071";
+
         // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic key used in tests")]
         public const string PrivateKeyPem = @"-----BEGIN PRIVATE KEY-----
 MIIJQgIBADANBgkqhkiG9w0BAQEFAASCCSwwggkoAgEAAoICAQDaDQIZm/VDDbUf

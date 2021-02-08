@@ -47,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
@@ -55,10 +56,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 AuthenticationType.Sas,
                 Option.Some(this.runtime.DeviceId),
                 false,
-                CertificateAuthority.GetQuickstart(),
+                this.ca,
                 this.iotHub,
+                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
-                Option.Some(TestModelId));
+                Option.Some(TestModelId),
+                Context.Current.NestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -101,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("modelId", TestModelId)
                     });
                 },
-                token);
+                token,
+                Context.Current.NestedEdge);
 
             EdgeModule filter = deployment.Modules[LoadGenModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);

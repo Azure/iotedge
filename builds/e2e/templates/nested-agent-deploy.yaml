@@ -1,0 +1,125 @@
+steps:  
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
+  - pwsh: |
+      $imageBuildId = $(resources.pipeline.images.runID)
+      $packageBuildId = $(resources.pipeline.packages.runID)
+
+      if ('$(az.pipeline.images.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+        $imageBuildId = '$(az.pipeline.images.buildId)'
+      }
+
+      if ('$(az.pipeline.packages.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+        $packageBuildId = '$(az.pipeline.packages.buildId)'
+      }
+
+      Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+      Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+      Write-Output '>> Package Build ID=$(packageBuildId)'
+      Write-Output '>> Image Build ID=$(imageBuildId)'
+    displayName: Override artifacts with user-supplied args       
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.images.projectID)
+      pipeline: $(resources.pipeline.images.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(imageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(az.pipeline.images.artifacts)
+      allowPartiallySucceededBuilds: true
+      itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt 
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(resources.pipeline.packages.projectID)
+      pipeline: $(resources.pipeline.packages.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
+      downloadPath: '$(Build.StagingDirectory)'
+      allowPartiallySucceededBuilds: true
+      artifactName: $(artifactName)   
+  - task: PowerShell@2
+    displayName: 'Download aziot-identity-service'
+    inputs:
+      filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+      workingDirectory: $(Build.SourcesDirectory)
+    env:
+      GITHUB_TOKEN: $(GitHubAccessToken)
+      ARTIFACT_NAME: $(identityServiceArtifactName)
+      PACKAGE_FILTER: $(identityServicePackageFilter)
+      DOWNLOAD_PATH: $(Build.StagingDirectory) 
+  - task: Bash@3     
+    displayName: 'Install artifacts'
+    name: InstallArtifacts
+    inputs:
+      targetType: inline
+      script: |
+        echo 'Stop IoT Edge services'
+        sudo systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+        sudo systemctl stop iotedge.socket iotedge.mgmt.socket || true
+        sudo systemctl kill iotedge || true
+        sudo systemctl stop iotedge || true        
+        sudo systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
+        sudo dpkg --purge aziot-edge aziot-identity-service
+
+        sudo rm -rf /var/lib/aziot/
+        sudo rm -rf /var/lib/iotedge/
+        sudo rm -rf /etc/aziot/
+
+        echo 'Restart docker'
+        sudo systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
+
+        echo "Install artifacts"            
+        iotedge_library=$( find $(Build.SourcesDirectory)/aziot-identity-service -type f -iname "$(identityServicePackageFilter)")
+   
+        ls "$(Build.StagingDirectory)"
+        ls "$(Build.StagingDirectory)/$(artifactName)"
+        declare -a pkg_list="$(Build.StagingDirectory)/$(artifactName)/*.deb"
+        iotedge_package="${pkg_list[*]}"
+
+        echo "  Install library"
+        sudo dpkg -i --force-confnew ${iotedge_library}
+        echo "  Install edgelet"
+        sudo dpkg -i --force-confnew ${iotedge_package}          
+  - task: Bash@3
+    displayName: 'Deployment iotedge on agent'
+    name: deployIoTEdge
+    inputs:
+      targetType: inline
+      script: |
+        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
+        . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
+
+        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
+
+        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "ct$(agent.group)" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -containerRegistry "$(cr.address)" \
+          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
+          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
+          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
+          -deploymentFileName "$(deploymentFile)" \
+          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
+          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
+          -customEdgeAgentImage "$(customEdgeAgent.image)" \
+          -customEdgeHubImage "$(customEdgeHub.image)" \
+          -subscription "$(azure.subscription)" \
+          -level "$(level)" \
+          -parentName "$(parentName)" \
+          -connectionString "$(connectionString)" \
+          -iotHubName "$(iotHubName)" \
+          -deviceId "$(deviceId)" \
+          -waitForTestComplete \
+          -cleanAll

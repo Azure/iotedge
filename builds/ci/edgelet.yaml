@@ -31,7 +31,7 @@ jobs:
         displayName: Build
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
-          arguments: --project-root "edgelet" --packages "iotedge;iotedged;iotedge-proxy" --reduced-linker 
+          arguments: --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker 
       - task: Bash@3
         displayName: Test
         inputs:
@@ -67,32 +67,6 @@ jobs:
         inputs:
           filePath: edgelet/build/linux/cross-test.sh
           arguments: --target armv7-unknown-linux-gnueabihf --release true
-
-################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set env variables
-      - task: PowerShell@2
-        displayName: Install Rust
-        inputs:
-          filePath: edgelet/build/windows/install.ps1
-      - task: PowerShell@2
-        displayName: Clippy
-        inputs:
-          filePath: edgelet/build/windows/clippy.ps1
-      - task: PowerShell@2
-        displayName: Build
-        inputs:
-          filePath: edgelet/build/windows/build.ps1
-      - task: PowerShell@2
-        displayName: Test
-        inputs:
-          filePath: edgelet/build/windows/test.ps1
 
 ################################################################################
   - job: style_check

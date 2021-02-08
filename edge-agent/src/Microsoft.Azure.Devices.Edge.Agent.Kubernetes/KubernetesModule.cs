@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string version,
             string type,
             ModuleStatus status,
-            RestartPolicy restartPolicy,
+            Core.RestartPolicy restartPolicy,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env,
             KubernetesConfig settings,
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public ModuleStatus DesiredStatus { get; }
 
         [JsonProperty(PropertyName = "restartPolicy")]
-        public RestartPolicy RestartPolicy { get; }
+        public Core.RestartPolicy RestartPolicy { get; }
 
         [JsonProperty(PropertyName = "imagePullPolicy")]
         public ImagePullPolicy ImagePullPolicy { get; }

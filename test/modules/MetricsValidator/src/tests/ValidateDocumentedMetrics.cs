@@ -37,12 +37,6 @@ namespace MetricsValidator.Tests
 
             var expected = this.GetExpectedMetrics();
 
-            if (OsPlatform.IsWindows())
-            {
-                // Docker doesn't return this on windows
-                expected.Remove("edgeAgent_created_pids_total");
-            }
-
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
             if (expected.Count == 0)
             {
@@ -80,7 +74,8 @@ namespace MetricsValidator.Tests
                 "edgehub_messages_dropped_total",
                 "edgehub_messages_unack_total",
                 "edgehub_offline_count_total",
-                "edgehub_operation_retry_total"
+                "edgehub_operation_retry_total",
+                "edgehub_client_disconnect_total"
             };
 
             foreach (string skippingMetric in skippingMetrics)

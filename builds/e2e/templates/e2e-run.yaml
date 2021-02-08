@@ -1,21 +1,43 @@
+parameters:
+  EventHubCompatibleEndpoint: '$(TestEventHubCompatibleEndpoint)'
+  IotHubConnectionString: '$(TestIotHubConnectionString)'
+
 steps:
 - pwsh: |
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
-    # Unfortunately CentOs has some failing test that need to be worked on.
+    # Filter out unstable tests.
+    $filter = 'Category!=Unstable'
+
     if ('$(Agent.Name)'.Contains('centos'))
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx --testcasefilter:'Category=CentOsSafe'
+      $filter += '&Category=CentOsSafe'
+    }
+    elseif ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
+    {
+      $filter += '&Category!=UnstableOnArm'
+    }
+    
+    #filter out tests not usable on nested edge
+    if ('$(nestededge)' -eq 'true')
+    {
+      $filter += '&Category!=SingleNodeOnly'
+    
+      #We are disabling some additional tests. See  PBI #9171870. Once this is fixed we should run what's directly below.
+      #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     else
     {
-      sudo --preserve-env dotnet vstest $testFile --logger:trx
+        $filter += '&Category!=NestedEdgeOnly'
     }
+
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
   displayName: Run tests
   env:
     E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
-    E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
-    E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+    E2E_EVENT_HUB_ENDPOINT: ${{ parameters['EventHubCompatibleEndpoint'] }}
+    E2E_IOT_HUB_CONNECTION_STRING: ${{ parameters['IotHubConnectionString'] }}
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)

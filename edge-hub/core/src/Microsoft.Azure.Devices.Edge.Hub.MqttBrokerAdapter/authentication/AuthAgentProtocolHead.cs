@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Extensions.DependencyInjection.Extensions;
     using Microsoft.Extensions.Logging;
 
-    public class AuthAgentProtocolHead : IProtocolHead
+    public class AuthAgentProtocolHead : IProtocolHead, IAsyncDisposable
     {
         readonly IAuthenticator authenticator;
         readonly IMetadataStore metadataStore;
@@ -55,17 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     Events.StartedWhenAlreadyRunning();
                     throw new InvalidOperationException("Cannot start AuthAgentProtocolHead twice");
                 }
-                else
-                {
-                    this.host = Option.Some(
-                                    CreateWebHostBuilder(
-                                        this.authenticator,
-                                        this.metadataStore,
-                                        this.usernameParser,
-                                        this.clientCredentialsFactory,
-                                        this.systemComponentIdProvider,
-                                        this.config));
-                }
+
+                this.host = Option.Some(
+                    CreateWebHostBuilder(
+                        this.authenticator,
+                        this.metadataStore,
+                        this.usernameParser,
+                        this.clientCredentialsFactory,
+                        this.systemComponentIdProvider,
+                        this.config));
             }
 
             await this.host.Expect(() => new Exception("No AUTH host instance found to start"))
@@ -86,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             await hostToStop.Match(
-                async h => await h.StopAsync(),
+                async h => await h.StopAsync(token),
                 () =>
                 {
                     Events.ClosedWhenNotRunning();
@@ -98,9 +96,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void Dispose()
         {
+            this.DisposeAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
             if (this.host.HasValue)
             {
-                this.CloseAsync(CancellationToken.None).Wait();
+                await this.CloseAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
 

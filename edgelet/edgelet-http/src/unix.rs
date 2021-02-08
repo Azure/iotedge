@@ -13,8 +13,6 @@ use nix::sys::stat::{umask, Mode};
 use scopeguard::defer;
 #[cfg(unix)]
 use tokio_uds::UnixListener;
-#[cfg(windows)]
-use tokio_uds_windows::UnixListener;
 
 use crate::error::{Error, ErrorKind};
 use crate::util::{incoming::Incoming, socket_file_exists};

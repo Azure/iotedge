@@ -134,7 +134,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(certificate);
             Preconditions.CheckNotNull(thumbprints);
 
-            return thumbprints.Any(th => certificate.Thumbprint?.Equals(th, StringComparison.OrdinalIgnoreCase) ?? false);
+            var thumbprintSha1 = certificate.Thumbprint;
+            var thumbprintSha256 = GetSha256Thumbprint(certificate);
+
+            return thumbprints.Any(th =>
+                        thumbprintSha1.Equals(th, StringComparison.OrdinalIgnoreCase)
+                     || thumbprintSha256.Equals(th, StringComparison.OrdinalIgnoreCase));
         }
 
         public static bool IsCACertificate(X509Certificate2 certificate)

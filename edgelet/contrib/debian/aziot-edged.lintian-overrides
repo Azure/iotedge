@@ -1,0 +1,3 @@
+embedded-library usr/libexec/aziot/aziot-edged: libyaml
+new-package-should-close-itp-bug
+

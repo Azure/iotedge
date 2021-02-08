@@ -22,4 +22,6 @@ pub use crate::config::DockerConfig;
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
 pub use runtime::DockerModuleRuntime;
-pub use settings::{LoadSettingsError, Settings, DEFAULTS};
+pub use settings::{
+    ContentTrust, LoadSettingsError, MobyRuntime, Settings, DEFAULTS, UPSTREAM_PARENT_KEYWORD,
+};

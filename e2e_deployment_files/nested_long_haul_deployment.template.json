@@ -33,9 +33,6 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"615m\",\"max-file\":\"2\"}},\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "CollectMetrics": {
-                "value": "true"
-              },
               "NestedEdgeEnabled": {
                 "value": "true"
               },
@@ -258,7 +255,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}},\"Binds\":[\"/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock\"]}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}},\"Binds\":[\"/var/lib/iotedge/mgmt.sock:/var/lib/iotedge/mgmt.sock\"]}}"
             }
           },
           "analyzer": {
