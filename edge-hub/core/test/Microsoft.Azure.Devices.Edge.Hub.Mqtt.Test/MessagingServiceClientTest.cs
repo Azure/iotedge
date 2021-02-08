@@ -522,7 +522,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
 
             var channel = Mock.Of<IMessagingChannel<IProtocolGatewayMessage>>();
 
-            var sut = new MessagingServiceClient(MakeDeviceListenerSpy(addedSubscriptions, removedSubscriptions).Object, converter, ByteBufferConverter, this.GetSessionStatePersistenceProvider());
+            var deviceListener = MakeDeviceListenerSpy(addedSubscriptions, removedSubscriptions);
+            deviceListener.Setup(x => x.BindDeviceProxy(It.IsAny<IDeviceProxy>(), It.IsAny<Action>() ))
+                          .Callback<IDeviceProxy, Action>((p, a) => a?.Invoke());
+
+            var sut = new MessagingServiceClient(deviceListener.Object, converter, ByteBufferConverter, this.GetSessionStatePersistenceProvider());
 
             sut.BindMessagingChannel(channel);
 
@@ -577,8 +581,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 .Returns(Task.CompletedTask);
             listener.SetupGet(x => x.Identity)
                 .Returns(identity);
-            listener.Setup(x => x.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
-                    .Callback<IDeviceProxy, Option<Action>>((p, o) => o.ForEach(a => a?.Invoke()));
 
             if (addedSubscriptions != null)
             {
