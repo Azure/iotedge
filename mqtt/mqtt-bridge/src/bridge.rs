@@ -6,7 +6,7 @@ use mqtt3::ShutdownError;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
-use mqtt_util::client_io::Credentials;
+use mqtt_util::Credentials;
 
 use crate::{
     client::{ClientError, MqttClientConfig},

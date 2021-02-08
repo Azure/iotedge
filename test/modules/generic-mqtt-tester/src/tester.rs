@@ -10,7 +10,7 @@ use mqtt3::{
     Client, Event, ReceivedPublication, SubscriptionUpdateEvent, UpdateSubscriptionHandle,
 };
 use mqtt_broker_tests_util::client;
-use mqtt_util::client_io::ClientIoSource;
+use mqtt_util::ClientIoSource;
 use trc_client::TrcClient;
 
 use crate::{
@@ -176,22 +176,23 @@ impl MessageTester {
         let (exited, _, join_handles) = select_all(tasks).await;
         match exited {
             Err(e) => {
-                error!("task exited with error: {:?}", e)
+                error!("Stopping test run because task exited with error: {:?}", e);
+                self.shutdown_handle.shutdown().await?;
             }
             Ok(Err(e)) => {
-                error!("task exited with error: {:?}", e)
+                error!("Stopping test run because task exited with error: {:?}", e);
+                self.shutdown_handle.shutdown().await?;
             }
             Ok(Ok(_)) => {}
         }
-
-        info!("stopping test run");
-        self.shutdown_handle.shutdown().await?;
 
         for handle in join_handles {
             handle
                 .await
                 .map_err(MessageTesterError::WaitForShutdown)??;
         }
+
+        info!("test successfully shutdown all componenets");
 
         Ok(())
     }
