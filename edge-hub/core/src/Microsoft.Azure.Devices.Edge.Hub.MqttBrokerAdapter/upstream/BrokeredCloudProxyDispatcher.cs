@@ -440,7 +440,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void CallConnectivityHandlers(bool isConnected)
         {
-            var currentHandlers = this.ConnectionStatusChangedEvent.GetInvocationList();
+            var currentHandlers = this.ConnectionStatusChangedEvent?.GetInvocationList();
+
+            if (currentHandlers == null)
+            {
+                return;
+            }
 
             foreach (var handler in currentHandlers)
             {
