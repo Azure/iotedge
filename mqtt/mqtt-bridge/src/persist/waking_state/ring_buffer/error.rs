@@ -15,13 +15,13 @@ pub enum BlockError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RingBufferError {
-    #[error("Flushing failed {0}")]
+    #[error("Flushing failed. Caused by {0}")]
     Flush(std::io::Error),
 
     #[error("Buffer is full and messages must be drained to continue")]
     Full,
 
-    #[error("Mmap creation error occurred {0}")]
+    #[error("Mmap creation error occurred. Caused by {0}")]
     MmapCreate(std::io::Error),
 
     #[error("Key does not exist")]
@@ -33,9 +33,9 @@ pub enum RingBufferError {
     #[error("Cannot remove before reading")]
     RemoveBeforeRead,
 
-    #[error("Serialization error occurred {0}")]
+    #[error("Serialization error occurred. Caused by {0}")]
     Serialization(#[from] bincode::Error),
 
-    #[error("Failed to validate internal details {0}")]
+    #[error("Failed to validate internal details. Caused by {0}")]
     Validate(#[from] BlockError),
 }

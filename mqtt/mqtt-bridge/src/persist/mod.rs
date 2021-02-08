@@ -29,6 +29,6 @@ pub enum StorageError {
     #[error("RingBuffer error occurred. Caused by: {0}")]
     RingBuffer(#[from] RingBufferError),
 
-    #[error("Serialization error occurred {0}")]
+    #[error("Serialization error occurred. Caused by: {0}")]
     Serialization(#[from] BincodeError),
 }
