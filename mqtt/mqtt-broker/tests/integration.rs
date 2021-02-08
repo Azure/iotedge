@@ -65,7 +65,7 @@ async fn drop_session_on_expiry() {
     let (_, mut sessions) = server_handle.shutdown().await.into_parts();
     assert_eq!(1, sessions.len());
 
-    let (client_info, _, _, _) = sessions.remove(0).into_parts();
+    let (client_info, _, _, _, _) = sessions.remove(0).into_parts();
     assert_eq!("online_client", client_info.client_id().as_str());
 
     // dispose a client.
@@ -149,7 +149,7 @@ async fn drop_session_on_expiry_after_restart() {
     let (_, mut sessions) = server_handle.shutdown().await.into_parts();
     assert_eq!(1, sessions.len());
 
-    let (client_info, _, _, _) = sessions.remove(0).into_parts();
+    let (client_info, _, _, _, _) = sessions.remove(0).into_parts();
     assert_eq!("online_client", client_info.client_id().as_str());
 
     // dispose a client.
@@ -208,7 +208,7 @@ async fn drop_sessions_on_reauthorize() {
     let (_, mut sessions) = server_handle.shutdown().await.into_parts();
     assert_eq!(1, sessions.len());
 
-    let (client_info, _, _, _) = sessions.remove(0).into_parts();
+    let (client_info, _, _, _, _) = sessions.remove(0).into_parts();
     assert_eq!("root", client_info.client_id().as_str());
 
     // dispose a client.

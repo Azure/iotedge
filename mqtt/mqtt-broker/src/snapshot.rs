@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tracing::{info, warn};
 
-use mqtt3::proto::{self, Publication};
+use mqtt3::proto::{Publication, Publish};
 
 use crate::{persist::Persist, ClientInfo, Error, Subscription};
 
@@ -31,6 +31,7 @@ pub struct SessionSnapshot {
     client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
     waiting_to_be_sent: VecDeque<Publication>,
+    waiting_to_be_acked: VecDeque<Publish>,
     last_active: DateTime<Utc>,
 }
 
@@ -39,28 +40,33 @@ impl SessionSnapshot {
         client_info: ClientInfo,
         subscriptions: HashMap<String, Subscription>,
         waiting_to_be_sent: VecDeque<Publication>,
+        waiting_to_be_acked: VecDeque<Publish>,
         last_active: DateTime<Utc>,
     ) -> Self {
         Self {
             client_info,
             subscriptions,
             waiting_to_be_sent,
+            waiting_to_be_acked,
             last_active,
         }
     }
 
+    #[allow(clippy::type_complexity)]
     pub fn into_parts(
         self,
     ) -> (
         ClientInfo,
         HashMap<String, Subscription>,
-        VecDeque<proto::Publication>,
+        VecDeque<Publication>,
+        VecDeque<Publish>,
         DateTime<Utc>,
     ) {
         (
             self.client_info,
             self.subscriptions,
             self.waiting_to_be_sent,
+            self.waiting_to_be_acked,
             self.last_active,
         )
     }
