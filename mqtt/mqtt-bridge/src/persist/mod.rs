@@ -26,7 +26,7 @@ pub enum PersistError {
 // This might replace the PersistError or merge with it.
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
-    #[error("RingBuffer error occurred {0}")]
+    #[error("RingBuffer error occurred. Caused by: {0}")]
     RingBuffer(#[from] RingBufferError),
 
     #[error("Serialization error occurred {0}")]
