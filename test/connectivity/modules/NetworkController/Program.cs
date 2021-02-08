@@ -36,9 +36,10 @@ namespace NetworkController
                 {
                     await networkInterfaceName.ForEachAsync(async name =>
                     {
-                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
-                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        string hubHostname = !string.IsNullOrEmpty(Settings.Current.GatewayHostname) ? Settings.Current.GatewayHostname : Settings.Current.IotHubHostname;
+                        var offline = new OfflineController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var satellite = new SatelliteController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
+                        var cellular = new CellularController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         controllers.AddRange(new List<INetworkController> { offline, satellite, cellular });
 
                         // Reset network status before start delay to ensure network status is in designed state before test starts.
@@ -111,7 +112,8 @@ namespace NetworkController
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             NetworkProfileSetting customNetworkProfileSetting = Settings.Current.NetworkRunProfile.ProfileSetting;
             customNetworkProfileSetting.PackageLoss = 100;
-            var controller = new OfflineController(networkInterfaceName, Settings.Current.IotHubHostname, customNetworkProfileSetting);
+            string hubHostname = !string.IsNullOrEmpty(Settings.Current.GatewayHostname) ? Settings.Current.GatewayHostname : Settings.Current.IotHubHostname;
+            var controller = new OfflineController(networkInterfaceName, hubHostname, customNetworkProfileSetting);
             NetworkControllerStatus networkControllerStatus = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
             await SetNetworkControllerStatus(controller, networkControllerStatus, reporter, token);
             return new MethodResponse((int)HttpStatusCode.OK);
