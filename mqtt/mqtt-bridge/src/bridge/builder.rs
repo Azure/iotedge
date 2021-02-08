@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use mqtt_util::client_io::Credentials;
+use mqtt_util::Credentials;
 use tracing::debug;
 
 use crate::{
@@ -64,10 +64,6 @@ impl<
             _storage_settings_present: PhantomData,
         }
     }
-}
-
-pub(crate) fn bridge_builder<Kind>() -> UpstreamBridgeBuilder<Kind, No, No, No, No> {
-    UpstreamBridgeBuilder::default()
 }
 
 impl<Kind, DeviceIdPresent, ConnectionSettingsPresent, StorageSettingsPresent>
@@ -212,6 +208,10 @@ impl UpstreamBridgeBuilder<WakingMemoryStore, Yes, Yes, Yes, No> {
             remote_pump,
         })
     }
+}
+
+pub(crate) fn bridge_builder<Kind>() -> UpstreamBridgeBuilder<Kind, No, No, No, No> {
+    UpstreamBridgeBuilder::default()
 }
 
 #[cfg(test)]

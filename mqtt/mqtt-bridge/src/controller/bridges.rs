@@ -39,7 +39,7 @@ pub(crate) struct Bridges {
 impl Bridges {
     pub(crate) async fn start_bridge<S>(&mut self, bridge: Bridge<S>, settings: &ConnectionSettings)
     where
-        S: StreamWakeableState + Send + 'static + Sync,
+        S: StreamWakeableState + Send + Sync + 'static,
     {
         let name = settings.name().to_owned();
 

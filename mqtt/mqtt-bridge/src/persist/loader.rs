@@ -1,8 +1,3 @@
-use super::StorageError;
-use crate::persist::{waking_state::StreamWakeableState, Key};
-use futures_util::stream::Stream;
-use mqtt3::proto::Publication;
-use parking_lot::Mutex;
 use std::{
     collections::VecDeque,
     num::NonZeroUsize,
@@ -15,7 +10,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::persist::{waking_state::StreamWakeableState, Key, StorageError};
+use crate::persist::{Key, StorageError, waking_state::StreamWakeableState};
 
 /// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
