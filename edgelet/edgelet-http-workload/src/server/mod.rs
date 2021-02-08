@@ -122,7 +122,7 @@ fn get_master_encryption_key(
         .create_key_if_not_exists(
             "iotedge_master_encryption_id",
             aziot_key_common::CreateKeyValue::Generate,
-            &[aziot_key_common::KeyUsage::Encrypt],
+            &[aziot_key_common::KeyUsage::Derive],
         )
         .map_err(|_| Error::from(ErrorKind::LoadMasterEncKey))
         .into_future()
