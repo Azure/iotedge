@@ -48,6 +48,12 @@ impl Authorizer for DummySubscribeAuthorizer {
     }
 }
 
+/// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers.
+///	- A client connects to local broker and subscribes to receive messages from upstream
+/// - A client connects to remote broker and subscribes to receive messages from downstream
+/// - Clients publish messages
+///	- Expects to receive messages downstream -> upstream and upstream -> downstream
 #[tokio::test]
 async fn send_message_upstream_downstream() {
     let subs = vec![
@@ -122,6 +128,14 @@ async fn send_message_upstream_downstream() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers,
+///   but without any subscriptions to downstream and upstream.
+///	- A client connects to local broker and subscribes to receive messages from upstream
+/// - A client connects to remote broker and subscribes to receive messages from downstream
+/// - Clients publish messages
+/// - Subscription updates are sent to bridge
+///	- Expects to receive only messages after subscription update (downstream -> upstream and upstream -> downstream)
 #[tokio::test]
 async fn bridge_settings_update() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
@@ -216,6 +230,15 @@ async fn bridge_settings_update() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers.
+/// - Remote broker is set to deny the subscription from the bridge
+///	- A client connects to local broker and subscribes to receive messages from upstream
+/// - A client connects to remote broker and subscribes to receive messages from downstream
+/// - Upstream clients publishes a message
+/// - Update upstream broker to allow subscription
+/// - Upstream clients publishes another message
+///	- Expects to receive only message after subscription was allowed
 #[tokio::test]
 async fn subscribe_to_upstream_rejected_should_retry() {
     let (mut local_server_handle, _, mut upstream_server_handle, upstream_broker_handle) =
@@ -289,6 +312,17 @@ async fn subscribe_to_upstream_rejected_should_retry() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates local brokers and a bridge to connect between downstream and upstream brokers.
+/// - Remote broker is not started yet
+/// - Local client subscribes to $internal/connectivity to receive connectivity events
+///	- Expects to receive disconnected event
+/// - Start upstream broker
+/// - Expects to receive connected event
+/// - Shutdown upstream broker
+/// - Expects to receive disconnect event
+/// - Start upstream broker again
+///	- Expects to receive connected event
 #[tokio::test]
 async fn connect_to_upstream_failure_should_retry() {
     let (mut local_server_handle, _) = common::setup_local_broker(AllowAll);
@@ -364,6 +398,13 @@ async fn connect_to_upstream_failure_should_retry() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates downstream broker, upstream broker and a bridge to connect between downstream and upstream brokers.
+/// - Create local client and remote client and publish messages
+///	- Expects to receive messages downstream -> upstream and upstream -> downstream
+/// - Shutdown all bridges and send messages
+/// - Start bridge and send messages
+/// - Expects to receive only messages after bridge was started
 #[tokio::test]
 async fn bridge_forwards_messages_after_restart() {
     let subs = vec![
@@ -480,6 +521,12 @@ async fn bridge_forwards_messages_after_restart() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates downstream broker, upstream broker and a bridge to connect between downstream and upstream brokers.
+/// - Send shutdown signal to close the $usptream bridge
+/// - Create local client and remote client and publish messages
+///	- Expects to receive messages downstream -> upstream and upstream -> downstream
+///   which means bridge was recreated
 #[tokio::test]
 async fn recreate_upstream_bridge_when_fails() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =

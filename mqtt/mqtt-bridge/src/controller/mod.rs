@@ -194,7 +194,9 @@ impl BridgeControllerHandle {
 #[derive(Debug)]
 pub enum BridgeControllerMessage {
     BridgeControllerUpdate(BridgeControllerUpdate),
+    // Shutdown all bridges
     Shutdown,
+    // Shutdown a bridge by name. $upstream bridge will be recreated if it is shutdown
     ShutdownBridge(String),
 }
 
