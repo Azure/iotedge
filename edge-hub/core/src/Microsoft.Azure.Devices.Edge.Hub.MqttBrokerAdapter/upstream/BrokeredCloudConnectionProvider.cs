@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
 
     public class BrokeredCloudConnectionProvider : ICloudConnectionProvider
     {
@@ -38,19 +39,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy));
         }
 
+        // The purpose of this method is to make less noise in logs when the broker
+        // is not connected upstream for a short interim time period.
+        // This mainly happens during startup, when edgeHub core starts connecting upstream,
+        // but some collaborating components are not ready yet, or the parent device is not
+        // available yet.
         async Task<bool> IsConnected()
         {
-            if (!this.cloudProxyDispatcher.IsConnected)
+            var shouldRetry = new FixedInterval(50, TimeSpan.FromMilliseconds(100)).GetShouldRetry();
+            var retryCount = 0;
+
+            while (!this.cloudProxyDispatcher.IsConnected && shouldRetry(retryCount++, null, out var delay))
             {
-                var cntr = 50;
-                while (--cntr > 0)
-                {
-                    await Task.Delay(100);
-                    if (this.cloudProxyDispatcher.IsConnected)
-                    {
-                        break;
-                    }
-                }
+                await Task.Delay(delay);
             }
 
             return this.cloudProxyDispatcher.IsConnected;
