@@ -306,8 +306,8 @@ impl RingBuffer {
             FlushOptions::AfterEachWrite => true,
             FlushOptions::AfterXWrites(xwrites) => self.flush_state.writes >= xwrites,
             FlushOptions::AfterXBytes(xbytes) => self.flush_state.bytes_written >= xbytes,
-            FlushOptions::AfterXTime(xmillis_elapsed) => {
-                self.flush_state.millis_elapsed >= xmillis_elapsed
+            FlushOptions::AfterXTime(xelapsed) => {
+                self.flush_state.elapsed >= xelapsed
             }
             FlushOptions::Off => false,
         }

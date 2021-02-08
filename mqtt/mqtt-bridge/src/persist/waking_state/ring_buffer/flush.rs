@@ -44,7 +44,7 @@ pub enum FlushOptions {
 pub struct FlushState {
     pub writes: usize,
     pub bytes_written: usize,
-    pub millis_elapsed: Duration,
+    pub elapsed: Duration,
 }
 
 impl FlushState {
@@ -52,7 +52,7 @@ impl FlushState {
         Self {
             writes: usize::default(),
             bytes_written: usize::default(),
-            millis_elapsed: Duration::default(),
+            elapsed: Duration::default(),
         }
     }
 
@@ -66,15 +66,15 @@ impl FlushState {
                 self.bytes_written = usize::default();
             }
             FlushOptions::AfterXTime(_) => {
-                self.millis_elapsed = Duration::default();
+                self.elapsed = Duration::default();
             }
             FlushOptions::Off => {}
         }
     }
 
-    pub(crate) fn update(&mut self, writes: usize, bytes_written: usize, millis_elapsed: Duration) {
+    pub(crate) fn update(&mut self, writes: usize, bytes_written: usize, elapsed: Duration) {
         self.bytes_written += bytes_written;
-        self.millis_elapsed += millis_elapsed;
+        self.elapsed += elapsed;
         self.writes += writes;
     }
 }
@@ -89,19 +89,19 @@ mod tests {
         fs.update(1, 0, Duration::default());
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 0);
-        assert_eq!(fs.millis_elapsed, Duration::default());
+        assert_eq!(fs.elapsed, Duration::default());
         fs.update(0, 1, Duration::default());
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);
-        assert_eq!(fs.millis_elapsed, Duration::default());
+        assert_eq!(fs.elapsed, Duration::default());
         fs.update(0, 0, Duration::from_millis(1));
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(1));
+        assert_eq!(fs.elapsed, Duration::from_millis(1));
         fs.update(1, 1, Duration::from_millis(1));
         assert_eq!(fs.writes, 2);
         assert_eq!(fs.bytes_written, 2);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(2));
+        assert_eq!(fs.elapsed, Duration::from_millis(2));
     }
 
     #[test]
@@ -110,26 +110,26 @@ mod tests {
         fs.update(1, 1, Duration::from_millis(1));
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(1));
+        assert_eq!(fs.elapsed, Duration::from_millis(1));
         fs.reset(&FlushOptions::AfterEachWrite);
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(1));
+        assert_eq!(fs.elapsed, Duration::from_millis(1));
         fs.reset(&FlushOptions::Off);
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(1));
+        assert_eq!(fs.elapsed, Duration::from_millis(1));
         fs.reset(&FlushOptions::AfterXWrites(0));
         assert_eq!(fs.writes, 0);
         assert_eq!(fs.bytes_written, 1);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(1));
+        assert_eq!(fs.elapsed, Duration::from_millis(1));
         fs.reset(&FlushOptions::AfterXBytes(0));
         assert_eq!(fs.writes, 0);
         assert_eq!(fs.bytes_written, 0);
-        assert_eq!(fs.millis_elapsed, Duration::from_millis(1));
+        assert_eq!(fs.elapsed, Duration::from_millis(1));
         fs.reset(&FlushOptions::AfterXTime(Duration::default()));
         assert_eq!(fs.writes, 0);
         assert_eq!(fs.bytes_written, 0);
-        assert_eq!(fs.millis_elapsed, Duration::default());
+        assert_eq!(fs.elapsed, Duration::default());
     }
 }
