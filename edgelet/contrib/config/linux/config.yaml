@@ -122,7 +122,7 @@ hostname: "<ADD HOSTNAME HERE>"
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
 # the path of the underlying socket in the systemd socket files
-# (aziot-edged.workload.sock and aziot-edged.mgmt.sock).
+# (mgmt.sock and workload.sock).
 #
 ###############################################################################
 
@@ -152,7 +152,7 @@ connect:
 # Note: When using the fd:// scheme for listen.management_uri or listen.workload_uri,
 # the path of connect.management_uri and connect.workload_uri must match
 # the path of the underlying socket in the systemd socket files
-# (aziot-edged.workload.sock and aziot-edged.mgmt.sock).
+# (mgmt.sock and workload.sock).
 #
 ###############################################################################
 

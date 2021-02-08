@@ -4,7 +4,7 @@ use std::os::unix::fs::symlink;
 use std::os::windows::fs::symlink_file;
 use std::{
     cmp,
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     error::Error as StdError,
     fs::{self, OpenOptions},
     io::{Read, Write},
@@ -19,9 +19,13 @@ use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{debug, info, info_span};
 
-use mqtt3::proto::Publication;
+use mqtt3::proto::{Publication, Publish};
 
-use crate::{subscription::Subscription, BrokerSnapshot, ClientInfo, SessionSnapshot};
+use crate::{
+    proto::{PacketIdentifierDupQoS, QoS},
+    subscription::Subscription,
+    BrokerSnapshot, ClientInfo, SessionSnapshot,
+};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -158,15 +162,20 @@ impl FileFormat for VersionedFileFormat {
     }
 }
 
+/// Actual representation of broker state data that is saved to disk.
 #[derive(Deserialize, Serialize)]
 struct ConsolidatedState {
     #[serde(serialize_with = "serialize_payloads")]
     #[serde(deserialize_with = "deserialize_payloads")]
     payloads: HashMap<u64, Bytes>,
-    retained: HashMap<String, SimplifiedPublication>,
+    retained: HashMap<String, PublicationRef>,
     sessions: Vec<ConsolidatedSession>,
 }
 
+/// In case a single message being delivered to multiple subscribers,
+/// we don't want to duplicate the payload for every session.
+/// So, when we convert from `BrokerSnapshot` to `ConsolidatedState` we
+/// store all the payloads separate, and reference them in `PublicationRef`
 impl From<BrokerSnapshot> for ConsolidatedState {
     fn from(state: BrokerSnapshot) -> Self {
         let (retained, sessions) = state.into_parts();
@@ -174,40 +183,37 @@ impl From<BrokerSnapshot> for ConsolidatedState {
         #[allow(clippy::mutable_key_type)]
         let mut payloads = HashMap::new();
 
-        let mut shrink_payload = |publication: Publication| {
-            let next_id = payloads.len() as u64;
-
-            let id = *payloads.entry(publication.payload).or_insert(next_id);
-
-            SimplifiedPublication {
-                topic_name: publication.topic_name,
-                qos: publication.qos,
-                retain: publication.retain,
-                payload: id,
-            }
-        };
-
         let retained = retained
             .into_iter()
-            .map(|(topic, publication)| (topic, shrink_payload(publication)))
+            .map(|(topic, publication)| (topic, shrink_payload(publication, &mut payloads)))
             .collect();
 
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_info, subscriptions, waiting_to_be_sent, last_active) =
-                    session.into_parts();
+                let (
+                    client_info,
+                    subscriptions,
+                    waiting_to_be_sent,
+                    waiting_to_be_acked,
+                    last_active,
+                ) = session.into_parts();
 
-                #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
                     .into_iter()
-                    .map(|publication| shrink_payload(publication))
+                    .map(|publication| shrink_payload(publication, &mut payloads))
+                    .collect();
+
+                let waiting_to_be_acked = waiting_to_be_acked
+                    .into_iter()
+                    .map(|publication| shrink_in_flight(publication, &mut payloads))
                     .collect();
 
                 ConsolidatedSession {
                     client_info,
                     subscriptions,
                     waiting_to_be_sent,
+                    waiting_to_be_acked,
                     last_active,
                 }
             })
@@ -236,9 +242,19 @@ impl From<ConsolidatedState> for BrokerSnapshot {
             sessions,
         } = state;
 
-        let expand_payload = |publication: SimplifiedPublication| Publication {
+        let expand_payload = |publication: PublicationRef| Publication {
             topic_name: publication.topic_name,
             qos: publication.qos,
+            retain: publication.retain,
+            payload: payloads
+                .get(&publication.payload)
+                .expect("corrupted data")
+                .clone(),
+        };
+
+        let expand_in_flight = |publication: InFlightPublicationRef| Publish {
+            topic_name: publication.topic_name,
+            packet_identifier_dup_qos: publication.packet_identifier_dup_qos,
             retain: publication.retain,
             payload: payloads
                 .get(&publication.payload)
@@ -259,10 +275,16 @@ impl From<ConsolidatedState> for BrokerSnapshot {
                     .into_iter()
                     .map(expand_payload)
                     .collect();
+                let waiting_to_be_acked = session
+                    .waiting_to_be_acked
+                    .into_iter()
+                    .map(expand_in_flight)
+                    .collect();
                 SessionSnapshot::from_parts(
                     session.client_info,
                     session.subscriptions,
                     waiting_to_be_sent,
+                    waiting_to_be_acked,
                     session.last_active,
                 )
             })
@@ -272,20 +294,66 @@ impl From<ConsolidatedState> for BrokerSnapshot {
     }
 }
 
+/// Actual representation of session state data that is saved to disk.
 #[derive(Deserialize, Serialize)]
 struct ConsolidatedSession {
     client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
-    waiting_to_be_sent: Vec<SimplifiedPublication>,
+    waiting_to_be_sent: VecDeque<PublicationRef>,
+    waiting_to_be_acked: VecDeque<InFlightPublicationRef>,
     last_active: DateTime<Utc>,
 }
 
+/// Represents a queued publication
+/// that has a reference to a payload in `ConsolidatedState`
+/// but not yet in-flight.
 #[derive(Deserialize, Serialize)]
-struct SimplifiedPublication {
+struct PublicationRef {
     topic_name: String,
-    qos: crate::proto::QoS,
+    qos: QoS,
     retain: bool,
     payload: u64,
+}
+
+/// Represents an in-flight publication (has packet id)
+/// and a reference to a payload in `ConsolidatedState`.
+#[derive(Deserialize, Serialize)]
+struct InFlightPublicationRef {
+    topic_name: String,
+    packet_identifier_dup_qos: PacketIdentifierDupQoS,
+    retain: bool,
+    payload: u64,
+}
+
+#[allow(clippy::mutable_key_type)]
+fn shrink_payload(publication: Publication, payloads: &mut HashMap<Bytes, u64>) -> PublicationRef {
+    let next_id = payloads.len() as u64;
+
+    let id = payloads.entry(publication.payload).or_insert(next_id);
+
+    PublicationRef {
+        topic_name: publication.topic_name,
+        qos: publication.qos,
+        retain: publication.retain,
+        payload: *id,
+    }
+}
+
+#[allow(clippy::mutable_key_type)]
+fn shrink_in_flight(
+    publication: Publish,
+    payloads: &mut HashMap<Bytes, u64>,
+) -> InFlightPublicationRef {
+    let next_id = payloads.len() as u64;
+
+    let id = payloads.entry(publication.payload).or_insert(next_id);
+
+    InFlightPublicationRef {
+        topic_name: publication.topic_name,
+        packet_identifier_dup_qos: publication.packet_identifier_dup_qos,
+        retain: publication.retain,
+        payload: *id,
+    }
 }
 
 fn serialize_payloads<S>(payloads: &HashMap<u64, Bytes>, serializer: S) -> Result<S::Ok, S::Error>

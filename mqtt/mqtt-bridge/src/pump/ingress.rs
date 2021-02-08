@@ -58,6 +58,6 @@ impl IngressShutdownHandle {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum IngressError {
-    #[error("mqtt client error. {0}")]
+    #[error("mqtt client error. Caused by: {0}")]
     MqttClient(#[from] crate::client::ClientError),
 }

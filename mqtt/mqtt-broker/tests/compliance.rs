@@ -188,7 +188,7 @@ async fn retained_messages() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .filter(|(topic, _)| !topic.starts_with("$edgehub/"))
             .count(),
         3
     );
@@ -242,7 +242,7 @@ async fn retained_messages_zero_payload() {
     assert_eq!(
         retained
             .iter()
-            .filter(|(topic, _)| !topic.contains("edgehub"))
+            .filter(|(topic, _)| !topic.starts_with("$edgehub/"))
             .count(),
         0
     );
@@ -347,6 +347,112 @@ async fn will_message() {
     client_a.connections().recv().await; // wait for ConnAck
 
     client_a.terminate().await;
+
+    // expect will message
+    assert_matches!(
+        client_b.publications().recv().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
+    );
+
+    client_b.shutdown().await;
+}
+
+/// Scenario:
+/// - Client A connects with clean session and will message for TopicA with retain=true.
+/// - Broker shuts down.
+/// - Expects will message to appear in retained messages.
+/// Notes: we need to use retained will message as the best way to deterministically show
+/// that will indeed is being sent out.
+#[tokio::test]
+async fn will_message_on_broker_shutdown() {
+    let will_topic = "topic/A";
+
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+
+    let mut server_handle = start_server(broker, DummyAuthenticator::anonymous());
+
+    // connect a client with retained will message
+    let mut client_a = TestClientBuilder::new(server_handle.address())
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
+        .with_will(Publication {
+            topic_name: will_topic.into(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: "will_msg_a".into(),
+        })
+        .build();
+
+    // wait for ConnAck
+    client_a.connections().recv().await;
+
+    // shutdown broker.
+    let state = server_handle.shutdown().await;
+
+    // inspect broker state after shutdown to
+    // deterministically verify presence of retained will messages.
+    // filter out edgehub messages
+    let (retained, _) = state.into_parts();
+    assert_eq!(
+        retained
+            .iter()
+            .filter(|(topic, _)| topic.as_str() == will_topic)
+            .count(),
+        1
+    );
+
+    client_a.shutdown().await;
+}
+
+/// Scenario:
+/// - Client A connects with clean session, will message for TopicA.
+/// - Client B connects with clean session and subscribes to TopicA
+/// - Client A violates the protocol and gets disconnected.
+/// - Expects client B to receive will message.
+#[tokio::test]
+async fn will_message_on_protocol_error() {
+    let topic = "topic/A";
+
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+
+    let server_handle = start_server(broker, DummyAuthenticator::anonymous());
+
+    let mut client_b = TestClientBuilder::new(server_handle.address())
+        .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-b".into()))
+        .build();
+
+    client_b.subscribe(topic, QoS::AtLeastOnce).await;
+
+    client_b.subscriptions().recv().await; // wait for SubAck.
+
+    let mut client_a = PacketStream::connect(
+        ClientId::IdWithCleanSession("test-client-a".into()),
+        server_handle.address(),
+        None,
+        None,
+        Some(Publication {
+            topic_name: topic.into(),
+            qos: QoS::AtLeastOnce,
+            retain: false,
+            payload: "will_msg_a".into(),
+        }),
+    )
+    .await;
+
+    client_a.next().await; // skip connack
+
+    // violate the protocol to force disconnect by
+    // sending subsequent CONNECT packet
+    client_a
+        .send_connect(Connect {
+            username: None,
+            password: None,
+            client_id: ClientId::IdWithExistingSession("test-client-a".into()),
+            will: None,
+            keep_alive: Duration::from_secs(30),
+            protocol_name: PROTOCOL_NAME.into(),
+            protocol_level: PROTOCOL_LEVEL,
+        })
+        .await;
 
     // expect will message
     assert_matches!(
@@ -500,7 +606,7 @@ async fn offline_messages_persisted_on_broker_restart() {
 /// Scenario:
 /// - Client A connects with clean session
 /// - Client B connects with existing session
-/// - Client B sunbscribes to a topic
+/// - Client B subscribes to a topic
 /// - Client A sends QoS0 and several QoS1 packets
 /// - Client B receives packets and don't send PUBACKs
 /// - Client B reconnects
@@ -518,6 +624,7 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
 
@@ -526,6 +633,7 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
     let mut client_b = PacketStream::connect(
         ClientId::IdWithExistingSession("test-client-b".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )
@@ -607,6 +715,7 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
 
@@ -628,6 +737,152 @@ async fn inflight_qos1_messages_redelivered_on_reconnect() {
         assert_matches!(
             publish.packet_identifier_dup_qos,
             PacketIdentifierDupQoS::AtLeastOnce(_, true)
+        );
+        assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
+    }
+}
+
+/// Scenario:
+/// - Client A connects with clean session
+/// - Client B connects with existing session
+/// - Client B subscribes to a topic
+/// - Client A sends QoS0 and several QoS1 packets
+/// - Client B receives packets and don't send PUBACKs
+/// - Broker restarts
+/// - Client B connects and expects to receive only QoS1 packets with dup=true in correct order.
+#[tokio::test]
+async fn inflight_qos1_messages_redelivered_on_server_restart() {
+    let topic_a = "topic/A";
+
+    let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
+
+    let mut server_handle = start_server(broker, DummyAuthenticator::anonymous());
+
+    let mut client_a = PacketStream::connect(
+        ClientId::IdWithCleanSession("test-client-a".into()),
+        server_handle.address(),
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    client_a.next().await; // skip connack
+
+    let mut client_b = PacketStream::connect(
+        ClientId::IdWithExistingSession("test-client-b".into()),
+        server_handle.address(),
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    client_b.next().await; // skip connack
+
+    // connect client B with persisted session.
+    client_b
+        .send_packet(Packet::Subscribe(Subscribe {
+            packet_identifier: PacketIdentifier::new(1).unwrap(),
+            subscribe_to: vec![SubscribeTo {
+                topic_filter: topic_a.into(),
+                qos: QoS::AtLeastOnce,
+            }],
+        }))
+        .await;
+
+    assert_eq!(
+        client_b.next().await,
+        Some(Packet::SubAck(SubAck {
+            packet_identifier: PacketIdentifier::new(1).unwrap(),
+            qos: vec![SubAckQos::Success(QoS::AtLeastOnce)]
+        }))
+    );
+
+    client_a
+        .send_publish(Publish {
+            packet_identifier_dup_qos: PacketIdentifierDupQoS::AtMostOnce,
+            retain: false,
+            topic_name: topic_a.into(),
+            payload: Bytes::from("qos 0"),
+        })
+        .await;
+
+    const QOS1_MESSAGES: u16 = 3;
+
+    for i in 1..=QOS1_MESSAGES {
+        client_a
+            .send_publish(Publish {
+                packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+                    PacketIdentifier::new(i).unwrap(),
+                    false,
+                ),
+                retain: false,
+                topic_name: topic_a.into(),
+                payload: Bytes::from(format!("qos 1-{}", i)),
+            })
+            .await;
+    }
+
+    // receive all messages but don't send puback for QoS1/2.
+    assert_matches!(
+        client_b.next().await,
+        Some(Packet::Publish(Publish {
+            payload,
+            ..
+        })) if payload == Bytes::from("qos 0")
+    );
+
+    for i in 1..=QOS1_MESSAGES {
+        let publish = match client_b.next().await {
+            Some(Packet::Publish(publish)) => publish,
+            x => panic!("Expected publish but {:?} found", x),
+        };
+
+        assert_matches!(
+            publish.packet_identifier_dup_qos,
+            PacketIdentifierDupQoS::AtLeastOnce(_, false)
+        );
+        assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
+    }
+
+    // restart broker.
+    let state = server_handle.shutdown().await;
+    let broker = BrokerBuilder::default()
+        .with_state(state)
+        .with_authorizer(AllowAll)
+        .build();
+
+    let server_handle = start_server(broker, DummyAuthenticator::anonymous());
+
+    // reconnect client_b
+    let mut client_b = PacketStream::connect(
+        ClientId::IdWithExistingSession("test-client-b".into()),
+        server_handle.address(),
+        None,
+        None,
+        None,
+    )
+    .await;
+
+    assert_eq!(
+        client_b.next().await,
+        Some(Packet::ConnAck(ConnAck {
+            session_present: true,
+            return_code: ConnectReturnCode::Accepted
+        }))
+    );
+
+    // expect messages to be redelivered in order (QoS 1).
+    for i in 1..=QOS1_MESSAGES {
+        let publish = match client_b.next().await {
+            Some(Packet::Publish(publish)) => publish,
+            x => panic!("Expected publish but {:?} found", x),
+        };
+
+        assert_matches!(
+            publish.packet_identifier_dup_qos,
+            PacketIdentifierDupQoS::AtLeastOnce(id, true) if id == PacketIdentifier::new(i).unwrap()
         );
         assert_eq!(publish.payload, Bytes::from(format!("qos 1-{0}", i)));
     }
@@ -809,6 +1064,7 @@ async fn qos1_puback_should_be_in_order() {
     let mut client = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )
