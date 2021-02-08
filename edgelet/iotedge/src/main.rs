@@ -38,7 +38,7 @@ fn main() {
 
 #[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
-    let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziot");
+    let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziotctl");
 
     let default_mgmt_uri =
         option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/run/iotedge/mgmt.sock");
