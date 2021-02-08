@@ -149,7 +149,6 @@ where
             match future::select(received_pub, shutdown_signal).await {
                 Either::Left((received_publication, _)) => {
                     if let Some(received_publication) = received_publication {
-                        info!("received publication {:?}", received_publication);
                         self.message_handler.handle(received_publication).await?;
                     } else {
                         error!("failed listening for incoming publication");
