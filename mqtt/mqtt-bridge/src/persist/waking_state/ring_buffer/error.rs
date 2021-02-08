@@ -1,42 +1,41 @@
-use std::io::Error as IOError;
-
-#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
-    #[error("Bad hint")]
-    Hint,
+    #[error("Unexpected block hash {found:?} expected {expected:?}")]
+    BlockHash { found: u64, expected: u64 },
 
     #[error("Unexpected data hash {found:?} expected {expected:?}")]
     DataHash { found: u64, expected: u64 },
 
-    #[error("Unexpected block hash {found:?} expected {expected:?}")]
-    BlockHash { found: u64, expected: u64 },
-
     #[error("Unexpected data size {found:?} expected {expected:?}")]
     DataSize { found: usize, expected: usize },
+
+    #[error("Bad hint")]
+    Hint,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, thiserror::Error)]
 pub enum RingBufferError {
-    #[error("Failed to validate internal details {0}")]
-    Validate(#[from] BlockError),
-
-    #[error("Unable to fit data and possible corruption")]
-    WrapAround,
-
-    #[error("Serialization error occurred {0}")]
-    Serialization(#[from] bincode::Error),
-
     #[error("Flushing failed {0}")]
-    Flush(#[from] IOError),
+    Flush(std::io::Error),
 
-    #[error("Key is at invalid index for removal")]
-    RemovalIndex,
+    #[error("Buffer is full and messages must be drained to continue")]
+    Full,
+
+    #[error("Mmap creation error occurred {0}")]
+    MmapCreate(std::io::Error),
 
     #[error("Key does not exist")]
     NonExistantKey,
 
-    #[error("Buffer is full and messages must be drained to continue")]
-    Full,
+    #[error("Key is at invalid index for removal")]
+    RemovalIndex,
+
+    #[error("Cannot remove before reading")]
+    RemoveBeforeRead,
+
+    #[error("Serialization error occurred {0}")]
+    Serialization(#[from] bincode::Error),
+
+    #[error("Failed to validate internal details {0}")]
+    Validate(#[from] BlockError),
 }
