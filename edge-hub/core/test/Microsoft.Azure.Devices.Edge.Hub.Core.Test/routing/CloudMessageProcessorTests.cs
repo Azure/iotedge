@@ -559,10 +559,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         public Task<bool> OpenAsync() => Task.FromResult(true);
         public Task RemoveCallMethodAsync() => throw new NotImplementedException();
         public Task RemoveDesiredPropertyUpdatesAsync() => throw new NotImplementedException();
+        public Task RemoveTwinResponseAsync() => throw new NotImplementedException();
         public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => throw new NotImplementedException();
         public Task SetupCallMethodAsync() => throw new NotImplementedException();
         public Task SetupDesiredPropertyUpdatesAsync() => throw new NotImplementedException();
         public Task StartListening() => Task.FromResult(true);
+        public Task StopListening() => Task.FromResult(true);
         public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage) => throw new NotImplementedException();
 
         public Task SendMessageAsync(IMessage message)
