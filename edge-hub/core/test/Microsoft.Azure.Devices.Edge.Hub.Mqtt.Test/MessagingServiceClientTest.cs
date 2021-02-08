@@ -577,7 +577,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 .Returns(Task.CompletedTask);
             listener.SetupGet(x => x.Identity)
                 .Returns(identity);
-            listener.Setup(x => x.BindDeviceProxy(It.IsAny<IDeviceProxy>(), It.IsAny<Option<Action>>()))
+            listener.Setup(x => x.BindDeviceProxy(It.IsAny<IDeviceProxy>()))
                     .Callback<IDeviceProxy, Option<Action>>((p, o) => o.ForEach(a => a?.Invoke()));
 
             if (addedSubscriptions != null)

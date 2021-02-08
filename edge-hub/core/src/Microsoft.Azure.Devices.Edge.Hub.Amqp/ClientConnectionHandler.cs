@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                                         // TODO: Implement plug and play for AMQP
                                         IDeviceListener dl = await this.connectionProvider.GetDeviceListenerAsync(this.identity, Option.None<string>());
                                         var deviceProxy = new DeviceProxy(this, this.identity);
-                                        dl.BindDeviceProxy(deviceProxy, Option.None<Action>());
+                                        dl.BindDeviceProxy(deviceProxy);
                                         this.deviceListener = Option.Some(dl);
                                         Events.InitializedDeviceListener(this.identity);
                                         return dl;

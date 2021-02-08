@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var deviceListener = await connectionProvider.GetDeviceListenerAsync(identity, Option.None<string>());
             var deviceProxy = this.deviceProxyFactory(identity, isDirectConnection);
 
-            deviceListener.BindDeviceProxy(deviceProxy, Option.None<Action>());
+            deviceListener.BindDeviceProxy(deviceProxy);
 
             var previousListener = default(IDeviceListener);
 

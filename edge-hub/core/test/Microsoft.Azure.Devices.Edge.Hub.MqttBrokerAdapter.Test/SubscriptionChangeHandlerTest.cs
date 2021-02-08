@@ -414,7 +414,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId) => Task.CompletedTask;
             public Task ProcessDeviceMessageAsync(IMessage message) => Task.CompletedTask;
 
-            public void BindDeviceProxy(IDeviceProxy deviceProxy, Option<Action> initWhenBound)
+            public void BindDeviceProxy(IDeviceProxy deviceProxy)
+            {
+            }
+
+            public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
             {
             }
 

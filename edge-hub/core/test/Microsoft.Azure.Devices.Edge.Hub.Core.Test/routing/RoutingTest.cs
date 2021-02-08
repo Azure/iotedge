@@ -549,7 +549,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 var deviceProxy = Mock.Of<IDeviceProxy>();
                 var deviceListener = new DeviceMessageHandler(deviceCredentials.Identity, edgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
 
-                deviceListener.BindDeviceProxy(deviceProxy, Option.None<Action>());
+                deviceListener.BindDeviceProxy(deviceProxy);
                 return new TestDevice(deviceCredentials.Identity as IDeviceIdentity, deviceListener);
             }
 
@@ -601,7 +601,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                         })
                     .Returns(Task.CompletedTask);
                 deviceProxy.SetupGet(d => d.IsActive).Returns(true);
-                deviceListener.BindDeviceProxy(deviceProxy.Object, Option.None<Action>());
+                deviceListener.BindDeviceProxy(deviceProxy.Object);
                 await deviceListener.AddSubscription(DeviceSubscription.ModuleMessages);
                 return new TestModule(moduleCredentials.Identity as IModuleIdentity, outputEndpointId, deviceListener, receivedMessages);
             }

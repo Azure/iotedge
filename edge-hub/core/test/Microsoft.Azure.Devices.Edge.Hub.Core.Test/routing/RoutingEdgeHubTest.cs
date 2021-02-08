@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var methodRequest = new DirectMethodRequest("device1/module1", "shutdown", null, TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(10));
 
             // Act
-            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object, Option.None<Action>());
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             await deviceMessageHandler.AddSubscription(DeviceSubscription.Methods);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
@@ -374,7 +374,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var deviceMessageHandler = new DeviceMessageHandler(identity, routingEdgeHub, connectionManager, DefaultMessageAckTimeout, Option.None<string>());
 
             // Act
-            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object, Option.None<Action>());
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
             // Assert
@@ -463,7 +463,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             underlyingDeviceProxy.SetupGet(d => d.IsActive).Returns(true);
 
             // Act
-            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object, Option.None<Action>());
+            deviceMessageHandler.BindDeviceProxy(underlyingDeviceProxy.Object);
             Task<DirectMethodResponse> responseTask = routingEdgeHub.InvokeMethodAsync(identity.Id, methodRequest);
 
             // Assert

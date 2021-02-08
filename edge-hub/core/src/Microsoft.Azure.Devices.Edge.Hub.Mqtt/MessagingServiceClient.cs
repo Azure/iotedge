@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Azure.Devices.ProtocolGateway.Mqtt.Persistence;
     using Microsoft.Extensions.Logging;
@@ -46,12 +45,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public void BindMessagingChannel(IMessagingChannel<IProtocolGatewayMessage> channel)
         {
-            var sessionStateQuery = this.sessionStatePersistenceProvider.GetAsync(new StringIdentity(this.deviceListener.Identity.Id));
+            var sessionStateQuery = this.sessionStatePersistenceProvider.GetAsync(new AuthenticatedIdentity(this.deviceListener.Identity.Id));
 
             IDeviceProxy deviceProxy = new DeviceProxy(channel, this.deviceListener.Identity, this.messageConverter, this.byteBufferConverter);
             this.deviceListener.BindDeviceProxy(
                                     deviceProxy,
-                                    Option.Some<Action>(async () =>
+                                    async () =>
                                     {
                                         var sessionState = await sessionStateQuery;
 
@@ -76,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                                                 }
                                             }
                                         }
-                                    }));
+                                    });
 
             Events.BindMessageChannel(this.deviceListener.Identity);
         }

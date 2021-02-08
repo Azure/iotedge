@@ -70,9 +70,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             return Task.CompletedTask;
         }
 
-        public void BindDeviceProxy(IDeviceProxy deviceProxy, Option<Action> initWhenBound)
+        public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
-            this.BindDeviceProxyAsync(deviceProxy, initWhenBound);
+            this.BindDeviceProxyAsync(deviceProxy, Option.None<Action>());
+        }
+
+        public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
+        {
+            this.BindDeviceProxyAsync(deviceProxy, Option.Some(initWhenBound));
         }
 
         public async Task CloseAsync()

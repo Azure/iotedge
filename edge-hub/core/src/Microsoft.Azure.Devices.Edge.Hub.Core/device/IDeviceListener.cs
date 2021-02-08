@@ -21,7 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         Task ProcessMethodResponseAsync(IMessage message);
 
-        void BindDeviceProxy(IDeviceProxy deviceProxy, Option<Action> initWhenBound);
+        void BindDeviceProxy(IDeviceProxy deviceProxy);
+
+        void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound);
 
         Task CloseAsync();
 
