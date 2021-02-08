@@ -158,8 +158,7 @@ build_project()
         execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "aarch64" --build-path edge-modules/api-proxy-module
     else
         echo "Cannot run script Unsupported architecture $ARCH"
-        exit 1
-    fi    
+    fi
 
     execute cd "$API_PROXY_DIR" 
     # prepare docker folder
