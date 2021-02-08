@@ -139,7 +139,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
     ))];
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
-        setup_brokers(AllowAll, AllowAll);
+        common::setup_brokers(AllowAll, AllowAll);
 
     let mut local_client = TestClientBuilder::new(local_server_handle.address())
         .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
@@ -149,7 +149,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
         .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
         .build();
     {
-        let controller_handle = setup_bridge_controller(
+        let (controller_handle, controller_task) = common::setup_bridge_controller(
             local_server_handle.address(),
             upstream_server_handle.tls_address().unwrap(),
             subs.clone(),
@@ -187,9 +187,10 @@ async fn send_message_upstream_with_crash_is_lossless() {
             .await;
 
         controller_handle.shutdown();
+        controller_task.await.expect("controller task");
     }
 
-    let controller_handle = setup_bridge_controller(
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -203,6 +204,8 @@ async fn send_message_upstream_with_crash_is_lossless() {
     );
 
     controller_handle.shutdown();
+    controller_task.await.expect("controller task");
+
     local_server_handle.shutdown().await;
     upstream_server_handle.shutdown().await;
     upstream_client.shutdown().await;
@@ -502,7 +505,7 @@ async fn bridge_forwards_messages_after_restart() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         Vec::new(),
-        "get_twin_update_via_rpc",
+        "bridge_forwards_messages_after_restart",
     )
     .await;
 
@@ -563,6 +566,7 @@ async fn bridge_forwards_messages_after_restart() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        "bridge_forwards_messages_after_restart",
     )
     .await;
 

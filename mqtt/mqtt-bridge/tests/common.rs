@@ -75,6 +75,7 @@ pub async fn setup_bridge_controller(
     local_address: String,
     upstream_address: String,
     subs: Vec<Direction>,
+    id: &'static str,
 ) -> (BridgeControllerHandle, JoinHandle<()>) {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
         "bridge".into(),
@@ -92,7 +93,7 @@ pub async fn setup_bridge_controller(
     )
     .unwrap();
 
-    let controller = BridgeController::new(local_address, "bridge".into(), settings);
+    let controller = BridgeController::new(local_address, id.into(), settings);
     let controller_handle = controller.handle();
     let controller: Box<dyn Sidecar + Send> = Box::new(controller);
 

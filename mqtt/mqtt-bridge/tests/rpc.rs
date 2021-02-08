@@ -20,6 +20,7 @@ async fn get_twin_update_via_rpc() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         Vec::new(),
+        "get_twin_update_via_rpc",
     )
     .await;
 
