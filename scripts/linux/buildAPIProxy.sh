@@ -151,15 +151,18 @@ build_project()
 {
     # build project with cross
     if [[ "$ARCH" == "amd64" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "amd64" --build-path edge-modules/api-proxy-module
+        #execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "amd64" --build-path edge-modules/api-proxy-module
+        echo 1
     elif [[ "$ARCH" == "arm32v7" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "arm32v7" --build-path edge-modules/api-proxy-module
+        #execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "arm32v7" --build-path edge-modules/api-proxy-module
+        echo 1
     elif [[ "$ARCH" == "arm64v8" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "aarch64" --build-path edge-modules/api-proxy-module
+        #execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "aarch64" --build-path edge-modules/api-proxy-module
+        echo 1
     else
         echo "Cannot run script Unsupported architecture $ARCH"
         exit 1
-    fi    
+    fi
 
     execute cd "$API_PROXY_DIR" 
     # prepare docker folder
@@ -171,7 +174,7 @@ build_project()
     execute cp "$DOCKERFILE" "$EXE_DOCKERFILE"
 
     # copy binaries to publish folder
-    execute cp "$API_PROXY_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
+    #execute cp "$API_PROXY_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
 
     # copy template files
     execute cp -r "$API_PROXY_DIR/templates" "$EXE_DOCKER_DIR/"
