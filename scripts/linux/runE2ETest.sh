@@ -14,8 +14,10 @@ function clean_up() {
     systemctl stop aziot-edged || true
 
     echo 'Remove IoT Edge and config file'
-    rm -rf /var/lib/aziot/edged/
-    rm -rf /etc/aziot/edged/config.yaml
+    rm -rf /var/lib/aziot/
+    rm -rf /var/lib/iotedge/
+    rm -rf /etc/aziot/
+    rm -rf /etc/systemd/system/aziot-*.service.d/
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true
@@ -1235,6 +1237,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
+    EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"

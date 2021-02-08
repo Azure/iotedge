@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             JToken reportedPropertiesJToken = JToken.Parse(reportedProperties.ToJson());
             ValidateTwinProperties(reportedPropertiesJToken, 1);
             ValidateTwinCollectionSize(reportedProperties);
+            ValidateArrayContent(reportedPropertiesJToken);
         }
 
         static void ValidateTwinProperties(JToken properties, int currentDepth)
@@ -91,6 +92,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             if (valueByteCount > TwinPropertyValueMaxLength)
             {
                 throw new InvalidOperationException($"Value associated with property name {name} has length {valueByteCount} that exceeds maximum length of {TwinPropertyValueMaxLength}");
+            }
+        }
+
+        static void ValidateArrayContent(JToken token)
+        {
+            switch (token)
+            {
+                case JArray array:
+                    foreach (var item in array)
+                    {
+                        if (item.Type == JTokenType.Null)
+                        {
+                            throw new InvalidOperationException("Arrays cannot contain 'null' as value");
+                        }
+
+                        ValidateArrayContent(item);
+                    }
+
+                    break;
+
+                case JObject @object:
+                    foreach (var item in @object)
+                    {
+                        ValidateArrayContent(item.Value);
+                    }
+
+                    break;
             }
         }
 

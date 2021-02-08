@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
+    using System.Collections.Generic;
     using System.Threading.Tasks;
 
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -9,8 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public interface IConnectionRegistry
     {
-        Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity, bool directOnCreation = false);
+        Task<Option<IDeviceListener>> GetOrCreateDeviceListenerAsync(IIdentity identity, bool directOnCreation = false);
         Task<Option<IDeviceProxy>> GetDeviceProxyAsync(IIdentity identity);
+
+        Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync();
 
         Task CloseConnectionAsync(IIdentity identity);
     }

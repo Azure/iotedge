@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using System.Diagnostics;
     using System.Net;
     using System.Threading.Tasks;
-    using App.Metrics.Infrastructure;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -127,6 +126,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public Task RemoveSubscription(DeviceSubscription subscription)
             => this.edgeHub.RemoveSubscription(this.Identity.Id, subscription);
+
+        public Task RemoveSubscriptions()
+            => this.edgeHub.RemoveSubscriptions(this.Identity.Id);
 
         public async Task AddDesiredPropertyUpdatesSubscription(string correlationId)
         {

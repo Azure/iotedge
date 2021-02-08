@@ -45,6 +45,7 @@ async fn pub_sub_not_allowed_identity_not_in_cache() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
 
@@ -148,6 +149,7 @@ async fn auth_update_happy_case() {
         server_handle.address(),
         None,
         None,
+        None,
     )
     .await;
     // assert connack
@@ -234,6 +236,7 @@ async fn authorization_update_reevaluates_sessions() {
     let mut device_client = PacketStream::connect(
         ClientId::IdWithCleanSession("device-1".into()),
         server_handle.address(),
+        None,
         None,
         None,
     )

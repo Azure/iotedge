@@ -1091,6 +1091,7 @@ dependencies = [
  "bincode",
  "bson",
  "bytes",
+ "chrono",
  "config",
  "edgelet-client",
  "futures-util",

@@ -1,0 +1,5 @@
+homedir_path = "/var/lib/aziot/certd"
+
+[cert_issuance]
+
+[preloaded_certs]

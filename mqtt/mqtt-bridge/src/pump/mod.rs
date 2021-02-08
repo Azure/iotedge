@@ -16,7 +16,7 @@ use futures_util::{
     join, pin_mut,
 };
 use mockall::automock;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
 
@@ -36,10 +36,10 @@ pub fn channel<M: Debug + Send + 'static>() -> (PumpHandle<M>, mpsc::Receiver<Pu
 
 #[derive(Debug, thiserror::Error)]
 pub enum PumpError {
-    #[error("unable to send command to pump. {0:?}")]
+    #[error("unable to send command to pump. Caused by: {0:?}")]
     Send(Box<dyn StdError + Send>),
 
-    #[error("error ocurred when running pump. {0}")]
+    #[error("error ocurred when running pump. Caused by: {0}")]
     Run(Box<dyn StdError + Send + Sync>),
 }
 
@@ -253,32 +253,32 @@ impl<M: Debug + Send + 'static> PumpHandle<M> {
 
 /// Topic settings received as updates from twin or from initial configuration in the default config file
 #[derive(Clone)]
-pub struct TopicMapperUpdates(Arc<Mutex<HashMap<String, TopicMapper>>>);
+pub struct TopicMapperUpdates(Arc<RwLock<HashMap<String, TopicMapper>>>);
 
 impl TopicMapperUpdates {
     pub fn new(mappings: HashMap<String, TopicMapper>) -> Self {
-        Self(Arc::new(Mutex::new(mappings)))
+        Self(Arc::new(RwLock::new(mappings)))
     }
 
     pub fn insert(&self, topic_filter: &str, mapper: TopicMapper) -> Option<TopicMapper> {
-        self.0.lock().insert(topic_filter.into(), mapper)
+        self.0.write().insert(topic_filter.into(), mapper)
     }
 
     pub fn remove(&self, topic_filter: &str) -> Option<TopicMapper> {
-        self.0.lock().remove(topic_filter)
+        self.0.write().remove(topic_filter)
     }
 
     pub fn get(&self, topic_filter: &str) -> Option<TopicMapper> {
-        self.0.lock().get(topic_filter).cloned()
+        self.0.read().get(topic_filter).cloned()
     }
 
     pub fn contains_key(&self, topic_filter: &str) -> bool {
-        self.0.lock().contains_key(topic_filter)
+        self.0.read().contains_key(topic_filter)
     }
 
     pub fn subscriptions(&self) -> Vec<String> {
         self.0
-            .lock()
+            .read()
             .values()
             .map(TopicMapper::subscribe_to)
             .collect()

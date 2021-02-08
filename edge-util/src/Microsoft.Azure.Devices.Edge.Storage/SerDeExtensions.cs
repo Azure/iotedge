@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public static class SerDeExtensions
     {
-        public static T FromJson<T>(this string json)
+        public static T FromJson<T>(this string json, JsonSerializerSettings jsonSerializerSettings = null)
         {
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
             return typeof(T) == typeof(string)
                 ? (T)(object)json
-                : JsonConvert.DeserializeObject<T>(json);
+                : JsonConvert.DeserializeObject<T>(json, jsonSerializerSettings);
         }
 
         public static string ToJson(this object value)

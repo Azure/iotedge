@@ -4,7 +4,7 @@ Documentation=man:aziot-edged(8)
 PartOf=aziot-edged.service
 
 [Socket]
-ListenStream=/var/lib/aziot/edged/aziot-edged.workload.sock
+ListenStream=/var/run/iotedge/workload.sock
 SocketMode=0666
 DirectoryMode=0755
 SocketUser=iotedge

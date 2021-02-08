@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public void SetConnector(IMqttBrokerConnector connector) => this.connector = connector;
 
-        public async Task<Option<IDeviceListener>> GetDeviceListenerAsync(IIdentity identity, bool directOnCreation)
+        public async Task<Option<IDeviceListener>> GetOrCreateDeviceListenerAsync(IIdentity identity, bool directOnCreation)
         {
             using (await this.guard.LockAsync())
             {
@@ -121,6 +122,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
+        public async Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync()
+        {
+            using (await this.guard.LockAsync())
+            {
+                return this.knownConnections.Values.OfType<IDeviceProxy>().Where(p => !p.IsDirectClient).Select(p => p.Identity).ToArray();
+            }
+        }
+
         async Task HandleDeviceConnectedAsync(MqttPublishInfo mqttPublishInfo)
         {
             var updatedIdentities = this.GetIdentitiesFromUpdateMessage(mqttPublishInfo);
@@ -166,6 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 if (this.knownConnections.TryRemove(identity, out var deviceListener))
                 {
+                    await deviceListener.RemoveSubscriptions();
                     await deviceListener.CloseAsync();
                 }
                 else
