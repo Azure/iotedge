@@ -77,7 +77,9 @@ fn run() -> Result<(), Error> {
             )
         };
 
+    println!("1. Value of default_mgmt_uri: {}", default_mgmt_uri);
     let default_mgmt_uri = option_env!("IOTEDGE_HOST").unwrap_or(&*default_mgmt_uri);
+    println!("2. Value of default_mgmt_uri: {}", default_mgmt_uri);
 
     let default_diagnostics_image_name = format!(
         "mcr.microsoft.com/azureiotedge-diagnostics:{}",
