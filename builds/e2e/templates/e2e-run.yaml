@@ -25,7 +25,7 @@ steps:
     
       #We are disabling some additional tests. See  PBI #9171870. Once this is fixed we should run what's directly below.
       #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision'
+      $filter += '&PriorityQueueModuleToHub&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision'
     }
     else
     {
