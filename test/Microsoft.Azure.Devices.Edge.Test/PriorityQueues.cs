@@ -190,6 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         private Action<EdgeConfigBuilder> BuildAddNetworkControllerConfig(string trackingId, string networkControllerImage)
         {
+            Log.Information($"DRB - trying to set iotedge_iothubhostname to {Context.Current.ConnectionString}");
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
