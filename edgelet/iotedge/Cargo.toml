@@ -37,12 +37,12 @@ url = "2"
 zip = "0.5.3"
 
 aziot-certd-config = { path = "../aziot/cert/aziot-certd-config" }
-aziot-check-common = { path = "../aziot/aziot/aziot-check-common" }
 aziot-identity-common = { path = "../aziot/identity/aziot-identity-common" }
 aziot-identityd-config = { path = "../aziot/identity/aziot-identityd-config" }
 aziot-keyd-config = { path = "../aziot/key/aziot-keyd-config" }
 aziot-keys-common = { path = "../aziot/key/aziot-keys-common" }
 aziot-tpmd-config = { path = "../aziot/tpm/aziot-tpmd-config" }
+aziotctl-check-common = { path = "../aziot/aziotctl/aziotctl-check-common" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }

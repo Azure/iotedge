@@ -3,7 +3,7 @@ use std::{path::Path, time::Duration, vec::Vec};
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 
-use mqtt_util::client_io::{CredentialProviderSettings, Credentials};
+use mqtt_util::{CredentialProviderSettings, Credentials};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";

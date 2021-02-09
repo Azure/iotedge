@@ -72,6 +72,24 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public void EnableAndReset()
+        {
+            lock (this.lockobj)
+            {
+                if (!this.timer.HasValue)
+                {
+                    this.timer = Option.Some(this.CreateTimer());
+                }
+
+                this.timer.ForEach(
+                    t =>
+                    {
+                        t.Stop();
+                        t.Start();
+                    });
+            }
+        }
+
         public void Dispose() => this.Disable();
 
         Timer CreateTimer()

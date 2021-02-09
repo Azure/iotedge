@@ -10,7 +10,7 @@ use mqtt3::{
     Client, Event, ReceivedPublication, SubscriptionUpdateEvent, UpdateSubscriptionHandle,
 };
 use mqtt_broker_tests_util::client;
-use mqtt_util::client_io::ClientIoSource;
+use mqtt_util::ClientIoSource;
 use trc_client::TrcClient;
 
 use crate::{
@@ -267,7 +267,7 @@ fn process_event(
             info!("received new connection");
         }
         Event::Publication(publication) => {
-            info!("received publication");
+            info!("received publication {:?}", publication);
             message_send_handle
                 .send(publication)
                 .map_err(MessageTesterError::SendPublicationInChannel)?;
