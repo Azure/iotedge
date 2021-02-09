@@ -47,18 +47,20 @@ impl MessageTesterShutdownHandle {
         }
     }
 
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
-        self.poll_client_shutdown
-            .send(())
-            .await
-            .map_err(MessageTesterError::SendShutdownSignal)?;
-        self.message_channel_shutdown.shutdown().await?;
-
-        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown {
-            message_initiator_shutdown.shutdown().await?;
+    pub async fn shutdown(mut self) {
+        if let Err(_) = self.poll_client_shutdown.send(()).await {
+            error!("couldn't shutdown client poll");
         }
 
-        Ok(())
+        if let Err(_) = self.message_channel_shutdown.shutdown().await {
+            error!("couldn't shutdown message channel");
+        }
+
+        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown {
+            if let Err(_) = message_initiator_shutdown.shutdown().await {
+                error!("couldn't shutdown message initiator");
+            }
+        }
     }
 }
 
@@ -193,14 +195,14 @@ impl MessageTester {
         match exited {
             Err(e) => {
                 error!("Stopping test run because task exited with error: {:?}", e);
-                self.shutdown_handle.shutdown().await?;
             }
             Ok(Err(e)) => {
                 error!("Stopping test run because task exited with error: {:?}", e);
-                self.shutdown_handle.shutdown().await?;
             }
             Ok(Ok(_)) => {}
         }
+
+        self.shutdown_handle.shutdown().await;
 
         for handle in join_handles {
             handle

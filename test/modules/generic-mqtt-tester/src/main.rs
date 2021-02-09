@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
             info!("processing shutdown, stopping test");
             shutdown?;
 
-            tester_shutdown.shutdown().await?;
+            tester_shutdown.shutdown().await;
             test_fut.await?;
         }
     };
