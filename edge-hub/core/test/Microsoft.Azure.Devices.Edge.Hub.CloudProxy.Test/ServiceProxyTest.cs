@@ -22,17 +22,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task IteratorTest()
         {
             // Arrange
-            IEnumerable<Device> devices1 = new[] { GetDevice("d1"), GetDevice("d2"), GetDevice("d3") };
+            IEnumerable<IotHubDevice> devices1 = new[] { GetDevice("d1"), GetDevice("d2"), GetDevice("d3") };
             IEnumerable<Module> modules1 = null;
             string continuationToken1 = "/devices/d301/modules/%24edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=cccccDDDDDRRRRRssssw&api-version=2018-08-30-preview";
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
 
-            IEnumerable<Device> devices2 = new[] { GetDevice("d4"), GetDevice("d5") };
+            IEnumerable<IotHubDevice> devices2 = new[] { GetDevice("d4"), GetDevice("d5") };
             IEnumerable<Module> modules2 = new[] { GetModule("d10", "m1") };
             string continuationToken2 = "/devices/d301/modules/%24edgeHub/devicesAndModulesInDeviceScope?deviceCount=10&continuationToken=cccccbbbbRRRRRssssw&api-version=2018-08-30-preview";
             var scopeResult2 = new ScopeResult(devices2, modules2, continuationToken2);
 
-            IEnumerable<Device> devices3 = null;
+            IEnumerable<IotHubDevice> devices3 = null;
             IEnumerable<Module> modules3 = new[] { GetModule("d11", "m1"), GetModule("d11", "m2"), GetModule("d12", "m2") };
             string continuationToken3 = null;
             var scopeResult3 = new ScopeResult(devices3, modules3, continuationToken3);
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetServiceIdentitiy_DeviceTest()
         {
             // Arrange
-            IEnumerable<Device> devices1 = new[] { GetDevice("d1") };
+            IEnumerable<IotHubDevice> devices1 = new[] { GetDevice("d1") };
             IEnumerable<Module> modules1 = null;
             string continuationToken1 = null;
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetServiceIdentitiy_Device_InvalidTest_MultipleResults()
         {
             // Arrange
-            IEnumerable<Device> devices1 = new[] { GetDevice("d1"), GetDevice("d1") };
+            IEnumerable<IotHubDevice> devices1 = new[] { GetDevice("d1"), GetDevice("d1") };
             IEnumerable<Module> modules1 = null;
             string continuationToken1 = null;
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
@@ -124,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetServiceIdentitiy_Device_InvalidTest_EmptyResult()
         {
             // Arrange
-            IEnumerable<Device> devices1 = new Device[0];
+            IEnumerable<IotHubDevice> devices1 = new IotHubDevice[0];
             IEnumerable<Module> modules1 = null;
             string continuationToken1 = null;
             var scopeResult1 = new ScopeResult(devices1, modules1, continuationToken1);
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetServiceIdentitiy_ModuleTest()
         {
             // Arrange
-            IEnumerable<Device> devices1 = null;
+            IEnumerable<IotHubDevice> devices1 = null;
             IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1") };
 
             string continuationToken1 = null;
@@ -264,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetServiceIdentitiy_Module_InvalidTest_MultipleResults()
         {
             // Arrange
-            IEnumerable<Device> devices1 = null;
+            IEnumerable<IotHubDevice> devices1 = null;
             IEnumerable<Module> modules1 = new[] { GetModule("d1", "m1"), GetModule("d1", "m1") };
 
             string continuationToken1 = null;
@@ -288,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task GetServiceIdentitiy_Module_InvalidTest_EmptyResult()
         {
             // Arrange
-            IEnumerable<Device> devices1 = null;
+            IEnumerable<IotHubDevice> devices1 = null;
             IEnumerable<Module> modules1 = new Module[0];
 
             string continuationToken1 = null;
@@ -333,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             List<ServiceIdentity> serviceIdentitiesList = serviceIdentities.ToList();
             if (scopeResult.Devices != null)
             {
-                foreach (Device d in scopeResult.Devices)
+                foreach (IotHubDevice d in scopeResult.Devices)
                 {
                     if (!serviceIdentitiesList.Any(s => s.DeviceId == d.Id && !s.IsModule))
                     {
@@ -356,7 +356,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             return true;
         }
 
-        static Device GetDevice(string id)
+        static IotHubDevice GetDevice(string id)
         {
             string deviceJson = @"{
                       ""deviceId"": """ + id + @""",
@@ -385,7 +385,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                       },
                       ""deviceScope"": ""ms-azure-iot-edge://d301-12345""
                 }";
-            var device = JsonConvert.DeserializeObject<Device>(deviceJson);
+            var device = JsonConvert.DeserializeObject<IotHubDevice>(deviceJson);
             return device;
         }
 

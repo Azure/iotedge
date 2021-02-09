@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
@@ -261,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public void DeviceToServiceIdentityTest(string deviceJson)
         {
             // Arrange
-            var device = JsonConvert.DeserializeObject<Device>(deviceJson);
+            var device = JsonConvert.DeserializeObject<IotHubDevice>(deviceJson);
 
             // Act
             ServiceIdentity serviceIdentity = device.ToServiceIdentity();

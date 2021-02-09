@@ -234,8 +234,9 @@ namespace IotEdgeQuickstart.Details
             this.proxy.ForEach(p => settings.Proxy = p);
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(builder.ToString(), settings);
+            IotHubDeviceHelper deviceHelper = new IotHubDeviceHelper(this.iothubConnectionString);
 
-            Device device = await rm.GetDeviceAsync(this.deviceId);
+            IotHubDevice device = await deviceHelper.GetDeviceAsync(this.deviceId);
             if (device != null)
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
@@ -252,7 +253,7 @@ namespace IotEdgeQuickstart.Details
                 }
                 else
                 {
-                    await this.CreateEdgeDeviceIdentity(rm);
+                    await this.CreateEdgeDeviceIdentity(rm, deviceHelper);
                 }
             }
         }
@@ -266,7 +267,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     IotHubConnectionStringBuilder builder =
                         IotHubConnectionStringBuilder.Create(this.context.IotHubConnectionString);
-                    Device device = this.context.Device.Expect(() => new InvalidOperationException("Expected a valid device instance"));
+                    IotHubDevice device = this.context.Device.Expect(() => new InvalidOperationException("Expected a valid device instance"));
                     string connectionString =
                         $"HostName={builder.HostName};" +
                         $"DeviceId={device.Id};" +
@@ -517,9 +518,9 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        async Task CreateEdgeDeviceIdentity(RegistryManager rm)
+        async Task CreateEdgeDeviceIdentity(RegistryManager rm, IotHubDeviceHelper deviceHelper)
         {
-            var device = new Device(this.deviceId)
+            var device = new IotHubDevice(this.deviceId)
             {
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
@@ -527,14 +528,14 @@ namespace IotEdgeQuickstart.Details
 
             await this.parentEdgeDevice.ForEachAsync(async p =>
             {
-                var parentDevice = await rm.GetDeviceAsync(p);
+                var parentDevice = await deviceHelper.GetDeviceAsync(p);
                 device.ParentScopes = new[] { parentDevice.Scope };
             });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");
 
-            device = await rm.AddDeviceAsync(device);
+            device = await deviceHelper.AddDeviceAsync(device);
 
             this.context = new DeviceContext(device, builder.ToString(), rm, true);
         }
@@ -602,13 +603,13 @@ namespace IotEdgeQuickstart.Details
         public DeviceContext(string deviceId, string iothubConnectionString, RegistryManager rm, bool removeDevice)
         {
             this.DeviceId = deviceId;
-            this.Device = Option.None<Device>();
+            this.Device = Option.None<IotHubDevice>();
             this.IotHubConnectionString = iothubConnectionString;
             this.RegistryManager = rm;
             this.RemoveDevice = removeDevice;
         }
 
-        public DeviceContext(Device device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        public DeviceContext(IotHubDevice device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
         {
             this.DeviceId = device.Id;
             this.Device = Option.Some(device);
@@ -617,7 +618,7 @@ namespace IotEdgeQuickstart.Details
             this.RemoveDevice = removeDevice;
         }
 
-        public Option<Device> Device { get; }
+        public Option<IotHubDevice> Device { get; }
 
         public string DeviceId { get; }
 

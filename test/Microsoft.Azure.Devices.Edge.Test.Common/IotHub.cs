@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
         readonly Lazy<EventHubClient> eventHubClient;
+        readonly IotHubDeviceHelper deviceHelper;
 
         public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri)
         {
@@ -60,6 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     proxy.ForEach(p => client.WebProxy = p);
                     return client;
                 });
+
+            this.deviceHelper = new IotHubDeviceHelper(this.iotHubConnectionString);
         }
 
         public string Hostname =>
@@ -77,21 +80,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task<Device> GetDeviceIdentityAsync(string deviceId, CancellationToken token) =>
             this.RegistryManager.GetDeviceAsync(deviceId, token);
 
+        public Task<IotHubDevice> GetNestedDeviceIdentityAsync(string deviceId, CancellationToken token) =>
+            this.deviceHelper.GetDeviceAsync(deviceId);
+
         public async Task<Device> CreateDeviceIdentityAsync(Device device, CancellationToken token)
         {
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
+        public Task<IotHubDevice> CreateNestedDeviceIdentityAsync(IotHubDevice device) =>
+            this.deviceHelper.AddDeviceAsync(device);
+
+        public async Task<IotHubDevice> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
             Log.Information($"Creating edge device {deviceId} with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
-            Device edge = await parentDeviceId.Match(
+            IotHubDevice edge = await parentDeviceId.Match(
             async p =>
             {
-                Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
+                IotHubDevice parentDevice = await this.GetNestedDeviceIdentityAsync(p, token);
                 string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
                 Log.Information($"Parent scope: {parentDeviceScope}");
-                return new Device(deviceId)
+                return new IotHubDevice(deviceId)
             {
                 Authentication = new AuthenticationMechanism()
                 {
@@ -107,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             },
             () =>
             {
-                return Task.FromResult(new Device(deviceId)
+                return Task.FromResult(new IotHubDevice(deviceId)
                 {
                     Authentication = new AuthenticationMechanism()
                     {
@@ -121,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 });
             });
 
-            return await this.CreateDeviceIdentityAsync(edge, token);
+            return await this.CreateNestedDeviceIdentityAsync(edge);
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>

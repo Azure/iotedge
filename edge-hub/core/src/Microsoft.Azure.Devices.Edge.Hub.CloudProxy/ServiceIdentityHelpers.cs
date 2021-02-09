@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
     public static class ServiceIdentityHelpers
     {
-        public static ServiceIdentity ToServiceIdentity(this Device device)
+        public static ServiceIdentity ToServiceIdentity(this IotHubDevice device)
         {
             Preconditions.CheckNotNull(device, nameof(device));
             return new ServiceIdentity(

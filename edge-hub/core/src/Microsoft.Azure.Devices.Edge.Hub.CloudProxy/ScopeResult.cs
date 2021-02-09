@@ -2,12 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class ScopeResult
     {
         [JsonConstructor]
-        public ScopeResult(IEnumerable<Device> devices, IEnumerable<Module> modules, string continuationLink)
+        public ScopeResult(IEnumerable<IotHubDevice> devices, IEnumerable<Module> modules, string continuationLink)
         {
             this.Devices = devices;
             this.Modules = modules;
@@ -18,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// The scope result items, as a collection.
         /// </summary>
         [JsonProperty(PropertyName = "devices", Required = Required.AllowNull)]
-        public IEnumerable<Device> Devices { get; }
+        public IEnumerable<IotHubDevice> Devices { get; }
 
         /// <summary>
         /// The scope result items, as a collection.

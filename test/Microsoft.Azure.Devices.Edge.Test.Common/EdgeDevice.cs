@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             bool takeOwnership = false)
         {
-            Device device = await iotHub.GetDeviceIdentityAsync(deviceId, token);
+            IotHubDevice device = await iotHub.GetNestedDeviceIdentityAsync(deviceId, token);
 
             if (device != null)
             {

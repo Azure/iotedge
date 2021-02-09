@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.28.0" />
     <PackageReference Include="App.Metrics" Version="3.0.0" />
     <PackageReference Include="App.Metrics.Formatters.Prometheus" Version="3.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="3.1.3" />
