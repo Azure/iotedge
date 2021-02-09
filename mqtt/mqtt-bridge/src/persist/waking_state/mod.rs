@@ -6,6 +6,7 @@ use mqtt3::proto::Publication;
 use crate::persist::{Key, PersistError};
 
 pub mod memory;
+pub mod ring_buffer;
 
 // TODO: Currently rocksdb does not compile on musl.
 //       Once we fix compilation we can add this module back.
