@@ -54,8 +54,17 @@ impl MessageInitiator {
         let payload_size = self.settings.message_size_in_bytes() as usize;
         let dummy_data = &vec![b'a'; payload_size];
         loop {
-            info!("publishing message {}", seq_num);
+            if let Some(messages_to_send) = self.settings.messages_to_send() {
+                if seq_num == messages_to_send {
+                    info!(
+                        "stopping test as we have sent max messages ({})",
+                        messages_to_send
+                    );
+                    break;
+                }
+            }
 
+            info!("publishing message {}", seq_num);
             let mut payload = BytesMut::with_capacity(payload_size + 4);
             payload.put_u32(seq_num);
             payload.put_slice(&dummy_data);
