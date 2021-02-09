@@ -62,7 +62,7 @@ export CFLAGS
 IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 export IOTEDGE_HOST
 
-make %{?_smp_mflags} release
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock make %{?_smp_mflags} release
 
 %install
 export PATH=$PATH:/root/.cargo/bin/
