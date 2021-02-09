@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.MethodSenderImage = Option.Maybe(Get("methodSenderImage"));
             this.OptimizeForPerformance = context.GetValue("optimizeForPerformance", true);
             this.PackagePath = Option.Maybe(Get("packagePath"));
-            this.AgentProxy = Option.Maybe(context.GetValue<Uri>("agentProxy"));
+            this.TestRunnerProxy = Option.Maybe(context.GetValue<Uri>("testRunnerProxy"));
             this.EdgeProxy = Option.Maybe(context.GetValue<Uri>("edgeProxy"));
             this.Registries = GetAndValidateRegistries();
             this.RootCaKeys = GetAndValidateRootCaKeys();
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> PackagePath { get; }
 
-        public Option<Uri> AgentProxy { get; }
+        public Option<Uri> TestRunnerProxy { get; }
 
         public Option<Uri> EdgeProxy { get; }
 

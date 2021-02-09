@@ -30,6 +30,7 @@ steps:
     }
     elseif ($test_type -eq 'nestededge_amqp')
     {
+      $filter += '&Category!=SingleNodeOnly'
       $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_isa95')

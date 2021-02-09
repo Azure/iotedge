@@ -185,7 +185,7 @@ steps:
 
     if ($env:AGENT_PROXYURL)
     {
-      $context['agentProxy'] = $env:AGENT_PROXYURL
+      $context['testRunnerProxy'] = $env:AGENT_PROXYURL
       $context['edgeProxy'] = $env:AGENT_PROXYURL
     }
 
