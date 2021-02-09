@@ -108,14 +108,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aziot-check-common"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
@@ -264,6 +256,14 @@ version = "0.1.0"
 dependencies = [
  "http-common",
  "serde",
+]
+
+[[package]]
+name = "aziotctl-check-common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1258,12 +1258,12 @@ version = "0.1.0"
 dependencies = [
  "atty",
  "aziot-certd-config",
- "aziot-check-common",
  "aziot-identity-common",
  "aziot-identityd-config",
  "aziot-keyd-config",
  "aziot-keys-common",
  "aziot-tpmd-config",
+ "aziotctl-check-common",
  "base64 0.9.3",
  "byte-unit",
  "bytes 0.4.12",
