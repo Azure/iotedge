@@ -162,6 +162,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return hasChanged;
         }
 
+        public IReadOnlyCollection<DeviceSubscription> RemoveSubscriptions(string id)
+        {
+            if (!this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device))
+            {
+                throw new ArgumentException($"A connection for {id} not found.");
+            }
+
+            var toRemove = new List<DeviceSubscription>();
+            device.DeviceConnection.Filter(d => d.IsActive)
+                .ForEach(d =>
+                {
+                    foreach (var deviceSubscription in d.Subscriptions.Keys)
+                    {
+                        d.Subscriptions.AddOrUpdate(
+                            deviceSubscription,
+                            false,
+                            (_, old) =>
+                            {
+                                if (old)
+                                {
+                                    toRemove.Add(deviceSubscription);
+                                }
+
+                                return false;
+                            });
+                    }
+                });
+
+            return toRemove;
+        }
+
         public Option<IReadOnlyDictionary<DeviceSubscription, bool>> GetSubscriptions(string id) =>
             this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
                 ? device.DeviceConnection.Filter(d => d.IsActive)
