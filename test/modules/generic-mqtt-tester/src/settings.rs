@@ -1,7 +1,8 @@
-use std::{path::Path, time::Duration};
+use std::{path::Path, str::FromStr, time::Duration};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
+use uuid::Uuid;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -13,7 +14,7 @@ pub struct Settings {
 
     tracking_id: String,
 
-    batch_id: String,
+    batch_id: Option<String>,
 
     #[serde(with = "humantime_serde")]
     test_start_delay: Duration,
@@ -36,6 +37,11 @@ impl Settings {
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(Environment::new())?;
+
+        let test_scenario: TestScenario = config.get("test_scenario")?;
+        if let TestScenario::Initiate = test_scenario {
+            config.set("batch_id", Some(Uuid::new_v4().to_string()))?;
+        }
 
         config.try_into()
     }
@@ -65,8 +71,14 @@ impl Settings {
         self.tracking_id.clone()
     }
 
-    pub fn batch_id(&self) -> String {
-        self.batch_id.clone()
+    pub fn batch_id(&self) -> Option<Uuid> {
+        match self.batch_id.clone() {
+            Some(batch_id) => Some(
+                Uuid::from_str(&batch_id)
+                    .expect("should be valid uuid as it cannot be changed once created"),
+            ),
+            None => None,
+        }
     }
 
     pub fn message_frequency(&self) -> Duration {

@@ -93,18 +93,22 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let relay_topic = settings.relay_topic();
         let tracking_id = settings.tracking_id();
-        let batch_id = settings.batch_id();
+        let relay_topic = settings.relay_topic();
         let test_result_coordinator_url = settings.trc_url();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(
-                reporting_client.clone(),
-                tracking_id,
-                batch_id,
-            )),
+            TestScenario::Initiate => {
+                let batch_id = settings
+                    .batch_id()
+                    .ok_or(MessageTesterError::MissingBatchId())?;
+                Box::new(ReportResultMessageHandler::new(
+                    reporting_client.clone(),
+                    tracking_id,
+                    batch_id,
+                ))
+            }
             TestScenario::Relay => Box::new(RelayingMessageHandler::new(
                 publish_handle.clone(),
                 relay_topic,
@@ -115,8 +119,11 @@ impl MessageTester {
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
+            let batch_id = settings
+                .batch_id()
+                .ok_or(MessageTesterError::MissingBatchId())?;
             let initiator =
-                MessageInitiator::new(publish_handle, reporting_client, settings.clone());
+                MessageInitiator::new(publish_handle, reporting_client, settings.clone(), batch_id);
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());
             message_initiator = Some(initiator);
