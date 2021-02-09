@@ -15,7 +15,9 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{parse_sequence_number, MessageTesterError, ShutdownHandle, RECEIVE_SOURCE};
+use crate::{
+    parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle, RECEIVE_SOURCE,
+};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -147,7 +149,7 @@ where
         }
     }
 
-    pub async fn run(mut self) -> Result<(), MessageTesterError> {
+    pub async fn run(mut self) -> Result<ExitedWork, MessageTesterError> {
         info!("starting message channel");
         loop {
             let received_pub = self.publication_receiver.next();
@@ -165,7 +167,7 @@ where
                 Either::Right((shutdown_signal, _)) => {
                     if shutdown_signal.is_some() {
                         info!("received shutdown signal");
-                        return Ok(());
+                        return Ok(ExitedWork::MessageChannel);
                     } else {
                         error!("failed listening for shutdown");
                         return Err(MessageTesterError::ListenForShutdown);

@@ -13,6 +13,7 @@
 
 use std::{
     env::VarError,
+    fmt,
     io::{self},
 };
 
@@ -42,6 +43,23 @@ impl ShutdownHandle {
             .send(())
             .await
             .map_err(MessageTesterError::SendShutdownSignal)
+    }
+}
+
+/// Used as an indicator of work that has finished. Needed to indicate that we
+/// should not shutdown the thread corresponding to this work, as it has already
+/// finished.
+#[derive(Debug)]
+pub enum ExitedWork {
+    MessageChannel,
+    MessageInitiator,
+    PollClient,
+    NoneOrUnknown, // Used for shutting down everything (None) or errored tasks (Unknown)
+}
+
+impl fmt::Display for ExitedWork {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }
 

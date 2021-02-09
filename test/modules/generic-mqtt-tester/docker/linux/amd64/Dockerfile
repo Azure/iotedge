@@ -2,7 +2,7 @@ FROM ubuntu:18.04
 
 WORKDIR /app
 
-COPY ./x86_64-unknown-linux-gnu/release/generic-mqtt-tester ./
+COPY ./generic-mqtt-tester ./
 
 RUN apt-get update && apt-get install -y libssl-dev
 

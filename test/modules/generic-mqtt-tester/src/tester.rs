@@ -22,7 +22,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    MessageTesterError, ShutdownHandle,
+    ExitedWork, MessageTesterError, ShutdownHandle,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -47,18 +47,44 @@ impl MessageTesterShutdownHandle {
         }
     }
 
-    pub async fn shutdown(mut self) {
-        if let Err(_) = self.poll_client_shutdown.send(()).await {
-            error!("couldn't shutdown client poll");
+    pub async fn shutdown(mut self, exited: ExitedWork) {
+        match exited {
+            ExitedWork::NoneOrUnknown => {
+                self.shutdown_message_initiator().await;
+                self.shutdown_message_channel().await;
+                self.shutdown_poll_client().await;
+            }
+            ExitedWork::MessageChannel => {
+                self.shutdown_message_initiator().await;
+                self.shutdown_poll_client().await;
+            }
+            ExitedWork::MessageInitiator => {
+                self.shutdown_message_channel().await;
+                self.shutdown_poll_client().await;
+            }
+            ExitedWork::PollClient => {
+                self.shutdown_message_initiator().await;
+                self.shutdown_message_channel().await;
+            }
         }
+    }
 
-        if let Err(_) = self.message_channel_shutdown.shutdown().await {
-            error!("couldn't shutdown message channel");
+    async fn shutdown_message_channel(&self) {
+        if let Err(e) = self.message_channel_shutdown.clone().shutdown().await {
+            error!("couldn't shutdown message channel: {:?}", e);
         }
+    }
 
-        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown {
-            if let Err(_) = message_initiator_shutdown.shutdown().await {
-                error!("couldn't shutdown message initiator");
+    async fn shutdown_poll_client(&mut self) {
+        if let Err(e) = self.poll_client_shutdown.clone().send(()).await {
+            error!("couldn't shutdown client poll: {:?}", e);
+        }
+    }
+
+    async fn shutdown_message_initiator(&self) {
+        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown.clone() {
+            if let Err(e) = message_initiator_shutdown.shutdown().await {
+                error!("couldn't shutdown message initiator: {:?}", e);
             }
         }
     }
@@ -195,14 +221,24 @@ impl MessageTester {
         match exited {
             Err(e) => {
                 error!("Stopping test run because task exited with error: {:?}", e);
+                self.shutdown_handle
+                    .shutdown(ExitedWork::NoneOrUnknown)
+                    .await;
             }
             Ok(Err(e)) => {
                 error!("Stopping test run because task exited with error: {:?}", e);
+                self.shutdown_handle
+                    .shutdown(ExitedWork::NoneOrUnknown)
+                    .await;
             }
-            Ok(Ok(_)) => {}
+            Ok(Ok(exited)) => {
+                info!(
+                    "Stopping test run because {} exited gracefully",
+                    exited.to_string()
+                );
+                self.shutdown_handle.shutdown(exited).await;
+            }
         }
-
-        self.shutdown_handle.shutdown().await;
 
         for handle in join_handles {
             handle
@@ -250,7 +286,7 @@ async fn poll_client(
     message_send_handle: UnboundedSender<ReceivedPublication>,
     mut client: Client<ClientIoSource>,
     mut shutdown_recv: Receiver<()>,
-) -> Result<(), MessageTesterError> {
+) -> Result<ExitedWork, MessageTesterError> {
     info!("starting poll client");
     loop {
         let message_send_handle = message_send_handle.clone();
@@ -264,6 +300,8 @@ async fn poll_client(
                 }
             }
             Either::Right((shutdown, _)) => {
+                info!("received shutdown signal");
+
                 if shutdown.is_none() {
                     error!("shutdown channel was full when shutdown initiated");
                 }
@@ -273,7 +311,7 @@ async fn poll_client(
         }
     }
 
-    Ok(())
+    Ok(ExitedWork::PollClient)
 }
 
 fn process_event(
