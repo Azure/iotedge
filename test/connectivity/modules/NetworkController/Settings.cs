@@ -21,9 +21,7 @@ namespace NetworkController
         const string TrackingIdPropertyName = "TrackingId";
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
         const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
-
         const string GatewayHostnamePropertyName = "IOTEDGE_GATEWAYHOSTNAME";
-
         const string DefaultProfilesPropertyName = "DefaultProfiles";
         const string TransportTypePropertyName = "TransportType";
 
