@@ -135,6 +135,10 @@ steps:
 
       workingDirectory: "$(Agent.HomeDirectory)/.."
     env:
+      E2E_nestedEdgeTest: $(nestededge)
       E2E_trustedCaCerts: $(TrustBundle)
       E2E_deviceCaCert: $(DeviceCaCert)
       E2E_deviceCaPrivateKey: $(DeviceCaKey)
+      E2E_parentHostname: ${{ parameters['connectivity.parentHostname'] }}
+      E2E_parentEdgeDevice: ${{ parameters['connectivity.parentEdgeDevice'] }} 
+      E2E_hostname: $(Hostname)
