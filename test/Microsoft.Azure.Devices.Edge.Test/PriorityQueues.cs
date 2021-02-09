@@ -202,7 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("RunFrequencies__0__OnlineFrequency", "00:00:00"),
                             ("RunFrequencies__0__RunsCount", "0"),
                             ("NetworkControllerRunProfile", "Online"),
-                            ("StartAfter", "00:00:00")
+                            ("StartAfter", "00:00:00"),
+                            ("IOTEDGE_IOTHUBHOSTNAME", Context.Current.ConnectionString),
                         })
                         .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
                 });
