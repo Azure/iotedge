@@ -10,7 +10,7 @@ pub(crate) struct TestOperationResultDto {
     #[serde(rename = "result")]
     result: MessageTestResult,
     #[serde(rename = "type")]
-    test_type: u8,
+    test_type: String,
     #[serde(rename = "createdAt")]
     created_at: String,
 }
@@ -25,7 +25,7 @@ impl TestOperationResultDto {
         Self {
             source,
             result,
-            test_type: test_type as u8,
+            test_type: test_type.to_string(),
             created_at: created_at.to_rfc3339(),
         }
     }
@@ -51,7 +51,7 @@ mod tests {
         let test_result_dto =
             TestOperationResultDto::new(source, test_result, test_type, created_at);
 
-        let expected = format!("{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":2,\"createdAt\":\"{}\"}}", created_at.to_rfc3339());
+        let expected = format!("{{\"source\":\"source\",\"result\":\"tracking;batch;2\",\"type\":\"Messages\",\"createdAt\":\"{}\"}}", created_at.to_rfc3339());
         let serialized = serde_json::to_string(&test_result_dto).unwrap();
 
         assert_eq!(expected, serialized);
