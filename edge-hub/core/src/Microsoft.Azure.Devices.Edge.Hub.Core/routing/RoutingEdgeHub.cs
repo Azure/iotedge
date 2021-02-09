@@ -147,6 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
             => this.subscriptionProcessor.RemoveSubscription(id, deviceSubscription);
 
+        public Task RemoveSubscriptions(string id)
+            => this.subscriptionProcessor.RemoveSubscriptions(id);
+
         public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
             => this.subscriptionProcessor.ProcessSubscriptions(id, subscriptions);
 

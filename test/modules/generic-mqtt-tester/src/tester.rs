@@ -276,7 +276,7 @@ fn process_event(
             info!("received new connection");
         }
         Event::Publication(publication) => {
-            info!("received publication");
+            info!("received publication {:?}", publication);
             message_send_handle
                 .send(publication)
                 .map_err(MessageTesterError::SendPublicationInChannel)?;
