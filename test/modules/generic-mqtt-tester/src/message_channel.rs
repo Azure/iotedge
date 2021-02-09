@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use bytes::Buf;
 use futures_util::{
     future::{self, Either},
     stream::StreamExt,
@@ -13,7 +14,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{parse_sequence_number, MessageTesterError, ShutdownHandle, RECEIVE_SOURCE};
+use crate::{MessageTesterError, ShutdownHandle, RECEIVE_SOURCE};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -45,12 +46,7 @@ impl MessageHandler for ReportResultMessageHandler {
         &mut self,
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
-        let sequence_number = parse_sequence_number(&received_publication);
-
-        info!(
-            "reporting result for publication with sequence number {}",
-            sequence_number,
-        );
+        let sequence_number: u32 = received_publication.payload.slice(0..4).get_u32();
         let result = MessageTestResult::new(
             self.tracking_id.clone(),
             self.batch_id.clone(),
@@ -89,12 +85,8 @@ impl MessageHandler for RelayingMessageHandler {
         &mut self,
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
-        let sequence_number = parse_sequence_number(&received_publication);
+        info!("relaying publication {:?}", received_publication);
 
-        info!(
-            "relaying publication with sequence number {}",
-            sequence_number,
-        );
         let new_publication = Publication {
             topic_name: self.topic.clone(),
             qos: QoS::ExactlyOnce,
@@ -149,6 +141,7 @@ where
             match future::select(received_pub, shutdown_signal).await {
                 Either::Left((received_publication, _)) => {
                     if let Some(received_publication) = received_publication {
+                        info!("received publication {:?}", received_publication);
                         self.message_handler.handle(received_publication).await?;
                     } else {
                         error!("failed listening for incoming publication");

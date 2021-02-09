@@ -3,11 +3,8 @@ use futures_util::{
     future::{self, select, Either},
     pin_mut,
 };
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::{self, stream::StreamExt};
-use tokio::{
-    signal::unix::{signal, SignalKind},
-    time,
-};
 use tracing::{info, info_span, subscriber, Level};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::Subscriber;
@@ -25,12 +22,6 @@ async fn main() -> Result<()> {
 
     let tester = MessageTester::new(settings.clone()).await?;
     let tester_shutdown = tester.shutdown_handle();
-
-    info!(
-        "waiting for test start delay of {:?}",
-        settings.test_start_delay()
-    );
-    time::delay_for(settings.test_start_delay()).await;
 
     let test_fut = tester.run().instrument(info_span!("tester"));
     let shutdown_fut = listen_for_shutdown().instrument(info_span!("shutdown"));

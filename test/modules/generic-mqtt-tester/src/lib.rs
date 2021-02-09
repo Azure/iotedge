@@ -16,7 +16,6 @@ use std::{
     io::{self},
 };
 
-use bytes::Buf;
 use mqtt3::{PublishError, ReceivedPublication, UpdateSubscriptionError};
 use tokio::{sync::mpsc::error::SendError, sync::mpsc::Sender, task::JoinError};
 use trc_client::ReportResultError;
@@ -91,8 +90,4 @@ pub enum MessageTesterError {
 
     #[error("received rejected subscription: {0}")]
     RejectedSubscription(String),
-}
-
-pub fn parse_sequence_number(publication: &ReceivedPublication) -> u32 {
-    publication.payload.slice(0..4).get_u32()
 }

@@ -1,7 +1,10 @@
 use future::{select_all, Either};
 use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+    sync::mpsc::{self, Receiver, Sender},
+    time,
+};
 use tracing::{error, info, info_span};
 use tracing_futures::Instrument;
 
@@ -155,7 +158,7 @@ impl MessageTester {
         );
 
         // make subscription
-        Self::subscribe(client_sub_handle, self.settings).await?;
+        Self::subscribe(client_sub_handle, self.settings.clone()).await?;
 
         // run message channel
         let message_channel_join = tokio::spawn(
@@ -168,6 +171,12 @@ impl MessageTester {
 
         // maybe start message initiator depending on mode
         if let Some(message_initiator) = self.message_initiator {
+            info!(
+                "waiting for test start delay of {:?}",
+                self.settings.test_start_delay()
+            );
+            time::delay_for(self.settings.test_start_delay()).await;
+
             let message_loop = tokio::spawn(message_initiator.run());
             tasks.push(message_loop);
         }
@@ -267,7 +276,7 @@ fn process_event(
             info!("received new connection");
         }
         Event::Publication(publication) => {
-            info!("received publication {:?}", publication);
+            info!("received publication");
             message_send_handle
                 .send(publication)
                 .map_err(MessageTesterError::SendPublicationInChannel)?;
