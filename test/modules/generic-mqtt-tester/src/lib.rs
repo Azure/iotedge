@@ -45,6 +45,16 @@ impl ShutdownHandle {
     }
 }
 
+/// Used as an indicator of work that has finished. Needed to indicate that we
+/// should not shutdown the thread corresponding to this work, as it has already
+/// finished.
+pub enum ExitedWork {
+    MessageChannel,
+    MessageInitiator,
+    PollClient,
+    NoneOrUnknown, // Used for shutting down everything (None) or errored tasks (Unknown)
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum MessageTesterError {
     #[error("could not parse expected env vars: {0:?}")]

@@ -17,7 +17,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{settings::Settings, MessageTesterError, ShutdownHandle, SEND_SOURCE};
+use crate::{settings::Settings, ExitedWork, MessageTesterError, ShutdownHandle, SEND_SOURCE};
 
 /// Responsible for starting to send the messages that will be relayed and
 /// tracked by the test module.
@@ -50,7 +50,7 @@ impl MessageInitiator {
         }
     }
 
-    pub async fn run(mut self) -> Result<(), MessageTesterError> {
+    pub async fn run(mut self) -> Result<ExitedWork, MessageTesterError> {
         info!("starting message loop");
 
         let mut seq_num: u32 = 0;
@@ -102,7 +102,7 @@ impl MessageInitiator {
             time::delay_for(self.settings.message_frequency()).await;
         }
 
-        Ok(())
+        Ok(ExitedWork::MessageInitiator)
     }
 
     pub fn shutdown_handle(&self) -> ShutdownHandle {
