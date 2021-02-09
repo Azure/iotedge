@@ -21,14 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
         // Example:
         //
         //     edgeagent_total_disk_read_bytes{iothub="lefitche-hub-3.azure-devices.net",edge_device="device4",instance_number="1",module="edgeHub"} 32908854
-
-        private const String MetricName = @"(?<metricname>[a-zA-Z_:][a-zA-Z_0-9:]*)";
-        private const String MetricValue = @"(?<metricvalue>[\d\.eE+-]+|NaN)";
-        private const String MetricTimestamp = @"(?<metrictimestamp>[\d]+)";
-        private const String LabelName = @"(?<labelname>[a-zA-Z_][a-zA-Z_0-9]*)";
-        private const String LabelValue = @"(?<labelvalue>(?:[^\\""]|\\""|\\\\|\\n)*)";
-        private const String Whitespace = @"[ \t]";
-        private static readonly String Label = $"{LabelName}{Whitespace}*={Whitespace}*\"{LabelValue}\"{Whitespace}*";
+        private const string MetricName = @"(?<metricname>[a-zA-Z_:][a-zA-Z_0-9:]*)";
+        private const string MetricValue = @"(?<metricvalue>[\d\.eE+-]+|NaN)";
+        private const string MetricTimestamp = @"(?<metrictimestamp>[\d]+)";
+        private const string LabelName = @"(?<labelname>[a-zA-Z_][a-zA-Z_0-9]*)";
+        private const string LabelValue = @"(?<labelvalue>(?:[^\\""]|\\""|\\\\|\\n)*)";
+        private const string Whitespace = @"[ \t]";
+        private static readonly string Label = $"{LabelName}{Whitespace}*={Whitespace}*\"{LabelValue}\"{Whitespace}*";
         private static readonly Regex PrometheusSchemaRegex = new Regex(
             @"^" +
                 MetricName +
@@ -57,8 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                     MetricTimestamp +
                 @")?" +
             @"$",
-            RegexOptions.Compiled
-        );
+            RegexOptions.Compiled);
 
         private static readonly DateTime MetricTimestampEpoch = DateTime.UnixEpoch;
 
@@ -94,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                         .Select(value =>
                         {
                             // Evaluate escaped characters
-                            string result = "";
+                            string result = string.Empty;
                             bool escaped = false;
                             foreach (char c in value.Value)
                             {
@@ -120,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                                     result += c;
                                 }
                             }
+
                             return result;
                         });
 
@@ -127,9 +126,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                         .ToDictionary(x => x.k, x => x.v);
 
                     string metricTimestampString = match.Groups["metrictimestamp"]?.Value;
-                    if (metricTimestampString.Length != 0) {
+                    if (metricTimestampString.Length != 0)
+                    {
                         long metricTimestamp;
-                        if (!long.TryParse(metricTimestampString, out metricTimestamp)) {
+                        if (!long.TryParse(metricTimestampString, out metricTimestamp))
+                        {
                             continue;
                         }
 
