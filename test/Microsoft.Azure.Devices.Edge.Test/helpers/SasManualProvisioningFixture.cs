@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         testCerts.AddCertsToConfig(config);
 
-                        config.SetManualSasProvisioning(Context.Current.ParentHostname.GetOrElse(device.HubHostname), device.Id, device.SharedAccessKey);
+                        config.SetManualSasProvisioning(device.HubHostname, device.Id, device.SharedAccessKey);
 
                         config.Update();
                         return Task.FromResult((
