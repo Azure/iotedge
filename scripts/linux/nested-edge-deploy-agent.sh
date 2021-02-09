@@ -6,7 +6,7 @@ function create_certificates() {
     echo "Installing test root certificate bundle."
 
     echo "Generating edge device certificate"
-    device_name=$(curl ipecho.net/plain)
+    device_name=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
     eval device_name=${device_name}
     echo "  Hostname IP: ${device_name}"
 
