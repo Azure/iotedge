@@ -1,10 +1,9 @@
 use std::{
     collections::HashMap,
-    env,
     path::{Path, PathBuf},
 };
 
-use config::{Config, ConfigError, File, FileFormat};
+use config::{Config, ConfigError, Environment, File, FileFormat, Source, Value};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
@@ -27,33 +26,52 @@ lazy_static! {
     };
 }
 
+/// `BrokerEnvironment` is our custom implementation of `config::Source`
+/// that works with existing EdgeHub env settings.
 #[derive(Debug, Clone)]
 pub struct BrokerEnvironment;
 
-impl config::Source for BrokerEnvironment {
-    fn clone_into_box(&self) -> Box<dyn config::Source + Send + Sync> {
+impl Source for BrokerEnvironment {
+    fn clone_into_box(&self) -> Box<dyn Source + Send + Sync> {
         Box::new((*self).clone())
     }
 
-    // Currently, BrokerEnvironment allows only the following four environment variables to be set externally.
-    // Otherwise, all values must come from the default.json file
-    fn collect(&self) -> Result<HashMap<String, config::Value>, ConfigError> {
+    // Currently, BrokerEnvironment allows only the env variables explicitly
+    // defined in the method below.
+    //
+    // We use intermediate instance of `Config` to enumerate all env vars
+    // and then manually map them to our internal config structure.
+    // This is done for two reasons:
+    // - our broker config does not match legacy EdgeHub env vars,
+    // - `Config` does a bunch of useful things - takes care of
+    //   evn vars casing, prefixing, separators...
+    fn collect(&self) -> Result<HashMap<String, Value>, ConfigError> {
+        let mut host_env = Config::new();
+        host_env.merge(Environment::with_prefix("MqttBroker").separator(":"))?;
+        host_env.merge(Environment::with_prefix("MqttBroker").separator("__"))?;
+
         let mut result: HashMap<String, config::Value> = HashMap::new();
-        if let Ok(val) = env::var("mqttBroker__max_queued_messages") {
+
+        // session
+        if let Ok(val) = host_env.get::<String>("MaxQueuedMessages") {
             result.insert("broker.session.max_queued_messages".into(), val.into());
         }
-
-        if let Ok(val) = env::var("mqttBroker__max_queued_bytes") {
+        if let Ok(val) = host_env.get::<String>("MaxQueuedBytes") {
             result.insert("broker.session.max_queued_size".into(), val.into());
         }
-
-        if let Ok(val) = env::var("mqttBroker__max_inflight_messages") {
+        if let Ok(val) = host_env.get::<String>("MaxInflightMessages") {
             result.insert("broker.session.max_inflight_messages".into(), val.into());
         }
-
-        if let Ok(val) = env::var("mqttBroker__when_full") {
+        if let Ok(val) = host_env.get::<String>("WhenFull") {
             result.insert("broker.session.when_full".into(), val.into());
         }
+
+        // persistance
+        if let Ok(val) = host_env.get::<String>("StorageFolder") {
+            result.insert("broker.persistence.folder_path".into(), val.clone().into());
+            result.insert("bridge.persistence.folder_path".into(), val.into());
+        }
+
         Ok(result)
     }
 }
