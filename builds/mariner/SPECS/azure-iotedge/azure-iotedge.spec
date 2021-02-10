@@ -66,6 +66,8 @@ make %{?_smp_mflags} release
 
 %install
 export PATH=$PATH:/root/.cargo/bin/
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
+export IOTEDGE_HOST
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}
 
 %clean
