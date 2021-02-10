@@ -166,9 +166,9 @@ pub struct SessionPersistenceConfig {
 }
 
 impl SessionPersistenceConfig {
-    pub fn new(path: PathBuf, time_interval: Duration) -> Self {
+    pub fn new(folder_path: PathBuf, time_interval: Duration) -> Self {
         Self {
-            folder_path: path,
+            folder_path,
             time_interval,
         }
     }
