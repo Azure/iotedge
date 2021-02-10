@@ -52,7 +52,7 @@ use url::Url;
 
 use edgelet_core::crypto::{
     CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature,
-    AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS,
+    AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS,
 };
 use edgelet_core::{
     Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
@@ -299,6 +299,10 @@ where
                         settings
                             .trust_bundle_cert()
                             .unwrap_or(TRUST_BUNDLE_ALIAS)
+                            .to_string(),
+                        settings
+                            .trust_bundle_cert()
+                            .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
                             .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
                         AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,

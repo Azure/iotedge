@@ -11,5 +11,6 @@ pub trait WorkloadConfig {
     fn edge_ca_cert(&self) -> &str;
     fn edge_ca_key(&self) -> &str;
     fn trust_bundle_cert(&self) -> &str;
+    fn manifest_trust_bundle_cert(&self) -> &str;
     fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64;
 }
