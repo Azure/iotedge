@@ -272,7 +272,8 @@ namespace IotEdgeQuickstart.Details
                         switch (param[0])
                         {
                             case "HostName":
-                                config[IDENTITYD].document.ReplaceOrAdd("provisioning.iothub_hostname", param[1]);
+                                // replace IoTHub hostname with parent hostname for nested edge
+                                config[IDENTITYD].document.ReplaceOrAdd("provisioning.iothub_hostname", parentHostname.GetOrElse(param[1]));
                                 break;
                             case "SharedAccessKey":
                                 File.WriteAllBytes(keyPath, Convert.FromBase64String(param[1]));
