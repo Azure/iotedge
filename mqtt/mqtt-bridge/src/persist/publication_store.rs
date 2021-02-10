@@ -70,6 +70,18 @@ impl PublicationStore<RingBuffer> {
     }
 }
 
+impl PublicationStore<RingBuffer> {
+    pub fn new_ring_buffer(
+        file_path: &Path,
+        max_file_size: usize,
+        flush_options: FlushOptions,
+        batch_size: usize,
+    ) -> StorageResult<Self> {
+        let rb = RingBuffer::new(file_path, max_file_size, flush_options)?;
+        Ok(Self::new(rb, batch_size))
+    }
+}
+
 impl<S> PublicationStore<S>
 where
     S: StreamWakeableState,

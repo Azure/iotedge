@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, sync::Arc, time::Duration};
+use std::{collections::HashMap, convert::TryFrom, time::Duration};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -58,25 +58,19 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-pub struct StoreMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+pub struct StoreMqttEventHandler<S> {
     topic_mappers: HashMap<String, TopicMapper>,
     topic_mappers_updates: TopicMapperUpdates,
-    store: Arc<PublicationStore<S>>,
+    store: PublicationStore<S>,
     retry_sub_send: Option<UnboundedSender<SubscribeTo>>,
 }
 
-impl<S> StoreMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+impl<S> StoreMqttEventHandler<S> {
     pub fn new(store: PublicationStore<S>, topic_mappers_updates: TopicMapperUpdates) -> Self {
         Self {
             topic_mappers: HashMap::new(),
             topic_mappers_updates,
-            store: Arc::from(store),
+            store,
             retry_sub_send: None,
         }
     }
@@ -131,7 +125,7 @@ where
 #[async_trait]
 impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send + Sync,
+    S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
@@ -169,6 +163,7 @@ where
                     return Ok(Handled::Fully);
                 }
                 warn!("no topic matched");
+                return Ok(Handled::Fully);
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
@@ -305,6 +300,25 @@ mod tests {
             let result = PublicationStore::new_ring_buffer(
                 file_path,
                 metadata_file_path,
+                MAX_FILE_SIZE,
+                FLUSH_OPTIONS,
+                BATCH_SIZE,
+            );
+            assert!(result.is_ok());
+            result.unwrap()
+        }
+    }
+
+    type RingBufferPublicationStore = PublicationStore<RingBuffer>;
+
+    impl Default for RingBufferPublicationStore {
+        fn default() -> Self {
+            let result = tempfile::NamedTempFile::new();
+            assert!(result.is_ok());
+            let file = result.unwrap();
+            let file_path = file.path();
+            let result = PublicationStore::new_ring_buffer(
+                file_path,
                 MAX_FILE_SIZE,
                 FLUSH_OPTIONS,
                 BATCH_SIZE,

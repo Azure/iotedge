@@ -10,7 +10,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::persist::{Key, StorageError, waking_state::StreamWakeableState};
+use crate::persist::{waking_state::StreamWakeableState, Key, StorageError};
 
 /// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
@@ -48,9 +48,10 @@ where
 
     fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, StorageError> {
         let inner = self.0.lock();
-        let state = inner.state.clone();
-        let mut borrowed_state = state.lock();
-        borrowed_state.batch(inner.batch_size)
+        let mut state_lock = inner.state.lock();
+        let batch = state_lock.batch(inner.batch_size)?;
+
+        Ok(batch)
     }
 }
 

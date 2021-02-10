@@ -332,6 +332,10 @@ impl Default for RingBufferSettings {
             flush_options: FlushOptions::AfterEachWrite,
         }
     }
+
+    pub fn flush_options(&self) -> &FlushOptions {
+        &self.flush_options
+    }
 }
 
 #[cfg(test)]

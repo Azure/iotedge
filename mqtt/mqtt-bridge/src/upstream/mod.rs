@@ -28,18 +28,12 @@ use crate::{
 ///
 /// Contains several event handlers to process RPC and regular MQTT events
 /// in a chain.
-pub struct LocalUpstreamMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+pub struct LocalUpstreamMqttEventHandler<S> {
     messages: StoreMqttEventHandler<S>,
     rpc: LocalRpcMqttEventHandler,
 }
 
-impl<S> LocalUpstreamMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+impl<S> LocalUpstreamMqttEventHandler<S> {
     pub fn new(messages: StoreMqttEventHandler<S>, rpc: LocalRpcMqttEventHandler) -> Self {
         Self { messages, rpc }
     }
@@ -48,7 +42,7 @@ where
 #[async_trait]
 impl<S> MqttEventHandler for LocalUpstreamMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send + Sync,
+    S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
@@ -74,19 +68,13 @@ where
 ///
 /// Contains several event handlers to process Connectivity, RPC and regular
 /// MQTT events in a chain.
-pub struct RemoteUpstreamMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+pub struct RemoteUpstreamMqttEventHandler<S> {
     messages: StoreMqttEventHandler<S>,
     rpc: RemoteRpcMqttEventHandler,
     connectivity: ConnectivityMqttEventHandler,
 }
 
-impl<S> RemoteUpstreamMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+impl<S> RemoteUpstreamMqttEventHandler<S> {
     pub fn new(
         messages: StoreMqttEventHandler<S>,
         rpc: RemoteRpcMqttEventHandler,
@@ -103,7 +91,7 @@ where
 #[async_trait]
 impl<S> MqttEventHandler for RemoteUpstreamMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send + Sync,
+    S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
