@@ -28,10 +28,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string genericMqttTesterImage = Context.Current.GenericMqttTesterImage.Expect(() => new ArgumentException("genericMqttTesterImage parameter is required for Generic Mqtt test"));
             string trackingId = Guid.NewGuid().ToString();
 
+            Action<EdgeConfigBuilder> addMqttBrokerConfig = MqttBrokerUtil.BuildAddBrokerToDeployment(false);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
             Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttTesterModuleName, GenericMqttTesterModuleName);
             Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, trcImage, genericMqttTesterImage);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig, token, Context.Current.NestedEdge);
+            Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
             await Task.Delay(TimeSpan.FromSeconds(SecondsBeforeVerification));
             await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
@@ -60,4 +62,3 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
     }
 }
-

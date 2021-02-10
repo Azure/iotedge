@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
@@ -11,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class TestResultCoordinatorUtil
     {
-
         const string TestResultCoordinatorUrl = "http://testResultCoordinator:5001";
         const string TrcModuleName = "testResultCoordinator";
         const string NetworkControllerModuleName = "networkController";
@@ -81,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                        });
                 });
         }
+
         public static async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();

@@ -37,16 +37,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    if (brokerOn)
-                    {
-                        this.AddBrokerToDeployment(builder);
-                    }
+            Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
+            if (brokerOn)
+            {
+                config += MqttBrokerUtil.BuildAddBrokerToDeployment(true);
+            }
 
-                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
-                },
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                config,
                 token,
                 Context.Current.NestedEdge);
 
@@ -86,24 +84,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    if (brokerOn)
-                    {
-                        this.AddBrokerToDeployment(builder);
-                    }
+            Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
+            if (brokerOn)
+            {
+                config += MqttBrokerUtil.BuildAddBrokerToDeployment(true);
+            }
 
-                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
-                    builder.AddModule(LoadGenModuleName, loadGenImage)
-                    .WithEnvironment(new[]
-                    {
-                            ("testStartDelay", "00:00:00"),
-                            ("messageFrequency", "00:00:00.5"),
-                            ("transportType", protocol.ToString()),
-                            ("modelId", TestModelId)
-                    });
-                },
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                config,
                 token,
                 Context.Current.NestedEdge);
 
@@ -112,42 +100,36 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateIdentity(this.runtime.DeviceId, Option.Some(LoadGenModuleName), TestModelId, token);
         }
 
-        EdgeConfigBuilder AddBrokerToDeployment(EdgeConfigBuilder builder)
-        {
-            builder.GetModule(ModuleName.EdgeHub)
-                .WithEnvironment(new[]
-                {
-                    ("experimentalFeatures__enabled", "true"),
-                    ("experimentalFeatures__mqttBrokerEnabled", "true"),
-                })
-                .WithDesiredProperties(new Dictionary<string, object>
-                {
-                    ["mqttBroker"] = new
-                    {
-                        authorizations = new[]
-                        {
-                            new
-                            {
-                                 identities = new[] { "{{iot:identity}}" },
-                                 allow = new[]
-                                 {
-                                     new
-                                     {
-                                         operations = new[] { "mqtt:connect" }
-                                     }
-                                 }
-                            }
-                        }
-                    }
-                });
-            return builder;
-        }
-
         async Task ValidateIdentity(string deviceId, Option<string> moduleId, string expectedModelId, CancellationToken token)
         {
             Twin twin = await this.iotHub.GetTwinAsync(deviceId, moduleId, token);
             string actualModelId = twin.ModelId;
             Assert.AreEqual(expectedModelId, actualModelId);
+        }
+
+        private Action<EdgeConfigBuilder> BuildAddLoadGenConfig(Protocol protocol, string loadGenImage)
+        {
+            return new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    builder.AddModule(LoadGenModuleName, loadGenImage)
+                    .WithEnvironment(new[]
+                    {
+                            ("testStartDelay", "00:00:00"),
+                            ("messageFrequency", "00:00:00.5"),
+                            ("transportType", protocol.ToString()),
+                            ("modelId", TestModelId)
+                    });
+                });
+        }
+
+        private Action<EdgeConfigBuilder> BuildAddEdgeHubConfig(Protocol protocol)
+        {
+            return new Action<EdgeConfigBuilder>(
+                builder =>
+                {
+                    builder.GetModule(ModuleName.EdgeHub).WithEnvironment(new[] { ("UpstreamProtocol", protocol.ToString()) });
+                });
         }
     }
 }
