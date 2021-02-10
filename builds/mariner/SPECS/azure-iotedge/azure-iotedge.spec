@@ -20,7 +20,7 @@ URL:            https://github.com/azure/iotedge
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 
-BuildRequires:  rust == 1.47.0
+BuildRequires:  rust == 1.44.1
 BuildRequires:  cmake
 BuildRequires:  curl
 BuildRequires:  git
