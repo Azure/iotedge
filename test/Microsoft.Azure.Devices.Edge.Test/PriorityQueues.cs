@@ -43,13 +43,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 1000, true);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token, Context.Current.NestedEdge);
+            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, Context.Current.NestedEdge);
+            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            await this.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
         [Test]
@@ -66,9 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var testResultReportingClient = new TestResultReportingClient { BaseUrl = "http://localhost:5001" };
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, "hubtest", trcImage, loadGenImage, testInfo, true);
-            Action<EdgeConfigBuilder> addNetworkControllerConfig = this.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addNetworkControllerConfig, token, Context.Current.NestedEdge);
+            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, "hubtest");
+            Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addNetworkControllerConfig, token, Context.Current.NestedEdge);
             bool networkOn = true;
             await this.ToggleConnectivity(!networkOn, NetworkControllerModuleName, token);
             await Task.Delay(TimeSpan.Parse(LoadGenTestDuration) + TimeSpan.Parse(testInfo.LoadGenStartDelay) + TimeSpan.FromSeconds(10));
@@ -81,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
             }
 
-            await this.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
         [Test]
@@ -95,8 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trackingId = Guid.NewGuid().ToString();
             TestInfo testInfo = this.InitTestInfo(5, 20);
 
-            Action<EdgeConfigBuilder> addInitialConfig = this.BuildAddInitialConfig(trackingId, RelayerModuleName, trcImage, loadGenImage, testInfo, false);
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig, token, Context.Current.NestedEdge);
+            Action<EdgeConfigBuilder> addLoadGenConfig = this.BuildAddLoadGenConfig(trackingId, loadGenImage, testInfo, false);
+            Action<EdgeConfigBuilder> addTrcConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, LoadGenModuleName, RelayerModuleName);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig, token, Context.Current.NestedEdge);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
 
             // Wait long enough for TTL to expire for some of the messages
@@ -104,9 +107,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await Task.Delay(testInfo.TtlThreshold * 1000);
 
             Action<EdgeConfigBuilder> addRelayerConfig = this.BuildAddRelayerConfig(relayerImage, loadGenTestStatus);
-            deployment = await this.runtime.DeployConfigurationAsync(addInitialConfig + addRelayerConfig, token, Context.Current.NestedEdge);
+            deployment = await this.runtime.DeployConfigurationAsync(addLoadGenConfig + addTrcConfig + addRelayerConfig, token, Context.Current.NestedEdge);
             await this.PollUntilFinishedAsync(RelayerModuleName, token);
-            await this.ValidateResultsAsync();
+            await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
         async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
@@ -157,20 +160,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 loadGenTestStatus.ResultCount);
         }
 
-        private async Task ValidateResultsAsync()
-        {
-            HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
-            var jsonstring = await response.Content.ReadAsStringAsync();
-            bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
-            if (!isPassed)
-            {
-                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
-            }
-
-            Assert.IsTrue(isPassed);
-        }
-
         private Action<EdgeConfigBuilder> BuildAddRelayerConfig(string relayerImage, PriorityQueueTestStatus loadGenTestStatus)
         {
             return new Action<EdgeConfigBuilder>(
@@ -206,50 +195,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        private Action<EdgeConfigBuilder> BuildAddInitialConfig(string trackingId, string actualSource, string trcImage, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
+        private Action<EdgeConfigBuilder> BuildAddLoadGenConfig(string trackingId, string loadGenImage, TestInfo testInfo, bool cloudUpstream)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
-                    // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
-                    // are unnecessary for the e2e tests.
-                    // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
-                    builder.AddModule(TrcModuleName, trcImage)
-                       .WithEnvironment(new[]
-                       {
-                           ("trackingId", trackingId),
-                           ("useTestResultReportingService", "false"),
-                           ("useResultEventReceivingService", "false"),
-                           ("IOT_HUB_CONNECTION_STRING", Context.Current.ConnectionString),
-                           ("testStartDelay", "00:00:00"),
-                           ("testDuration", "00:20:00"),
-                           ("verificationDelay", "00:00:00"),
-                           ("NetworkControllerRunProfile", "Online"),
-                           ("TEST_INFO", "key=unnecessary")
-                       })
-                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
-
-                       .WithDesiredProperties(new Dictionary<string, object>
-                       {
-                           ["reportMetadataList"] = new Dictionary<string, object>
-                           {
-                               ["reportMetadata1"] = new Dictionary<string, object>
-                               {
-                                   ["TestReportType"] = "CountingReport",
-                                   ["TestOperationResultType"] = "Messages",
-                                   ["ExpectedSource"] = $"{LoadGenModuleName}.send",
-                                   ["ActualSource"] = $"{actualSource}.receive",
-                                   ["TestDescription"] = "unnecessary"
-                               },
-                               ["reportMetadata2"] = new Dictionary<string, object>
-                               {
-                                   ["TestReportType"] = "NetworkControllerReport",
-                                   ["Source"] = $"{NetworkControllerModuleName}",
-                                   ["TestDescription"] = "network controller"
-                               }
-                           }
-                       });
-
                     builder.AddModule(LoadGenModuleName, loadGenImage)
                         .WithEnvironment(new[]
                         {
