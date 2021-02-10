@@ -261,6 +261,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             Assert.Equal("vh2.azure-devices.net", metrics.First().Tags["iothub"]);
             Assert.Equal(55, metrics.First().Value);
             Assert.Equal(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(66), metrics.First().TimeGeneratedUtc);
+
+            metrics =
+                PrometheusMetricsParser.ParseMetrics(
+                    testTime,
+                    @"edgeAgent_metadata{iothub=""vh2.azure-devices.net"",edge_device=""rer"",}55 66");
+            Assert.Single(metrics);
+            Assert.Equal("edgeAgent_metadata", metrics.First().Name);
+            Assert.Equal(2, metrics.First().Tags.Count());
+            Assert.Equal("vh2.azure-devices.net", metrics.First().Tags["iothub"]);
+            Assert.Equal("rer", metrics.First().Tags["edge_device"]);
+            Assert.Equal(55, metrics.First().Value);
+            Assert.Equal(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(66), metrics.First().TimeGeneratedUtc);
         }
 
         [Fact]
