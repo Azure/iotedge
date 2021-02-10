@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             device.Id,
                             Context.Current.EdgeAgentImage,
                             Context.Current.EdgeHubImage,
-                            Context.Current.Proxy,
+                            Context.Current.EdgeProxy,
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,
                             this.iotHub);
