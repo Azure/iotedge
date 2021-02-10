@@ -207,7 +207,64 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        public void TestInterstitialWhitespaceAndTrailingCommaAndEscapedTagValues()
+        public void TestInterstitialWhitespace()
+        {
+            IEnumerable<Metric> metrics =
+                PrometheusMetricsParser.ParseMetrics(
+                    testTime,
+                    "edgeAgent_metadata \t { \t iothub \t = \t \" \t vh2.azure \\n -devices.net \t \" \t }55 66");
+            Assert.Single(metrics);
+            Assert.Equal("edgeAgent_metadata", metrics.First().Name);
+            Assert.Single(metrics.First().Tags);
+            Assert.Equal(" \t vh2.azure \n -devices.net \t ", metrics.First().Tags["iothub"]);
+            Assert.Equal(55, metrics.First().Value);
+            Assert.Equal(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(66), metrics.First().TimeGeneratedUtc);
+
+            metrics =
+                PrometheusMetricsParser.ParseMetrics(
+                    testTime,
+                    "edgeAgent_metadata \t { \t iothub \t = \t \" \t vh2.azure \\n -devices.net \t \" \t , \t } \t 55 \t 66");
+            Assert.Single(metrics);
+            Assert.Equal("edgeAgent_metadata", metrics.First().Name);
+            Assert.Single(metrics.First().Tags);
+            Assert.Equal(" \t vh2.azure \n -devices.net \t ", metrics.First().Tags["iothub"]);
+            Assert.Equal(55, metrics.First().Value);
+            Assert.Equal(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(66), metrics.First().TimeGeneratedUtc);
+
+            metrics =
+                PrometheusMetricsParser.ParseMetrics(
+                    testTime,
+                    "edgeAgent_metadata \t {" +
+                        " \t iothub \t = \t \" \t vh2.azure \\n -devices.net \t \" \t ," +
+                        " \t edge_device \t = \t \" \t rer \t \" \t ," +
+                        " \t " +
+                    "} \t 55 \t 66");
+            Assert.Single(metrics);
+            Assert.Equal("edgeAgent_metadata", metrics.First().Name);
+            Assert.Equal(2, metrics.First().Tags.Count());
+            Assert.Equal(" \t vh2.azure \n -devices.net \t ", metrics.First().Tags["iothub"]);
+            Assert.Equal(" \t rer \t ", metrics.First().Tags["edge_device"]);
+            Assert.Equal(55, metrics.First().Value);
+            Assert.Equal(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(66), metrics.First().TimeGeneratedUtc);
+        }
+
+        [Fact]
+        public void TestTrailingCommaAfterLabelValue()
+        {
+            IEnumerable<Metric> metrics =
+                PrometheusMetricsParser.ParseMetrics(
+                    testTime,
+                    @"edgeAgent_metadata{iothub=""vh2.azure-devices.net"",}55 66");
+            Assert.Single(metrics);
+            Assert.Equal("edgeAgent_metadata", metrics.First().Name);
+            Assert.Single(metrics.First().Tags);
+            Assert.Equal("vh2.azure-devices.net", metrics.First().Tags["iothub"]);
+            Assert.Equal(55, metrics.First().Value);
+            Assert.Equal(DateTime.UnixEpoch + TimeSpan.FromMilliseconds(66), metrics.First().TimeGeneratedUtc);
+        }
+
+        [Fact]
+        public void TestInterstitialWhitespaceAndTrailingCommaAndEscapesInLabelValues()
         {
             IEnumerable<Metric> metrics =
                 PrometheusMetricsParser.ParseMetrics(
@@ -258,7 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                     " \t edgeAgent_metadata{iothub=\"vh2.azure-devices.net\",edge_device=\"rer\"} 5");
             Assert.Empty(metrics);
 
-            // Only \\ and \n escapes are allowed in tag values.
+            // Only \", \\ and \n escapes are allowed in tag values.
             metrics =
                 PrometheusMetricsParser.ParseMetrics(
                     testTime,
