@@ -16,6 +16,10 @@
 
 trigger: none
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 schedules:
   - cron: "0 6 * * *"
     displayName: Pacific Time (UTC-7) Nightly Build
