@@ -37,6 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Option<IDeviceProxy> GetDeviceConnection(string id);
 
+        Task<Try<ICloudProxy>> TryGetCloudConnection(string id);
+
         Task<Option<ICloudProxy>> GetCloudConnection(string id);
 
         void AddSubscription(string id, DeviceSubscription deviceSubscription);
