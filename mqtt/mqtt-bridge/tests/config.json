@@ -55,8 +55,9 @@
     ],
     "storage": {
         "max_file_size": 1024,
-        "file_name": "/tmp/mqttd/test.txt",
-        "batch_size": 10
+        "directory": "/tmp/mqttd/test/",
+        "batch_size": 10,
+        "flush_options": "aftereachwrite"
     },
     "messages": {}
 }

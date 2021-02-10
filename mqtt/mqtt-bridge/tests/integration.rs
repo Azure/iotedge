@@ -129,7 +129,6 @@ async fn send_message_upstream_downstream() {
     local_client.shutdown().await;
 }
 
-#[ignore = "This test can be activated once RingBuffer is merged in."]
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
     let subs = vec![Direction::Out(TopicRule::new(
@@ -148,47 +147,46 @@ async fn send_message_upstream_with_crash_is_lossless() {
     let mut upstream_client = TestClientBuilder::new(upstream_server_handle.address())
         .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
         .build();
-    {
-        let (controller_handle, controller_task) = common::setup_bridge_controller(
-            local_server_handle.address(),
-            upstream_server_handle.tls_address().unwrap(),
-            subs.clone(),
-            "send_message_upstream_with_crash_is_lossless",
-        )
+
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs.clone(),
+        "send_message_upstream_with_crash_is_lossless",
+    )
+    .await;
+
+    local_client
+        .subscribe("downstream/filter/#", QoS::AtLeastOnce)
         .await;
 
-        local_client
-            .subscribe("downstream/filter/#", QoS::AtLeastOnce)
-            .await;
+    // wait to receive subscription ack
+    local_client.subscriptions().next().await;
 
-        // wait to receive subscription ack
-        local_client.subscriptions().next().await;
+    upstream_client
+        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
+        .await;
 
-        upstream_client
-            .subscribe("upstream/temp/#", QoS::AtLeastOnce)
-            .await;
+    // wait to receive subscription ack
+    upstream_client.subscriptions().next().await;
 
-        // wait to receive subscription ack
-        upstream_client.subscriptions().next().await;
+    // send upstream
+    local_client
+        .publish_qos1("to/temp/1", "from local", false)
+        .await;
 
-        // send upstream
-        local_client
-            .publish_qos1("to/temp/1", "from local", false)
-            .await;
+    assert_matches!(
+        upstream_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+    );
 
-        assert_matches!(
-            upstream_client.publications().next().await,
-            Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
-        );
+    // send upstream but disconnect afterwards
+    local_client
+        .publish_qos1("to/temp/1", "from local again", false)
+        .await;
 
-        // send upstream but disconnect afterwards
-        local_client
-            .publish_qos1("to/temp/1", "from local again", false)
-            .await;
-
-        controller_handle.shutdown();
-        controller_task.await.expect("controller task");
-    }
+    controller_handle.shutdown();
+    controller_task.await.expect("controller task");
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
@@ -504,7 +502,7 @@ async fn bridge_forwards_messages_after_restart() {
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
-        Vec::new(),
+        subs.clone(),
         "bridge_forwards_messages_after_restart",
     )
     .await;
@@ -629,6 +627,7 @@ async fn recreate_upstream_bridge_when_fails() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        "recreate_upstream_bridge_when_fails",
     )
     .await;
 

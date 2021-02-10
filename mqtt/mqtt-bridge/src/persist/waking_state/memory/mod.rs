@@ -26,14 +26,14 @@ impl Default for WakingMemoryStore {
 }
 
 impl StreamWakeableState for WakingMemoryStore {
-    fn insert(&mut self, value: Publication) -> StorageResult<Key> {
+    fn insert(&mut self, value: &Publication) -> StorageResult<Key> {
         let key = Key {
             offset: self.queue.len() as u64,
         };
 
         debug!("inserting publication with key {:?}", key);
 
-        self.queue.push_back((key, value));
+        self.queue.push_back((key, value.clone()));
 
         if let Some(waker) = self.waker.take() {
             waker.wake();

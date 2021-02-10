@@ -102,7 +102,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
 
             messages: MessagesSettings,
 
-            storage: StorageSettings,
+            storage: Option<StorageSettings>,
         }
 
         let Inner {
@@ -318,6 +318,10 @@ impl RingBufferSettings {
     pub fn flush_options(&self) -> &FlushOptions {
         &self.flush_options
     }
+
+    pub fn flush_options(&self) -> &FlushOptions {
+        &self.flush_options
+    }
 }
 
 #[cfg(test)]
@@ -328,6 +332,8 @@ mod tests {
 
     use super::*;
     use mqtt_broker_tests_util::env;
+
+    use super::*;
 
     #[test]
     #[serial(env_settings)]

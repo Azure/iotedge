@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryFrom, sync::Arc, time::Duration};
+use std::{collections::HashMap, convert::TryFrom, time::Duration};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -24,7 +24,10 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{waking_state::StreamWakeableState, PublicationStore},
+    persist::{
+        waking_state::{ring_buffer::error::RingBufferError, StreamWakeableState},
+        PublicationStore, StorageError,
+    },
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -58,25 +61,19 @@ impl TryFrom<TopicRule> for TopicMapper {
 }
 
 /// Handle events from client and saves them with the forward topic
-pub struct StoreMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+pub struct StoreMqttEventHandler<S> {
     topic_mappers: HashMap<String, TopicMapper>,
     topic_mappers_updates: TopicMapperUpdates,
-    store: Arc<PublicationStore<S>>,
+    store: PublicationStore<S>,
     retry_sub_send: Option<UnboundedSender<SubscribeTo>>,
 }
 
-impl<S> StoreMqttEventHandler<S>
-where
-    S: StreamWakeableState + Send + Sync,
-{
+impl<S> StoreMqttEventHandler<S> {
     pub fn new(store: PublicationStore<S>, topic_mappers_updates: TopicMapperUpdates) -> Self {
         Self {
             topic_mappers: HashMap::new(),
             topic_mappers_updates,
-            store: Arc::from(store),
+            store,
             retry_sub_send: None,
         }
     }
@@ -131,7 +128,7 @@ where
 #[async_trait]
 impl<S> MqttEventHandler for StoreMqttEventHandler<S>
 where
-    S: StreamWakeableState + Send + Sync,
+    S: StreamWakeableState + Send,
 {
     type Error = BridgeError;
 
@@ -153,11 +150,22 @@ where
 
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
-                    self.store.push(&publication).map_err(BridgeError::Store)?;
 
-                    return Ok(Handled::Fully);
+                    let result = self.store.push(&publication).map_err(BridgeError::Store);
+
+                    if result.is_err() {
+                        let err = result.unwrap_err();
+                        match err {
+                            // If we are full we are dropping the message on ground
+                            BridgeError::Store(StorageError::RingBuffer(RingBufferError::Full)) => {
+                                return Ok(Handled::Fully);
+                            }
+                            _ => return Err(err),
+                        }
+                    }
                 }
                 warn!("no topic matched");
+                return Ok(Handled::Fully);
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
@@ -271,6 +279,25 @@ mod tests {
                 &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
                 "test".to_owned(),
                 "local",
+            );
+            assert!(result.is_ok());
+            result.unwrap()
+        }
+    }
+
+    type RingBufferPublicationStore = PublicationStore<RingBuffer>;
+
+    impl Default for RingBufferPublicationStore {
+        fn default() -> Self {
+            let result = tempfile::NamedTempFile::new();
+            assert!(result.is_ok());
+            let file = result.unwrap();
+            let file_path = file.path();
+            let result = PublicationStore::new_ring_buffer(
+                file_path,
+                MAX_FILE_SIZE,
+                FLUSH_OPTIONS,
+                BATCH_SIZE,
             );
             assert!(result.is_ok());
             result.unwrap()

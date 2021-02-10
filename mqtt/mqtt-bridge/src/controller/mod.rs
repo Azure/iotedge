@@ -181,17 +181,34 @@ async fn start_bridge(
     bridges: &mut Bridges,
 ) {
     if let Some(upstream_settings) = settings.upstream() {
-        let bridge_result = bridge_builder::<WakingMemoryStore>()
-            .with_system_address(String::from(system_address))
-            .with_device_id(String::from(device_id))
-            .with_connection_settings(upstream_settings.clone())
-            .build();
-        match bridge_result {
-            Ok(bridge) => {
-                bridges.start_bridge(bridge, upstream_settings).await;
+        if let Some(storage_settings) = settings.storage() {
+            let bridge_result = bridge_builder::<RingBuffer>()
+                .with_system_address(String::from(system_address))
+                .with_device_id(String::from(device_id))
+                .with_connection_settings(upstream_settings.clone())
+                .with_storage_settings(storage_settings.clone())
+                .build();
+            match bridge_result {
+                Ok(bridge) => {
+                    bridges.start_bridge(bridge, upstream_settings).await;
+                }
+                Err(e) => {
+                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
+                }
             }
-            Err(e) => {
-                error!(err = %e, "failed to create {} bridge", UPSTREAM);
+        } else {
+            let bridge_result = bridge_builder::<WakingMemoryStore>()
+                .with_system_address(String::from(system_address))
+                .with_device_id(String::from(device_id))
+                .with_connection_settings(upstream_settings.clone())
+                .build();
+            match bridge_result {
+                Ok(bridge) => {
+                    bridges.start_bridge(bridge, upstream_settings).await;
+                }
+                Err(e) => {
+                    error!(err = %e, "failed to create {} bridge", UPSTREAM);
+                }
             }
         }
     } else {

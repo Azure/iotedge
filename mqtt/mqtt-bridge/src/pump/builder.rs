@@ -52,7 +52,7 @@ impl<S> Default for Builder<S> {
 
 impl<S> Builder<S>
 where
-    S: StreamWakeableState + Send + Sync,
+    S: StreamWakeableState + Send,
 {
     /// Apples parameters to create local pump.
     pub fn with_local<F>(mut self, mut apply: F) -> Self

@@ -1,12 +1,16 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, path::Path};
+
+use tracing::debug;
 
 use mqtt_util::Credentials;
-use tracing::debug;
 
 use crate::{
     bridge::{Bridge, BridgeError},
     client::MqttClientConfig,
-    persist::{PublicationStore, WakingMemoryStore},
+    persist::{
+        waking_state::{memory::WakingMemoryStore, ring_buffer::RingBuffer},
+        PublicationStore,
+    },
     pump::Builder,
     settings::{ConnectionSettings, StorageSettings},
 };
@@ -165,6 +169,41 @@ impl<Kind, SystemAddressPresent, DeviceIdPresent, StorageSettingsPresent>
     }
 }
 
+impl<SystemAddressPresent, DeviceIdPresent, ConnectionSettingsPresent>
+    UpstreamBridgeBuilder<
+        RingBuffer,
+        SystemAddressPresent,
+        DeviceIdPresent,
+        ConnectionSettingsPresent,
+        No,
+    >
+{
+    pub(crate) fn with_storage_settings(
+        self,
+        storage_settings: StorageSettings,
+    ) -> UpstreamBridgeBuilder<
+        RingBuffer,
+        SystemAddressPresent,
+        DeviceIdPresent,
+        ConnectionSettingsPresent,
+        Yes,
+    > {
+        UpstreamBridgeBuilder {
+            bridge_name: self.bridge_name,
+            system_address: self.system_address,
+            device_id: self.device_id,
+            connection_settings: self.connection_settings,
+            storage_settings: Some(storage_settings),
+            // phantoms
+            _kind: PhantomData,
+            _system_address_present: PhantomData,
+            _device_id_present: PhantomData,
+            _connection_settings_present: PhantomData,
+            _storage_settings_present: PhantomData,
+        }
+    }
+}
+
 impl UpstreamBridgeBuilder<WakingMemoryStore, Yes, Yes, Yes, No> {
     pub fn build(self) -> Result<Bridge<WakingMemoryStore>, BridgeError> {
         let connection_settings = self.connection_settings.unwrap();
@@ -197,7 +236,59 @@ impl UpstreamBridgeBuilder<WakingMemoryStore, Yes, Yes, Yes, No> {
             })
             .with_store(|_suffix| {
                 const BATCH_SIZE: usize = 10;
-                PublicationStore::new_memory(BATCH_SIZE)
+                Ok(PublicationStore::new_memory(BATCH_SIZE))
+            })
+            .build()?;
+
+        debug!("created bridge {}...", connection_settings.name());
+
+        Ok(Bridge {
+            local_pump,
+            remote_pump,
+        })
+    }
+}
+
+impl UpstreamBridgeBuilder<RingBuffer, Yes, Yes, Yes, Yes> {
+    pub fn build(self) -> Result<Bridge<RingBuffer>, BridgeError> {
+        let connection_settings = self.connection_settings.unwrap();
+        let storage_settings = self.storage_settings.unwrap();
+        let system_address = self.system_address;
+        let device_id = self.device_id;
+        debug!("creating bridge {}...", connection_settings.name());
+
+        let (local_pump, remote_pump) = Builder::<RingBuffer>::default()
+            .with_local(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    system_address.clone(),
+                    connection_settings.keep_alive(),
+                    connection_settings.clean_session(),
+                    Credentials::Anonymous(format!(
+                        "{}/{}/$bridge",
+                        device_id,
+                        connection_settings.name()
+                    )),
+                ))
+                .with_rules(connection_settings.forwards());
+            })
+            .with_remote(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    connection_settings.address(),
+                    connection_settings.keep_alive(),
+                    connection_settings.clean_session(),
+                    connection_settings.credentials().clone(),
+                ))
+                .with_rules(connection_settings.subscriptions());
+            })
+            .with_store(move |suffix| {
+                PublicationStore::new_ring_buffer(
+                    &Path::new(
+                        &(storage_settings.directory().to_owned() + &device_id + "." + suffix),
+                    ),
+                    storage_settings.max_file_size(),
+                    *storage_settings.flush_options(),
+                    storage_settings.batch_size(),
+                )
             })
             .build()?;
 
@@ -228,6 +319,20 @@ mod tests {
             .with_system_address("system_address".to_owned())
             .with_device_id("device_id".to_owned())
             .with_connection_settings(settings.upstream().unwrap().clone())
+            .build();
+        assert!(result.is_ok());
+    }
+
+    #[ignore = "reason"]
+    #[tokio::test]
+    async fn it_builds_successfully_when_ring_buffer() {
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let builder = bridge_builder::<RingBuffer>();
+        let result = builder
+            .with_system_address("system_address".to_owned())
+            .with_device_id("device_id".to_owned())
+            .with_connection_settings(settings.upstream().unwrap().clone())
+            .with_storage_settings(settings.storage().unwrap().clone())
             .build();
         assert!(result.is_ok());
     }

@@ -1,5 +1,3 @@
-pub mod memory;
-
 use std::{collections::VecDeque, task::Waker};
 
 use mqtt3::proto::Publication;
@@ -8,11 +6,6 @@ use crate::persist::{Key, PersistResult};
 
 pub mod memory;
 pub mod ring_buffer;
-
-// TODO: Currently rocksdb does not compile on musl.
-//       Once we fix compilation we can add this module back.
-//       If we decide fixing compilation is not efficient, we can reuse code in rocksdb.rs by substituting rocksdb wrapping abstraction.
-// pub mod rocksdb;
 
 pub type StorageResult<T> = Result<T, StorageError>;
 

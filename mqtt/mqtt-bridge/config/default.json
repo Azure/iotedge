@@ -8,7 +8,8 @@
     "storage": {
         "max_file_size": 1048576,
         "batch_size": 10,
-        "file_name": "/tmp/mqttd/test.txt"
+        "directory": "/tmp/mqttd/config/",
+        "flush_options": "aftereachwrite"
     },
     "remotes": [],
     "storage": {
