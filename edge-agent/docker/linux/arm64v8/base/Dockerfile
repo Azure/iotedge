@@ -1,4 +1,4 @@
-﻿ARG base_tag=3.1.11-bionic-arm64v8
+﻿ARG base_tag=3.1.12-bionic-arm64v8
 ARG num_procs=4
 
 FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}

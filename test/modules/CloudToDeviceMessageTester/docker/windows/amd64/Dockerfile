@@ -1,4 +1,4 @@
-ARG base_tag=3.1.11-nanoserver-1809
+ARG base_tag=3.1.12-nanoserver-1809
 FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 ENV MODULE_NAME "CloudToDeviceMessageTester.dll"
