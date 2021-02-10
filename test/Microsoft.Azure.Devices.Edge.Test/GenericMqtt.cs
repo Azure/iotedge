@@ -27,17 +27,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Generic Mqtt test"));
             string genericMqttTesterImage = Context.Current.GenericMqttTesterImage.Expect(() => new ArgumentException("genericMqttTesterImage parameter is required for Generic Mqtt test"));
             string trackingId = Guid.NewGuid().ToString();
-            string batchId = Guid.NewGuid().ToString();
 
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
             Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttTesterModuleName, GenericMqttTesterModuleName);
-            Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, batchId, trcImage, genericMqttTesterImage);
+            Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, trcImage, genericMqttTesterImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig, token, Context.Current.NestedEdge);
             await Task.Delay(TimeSpan.FromSeconds(SecondsBeforeVerification));
             await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
-        private Action<EdgeConfigBuilder> BuildAddGenericMqttTesterConfig(string trackingId, string batchId, string trcImage, string genericMqttTesterImage)
+        private Action<EdgeConfigBuilder> BuildAddGenericMqttTesterConfig(string trackingId, string trcImage, string genericMqttTesterImage)
         {
             return new Action<EdgeConfigBuilder>(
                 builder =>
@@ -47,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("TEST_SCENARIO", "Initiate"),
                             ("TRACKING_ID", trackingId),
-                            ("BATCH_ID", batchId),
                             ("TEST_START_DELAY", GenericMqttTesterTestStartDelay),
                         });
 
@@ -56,7 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ("TEST_SCENARIO", "Relay"),
                             ("TRACKING_ID", trackingId),
-                            ("BATCH_ID", batchId),
                             ("TEST_START_DELAY", GenericMqttTesterTestStartDelay),
                         });
                 });
