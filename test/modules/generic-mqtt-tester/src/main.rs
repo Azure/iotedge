@@ -3,8 +3,11 @@ use futures_util::{
     future::{self, select, Either},
     pin_mut,
 };
-use tokio::signal::unix::{signal, SignalKind};
-use tokio::{self, stream::StreamExt};
+use tokio::{
+    self,
+    signal::unix::{signal, SignalKind},
+    stream::StreamExt,
+};
 use tracing::{info, info_span, subscriber, Level};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::Subscriber;

@@ -130,7 +130,7 @@ impl MessageTester {
             TestScenario::Initiate => {
                 let batch_id = settings
                     .batch_id()
-                    .ok_or(MessageTesterError::MissingBatchId())?;
+                    .ok_or(MessageTesterError::MissingBatchId)?;
                 Box::new(ReportResultMessageHandler::new(
                     reporting_client.clone(),
                     tracking_id,
@@ -149,7 +149,7 @@ impl MessageTester {
         if let TestScenario::Initiate = settings.test_scenario() {
             let batch_id = settings
                 .batch_id()
-                .ok_or(MessageTesterError::MissingBatchId())?;
+                .ok_or(MessageTesterError::MissingBatchId)?;
             let initiator =
                 MessageInitiator::new(publish_handle, reporting_client, settings.clone(), batch_id);
 
