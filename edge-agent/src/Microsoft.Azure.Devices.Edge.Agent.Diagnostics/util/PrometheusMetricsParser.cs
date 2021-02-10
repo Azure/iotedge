@@ -8,10 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
     using System.Linq;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     public static class PrometheusMetricsParser
     {
+        private static readonly ILogger Log = Logger.Factory.CreateLogger("Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.PrometheusMetricsParser");
+
         // Extracts data from prometheus format. Read about prometheus format here:
         //
         // - https://prometheus.io/docs/concepts/data_model/
@@ -70,18 +73,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                 {
                     if (line.Length == 0 || line[0] == '#')
                     {
+                        // Empty line or comment.
                         continue;
                     }
 
                     Match match = PrometheusSchemaRegex.Match(line);
                     if (!match.Success)
                     {
+                        Log.LogWarning($"Ignoring metric line because it does not match the expected format: [{line}]");
                         continue;
                     }
 
                     double metricValue;
                     if (!double.TryParse(match.Groups["metricvalue"]?.Value, out metricValue))
                     {
+                        Log.LogWarning($"Ignoring metric line because the metric value is malformed: [{line}]");
                         continue;
                     }
 
@@ -131,6 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                         long metricTimestamp;
                         if (!long.TryParse(metricTimestampString, out metricTimestamp))
                         {
+                            Log.LogWarning($"Ignoring metric line because the metric timestamp is malformed: [{line}]");
                             continue;
                         }
 
