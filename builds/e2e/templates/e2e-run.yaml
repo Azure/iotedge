@@ -68,7 +68,7 @@ steps:
   condition: and(succeededOrFailed(), not(variables['Agent.ProxyUrl']))
 
 - pwsh: |
-    $logDir = '$(Build.ArtifactStagingDirectory)/logs'
+    $logDir = '$(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}'
     New-Item $logDir -ItemType Directory -Force | Out-Null
     Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
     Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
@@ -83,6 +83,6 @@ steps:
 - task: PublishBuildArtifacts@1
   displayName: Publish logs
   inputs:
-    PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}
     ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(System.PhaseName)
   condition: succeededOrFailed()
