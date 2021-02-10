@@ -102,7 +102,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: edgebuildkv
-          SecretsFilter: 'ConnectivityNestedEdge-ConnectionString,ConnectivityNestedEdge-EventHubConnectionString'
+          SecretsFilter: 'IotHubStressConnString,EventHubStressConnStr'
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -146,8 +146,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(ConnectivityNestedEdge-ConnectionString)'
-          eventHub.connectionString: '$(ConnectivityNestedEdge-EventHubConnectionString)'
+          iotHub.connectionString: '$(IotHubStressConnString)'
+          eventHub.connectionString: '$(EventHubStressConnStr)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'

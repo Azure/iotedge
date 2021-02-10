@@ -9,7 +9,9 @@ use tracing::{info, info_span, subscriber, Level};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::Subscriber;
 
-use generic_mqtt_tester::{settings::Settings, tester::MessageTester, MessageTesterError};
+use generic_mqtt_tester::{
+    settings::Settings, tester::MessageTester, ExitedWork, MessageTesterError,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -37,7 +39,7 @@ async fn main() -> Result<()> {
             info!("processing shutdown, stopping test");
             shutdown?;
 
-            tester_shutdown.shutdown().await?;
+            tester_shutdown.shutdown(ExitedWork::NoneOrUnknown).await;
             test_fut.await?;
         }
     };
