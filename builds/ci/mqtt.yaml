@@ -8,6 +8,10 @@ trigger:
       - "mqtt/*"
       - "builds/*"
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 
 ################################################################################
