@@ -9,7 +9,6 @@ steps:
     env:
       POOL_ID: 123
       API_VER: 6.0
-      PAT: $(IotEdge1.PAT)
     inputs:
       targetType: inline
       script: |
