@@ -57,10 +57,6 @@ impl Bridges {
         self.bridges.push(Box::pin(task));
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
-        self.bridges.is_empty()
-    }
-
     pub(crate) async fn send_update(&mut self, update: BridgeUpdate) {
         if let Some(config) = self.config_updaters.get_mut(update.name()) {
             if let Err(e) = config.send_update(update).await {
@@ -77,7 +73,7 @@ impl Bridges {
         if let Some(bridge_handle) = self.bridge_handles.remove(name) {
             bridge_handle.shutdown().await;
         } else {
-            debug!("bridge {} not found", name);
+            warn!("bridge {} not found", name);
         }
     }
 
