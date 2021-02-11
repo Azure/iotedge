@@ -24,7 +24,9 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             },
-            "env": {}
+            "https_proxy": {	
+              "value": "<proxyAddress>"
+            }
           },
           "edgeHub": {
             "type": "docker",
@@ -47,7 +49,10 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }                   
+              },
+              "https_proxy": {	
+                "value": "<proxyAddress>"
+              }                                 
             },
             "status": "running",
             "restartPolicy": "always"
@@ -73,6 +78,9 @@
               },
               "REGISTRY_PROXY_PASSWORD": {
                 "value": "<CR.Password>"
+              },
+              "https_proxy": {
+                "value": "<proxyAddress>"
               }
             }
           },

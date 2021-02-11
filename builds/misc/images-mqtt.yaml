@@ -5,6 +5,9 @@ trigger:
       - master
 pr: none
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 ################################################################################
   - job: linux_amd64

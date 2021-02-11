@@ -7,7 +7,7 @@ ARG DIR=.
 
 FROM arm32v7/alpine:3.13.1
 WORKDIR /app
-#COPY ./docker/linux/arm32v7/api-proxy-module .
+COPY ./docker/linux/arm32v7/api-proxy-module .
 COPY ./docker/linux/arm32v7/templates .
 RUN	apk update && \
     apk add nginx && \
