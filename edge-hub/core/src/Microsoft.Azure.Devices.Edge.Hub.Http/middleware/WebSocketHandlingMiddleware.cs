@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                     }
                     catch (Exception ex)
                     {
-                        Events.InvalidCertificate(ex);
+                        Events.InvalidCertificate(ex, remoteEndPoint.ToString());
                         throw;
                     }
                 }
@@ -136,8 +136,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             public static void WebSocketRequestNoListener(string traceId, string correlationId) =>
                 Log.LogDebug((int)EventIds.BadRequest, Invariant($"No listener found for request {traceId}. CorrelationId {correlationId}"));
 
-            public static void InvalidCertificate(Exception ex) =>
-                Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate: {ex.Message}"));
+            public static void InvalidCertificate(Exception ex, string connectionIp) =>
+                Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate for incoming connection: {connectionIp}, Exception: {ex.Message}"));
         }
     }
 
