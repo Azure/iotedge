@@ -1,6 +1,6 @@
 mod loader;
 mod publication_store;
-pub mod waking_state;
+mod waking_state;
 
 use bincode::Error as BincodeError;
 use serde::{Deserialize, Serialize};

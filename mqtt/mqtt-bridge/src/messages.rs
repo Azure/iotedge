@@ -24,10 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{
-        waking_state::{ring_buffer::error::RingBufferError, StreamWakeableState},
-        PublicationStore, StorageError,
-    },
+    persist::{PublicationStore, RingBufferError, StorageError, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };

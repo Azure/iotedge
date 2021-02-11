@@ -21,7 +21,7 @@ use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
     messages::StoreMqttEventHandler,
-    persist::waking_state::StreamWakeableState,
+    persist::StreamWakeableState,
 };
 
 /// Handles all events that local clients received for upstream bridge.
