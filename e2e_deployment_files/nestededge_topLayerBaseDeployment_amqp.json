@@ -41,9 +41,6 @@
               "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
               },
-              "experimentalFeatures__mqttBrokerEnabled": {
-                "value": "true"
-              },
               "DeviceScopeCacheRefreshDelaySecs": {
                 "value": 1
               },

@@ -223,6 +223,7 @@ docker_build_and_tag_and_push()
     echo "Building and pushing Docker image $imagename for $arch"
 
     if [[ $DOCKER_USE_BUILDX = "true" ]]; then
+        docker buildx prune --all -f
         docker buildx rm  mbuilder || true
         docker buildx create --name mbuilder  || true
         docker buildx use mbuilder

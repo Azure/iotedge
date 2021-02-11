@@ -1,9 +1,14 @@
 name: $(version)
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  
 jobs:
 ################################################################################
   - job: linux_API_proxy_module
 ################################################################################
     displayName: linuxAPIProxy
+    timeoutInMinutes: 120
     pool:
      name: $(pool.name)
      demands:    
