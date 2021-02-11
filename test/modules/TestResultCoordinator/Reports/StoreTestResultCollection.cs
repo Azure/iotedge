@@ -8,16 +8,16 @@ namespace TestResultCoordinator.Reports
 
     class StoreTestResultCollection<T> : IAsyncEnumerable<T>
     {
-        StoreTestResultCollectionEnumerator Enumerator;
+        StoreTestResultCollectionEnumerator enumerator;
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken _)
         {
-            return this.Enumerator;
+            return this.enumerator;
         }
 
         public StoreTestResultCollection(ISequentialStore<T> store, int batchSize)
         {
-            this.Enumerator = new StoreTestResultCollectionEnumerator(store, batchSize);
+            this.enumerator = new StoreTestResultCollectionEnumerator(store, batchSize);
         }
 
         public struct StoreTestResultCollectionEnumerator : IAsyncEnumerator<T>

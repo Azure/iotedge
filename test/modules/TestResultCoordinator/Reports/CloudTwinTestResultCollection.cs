@@ -12,17 +12,17 @@ namespace TestResultCoordinator.Reports
 
     class CloudTwinTestResultCollection : IAsyncEnumerable<TestOperationResult>
     {
-        CloudTwinTestResultCollectionEnumerator Enumerator;
+        CloudTwinTestResultCollectionEnumerator enumerator;
 
         public CloudTwinTestResultCollection(string source, string serviceClientConnectionString, string moduleId, string trackingId)
         {
             CloudTwinTestResultCollectionEnumerator enumerator = new CloudTwinTestResultCollectionEnumerator(source, serviceClientConnectionString, moduleId, trackingId);
-            this.Enumerator = enumerator;
+            this.enumerator = enumerator;
         }
 
         public IAsyncEnumerator<TestOperationResult> GetAsyncEnumerator(CancellationToken _)
         {
-            return this.Enumerator;
+            return this.enumerator;
         }
 
         public struct CloudTwinTestResultCollectionEnumerator : IAsyncEnumerator<TestOperationResult>
