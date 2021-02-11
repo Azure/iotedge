@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -20,9 +21,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string testDescription,
             string trackingId,
             string senderSource,
-            ITestResultCollection<TestOperationResult> senderTestResults,
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
             string receiverSource,
-            ITestResultCollection<TestOperationResult> receiverTestResults,
+            IAsyncEnumerator<TestOperationResult> receiverTestResults,
             string resultType)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
@@ -36,11 +37,11 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         internal string ReceiverSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> ReceiverTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> ReceiverTestResults { get; }
 
         internal string SenderSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
         internal string ResultType { get; }
 

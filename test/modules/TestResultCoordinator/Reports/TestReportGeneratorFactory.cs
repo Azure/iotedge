@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
@@ -54,9 +55,9 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
-                            expectedTestResults,
+                            expectedTestResults.GetAsyncEnumerator(),
                             metadata.ActualSource,
-                            actualTestResults,
+                            actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
                             Settings.Current.UnmatchedResultsMaxSize);
@@ -72,9 +73,9 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
-                            expectedTestResults,
+                            expectedTestResults.GetAsyncEnumerator(),
                             metadata.ActualSource,
-                            actualTestResults,
+                            actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
                             Settings.Current.UnmatchedResultsMaxSize);
@@ -90,7 +91,7 @@ namespace TestResultCoordinator.Reports
                             trackingId,
                             testReportMetadata.TestOperationResultType.ToString(),
                             metadata.SenderSource,
-                            testResults);
+                            testResults.GetAsyncEnumerator());
                     }
 
                 case TestReportType.DeploymentTestReport:
@@ -103,9 +104,9 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.ExpectedSource,
-                            expectedTestResults,
+                            expectedTestResults.GetAsyncEnumerator(),
                             metadata.ActualSource,
-                            actualTestResults,
+                            actualTestResults.GetAsyncEnumerator(),
                             Settings.Current.UnmatchedResultsMaxSize);
                     }
 
@@ -113,7 +114,7 @@ namespace TestResultCoordinator.Reports
                     {
                         var metadata = (DirectMethodConnectivityReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
-                        var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
+                        var receiverTestResultsEnumerator = metadata.ReceiverSource.Map(x => this.GetResults(x).GetAsyncEnumerator());
                         var tolerancePeriod = metadata.TolerancePeriod;
                         var networkStatusTimeline = await this.GetNetworkStatusTimelineAsync(tolerancePeriod);
 
@@ -121,9 +122,9 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
-                            senderTestResults,
+                            senderTestResults.GetAsyncEnumerator(),
                             metadata.ReceiverSource,
-                            receiverTestResults,
+                            receiverTestResultsEnumerator,
                             metadata.TestOperationResultType.ToString(),
                             networkStatusTimeline,
                             this.NetworkControllerType);
@@ -142,9 +143,9 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.SenderSource,
-                            senderTestResults,
+                            senderTestResults.GetAsyncEnumerator(),
                             metadata.ReceiverSource,
-                            receiverTestResults,
+                            receiverTestResults.GetAsyncEnumerator(),
                             metadata.TestOperationResultType.ToString());
                     }
 
@@ -160,8 +161,8 @@ namespace TestResultCoordinator.Reports
                             metadata.SenderSource,
                             metadata.ReceiverSource,
                             metadata.TestReportType,
-                            senderTestResults,
-                            receiverTestResults);
+                            senderTestResults.GetAsyncEnumerator(),
+                            receiverTestResults.GetAsyncEnumerator());
                     }
 
                 case TestReportType.EdgeHubRestartMessageReport:
@@ -176,8 +177,8 @@ namespace TestResultCoordinator.Reports
                             metadata.SenderSource,
                             metadata.ReceiverSource,
                             metadata.TestReportType,
-                            senderTestResults,
-                            receiverTestResults);
+                            senderTestResults.GetAsyncEnumerator(),
+                            receiverTestResults.GetAsyncEnumerator());
                     }
 
                 case TestReportType.NetworkControllerReport:
@@ -189,7 +190,7 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.Source,
-                            testResults,
+                            testResults.GetAsyncEnumerator(),
                             TestOperationResultType.Network);
                     }
 
@@ -202,7 +203,7 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.Source,
-                            testResults,
+                            testResults.GetAsyncEnumerator(),
                             TestOperationResultType.Error);
                     }
 
@@ -215,7 +216,7 @@ namespace TestResultCoordinator.Reports
                             metadata.TestDescription,
                             trackingId,
                             metadata.Source,
-                            testResults,
+                            testResults.GetAsyncEnumerator(),
                             TestOperationResultType.TestInfo);
                     }
 
@@ -233,14 +234,14 @@ namespace TestResultCoordinator.Reports
                 tolerancePeriod);
         }
 
-        ITestResultCollection<TestOperationResult> GetResults(string resultSource)
+        IAsyncEnumerable<TestOperationResult> GetResults(string resultSource)
         {
             return new StoreTestResultCollection<TestOperationResult>(
                 this.Storage.GetStoreFromSource(resultSource),
                 BatchSize);
         }
 
-        ITestResultCollection<TestOperationResult> GetTwinExpectedResults(TwinCountingReportMetadata reportMetadata)
+        IAsyncEnumerable<TestOperationResult> GetTwinExpectedResults(TwinCountingReportMetadata reportMetadata)
         {
             if (reportMetadata == null)
             {
