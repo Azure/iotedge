@@ -10,6 +10,9 @@ resources:
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: master
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 
 ################################################################################		
