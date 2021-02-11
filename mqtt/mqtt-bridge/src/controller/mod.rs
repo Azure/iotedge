@@ -82,13 +82,9 @@ impl Sidecar for BridgeController {
         }
 
         loop {
-            let wait_bridge_or_pending = if (bridges.is_terminated() || bridges.is_empty()) {
-                if (bridges.is_empty()) {
-                    // if no active bridges available, restart upstream bridge
-                    Either::Left(future::ready(Some((UPSTREAM.into(), Ok(Ok(()))))))
-                } else {
-                    Either::Left(future::ready(None))
-                }
+            let wait_bridge_or_pending = if bridges.is_terminated() {
+                // if bridges were terminated just wait for messages
+                Either::Left(future::pending())
             } else {
                 // otherwise try to await both a new message arrival or any bridge exit
                 Either::Right(bridges.next())
@@ -105,7 +101,7 @@ impl Sidecar for BridgeController {
                 }
                 Either::Left((BridgeControllerMessage::ShutdownBridge(name), _)) => {
                     info!("bridge {} shutdown requested", name);
-                    bridges.shutdown_bridge(name.as_ref()).await;
+                    bridges.shutdown_bridge(&name).await;
                 }
                 Either::Right((Some((name, bridge)), _)) => {
                     match bridge {
