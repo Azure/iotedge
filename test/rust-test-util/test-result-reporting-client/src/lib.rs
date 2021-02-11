@@ -11,6 +11,8 @@
     clippy::missing_errors_doc
 )]
 
+use std::fmt;
+
 use enumset::EnumSetType;
 use hyper::http;
 
@@ -33,6 +35,12 @@ pub enum TestType {
     EdgeHubRestartDirectMethod,
     Error,
     TestInfo,
+}
+
+impl fmt::Display for TestType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

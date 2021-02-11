@@ -159,7 +159,7 @@ build_project()
     else
         echo "Cannot run script Unsupported architecture $ARCH"
         exit 1
-    fi    
+    fi
 
     execute cd "$API_PROXY_DIR" 
     # prepare docker folder

@@ -13,7 +13,7 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<SatelliteController>();
         readonly INetworkController underlyingController;
 
-        public SatelliteController(string networkInterfaceName, string iotHubHostname, NetworkProfileSetting settings)
+        public SatelliteController(string networkInterfaceName, string hubHostname, NetworkProfileSetting settings)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -21,7 +21,7 @@ namespace NetworkController
             }
             else
             {
-                this.underlyingController = new LinuxTrafficControlController(settings, networkInterfaceName, iotHubHostname);
+                this.underlyingController = new LinuxTrafficControlController(settings, networkInterfaceName, hubHostname);
             }
         }
 
