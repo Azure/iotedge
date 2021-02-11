@@ -13,8 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
 
     public static class PrometheusMetricsParser
     {
-        private static readonly ILogger Log = Logger.Factory.CreateLogger("Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.PrometheusMetricsParser");
-
         // Extracts data from prometheus format. Read about prometheus format here:
         //
         // - https://prometheus.io/docs/concepts/data_model/
@@ -62,6 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
             RegexOptions.Compiled);
 
         private static readonly DateTime MetricTimestampEpoch = DateTime.UnixEpoch;
+
+        private static readonly ILogger Log = Logger.Factory.CreateLogger("Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util.PrometheusMetricsParser");
 
         public static IEnumerable<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
         {
