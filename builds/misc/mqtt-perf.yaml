@@ -36,6 +36,7 @@ resources:
     source: 'Azure-IoT-Edge-Core Build MQTT Images'
 
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   benchmarkToolPath: $(Agent.WorkFolder)/mqtt-benchmark
 
 stages:
