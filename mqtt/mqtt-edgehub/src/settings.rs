@@ -57,25 +57,19 @@ impl Source for BrokerEnvironment {
         host_env.merge(Environment::with_prefix("MqttBroker_").separator(":"))?;
         host_env.merge(Environment::with_prefix("MqttBroker_").separator("__"))?;
 
-        dbg!(host_env.collect()?);
-
         let mut result: HashMap<String, config::Value> = HashMap::new();
 
         // session
         if let Ok(val) = host_env.get::<String>("maxinflightmessages") {
-            dbg!(&val);
             result.insert("broker.session.max_inflight_messages".into(), val.into());
         }
         if let Ok(val) = host_env.get::<String>("maxqueuedmessages") {
-            dbg!(&val);
             result.insert("broker.session.max_queued_messages".into(), val.into());
         }
         if let Ok(val) = host_env.get::<String>("maxqueuedbytes") {
-            dbg!(&val);
             result.insert("broker.session.max_queued_size".into(), val.into());
         }
         if let Ok(val) = host_env.get::<String>("whenfull") {
-            dbg!(&val);
             result.insert("broker.session.when_full".into(), val.into());
         }
 
