@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -12,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -27,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             ("/etc/aziot/keyd/config.toml", "aziotks"),
             ("/etc/aziot/certd/config.toml", "aziotcs"),
             ("/etc/aziot/identityd/config.toml", "aziotid"),
+            ("/etc/aziot/tpmd/config.toml", "aziotts"),
             ("/etc/aziot/edged/config.yaml", "iotedge")
         };
 
@@ -55,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
-                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
+                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
                     // Clean the directory for test certs, keys, etc.
                     if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
@@ -102,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 config.SetEdgeAgentImage(edgeAgent);
                             });
 
-                            Context.Current.Proxy.ForEach(proxy =>
+                            Context.Current.EdgeProxy.ForEach(proxy =>
                             {
                                 config.AddHttpsProxy(proxy);
                                 msgBuilder.AppendLine(", proxy '{ProxyUri}'");
