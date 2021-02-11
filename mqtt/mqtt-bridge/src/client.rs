@@ -174,7 +174,6 @@ where
 
         while let Some(event) = self.client.try_next().await? {
             debug!("handling event {:?}", event);
-
             if let Err(e) = self.event_handler.handle(event).await {
                 error!(error = %e, "error processing event");
             }

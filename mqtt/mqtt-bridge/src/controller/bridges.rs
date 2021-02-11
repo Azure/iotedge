@@ -16,7 +16,7 @@ use tracing_futures::Instrument;
 use crate::{
     bridge::{Bridge, BridgeError, BridgeHandle},
     config_update::{BridgeUpdate, ConfigUpdater},
-    persist::waking_state::StreamWakeableState,
+    persist::StreamWakeableState,
     settings::ConnectionSettings,
 };
 
