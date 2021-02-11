@@ -60,23 +60,23 @@ impl Source for BrokerEnvironment {
         let mut result: HashMap<String, config::Value> = HashMap::new();
 
         // session
-        if let Ok(val) = host_env.get::<String>("maxinflightmessages") {
-            result.insert("broker.session.max_inflight_messages".into(), val.into());
+        if let Ok(val) = host_env.get::<Value>("maxinflightmessages") {
+            result.insert("broker.session.max_inflight_messages".into(), val);
         }
-        if let Ok(val) = host_env.get::<String>("maxqueuedmessages") {
-            result.insert("broker.session.max_queued_messages".into(), val.into());
+        if let Ok(val) = host_env.get::<Value>("maxqueuedmessages") {
+            result.insert("broker.session.max_queued_messages".into(), val);
         }
-        if let Ok(val) = host_env.get::<String>("maxqueuedbytes") {
-            result.insert("broker.session.max_queued_size".into(), val.into());
+        if let Ok(val) = host_env.get::<Value>("maxqueuedbytes") {
+            result.insert("broker.session.max_queued_size".into(), val);
         }
-        if let Ok(val) = host_env.get::<String>("whenfull") {
-            result.insert("broker.session.when_full".into(), val.into());
+        if let Ok(val) = host_env.get::<Value>("whenfull") {
+            result.insert("broker.session.when_full".into(), val);
         }
 
         // persistance
-        if let Ok(val) = host_env.get::<String>("storagefolder") {
-            result.insert("broker.persistence.folder_path".into(), val.clone().into());
-            result.insert("bridge.persistence.folder_path".into(), val.into());
+        if let Ok(val) = host_env.get::<Value>("storagefolder") {
+            result.insert("broker.persistence.folder_path".into(), val.clone());
+            result.insert("bridge.persistence.folder_path".into(), val);
         }
 
         Ok(result)
