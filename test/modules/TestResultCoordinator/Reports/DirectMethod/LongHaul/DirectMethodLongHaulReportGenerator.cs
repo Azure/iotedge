@@ -21,15 +21,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string trackingId,
             string senderSource,
             ITestResultCollection<TestOperationResult> senderTestResults,
-            Option<string> receiverSource,
-            Option<ITestResultCollection<TestOperationResult>> receiverTestResults,
+            string receiverSource,
+            ITestResultCollection<TestOperationResult> receiverTestResults,
             string resultType)
         {
-            if (receiverSource.HasValue ^ receiverTestResults.HasValue)
-            {
-                throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
-            }
-
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
@@ -39,9 +34,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
         }
 
-        internal Option<string> ReceiverSource { get; }
+        internal string ReceiverSource { get; }
 
-        internal Option<ITestResultCollection<TestOperationResult>> ReceiverTestResults { get; }
+        internal ITestResultCollection<TestOperationResult> ReceiverTestResults { get; }
 
         internal string SenderSource { get; }
 
@@ -56,7 +51,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         public async Task<ITestResultReport> CreateReportAsync()
         {
             ulong senderSuccesses = 0;
-            Option<ulong> receiverSuccesses = Option.None<ulong>();
+            ulong receiverSuccesses = 0;
             ulong statusCodeZero = 0;
             ulong unknown = 0;
             while (await this.SenderTestResults.MoveNextAsync())
@@ -77,20 +72,16 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 }
             }
 
-            await this.ReceiverTestResults.ForEachAsync(async r =>
+            ulong receiverResults = 0;
+            while (await this.ReceiverTestResults.MoveNextAsync())
             {
-                ulong receiverResults = 0;
-                while (await r.MoveNextAsync())
-                {
-                    // ReceiverSource will always be there if ReceiverTestResults is so it's safe to put OrDefault
-                    this.ValidateDataSource(r.Current, this.ReceiverSource.Expect<ArgumentException>(
-                        () => throw new ArgumentException("Impossible case. ReceiverSource must be filled in if ReceiverTestResults are")));
-                    DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(r.Current.Result);
-                    receiverResults++;
-                }
+                // ReceiverSource will always be there if ReceiverTestResults is so it's safe to put OrDefault
+                this.ValidateDataSource(this.ReceiverTestResults.Current, this.ReceiverSource);
+                DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
+                receiverResults++;
+            }
 
-                receiverSuccesses = Option.Some(receiverResults);
-            });
+            receiverSuccesses = receiverResults;
             return new DirectMethodLongHaulReport(
                 this.TestDescription,
                 this.trackingId,

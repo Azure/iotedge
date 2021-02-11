@@ -17,15 +17,18 @@ namespace TestResultCoordinator.Reports
     {
         const int BatchSize = 500;
 
-        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType)
+        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType, Option<TestResultFilter> testResultFilter)
         {
             this.Storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.NetworkControllerType = networkControllerType;
+            this.TestResultFilter = testResultFilter;
         }
 
         ITestOperationResultStorage Storage { get; }
 
         NetworkControllerType NetworkControllerType { get; }
+
+        Option<TestResultFilter> TestResultFilter { get; }
 
         public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
@@ -41,6 +44,11 @@ namespace TestResultCoordinator.Reports
                         var metadata = (CountingReportMetadata)testReportMetadata;
                         var expectedTestResults = this.GetResults(metadata.ExpectedSource);
                         var actualTestResults = this.GetResults(metadata.ActualSource);
+
+                        this.TestResultFilter.ForEach(filter =>
+                        {
+                            (expectedTestResults, actualTestResults) = filter.FilterResults(expectedTestResults, actualTestResults);
+                        });
 
                         return new CountingReportGenerator(
                             metadata.TestDescription,
@@ -125,7 +133,10 @@ namespace TestResultCoordinator.Reports
                     {
                         var metadata = (DirectMethodLongHaulReportMetadata)testReportMetadata;
                         var senderTestResults = this.GetResults(metadata.SenderSource);
-                        var receiverTestResults = metadata.ReceiverSource.Map(x => this.GetResults(x));
+                        var receiverTestResults = this.GetResults(metadata.ReceiverSource);
+
+                        TestResultFilter filter = this.TestResultFilter.Expect(() => new NotSupportedException("cannot generate longhaul reports without filter for recent unmatched expected results"));
+                        (senderTestResults, receiverTestResults) = filter.FilterResults(senderTestResults, receiverTestResults);
 
                         return new DirectMethodLongHaulReportGenerator(
                             metadata.TestDescription,

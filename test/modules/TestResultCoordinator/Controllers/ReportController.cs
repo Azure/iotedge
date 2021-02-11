@@ -28,7 +28,17 @@ namespace TestResultCoordinator.Controllers
         [HttpGet]
         public async Task<ContentResult> GetReportsAsync()
         {
-            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType);
+            Option<TestResultFilter> testResultFilter = Settings.Current.LongHaulSpecificSettings.Match(
+                x =>
+                {
+                    return Option.Some<TestResultFilter>(new TestResultFilter(x.UnmatchedResultTolerance));
+                },
+                () =>
+                {
+                    return Option.None<TestResultFilter>();
+                });
+            var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage, Settings.Current.NetworkControllerType, testResultFilter);
+
             List<ITestReportMetadata> reportMetadataList = await Settings.Current.GetReportMetadataListAsync(Logger);
             ITestResultReport[] testResultReports = await TestReportUtil.GenerateTestResultReportsAsync(Settings.Current.TrackingId, reportMetadataList, testReportGeneratorFactory, Logger);
 
