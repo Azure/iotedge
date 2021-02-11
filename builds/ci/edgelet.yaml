@@ -7,6 +7,10 @@ trigger:
       - iiot
       - preview/iiot
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 
 ################################################################################
