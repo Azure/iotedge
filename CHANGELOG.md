@@ -1,4 +1,4 @@
-# 1.1.0 (2021-02-03)
+# 1.1.0 (2021-02-10)
 ## Change to Supported Systems
 * **Remove support for Ubuntu 16.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match. Ubuntu 18.04 continues to be supported.
 ## Edge Agent
