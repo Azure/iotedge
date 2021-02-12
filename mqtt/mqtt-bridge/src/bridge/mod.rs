@@ -154,6 +154,9 @@ impl Bridge<RingBuffer> {
                 .with_rules(settings.subscriptions());
             })
             .with_store(move |suffix| {
+                let mut file_path = file_path.clone();
+                file_path.push(suffix);
+
                 PublicationStore::new_ring_buffer(
                     NonZeroUsize::new(BATCH_SIZE).unwrap(),
                     &ring_buffer_settings,

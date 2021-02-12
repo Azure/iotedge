@@ -59,7 +59,7 @@ impl PublicationStore<RingBuffer> {
 
 impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
-        file_path: &Path,
+        file_path: PathBuf,
         max_file_size: usize,
         flush_options: FlushOptions,
         batch_size: usize,
