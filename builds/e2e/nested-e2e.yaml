@@ -43,9 +43,9 @@ stages:
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked    
     steps:
-      - template: templates/e2e-clean-directory.yaml
       - template: templates/nested-get-secrets.yaml     
       - template: templates/lock-test-agent.yaml
+      - template: templates/e2e-clean-directory.yaml
 
       - task: Bash@3
         displayName: 'Az login'
