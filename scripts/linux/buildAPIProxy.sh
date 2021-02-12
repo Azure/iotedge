@@ -175,11 +175,6 @@ build_project()
 
     # copy template files
     execute cp -r "$API_PROXY_DIR/templates" "$EXE_DOCKER_DIR/"
-
-    if [[ $ARCH == "arm64v8" ]]; then
-        execute cp -r "$API_PROXY_DIR/docker/linux/$ARCH/lib" "$EXE_DOCKER_DIR/"
-        ls $EXE_DOCKER_DIR
-    fi
 }
 
 ###############################################################################
