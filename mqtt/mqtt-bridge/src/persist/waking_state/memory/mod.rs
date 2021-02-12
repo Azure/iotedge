@@ -59,11 +59,13 @@ impl StreamWakeableState for WakingMemoryStore {
             key, self.loaded
         );
 
-        if !self.loaded.is_empty() && self.loaded[0] == key {
+        if self.loaded.is_empty() {
+            Err(MemoryError::RemoveOnEmpty.into())
+        } else if self.loaded[0] == key {
             self.loaded.pop_front();
             Ok(())
         } else {
-            Err(MemoryError::BadKey.into())
+            Err(MemoryError::BadKeyOrdering.into())
         }
     }
 
