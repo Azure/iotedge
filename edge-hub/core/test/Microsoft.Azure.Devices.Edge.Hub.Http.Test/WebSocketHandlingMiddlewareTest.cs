@@ -138,6 +138,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             return Mock.Of<HttpContext>(
                 ctx =>
                     ctx.WebSockets == Mock.Of<WebSocketManager>(wsm => wsm.IsWebSocketRequest == true)
+                    && ctx.Request == Mock.Of<HttpRequest>(
+                        req =>
+                            req.Headers == Mock.Of<IHeaderDictionary>())
                     && ctx.Response == Mock.Of<HttpResponse>()
                     && ctx.Features == Mock.Of<IFeatureCollection>(
                         fc =>
@@ -169,6 +172,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                             wsm.WebSocketRequestedProtocols == subprotocols
                             && wsm.IsWebSocketRequest
                             && wsm.AcceptWebSocketAsync(It.IsAny<string>()) == Task.FromResult(Mock.Of<WebSocket>()))
+                    && ctx.Request == Mock.Of<HttpRequest>(
+                        req =>
+                            req.Headers == Mock.Of<IHeaderDictionary>())
                     && ctx.Response == Mock.Of<HttpResponse>()
                     && ctx.Features == Mock.Of<IFeatureCollection>(
                         fc => fc.Get<ITlsConnectionFeatureExtended>() == Mock.Of<ITlsConnectionFeatureExtended>(f => f.ChainElements == new List<X509Certificate2>()))
