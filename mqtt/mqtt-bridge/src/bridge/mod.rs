@@ -5,11 +5,12 @@ use futures_util::{
     pin_mut,
 };
 use mqtt3::ShutdownError;
+use mqtt_util::Credentials;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
 
 use crate::{
-    client::ClientError,
+    client::{ClientError, MqttClientConfig},
     config_update::BridgeDiff,
     persist::{PersistError, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
