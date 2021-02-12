@@ -204,7 +204,7 @@ mod tests {
 
         let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
-        
+
         #[allow(clippy::cast_possible_truncation)]
         let data_size = result.unwrap() as u32;
 

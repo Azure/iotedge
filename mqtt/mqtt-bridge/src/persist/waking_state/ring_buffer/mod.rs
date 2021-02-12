@@ -805,10 +805,10 @@ mod tests {
         let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
         let result = bincode::serialize(&publication);
-        assert_matches!(result, Ok(_)); 
+        assert_matches!(result, Ok(_));
         let data = result.unwrap();
-        
-        #[allow(clippy::cast_possible_truncation)]               
+
+        #[allow(clippy::cast_possible_truncation)]
         let data_size = data.len() as u32;
 
         let total_size = block_size + data_size;
@@ -838,7 +838,7 @@ mod tests {
         let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
-        
+
         #[allow(clippy::cast_possible_truncation)]
         let data_size = data.len() as u32;
 
@@ -1032,7 +1032,7 @@ mod tests {
 
         let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
-        
+
         #[allow(clippy::cast_possible_truncation)]
         let data_size = result.unwrap() as u32;
 
