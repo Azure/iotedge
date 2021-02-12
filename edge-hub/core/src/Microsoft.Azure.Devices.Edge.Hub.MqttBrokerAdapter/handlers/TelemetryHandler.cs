@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeListener = await this.connectionRegistry.GetDeviceListenerAsync(identity);
+            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity);
             var listener = default(IDeviceListener);
 
             try

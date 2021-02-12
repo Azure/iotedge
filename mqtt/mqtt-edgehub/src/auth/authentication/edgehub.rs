@@ -394,7 +394,7 @@ ov2gTgQyaRE8rbX4SSPZghE5km7p6FAIjm/uqU9kGMUk3A==
 
         // create mock http server with unused endpoint just to prevent
         // other tests to make endpoint which could override the current one
-        let _ = mock("POST", "/unused").create();
+        let _mock = mock("POST", "/unused").create();
 
         let handle = tokio::spawn(async {
             // emulate edgehub startup delay 1s

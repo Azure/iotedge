@@ -6,7 +6,10 @@ use map::SmallIndexMap;
 use queue::BoundedQueue;
 use set::SmallIndexSet;
 
-use std::{cmp, collections::HashMap};
+use std::{
+    cmp,
+    collections::{HashMap, VecDeque},
+};
 
 use chrono::{DateTime, Utc};
 use tracing::{debug, info};
@@ -63,7 +66,8 @@ impl SessionState {
         snapshot: SessionSnapshot,
         config: SessionConfig,
     ) -> (Self, DateTime<Utc>) {
-        let (client_info, subscriptions, queued_publications, last_active) = snapshot.into_parts();
+        let (client_info, subscriptions, queued_publications, in_flight, last_active) =
+            snapshot.into_parts();
 
         let mut waiting_to_be_sent = BoundedQueue::new(
             config.max_queued_messages(),
@@ -72,13 +76,24 @@ impl SessionState {
         );
         waiting_to_be_sent.extend(queued_publications);
 
+        let mut waiting_to_be_acked = SmallIndexMap::new();
+        for publish in in_flight {
+            match publish.packet_identifier_dup_qos {
+                proto::PacketIdentifierDupQoS::AtLeastOnce(id, _)
+                | proto::PacketIdentifierDupQoS::ExactlyOnce(id, _) => {
+                    waiting_to_be_acked.insert(id, Publish::QoS12(id, publish));
+                }
+                proto::PacketIdentifierDupQoS::AtMostOnce => {} // ignore qos0 (they should not be there)
+            }
+        }
+
         (
             Self {
                 client_info,
                 subscriptions,
                 packet_identifiers: PacketIdentifiers::default(),
                 waiting_to_be_sent,
-                waiting_to_be_acked: SmallIndexMap::new(),
+                waiting_to_be_acked,
                 waiting_to_be_released: SmallIndexMap::new(),
                 waiting_to_be_completed: SmallIndexSet::new(),
                 waiting_to_be_acked_qos0: SmallIndexMap::new(),
@@ -90,10 +105,18 @@ impl SessionState {
     }
 
     pub fn into_snapshot(self, last_active: DateTime<Utc>) -> SessionSnapshot {
+        let mut waiting_to_be_acked = VecDeque::new();
+        for (_, publish) in self.waiting_to_be_acked {
+            match publish {
+                Publish::QoS12(_, publish) => waiting_to_be_acked.push_back(publish),
+                Publish::QoS0(_, _) => {} // ignore qos0
+            };
+        }
         SessionSnapshot::from_parts(
             self.client_info,
             self.subscriptions,
             self.waiting_to_be_sent.into_inner(),
+            waiting_to_be_acked,
             last_active,
         )
     }

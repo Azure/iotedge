@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 {
                     this.cts.Dispose();
 
-                    if (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored)
+                    if ((!Context.Current.ISA95Tag) && (TestContext.CurrentContext.Result.Outcome != ResultState.Ignored))
                     {
                         using var cts = new CancellationTokenSource(Context.Current.TeardownTimeout);
                         await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
