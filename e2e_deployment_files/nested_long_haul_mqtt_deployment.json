@@ -47,9 +47,8 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }
-            }
-          },
+              }                   
+            },
             "status": "running",
             "restartPolicy": "always"
           }
