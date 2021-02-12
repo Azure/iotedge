@@ -21,6 +21,45 @@ stages:
     displayName: Set up and run connectivity tests on Linux Amd64
     dependsOn: SetupVM_level4
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
+    strategy:
+      matrix:
+        Online:
+          testrun.config: 1
+          testrun.network.description: "Online"
+          testrun.network.frequencies: "00:00:00 00:00:00 0"
+          testrun.network.runProfile: "Online"
+          testrun.duration: "01:00:00"
+        Offline(5/5/5):
+          testrun.config: 2
+          testrun.network.description: "Offline(5/5/5)"
+          testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "00:50:00"
+        Offline(10/10/3):
+          testrun.config: 3
+          testrun.network.description: "Offline(10/10/3)"
+          testrun.network.frequencies: "00:10:00 00:10:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:00:00"
+        Offline(15/15/3):
+          testrun.config: 4
+          testrun.network.description: "Offline(15/15/3)"
+          testrun.network.frequencies: "00:15:00 00:15:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:30:00"
+        Offline(30/30/2):
+          testrun.config: 5
+          testrun.network.description: "Offline(30/30/2)"
+          testrun.network.frequencies: "00:30:00 00:30:00 2"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "02:00:00"
+        Offline(5/20/3):
+          testrun.config: 6
+          testrun.network.description: "Offline(5/20/3)"
+          testrun.network.frequencies: "00:05:00 00:20:00 3"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "01:15:00"
+    timeoutInMinutes: 180
     pool:
       name: $(pool.name)
       demands:
@@ -37,137 +76,31 @@ stages:
       hostPlatform: 'linux_amd64_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml 
-      - template: templates/connectivity-deploy.yaml
+      vsts.project: $(System.TeamProjectId)
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+    steps:  
+      - template: templates/set-run-flag.yaml
+      - task: Bash@3
+        name: Print_test_parameters
+        displayName: 'Print test parameters'
+        inputs:
+          targetType: inline
+          script: |
+            # print all matrix variables here
+            echo "testrun.config=$(testrun.config)"
+            echo "testrun.network.frequencies=$(testrun.network.frequencies)"
+            echo "testrun.network.runProfile=$(testrun.network.runProfile)"
+            echo "testrun.duration=$(testrun.duration)"
+            echo "deploymentFileName=$(deploymentFileName)"
+            echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
+            echo "run.flag=$(run.flag)"
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/nested-get-root-ca.yaml
+      - template: templates/nested-agent-deploy.yaml
         parameters:
-          release.label: 'lh$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(az.pipeline.images.artifacts)'
-          container.registry: '$(cr.address)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          connectivity.desiredModulesToRestartCSV: '$(connectivity.desiredModulesToRestartCSV)'
-          connectivity.restartIntervalInMins: '$(connectivity.restartIntervalInMins)'
-          connectivity.sendReportFrequency: '$(connectivity.sendReportFrequency)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: '$(hostPlatform)'
-          connectivity.parentHostname: '$(parentName)'
-          connectivity.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeconnectivityStorageAccountConnString)'
-          quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
-          connectivity.nested: 'true'
-  - job:  Deploy_connectivity_Linux_Arm32
-    displayName: Set up and run connectivity tests on Arm32
-    dependsOn: SetupVM_level4
-    condition: and(succeeded(), eq(variables['run.linux.arm32v7.moby'], 'true'))
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - status -equals unlocked   
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
-      aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
-      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
-      hostPlatform: 'linux_arm32v7_moby'
-      quickstart.package.name: 'IotEdgeQuickstart.linux-arm.tar.gz'
-      nestededge: true
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml   
-      - template: templates/connectivity-deploy.yaml
-        parameters:
-          release.label: 'lh$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(az.pipeline.images.artifacts)'
-          container.registry: '$(cr.address)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          connectivity.desiredModulesToRestartCSV: '$(connectivity.desiredModulesToRestartCSV)'
-          connectivity.restartIntervalInMins: '$(connectivity.restartIntervalInMins)'
-          connectivity.sendReportFrequency: '$(connectivity.sendReportFrequency)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: '$(hostPlatform)'
-          connectivity.parentHostname: '$(parentName)'
-          connectivity.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeconnectivityStorageAccountConnString)'
-          quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
-  - job:  Deploy_connectivity_Linux_Arm64
-    displayName: Set up and run connectivity tests on Linux Arm64
-    dependsOn: SetupVM_level4
-    condition: and(succeeded(), eq(variables['run.linux.arm64v8.docker'], 'true'))  
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - status -equals unlocked
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
-      aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
-      hostPlatform: 'linux_arm64v8_docker'
-      quickstart.package.name: 'IotEdgeQuickstart.linux-arm64.tar.gz'
-      nestededge: true    
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml  
+          skipInstall: true
       - template: templates/connectivity-deploy.yaml
         parameters:
           release.label: 'ct$(agent.group)'
@@ -175,9 +108,9 @@ stages:
           test.buildId: '$(Build.BuildId)'
           test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(az.pipeline.images.artifacts)'
           container.registry: '$(cr.address)'
@@ -185,42 +118,46 @@ stages:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          connectivity.desiredModulesToRestartCSV: '$(connectivity.desiredModulesToRestartCSV)'
-          connectivity.restartIntervalInMins: '$(connectivity.restartIntervalInMins)'
-          connectivity.sendReportFrequency: '$(connectivity.sendReportFrequency)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
+          deploymentFileName: 'nested_connectivity_deployment.template.json'
+          upstream.protocol: '$(upstream.protocol)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
+          edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
+          testDuration: '$(testrun.duration)'
+          testStartDelay: '$(testStartDelay)'
+          networkController.frequencies: '$(testrun.network.frequencies)'
+          networkController.runProfile: '$(testrun.network.runProfile)'
+          networkController.description: '$(testrun.network.description)'
+          logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+          testResultCoordinator.storageAccountConnectionString: '$(EdgeConnectivityStorageAccountConnString)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: '$(hostPlatform)'
+          edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
+          customEdgeAgent.image: '$(customEdgeAgent.image)'
+          customEdgeHub.image: '$(customEdgeHub.image)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           connectivity.parentHostname: '$(parentName)'
           connectivity.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeconnectivityStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
+          connectivity.nested: true
   - job:  Clean_up      
     dependsOn:
       - SetupVM_level5 
       - SetupVM_level4
       - Deploy_connectivity_Linux_Amd64
-      - Deploy_connectivity_Linux_Arm32
-      - Deploy_connectivity_Linux_Arm64
-    condition: eq(variables['test.pipeline'], 'true')
+    condition: always()
     displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]         
       deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]       
       amd64AgentName: $[ dependencies.Deploy_connectivity_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
-      arm32AgentName: $[ dependencies.Deploy_connectivity_Linux_Arm32.outputs['lock_test_agent.agentName'] ]  
-      arm64AgentName: $[ dependencies.Deploy_connectivity_Linux_Arm64.outputs['lock_test_agent.agentName'] ]  
     pool:
       name: $(pool.name)
       demands:
@@ -237,16 +174,4 @@ stages:
       - template: templates/unlock-test-agent.yaml 
         parameters:
           agentName: $(deviceLvl4AgentName)
-          lvl: 4             
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(amd64AgentName)
-          lvl: 3  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(arm32AgentName)
-          lvl: 3  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(arm64AgentName)
-          lvl: 3  
+          lvl: 4

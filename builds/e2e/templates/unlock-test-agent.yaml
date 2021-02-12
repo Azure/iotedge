@@ -4,8 +4,7 @@ parameters:
 
 steps:
   - task: Bash@3
-    displayName: 'Release ${{ parameters.lvl }}'
-    condition: always()
+    displayName: 'Release level ${{ parameters.lvl }}'
     env:
       POOL_ID: 123
       API_VER: 6.0
