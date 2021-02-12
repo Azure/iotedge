@@ -116,7 +116,8 @@ mod tests {
 
         // extract some, check that they are in order
         let state = Arc::new(Mutex::new(state));
-        let mut loader = MessageLoader::new(state.clone(), NonZeroUsize::new(num_elements).unwrap());
+        let mut loader =
+            MessageLoader::new(state.clone(), NonZeroUsize::new(num_elements).unwrap());
         let (key1, _) = loader.try_next().await.unwrap().unwrap();
         let (key2, _) = loader.try_next().await.unwrap().unwrap();
         assert_eq!(key1, keys[0]);
