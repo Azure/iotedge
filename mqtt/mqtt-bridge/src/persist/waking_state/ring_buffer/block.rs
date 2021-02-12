@@ -1,5 +1,4 @@
 use std::{
-    // collections::hash_map::DefaultHasher,
     fmt::Debug,
     hash::{Hash, Hasher},
 };
@@ -13,8 +12,8 @@ use crate::persist::waking_state::ring_buffer::{
 };
 
 lazy_static! {
-    pub(crate) static ref SERIALIZED_BLOCK_SIZE: u32 =
-        bincode::serialized_size(&BlockHeaderWithHash::new(0, 0, 0, 0)).unwrap() as u32;
+    pub(crate) static ref SERIALIZED_BLOCK_SIZE: u64 =
+        bincode::serialized_size(&BlockHeaderWithHash::new(0, 0, 0, 0)).unwrap();
 }
 
 /// A constant set bytes to help determine if a set of data comprises a block.
@@ -132,7 +131,6 @@ where
     T: Hash + ?Sized,
 {
     let mut hasher = rustc_hash::FxHasher::default();
-    // let mut hasher = DefaultHasher::new();
     t.hash(&mut hasher);
     hasher.finish()
 }
@@ -151,6 +149,8 @@ pub(crate) fn validate(block: &BlockHeaderWithHash, data: &[u8]) -> StorageResul
 
     let inner_block = block.inner;
     let actual_data_size = inner_block.data_size();
+
+    #[allow(clippy::cast_possible_truncation)]
     let data_size = data.len() as u32;
     if actual_data_size != data_size {
         return Err(RingBufferError::Validate(BlockError::DataSize {
@@ -204,6 +204,8 @@ mod tests {
 
         let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
+        
+        #[allow(clippy::cast_possible_truncation)]
         let data_size = result.unwrap() as u32;
 
         let block_header_with_hash = BlockHeaderWithHash::new(data_hash, data_size, 0, 0);
@@ -297,12 +299,7 @@ mod tests {
         let result = validate(&block, data);
         assert_matches!(
             result,
-            Err(StorageError::RingBuffer(RingBufferError::Validate(
-                BlockError::BlockHash {
-                    found: 0x1,
-                    expected: 5014418502242392591,
-                }
-            )))
+            Err(StorageError::RingBuffer(RingBufferError::Validate(_)))
         );
     }
 }
