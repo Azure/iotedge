@@ -21,10 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class EdgeAgentDirectMethods : SasManualProvisioningFixture
     {
         [Test]
+        [Category("nestededge_isa95")]
         public async Task TestPing()
         {
             CancellationToken token = this.TestToken;
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+
+            // This is a temporary solution see ticket: 9288683
+            if (!Context.Current.ISA95Tag)
+            {
+                await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            }
 
             var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, ConfigModuleName.EdgeAgent, new CloudToDeviceMethod("Ping", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
 

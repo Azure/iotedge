@@ -11,10 +11,7 @@ use mqtt3::{
     proto::{self, Publication, SubscribeTo},
     Client, Event, ShutdownError, UpdateSubscriptionError,
 };
-
-use mqtt_util::client_io::{
-    ClientIoSource, Credentials, SasTokenSource, TcpConnection, TrustBundleSource,
-};
+use mqtt_util::{ClientIoSource, Credentials, SasTokenSource, TcpConnection, TrustBundleSource};
 
 const DEFAULT_MAX_RECONNECT: Duration = Duration::from_secs(60);
 // TODO: get QOS from topic settings
@@ -168,23 +165,21 @@ where
         let default_topics = self.event_handler.subscriptions();
         self.subscribe(default_topics).await?;
 
-        self.handle_events().await;
+        self.handle_events().await?;
         Ok(())
     }
 
-    async fn handle_events(&mut self) {
+    async fn handle_events(&mut self) -> Result<(), ClientError> {
         debug!("polling bridge client...");
 
-        while let Some(event) = self.client.try_next().await.unwrap_or_else(|e| {
-            // TODO: handle the error by recreating the connection
-            error!(error = %e, "failed to poll events");
-            None
-        }) {
+        while let Some(event) = self.client.try_next().await? {
             debug!("handling event {:?}", event);
             if let Err(e) = self.event_handler.handle(event).await {
                 error!(error = %e, "error processing event");
             }
         }
+
+        Ok(())
     }
 
     async fn subscribe(&mut self, topics: Vec<String>) -> Result<(), ClientError> {
@@ -399,7 +394,7 @@ pub enum ClientError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mqtt_util::client_io::AuthenticationSettings;
+    use mqtt_util::AuthenticationSettings;
 
     #[derive(Default)]
     struct EventHandler {}

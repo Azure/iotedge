@@ -79,11 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         async Task PublishBrokerServiceIdentities(IList<BrokerServiceIdentity> brokerServiceIdentities)
         {
-            if (brokerServiceIdentities.Count == 0)
-            {
-                return;
-            }
-
             Events.PublishingAddOrUpdateBrokerServiceIdentities(brokerServiceIdentities);
             try
             {

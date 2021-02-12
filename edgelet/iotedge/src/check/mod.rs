@@ -12,7 +12,7 @@ use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
-use aziot_check_common::{
+use aziotctl_check_common::{
     CheckOutputSerializable, CheckOutputSerializableStreaming, CheckResultSerializable,
     CheckResultsSerializable, CheckerMetaSerializable,
 };
