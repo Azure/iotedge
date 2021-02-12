@@ -1,11 +1,11 @@
-pub mod error;
-
-use super::StorageResult;
-use crate::persist::{waking_state::StreamWakeableState, Key};
-use error::MemoryError;
-use mqtt3::proto::Publication;
 use std::{cmp::min, collections::VecDeque, task::Waker};
+
+use mqtt3::proto::Publication;
 use tracing::debug;
+
+use crate::persist::{Key, MemoryError, StorageResult, StreamWakeableState};
+
+pub mod error;
 
 /// When elements are retrieved they are moved to the loaded collection.
 /// This loaded collection is necessary so it behaves the same as other `StreamWakeableState` implementations
