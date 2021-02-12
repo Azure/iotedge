@@ -160,21 +160,21 @@ impl Default for RetainedMessagesConfig {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct SessionPersistenceConfig {
-    path: PathBuf,
+    folder_path: PathBuf,
     #[serde(with = "humantime_serde")]
     time_interval: Duration,
 }
 
 impl SessionPersistenceConfig {
-    pub fn new(path: PathBuf, time_interval: Duration) -> Self {
+    pub fn new(folder_path: PathBuf, time_interval: Duration) -> Self {
         Self {
-            path,
+            folder_path,
             time_interval,
         }
     }
 
-    pub fn file_path(&self) -> PathBuf {
-        self.path.clone()
+    pub fn folder_path(&self) -> PathBuf {
+        self.folder_path.clone()
     }
 
     pub fn time_interval(&self) -> Duration {

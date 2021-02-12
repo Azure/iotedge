@@ -1,7 +1,10 @@
 use future::{select_all, Either};
 use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
 use mpsc::UnboundedSender;
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use tokio::{
+    sync::mpsc::{self, Receiver, Sender},
+    time,
+};
 use tracing::{error, info, info_span};
 use tracing_futures::Instrument;
 
@@ -10,7 +13,7 @@ use mqtt3::{
     Client, Event, ReceivedPublication, SubscriptionUpdateEvent, UpdateSubscriptionHandle,
 };
 use mqtt_broker_tests_util::client;
-use mqtt_util::client_io::ClientIoSource;
+use mqtt_util::ClientIoSource;
 use trc_client::TrcClient;
 
 use crate::{
@@ -19,7 +22,7 @@ use crate::{
     },
     message_initiator::MessageInitiator,
     settings::{Settings, TestScenario},
-    MessageTesterError, ShutdownHandle,
+    ExitedWork, MessageTesterError, ShutdownHandle,
 };
 
 const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
@@ -44,18 +47,46 @@ impl MessageTesterShutdownHandle {
         }
     }
 
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
-        self.poll_client_shutdown
-            .send(())
-            .await
-            .map_err(MessageTesterError::SendShutdownSignal)?;
-        self.message_channel_shutdown.shutdown().await?;
-
-        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown {
-            message_initiator_shutdown.shutdown().await?;
+    pub async fn shutdown(mut self, exited: ExitedWork) {
+        match exited {
+            ExitedWork::NoneOrUnknown => {
+                self.shutdown_message_initiator().await;
+                self.shutdown_message_channel().await;
+                self.shutdown_poll_client().await;
+            }
+            ExitedWork::MessageChannel => {
+                self.shutdown_message_initiator().await;
+                self.shutdown_poll_client().await;
+            }
+            ExitedWork::MessageInitiator => {
+                self.shutdown_message_channel().await;
+                self.shutdown_poll_client().await;
+            }
+            ExitedWork::PollClient => {
+                self.shutdown_message_initiator().await;
+                self.shutdown_message_channel().await;
+            }
         }
+    }
 
-        Ok(())
+    async fn shutdown_message_channel(&self) {
+        if let Err(e) = self.message_channel_shutdown.clone().shutdown().await {
+            error!("couldn't shutdown message channel: {:?}", e);
+        }
+    }
+
+    async fn shutdown_poll_client(&mut self) {
+        if let Err(e) = self.poll_client_shutdown.clone().send(()).await {
+            error!("couldn't shutdown client poll: {:?}", e);
+        }
+    }
+
+    async fn shutdown_message_initiator(&self) {
+        if let Some(message_initiator_shutdown) = self.message_initiator_shutdown.clone() {
+            if let Err(e) = message_initiator_shutdown.shutdown().await {
+                error!("couldn't shutdown message initiator: {:?}", e);
+            }
+        }
     }
 }
 
@@ -90,18 +121,22 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let relay_topic = settings.relay_topic();
         let tracking_id = settings.tracking_id();
-        let batch_id = settings.batch_id();
+        let relay_topic = settings.relay_topic();
         let test_result_coordinator_url = settings.trc_url();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
         let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
-            TestScenario::Initiate => Box::new(ReportResultMessageHandler::new(
-                reporting_client.clone(),
-                tracking_id,
-                batch_id,
-            )),
+            TestScenario::Initiate => {
+                let batch_id = settings
+                    .batch_id()
+                    .ok_or(MessageTesterError::MissingBatchId)?;
+                Box::new(ReportResultMessageHandler::new(
+                    reporting_client.clone(),
+                    tracking_id,
+                    batch_id,
+                ))
+            }
             TestScenario::Relay => Box::new(RelayingMessageHandler::new(
                 publish_handle.clone(),
                 relay_topic,
@@ -112,8 +147,11 @@ impl MessageTester {
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
+            let batch_id = settings
+                .batch_id()
+                .ok_or(MessageTesterError::MissingBatchId)?;
             let initiator =
-                MessageInitiator::new(publish_handle, reporting_client, settings.clone());
+                MessageInitiator::new(publish_handle, reporting_client, settings.clone(), batch_id);
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());
             message_initiator = Some(initiator);
@@ -155,7 +193,7 @@ impl MessageTester {
         );
 
         // make subscription
-        Self::subscribe(client_sub_handle, self.settings).await?;
+        Self::subscribe(client_sub_handle, self.settings.clone()).await?;
 
         // run message channel
         let message_channel_join = tokio::spawn(
@@ -168,6 +206,12 @@ impl MessageTester {
 
         // maybe start message initiator depending on mode
         if let Some(message_initiator) = self.message_initiator {
+            info!(
+                "waiting for test start delay of {:?}",
+                self.settings.test_start_delay()
+            );
+            time::delay_for(self.settings.test_start_delay()).await;
+
             let message_loop = tokio::spawn(message_initiator.run());
             tasks.push(message_loop);
         }
@@ -177,13 +221,23 @@ impl MessageTester {
         match exited {
             Err(e) => {
                 error!("Stopping test run because task exited with error: {:?}", e);
-                self.shutdown_handle.shutdown().await?;
+                self.shutdown_handle
+                    .shutdown(ExitedWork::NoneOrUnknown)
+                    .await;
             }
             Ok(Err(e)) => {
                 error!("Stopping test run because task exited with error: {:?}", e);
-                self.shutdown_handle.shutdown().await?;
+                self.shutdown_handle
+                    .shutdown(ExitedWork::NoneOrUnknown)
+                    .await;
             }
-            Ok(Ok(_)) => {}
+            Ok(Ok(exited)) => {
+                info!(
+                    "Stopping test run because {} exited gracefully",
+                    exited.to_string()
+                );
+                self.shutdown_handle.shutdown(exited).await;
+            }
         }
 
         for handle in join_handles {
@@ -232,7 +286,7 @@ async fn poll_client(
     message_send_handle: UnboundedSender<ReceivedPublication>,
     mut client: Client<ClientIoSource>,
     mut shutdown_recv: Receiver<()>,
-) -> Result<(), MessageTesterError> {
+) -> Result<ExitedWork, MessageTesterError> {
     info!("starting poll client");
     loop {
         let message_send_handle = message_send_handle.clone();
@@ -246,6 +300,8 @@ async fn poll_client(
                 }
             }
             Either::Right((shutdown, _)) => {
+                info!("received shutdown signal");
+
                 if shutdown.is_none() {
                     error!("shutdown channel was full when shutdown initiated");
                 }
@@ -255,7 +311,7 @@ async fn poll_client(
         }
     }
 
-    Ok(())
+    Ok(ExitedWork::PollClient)
 }
 
 fn process_event(
@@ -267,7 +323,7 @@ fn process_event(
             info!("received new connection");
         }
         Event::Publication(publication) => {
-            info!("received publication");
+            info!("received publication {:?}", publication);
             message_send_handle
                 .send(publication)
                 .map_err(MessageTesterError::SendPublicationInChannel)?;

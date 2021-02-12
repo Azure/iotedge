@@ -86,10 +86,9 @@ where
                                 error!(message = "an error occurred while updating authorization info", error = %e);
                                 // TODO return an error instead?
                                 break;
-                            } else {
-                                self.reauthorize();
-                                debug!("successfully updated authorization info");
                             }
+                            self.reauthorize();
+                            debug!("successfully updated authorization info");
                         }
                         SystemEvent::Publish(publication) => {
                             if let Err(e) = self.publish_all(publication) {
@@ -1430,13 +1429,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::UnacceptableProtocolVersion,
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1482,11 +1483,13 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Accepted,
-                ..
-            })))
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Accepted,
+                    ..
+                })
+            ))
         );
     }
 
@@ -1527,13 +1530,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::BadUserNameOrPassword,
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1579,13 +1584,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::ServerUnavailable,
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1635,13 +1642,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::NotAuthorized
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1689,13 +1698,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::ServerUnavailable,
                     ),
-                ..
-            }))
+                    ..
+                })
+            )
         );
         assert_matches!(
             rx1.recv().await,
@@ -2399,11 +2410,13 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Accepted,
-                ..
-            })))
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Accepted,
+                    ..
+                })
+            ))
         );
 
         Ok((client_id, rx))

@@ -13,13 +13,13 @@ namespace NetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxTrafficControlController>();
         readonly string networkInterfaceName;
-        readonly string iotHubHostname;
+        readonly string hubHostname;
         readonly NetworkProfileSetting profileRuleSettings;
 
-        public LinuxTrafficControlController(NetworkProfileSetting settings, string networkInterfaceName, string iotHubHostname)
+        public LinuxTrafficControlController(NetworkProfileSetting settings, string networkInterfaceName, string hubHostname)
         {
             this.networkInterfaceName = networkInterfaceName;
-            this.iotHubHostname = iotHubHostname;
+            this.hubHostname = hubHostname;
             this.profileRuleSettings = settings;
         }
 
@@ -89,7 +89,7 @@ namespace NetworkController
         {
             try
             {
-                IPAddress[] iothubAddresses = await Dns.GetHostAddressesAsync(this.iotHubHostname);
+                IPAddress[] iothubAddresses = await Dns.GetHostAddressesAsync(this.hubHostname);
                 if (iothubAddresses.Length == 0)
                 {
                     throw new CommandExecutionException("No IP found for iothub hostname");

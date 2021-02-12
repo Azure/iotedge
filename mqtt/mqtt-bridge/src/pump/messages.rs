@@ -98,7 +98,6 @@ where
 
                     for sub in added {
                         let subscribe_to = sub.subscribe_to();
-
                         match sub.try_into() {
                             Ok(mapper) => {
                                 self.topic_mappers_updates.insert(&subscribe_to, mapper);
