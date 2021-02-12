@@ -33,8 +33,8 @@ use serde::Deserialize;
 #[serde(rename_all = "lowercase")]
 pub enum FlushOptions {
     AfterEachWrite,
-    AfterXWrites(usize),
-    AfterXBytes(usize),
+    AfterXWrites(u32),
+    AfterXBytes(u32),
     AfterXTime(Duration),
     Off,
 }
@@ -42,16 +42,16 @@ pub enum FlushOptions {
 /// A stateful object for tracking progress of any of the `AfterX`... options
 /// from `FlushOptions`.
 pub struct FlushState {
-    pub writes: usize,
-    pub bytes_written: usize,
+    pub writes: u32,
+    pub bytes_written: u32,
     pub elapsed: Duration,
 }
 
 impl FlushState {
     pub(crate) fn new() -> Self {
         Self {
-            writes: usize::default(),
-            bytes_written: usize::default(),
+            writes: u32::default(),
+            bytes_written: u32::default(),
             elapsed: Duration::default(),
         }
     }
@@ -60,10 +60,10 @@ impl FlushState {
         match flush_option {
             FlushOptions::AfterEachWrite => {}
             FlushOptions::AfterXWrites(_) => {
-                self.writes = usize::default();
+                self.writes = u32::default();
             }
             FlushOptions::AfterXBytes(_) => {
-                self.bytes_written = usize::default();
+                self.bytes_written = u32::default();
             }
             FlushOptions::AfterXTime(_) => {
                 self.elapsed = Duration::default();
@@ -72,7 +72,7 @@ impl FlushState {
         }
     }
 
-    pub(crate) fn update(&mut self, writes: usize, bytes_written: usize, elapsed: Duration) {
+    pub(crate) fn update(&mut self, writes: u32, bytes_written: u32, elapsed: Duration) {
         self.bytes_written += bytes_written;
         self.elapsed += elapsed;
         self.writes += writes;

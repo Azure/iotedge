@@ -2,7 +2,6 @@
 mod block;
 pub mod error;
 pub mod flush;
-mod serialize;
 
 use std::{
     collections::VecDeque,
@@ -27,7 +26,6 @@ use crate::persist::{
         block::{calculate_hash, validate, BlockHeaderWithHash, BLOCK_HINT, SERIALIZED_BLOCK_SIZE},
         error::RingBufferError,
         flush::{FlushOptions, FlushState},
-        serialize::{binary_deserialize, binary_deserialize_owned, binary_serialize},
     },
     Key, StorageError,
 };
@@ -37,9 +35,9 @@ pub type StorageResult<T> = Result<T, StorageError>;
 /// Convenience struct for tracking read and write pointers into the file.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub(crate) struct FilePointers {
-    write: usize,
-    read_begin: usize,
-    read_end: usize,
+    write: u32,
+    read_begin: u32,
+    read_end: u32,
 }
 
 /// Imagine there are three pointers:
@@ -74,11 +72,11 @@ pub(crate) struct RingBuffer {
     // This prevents deletion of data without reading.
     has_read: bool,
     // Max size for the file that is required for mmap.
-    max_file_size: usize,
+    max_file_size: u32,
     // A representation of Mmap with operations built-in.
     mmap: MmapMut,
     // A tracker for suppling an ordering to blocks being written.
-    order: usize,
+    order: u128,
     // Pointers into the file (read/write).
     pointers: FilePointers,
     // A waker for updating any pending batch after an insert.
@@ -88,7 +86,7 @@ pub(crate) struct RingBuffer {
 impl RingBuffer {
     pub(crate) fn new(
         file_path: &Path,
-        max_file_size: usize,
+        max_file_size: u32,
         flush_options: &FlushOptions,
     ) -> StorageResult<Self> {
         let file = create_file(file_path).map_err(RingBufferError::MmapCreate)?;
@@ -112,8 +110,8 @@ impl RingBuffer {
 
     fn insert(&mut self, publication: &Publication) -> StorageResult<Key> {
         let timer = Instant::now();
-        let data = binary_serialize(publication)?;
-        let data_size = data.len();
+        let data = bincode::serialize(publication)?;
+        let data_size = data.len() as u32;
         let data_hash = calculate_hash(&data);
 
         let write_index = self.pointers.write;
@@ -206,17 +204,17 @@ impl RingBuffer {
         // If we are reading then we can reset wrap around flag
         self.can_read_from_wrap_around = false;
 
-        let mut start = read_index;
+        let mut start = read_index as usize;
         let mut vdata = VecDeque::new();
         for _ in 0..count {
-            let end = start + block_size;
+            let end = start + block_size as usize;
             let bytes = &self.mmap[start..end];
             // this is unused memory
             if bytes.iter().map(|&x| x as usize).sum::<usize>() == 0 {
                 break;
             }
 
-            let block = binary_deserialize::<BlockHeaderWithHash>(bytes)?;
+            let block = bincode::deserialize::<BlockHeaderWithHash>(bytes)?;
             // this means we read bytes that don't make a block, this is
             // a really bad state to be in as somehow the pointers don't
             // match to where data really is at.
@@ -227,13 +225,13 @@ impl RingBuffer {
             let inner_block = block.inner();
             let data_size = inner_block.data_size();
             let index = inner_block.write_index();
-            start += block_size;
-            let end = start + data_size;
-            let data = load_data(&self.mmap, start, data_size, self.max_file_size)?;
-            start = end % self.max_file_size;
-            self.pointers.read_end = start;
+            start += block_size as usize;
+            let end = start + data_size as usize;
+            let data = load_data(&self.mmap, start as u32, data_size, self.max_file_size)?;
+            start = end % self.max_file_size as usize;
+            self.pointers.read_end = start as u32;
 
-            validate(&block, &binary_serialize(&data)?)?;
+            validate(&block, &bincode::serialize(&data)?)?;
             let key = Key {
                 offset: index as u64,
             };
@@ -243,7 +241,7 @@ impl RingBuffer {
             self.has_read = true;
 
             // This case shouldn't be pending, as we must have gotten something we can process.
-            if start == write_index {
+            if start as u32 == write_index {
                 break;
             }
         }
@@ -257,13 +255,13 @@ impl RingBuffer {
         }
         let timer = Instant::now();
         let read_index = self.pointers.read_begin;
-        if key != read_index {
+        if key as u32 != read_index {
             return Err(StorageError::RingBuffer(RingBufferError::RemovalIndex));
         }
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
         let start = key;
-        let mut block = load_block_header(&self.mmap, start, block_size, self.max_file_size)
+        let mut block = load_block_header(&self.mmap, start as u32, block_size, self.max_file_size)
             .map_err(StorageError::Serialization)?;
 
         if block.inner().hint() != BLOCK_HINT {
@@ -280,12 +278,12 @@ impl RingBuffer {
         save_block_header(
             &mut self.mmap,
             &block,
-            start,
+            start as u32,
             self.max_file_size,
             should_flush,
         )?;
 
-        let end = start + block_size + data_size;
+        let end = start as u32 + block_size + data_size;
         self.pointers.read_begin = end % self.max_file_size;
 
         self.flush_state_update(should_flush, 0, 0, timer.elapsed());
@@ -320,8 +318,8 @@ impl RingBuffer {
     fn flush_state_update(
         &mut self,
         should_flush: bool,
-        writes: usize,
-        bytes_written: usize,
+        writes: u32,
+        bytes_written: u32,
         millis: Duration,
     ) {
         if should_flush {
@@ -351,13 +349,13 @@ fn create_file(file_path: &Path) -> IOResult<File> {
 
 fn find_pointers_and_order_post_crash(
     mmap: &MmapMut,
-    max_file_size: usize,
-) -> StorageResult<(FilePointers, usize)> {
+    max_file_size: u32,
+) -> StorageResult<(FilePointers, u128)> {
     let mut block: BlockHeaderWithHash;
     let block_size = *SERIALIZED_BLOCK_SIZE;
 
     let mut start = 0;
-    let mut end = start + block_size;
+    let mut end = start + block_size as usize;
     let mut read = 0;
     let mut write = 0;
     let mut order = 0;
@@ -366,7 +364,7 @@ fn find_pointers_and_order_post_crash(
     // Once we find one, if any, then we can skip more efficiently
     // to others.
     loop {
-        if end > max_file_size {
+        if end > max_file_size as usize {
             return Ok((
                 FilePointers {
                     write,
@@ -377,11 +375,11 @@ fn find_pointers_and_order_post_crash(
             ));
         }
 
-        let hint_result = binary_deserialize::<usize>(&mmap[start..(start + size_of::<usize>())]);
+        let hint_result = bincode::deserialize::<u32>(&mmap[start..(start + size_of::<u32>())]);
 
         if let Ok(hint) = hint_result {
             if hint == BLOCK_HINT {
-                block = load_block_header(mmap, start, block_size, max_file_size)?;
+                block = load_block_header(mmap, start as u32, block_size, max_file_size)?;
                 order = block.inner().order();
             } else {
                 start += 1;
@@ -409,12 +407,12 @@ fn find_pointers_and_order_post_crash(
 
         // Found a block that was removed, so update the read pointer.
         if found_overwrite_block && inner.hint() == BLOCK_HINT {
-            read = end + data_size;
+            read = end as u32 + data_size;
         }
         // Found the last write, take whatever we got for read and write
         // and return the pointers.
         if inner.order() < order {
-            write = start;
+            write = start as u32;
 
             return Ok((
                 FilePointers {
@@ -428,13 +426,13 @@ fn find_pointers_and_order_post_crash(
 
         // Check next block
         order = inner.order();
-        start = (end + data_size) % max_file_size;
-        end = (start + block_size) % max_file_size;
+        start = ((end as u32 + data_size) % max_file_size) as usize;
+        end = ((start as u32 + block_size) % max_file_size) as usize;
 
-        let bytes = &mmap[start..end];
+        let bytes = &mmap[start as usize..end as usize];
         // this is unused memory
         if bytes.iter().map(|&x| x as usize).sum::<usize>() == 0 {
-            write = start;
+            write = start as u32;
 
             return Ok((
                 FilePointers {
@@ -446,7 +444,7 @@ fn find_pointers_and_order_post_crash(
             ));
         }
 
-        block = match load_block_header(mmap, start, block_size, max_file_size) {
+        block = match load_block_header(mmap, start as u32, block_size, max_file_size) {
             Ok(block) => block,
             Err(_) => {
                 return Ok((
@@ -464,9 +462,9 @@ fn find_pointers_and_order_post_crash(
 
 fn load_block_header(
     mmap: &MmapMut,
-    mut start: usize,
-    size: usize,
-    file_size: usize,
+    mut start: u32,
+    size: u32,
+    file_size: u32,
 ) -> BincodeResult<BlockHeaderWithHash> {
     if start > file_size {
         start %= file_size;
@@ -483,19 +481,19 @@ fn load_block_header(
 fn save_block_header(
     mmap: &mut MmapMut,
     block: &BlockHeaderWithHash,
-    start: usize,
-    file_size: usize,
+    start: u32,
+    file_size: u32,
     should_flush: bool,
 ) -> StorageResult<()> {
-    let bytes = binary_serialize(block)?;
+    let bytes = bincode::serialize(block)?;
     mmap_write(mmap, start, &bytes, file_size, should_flush)
 }
 
 fn save_data(
     mmap: &mut MmapMut,
     serialized_data: &[u8],
-    start: usize,
-    file_size: usize,
+    start: u32,
+    file_size: u32,
     should_flush: bool,
 ) -> StorageResult<()> {
     mmap_write(mmap, start, &serialized_data, file_size, should_flush)
@@ -503,9 +501,9 @@ fn save_data(
 
 fn load_data(
     mmap: &MmapMut,
-    mut start: usize,
-    size: usize,
-    file_size: usize,
+    mut start: u32,
+    size: u32,
+    file_size: u32,
 ) -> BincodeResult<Publication> {
     if start > file_size {
         start %= file_size;
@@ -519,49 +517,49 @@ fn load_data(
     }
 }
 
-fn mmap_read<'a, T>(mmap: &'a MmapMut, start: usize, size: usize) -> BincodeResult<T>
+fn mmap_read<'a, T>(mmap: &'a MmapMut, start: u32, size: u32) -> BincodeResult<T>
 where
     T: Deserialize<'a>,
 {
     let end = start + size;
-    binary_deserialize::<T>(&mmap[start..end])
+    bincode::deserialize::<T>(&mmap[start as usize..end as usize])
 }
 
 fn mmap_read_wrap_around<T>(
     mmap: &MmapMut,
-    start: usize,
-    size: usize,
-    file_size: usize,
+    start: u32,
+    size: u32,
+    file_size: u32,
 ) -> BincodeResult<T>
 where
     T: DeserializeOwned,
 {
     let end = start + size;
-    let file_split = end - file_size;
+    let file_split = (end - file_size) as usize;
     let mut wrap = vec![];
-    wrap.extend_from_slice(&mmap[start..file_size]);
+    wrap.extend_from_slice(&mmap[start as usize..file_size as usize]);
     wrap.extend_from_slice(&mmap[0..file_split]);
-    binary_deserialize_owned::<T>(&wrap)
+    bincode::deserialize::<T>(&wrap)
 }
 
 fn mmap_write(
     mmap: &mut MmapMut,
-    start: usize,
+    start: u32,
     bytes: &[u8],
-    file_size: usize,
+    file_size: u32,
     should_flush: bool,
 ) -> StorageResult<()> {
-    let end = start + bytes.len();
+    let end = start + bytes.len() as u32;
     if end > file_size {
-        let file_split = end - file_size;
+        let file_split = (end - file_size) as usize;
         let bytes_split = bytes.len() - file_split;
-        mmap[start..file_size].copy_from_slice(&bytes[..bytes_split]);
+        mmap[start as usize..file_size as usize].copy_from_slice(&bytes[..bytes_split]);
         mmap[0..file_split].copy_from_slice(&bytes[bytes_split..]);
     } else {
-        mmap[start..end].copy_from_slice(&bytes);
+        mmap[start as usize..end as usize].copy_from_slice(&bytes);
     }
     if should_flush {
-        mmap.flush_async_range(start, end - start)
+        mmap.flush_async_range(start as usize, (end - start) as usize)
             .map_err(RingBufferError::Flush)?;
     }
     Ok(())
@@ -575,12 +573,10 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::QoS;
 
-    use crate::persist::waking_state::ring_buffer::serialize::binary_serialize_size;
-
     use super::*;
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
-    const MAX_FILE_SIZE: usize = 1024;
+    const MAX_FILE_SIZE: u32 = 1024;
 
     struct TestRingBuffer(RingBuffer);
 
@@ -773,10 +769,10 @@ mod tests {
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let result = binary_serialize(&publication);
+        let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
-        let data_size = data.len();
+        let data_size = data.len() as u32;
 
         let total_size = block_size + data_size;
 
@@ -801,10 +797,10 @@ mod tests {
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let result = binary_serialize(&publication);
+        let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
-        let data_size = data.len();
+        let data_size = data.len() as u32;
 
         let total_size = block_size + data_size;
 
@@ -986,16 +982,16 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let result = binary_serialize(&publication);
+        let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
 
         let data = result.unwrap();
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let result = binary_serialize_size(&data);
+        let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
-        let data_size = result.unwrap();
+        let data_size = result.unwrap() as u32;
 
         let file_size = 10 * (block_size + data_size);
 
