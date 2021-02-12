@@ -8,7 +8,6 @@ use std::{
     error::Error as StdError,
     fs::{self, OpenOptions},
     io::{Read, Write},
-    iter::FromIterator,
     path::PathBuf,
 };
 
@@ -375,8 +374,8 @@ where
 {
     let payloads = HashMap::<u64, Vec<u8>>::deserialize(deserializer)?
         .into_iter()
-        .map(|(k, v)| (k, Bytes::from(v)));
-    let payloads = HashMap::from_iter(payloads);
+        .map(|(k, v)| (k, Bytes::from(v)))
+        .collect();
     Ok(payloads)
 }
 
