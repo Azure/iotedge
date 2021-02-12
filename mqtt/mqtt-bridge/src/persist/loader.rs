@@ -1,5 +1,6 @@
 use std::{
     collections::VecDeque,
+    num::NonZeroUsize,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
@@ -32,13 +33,13 @@ impl<S> MessageLoader<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
+    pub fn new(state: Arc<Mutex<S>>, batch_size: NonZeroUsize) -> Self {
         let batch = VecDeque::new();
 
         let inner = MessageLoaderInner {
             state,
             batch,
-            batch_size,
+            batch_size: batch_size.get(),
         };
         let inner = Arc::new(Mutex::new(inner));
 
@@ -96,7 +97,7 @@ where
 }
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::{future::join, stream::TryStreamExt};
@@ -219,7 +220,7 @@ mod tests {
         }
 
         // verify insertion order
-        let mut loader = MessageLoader::new(state, num_elements);
+        let mut loader = MessageLoader::new(state, NonZeroUsize::new(num_elements).unwrap());
         let mut elements = loader.next_batch().unwrap();
 
         for key in keys {

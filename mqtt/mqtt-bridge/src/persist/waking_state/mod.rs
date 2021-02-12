@@ -30,7 +30,7 @@ pub trait StreamWakeableState {
 
 #[cfg(test)]
 mod tests {
-    use std::{pin::Pin, sync::Arc, task::Context, task::Poll};
+    use std::{num::NonZeroUsize, pin::Pin, sync::Arc, task::Context, task::Poll};
 
     use bytes::Bytes;
     use futures_util::stream::{Stream, StreamExt, TryStreamExt};
@@ -116,7 +116,7 @@ mod tests {
 
         // extract some, check that they are in order
         let state = Arc::new(Mutex::new(state));
-        let mut loader = MessageLoader::new(state.clone(), num_elements);
+        let mut loader = MessageLoader::new(state.clone(), NonZeroUsize::new(num_elements).unwrap());
         let (key1, _) = loader.try_next().await.unwrap().unwrap();
         let (key2, _) = loader.try_next().await.unwrap().unwrap();
         assert_eq!(key1, keys[0]);
