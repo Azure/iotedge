@@ -129,6 +129,16 @@ async fn send_message_upstream_downstream() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers.
+///	- A client connects to local broker and subscribes to receive messages from upstream
+/// - A client connects to remote broker and subscribes to receive messages from downstream
+/// - Client publish message upstream
+///	- Expects to receive messages downstream -> upstream 
+/// - Client publish message upstream
+/// - Disconnect bridge and shutdown (simulate process restart)
+/// - Reconnect bridge
+/// - Expects to receive messages downstream -> upstream
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
     let subs = vec![Direction::Out(TopicRule::new(
@@ -210,6 +220,14 @@ async fn send_message_upstream_with_crash_is_lossless() {
     local_client.shutdown().await;
 }
 
+/// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers,
+///   but without any subscriptions to downstream and upstream.
+///	- A client connects to local broker and subscribes to receive messages from upstream
+/// - A client connects to remote broker and subscribes to receive messages from downstream
+/// - Clients publish messages
+/// - Subscription updates are sent to bridge
+///	- Expects to receive only messages after subscription update 
 #[tokio::test]
 async fn bridge_settings_update() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
