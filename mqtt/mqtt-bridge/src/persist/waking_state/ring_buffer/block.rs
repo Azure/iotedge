@@ -1,5 +1,5 @@
 use std::{
-    collections::hash_map::DefaultHasher,
+    // collections::hash_map::DefaultHasher,
     fmt::Debug,
     hash::{Hash, Hasher},
 };
@@ -132,7 +132,8 @@ pub(crate) fn calculate_hash<T>(t: &T) -> u64
 where
     T: Hash + ?Sized,
 {
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = rustc_hash::FxHasher::default();
+    // let mut hasher = DefaultHasher::new();
     t.hash(&mut hasher);
     hasher.finish()
 }
@@ -303,7 +304,7 @@ mod tests {
             Err(StorageError::RingBuffer(RingBufferError::Validate(
                 BlockError::BlockHash {
                     found: 0x1,
-                    expected: 0x5f41_0d03_497c_1cb0,
+                    expected: 17869196262274303983,
                 }
             )))
         );
