@@ -18,18 +18,17 @@ namespace TestResultCoordinator.Reports
     {
         const int BatchSize = 500;
 
-        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType, Option<TestResultFilter> testResultFilter)
+        internal TestReportGeneratorFactory(ITestOperationResultStorage storage, NetworkControllerType networkControllerType, Option<LongHaulSpecificSettings> longhaulSettings)
         {
             this.Storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.NetworkControllerType = networkControllerType;
-            this.TestResultFilter = testResultFilter;
         }
 
         ITestOperationResultStorage Storage { get; }
 
         NetworkControllerType NetworkControllerType { get; }
 
-        Option<TestResultFilter> TestResultFilter { get; }
+        Option<LongHaulSpecificSettings> LonghaulSettings { get; }
 
         public async Task<ITestResultReportGenerator> CreateAsync(
             string trackingId,
@@ -46,9 +45,11 @@ namespace TestResultCoordinator.Reports
                         var expectedTestResults = this.GetResults(metadata.ExpectedSource);
                         var actualTestResults = this.GetResults(metadata.ActualSource);
 
-                        this.TestResultFilter.ForEach(filter =>
+                        await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
                         {
-                            (expectedTestResults, actualTestResults) = filter.FilterResults(expectedTestResults, actualTestResults);
+                            SimpleTestOperationResultFilter filter = new SimpleTestOperationResultFilter(new SimpleTestOperationResultComparer());
+                            TimeSpan unmatchedResultTolerance = longhaulSettings.UnmatchedResultTolerance;
+                            (expectedTestResults, actualTestResults) = await filter.FilterResults(unmatchedResultTolerance, expectedTestResults, actualTestResults);
                         });
 
                         return new CountingReportGenerator(
@@ -136,8 +137,12 @@ namespace TestResultCoordinator.Reports
                         var senderTestResults = this.GetResults(metadata.SenderSource);
                         var receiverTestResults = this.GetResults(metadata.ReceiverSource);
 
-                        TestResultFilter filter = this.TestResultFilter.Expect(() => new NotSupportedException("cannot generate longhaul reports without filter for recent unmatched expected results"));
-                        (senderTestResults, receiverTestResults) = filter.FilterResults(senderTestResults, receiverTestResults);
+                        await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
+                        {
+                            DirectMethodTestOperationResultFilter filter = new DirectMethodTestOperationResultFilter();
+                            TimeSpan unmatchedResultTolerance = longhaulSettings.UnmatchedResultTolerance;
+                            (senderTestResults, receiverTestResults) = await filter.FilterResults(unmatchedResultTolerance, senderTestResults, receiverTestResults);
+                        });
 
                         return new DirectMethodLongHaulReportGenerator(
                             metadata.TestDescription,
