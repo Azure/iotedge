@@ -3,10 +3,9 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-ARG DIR=.
-
 FROM arm64v8/alpine:3.13.1
 WORKDIR /app
+COPY ./docker/linux/arm64v8/lib/ /lib
 COPY ./docker/linux/arm64v8/api-proxy-module .
 COPY ./docker/linux/arm64v8/templates .
 RUN	apk update && \
