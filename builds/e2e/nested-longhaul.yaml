@@ -47,6 +47,7 @@ stages:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           test.startDelay: '$(test.startDelay)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
