@@ -2,7 +2,6 @@
 mod block;
 pub mod error;
 pub mod flush;
-mod serialize;
 
 use std::{
     collections::VecDeque,
@@ -27,7 +26,6 @@ use crate::persist::{
         block::{calculate_hash, validate, BlockHeaderWithHash, BLOCK_HINT, SERIALIZED_BLOCK_SIZE},
         error::RingBufferError,
         flush::{FlushOptions, FlushState},
-        serialize::{binary_deserialize, binary_deserialize_owned, binary_serialize},
     },
     Key, StorageError,
 };
@@ -37,9 +35,9 @@ pub type StorageResult<T> = Result<T, StorageError>;
 /// Convenience struct for tracking read and write pointers into the file.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub(crate) struct FilePointers {
-    write: usize,
-    read_begin: usize,
-    read_end: usize,
+    write: u32,
+    read_begin: u32,
+    read_end: u32,
 }
 
 /// Imagine there are three pointers:
@@ -74,11 +72,11 @@ pub(crate) struct RingBuffer {
     // This prevents deletion of data without reading.
     has_read: bool,
     // Max size for the file that is required for mmap.
-    max_file_size: usize,
+    max_file_size: u32,
     // A representation of Mmap with operations built-in.
     mmap: MmapMut,
     // A tracker for suppling an ordering to blocks being written.
-    order: usize,
+    order: u128,
     // Pointers into the file (read/write).
     pointers: FilePointers,
     // A waker for updating any pending batch after an insert.
@@ -88,11 +86,11 @@ pub(crate) struct RingBuffer {
 impl RingBuffer {
     pub(crate) fn new(
         file_path: &Path,
-        max_file_size: usize,
+        max_file_size: u32,
         flush_options: &FlushOptions,
     ) -> StorageResult<Self> {
         let file = create_file(file_path).map_err(RingBufferError::MmapCreate)?;
-        file.set_len(max_file_size as u64)
+        file.set_len(max_file_size.into())
             .map_err(RingBufferError::MmapCreate)?;
         let mmap = unsafe { MmapMut::map_mut(&file).map_err(RingBufferError::MmapCreate)? };
         let (file_pointers, order) = find_pointers_and_order_post_crash(&mmap, max_file_size)?;
@@ -112,8 +110,10 @@ impl RingBuffer {
 
     fn insert(&mut self, publication: &Publication) -> StorageResult<Key> {
         let timer = Instant::now();
-        let data = binary_serialize(publication)?;
-        let data_size = data.len();
+        let data = bincode::serialize(publication)?;
+
+        #[allow(clippy::cast_possible_truncation)]
+        let data_size = data.len() as u32;
         let data_hash = calculate_hash(&data);
 
         let write_index = self.pointers.write;
@@ -122,7 +122,9 @@ impl RingBuffer {
         let key = write_index;
 
         let block_header = BlockHeaderWithHash::new(data_hash, data_size, order, write_index);
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        #[allow(clippy::cast_possible_truncation)]
+        let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
         let total_size = block_size + data_size;
         // Check to see if we might corrupt data if we write, if so, return err of full.
@@ -147,7 +149,12 @@ impl RingBuffer {
 
         // Check if an existing block header is present. If the block is there
         // and if the overwrite flag is not set then we shouldn't write.
-        let result = load_block_header(&self.mmap, start, block_size, self.max_file_size);
+        let result = load_block_header(
+            &self.mmap,
+            start as usize,
+            block_size as usize,
+            self.max_file_size as usize,
+        );
         if let Ok(block_header) = result {
             let should_not_overwrite = block_header.inner().should_not_overwrite();
             if should_not_overwrite {
@@ -160,8 +167,8 @@ impl RingBuffer {
         save_block_header(
             &mut self.mmap,
             &block_header,
-            start,
-            self.max_file_size,
+            start as usize,
+            self.max_file_size as usize,
             should_flush,
         )?;
 
@@ -171,8 +178,8 @@ impl RingBuffer {
         save_data(
             &mut self.mmap,
             &data,
-            start,
-            self.max_file_size,
+            start as usize,
+            self.max_file_size as usize,
             should_flush,
         )?;
 
@@ -190,13 +197,15 @@ impl RingBuffer {
 
         self.flush_state_update(should_flush, 1, total_size, timer.elapsed());
 
-        Ok(Key { offset: key as u64 })
+        Ok(Key { offset: key })
     }
 
     fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
         let write_index = self.pointers.write;
         let read_index = self.pointers.read_begin;
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        #[allow(clippy::cast_possible_truncation)]
+        let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
         // If read would go into where writes are happening then we don't have data to read.
         if self.pointers.read_end == write_index && !self.can_read_from_wrap_around {
@@ -210,13 +219,13 @@ impl RingBuffer {
         let mut vdata = VecDeque::new();
         for _ in 0..count {
             let end = start + block_size;
-            let bytes = &self.mmap[start..end];
+            let bytes = &self.mmap[start as usize..end as usize];
             // this is unused memory
             if bytes.iter().map(|&x| x as usize).sum::<usize>() == 0 {
                 break;
             }
 
-            let block = binary_deserialize::<BlockHeaderWithHash>(bytes)?;
+            let block = bincode::deserialize::<BlockHeaderWithHash>(bytes)?;
             // this means we read bytes that don't make a block, this is
             // a really bad state to be in as somehow the pointers don't
             // match to where data really is at.
@@ -229,21 +238,24 @@ impl RingBuffer {
             let index = inner_block.write_index();
             start += block_size;
             let end = start + data_size;
-            let data = load_data(&self.mmap, start, data_size, self.max_file_size)?;
+            let data = load_data(
+                &self.mmap,
+                start as usize,
+                data_size as usize,
+                self.max_file_size as usize,
+            )?;
             start = end % self.max_file_size;
             self.pointers.read_end = start;
 
-            validate(&block, &binary_serialize(&data)?)?;
-            let key = Key {
-                offset: index as u64,
-            };
+            validate(&block, &bincode::serialize(&data)?)?;
+            let key = Key { offset: index };
 
             vdata.push_back((key, data));
 
             self.has_read = true;
 
             // This case shouldn't be pending, as we must have gotten something we can process.
-            if start == write_index {
+            if start as u32 == write_index {
                 break;
             }
         }
@@ -251,7 +263,7 @@ impl RingBuffer {
         Ok(vdata)
     }
 
-    fn remove(&mut self, key: usize) -> StorageResult<()> {
+    fn remove(&mut self, key: u32) -> StorageResult<()> {
         if !self.has_read {
             return Err(StorageError::RingBuffer(RingBufferError::RemoveBeforeRead));
         }
@@ -260,11 +272,18 @@ impl RingBuffer {
         if key != read_index {
             return Err(StorageError::RingBuffer(RingBufferError::RemovalIndex));
         }
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        #[allow(clippy::cast_possible_truncation)]
+        let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
         let start = key;
-        let mut block = load_block_header(&self.mmap, start, block_size, self.max_file_size)
-            .map_err(StorageError::Serialization)?;
+        let mut block = load_block_header(
+            &self.mmap,
+            start as usize,
+            block_size as usize,
+            self.max_file_size as usize,
+        )
+        .map_err(StorageError::Serialization)?;
 
         if block.inner().hint() != BLOCK_HINT {
             return Err(StorageError::RingBuffer(RingBufferError::NonExistantKey));
@@ -280,8 +299,8 @@ impl RingBuffer {
         save_block_header(
             &mut self.mmap,
             &block,
-            start,
-            self.max_file_size,
+            start as usize,
+            self.max_file_size as usize,
             should_flush,
         )?;
 
@@ -320,8 +339,8 @@ impl RingBuffer {
     fn flush_state_update(
         &mut self,
         should_flush: bool,
-        writes: usize,
-        bytes_written: usize,
+        writes: u32,
+        bytes_written: u32,
         millis: Duration,
     ) {
         if should_flush {
@@ -351,12 +370,14 @@ fn create_file(file_path: &Path) -> IOResult<File> {
 
 fn find_pointers_and_order_post_crash(
     mmap: &MmapMut,
-    max_file_size: usize,
-) -> StorageResult<(FilePointers, usize)> {
+    max_file_size: u32,
+) -> StorageResult<(FilePointers, u128)> {
     let mut block: BlockHeaderWithHash;
-    let block_size = *SERIALIZED_BLOCK_SIZE;
 
-    let mut start = 0;
+    #[allow(clippy::cast_possible_truncation)]
+    let block_size = *SERIALIZED_BLOCK_SIZE as u32;
+
+    let mut start = 0_u32;
     let mut end = start + block_size;
     let mut read = 0;
     let mut write = 0;
@@ -377,11 +398,17 @@ fn find_pointers_and_order_post_crash(
             ));
         }
 
-        let hint_result = binary_deserialize::<usize>(&mmap[start..(start + size_of::<usize>())]);
+        let hint_result =
+            bincode::deserialize::<u32>(&mmap[start as usize..(start as usize + size_of::<u32>())]);
 
         if let Ok(hint) = hint_result {
             if hint == BLOCK_HINT {
-                block = load_block_header(mmap, start, block_size, max_file_size)?;
+                block = load_block_header(
+                    mmap,
+                    start as usize,
+                    block_size as usize,
+                    max_file_size as usize,
+                )?;
                 order = block.inner().order();
             } else {
                 start += 1;
@@ -409,12 +436,12 @@ fn find_pointers_and_order_post_crash(
 
         // Found a block that was removed, so update the read pointer.
         if found_overwrite_block && inner.hint() == BLOCK_HINT {
-            read = end + data_size;
+            read = end as u32 + data_size;
         }
         // Found the last write, take whatever we got for read and write
         // and return the pointers.
         if inner.order() < order {
-            write = start;
+            write = start as u32;
 
             return Ok((
                 FilePointers {
@@ -431,10 +458,10 @@ fn find_pointers_and_order_post_crash(
         start = (end + data_size) % max_file_size;
         end = (start + block_size) % max_file_size;
 
-        let bytes = &mmap[start..end];
+        let bytes = &mmap[start as usize..end as usize];
         // this is unused memory
         if bytes.iter().map(|&x| x as usize).sum::<usize>() == 0 {
-            write = start;
+            write = start as u32;
 
             return Ok((
                 FilePointers {
@@ -446,7 +473,12 @@ fn find_pointers_and_order_post_crash(
             ));
         }
 
-        block = match load_block_header(mmap, start, block_size, max_file_size) {
+        block = match load_block_header(
+            mmap,
+            start as usize,
+            block_size as usize,
+            max_file_size as usize,
+        ) {
             Ok(block) => block,
             Err(_) => {
                 return Ok((
@@ -487,7 +519,7 @@ fn save_block_header(
     file_size: usize,
     should_flush: bool,
 ) -> StorageResult<()> {
-    let bytes = binary_serialize(block)?;
+    let bytes = bincode::serialize(block)?;
     mmap_write(mmap, start, &bytes, file_size, should_flush)
 }
 
@@ -524,7 +556,7 @@ where
     T: Deserialize<'a>,
 {
     let end = start + size;
-    binary_deserialize::<T>(&mmap[start..end])
+    bincode::deserialize::<T>(&mmap[start as usize..end as usize])
 }
 
 fn mmap_read_wrap_around<T>(
@@ -541,7 +573,7 @@ where
     let mut wrap = vec![];
     wrap.extend_from_slice(&mmap[start..file_size]);
     wrap.extend_from_slice(&mmap[0..file_split]);
-    binary_deserialize_owned::<T>(&wrap)
+    bincode::deserialize::<T>(&wrap)
 }
 
 fn mmap_write(
@@ -575,12 +607,10 @@ mod tests {
     use matches::assert_matches;
     use mqtt3::proto::QoS;
 
-    use crate::persist::waking_state::ring_buffer::serialize::binary_serialize_size;
-
     use super::*;
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
-    const MAX_FILE_SIZE: usize = 1024;
+    const MAX_FILE_SIZE: u32 = 1024;
 
     struct TestRingBuffer(RingBuffer);
 
@@ -640,19 +670,19 @@ mod tests {
 
                 {
                     #[allow(clippy::cast_possible_truncation)]
-                    let key = keys[0].offset as usize;
+                    let key = keys[0].offset;
                     assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 {
                     #[allow(clippy::cast_possible_truncation)]
-                    let key = keys[1].offset as usize;
+                    let key = keys[1].offset;
                     assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 {
                     #[allow(clippy::cast_possible_truncation)]
-                    let key = keys[2].offset as usize;
+                    let key = keys[2].offset;
                     assert_matches!(rb.remove(key), Ok(_));
                 }
 
@@ -729,7 +759,7 @@ mod tests {
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
                 #[allow(clippy::cast_possible_truncation)]
-                let result = rb.remove(key.offset as usize);
+                let result = rb.remove(key.offset);
                 assert_matches!(result, Ok(_));
             }
         }
@@ -771,12 +801,15 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+        #[allow(clippy::cast_possible_truncation)]
+        let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
-        let result = binary_serialize(&publication);
+        let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
-        let data_size = data.len();
+
+        #[allow(clippy::cast_possible_truncation)]
+        let data_size = data.len() as u32;
 
         let total_size = block_size + data_size;
 
@@ -799,12 +832,15 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+        #[allow(clippy::cast_possible_truncation)]
+        let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
-        let result = binary_serialize(&publication);
+        let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
-        let data_size = data.len();
+
+        #[allow(clippy::cast_possible_truncation)]
+        let data_size = data.len() as u32;
 
         let total_size = block_size + data_size;
 
@@ -819,7 +855,7 @@ mod tests {
         let batch = result.unwrap();
 
         #[allow(clippy::cast_possible_truncation)]
-        let result = rb.0.remove(batch[0].0.offset as usize);
+        let result = rb.0.remove(batch[0].0.offset);
         assert_matches!(result, Ok(_));
 
         // need bigger pub
@@ -923,7 +959,7 @@ mod tests {
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
                 #[allow(clippy::cast_possible_truncation)]
-                let result = rb.remove(key.offset as usize);
+                let result = rb.remove(key.offset);
                 assert_matches!(result, Ok(_));
             }
         }
@@ -986,16 +1022,19 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let result = binary_serialize(&publication);
+        let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
 
         let data = result.unwrap();
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+        #[allow(clippy::cast_possible_truncation)]
+        let block_size = *SERIALIZED_BLOCK_SIZE as u32;
 
-        let result = binary_serialize_size(&data);
+        let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
-        let data_size = result.unwrap();
+
+        #[allow(clippy::cast_possible_truncation)]
+        let data_size = result.unwrap() as u32;
 
         let file_size = 10 * (block_size + data_size);
 
@@ -1122,7 +1161,7 @@ mod tests {
             assert_eq!(key, entry.0);
 
             #[allow(clippy::cast_possible_truncation)]
-            let result = rb.0.remove(key.offset as usize);
+            let result = rb.0.remove(key.offset);
             assert_matches!(result, Ok(_));
         }
     }
