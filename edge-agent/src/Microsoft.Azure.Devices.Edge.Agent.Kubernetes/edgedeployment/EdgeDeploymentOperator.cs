@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public class EdgeDeploymentOperator : IEdgeDeploymentOperator
     {
+        const int TimeoutSeconds = 600;
         readonly IKubernetes client;
         readonly AsyncLock watchLock = new AsyncLock();
         readonly IEdgeDeploymentController controller;
@@ -52,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public void Dispose() => this.Stop();
 
         void StartListEdgeDeployments(CancellationTokenSource shutdownCts) =>
-            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, watch: true)
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, timeoutSeconds: TimeoutSeconds, watch: true)
                 .ContinueWith(this.OnListEdgeDeploymentsCompleted, shutdownCts);
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task, object shutdownCtsObject)
