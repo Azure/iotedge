@@ -14,7 +14,7 @@ pub use waking_state::{memory::WakingMemoryStore, StreamWakeableState};
 /// Ordered by offset
 #[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Deserialize, Serialize, Copy)]
 pub struct Key {
-    offset: u64,
+    offset: u32,
 }
 
 #[derive(Debug, thiserror::Error)]
