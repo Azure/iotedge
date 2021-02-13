@@ -46,17 +46,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     testDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));
@@ -69,17 +69,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     trackingId,
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));
@@ -92,17 +92,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenExpectedSourceIsNotProvided(string expectedSource)
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     expectedSource,
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));
@@ -113,7 +113,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenExpectedStoreIsNotProvided()
         {
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
@@ -122,7 +122,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     "expectedSource",
                     null,
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));
@@ -135,17 +135,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenActualSourceIsNotProvided(string actualSource)
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     actualSource,
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));
@@ -156,14 +156,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenActualStoreIsNotProvided()
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
                     null,
                     "resultType1",
@@ -178,17 +178,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new CountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     resultType,
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));
@@ -199,17 +199,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenTestResultComparerIsNotProvided()
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     null,
                     UnmatchedResultsMaxSize));
@@ -221,17 +221,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData(0)]
         public void TestConstructorThrowsWhenUnmatchedResultsMaxSizeIsNonPositive(ushort unmatchedResultsMaxSize)
         {
-            var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
 
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object,
+                    mockExpectedResults.Object.GetAsyncEnumerator(),
                     "actualSource",
-                    mockActualStore.Object,
+                    mockActualStore.Object.GetAsyncEnumerator(),
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     unmatchedResultsMaxSize));
@@ -245,17 +245,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
             int batchSize = 10;
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
             var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new CountingReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
-                expectedResults,
+                expectedResults.GetAsyncEnumerator(),
                 actualSource,
-                actualResults,
+                actualResults.GetAsyncEnumerator(),
                 "resultType1",
                 new SimpleTestOperationResultComparer(),
                 UnmatchedResultsMaxSize);
@@ -284,17 +284,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
             string resultType = "resultType1";
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
             var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
             var reportGenerator = new TwinCountingReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 expectedSource,
-                expectedResults,
+                expectedResults.GetAsyncEnumerator(),
                 actualSource,
-                actualResults,
+                actualResults.GetAsyncEnumerator(),
                 resultType,
                 new SimpleTestOperationResultComparer(),
                 UnmatchedResultsMaxSize);
