@@ -19,7 +19,7 @@
             "when_full": "drop_new"
         },
         "persistence": {
-            "path": "/tmp/mqttd/",
+            "folder_path": "/tmp/mqttd/",
             "time_interval": "5m"
         }
     }
