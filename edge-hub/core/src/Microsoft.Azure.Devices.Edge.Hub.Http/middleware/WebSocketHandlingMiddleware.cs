@@ -79,20 +79,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             if (cert == null)
             {
                 // If the connection came through the API proxy, the client cert
-                // would have been forwarded in a custom header
-                if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
+                // would have been forwarded in a custom header. But since TLS
+                // termination occurs at the proxy, we can only trust this custom
+                // header if the request came through port 8080, which an internal
+                // port only accessible within the local Docker vNet.
+                if (context.Connection.LocalPort == Constants.ApiProxyPort)
                 {
-                    string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
+                    if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
+                    {
+                        string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
 
-                    try
-                    {
-                        var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
-                        cert = new X509Certificate2(clientCertificateBytes);
-                    }
-                    catch (Exception ex)
-                    {
-                        Events.InvalidCertificate(ex, remoteEndPoint.ToString());
-                        throw;
+                        try
+                        {
+                            var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
+                            cert = new X509Certificate2(clientCertificateBytes);
+                        }
+                        catch (Exception ex)
+                        {
+                            Events.InvalidCertificate(ex, remoteEndPoint.ToString());
+                            throw;
+                        }
                     }
                 }
             }
