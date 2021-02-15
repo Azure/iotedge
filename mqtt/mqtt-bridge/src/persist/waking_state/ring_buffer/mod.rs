@@ -78,11 +78,8 @@ pub(crate) struct RingBufferMetadata {
 /// checking if the write will fit. Or, W + data must not pass both D and R.
 /// - Not passing D helps with guaranteeing all data read was handled.
 /// - Not passing R helps avoid corruption.
+#[derive(Debug)]
 pub struct RingBuffer {
-    // If write reaches read but we have data to read, this is set.
-    // It allows us handle the edge case of read == write, but data
-    // has not been read yet.
-    can_read_from_wrap_around: bool,
     // The optional flush threshold to uphold.
     flush_options: FlushOptions,
 
@@ -481,7 +478,6 @@ fn find_pointers_and_order_post_crash(
             read_updates += 1;
             read = end + data_size;
         }
-
         // Found the last write, take whatever we got for read and write
         // and return the pointers.
         if inner.order() < order {
