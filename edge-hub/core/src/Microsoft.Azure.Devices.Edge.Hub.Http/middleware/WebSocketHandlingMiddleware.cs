@@ -3,9 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Net.WebSockets;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
@@ -13,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Primitives;
     using static System.FormattableString;
 
     class WebSocketHandlingMiddleware
@@ -72,6 +75,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
 
             X509Certificate2 cert = await context.Connection.GetClientCertificateAsync();
+
+            if (cert == null)
+            {
+                // If the connection came through the API proxy, the client cert
+                // would have been forwarded in a custom header
+                if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
+                {
+                    string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
+
+                    try
+                    {
+                        var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
+                        cert = new X509Certificate2(clientCertificateBytes);
+                    }
+                    catch (Exception ex)
+                    {
+                        Events.InvalidCertificate(ex, remoteEndPoint.ToString());
+                        throw;
+                    }
+                }
+            }
+
             if (cert != null)
             {
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
@@ -95,7 +120,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 RequestReceived = IdStart,
                 RequestCompleted,
                 BadRequest,
-                SubProtocolSelected
+                SubProtocolSelected,
+                InvalidCertificate,
             }
 
             public static void WebSocketRequestReceived(string traceId, string correlationId) =>
@@ -109,6 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             public static void WebSocketRequestNoListener(string traceId, string correlationId) =>
                 Log.LogDebug((int)EventIds.BadRequest, Invariant($"No listener found for request {traceId}. CorrelationId {correlationId}"));
+
+            public static void InvalidCertificate(Exception ex, string connectionIp) =>
+                Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate for incoming connection: {connectionIp}, Exception: {ex.Message}"));
         }
     }
 

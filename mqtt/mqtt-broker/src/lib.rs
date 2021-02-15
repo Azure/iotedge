@@ -8,8 +8,7 @@
     clippy::use_self,
     clippy::match_same_arms,
     clippy::must_use_candidate,
-    clippy::missing_errors_doc,
-    clippy::unnecessary_wraps //TODO: address in the following PR
+    clippy::missing_errors_doc
 )]
 
 pub mod auth;
