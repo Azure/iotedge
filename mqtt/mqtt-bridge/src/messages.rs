@@ -163,7 +163,6 @@ where
                     return Ok(Handled::Fully);
                 }
                 warn!("no topic matched");
-                return Ok(Handled::Fully);
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
@@ -317,8 +316,15 @@ mod tests {
             assert!(result.is_ok());
             let file = result.unwrap();
             let file_path = file.path().to_path_buf();
+
+            let result = tempfile::NamedTempFile::new();
+            assert!(result.is_ok());
+            let file = result.unwrap();
+            let metadata_file_path = file.path().to_path_buf();
+
             let result = PublicationStore::new_ring_buffer(
                 file_path,
+                metadata_file_path,
                 MAX_FILE_SIZE,
                 FLUSH_OPTIONS,
                 BATCH_SIZE,

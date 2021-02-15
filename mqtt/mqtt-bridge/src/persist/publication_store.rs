@@ -73,11 +73,12 @@ impl PublicationStore<RingBuffer> {
 impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
         file_path: PathBuf,
-        max_file_size: NonZeroUsize,
+        metadata_file_path: PathBuf,
+        max_file_size: NonZeroU64,
         flush_options: FlushOptions,
         batch_size: NonZeroUsize,
     ) -> StorageResult<Self> {
-        let rb = RingBuffer::new(file_path, max_file_size, flush_options)?;
+        let rb = RingBuffer::new(file_path, metadata_file_path, max_file_size, flush_options)?;
         Ok(Self::new(rb, batch_size))
     }
 }
