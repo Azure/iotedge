@@ -19,8 +19,9 @@ use crate::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
         RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
-    },
-};
+    }};
+
+const BATCH_SIZE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(10) };
 
 pub struct BridgeHandle {
     local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
@@ -155,7 +156,9 @@ impl Bridge<RingBuffer> {
             })
             .with_store(move |suffix| {
                 let mut file_path = file_path.clone();
+                let mut metadata_file_path = file_path.clone();
                 file_path.push(suffix);
+                metadata_file_path.push("metadata.state");
 
                 PublicationStore::new_ring_buffer(
                     NonZeroUsize::new(BATCH_SIZE).unwrap(),

@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::VecDeque, task::Waker};
+use std::{cmp::min, collections::VecDeque, num::NonZeroUsize, task::Waker};
 
 use mqtt3::proto::Publication;
 use tracing::debug;
@@ -6,6 +6,8 @@ use tracing::debug;
 use crate::persist::{Key, MemoryError, StorageResult, StreamWakeableState};
 
 pub mod error;
+#[cfg(test)]
+pub mod test;
 
 /// When elements are retrieved they are moved to the loaded collection.
 /// This loaded collection is necessary so it behaves the same as other `StreamWakeableState` implementations
@@ -13,14 +15,16 @@ pub struct WakingMemoryStore {
     queue: VecDeque<(Key, Publication)>,
     loaded: VecDeque<Key>,
     waker: Option<Waker>,
+    max_size: usize,
 }
 
-impl Default for WakingMemoryStore {
-    fn default() -> Self {
+impl WakingMemoryStore {
+    pub fn new(max_size: NonZeroUsize) -> Self {
         Self {
             queue: VecDeque::new(),
             loaded: VecDeque::new(),
             waker: None,
+            max_size: max_size.get(),
         }
     }
 }
@@ -32,6 +36,10 @@ impl StreamWakeableState for WakingMemoryStore {
         };
 
         debug!("inserting publication with key {:?}", key);
+
+        if self.max_size <= self.queue.len() {
+            return Err(MemoryError::Full.into());
+        }
 
         self.queue.push_back((key, value.clone()));
 

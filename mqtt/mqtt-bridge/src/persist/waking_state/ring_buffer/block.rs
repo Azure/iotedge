@@ -67,7 +67,7 @@ impl BlockHeaderV1 {
         }
     }
 
-    pub fn hint(&self) -> u32 {
+    pub fn hint(&self) -> u64 {
         self.hint
     }
 

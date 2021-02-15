@@ -530,7 +530,7 @@ where
     if start > max_size {
         start %= max_size;
     }
-    let end = start + size;
+    let end = start + size as u64;
 
     if end > max_size {
         read_wrap_around(readable, start, size, max_size)
@@ -581,7 +581,7 @@ where
     if start > max_size {
         start %= max_size;
     }
-    let end = start + size;
+    let end = start + size as u64;
 
     if end > max_size {
         read_wrap_around(readable, start, size, max_size)

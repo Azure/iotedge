@@ -6,10 +6,11 @@
         "forwards": []
     },
     "storage": {
-        "max_file_size": 1048576,
-        "batch_size": 10,
-        "directory": "/tmp/mqttd/config/",
-        "flush_options": "aftereachwrite"
+        "ring_buffer": {
+            "max_file_size": 3221225472,
+            "directory": "/tmp/mqttd/config/",
+            "flush_options": "aftereachwrite"
+        }
     },
     "remotes": [],
     "storage": {
