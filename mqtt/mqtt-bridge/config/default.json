@@ -7,7 +7,7 @@
     },
     "storage": {
         "ring_buffer": {
-            "max_file_size": 3221225472,
+            "max_file_size": 1048576,
             "directory": "/tmp/mqttd/config/",
             "flush_options": "aftereachwrite"
         }

@@ -158,7 +158,7 @@ impl Bridge<RingBuffer> {
                 let mut file_path = file_path.clone();
                 let mut metadata_file_path = file_path.clone();
                 file_path.push(suffix);
-                metadata_file_path.push("metadata.state");
+                metadata_file_path.push(suffix.to_owned() + "." + "metadata.state");
 
                 PublicationStore::new_ring_buffer(
                     NonZeroUsize::new(BATCH_SIZE).unwrap(),
