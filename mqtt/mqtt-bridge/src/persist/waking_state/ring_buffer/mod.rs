@@ -265,7 +265,6 @@ impl StreamWakeableState for RingBuffer {
 
         save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
 
-        println!("insert ok");
         Ok(Key { offset: key })
     }
 
@@ -329,7 +328,6 @@ impl StreamWakeableState for RingBuffer {
 
         save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
 
-        println!("batch ok");
         Ok(vdata)
     }
 
@@ -379,7 +377,6 @@ impl StreamWakeableState for RingBuffer {
 
         save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
 
-        println!("remove ok");
         Ok(())
     }
 
@@ -423,7 +420,7 @@ fn find_pointers_and_order_post_crash(
     let mut write = best_guess_metadata.file_pointers.write;
     let mut order = best_guess_metadata.order;
     let can_read_from_wrap_around = best_guess_metadata.can_read_from_wrap_around;
-    println!("best guess {:?}", best_guess_metadata);
+
     // Now that a block has been found, we can find the last write.
     // We can scan each block we find and check the order on it, if
     // we find a block that has any of the following we can stop searching:
@@ -451,7 +448,7 @@ fn find_pointers_and_order_post_crash(
         Ok(block) => block,
         Err(_) => {
             // Failed to load block, so go with what we already have.
-            println!("use best guess");
+
             return best_guess_metadata;
         }
     };
