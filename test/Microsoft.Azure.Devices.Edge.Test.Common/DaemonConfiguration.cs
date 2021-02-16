@@ -29,41 +29,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         private struct Config
         {
-            public string Path;
+            public string ConfigPath;
+            public string PrincipalsPath;
+            public uint Uid;
             public IConfigDocument Document;
         }
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         private Dictionary<Service, Config> config;
-        private string principalsPath;
 
-        public DaemonConfiguration(ConfigFilePaths configFiles, uint iotedgeUid)
+        public DaemonConfiguration(ConfigFilePaths configFiles)
         {
             this.config = new Dictionary<Service, Config>();
 
-            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true);
-            this.InitServiceConfig(Service.Certd, configFiles.Certd, true);
-            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true);
-            this.InitServiceConfig(Service.Edged, configFiles.Edged, false);
-
-            string principalsPath = Path.Combine(
-                Path.GetDirectoryName(configFiles.Identityd),
-                "config.d");
-            this.principalsPath = principalsPath;
-
-            // Clear any existing Identity Service principals.
-            this.config[Service.Identityd].Document.RemoveIfExists("principal");
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-            }
-
-            Directory.CreateDirectory(principalsPath);
-            OsPlatform.Current.SetOwner(principalsPath, "aziotid", "755");
+            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true, "aziotks");
+            this.InitServiceConfig(Service.Certd, configFiles.Certd, true, "aziotcs");
+            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true, "aziotid");
+            this.InitServiceConfig(Service.Edged, configFiles.Edged, false, "iotedge");
 
             // Add the principal entry for aziot-edge to Identity Service.
             // This is required so aziot-edge can communicate with Identity Service.
-            this.AddPrincipal("aziot-edge", iotedgeUid);
+            this.AddIdentityPrincipal("aziot-edge", this.config[Service.Edged].Uid);
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -76,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
-        void InitServiceConfig(Service service, string path, bool toml)
+        void InitServiceConfig(Service service, string path, bool toml, string owner)
         {
             Config config;
             string contents = File.ReadAllText(path);
@@ -90,7 +76,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 config.Document = new YamlDocument(contents);
             }
 
-            config.Path = path;
+            string principalsPath = Path.Combine(
+                Path.GetDirectoryName(path),
+                "config.d");
+
+            // Clear any existing principals.
+            config.Document.RemoveIfExists("principal");
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+            }
+
+            Directory.CreateDirectory(principalsPath);
+            OsPlatform.Current.SetOwner(principalsPath, owner, "755");
+
+            config.ConfigPath = path;
+            config.PrincipalsPath = principalsPath;
+            config.Uid = OsPlatform.Current.GetUid(owner);
+
             this.config.Add(service, config);
         }
 
@@ -238,9 +241,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Certd].Document.RemoveIfExists("preloaded_certs.aziot-edged-trust-bundle");
         }
 
-        public void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
+        public void AddIdentityPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
         {
-            string path = Path.Combine(this.principalsPath, $"{name}-principal.toml");
+            string path = Path.Combine(this.config[Service.Identityd].PrincipalsPath, $"{name}-principal.toml");
 
             string principal = string.Join(
                 "\n",
@@ -276,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             foreach (KeyValuePair<Service, Config> i in this.config)
             {
-                string path = i.Value.Path;
+                string path = i.Value.ConfigPath;
                 var attr = File.GetAttributes(path);
                 File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
 

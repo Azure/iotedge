@@ -107,8 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Edged = "/etc/aziot/edged/config.yaml"
                     };
 
-                    uint iotedgeUid = OsPlatform.Current.GetUid("iotedge");
-                    DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
