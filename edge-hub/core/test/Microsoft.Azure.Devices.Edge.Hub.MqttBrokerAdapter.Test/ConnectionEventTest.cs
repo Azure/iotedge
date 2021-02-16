@@ -6,8 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
-
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -19,11 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
-
+    using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Bson;
     using Newtonsoft.Json.Serialization;
-
     using Moq;
     using Xunit;
 
@@ -48,18 +47,126 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var (subscriptionChangeHandler, cloudProxyDispatcher, brokerConnector) = await SetupEnvironment();
             var allClients = await ConnectClientsAsync(subscriptionChangeHandler);
 
-            await Task.Delay(1000);
+            await Task.Delay(2000);
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+
+            await Task.Delay(2000);
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Disconnected\"}")));
+
+            await Task.Delay(2000);
+
+            var clients = new HashSet<IIdentity>();
+            brokerConnector.SetPacketSpy(Spy);
+
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+
+            // We don't know when all the clients get processed, so keep looping for a while
+            var startTime = DateTime.Now;
+            while (DateTime.Now - startTime < TimeSpan.FromSeconds(30))
+            {
+                bool isCountEqual;
+                lock (clients)
+                {
+                    isCountEqual = allClients.Count == clients.Count;
+                }
+
+                if (isCountEqual)
+                {
+                    break;
+                }
+                else
+                {
+                    await Task.Delay(100);
+                }
+            }
+
+            Assert.True(allClients.SetEquals(clients));
+
+            void Spy(RpcPacket packet)
+            {
+                if (packet.Topic.EndsWith("/methods/post/#"))
+                {
+                    var segments = packet.Topic.Split('/');
+
+                    lock (clients)
+                    {
+                        if (segments.Length == 6)
+                        {
+                            clients.Add(new ModuleIdentity(iotHubName, segments[1], segments[2]));
+                        }
+                        else if (segments.Length == 5)
+                        {
+                            clients.Add(new DeviceIdentity(iotHubName, segments[1]));
+                        }
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public async Task OnReconnectionClientsGetTwinsPulled()
+        {
+            var (subscriptionChangeHandler, cloudProxyDispatcher, brokerConnector) = await SetupEnvironment();
+            var allClients = await ConnectClientsAsync(subscriptionChangeHandler);
+
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+
+            await Task.Delay(2000);
 
             await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Disconnected\"}")));
 
-            await Task.Delay(1000);
+            await Task.Delay(2000);
 
-            brokerConnector.StartClientCollection();
+            var clients = new HashSet<IIdentity>();
+            brokerConnector.SetPacketSpy(Spy);
+
             await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
 
-            await Task.Delay(1000);
+            // We don't know when all the clients get processed, so keep looping for a while
+            var startTime = DateTime.Now;
+            while (DateTime.Now - startTime < TimeSpan.FromSeconds(30))
+            {
+                bool isCountEqual;
+                lock (clients)
+                {
+                    isCountEqual = allClients.Count == clients.Count;
+                }
 
-            Assert.True(allClients.SetEquals(new HashSet<IIdentity>(brokerConnector.Clients)));
+                if (isCountEqual)
+                {
+                    break;
+                }
+                else
+                {
+                    await Task.Delay(100);
+                }
+            }
+
+            Assert.True(allClients.SetEquals(clients));
+
+            void Spy(RpcPacket packet)
+            {
+                const string TwinGetPublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
+
+                var match = Regex.Match(packet.Topic, TwinGetPublishPattern);
+                if (match.Success)
+                {
+                    var id1 = match.Groups["id1"];
+                    var id2 = match.Groups["id2"];
+                    var rid = match.Groups["rid"];
+                    
+                    var identity = id2.Success
+                                        ? new ModuleIdentity(iotHubName, id1.Value, id2.Value)
+                                        : new DeviceIdentity(iotHubName, id1.Value) as IIdentity;
+
+                    _ = cloudProxyDispatcher.HandleAsync(
+                            new MqttPublishInfo(
+                                   $"$downstream/{identity.Id}/twin/res/200/?$rid={rid.Value}",
+                                   Encoding.UTF8.GetBytes(@"{""deviceId"":null,""etag"":null,""version"":null,""properties"":{""desired"":{""$version"":1},""reported"":{""$version"":1}}}")));
+                    
+                    clients.Add(identity);
+                }
+            }
         }
 
         async Task<HashSet<IIdentity>> ConnectClientsAsync(IMessageConsumer subscriptionChangeHandler)
@@ -112,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher);
 
             var identityProvider = new IdentityProvider(iotHubName);
-            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+            var deviceConnectivityManager = new BrokeredDeviceConnectivityManager(cloudProxyDispatcher);
 
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
 
@@ -129,7 +236,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var router = await Router.CreateAsync(Guid.NewGuid().ToString(), iotHubName, routerConfig, endpointExecutorFactory);
 
-            var twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
+            var messageConverterProvider = new MessageConverterProvider(
+                                                    new Dictionary<Type, IMessageConverter>()
+                                                    {
+                                                        { typeof(Twin), new TwinMessageConverter() },
+                                                        { typeof(TwinCollection), new TwinCollectionMessageConverter() }
+                                                    });
+
+            var twinManager = TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.None<IStoreProvider>());
             var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
 
@@ -177,23 +291,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         // This class is the one that is supposed to forward the MQTT messages to the broker.
         // Now instead it swallows the messages, and auto-acks the RPC calls going upstream.
-        // Also, it recognizes desired property subscriptions and store the related clients
         internal class NullBrokerConnector : IMqttBrokerConnector
         {
             BrokeredCloudProxyDispatcher dispatcher;
-            HashSet<IIdentity> clients;
-
+            Option<Action<RpcPacket>> spy;
+            
             public NullBrokerConnector(BrokeredCloudProxyDispatcher dispatcher)
             {
                 this.dispatcher = dispatcher;
             }
 
-            public void StartClientCollection()
-            {
-                this.clients = new HashSet<IIdentity>();
-            }
-
-            public IEnumerable<IIdentity> Clients => this.clients.ToArray();
+            public void SetPacketSpy(Action<RpcPacket> spy) => this.spy = Option.Some(spy);
 
             public Task EnsureConnected => Task.CompletedTask;
             public Task ConnectAsync(string serverAddress, int port) => Task.CompletedTask;
@@ -220,19 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                         packet = serializer.Deserialize<RpcPacket>(reader);
                     }
 
-                    if (packet.Topic.EndsWith("/methods/post/#"))
-                    {
-                        var segments = packet.Topic.Split('/');
-
-                        if (segments.Length == 6 && this.clients != null)
-                        {
-                            this.clients.Add(new ModuleIdentity(iotHubName, segments[1], segments[2]));
-                        }
-                        else if (segments.Length == 5 && this.clients != null)
-                        {
-                            this.clients.Add(new DeviceIdentity(iotHubName, segments[1]));
-                        }
-                    }
+                    this.spy.ForEach(s => s(packet));
                 }
 
                 return true;
