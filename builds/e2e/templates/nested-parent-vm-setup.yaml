@@ -11,7 +11,7 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       vsts.project: $(System.TeamProjectId)
       level: 5
-      deploymentFile: 'nestededge_topLayerBaseDeployment${{ parameters.transportType }}.json'
+      deploymentFile: 'nestededge_topLayerBaseDeployment_${{ parameters.transportType }}.json'
       parentName: ''
       parentDeviceId: ''
       transportType: ${{ parameters.transportType }}
