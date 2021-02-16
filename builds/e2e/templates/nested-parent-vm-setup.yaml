@@ -1,3 +1,6 @@
+parameters:
+  transportType: ''
+
 jobs:
   - job: SetupVM_level5
     displayName: SettingUp level 5
@@ -11,6 +14,7 @@ jobs:
       deploymentFile: 'nestededge_topLayerBaseDeployment.json'
       parentName: ''
       parentDeviceId: ''
+      transportType: ${{ parameters.transportType }}
     pool:
      name: $(pool.name)
      demands:
@@ -37,10 +41,10 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
       vsts.project: $(System.TeamProjectId)
-      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
       level: 4
+      transportType: ${{ parameters.transportType }}
     pool:
      name: $(pool.name)
      demands:
