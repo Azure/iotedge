@@ -66,29 +66,27 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: centos7_amd64
-################################################################################
-    displayName: CentOs7 amd64
+################################################################################		
+  - job: centos7_amd64	
+################################################################################		
+    displayName: CentOs7 amd64	
 
-    pool:
-      name: $(pool.name)
-      demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
+    pool:	
+      name: $(pool.name)	
+      demands:	
+        - Agent.OS -equals Linux	
+        - Agent.OSArchitecture -equals X64	
         - run-new-e2e-tests -equals true
         - centos -equals 7
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-centos7-amd64
-      identityServiceArtifactName: packages_centos-7_amd64
-      identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+    variables:	
+      os: linux	
+      arch: amd64	
+      artifactName: iotedged-centos7-amd64	
 
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
+    steps:	
+    - template: templates/e2e-clean-directory.yaml	
+    - template: templates/e2e-setup.yaml	
+    - template: templates/e2e-clear-docker-cached-images.yaml	
     - template: templates/e2e-run.yaml
 
