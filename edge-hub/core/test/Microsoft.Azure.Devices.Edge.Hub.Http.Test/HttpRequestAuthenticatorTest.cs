@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
@@ -49,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(new[] { "sasToken1", "sasToken2" }));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
@@ -70,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("invalidSasToken"));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
 
@@ -91,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}", expired: true);
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
@@ -113,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
 
@@ -134,6 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             string sasToken = TokenHelper.CreateSasToken($"{iothubHostName}/devices/{deviceId}/modules/{moduleId}");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues(sasToken));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
@@ -156,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             httpContext.Connection.ClientCertificate = clientCert;
@@ -177,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("blah"));
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
@@ -199,6 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             var certContentBytes = CertificateHelper.GenerateSelfSignedCert($"test_cert").Export(X509ContentType.Cert);
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
             string clientCertString = $"-----BEGIN CERTIFICATE-----\n{certContentBase64}\n-----END CERTIFICATE-----\n";
@@ -224,6 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
             httpContext.Request.Headers.Add(HeaderNames.Authorization, new StringValues("blah"));
             httpContext.Connection.ClientCertificate = clientCert;
@@ -245,6 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             var clientCert = CertificateHelper.GenerateSelfSignedCert($"test_cert");
             httpContext.Request.QueryString = new QueryString("?api-version=2017-10-20");
             httpContext.Connection.ClientCertificate = clientCert;
