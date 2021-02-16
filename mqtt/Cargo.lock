@@ -1114,6 +1114,7 @@ dependencies = [
  "bytes",
  "chrono",
  "config",
+ "crc32fast",
  "edgelet-client",
  "futures-util",
  "humantime 2.0.1",
