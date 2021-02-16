@@ -34,6 +34,7 @@ stages:
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked  
     variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
@@ -78,6 +79,7 @@ stages:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: '$(hostPlatform)'
+          longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
@@ -96,6 +98,7 @@ stages:
         - agent-osbits -equals 32
         - status -equals unlocked   
     variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
       aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
@@ -139,6 +142,7 @@ stages:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: '$(hostPlatform)'
+          longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
@@ -157,6 +161,7 @@ stages:
         - agent-osbits -equals 32
         - status -equals unlocked
     variables:
+      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
@@ -200,6 +205,7 @@ stages:
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           metricsCollector.hostPlatform: '$(hostPlatform)'
+          longHaul.parentHostname: '$(parentName)'
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
