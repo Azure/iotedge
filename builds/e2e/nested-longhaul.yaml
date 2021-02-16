@@ -19,13 +19,13 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       transportType: amqp
-  - template: templates/nested-longhaul-deploy-bottom-layer.yaml
+  - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       transportType: amqp
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       transportType: mqtt
-  - template: templates/nested-longhaul-deploy-bottom-layer.yaml
+  - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       transportType: mqtt
 
@@ -46,8 +46,6 @@ stages:
       deviceLvl4MqttAgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]
       amd64AmqpAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_amqp.outputs['lock_test_agent.agentName'] ]
       amd64MqttAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_mqtt.outputs['lock_test_agent.agentName'] ]
-     #arm32AgentName: $[ dependencies.Deploy_Longhaul_Linux_Arm32.outputs['lock_test_agent.agentName'] ]
-     #arm64AgentName: $[ dependencies.Deploy_Longhaul_Linux_Arm64.outputs['lock_test_agent.agentName'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -80,12 +78,4 @@ stages:
       - template: templates/unlock-test-agent.yaml 
         parameters:
           agentName: $(amd64MqttAgentName)
-          lvl: 3  
-      #- template: templates/unlock-test-agent.yaml 
-      #  parameters:
-      #    agentName: $(arm32AgentName)
-      #    lvl: 3  
-      #- template: templates/unlock-test-agent.yaml 
-      #  parameters:
-      #    agentName: $(arm64AgentName)
-      #    lvl: 3  
+          lvl: 3
