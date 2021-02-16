@@ -1,4 +1,4 @@
-- jobs:
+jobs:
   - job:  Deploy_Longhaul_Linux_Amd64
     displayName: Set up and run longhaul tests on Linux Amd64
     dependsOn: SetupVM_level4
