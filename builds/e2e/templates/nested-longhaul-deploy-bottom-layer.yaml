@@ -20,10 +20,10 @@ jobs:
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
     steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml 
-      - template: templates/nested-longhaul-deploy.yaml
+      - template: nested-get-secrets.yaml     
+      - template: lock-test-agent.yaml     
+      - template: nested-get-root-ca.yaml 
+      - template: nested-longhaul-deploy.yaml
         parameters:
           release.label: 'lh$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
