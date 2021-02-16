@@ -15,5 +15,3 @@ members = [
     "management",
     "systemd",
 ]
-
-exclude = [ "aziot" ]
