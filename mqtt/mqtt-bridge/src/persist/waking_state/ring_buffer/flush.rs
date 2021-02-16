@@ -41,7 +41,7 @@ pub enum FlushOptions {
 
 /// A stateful object for tracking progress of any of the `AfterX`... options
 /// from `FlushOptions`.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FlushState {
     pub writes: u64,
     pub bytes_written: u64,
@@ -49,14 +49,6 @@ pub struct FlushState {
 }
 
 impl FlushState {
-    pub(crate) fn new() -> Self {
-        Self {
-            writes: u64::default(),
-            bytes_written: u64::default(),
-            elapsed: Duration::default(),
-        }
-    }
-
     pub(crate) fn reset(&mut self, flush_option: &FlushOptions) {
         match flush_option {
             FlushOptions::AfterEachWrite => {}
@@ -86,7 +78,7 @@ mod tests {
 
     #[test]
     fn it_updates_flush_state_on_update() {
-        let mut fs = FlushState::new();
+        let mut fs = FlushState::default();
         fs.update(1, 0, Duration::default());
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 0);
@@ -107,7 +99,7 @@ mod tests {
 
     #[test]
     fn it_resets_flush_state_on_reset() {
-        let mut fs = FlushState::new();
+        let mut fs = FlushState::default();
         fs.update(1, 1, Duration::from_millis(1));
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);

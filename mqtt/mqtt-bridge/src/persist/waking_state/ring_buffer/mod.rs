@@ -148,7 +148,7 @@ impl RingBuffer {
 
         Ok(Self {
             flush_options,
-            flush_state: FlushState::new(),
+            flush_state: FlushState::default(),
             has_read: false,
             max_file_size: max_file_size.get(),
             file,
