@@ -32,7 +32,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           test.startDelay: '$(test.startDelay)'
-          test.deploymentFileName: '$(test.deploymentFileName)'
+          test.deploymentFileName: 'nested_long_haul_${{ parameters.transportType }}_deployment.template.json'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -65,4 +65,3 @@ jobs:
           quickstart.package.name: '$(quickstart.package.name)'
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
-          test.deploymentFileName: 'nested_long_haul_${{ parameters.transportType }}_deployment.template.json'
