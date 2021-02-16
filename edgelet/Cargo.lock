@@ -102,6 +102,7 @@ version = "0.1.0"
 dependencies = [
  "hex 0.4.2",
  "http-common",
+ "libc",
  "openssl",
  "serde",
  "url 2.1.1",
@@ -239,6 +240,7 @@ name = "aziot-keyd-config"
 version = "0.1.0"
 dependencies = [
  "http-common",
+ "libc",
  "serde",
 ]
 

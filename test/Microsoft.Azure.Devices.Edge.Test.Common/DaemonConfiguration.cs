@@ -98,18 +98,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Service.Keyd,
                 "aziot-identityd",
                 this.config[Service.Identityd].Uid,
-                new string[] {keyName, "aziot_identityd_master_id"});
+                new string[] { keyName, "aziot_identityd_master_id" });
             this.AddIdentityPrincipal("aziot-edged", this.config[Service.Edged].Uid);
             this.AddAuthPrincipal(
                 Service.Keyd,
                 "aziot-edged",
                 this.config[Service.Edged].Uid,
-                new string[] {"iotedge_master_encryption_id", "aziot-edged-ca"});
+                new string[] { "iotedge_master_encryption_id", "aziot-edged-ca" });
             this.AddAuthPrincipal(
                 Service.Certd,
                 "aziot-edged",
                 this.config[Service.Edged].Uid,
-                new string[] {"$edgeHub*server"});
+                new string[] { "$edgeHub*server" });
         }
 
         public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
 
-            SetAuth(keyName);
+            this.SetAuth(keyName);
         }
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.CreatePreloadedKey(keyName, deviceKey);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
 
-            SetAuth(keyName);
+            this.SetAuth(keyName);
         }
 
         public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath, string trustBundle)
@@ -207,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + trustBundle);
 
-            SetAuth(keyName);
+            this.SetAuth(keyName);
         }
 
         public void SetEdgeAgentImage(string value)
@@ -296,7 +296,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 throw new ArgumentException("Empty array of credentials");
             }
 
-            string auth = "";
+            string auth = string.Empty;
 
             switch (service)
             {
