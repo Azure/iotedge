@@ -3,7 +3,7 @@ parameters:
 
 jobs:
   - job: SetupVM_level5_${{ parameters.transportType }}
-    displayName: SettingUp level 5
+    displayName: SettingUp level 5 for ${{ parameters.transportType }} 
     timeoutInMinutes: 180
     variables:
       artifactName: iotedged-ubuntu18.04-amd64
@@ -33,7 +33,7 @@ jobs:
 
   - job: SetupVM_level4_${{ parameters.transportType }}
     dependsOn: SetupVM_level5_${{ parameters.transportType }}
-    displayName: SettingUp level 4
+    displayName: SettingUp level 4 for ${{ parameters.transportType }}
     condition: succeeded()
     timeoutInMinutes: 180
     variables:

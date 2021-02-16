@@ -3,7 +3,7 @@ parameters:
 
 jobs:
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters.transportType }}
-    displayName: Set up and run longhaul tests on Linux Amd64
+    displayName: Set up and run longhaul tests on Linux Amd64 for ${{ parameters.transportType }}
     dependsOn: SetupVM_level4_${{ parameters.transportType }}
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     pool:
