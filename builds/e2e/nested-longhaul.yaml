@@ -19,7 +19,7 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       transportType: amqp
-  - template: templates/nested-longhaul-deploy-botttom-layer.yaml
+  - template: templates/nested-longhaul-deploy-bottom-layer.yaml
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       transportType: mqtt
