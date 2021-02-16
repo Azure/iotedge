@@ -53,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 {
                     if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
                     {
+                        Events.AuthenticationApiProxy(context.Connection.RemoteIpAddress.ToString());
+
                         string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
 
                         try
@@ -136,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             enum EventIds
             {
                 AuthenticationFailed = IdStart,
-                AuthenticationSuccess
+                AuthenticationSuccess,
+                AuthenticationApiProxy,
             }
 
             public static string AuthenticationFailed(string message)
@@ -148,6 +151,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             public static void AuthenticationSucceeded(IIdentity identity)
             {
                 Log.LogDebug((int)EventIds.AuthenticationSuccess, $"Http Authentication succeeded for device with Id {identity.Id}");
+            }
+
+            public static void AuthenticationApiProxy(string remoteAddress)
+            {
+                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
             }
         }
     }

@@ -87,6 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 {
                     if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
                     {
+                        Events.AuthenticationApiProxy(context.Connection.RemoteIpAddress.ToString());
+
                         string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
 
                         try
@@ -128,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 BadRequest,
                 SubProtocolSelected,
                 InvalidCertificate,
+                AuthenticationApiProxy,
             }
 
             public static void WebSocketRequestReceived(string traceId, string correlationId) =>
@@ -144,6 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             public static void InvalidCertificate(Exception ex, string connectionIp) =>
                 Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate for incoming connection: {connectionIp}, Exception: {ex.Message}"));
+
+            public static void AuthenticationApiProxy(string remoteAddress) =>
+                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
         }
     }
 
