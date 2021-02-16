@@ -31,8 +31,8 @@ jobs:
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
 
-  - job: SetupVM_level4
-    dependsOn: SetupVM_level5
+  - job: SetupVM_level4_${{ parameters.transportType }}
+    dependsOn: SetupVM_level5_${{ parameters.transportType }}
     displayName: SettingUp level 4
     condition: succeeded()
     timeoutInMinutes: 180
