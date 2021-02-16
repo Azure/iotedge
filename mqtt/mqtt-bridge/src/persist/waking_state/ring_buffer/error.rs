@@ -7,7 +7,7 @@ pub enum BlockError {
     DataHash { found: u64, expected: u64 },
 
     #[error("Unexpected data size {found:?} expected {expected:?}")]
-    DataSize { found: u32, expected: u32 },
+    DataSize { found: u64, expected: u64 },
 
     #[error("Bad hint")]
     Hint,
@@ -21,8 +21,17 @@ pub enum RingBufferError {
     #[error("Buffer is full and messages must be drained to continue")]
     Full,
 
-    #[error("Mmap creation error occurred. Caused by {0}")]
-    MmapCreate(std::io::Error),
+    #[error("Unable to create file. Caused by {0}")]
+    FileCreate(std::io::Error),
+
+    #[error("File IO error occurred. Caused by {0}")]
+    FileIO(std::io::Error),
+
+    #[error("File metadata unavailable")]
+    FileMetadata(std::io::Error),
+
+    #[error("File cannot be truncated.")]
+    FileTruncation,
 
     #[error("Key does not exist")]
     NonExistantKey,
