@@ -31,11 +31,12 @@ stages:
 
   - job:  Clean_up      
     dependsOn:
-      - SetupVM_level5 
-      - SetupVM_level4
-      - Deploy_Longhaul_Linux_Amd64
-      - Deploy_Longhaul_Linux_Arm32
-      - Deploy_Longhaul_Linux_Arm64
+      - SetupVM_level5_amqp
+      - SetupVM_level5_mqtt
+      - SetupVM_level4_amqp
+      - SetupVM_level4_mqtt
+      - Deploy_Longhaul_Linux_Amd64_amqp
+      - Deploy_Longhaul_Linux_Amd64_mqtt
     condition: eq(variables['test.pipeline'], 'true')
     displayName: Clean up identities and unlock agents
     variables:    
