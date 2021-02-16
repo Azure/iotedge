@@ -102,7 +102,7 @@ function get_long_haul_deployment_artifact_file() {
     local nestedEdgeTest=$(printenv E2E_nestedEdgeTest)
 
     if [[ ! -z "$nestedEdgeTest" ]]; then
-      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nested_long_haul_deployment.template.json"
+      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nested_long_haul_amqp_deployment.template.json"
     fi
 
     echo "$path"
