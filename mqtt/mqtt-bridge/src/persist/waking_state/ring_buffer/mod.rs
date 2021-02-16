@@ -141,7 +141,7 @@ impl RingBuffer {
 
         // For correctness, need to scan after best guess and see if can get more accurate.
         let metadata =
-            find_pointers_and_order_post_crash(&mut file, max_file_size.get(), best_guess_metadata);
+            find_pointers_and_order_post_crash(&mut file, max_file_size, best_guess_metadata);
 
         file.seek(SeekFrom::Start(0)).unwrap();
         let mut buf = vec![];
@@ -155,7 +155,7 @@ impl RingBuffer {
             flush_options,
             flush_state: FlushState::default(),
             has_read: false,
-            max_file_size: max_file_size.get(),
+            max_file_size,
             file,
             metadata,
             metadata_file,
@@ -258,8 +258,7 @@ impl RingBuffer {
 
         save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
 
-        #[allow(clippy::cast_possible_truncation)]
-        Ok(Key { offset: key as u32 })
+        Ok(Key { offset: key })
     }
 
     fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
@@ -321,10 +320,7 @@ impl RingBuffer {
             // after a `BlockHeaderWithHash`.
             validate(&block, &bincode::serialize(&publication)?)?;
 
-            #[allow(clippy::cast_possible_truncation)]
-            let key = Key {
-                offset: index as u32,
-            };
+            let key = Key { offset: index };
 
             vdata.push_back((key, publication));
 
@@ -820,19 +816,19 @@ mod tests {
                 {
                     #[allow(clippy::cast_possible_truncation)]
                     let key = keys[0].offset;
-                    assert_matches!(rb.remove(u64::from(key)), Ok(_));
+                    assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 {
                     #[allow(clippy::cast_possible_truncation)]
                     let key = keys[1].offset;
-                    assert_matches!(rb.remove(u64::from(key)), Ok(_));
+                    assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 {
                     #[allow(clippy::cast_possible_truncation)]
                     let key = keys[2].offset;
-                    assert_matches!(rb.remove(u64::from(key)), Ok(_));
+                    assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
@@ -1004,7 +1000,7 @@ mod tests {
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
                 #[allow(clippy::cast_possible_truncation)]
-                let result = rb.remove(u64::from(key.offset));
+                let result = rb.remove(key.offset);
                 assert_matches!(result, Ok(_));
             }
             assert_eq!(rb.metadata.order, 5);
@@ -1111,7 +1107,7 @@ mod tests {
         let batch = result.unwrap();
 
         #[allow(clippy::cast_possible_truncation)]
-        let result = rb.0.remove(u64::from(batch[0].0.offset));
+        let result = rb.0.remove(batch[0].0.offset);
         assert_matches!(result, Ok(_));
 
         // need bigger pub
@@ -1226,7 +1222,7 @@ mod tests {
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
                 #[allow(clippy::cast_possible_truncation)]
-                let result = rb.remove(u64::from(key.offset));
+                let result = rb.remove(key.offset);
                 assert_matches!(result, Ok(_));
             }
         }
@@ -1510,7 +1506,7 @@ mod tests {
             assert_eq!(key, entry.0);
 
             #[allow(clippy::cast_possible_truncation)]
-            let result = rb.0.remove(u64::from(key.offset));
+            let result = rb.0.remove(key.offset);
             assert_matches!(result, Ok(_));
         }
     }
