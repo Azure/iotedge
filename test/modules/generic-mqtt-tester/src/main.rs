@@ -3,16 +3,18 @@ use futures_util::{
     future::{self, select, Either},
     pin_mut,
 };
-use tokio::{self, stream::StreamExt};
 use tokio::{
+    self,
     signal::unix::{signal, SignalKind},
-    time,
+    stream::StreamExt,
 };
 use tracing::{info, info_span, subscriber, Level};
 use tracing_futures::Instrument;
 use tracing_subscriber::fmt::Subscriber;
 
-use generic_mqtt_tester::{settings::Settings, tester::MessageTester, MessageTesterError};
+use generic_mqtt_tester::{
+    settings::Settings, tester::MessageTester, ExitedWork, MessageTesterError,
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,12 +27,6 @@ async fn main() -> Result<()> {
 
     let tester = MessageTester::new(settings.clone()).await?;
     let tester_shutdown = tester.shutdown_handle();
-
-    info!(
-        "waiting for test start delay of {:?}",
-        settings.test_start_delay()
-    );
-    time::delay_for(settings.test_start_delay()).await;
 
     let test_fut = tester.run().instrument(info_span!("tester"));
     let shutdown_fut = listen_for_shutdown().instrument(info_span!("shutdown"));
@@ -46,7 +42,7 @@ async fn main() -> Result<()> {
             info!("processing shutdown, stopping test");
             shutdown?;
 
-            tester_shutdown.shutdown().await?;
+            tester_shutdown.shutdown(ExitedWork::NoneOrUnknown).await;
             test_fut.await?;
         }
     };

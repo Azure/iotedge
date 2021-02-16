@@ -22,6 +22,7 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   longHaul.sendReportFrequency: ''
+  longHaul.testDuration: ''
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
@@ -102,8 +103,9 @@ steps:
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
             -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-            -testDuration  24:00:00 \
+            -testDuration  "${{ parameters['longHaul.testDuration'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
             -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \

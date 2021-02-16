@@ -13,9 +13,11 @@
 
 use std::{
     env::VarError,
+    fmt,
     io::{self},
 };
 
+use bytes::Buf;
 use mqtt3::{PublishError, ReceivedPublication, UpdateSubscriptionError};
 use tokio::{sync::mpsc::error::SendError, sync::mpsc::Sender, task::JoinError};
 use trc_client::ReportResultError;
@@ -41,6 +43,23 @@ impl ShutdownHandle {
             .send(())
             .await
             .map_err(MessageTesterError::SendShutdownSignal)
+    }
+}
+
+/// Used as an indicator of work that has finished. Needed to indicate that we
+/// should not shutdown the thread corresponding to this work, as it has already
+/// finished.
+#[derive(Debug)]
+pub enum ExitedWork {
+    MessageChannel,
+    MessageInitiator,
+    PollClient,
+    NoneOrUnknown, // Used for shutting down everything (None) or errored tasks (Unknown)
+}
+
+impl fmt::Display for ExitedWork {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }
 
@@ -90,4 +109,11 @@ pub enum MessageTesterError {
 
     #[error("received rejected subscription: {0}")]
     RejectedSubscription(String),
+
+    #[error("expected settings to contain a batch id")]
+    MissingBatchId,
+}
+
+pub fn parse_sequence_number(publication: &ReceivedPublication) -> u32 {
+    publication.payload.slice(0..4).get_u32()
 }

@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
-                Context.Current.Proxy);
+                Context.Current.TestRunnerProxy);
         }
 
         [OneTimeSetUp]
@@ -100,22 +100,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         [OneTimeTearDown]
         public async Task RemoveCertificatesAsync()
         {
-            await Profiler.Run(
-                async () =>
-                {
-                    using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+            // This is a temporary solution see ticket: 9288683
+            if (!Context.Current.ISA95Tag)
+            {
+                await Profiler.Run(
+                    async () =>
                     {
-                        await this.daemon.ConfigureAsync(
-                            config =>
-                            {
-                                config.RemoveCertificates();
-                                config.Update();
-                                return Task.FromResult(("without edge certificates", Array.Empty<object>()));
-                            },
-                            cts.Token);
-                    }
-                },
-                "Completed custom certificate teardown");
+                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
+                        {
+                            await this.daemon.ConfigureAsync(
+                                config =>
+                                {
+                                    config.RemoveCertificates();
+                                    config.Update();
+                                    return Task.FromResult(("without edge certificates", Array.Empty<object>()));
+                                },
+                                cts.Token);
+                        }
+                    },
+                    "Completed custom certificate teardown");
+            }
         }
     }
 }

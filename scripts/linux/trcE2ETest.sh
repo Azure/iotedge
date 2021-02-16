@@ -552,7 +552,7 @@ function process_args() {
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
-    [[ -z "$REPO_PATH" ]] && { print_error 'Checkout path is required'; exit 1; }
+    [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
 
     echo 'Required parameters are provided'
@@ -735,16 +735,16 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
-    local hash
-    hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
-    local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
+	NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
+
+	local hash
+	hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
+	local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
-
-    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
 
     local ret=0
 
@@ -760,12 +760,14 @@ function run_longhaul_test() {
     fi
 
     if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
+        HOSTNAME=$(printenv E2E_hostname)
         PARENT_HOSTNAME=$(printenv E2E_parentHostname)
         PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
 
         echo "Running with nested Edge."
-        echo "Parent hostname=$PARENT_HOSTNAME"
-        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
+        echo "HostName=$HOSTNAME"
+        echo "ParentHostName=$PARENT_HOSTNAME"
+        echo "ParentEdgeDevice=$PARENT_EDGE_DEVICE"
 
         "$quickstart_working_folder/IotEdgeQuickstart" \
             -d "$device_id" \
@@ -775,7 +777,7 @@ function run_longhaul_test() {
             -r "$CONTAINER_REGISTRY" \
             -u "$CONTAINER_REGISTRY_USERNAME" \
             -p "$CONTAINER_REGISTRY_PASSWORD" \
-            -n "$(hostname)" \
+            -n "$HOSTNAME" \
             --parent-hostname "$PARENT_HOSTNAME" \
             --parent-edge-device "$PARENT_EDGE_DEVICE" \
             --device_ca_cert "$DEVICE_CA_CERT" \
@@ -885,7 +887,7 @@ TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIE
 testRet=0
 if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
-    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
+    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
     run_longhaul_test && ret=$? || ret=$?
