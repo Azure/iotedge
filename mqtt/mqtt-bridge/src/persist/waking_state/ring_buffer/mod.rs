@@ -520,10 +520,13 @@ fn load_block_header<T>(
     readable: &mut T,
     mut start: u64,
     size: u64,
-    file_size: u64,
-) -> BincodeResult<BlockHeaderWithCrc> {
-    if start > file_size {
-        start %= file_size;
+    max_size: u64,
+) -> BincodeResult<BlockHeaderWithHash>
+where
+    T: Read + Seek,
+{
+    if start > max_size {
+        start %= max_size;
     }
     let end = start + size as u64;
 
@@ -534,9 +537,9 @@ fn load_block_header<T>(
     }
 }
 
-fn save_block_header(
-    file: &mut File,
-    block: &BlockHeaderWithCrc,
+fn save_block_header<T>(
+    writable: &mut T,
+    block: &BlockHeaderWithHash,
     start: u64,
     max_size: u64,
     should_flush: bool,
