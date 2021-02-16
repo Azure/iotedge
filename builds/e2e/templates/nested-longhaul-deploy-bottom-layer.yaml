@@ -1,5 +1,5 @@
 parameters:
-  - transportType: ''
+  transportType: ''
 
 jobs:
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters.transportType }}
