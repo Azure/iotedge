@@ -20,10 +20,14 @@ stages:
     parameters:
       transportType: amqp
   - template: templates/nested-longhaul-deploy-bottom-layer.yaml
+    parameters:
+      transportType: amqp
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       transportType: mqtt
   - template: templates/nested-longhaul-deploy-bottom-layer.yaml
+    parameters:
+      transportType: mqtt
 
   - job:  Deploy_Longhaul_Linux_Arm32
     displayName: Set up and run longhaul tests on Arm32
