@@ -166,7 +166,6 @@ pub(crate) fn validate(block: &BlockHeaderWithHash, data: &[u8]) -> StorageResul
     let BlockVersion::Version1(inner_block) = block.inner;
     let actual_data_size = inner_block.data_size();
 
-    #[allow(clippy::cast_possible_truncation)]
     let data_size = data.len() as u64;
     if actual_data_size != data_size {
         return Err(RingBufferError::Validate(BlockError::DataSize {
@@ -221,8 +220,7 @@ mod tests {
         let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
 
-        #[allow(clippy::cast_possible_truncation)]
-        let data_size = result.unwrap() as u64;
+        let data_size = result.unwrap();
 
         let v1 = BlockHeaderV1::new(BLOCK_HINT, data_hash, data_size, 0, 0);
         let versioned_block = BlockVersion::Version1(v1);
