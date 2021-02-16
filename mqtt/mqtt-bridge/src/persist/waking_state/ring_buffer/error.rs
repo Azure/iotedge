@@ -27,11 +27,13 @@ pub enum RingBufferError {
     #[error("File IO error occurred. Caused by {0}")]
     FileIO(std::io::Error),
 
-    #[error("File metadata unavailable")]
+    #[error("Storage file metadata unavailable. Caused by {0}")]
     FileMetadata(std::io::Error),
 
-    #[error("File cannot be truncated.")]
-    FileTruncation,
+    #[error(
+        "Storage file cannot be truncated. Caused by new max size {new} being less than {current}"
+    )]
+    FileTruncation { current: u64, new: u64 },
 
     #[error("Key does not exist")]
     NonExistantKey,

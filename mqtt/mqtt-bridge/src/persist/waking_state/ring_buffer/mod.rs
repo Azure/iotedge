@@ -117,15 +117,20 @@ impl RingBuffer {
 
         // We cannot allow for file truncation if an existing file exists. That will surely
         // lead to data loss.
-        if file
+        let current_file_size = file
             .metadata()
             .map_err(RingBufferError::FileMetadata)?
-            .len()
-            > max_file_size.get()
-        {
-            return Err(RingBufferError::FileTruncation.into());
+            .len();
+        let max_file_size = max_file_size.get();
+
+        if current_file_size > max_file_size {
+            return Err(RingBufferError::FileTruncation {
+                current: current_file_size,
+                new: max_file_size,
+            }
+            .into());
         }
-        file.set_len(max_file_size.get())
+        file.set_len(max_file_size)
             .map_err(RingBufferError::FileCreate)?;
 
         let mut metadata_file =
@@ -730,7 +735,10 @@ mod tests {
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::AfterEachWrite;
     const MAX_FILE_SIZE: u64 = 1024;
+    const MAX_FILE_SIZE_HALF: u64 = MAX_FILE_SIZE / 2;
     const MAX_FILE_SIZE_NON_ZERO: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(MAX_FILE_SIZE) };
+    const MAX_FILE_SIZE_HALF_NON_ZERO: NonZeroU64 =
+        unsafe { NonZeroU64::new_unchecked(MAX_FILE_SIZE_HALF) };
 
     struct TestRingBuffer(RingBuffer);
 
@@ -856,6 +864,85 @@ mod tests {
             }
         });
         assert_matches!(result, Ok(_));
+    }
+
+    #[test]
+    fn it_inits_err_with_less_max_size_than_previous() {
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let result = tempfile::NamedTempFile::new();
+        assert_matches!(result, Ok(_));
+        let file = result.unwrap();
+
+        let result = tempfile::NamedTempFile::new();
+        assert_matches!(result, Ok(_));
+        let metadata_file = result.unwrap();
+
+        let mut keys = vec![];
+        // Create ring buffer and perform some operations and then destruct.
+        {
+            let result = RingBuffer::new(
+                &file.path().to_path_buf(),
+                &metadata_file.path().to_path_buf(),
+                MAX_FILE_SIZE_NON_ZERO,
+                FLUSH_OPTIONS,
+            );
+            assert!(result.is_ok());
+            let mut rb = result.unwrap();
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+                keys.push(result.unwrap());
+            }
+
+            let result = rb.batch(4);
+            assert_matches!(result, Ok(_));
+            let mut batch = result.unwrap();
+            assert_eq!(batch.len(), 4);
+            for key in &keys[..4] {
+                assert_eq!(batch.pop_front().unwrap().0, *key);
+            }
+
+            {
+                #[allow(clippy::cast_possible_truncation)]
+                let key = keys[0].offset;
+                assert_matches!(rb.remove(key), Ok(_));
+            }
+
+            {
+                #[allow(clippy::cast_possible_truncation)]
+                let key = keys[1].offset;
+                assert_matches!(rb.remove(key), Ok(_));
+            }
+
+            {
+                #[allow(clippy::cast_possible_truncation)]
+                let key = keys[2].offset;
+                assert_matches!(rb.remove(key), Ok(_));
+            }
+
+            assert_eq!(rb.metadata.order, 10);
+        }
+        // Create ring buffer again and validate pointers match where they left off.
+        {
+            let result = RingBuffer::new(
+                &file.path().to_path_buf(),
+                &metadata_file.path().to_path_buf(),
+                MAX_FILE_SIZE_HALF_NON_ZERO,
+                FLUSH_OPTIONS,
+            );
+            assert_matches!(
+                result,
+                Err(StorageError::RingBuffer(RingBufferError::FileTruncation {
+                    current: MAX_FILE_SIZE,
+                    new: MAX_FILE_SIZE_HALF,
+                }))
+            );
+        }
     }
 
     #[test]
