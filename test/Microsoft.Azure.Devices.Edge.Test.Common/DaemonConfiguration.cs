@@ -92,8 +92,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
         }
 
-        void SetEdgedAuth()
+        void SetAuth(string keyName)
         {
+            this.AddAuthPrincipal(
+                Service.Keyd,
+                "aziot-identityd",
+                this.config[Service.Identityd].Uid,
+                new string[] {keyName, "aziot_identityd_master_id"});
             this.AddIdentityPrincipal("aziot-edged", this.config[Service.Edged].Uid);
             this.AddAuthPrincipal(
                 Service.Keyd,
@@ -120,12 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", keyName);
 
-            this.AddAuthPrincipal(
-                Service.Keyd,
-                "aziot-identityd",
-                this.config[Service.Identityd].Uid,
-                new string[] {keyName, "aziot_identityd_master_id"});
-            this.SetEdgedAuth();
+            this.SetAuth(keyName);
         }
 
         public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
@@ -157,6 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
+
+            SetAuth(keyName);
         }
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)
@@ -168,6 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string keyName = DaemonConfiguration.SanitizeName($"dps-symmetric-key-{registrationId}");
             this.CreatePreloadedKey(keyName, deviceKey);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", keyName);
+
+            SetAuth(keyName);
         }
 
         public void SetDpsX509(string idScope, string registrationId, string identityCertPath, string identityPkPath, string trustBundle)
@@ -202,6 +206,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
 
             this.config[Service.Certd].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", "file://" + trustBundle);
+
+            SetAuth(keyName);
         }
 
         public void SetEdgeAgentImage(string value)
