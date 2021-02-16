@@ -41,8 +41,8 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
       vsts.project: $(System.TeamProjectId)
-      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
+      parentName: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
       level: 4
       transportType: ${{ parameters.transportType }}
