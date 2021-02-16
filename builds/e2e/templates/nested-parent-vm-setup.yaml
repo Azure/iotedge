@@ -2,7 +2,7 @@ parameters:
   transportType: ''
 
 jobs:
-  - job: SetupVM_level5
+  - job: SetupVM_level5_${{ parameters.transportType }}
     displayName: SettingUp level 5
     timeoutInMinutes: 180
     variables:
