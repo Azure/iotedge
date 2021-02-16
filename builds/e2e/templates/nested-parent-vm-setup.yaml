@@ -1,5 +1,5 @@
 parameters:
-  transportType: ''
+  transportType: 'amqp'
 
 jobs:
   - job: SetupVM_level5_${{ parameters.transportType }}
@@ -11,7 +11,7 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       vsts.project: $(System.TeamProjectId)
       level: 5
-      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
+      deploymentFile: 'nestededge_topLayerBaseDeployment${{ parameters.transportType }}.json'
       parentName: ''
       parentDeviceId: ''
       transportType: ${{ parameters.transportType }}
@@ -43,7 +43,7 @@ jobs:
       vsts.project: $(System.TeamProjectId)
       parentName: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
-      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
+      deploymentFile: 'nestededge_middleLayerBaseDeployment_${{ parameters.transportType }}.json'
       level: 4
       transportType: ${{ parameters.transportType }}
     pool:
