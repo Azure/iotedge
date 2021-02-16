@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class DaemonConfiguration
     {
-        private enum Service
+        public enum Service
         {
             Keyd,
             Certd,
@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             public string ConfigPath;
             public string PrincipalsPath;
+            public string Owner;
             public uint Uid;
             public IConfigDocument Document;
         }
@@ -46,10 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.InitServiceConfig(Service.Certd, configFiles.Certd, true, "aziotcs");
             this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true, "aziotid");
             this.InitServiceConfig(Service.Edged, configFiles.Edged, false, "iotedge");
-
-            // Add the principal entry for aziot-edge to Identity Service.
-            // This is required so aziot-edge can communicate with Identity Service.
-            this.AddIdentityPrincipal("aziot-edge", this.config[Service.Edged].Uid);
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -76,22 +73,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 config.Document = new YamlDocument(contents);
             }
 
-            string principalsPath = Path.Combine(
+            config.ConfigPath = path;
+            config.PrincipalsPath = Path.Combine(
                 Path.GetDirectoryName(path),
                 "config.d");
-
-            // Clear any existing principals.
-            config.Document.RemoveIfExists("principal");
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-            }
-
-            Directory.CreateDirectory(principalsPath);
-            OsPlatform.Current.SetOwner(principalsPath, owner, "755");
-
-            config.ConfigPath = path;
-            config.PrincipalsPath = principalsPath;
+            config.Owner = owner;
             config.Uid = OsPlatform.Current.GetUid(owner);
 
             this.config.Add(service, config);
@@ -106,6 +92,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
         }
 
+        void SetEdgedAuth()
+        {
+            this.AddIdentityPrincipal("aziot-edged", this.config[Service.Edged].Uid);
+            this.AddAuthPrincipal(
+                Service.Keyd,
+                "aziot-edged",
+                this.config[Service.Edged].Uid,
+                new string[] {"iotedge_master_encryption_id", "aziot-edged-ca"});
+            this.AddAuthPrincipal(
+                Service.Certd,
+                "aziot-edged",
+                this.config[Service.Edged].Uid,
+                new string[] {"$edgeHub*server"});
+        }
+
         public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)
         {
             string keyName = DaemonConfiguration.SanitizeName(deviceId);
@@ -118,6 +119,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", keyName);
+
+            this.AddAuthPrincipal(
+                Service.Keyd,
+                "aziot-identityd",
+                this.config[Service.Identityd].Uid,
+                new string[] {keyName, "aziot_identityd_master_id"});
+            this.SetEdgedAuth();
         }
 
         public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
@@ -272,7 +280,48 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             File.WriteAllText(path, principal + "\n");
-            OsPlatform.Current.SetOwner(path, "aziotid", "644");
+            OsPlatform.Current.SetOwner(path, this.config[Service.Identityd].Owner, "644");
+        }
+
+        public void AddAuthPrincipal(Service service, string name, uint uid, string[] credentials)
+        {
+            if (credentials == null || credentials.Length == 0)
+            {
+                throw new ArgumentException("Empty array of credentials");
+            }
+
+            string auth = "";
+
+            switch (service)
+            {
+                case Service.Keyd:
+                    auth += "keys = [";
+                    break;
+                case Service.Certd:
+                    auth += "certs = [";
+                    break;
+                default:
+                    throw new ArgumentException("Authorization is only relevant for keyd and certd");
+            }
+
+            for (int i = 0; i < credentials.Length; i++)
+            {
+                credentials[i] = $"\"{credentials[i]}\"";
+            }
+
+            auth += string.Join(", ", credentials);
+            auth += "]";
+
+            string path = Path.Combine(this.config[service].PrincipalsPath, $"{name}-principal.toml");
+
+            string principal = string.Join(
+                "\n",
+                "[[principal]]",
+                $"uid = {uid}",
+                auth);
+
+            File.WriteAllText(path, principal + "\n");
+            OsPlatform.Current.SetOwner(path, this.config[service].Owner, "644");
         }
 
         public void Update()
@@ -305,7 +354,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string filePath = Path.Combine(FixedPaths.E2E_TEST_DIR, $"{name}.key");
 
             File.WriteAllBytes(filePath, Convert.FromBase64String(value));
-            OsPlatform.Current.SetOwner(filePath, "aziotks", "600");
+            OsPlatform.Current.SetOwner(filePath, this.config[Service.Keyd].Owner, "600");
 
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{name}", "file://" + filePath);
         }
