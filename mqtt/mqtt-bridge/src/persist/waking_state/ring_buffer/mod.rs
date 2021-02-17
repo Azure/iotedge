@@ -205,12 +205,7 @@ impl RingBuffer {
         // Check if an existing block header is present. If the block is there
         // and if the overwrite flag is not set then we shouldn't write.
         #[allow(clippy::cast_possible_truncation)]
-        let result = load_block_header(
-            &mut self.file,
-            start,
-            block_size as usize,
-            self.max_file_size,
-        );
+        let result = load_block_header(&mut self.file, start, block_size, self.max_file_size);
         if let Ok(block_header) = result {
             let BlockVersion::Version1(inner) = block_header.inner();
             let should_not_overwrite = inner.should_not_overwrite();
@@ -250,8 +245,6 @@ impl RingBuffer {
             self.metadata.can_read_from_wrap_around = true;
         }
 
-        self.save_ring_buffer_metadata()?;
-
         self.wake_up_task();
 
         self.metadata.order += 1;
@@ -281,12 +274,7 @@ impl RingBuffer {
         let mut vdata = VecDeque::new();
         for _ in 0..count {
             #[allow(clippy::cast_possible_truncation)]
-            let block = load_block_header(
-                &mut self.file,
-                start,
-                block_size as usize,
-                self.max_file_size,
-            )?;
+            let block = load_block_header(&mut self.file, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is
             // a really bad state to be in as somehow the pointers don't
@@ -305,12 +293,7 @@ impl RingBuffer {
             start += block_size;
             let end = start + data_size;
             #[allow(clippy::cast_possible_truncation)]
-            let publication = load_data(
-                &mut self.file,
-                start,
-                data_size as usize,
-                self.max_file_size,
-            )?;
+            let publication = load_data(&mut self.file, start, data_size, self.max_file_size)?;
 
             // Update start for the next block.
             start = end % self.max_file_size;
@@ -332,8 +315,6 @@ impl RingBuffer {
             }
         }
 
-        self.save_ring_buffer_metadata()?;
-
         Ok(vdata)
     }
 
@@ -351,13 +332,8 @@ impl RingBuffer {
 
         let start = key;
         #[allow(clippy::cast_possible_truncation)]
-        let mut block = load_block_header(
-            &mut self.file,
-            start,
-            block_size as usize,
-            self.max_file_size,
-        )
-        .map_err(StorageError::Serialization)?;
+        let mut block = load_block_header(&mut self.file, start, block_size, self.max_file_size)
+            .map_err(StorageError::Serialization)?;
 
         let BlockVersion::Version1(inner_block) = block.inner_mut();
         if inner_block.hint() != BLOCK_HINT {
@@ -379,8 +355,6 @@ impl RingBuffer {
 
         let end = start + block_size + data_size;
         self.metadata.file_pointers.read_begin = end % self.max_file_size;
-
-        self.save_ring_buffer_metadata()?;
 
         self.flush_state_update(should_flush, 0, 0, timer.elapsed());
 
@@ -429,9 +403,7 @@ impl RingBuffer {
         let buf = bincode::serialize(&self.metadata)?;
         self.metadata_file.seek(SeekFrom::Start(0))?;
         self.metadata_file.write_all(&buf)?;
-        if self.should_flush() {
-            self.metadata_file.flush()?;
-        }
+        self.metadata_file.flush()?;
         Ok(())
     }
 }
@@ -442,7 +414,7 @@ impl Drop for RingBuffer {
         if let Some(err) = result.err() {
             error!("Failed to flush {:?}", err);
         }
-        let result = self.metadata_file.flush();
+        let result = self.save_ring_buffer_metadata();
         if let Some(err) = result.err() {
             error!("Failed to flush metadata {:?}", err);
         }
@@ -499,7 +471,7 @@ fn find_pointers_and_order_post_crash(
     let mut write_updates = 0;
     let mut read_updates = 0;
     #[allow(clippy::cast_possible_truncation)]
-    let mut block = match load_block_header(file, start, block_size as usize, max_file_size) {
+    let mut block = match load_block_header(file, start, block_size, max_file_size) {
         Ok(block) => block,
         Err(_) => {
             // Failed to load block, so go with what we already have.
@@ -558,8 +530,6 @@ fn find_pointers_and_order_post_crash(
         order += 1; // We want to start with the next order number.
         start = (end + data_size) % max_file_size;
         end = (start + block_size) % max_file_size;
-        #[allow(clippy::cast_possible_truncation)]
-        let block_size = block_size as usize;
 
         block = match load_block_header(file, start, block_size, max_file_size) {
             Ok(block) => block,
@@ -583,7 +553,7 @@ fn find_pointers_and_order_post_crash(
 fn load_block_header(
     file: &mut File,
     mut start: u64,
-    size: usize,
+    size: u64,
     file_size: u64,
 ) -> BincodeResult<BlockHeaderWithHash> {
     if start > file_size {
@@ -622,7 +592,7 @@ fn save_data(
 fn load_data(
     file: &mut File,
     mut start: u64,
-    size: usize,
+    size: u64,
     file_size: u64,
 ) -> BincodeResult<Publication> {
     if start > file_size {
@@ -637,12 +607,13 @@ fn load_data(
     }
 }
 
-fn file_read<T>(file: &mut File, start: u64, size: usize) -> BincodeResult<T>
+fn file_read<T>(file: &mut File, start: u64, size: u64) -> BincodeResult<T>
 where
     T: DeserializeOwned,
 {
     file.seek(SeekFrom::Start(start))?;
-    let mut buf = vec![0; size];
+    #[allow(clippy::cast_possible_truncation)]
+    let mut buf = vec![0; size as usize];
     file.read_exact(&mut buf)?;
     bincode::deserialize::<T>(&buf)
 }
@@ -650,7 +621,7 @@ where
 fn file_read_wrap_around<T>(
     file: &mut File,
     start: u64,
-    size: usize,
+    size: u64,
     file_size: u64,
 ) -> BincodeResult<T>
 where
