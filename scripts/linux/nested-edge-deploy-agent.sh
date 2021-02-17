@@ -59,7 +59,7 @@ EOF
     >/tmp/principals.toml cat <<-EOF
 [[principal]]
 uid = $(id -u aziotid)
-certs = ["device-id", "aziot_identityd_master_id"]
+keys = ["device-id", "aziot_identityd_master_id"]
 EOF
     sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
     sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
@@ -69,7 +69,7 @@ EOF
     >/tmp/principals.toml cat <<-EOF
 [[principal]]
 uid = $(id -u iotedge)
-certs = ["aziot-edged-ca", "iotedge_master_encryption_id"]
+keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
 EOF
     sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-edged-principal.toml
     sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-edged-principal.toml
