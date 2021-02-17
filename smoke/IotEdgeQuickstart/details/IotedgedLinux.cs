@@ -244,7 +244,7 @@ namespace IotEdgeQuickstart.Details
             return config;
         }
 
-        private void SetKeyAuth(string keyName, Dictionary<string, Config> config)
+        private void SetAuth(string keyName, Dictionary<string, Config> config)
         {
             // Grant Identity Service access to the provided device-id key and its master encryption key.
             AddAuthPrincipal(
@@ -336,7 +336,7 @@ namespace IotEdgeQuickstart.Details
                         }
                     }
 
-                    SetKeyAuth("device-id", config);
+                    SetAuth("device-id", config);
 
                     return string.Empty;
                 },
@@ -365,7 +365,7 @@ namespace IotEdgeQuickstart.Details
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", "device-id");
 
-                            SetKeyAuth("device-id", config);
+                            SetAuth("device-id", config);
 
                             break;
                         case DPSAttestationType.X509:
@@ -382,7 +382,7 @@ namespace IotEdgeQuickstart.Details
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", "device-id");
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", "device-id");
 
-                            SetKeyAuth("device-id", config);
+                            SetAuth("device-id", config);
 
                             break;
                         default:
