@@ -90,7 +90,7 @@ sudo apt-get install -y \
     dh-systemd \
     valgrind
 sudo apt-get remove --yes libssl-dev
-sudo apt-get install --yes --target-release xenial-updates libssl-dev
+sudo apt-get install --yes --target-release bionic-updates libssl-dev
 
 if [[ -n "$ARM_PACKAGE" ]]; then
     # armhf cross tools for packaging
