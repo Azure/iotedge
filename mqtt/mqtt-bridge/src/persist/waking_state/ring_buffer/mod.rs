@@ -89,7 +89,7 @@ pub struct RingBuffer {
     // This prevents deletion of data without reading.
     has_read: bool,
 
-    // Max size for the file that is required for mmap.
+    // Max size for the file.
     max_file_size: u64,
 
     // A representation of Mmap with operations built-in.
@@ -316,7 +316,7 @@ impl RingBuffer {
             start = end % self.max_file_size;
             self.metadata.file_pointers.read_end = start;
 
-            // Validate the block and data. This should be data section in the mmap
+            // Validate the block and data. This should be data section in the file
             // after a `BlockHeaderWithHash`.
             validate(&block, &bincode::serialize(&publication)?)?;
 
@@ -470,7 +470,6 @@ fn retrieve_ring_buffer_metadata(file: &mut File) -> BincodeResult<RingBufferMet
 }
 
 fn find_pointers_and_order_post_crash(
-    // mmap: &MmapMut,
     file: &mut File,
     max_file_size: u64,
     best_guess_metadata: RingBufferMetadata,
@@ -582,7 +581,6 @@ fn find_pointers_and_order_post_crash(
 }
 
 fn load_block_header(
-    // mmap: &MmapMut,
     file: &mut File,
     mut start: u64,
     size: usize,
@@ -594,16 +592,13 @@ fn load_block_header(
     let end = start + size as u64;
 
     if end > file_size {
-        // mmap_read_wrap_around(mmap, start, size, file_size)
         file_read_wrap_around(file, start, size, file_size)
     } else {
-        // mmap_read(mmap, start, size)
         file_read(file, start, size)
     }
 }
 
 fn save_block_header(
-    // mmap: &mut MmapMut,
     file: &mut File,
     block: &BlockHeaderWithHash,
     start: u64,
@@ -611,24 +606,20 @@ fn save_block_header(
     should_flush: bool,
 ) -> StorageResult<()> {
     let bytes = bincode::serialize(block)?;
-    // mmap_write(mmap, start, &bytes, file_size, should_flush)
     file_write(file, start, &bytes, file_size, should_flush)
 }
 
 fn save_data(
-    // mmap: &mut MmapMut,
     file: &mut File,
     serialized_data: &[u8],
     start: u64,
     file_size: u64,
     should_flush: bool,
 ) -> StorageResult<()> {
-    // mmap_write(mmap, start, &serialized_data, file_size, should_flush)
     file_write(file, start, &serialized_data, file_size, should_flush)
 }
 
 fn load_data(
-    // mmap: &MmapMut,
     file: &mut File,
     mut start: u64,
     size: usize,
@@ -640,10 +631,8 @@ fn load_data(
     let end = start + size as u64;
 
     if end > file_size {
-        // mmap_read_wrap_around(mmap, start, size, file_size)
         file_read_wrap_around(file, start, size, file_size)
     } else {
-        // mmap_read(mmap, start, size)
         file_read(file, start, size)
     }
 }
