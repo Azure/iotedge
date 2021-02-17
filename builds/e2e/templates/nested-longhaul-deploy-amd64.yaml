@@ -14,8 +14,8 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked  
     variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      parentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
