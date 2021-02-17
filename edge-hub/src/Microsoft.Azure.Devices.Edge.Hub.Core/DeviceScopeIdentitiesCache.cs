@@ -2,10 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Amqp.Transport;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -17,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        static readonly TimeSpan BlockTime = TimeSpan.FromMinutes(5);
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly AsyncLock cacheLock = new AsyncLock();
@@ -25,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
+        readonly ConcurrentDictionary<string, DateTime> blockedServiceIdentityCache = new ConcurrentDictionary<string, DateTime>();
 
         Task refreshCacheTask;
 
@@ -260,6 +265,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             string serviceIdentityString = JsonConvert.SerializeObject(storedServiceIdentity);
             await this.encryptedStore.Put(id, serviceIdentityString);
         }
+
+        public async Task<Try<Option<ServiceIdentity>>> TryGetServiceIdentity(string id, bool refreshIfNotExists = false)
+        {
+            if (this.blockedServiceIdentityCache.TryGetValue(id, out var time) && time + BlockTime >= DateTime.Now)
+            {
+                return Try<Option<ServiceIdentity>>.Failure(new UnauthorizedException($"Device is blocked by previous authorization failure upto {BlockTime}."));
+            }
+            else
+            {
+                this.blockedServiceIdentityCache.TryRemove(id, out _);
+                return Try.Success(await this.GetServiceIdentity(id, refreshIfNotExists));
+            }
+        }
+
+        public void BlockServiceIdentity(string id) => this.blockedServiceIdentityCache.AddOrUpdate(id, DateTime.Now, (_, __) => DateTime.Now);
 
         internal class StoredServiceIdentity
         {

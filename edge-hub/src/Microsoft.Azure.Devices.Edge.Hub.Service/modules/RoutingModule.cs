@@ -55,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
+        readonly bool retryOnUnauthorizedException;
 
         public RoutingModule(
             string iotHubName,
@@ -84,7 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             TimeSpan configUpdateFrequency,
             bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures,
-            bool closeCloudConnectionOnDeviceDisconnect)
+            bool closeCloudConnectionOnDeviceDisconnect,
+            AuthenticationMode authenticationMode)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -114,6 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
+            this.retryOnUnauthorizedException = authenticationMode != AuthenticationMode.Scope;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -235,7 +238,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.operationTimeout,
                             this.useServerHeartbeat,
                             proxy,
-                            metadataStore);
+                            metadataStore,
+                            this.retryOnUnauthorizedException);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -274,7 +278,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
+                        return new EndpointFactory(
+                            connectionManager,
+                            messageConverter,
+                            this.edgeDeviceId,
+                            this.maxUpstreamBatchSize,
+                            this.upstreamFanOutFactor,
+                            this.retryOnUnauthorizedException) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();

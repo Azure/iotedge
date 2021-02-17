@@ -88,8 +88,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
-            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
+            if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
+            {
+                authenticationMode = AuthenticationMode.Scope;
+            }
+
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, authenticationMode);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, authenticationMode);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
@@ -122,7 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterRoutingModule(
             ContainerBuilder builder,
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            AuthenticationMode authenticationMode)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -185,24 +191,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     configUpdateFrequency,
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
-                    closeCloudConnectionOnDeviceDisconnect));
+                    closeCloudConnectionOnDeviceDisconnect,
+                    authenticationMode));
         }
 
         void RegisterCommonModule(
             ContainerBuilder builder,
             bool optimizeForPerformance,
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward,
-            MetricsConfig metricsConfig)
+            MetricsConfig metricsConfig,
+            AuthenticationMode authenticationMode)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
-
-            if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
-            {
-                authenticationMode = AuthenticationMode.Scope;
-            }
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);

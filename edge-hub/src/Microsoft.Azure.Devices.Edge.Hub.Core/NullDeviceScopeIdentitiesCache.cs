@@ -21,6 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
+        public void BlockServiceIdentity(string id)
+        {
+        }
+
         public Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
@@ -36,5 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task RefreshServiceIdentity(string deviceId) => Task.CompletedTask;
 
         public Task RefreshServiceIdentity(string deviceId, string moduleId) => Task.CompletedTask;
+
+        public Task<Try<Option<ServiceIdentity>>> TryGetServiceIdentity(string id, bool refreshIfNotExists = false) => Task.FromResult(Try.Success(Option.None<ServiceIdentity>()));
     }
 }
