@@ -7,7 +7,7 @@
 # - DOWNLOAD_PATH: Where to save the aziot-identity-service package.
 # - AGENT_PROXYURL: HTTP proxy and port, if needed.
 # - IDENTITY_SERVICE_COMMIT: Commit of iot-identity-service to use. If not set, the script will try to determine
-# the commit from cargo metadata.
+# the commit from Cargo.lock.
 #
 # GitHub artifacts expire after 90 days. So if this script runs more than 90 days after the aziot submodule's
 # commit, it will fail.
@@ -29,14 +29,14 @@ $aziot_commit = if($env:IDENTITY_SERVICE_COMMIT)
 }
 else
 {
-    $metadata = cargo metadata --manifest-path ./edgelet/Cargo.toml --format-version 1 | ConvertFrom-JSON
-
     # Any package in the iot-identity-service repo will have the same Git commit hash.
-    # So, this script selects an arbitrary package in that repo.
-    $package = $metadata.packages | where {($_.name -eq 'aziot-identity-common')}
+    # So, this script selects the first package in that repo.
+    $matches = Select-String -Path ./edgelet/Cargo.lock -Pattern `
+        'github.com/Azure/iot-identity-service\?branch=[ -~]+#(?<commit>\w+)' | `
+        Select-Object -First 1
+    $commit = $matches.Matches.Groups | Where-Object -Property Name -EQ 'commit'
 
-    # Commit is separated from GitHub repo by '#'.
-    ($package.source -split "#", 2)[1]
+    $commit.Value
 }
 
 if([string]::IsNullOrEmpty($aziot_commit))
