@@ -78,6 +78,19 @@ namespace IotEdgeQuickstart.Details
         readonly bool requireEdgeInstallation;
         readonly bool overwritePackages;
 
+        private struct Config
+        {
+            public string Owner;
+            public string PrincipalsPath;
+            public uint Uid;
+            public IConfigDocument Document;
+        }
+
+        const string KEYD = "/etc/aziot/keyd/config.toml";
+        const string CERTD = "/etc/aziot/certd/config.toml";
+        const string IDENTITYD = "/etc/aziot/identityd/config.toml";
+        const string EDGED = "/etc/aziot/edged/config.yaml";
+
         public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
         {
             this.archivePath = archivePath;
@@ -197,16 +210,61 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        private static IConfigDocument InitDocument(string template, bool toml)
+        private static async Task<Config> InitConfig(string template, bool toml, string owner)
         {
+            Config config = new Config();
             string text = File.ReadAllText(template);
 
             if (toml)
             {
-                return new TomlDocument(text);
+                config.Document = new TomlDocument(text);
+            }
+            else
+            {
+                config.Document = new YamlDocument(text);
             }
 
-            return new YamlDocument(text);
+            string principalsPath = Path.Combine(
+                Path.GetDirectoryName(template),
+                "config.d");
+
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+
+                Directory.CreateDirectory(principalsPath);
+                SetOwner(principalsPath, owner, "755");
+                Console.WriteLine($"Cleared {principalsPath}");
+            }
+
+            config.PrincipalsPath = principalsPath;
+            config.Owner = owner;
+            config.Uid = await GetUid(owner);
+
+            return config;
+        }
+
+        private void SetKeyAuth(string keyName, Dictionary<string, Config> config)
+        {
+            // Grant Identity Service access to the provided device-id key and its master encryption key.
+            AddAuthPrincipal(
+                Path.Combine(config[KEYD].PrincipalsPath, "aziot-identityd-principal.toml"),
+                config[KEYD].Owner,
+                config[IDENTITYD].Uid,
+                new string[] { keyName, "aziot_identityd_master_id" });
+
+            // Grant aziot-edged access to device CA certs, server certs, and its master encryption key.
+            AddIdentityPrincipal("aziot-edged", config[EDGED].Uid);
+            AddAuthPrincipal(
+                Path.Combine(config[KEYD].PrincipalsPath, "aziot-edged-principal.toml"),
+                config[KEYD].Owner,
+                config[EDGED].Uid,
+                new string[] { "iotedge_master_encryption_id", "aziot-edged-ca" });
+            AddAuthPrincipal(
+                Path.Combine(config[CERTD].PrincipalsPath, "aziot-edged-principal.toml"),
+                config[CERTD].Owner,
+                config[EDGED].Uid,
+                new string[] { "$edgeHub*server" });
         }
 
         public async Task Configure(
@@ -229,39 +287,30 @@ namespace IotEdgeQuickstart.Details
                     Console.WriteLine("Setting up aziot-edged with agent image 1.0");
                 });
 
-            const string KEYD = "/etc/aziot/keyd/config.toml";
-            const string CERTD = "/etc/aziot/certd/config.toml";
-            const string IDENTITYD = "/etc/aziot/identityd/config.toml";
-            const string EDGED = "/etc/aziot/edged/config.yaml";
-
             // Initialize each service's config file.
-            // The mapped values are:
-            // - Path to the config file (/etc/aziot/[service_name]/config.[toml | yaml])
-            // - User owning the config file
-            // - Template used to generate the config file.
-            Dictionary<string, (string owner, IConfigDocument document)> config = new Dictionary<string, (string, IConfigDocument)>();
-            config.Add(KEYD, ("aziotks", InitDocument(KEYD + ".default", true)));
-            config.Add(CERTD, ("aziotcs", InitDocument(CERTD + ".default", true)));
-            config.Add(IDENTITYD, ("aziotid", InitDocument(IDENTITYD + ".default", true)));
-            config.Add(EDGED, ("iotedge", InitDocument(EDGED + ".template", false)));
+            Dictionary<string, Config> config = new Dictionary<string, Config>();
+            config.Add(KEYD, await InitConfig(KEYD + ".default", true, "aziotks"));
+            config.Add(CERTD, await InitConfig(CERTD + ".default", true, "aziotcs"));
+            config.Add(IDENTITYD, await InitConfig(IDENTITYD + ".default", true, "aziotid"));
+            config.Add(EDGED, await InitConfig(EDGED + ".template", false, "iotedge"));
 
             // Directory for storing keys; create it if it doesn't exist.
             string keyDir = "/var/secrets/aziot/keyd/";
             Directory.CreateDirectory(keyDir);
-            SetOwner(keyDir, config[KEYD].owner, "700");
+            SetOwner(keyDir, config[KEYD].Owner, "700");
 
             // Need to always reprovision so previous test runs don't affect this one.
-            config[IDENTITYD].document.RemoveIfExists("provisioning");
-            config[IDENTITYD].document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            config[IDENTITYD].Document.RemoveIfExists("provisioning");
+            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
 
             method.ManualConnectionString.Match(
                 cs =>
                 {
                     string keyPath = Path.Combine(keyDir, "device-id");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.source", "manual");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.method", "sas");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.authentication.device_id_pk", "device-id");
-                    config[KEYD].document.ReplaceOrAdd("preloaded_keys.device-id", $"file://{keyPath}");
+                    config[IDENTITYD].Document.ReplaceOrAdd("provisioning.source", "manual");
+                    config[IDENTITYD].Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
+                    config[IDENTITYD].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", "device-id");
+                    config[KEYD].Document.ReplaceOrAdd("preloaded_keys.device-id", $"file://{keyPath}");
 
                     string[] segments = cs.Split(";");
 
@@ -273,34 +322,36 @@ namespace IotEdgeQuickstart.Details
                         {
                             case "HostName":
                                 // replace IoTHub hostname with parent hostname for nested edge
-                                config[IDENTITYD].document.ReplaceOrAdd("provisioning.iothub_hostname", parentHostname.GetOrElse(param[1]));
+                                config[IDENTITYD].Document.ReplaceOrAdd("provisioning.iothub_hostname", parentHostname.GetOrElse(param[1]));
                                 break;
                             case "SharedAccessKey":
                                 File.WriteAllBytes(keyPath, Convert.FromBase64String(param[1]));
-                                SetOwner(keyPath, config[KEYD].owner, "600");
+                                SetOwner(keyPath, config[KEYD].Owner, "600");
                                 break;
                             case "DeviceId":
-                                config[IDENTITYD].document.ReplaceOrAdd("provisioning.device_id", param[1]);
+                                config[IDENTITYD].Document.ReplaceOrAdd("provisioning.device_id", param[1]);
                                 break;
                             default:
                                 break;
                         }
                     }
 
+                    SetKeyAuth("device-id", config);
+
                     return string.Empty;
                 },
                 () =>
                 {
-                    config[IDENTITYD].document.RemoveIfExists("provisioning");
+                    config[IDENTITYD].Document.RemoveIfExists("provisioning");
                     return string.Empty;
                 });
 
             method.Dps.ForEach(
                 dps =>
                 {
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.source", "dps");
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
-                    config[IDENTITYD].document.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
+                    config[IDENTITYD].Document.ReplaceOrAdd("provisioning.source", "dps");
+                    config[IDENTITYD].Document.ReplaceOrAdd("provisioning.global_endpoint", dps.EndPoint);
+                    config[IDENTITYD].Document.ReplaceOrAdd("provisioning.scope_id", dps.ScopeId);
                     switch (dps.AttestationType)
                     {
                         case DPSAttestationType.SymmetricKey:
@@ -308,85 +359,74 @@ namespace IotEdgeQuickstart.Details
                             string dpsKey = dps.SymmetricKey.Expect(() => new ArgumentException("Expected symmetric key"));
 
                             File.WriteAllBytes(dpsKeyPath, Convert.FromBase64String(dpsKey));
-                            SetOwner(dpsKeyPath, config[KEYD].owner, "600");
+                            SetOwner(dpsKeyPath, config[KEYD].Owner, "600");
 
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.symmetric_key", "device-id");
+                            config[KEYD].Document.ReplaceOrAdd("preloaded_keys.device-id", new Uri(dpsKeyPath).AbsoluteUri);
+                            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
+                            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", "device-id");
+
+                            SetKeyAuth("device-id", config);
 
                             break;
                         case DPSAttestationType.X509:
                             string certPath = dps.DeviceIdentityCertificate.Expect(() => new ArgumentException("Expected path to identity certificate"));
                             string keyPath = dps.DeviceIdentityPrivateKey.Expect(() => new ArgumentException("Expected path to identity private key"));
 
-                            SetOwner(certPath, config[CERTD].owner, "444");
-                            SetOwner(keyPath, config[KEYD].owner, "400");
+                            SetOwner(certPath, config[CERTD].Owner, "444");
+                            SetOwner(keyPath, config[KEYD].Owner, "400");
 
-                            config[CERTD].document.ReplaceOrAdd("preloaded_certs.device-id", new Uri(certPath).AbsoluteUri);
-                            config[KEYD].document.ReplaceOrAdd("preloaded_keys.device-id", new Uri(keyPath).AbsoluteUri);
+                            config[CERTD].Document.ReplaceOrAdd("preloaded_certs.device-id", new Uri(certPath).AbsoluteUri);
+                            config[KEYD].Document.ReplaceOrAdd("preloaded_keys.device-id", new Uri(keyPath).AbsoluteUri);
 
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.method", "x509");
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.identity_cert", "device-id");
-                            config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.identity_pk", "device-id");
+                            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.method", "x509");
+                            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", "device-id");
+                            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", "device-id");
+
+                            SetKeyAuth("device-id", config);
+
                             break;
                         default:
                             break;
                     }
 
-                    dps.RegistrationId.ForEach(id => { config[IDENTITYD].document.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
+                    dps.RegistrationId.ForEach(id => { config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.registration_id", id); });
                 });
 
             agentImage.ForEach(image =>
             {
-                config[EDGED].document.ReplaceOrAdd("agent.config.image", image);
+                config[EDGED].Document.ReplaceOrAdd("agent.config.image", image);
             });
 
-            config[EDGED].document.ReplaceOrAdd("hostname", hostname);
-            config[IDENTITYD].document.ReplaceOrAdd("hostname", hostname);
+            config[EDGED].Document.ReplaceOrAdd("hostname", hostname);
+            config[IDENTITYD].Document.ReplaceOrAdd("hostname", hostname);
 
-            parentHostname.ForEach(v => config[EDGED].document.ReplaceOrAdd("parent_hostname", v));
+            parentHostname.ForEach(v => config[EDGED].Document.ReplaceOrAdd("parent_hostname", v));
 
             foreach (RegistryCredentials c in this.credentials)
             {
-                config[EDGED].document.ReplaceOrAdd("agent.config.auth.serveraddress", c.Address);
-                config[EDGED].document.ReplaceOrAdd("agent.config.auth.username", c.User);
-                config[EDGED].document.ReplaceOrAdd("agent.config.auth.password", c.Password);
+                config[EDGED].Document.ReplaceOrAdd("agent.config.auth.serveraddress", c.Address);
+                config[EDGED].Document.ReplaceOrAdd("agent.config.auth.username", c.User);
+                config[EDGED].Document.ReplaceOrAdd("agent.config.auth.password", c.Password);
             }
 
-            config[EDGED].document.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
+            config[EDGED].Document.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
 
             if (this.httpUris.HasValue)
             {
                 HttpUris uris = this.httpUris.OrDefault();
-                config[EDGED].document.ReplaceOrAdd("connect.management_uri", uris.ConnectManagement);
-                config[EDGED].document.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
-                config[EDGED].document.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
-                config[EDGED].document.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
+                config[EDGED].Document.ReplaceOrAdd("connect.management_uri", uris.ConnectManagement);
+                config[EDGED].Document.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
+                config[EDGED].Document.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
+                config[EDGED].Document.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
             }
             else
             {
                 UriSocks socks = this.uriSocks;
-                config[EDGED].document.ReplaceOrAdd("connect.management_uri", socks.ConnectManagement);
-                config[EDGED].document.ReplaceOrAdd("connect.workload_uri", socks.ConnectWorkload);
-                config[EDGED].document.ReplaceOrAdd("listen.management_uri", socks.ListenManagement);
-                config[EDGED].document.ReplaceOrAdd("listen.workload_uri", socks.ListenWorkload);
+                config[EDGED].Document.ReplaceOrAdd("connect.management_uri", socks.ConnectManagement);
+                config[EDGED].Document.ReplaceOrAdd("connect.workload_uri", socks.ConnectWorkload);
+                config[EDGED].Document.ReplaceOrAdd("listen.management_uri", socks.ListenManagement);
+                config[EDGED].Document.ReplaceOrAdd("listen.workload_uri", socks.ListenWorkload);
             }
-
-            // Clear any existing Identity Service principals.
-            string principalsPath = "/etc/aziot/identityd/config.d";
-
-            config[IDENTITYD].document.RemoveIfExists("principal");
-            if (Directory.Exists(principalsPath))
-            {
-                Directory.Delete(principalsPath, true);
-            }
-
-            Directory.CreateDirectory(principalsPath);
-            SetOwner(principalsPath, "aziotid", "755");
-
-            // Add the principal entry for aziot-edge to Identity Service.
-            // This is required so aziot-edge can communicate with Identity Service.
-            uint iotedgeUid = await GetIotedgeUid();
-            AddPrincipal("aziot-edge", iotedgeUid);
 
             foreach (string file in new string[] { deviceCaCert, deviceCaPk, deviceCaCerts })
             {
@@ -402,25 +442,25 @@ namespace IotEdgeQuickstart.Details
             }
 
             // Files must be readable by KS and CS users.
-            SetOwner(deviceCaCerts, config[CERTD].owner, "444");
-            SetOwner(deviceCaCert, config[CERTD].owner, "444");
-            SetOwner(deviceCaPk, config[KEYD].owner, "400");
+            SetOwner(deviceCaCerts, config[CERTD].Owner, "444");
+            SetOwner(deviceCaCert, config[CERTD].Owner, "444");
+            SetOwner(deviceCaPk, config[KEYD].Owner, "400");
 
-            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", new Uri(deviceCaCerts).AbsoluteUri);
-            config[CERTD].document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", new Uri(deviceCaCert).AbsoluteUri);
-            config[KEYD].document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", new Uri(deviceCaPk).AbsoluteUri);
+            config[CERTD].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-trust-bundle", new Uri(deviceCaCerts).AbsoluteUri);
+            config[CERTD].Document.ReplaceOrAdd("preloaded_certs.aziot-edged-ca", new Uri(deviceCaCert).AbsoluteUri);
+            config[KEYD].Document.ReplaceOrAdd("preloaded_keys.aziot-edged-ca", new Uri(deviceCaPk).AbsoluteUri);
 
-            this.proxy.ForEach(proxy => config[EDGED].document.ReplaceOrAdd("agent.env.https_proxy", proxy));
+            this.proxy.ForEach(proxy => config[EDGED].Document.ReplaceOrAdd("agent.env.https_proxy", proxy));
 
-            this.upstreamProtocol.ForEach(upstreamProtocol => config[EDGED].document.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
+            this.upstreamProtocol.ForEach(upstreamProtocol => config[EDGED].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", upstreamProtocol.ToString()));
 
-            foreach (KeyValuePair<string, (string owner, IConfigDocument document)> service in config)
+            foreach (KeyValuePair<string, Config> service in config)
             {
                 string path = service.Key;
-                string text = service.Value.document.ToString();
+                string text = service.Value.Document.ToString();
 
                 await File.WriteAllTextAsync(path, text);
-                SetOwner(path, service.Value.owner, "644");
+                SetOwner(path, service.Value.Owner, "644");
                 Console.WriteLine($"Created config {path}");
             }
         }
@@ -476,9 +516,9 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
-        private static async Task<uint> GetIotedgeUid()
+        private static async Task<uint> GetUid(string user)
         {
-            string[] output = await Process.RunAsync("id", "-u iotedge");
+            string[] output = await Process.RunAsync("id", $"-u {user}");
             string uid = output[0].Trim();
 
             return System.Convert.ToUInt32(uid, 10);
@@ -495,7 +535,7 @@ namespace IotEdgeQuickstart.Details
             chmod.Close();
         }
 
-        private static void AddPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
+        private void AddIdentityPrincipal(string name, uint uid, string[] type = null, Dictionary<string, string> opts = null)
         {
             string path = $"/etc/aziot/identityd/config.d/{name}-principal.toml";
 
@@ -525,8 +565,48 @@ namespace IotEdgeQuickstart.Details
                 }
             }
 
-            File.WriteAllText(path, principal);
+            File.WriteAllText(path, principal + "\n");
             SetOwner(path, "aziotid", "644");
+        }
+
+        private void AddAuthPrincipal(string path, string owner, uint uid, string[] credentials)
+        {
+            if (credentials == null || credentials.Length == 0)
+            {
+                throw new ArgumentException("Empty array of credentials");
+            }
+
+            string auth = string.Empty;
+
+            if (path.Contains("keyd"))
+            {
+                auth += "keys = [";
+            }
+            else if (path.Contains("certd"))
+            {
+                auth += "certs = [";
+            }
+            else
+            {
+                throw new ArgumentException("Invalid path for auth principal");
+            }
+
+            for (int i = 0; i < credentials.Length; i++)
+            {
+                credentials[i] = $"\"{credentials[i]}\"";
+            }
+
+            auth += string.Join(", ", credentials);
+            auth += "]";
+
+            string principal = string.Join(
+                "\n",
+                "[[principal]]",
+                $"uid = {uid}",
+                auth);
+
+            File.WriteAllText(path, principal + "\n");
+            SetOwner(path, owner, "644");
         }
     }
 }
