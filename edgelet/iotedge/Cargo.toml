@@ -42,7 +42,7 @@ aziot-identityd-config = { path = "../aziot/identity/aziot-identityd-config" }
 aziot-keyd-config = { path = "../aziot/key/aziot-keyd-config" }
 aziot-keys-common = { path = "../aziot/key/aziot-keys-common" }
 aziot-tpmd-config = { path = "../aziot/tpm/aziot-tpmd-config" }
-aziotctl-check-common = { path = "../aziot/aziotctl/aziotctl-check-common" }
+aziotctl-common = { path = "../aziot/aziotctl/aziotctl-common" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }

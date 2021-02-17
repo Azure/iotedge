@@ -49,6 +49,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.38"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afddf7f520a80dbf76e6f50a35bca42a2331ef227a28b3b6dc5c2e2338d114b1"
+
+[[package]]
 name = "arc-swap"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -102,6 +108,7 @@ version = "0.1.0"
 dependencies = [
  "hex 0.4.2",
  "http-common",
+ "libc",
  "openssl",
  "serde",
  "url 2.1.1",
@@ -239,6 +246,7 @@ name = "aziot-keyd-config"
 version = "0.1.0"
 dependencies = [
  "http-common",
+ "libc",
  "serde",
 ]
 
@@ -259,9 +267,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "aziotctl-check-common"
+name = "aziotctl-common"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "log",
  "serde",
  "serde_json",
 ]
@@ -1263,7 +1273,7 @@ dependencies = [
  "aziot-keyd-config",
  "aziot-keys-common",
  "aziot-tpmd-config",
- "aziotctl-check-common",
+ "aziotctl-common",
  "base64 0.9.3",
  "byte-unit",
  "bytes 0.4.12",
