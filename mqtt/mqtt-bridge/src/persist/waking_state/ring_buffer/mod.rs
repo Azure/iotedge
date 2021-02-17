@@ -250,13 +250,13 @@ impl RingBuffer {
             self.metadata.can_read_from_wrap_around = true;
         }
 
+        self.save_ring_buffer_metadata()?;
+
         self.wake_up_task();
 
         self.metadata.order += 1;
 
         self.flush_state_update(should_flush, 1, total_size, timer.elapsed());
-
-        save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
 
         Ok(Key { offset: key })
     }
@@ -332,7 +332,7 @@ impl RingBuffer {
             }
         }
 
-        save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
+        self.save_ring_buffer_metadata()?;
 
         Ok(vdata)
     }
@@ -380,13 +380,13 @@ impl RingBuffer {
         let end = start + block_size + data_size;
         self.metadata.file_pointers.read_begin = end % self.max_file_size;
 
+        self.save_ring_buffer_metadata()?;
+
         self.flush_state_update(should_flush, 0, 0, timer.elapsed());
 
         if self.metadata.file_pointers.read_end == self.metadata.file_pointers.read_begin {
             self.has_read = false;
         }
-
-        save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
 
         Ok(())
     }
@@ -424,6 +424,16 @@ impl RingBuffer {
             self.flush_state.update(writes, bytes_written, millis);
         }
     }
+
+    fn save_ring_buffer_metadata(&mut self) -> BincodeResult<()> {
+        let buf = bincode::serialize(&self.metadata)?;
+        self.metadata_file.seek(SeekFrom::Start(0))?;
+        self.metadata_file.write_all(&buf)?;
+        if self.should_flush() {
+            self.metadata_file.flush()?;
+        }
+        Ok(())
+    }
 }
 
 impl Drop for RingBuffer {
@@ -448,14 +458,6 @@ fn create_file(file_path: &PathBuf) -> IOResult<File> {
         .write(true)
         .create(true)
         .open(file_path)
-}
-
-fn save_ring_buffer_metadata(metadata: &RingBufferMetadata, file: &mut File) -> BincodeResult<()> {
-    let buf = bincode::serialize(metadata)?;
-    file.seek(SeekFrom::Start(0))?;
-    file.write_all(&buf)?;
-    file.flush()?;
-    Ok(())
 }
 
 fn retrieve_ring_buffer_metadata(file: &mut File) -> BincodeResult<RingBufferMetadata> {
