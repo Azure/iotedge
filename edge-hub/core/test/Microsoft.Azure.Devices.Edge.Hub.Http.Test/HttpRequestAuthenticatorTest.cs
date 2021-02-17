@@ -207,6 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string deviceId = "device_2";
             string moduleId = "module_1";
             var httpContext = new DefaultHttpContext();
+            httpContext.Connection.RemoteIpAddress = new IPAddress(0);
             httpContext.Connection.LocalPort = Constants.ApiProxyPort;
             var certContentBytes = CertificateHelper.GenerateSelfSignedCert($"test_cert").Export(X509ContentType.Cert);
             string certContentBase64 = Convert.ToBase64String(certContentBytes);
