@@ -69,6 +69,11 @@ namespace IotEdgeQuickstart.Details
 
     class IotedgedLinux : IBootstrapper
     {
+        const string KEYD = "/etc/aziot/keyd/config.toml";
+        const string CERTD = "/etc/aziot/certd/config.toml";
+        const string IDENTITYD = "/etc/aziot/identityd/config.toml";
+        const string EDGED = "/etc/aziot/edged/config.yaml";
+
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
         readonly Option<HttpUris> httpUris;
@@ -85,11 +90,6 @@ namespace IotEdgeQuickstart.Details
             public uint Uid;
             public IConfigDocument Document;
         }
-
-        const string KEYD = "/etc/aziot/keyd/config.toml";
-        const string CERTD = "/etc/aziot/certd/config.toml";
-        const string IDENTITYD = "/etc/aziot/identityd/config.toml";
-        const string EDGED = "/etc/aziot/edged/config.yaml";
 
         public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
         {
@@ -212,7 +212,7 @@ namespace IotEdgeQuickstart.Details
 
         private static async Task<Config> InitConfig(string template, bool toml, string owner)
         {
-            Config config = new Config();
+            Config config;
             string text = File.ReadAllText(template);
 
             if (toml)
@@ -247,20 +247,20 @@ namespace IotEdgeQuickstart.Details
         private void SetAuth(string keyName, Dictionary<string, Config> config)
         {
             // Grant Identity Service access to the provided device-id key and its master encryption key.
-            AddAuthPrincipal(
+            this.AddAuthPrincipal(
                 Path.Combine(config[KEYD].PrincipalsPath, "aziot-identityd-principal.toml"),
                 config[KEYD].Owner,
                 config[IDENTITYD].Uid,
                 new string[] { keyName, "aziot_identityd_master_id" });
 
             // Grant aziot-edged access to device CA certs, server certs, and its master encryption key.
-            AddIdentityPrincipal("aziot-edged", config[EDGED].Uid);
-            AddAuthPrincipal(
+            this.AddIdentityPrincipal("aziot-edged", config[EDGED].Uid);
+            this.AddAuthPrincipal(
                 Path.Combine(config[KEYD].PrincipalsPath, "aziot-edged-principal.toml"),
                 config[KEYD].Owner,
                 config[EDGED].Uid,
                 new string[] { "iotedge_master_encryption_id", "aziot-edged-ca" });
-            AddAuthPrincipal(
+            this.AddAuthPrincipal(
                 Path.Combine(config[CERTD].PrincipalsPath, "aziot-edged-principal.toml"),
                 config[CERTD].Owner,
                 config[EDGED].Uid,
@@ -336,7 +336,7 @@ namespace IotEdgeQuickstart.Details
                         }
                     }
 
-                    SetAuth("device-id", config);
+                    this.SetAuth("device-id", config);
 
                     return string.Empty;
                 },
@@ -365,7 +365,7 @@ namespace IotEdgeQuickstart.Details
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.symmetric_key", "device-id");
 
-                            SetAuth("device-id", config);
+                            this.SetAuth("device-id", config);
 
                             break;
                         case DPSAttestationType.X509:
@@ -382,7 +382,7 @@ namespace IotEdgeQuickstart.Details
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.identity_cert", "device-id");
                             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.attestation.identity_pk", "device-id");
 
-                            SetAuth("device-id", config);
+                            this.SetAuth("device-id", config);
 
                             break;
                         default:
