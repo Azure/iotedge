@@ -204,7 +204,6 @@ impl RingBuffer {
 
         // Check if an existing block header is present. If the block is there
         // and if the overwrite flag is not set then we shouldn't write.
-        #[allow(clippy::cast_possible_truncation)]
         let result = load_block_header(&mut self.file, start, block_size, self.max_file_size);
         if let Ok(block_header) = result {
             let BlockVersion::Version1(inner) = block_header.inner();
@@ -273,7 +272,6 @@ impl RingBuffer {
         let mut start = read_index;
         let mut vdata = VecDeque::new();
         for _ in 0..count {
-            #[allow(clippy::cast_possible_truncation)]
             let block = load_block_header(&mut self.file, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is
@@ -292,7 +290,6 @@ impl RingBuffer {
             let index = inner_block.write_index();
             start += block_size;
             let end = start + data_size;
-            #[allow(clippy::cast_possible_truncation)]
             let publication = load_data(&mut self.file, start, data_size, self.max_file_size)?;
 
             // Update start for the next block.
@@ -331,7 +328,6 @@ impl RingBuffer {
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
         let start = key;
-        #[allow(clippy::cast_possible_truncation)]
         let mut block = load_block_header(&mut self.file, start, block_size, self.max_file_size)
             .map_err(StorageError::Serialization)?;
 
@@ -470,7 +466,6 @@ fn find_pointers_and_order_post_crash(
     // then we must be in wrap_around case.
     let mut write_updates = 0;
     let mut read_updates = 0;
-    #[allow(clippy::cast_possible_truncation)]
     let mut block = match load_block_header(file, start, block_size, max_file_size) {
         Ok(block) => block,
         Err(_) => {
@@ -776,19 +771,16 @@ mod tests {
                 }
 
                 {
-                    #[allow(clippy::cast_possible_truncation)]
                     let key = keys[0].offset;
                     assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 {
-                    #[allow(clippy::cast_possible_truncation)]
                     let key = keys[1].offset;
                     assert_matches!(rb.remove(key), Ok(_));
                 }
 
                 {
-                    #[allow(clippy::cast_possible_truncation)]
                     let key = keys[2].offset;
                     assert_matches!(rb.remove(key), Ok(_));
                 }
@@ -866,19 +858,16 @@ mod tests {
             }
 
             {
-                #[allow(clippy::cast_possible_truncation)]
                 let key = keys[0].offset;
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
             {
-                #[allow(clippy::cast_possible_truncation)]
                 let key = keys[1].offset;
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
             {
-                #[allow(clippy::cast_possible_truncation)]
                 let key = keys[2].offset;
                 assert_matches!(rb.remove(key), Ok(_));
             }
@@ -961,7 +950,6 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                #[allow(clippy::cast_possible_truncation)]
                 let result = rb.remove(key.offset);
                 assert_matches!(result, Ok(_));
             }
@@ -1012,14 +1000,12 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        #[allow(clippy::cast_possible_truncation)]
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
         let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
 
-        #[allow(clippy::cast_possible_truncation)]
         let data_size = data.len() as u64;
 
         let total_size = block_size + data_size;
@@ -1045,14 +1031,12 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        #[allow(clippy::cast_possible_truncation)]
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
         let result = bincode::serialize(&publication);
         assert_matches!(result, Ok(_));
         let data = result.unwrap();
 
-        #[allow(clippy::cast_possible_truncation)]
         let data_size = data.len() as u64;
 
         let total_size = block_size + data_size;
@@ -1068,7 +1052,6 @@ mod tests {
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
 
-        #[allow(clippy::cast_possible_truncation)]
         let result = rb.0.remove(batch[0].0.offset);
         assert_matches!(result, Ok(_));
 
@@ -1183,7 +1166,6 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                #[allow(clippy::cast_possible_truncation)]
                 let result = rb.remove(key.offset);
                 assert_matches!(result, Ok(_));
             }
@@ -1467,7 +1449,6 @@ mod tests {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
 
-            #[allow(clippy::cast_possible_truncation)]
             let result = rb.0.remove(key.offset);
             assert_matches!(result, Ok(_));
         }
