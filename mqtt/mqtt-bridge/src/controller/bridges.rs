@@ -67,6 +67,16 @@ impl Bridges {
         }
     }
 
+    pub(crate) async fn shutdown_bridge(&mut self, name: &str) {
+        debug!("sending shutdown request to {} bridge...", name);
+
+        if let Some(bridge_handle) = self.bridge_handles.remove(name) {
+            bridge_handle.shutdown().await;
+        } else {
+            warn!("bridge {} not found", name);
+        }
+    }
+
     pub(crate) async fn shutdown_all(&mut self) {
         debug!("sending shutdown request to all bridges...");
 

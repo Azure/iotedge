@@ -150,9 +150,8 @@ where
                     self.store.push(publication).map_err(BridgeError::Store)?;
 
                     return Ok(Handled::Fully);
-                } else {
-                    warn!("no topic matched");
                 }
+                warn!("no topic matched");
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {

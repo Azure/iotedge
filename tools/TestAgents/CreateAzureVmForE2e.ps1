@@ -16,6 +16,16 @@ function Create-Azure-VM-For-E2E-Test
         [string]
         $VmRegion,
 
+        <# Azure Vnet name that is in the same region as the VM: 
+            Region : ExistingVnetName
+            westus2 : iotedge-deploy-vnet
+            eastus  : iotedge-deploy-vnet3
+            eastus2 : iotedge-deploy-vnet2
+         #>
+        [Parameter(Mandatory)]
+        [string]
+        $VnetName,
+
         <# Azure Resource Group #>
         [Parameter(Mandatory)]
         [string]
@@ -58,11 +68,21 @@ function Create-Azure-VM-For-E2E-Test
         echo "Azure Subscription: $AzSubscriptionName `n"
 
         $VmName=$($VmName -replace '[\W_]', '');
+        $VmName=$VmName.ToLower();
 
         # The public key was generated from private key using : ssh-keygen -f <Path/To/PrivateKey> -y 
         $VmPubKey=$(az keyvault secret show --vault-name nestededgeVMkeys --name nestededgePubkey --query value);
         # Get ride of the " at the begging and " at the end along with an extra \n
         $VmPubKey = $VmPubKey.substring(1, $VmPubKey.length-4);
+
+        $SubnetId=$( `
+            az network vnet subnet show `
+                --resource-group $ResourceGroup `
+                --name 'default' `
+                --vnet-name "$VnetName" `
+                --query id `
+                -o tsv
+        );
 
         # Ref: https://docs.microsoft.com/en-us/cli/azure/vm?view=azure-cli-latest#az_vm_create
         #   For more --image : az vm image list --output table
@@ -76,7 +96,8 @@ function Create-Azure-VM-For-E2E-Test
             --ssh-key-values "$VmPubKey" `
             --image 'Canonical:UbuntuServer:18.04-LTS:latest' `
             --size 'Standard_D4s_v3' `
-            --location "$VmRegion"
+            --location "$VmRegion" `
+            --subnet "$SubnetId"
 
         # Install necessary E2E dependency
         az vm extension set `
@@ -98,13 +119,16 @@ function Create-Azure-VM-For-E2E-Test
         $AdditionalSetupCommand+="mkdir myagent && cd myagent;"
         $AdditionalSetupCommand+="wget https://vstsagentpackage.azureedge.net/agent/2.174.2/vsts-agent-linux-x64-2.174.2.tar.gz;"
         $AdditionalSetupCommand+="tar zxvf ./vsts-agent-linux-x64-2.174.2.tar.gz;"
-        $AdditionalSetupCommand+="sudo chown -R $AdminUsername . ;"
+        $AdditionalSetupCommand+="sudo chown -R $AdminUsername\:$AdminUsername . ;"
 
         # Enroll the test VM into the pool
         $SubCommand="sudo -u $AdminUsername ./config.sh --unattended --url https://dev.azure.com/msazure --auth pat --token $VstsToken --pool Azure-IoT-Edge-Core --agent $VmName"
         $AdditionalSetupCommand+="bash -c '$SubCommand';"
-        $AdditionalSetupCommand+="./svc.sh install;"
-        $AdditionalSetupCommand+="./svc.sh start;"
+        # Start the service as a 'sudo' on $AdminUsername behalf
+        $SubCommand="sudo -u $AdminUsername sudo ./svc.sh install"
+        $AdditionalSetupCommand+="bash -c '$SubCommand';"
+        $SubCommand="sudo -u $AdminUsername sudo ./svc.sh start"
+        $AdditionalSetupCommand+="bash -c '$SubCommand';"
 
         az vm run-command invoke `
             -g $ResourceGroup `
@@ -113,4 +137,6 @@ function Create-Azure-VM-For-E2E-Test
             --scripts "$AdditionalSetupCommand" `
             --output none
 
+        #Note: For nested edge user needs to manually add the azure-iot extension to Az cli. Since there is not work around tty requirement for it.
+        # az extension add --name azure-iot
 }

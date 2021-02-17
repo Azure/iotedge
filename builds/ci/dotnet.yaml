@@ -8,6 +8,7 @@ trigger:
       - preview/iiot
 pr: none
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   build.configuration: Release
   test.filter: Category=Integration&Category!=Stress
 jobs:

@@ -11,7 +11,7 @@ use futures_util::{
     StreamExt,
 };
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandleError};
 
@@ -83,7 +83,7 @@ impl Sidecar for BridgeController {
 
         loop {
             let wait_bridge_or_pending = if bridges.is_terminated() {
-                // if no active bridges available, wait only for a new messages arrival
+                // if bridges were terminated just wait for messages
                 Either::Left(future::pending())
             } else {
                 // otherwise try to await both a new message arrival or any bridge exit
@@ -99,12 +99,16 @@ impl Sidecar for BridgeController {
                     bridges.shutdown_all().await;
                     break;
                 }
+                Either::Left((BridgeControllerMessage::ShutdownBridge(name), _)) => {
+                    info!("bridge {} shutdown requested", name);
+                    bridges.shutdown_bridge(&name).await;
+                }
                 Either::Right((Some((name, bridge)), _)) => {
                     match bridge {
                         Ok(Ok(_)) => debug!("bridge {} exited", name),
-                        Ok(Err(e)) => warn!(error = %e, "bridge {} exited with error", name),
-                        Err(e) => warn!(error = %e, "bridge {} panicked ", name),
-                    }
+                        Ok(Err(e)) => error!(error = %e, "bridge {} exited with error", name),
+                        Err(e) => error!(error = %e, "bridge {} panicked ", name),
+                    };
 
                     // always restart upstream bridge
                     if name == UPSTREAM {
@@ -169,6 +173,12 @@ impl BridgeControllerHandle {
         }
     }
 
+    pub fn shutdown_bridge(&mut self, name: &str) {
+        if let Err(e) = self.send_message(BridgeControllerMessage::ShutdownBridge(name.into())) {
+            error!(error = %e, "unable to request shutdown for bridge {}", name);
+        }
+    }
+
     fn send_message(&mut self, message: BridgeControllerMessage) -> Result<(), Error> {
         self.sender
             .send(message)
@@ -180,15 +190,18 @@ impl BridgeControllerHandle {
 #[derive(Debug)]
 pub enum BridgeControllerMessage {
     BridgeControllerUpdate(BridgeControllerUpdate),
+    // Shutdown all bridges
     Shutdown,
+    // Shutdown a bridge by name. $upstream bridge will be recreated if it is shutdown
+    ShutdownBridge(String),
 }
 
 /// Error for `BridgeController`.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("An error occurred sending a message to the controller.")]
+    #[error("An error occurred sending a message to the controller. Caused by: {0}")]
     SendControllerMessage(#[source] tokio::sync::mpsc::error::SendError<BridgeControllerMessage>),
 
-    #[error("An error occurred sending a message to the bridge.")]
+    #[error("An error occurred sending a message to the bridge. Caused by: {0}")]
     SendBridgeMessage(#[from] BridgeError),
 }

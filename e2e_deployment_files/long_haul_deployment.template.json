@@ -26,12 +26,6 @@
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
-              },
-              "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              },
-              "ExperimentalFeatures__EnableUploadLogs": {
-                "value": "true"
               }
             },
             "settings": {
@@ -47,10 +41,7 @@
               "experimentalfeatures__enabled": {
                 "value": "true"
               },
-              "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              },
-              "NestedEdgeEnabled": {
+              "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "false"
               }
             },
@@ -569,12 +560,12 @@
             "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
-            "TestReportType": "TwinLegacyReport",
+            "TestReportType": "LegacyTwinReport",
             "SenderSource": "twinTester1",
             "TestDescription": "twin legacy | amqp"
           },
           "reportMetadata6": {
-            "TestReportType": "TwinLegacyReport",
+            "TestReportType": "LegacyTwinReport",
             "SenderSource": "twinTester2",
             "TestDescription": "twin legacy | mqtt"
           },

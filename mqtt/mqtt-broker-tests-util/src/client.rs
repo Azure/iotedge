@@ -19,7 +19,7 @@ use mqtt3::{
     Client, Event, PublishError, PublishHandle, ReceivedPublication, ShutdownHandle,
     UpdateSubscriptionHandle,
 };
-use mqtt_util::client_io::{
+use mqtt_util::{
     ClientIoSource, CredentialProviderSettings, Credentials, SasTokenSource, TcpConnection,
     TrustBundleSource,
 };

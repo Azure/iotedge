@@ -4,6 +4,7 @@ parameters:
   test.buildId: ''
   test.startDelay: ''
   build.source.branch: ''
+  build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
   edgelet.artifact.name: ''
@@ -21,6 +22,7 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   longHaul.sendReportFrequency: ''
+  longHaul.testDuration: ''
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
@@ -90,9 +92,9 @@ steps:
         testInfo="$testInfo,TestName=$testName"
 
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
-          chmod +x $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh
+          chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
 
-          sudo --preserve-env $(Build.SourcesDirectory)/scripts/linux/trcE2ETest.sh \
+          sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
             -testDir "$(Agent.HomeDirectory)/.." \
             -releaseLabel "${{ parameters['release.label'] }}" \
             -artifactImageBuildNumber "$BuildNumber" \
@@ -101,8 +103,9 @@ steps:
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
             -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-            -testDuration  24:00:00 \
+            -testDuration  "${{ parameters['longHaul.testDuration'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
             -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
@@ -121,6 +124,7 @@ steps:
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
+            -repoPath "${{ parameters['build.repo.path'] }}" \
             -waitForTestComplete \
             -cleanAll
         else

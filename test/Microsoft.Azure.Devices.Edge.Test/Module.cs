@@ -19,23 +19,36 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
-        [Category("Unstable")]
+        [Category("nestededge_isa95")]
         public async Task TempSensor()
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             CancellationToken token = this.TestToken;
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(SensorName, sensorImage)
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
-                },
-                token,
-                Context.Current.NestedEdge);
+            EdgeModule sensor;
+            DateTime startTime;
 
-            EdgeModule sensor = deployment.Modules[SensorName];
-            await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
+            // This is a temporary solution see ticket: 9288683
+            if (!Context.Current.ISA95Tag)
+            {
+                EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                    builder =>
+                    {
+                        builder.AddModule(SensorName, sensorImage)
+                            .WithEnvironment(new[] { ("MessageCount", "-1") });
+                    },
+                    token,
+                    Context.Current.NestedEdge);
+                sensor = deployment.Modules[SensorName];
+                startTime = deployment.StartTime;
+            }
+            else
+            {
+                sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.iotHub);
+                startTime = DateTime.Now;
+            }
+
+            await sensor.WaitForEventsReceivedAsync(startTime, token);
 
             await sensor.UpdateDesiredPropertiesAsync(
                 new
