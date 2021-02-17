@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System.Collections.Generic;
     using System.Net;
-    using System.Net.Security;
     using System.Net.Sockets;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
@@ -77,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             int mainPort = configuration.GetValue("httpSettings:port", 443);
             int metricsPort = configuration.GetValue("httpSettings:metrics_port", 9600);
+            bool enableProxyPort = configuration.GetValue("httpSettings:enableProxyPort", true);
             IWebHostBuilder webHostBuilder = new WebHostBuilder()
                 .UseKestrel(
                     options =>
@@ -88,6 +88,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                             {
                                 listenOptions.UseHttps(connectionAdapterOptions);
                             });
+
+                        // Port 8080 is only used by the ApiProxy module and is internal to Docker vNet,
+                        // this is turned on to ensure a secure on-device connection between the proxy
+                        // and EdgeHub for authentication purposes.
+                        if (enableProxyPort)
+                        {
+                            options.Listen(
+                            !Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any,
+                            Core.Constants.ApiProxyPort,
+                            listenOptions =>
+                            {
+                                listenOptions.UseHttps(connectionAdapterOptions);
+                            });
+                        }
 
                         options.Listen(!Socket.OSSupportsIPv6 ? IPAddress.Any : IPAddress.IPv6Any, metricsPort);
                     })

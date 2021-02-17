@@ -41,8 +41,8 @@ steps:
     Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
     Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
 
-    Write-Output '>> Package Build ID=$(packageBuildId)'
-    Write-Output '>> Image Build ID=$(imageBuildId)'
+    Write-Output ">> Package Build ID=$packageBuildId"
+    Write-Output ">> Image Build ID=$imageBuildId"
   displayName: Override artifacts with user-supplied args
 
 - task: DownloadBuildArtifacts@0

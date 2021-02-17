@@ -42,10 +42,18 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked    
-    steps:   
+    steps:
       - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/e2e-clean-directory.yaml     
+      - template: templates/lock-test-agent.yaml
+      - template: templates/e2e-clean-directory.yaml
+
+      - task: Bash@3
+        displayName: 'Az login'
+        inputs:
+          targetType: inline
+          script: |     
+            az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+
       - template: templates/nested-get-root-ca.yaml
       - template: templates/nested-get-device-name.yaml    
       - template: templates/e2e-setup.yaml
