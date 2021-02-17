@@ -38,6 +38,7 @@ parameters:
   aziotis.artifact.name: ''
   aziotis.package.filter: ''
   test.deploymentFileName: ''
+  test.transportType: ''
 steps:
   - checkout: self
     clean: true
@@ -141,6 +142,7 @@ steps:
             -artifactImageBuildNumber "$BuildNumber" \
             -testName "$testName" \
             -testMode "$testName" \
+            -transportType "${{ parameters['test.transportType'] }}"
             -repoPath "${{ parameters['build.repo.path'] }}" \
             -containerRegistry "${{ parameters['container.registry'] }}" \
             -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \

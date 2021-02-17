@@ -33,6 +33,7 @@ jobs:
           test.buildId: '$(Build.BuildId)'
           test.startDelay: '$(test.startDelay)'
           test.deploymentFileName: 'nested_long_haul_${{ parameters.transportType }}_deployment.template.json'
+          test.transportType: '${{ parameters.transportType }}'
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'

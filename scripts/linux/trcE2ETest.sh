@@ -475,6 +475,9 @@ function process_args() {
         elif [ $saveNextArg -eq 48 ]; then
             REPO_PATH="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 49 ]; then
+            TRANSPORT_TYPE="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -526,6 +529,7 @@ function process_args() {
                 '-sendReportFrequency' ) saveNextArg=46;;
                 '-testMode' ) saveNextArg=47;;
                 '-repoPath' ) saveNextArg=48;;
+                '-transportType' ) saveNextArg=49;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -739,7 +743,7 @@ function run_longhaul_test() {
 
 	local hash
 	hash=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 8)
-	local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$hash"
+	local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul-$TRANSPORT_TYPE-$hash"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
