@@ -143,14 +143,6 @@ impl RingBuffer {
         let metadata =
             find_pointers_and_order_post_crash(&mut file, max_file_size, best_guess_metadata);
 
-        file.seek(SeekFrom::Start(0)).unwrap();
-        let mut buf = vec![];
-        file.read_to_end(&mut buf).unwrap();
-
-        // Put file back at correct position.
-        file.seek(SeekFrom::Start(metadata.file_pointers.write))
-            .map_err(RingBufferError::FileIO)?;
-
         Ok(Self {
             flush_options,
             flush_state: FlushState::default(),
