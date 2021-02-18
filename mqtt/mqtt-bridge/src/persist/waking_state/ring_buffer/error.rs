@@ -7,7 +7,7 @@ pub enum BlockError {
     DataHash { found: u64, expected: u64 },
 
     #[error("Unexpected data size {found:?} expected {expected:?}")]
-    DataSize { found: usize, expected: usize },
+    DataSize { found: u32, expected: u32 },
 
     #[error("Bad hint")]
     Hint,

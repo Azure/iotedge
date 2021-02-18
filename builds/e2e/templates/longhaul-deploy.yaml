@@ -105,6 +105,7 @@ steps:
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
             -testDuration  "${{ parameters['longHaul.testDuration'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
             -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
