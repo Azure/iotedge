@@ -9,7 +9,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - agent-group -equals $(agent.group)
+        - agent-group -equals $(agent.group)-${{ parameters.transportType }}
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked  
