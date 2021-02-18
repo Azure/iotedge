@@ -24,12 +24,7 @@ pub fn init() {
     let mut log_level = env::var(EDGE_HUB_LOG_LEVEL_ENV)
         .map_or_else(|_| "info".into(), |level| level.to_lowercase());
 
-    // make sure to replace all edgehub-specific log levels to rust-compatible
-    for (key, value) in &EDGEHUB_2_RUST_LOG_LEVELS {
-        if log_level.contains(key) {
-            log_level = log_level.replace(key, value);
-        }
-    }
+    log_level = sanitize_log_level(log_level);
 
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::TRACE)
@@ -40,4 +35,49 @@ pub fn init() {
 
     let filter = log_level.parse().unwrap_or(LevelFilter::Info);
     let _ = LogTracer::builder().with_max_level(filter).init();
+}
+
+// make sure to replace all edgehub-specific log levels to rust-compatible
+fn sanitize_log_level(log_level: impl Into<String>) -> String {
+    let mut log_level: String = log_level.into();
+    for (key, value) in &EDGEHUB_2_RUST_LOG_LEVELS {
+        if log_level.contains(key) {
+            log_level = log_level.replace(key, value);
+        }
+    }
+    log_level
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_log_level;
+
+    #[test]
+    fn known_log_level_test() {
+        assert_eq!("trace", sanitize_log_level("verbose"));
+        assert_eq!("debug", sanitize_log_level("debug"));
+        assert_eq!("info", sanitize_log_level("information"));
+        assert_eq!("info", sanitize_log_level("info"));
+        assert_eq!("warn", sanitize_log_level("warning"));
+        assert_eq!("warn", sanitize_log_level("warn"));
+        assert_eq!("error", sanitize_log_level("error"));
+        assert_eq!("error", sanitize_log_level("fatal"));
+    }
+
+    #[test]
+    fn unknown_log_level_test() {
+        assert_eq!("unknownlevel", sanitize_log_level("unknownlevel"));
+    }
+
+    #[test]
+    fn log_filter_test() {
+        assert_eq!(
+            "trace,mqtt_broker::broker=debug",
+            sanitize_log_level("verbose,mqtt_broker::broker=debug")
+        );
+        assert_eq!(
+            "warn,mqtt_broker::broker=debug",
+            sanitize_log_level("warning,mqtt_broker::broker=debug")
+        );
+    }
 }
