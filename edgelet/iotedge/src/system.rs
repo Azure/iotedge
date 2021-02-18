@@ -13,9 +13,10 @@ use crate::error::{Error, ErrorKind};
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
-        let sockets: &'static [&'static str] = option_env!("IOTEDGE_HOST").map_or(&[], |_host| {
-            &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"]
-        });
+        let sockets: &'static [&'static str] = option_env!("IOTEDGE_HOST").map_or(
+            &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"],
+            |_host| &[],
+        );
 
         ServiceDefinition {
             service: "aziot-iotedgd.service",
