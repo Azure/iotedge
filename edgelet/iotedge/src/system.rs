@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-#![allow(warnings)]
+
 use std::ffi::OsStr;
 
 use crate::error::{Error, ErrorKind};
@@ -9,7 +9,7 @@ use aziotctl_common::{
 };
 
 lazy_static! {
-    static ref iotedged: ServiceDefinition = {
+    static ref IOTEDGED: ServiceDefinition = {
         let sockets: &'static [&'static str] = option_env!("IOTEDGE_HOST").map_or(&[], |_host| {
             &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"]
         });
@@ -20,9 +20,9 @@ lazy_static! {
         }
     };
     static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> = {
-        let iotedged_ref: &ServiceDefinition = &iotedged;
+        let iotedged: &ServiceDefinition = &IOTEDGED;
 
-        let service_definitions: Vec<&ServiceDefinition> = std::iter::once(iotedged_ref)
+        let service_definitions: Vec<&ServiceDefinition> = std::iter::once(iotedged)
             .chain(IS_SERVICES.iter().copied())
             .collect();
 
