@@ -201,7 +201,7 @@ mod tests {
         let mut state_lock = state.lock();
         let num_elements = 10_usize;
         for i in 0..num_elements {
-            let key = Key { offset: i };
+            let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
