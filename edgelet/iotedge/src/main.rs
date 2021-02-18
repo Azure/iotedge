@@ -7,6 +7,7 @@
 use std::ffi::OsStr;
 use std::io;
 use std::process;
+use std::str::FromStr;
 
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
@@ -240,7 +241,20 @@ fn run() -> Result<(), Error> {
                 )
                 .subcommand(
                     SubCommand::with_name("restart")
-                    .about("Restarts iotedge and all of its dependencies.")
+                    .about("Restarts iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("status")
+                    .about("Report the status of iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("set-log-level")
+                    .about("Set the log level of iotedged and all of its dependencies.")
+                    .arg(
+                        Arg::with_name("log_level")
+                            .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
+                            .min_values(0),
+                    )
                 )
         )
         .subcommand(
@@ -409,23 +423,33 @@ fn run() -> Result<(), Error> {
             }
         },
         ("system", Some(args)) => match args.subcommand() {
-            ("", _) => {
-                let () = iotedge::init::execute().map_err(ErrorKind::Init)?;
-                Ok(())
-            }
             ("logs", Some(args)) => {
                 let jctl_args: Vec<&OsStr> = args
                     .values_of_os("args")
-                    .map_or_else(Vec::new, |a| a.collect());
+                    .map_or_else(Vec::new, std::iter::Iterator::collect);
 
                 System::get_system_logs(&jctl_args)
             }
-            ("restart", Some(_args)) => {
-                println!("Restart");
-                Ok(())
+            ("restart", Some(_args)) => System::system_restart(),
+            ("status", Some(_args)) => System::get_system_status(),
+            ("set-log-level", Some(args)) => {
+                if let Some(log_level) = args.value_of("log_level") {
+                    if let Ok(level) = log::Level::from_str(log_level) {
+                        System::set_log_level(level)
+                    } else {
+                        eprintln!(
+                            r#"Error: log_level must be one of "trace", "debug", "info", "warn", or "error""#
+                        );
+                        std::process::exit(1);
+                    }
+                } else {
+                    eprintln!("Error: missing value for log_level");
+                    std::process::exit(1);
+                }
             }
+
             (command, _) => {
-                eprintln!("Unknown init subcommand {:?}", command);
+                eprintln!("Unknown system subcommand {:?}", command);
                 std::process::exit(1);
             }
         },
