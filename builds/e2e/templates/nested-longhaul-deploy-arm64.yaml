@@ -12,7 +12,7 @@ jobs:
         - agent-group -equals $(agent.group)-${{ parameters.transportType }}
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
+        - agent-osbits -equals 64
         - status -equals unlocked  
     variables:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
