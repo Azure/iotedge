@@ -1,8 +1,8 @@
 parameters:
   transportType: 'amqp'
 
-steps:
-  - task: SetupVM_level5_${{ parameters.transportType }}
+jobs:
+  - job: SetupVM_level5_${{ parameters.transportType }}
     displayName: SettingUp level 5 for ${{ parameters.transportType }} 
     timeoutInMinutes: 180
     variables:
@@ -31,7 +31,7 @@ steps:
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
 
-  - task: SetupVM_level4_${{ parameters.transportType }}
+  - job: SetupVM_level4_${{ parameters.transportType }}
     dependsOn: SetupVM_level5_${{ parameters.transportType }}
     displayName: SettingUp level 4 for ${{ parameters.transportType }}
     condition: succeeded()

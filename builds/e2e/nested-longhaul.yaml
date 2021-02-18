@@ -16,27 +16,25 @@ resources:
 stages:
 - stage: SetupVMs
   jobs:
-  - job: Setup and Run AMQP
-    jobs:
-      - template: templates/nested-parent-vm-setup.yaml
-        parameters:
+    strategy:
+      matrix:
+        Amqp_Amd64:
           transportType: amqp
-      - template: templates/nested-longhaul-deploy-amd64.yaml
-        parameters:
-          transportType: amqp
-  - job: Setup and Run MQTT
-    jobs:
-      - template: templates/nested-parent-vm-setup.yaml
-        parameters:
+          architecture: amd64
+        Mqtt_Amd64:
           transportType: mqtt
-      - template: templates/nested-longhaul-deploy-amd64.yaml
-        parameters:
-          transportType: mqtt
+          architecture: amd64
+  - template: templates/nested-parent-vm-setup.yaml
+  - template: templates/nested-longhaul-deploy-amd64.yaml
 
   - job:  Clean_up      
     dependsOn:
-      - Setup and Run AMQP
-      - Setup and Run MQTT
+      - SetupVM_level5_amqp
+      - SetupVM_level5_mqtt
+      - SetupVM_level4_amqp
+      - SetupVM_level4_mqtt
+      - Deploy_Longhaul_Linux_Amd64_amqp
+      - Deploy_Longhaul_Linux_Amd64_mqtt
     condition: eq(variables['test.pipeline'], 'true')
     displayName: Clean up identities and unlock agents
     variables:    
