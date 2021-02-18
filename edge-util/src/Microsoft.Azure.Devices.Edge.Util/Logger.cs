@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Microsoft.Extensions.Logging;
     using Serilog;
     using Serilog.Configuration;
@@ -29,9 +30,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static ILoggerFactory Factory => LoggerLazy.Value;
 
+        /// <summary>
+        /// Edge Hub log level can be set via `RuntimeLogLevel` env var.
+        /// The following values are allowed: fatal, error, warning, info, debug, verbose.
+        ///
+        /// .net and rust code handle log level values a bit different, so, to make it work
+        /// with both, we do a simple pre-processing for .net: remove rust-specific log filters.
+        /// E.g: this string: "info,mqtt_broker::broker=debug" becomes "info".
+        /// </summary>
         public static void SetLogLevel(string level)
         {
             Preconditions.CheckNonWhiteSpace(level, nameof(level));
+            level = SanitizeLogLevel(level);
             logLevel = LogLevelDictionary.GetOrElse(level.ToLower(), LogEventLevel.Information);
         }
 
@@ -47,6 +57,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 => loggerSinkConfiguration.Console(outputTemplate: outputTemplate);
 
             return GetLoggerFactory(logLevel, ConsoleSinkMap);
+        }
+
+        // Make sure to remove rust-specific log filters (if any).
+        static string SanitizeLogLevel(string level)
+        {
+            return level.Split(',').First();
         }
 
         internal static ILoggerFactory GetLoggerFactory(LogEventLevel logEventLevel, Func<LoggerSinkConfiguration, LoggerConfiguration> loggerSink)

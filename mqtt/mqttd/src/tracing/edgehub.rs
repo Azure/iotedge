@@ -6,15 +6,29 @@ use tracing_subscriber::{fmt, EnvFilter};
 
 use super::Format;
 
-const BROKER_LOG_LEVEL_ENV: &str = "BROKER_LOG";
-
 const EDGE_HUB_LOG_LEVEL_ENV: &str = "RuntimeLogLevel";
 
+const EDGEHUB_2_RUST_LOG_LEVELS: [(&str, &str); 4] = [
+    ("verbose", "trace"),
+    ("information", "info"),
+    ("warning", "warn"),
+    ("fatal", "error"),
+];
+
+/// Edge Hub log level can be set via `RuntimeLogLevel` env var.
+/// The following values are allowed: fatal, error, warning, info, debug, verbose.
+///
+/// To make it work with rust log levels, we do a simple pre-processing.
 pub fn init() {
-    let log_level = env::var(BROKER_LOG_LEVEL_ENV)
-        .or_else(|_| env::var(EDGE_HUB_LOG_LEVEL_ENV))
-        .or_else(|_| env::var(EnvFilter::DEFAULT_ENV))
+    let mut log_level = env::var(EDGE_HUB_LOG_LEVEL_ENV)
         .map_or_else(|_| "info".into(), |level| level.to_lowercase());
+
+    // make sure to replace all edgehub-specific log levels to rust-compatible
+    for (key, value) in &EDGEHUB_2_RUST_LOG_LEVELS {
+        if log_level.contains(key) {
+            log_level = log_level.replace(key, value);
+        }
+    }
 
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::TRACE)
