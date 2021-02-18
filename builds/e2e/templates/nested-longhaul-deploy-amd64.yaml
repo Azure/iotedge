@@ -9,6 +9,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+      # Currently, agent-group-amqp is in eastus in iotedge-deploy-vnet3, and agent-group-mqtt is in westus2 in iotedge-deploy-vnet
         - agent-group -equals $(agent.group)-${{ parameters.transportType }}
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
