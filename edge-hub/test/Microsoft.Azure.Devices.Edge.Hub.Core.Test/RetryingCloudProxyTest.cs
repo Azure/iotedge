@@ -46,15 +46,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
-                .ReturnsAsync(
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(Id, false))
+                .ReturnsAsync(Try.Success(
                     Option.Some(
                         new ServiceIdentity(
                             Id,
                             "dummy",
                             new List<string>(),
                             new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
-                            ServiceIdentityStatus.Enabled)));
+                            ServiceIdentityStatus.Enabled))));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
@@ -147,15 +147,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 3));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
-                .ReturnsAsync(
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(Id, false))
+                .ReturnsAsync(Try.Success(
                     Option.Some(
                         new ServiceIdentity(
                             Id,
                             "dummy",
                             new List<string>(),
                             new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
-                            ServiceIdentityStatus.Enabled)));
+                            ServiceIdentityStatus.Enabled))));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 
@@ -232,15 +232,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(() => new ThrowingClient(clientWatcher, 15));
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(Id, false))
-                .ReturnsAsync(
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(Id, false))
+                .ReturnsAsync(Try.Success(
                     Option.Some(
                         new ServiceIdentity(
                             Id,
                             "dummy",
                             new List<string>(),
                             new ServiceAuthentication(new SymmetricKeyAuthentication("foo", "bar")),
-                            ServiceIdentityStatus.Enabled)));
+                            ServiceIdentityStatus.Enabled))));
 
             var edgeHubIdentity = Mock.Of<IIdentity>();
 

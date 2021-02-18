@@ -142,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 if (tryServiceIdentity.Success)
                 {
                     return await tryServiceIdentity.Value
+                        .Filter(s => s.Status == ServiceIdentityStatus.Enabled)
                         .Map(
                             async si =>
                             {
