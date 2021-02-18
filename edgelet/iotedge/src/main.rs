@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::let_unit_value, clippy::similar_names)]
 
+use std::ffi::OsStr;
 use std::io;
 use std::process;
 
@@ -17,7 +18,7 @@ use support_bundle::OutputLocation;
 
 use iotedge::{
     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    SystemLogs, SystemRestart, Unknown, Version,
+    System, Unknown, Version,
 };
 
 fn main() {
@@ -413,13 +414,16 @@ fn run() -> Result<(), Error> {
                 Ok(())
             }
             ("logs", Some(args)) => {
-                let jctl_args: Vec<String> = args
-                    .values_of("args")
-                    .map_or_else(Vec::new, |a| a.map(ToOwned::to_owned).collect());
+                let jctl_args: Vec<&OsStr> = args
+                    .values_of_os("args")
+                    .map_or_else(Vec::new, |a| a.collect());
 
-                tokio_runtime.block_on(SystemLogs::new(jctl_args).execute())
+                System::get_system_logs(&jctl_args)
             }
-            ("restart", Some(_args)) => tokio_runtime.block_on(SystemRestart::default().execute()),
+            ("restart", Some(_args)) => {
+                println!("Restart");
+                Ok(())
+            }
             (command, _) => {
                 eprintln!("Unknown init subcommand {:?}", command);
                 std::process::exit(1);
