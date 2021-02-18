@@ -252,12 +252,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     return Enumerable.Empty<ServiceIdentity>();
                 }
 
-                // Get the next item in the queue
-                IDeviceScopeApiClient currentNode = this.remainingEdgeNodes.Dequeue();
+                // Move the pending nodes into a local copy
+                IList<IDeviceScopeApiClient> nodes = this.remainingEdgeNodes.ToList();
+                this.remainingEdgeNodes.Clear();
+
+                // Make an upstream call for each of the remaining nodes in the queue
+                var results = await Task.WhenAll(nodes.Select(node => this.GetScopeForDevice(node)));
+
+                // Accumulate the multiple results into a single collection
+                var serviceIdentities = results.Aggregate(
+                    (acc, next) =>
+                    {
+                        acc.AddRange(next);
+                        return acc;
+                    });
+
+                return serviceIdentities.AsEnumerable();
+            }
+
+            async Task<List<ServiceIdentity>> GetScopeForDevice(IDeviceScopeApiClient client)
+            {
                 var serviceIdentities = new List<ServiceIdentity>();
 
                 // Make the call to upstream and fetch the next batch of identities
-                ScopeResult scopeResult = await currentNode.GetIdentitiesInScopeAsync();
+                ScopeResult scopeResult = await client.GetIdentitiesInScopeAsync();
                 if (scopeResult != null)
                 {
                     Events.ScopeResultReceived(scopeResult);
@@ -276,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         // Since there's a continuation link, we're not done enumerating
                         // the identities under the current device scope. Enqueue another
                         // item in the queue to handle the continuation
-                        IDeviceScopeApiClient continuationClient = this.clientProvider.CreateOnBehalfOf(currentNode.TargetEdgeDeviceId, Option.Some(scopeResult.ContinuationLink));
+                        IDeviceScopeApiClient continuationClient = this.clientProvider.CreateOnBehalfOf(client.TargetEdgeDeviceId, Option.Some(scopeResult.ContinuationLink));
                         this.remainingEdgeNodes.Enqueue(continuationClient);
                     }
                 }
@@ -285,19 +303,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     Events.NullResult();
                 }
 
+                // Enqueue a new item for every child Edge in this batch.
                 foreach (ServiceIdentity identity in serviceIdentities)
                 {
                     // The current device itself will come back as part of the query,
                     // make sure we don't re-enqueue it again
-                    if (identity.IsEdgeDevice && identity.DeviceId != currentNode.TargetEdgeDeviceId)
+                    if (identity.IsEdgeDevice && identity.DeviceId != client.TargetEdgeDeviceId)
                     {
-                        // Enqueue a new item for every child Edge in this batch.
                         IDeviceScopeApiClient childClient = this.clientProvider.CreateOnBehalfOf(identity.DeviceId, Option.None<string>());
                         this.remainingEdgeNodes.Enqueue(childClient);
                     }
                 }
 
-                return serviceIdentities.AsEnumerable();
+                return serviceIdentities;
             }
         }
 
