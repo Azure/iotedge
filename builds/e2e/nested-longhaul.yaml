@@ -17,19 +17,21 @@ stages:
 - stage: SetupVMs
   jobs:
   - job: Setup and Run AMQP
-    - template: templates/nested-parent-vm-setup.yaml
-      parameters:
-        transportType: amqp
-    - template: templates/nested-longhaul-deploy-amd64.yaml
-      parameters:
-        transportType: amqp
+    steps:
+      - template: templates/nested-parent-vm-setup.yaml
+        parameters:
+          transportType: amqp
+      - template: templates/nested-longhaul-deploy-amd64.yaml
+        parameters:
+          transportType: amqp
   - job: Setup and Run MQTT
-    - template: templates/nested-parent-vm-setup.yaml
-      parameters:
-        transportType: mqtt
-    - template: templates/nested-longhaul-deploy-amd64.yaml
-      parameters:
-        transportType: mqtt
+    steps:
+      - template: templates/nested-parent-vm-setup.yaml
+        parameters:
+          transportType: mqtt
+      - template: templates/nested-longhaul-deploy-amd64.yaml
+        parameters:
+          transportType: mqtt
 
   - job:  Clean_up      
     dependsOn:
