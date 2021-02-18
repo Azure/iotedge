@@ -13,13 +13,15 @@ use crate::error::{Error, ErrorKind};
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
+        // Use the presence of IOTEDGE_HOST to infer whether this is being built for CentOS 7 or not.
+        // CentOS 7 doesn't use socket activation.
         let sockets: &'static [&'static str] = option_env!("IOTEDGE_HOST").map_or(
             &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"],
             |_host| &[],
         );
 
         ServiceDefinition {
-            service: "aziot-iotedgd.service",
+            service: "aziot-edged.service",
             sockets,
         }
     };
