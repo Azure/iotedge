@@ -12,7 +12,10 @@ lazy_static! {
         let v1 = BlockHeaderV1::new(0, 0, 0, 0, 0);
         let versioned_block = BlockVersion::Version1(v1);
 
-        bincode::serialized_size(&BlockHeaderWithCrc::new(versioned_block).expect("unable to create sample data block")).expect("unable to serialize sample data block")
+        bincode::serialized_size(
+            &BlockHeaderWithCrc::new(versioned_block).expect("unable to create sample data block"),
+        )
+        .expect("unable to serialize sample data block")
     };
 }
 
