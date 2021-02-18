@@ -16,20 +16,21 @@ openssl = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 
-aziot-key-openssl-engine = { path = "../aziot/key/aziot-key-openssl-engine" }
-aziot-key-client = { path = "../aziot/key/aziot-key-client" }
-aziot-key-common = { path = "../aziot/key/aziot-key-common" }
-aziot-key-common-http = { path = "../aziot/key/aziot-key-common-http" }
-aziot-identity-common = { path = "../aziot/identity/aziot-identity-common"}
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
 cert-client = { path = "../cert-client" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-utils = { path = "../edgelet-utils" }
-http-common = { path = "../aziot/http-common" }
 identity-client = { path = "../identity-client" }
-openssl2 = { path = "../aziot/openssl2" }
-openssl-sys2 = { path = "../aziot/openssl-sys2" }
 workload = { path = "../workload" }
 
 [dev-dependencies]
