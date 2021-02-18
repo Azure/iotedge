@@ -2,11 +2,14 @@
 
 use std::ffi::OsStr;
 
-use crate::error::{Error, ErrorKind};
+use lazy_static::lazy_static;
+
 use aziotctl_common::{
     get_status, get_system_logs as logs, restart, set_log_level as log_level, ServiceDefinition,
     SERVICE_DEFINITIONS as IS_SERVICES,
 };
+
+use crate::error::{Error, ErrorKind};
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {

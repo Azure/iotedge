@@ -252,8 +252,9 @@ fn run() -> Result<(), Error> {
                     .about("Set the log level of iotedged and all of its dependencies.")
                     .arg(
                         Arg::with_name("log_level")
-                            .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
-                            .min_values(0),
+                        .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
+                        .possible_values(&["trace", "debug", "info", "warn",  "error"])
+                        .required(true),
                     )
                 )
         )
@@ -432,21 +433,10 @@ fn run() -> Result<(), Error> {
             }
             ("restart", Some(_args)) => System::system_restart(),
             ("status", Some(_args)) => System::get_system_status(),
-            ("set-log-level", Some(args)) => {
-                if let Some(log_level) = args.value_of("log_level") {
-                    if let Ok(level) = log::Level::from_str(log_level) {
-                        System::set_log_level(level)
-                    } else {
-                        eprintln!(
-                            r#"Error: log_level must be one of "trace", "debug", "info", "warn", or "error""#
-                        );
-                        std::process::exit(1);
-                    }
-                } else {
-                    eprintln!("Error: missing value for log_level");
-                    std::process::exit(1);
-                }
-            }
+            ("set-log-level", Some(args)) => System::set_log_level(
+                log::Level::from_str(args.value_of("log_level").expect("Value is required"))
+                    .expect("Value is restricted to parsable fields"),
+            ),
 
             (command, _) => {
                 eprintln!("Unknown system subcommand {:?}", command);

@@ -16,9 +16,6 @@
     clippy::use_self
 )]
 
-#[macro_use]
-extern crate lazy_static;
-
 use futures::Future;
 use serde_derive::Deserialize;
 
