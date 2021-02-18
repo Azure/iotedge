@@ -59,6 +59,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Error communicating with 'aziot' binary")]
     Aziot,
+
+    #[fail(display = "Error running system command")]
+    System,
 }
 
 impl Fail for Error {
