@@ -19,6 +19,7 @@ const EDGEHUB_2_RUST_LOG_LEVELS: [(&str, &str); 4] = [
 /// The following values are allowed: fatal, error, warning, info, debug, verbose.
 ///
 /// To make it work with rust log levels, we do a simple pre-processing.
+/// E.g: this string: `warning,mqtt_broker::broker=debug` becomes `warn,mqtt_broker::broker=debug`.
 pub fn init() {
     let mut log_level = env::var(EDGE_HUB_LOG_LEVEL_ENV)
         .map_or_else(|_| "info".into(), |level| level.to_lowercase());

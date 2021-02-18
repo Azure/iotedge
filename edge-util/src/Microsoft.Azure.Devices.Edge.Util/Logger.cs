@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         // Make sure to remove rust-specific log filters (if any).
         static string SanitizeLogLevel(string level)
         {
-            return level.Split(',').First();
+            return level.Split(',').FirstOrDefault();
         }
 
         internal static ILoggerFactory GetLoggerFactory(LogEventLevel logEventLevel, Func<LoggerSinkConfiguration, LoggerConfiguration> loggerSink)
