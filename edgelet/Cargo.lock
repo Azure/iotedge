@@ -1295,6 +1295,7 @@ dependencies = [
  "hyper-tls",
  "lazy_static",
  "libc",
+ "log",
  "management",
  "native-tls",
  "nix 0.18.0",
