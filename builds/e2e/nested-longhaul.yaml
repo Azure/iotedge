@@ -16,14 +16,6 @@ resources:
 stages:
 - stage: SetupVMs
   jobs:
-    strategy:
-      matrix:
-        Amqp_Amd64:
-          transportType: amqp
-          architecture: amd64
-        Mqtt_Amd64:
-          transportType: mqtt
-          architecture: amd64
   - template: templates/nested-parent-vm-setup.yaml
   - template: templates/nested-longhaul-deploy-amd64.yaml
 

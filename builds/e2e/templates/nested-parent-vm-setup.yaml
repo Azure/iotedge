@@ -3,6 +3,14 @@ parameters:
 
 jobs:
   - job: SetupVM_level5_${{ parameters.transportType }}
+    strategy:
+      matrix:
+        Amqp_Amd64:
+          transportType: amqp
+          architecture: amd64
+        Mqtt_Amd64:
+          transportType: mqtt
+          architecture: amd64
     displayName: SettingUp level 5 for ${{ parameters.transportType }} 
     timeoutInMinutes: 180
     variables:
@@ -32,6 +40,14 @@ jobs:
      - template: nested-agent-deploy.yaml
 
   - job: SetupVM_level4_${{ parameters.transportType }}
+    strategy:
+      matrix:
+        Amqp_Amd64:
+          transportType: amqp
+          architecture: amd64
+        Mqtt_Amd64:
+          transportType: mqtt
+          architecture: amd64
     dependsOn: SetupVM_level5_${{ parameters.transportType }}
     displayName: SettingUp level 4 for ${{ parameters.transportType }}
     condition: succeeded()
