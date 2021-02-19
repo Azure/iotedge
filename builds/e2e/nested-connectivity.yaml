@@ -2,6 +2,7 @@ trigger: none
 pr: none
 
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
 
@@ -139,6 +140,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'

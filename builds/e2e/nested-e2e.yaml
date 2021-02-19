@@ -1,6 +1,9 @@
 trigger: none
 pr: none
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 resources:
   pipelines:
   - pipeline: images
@@ -15,64 +18,97 @@ stages:
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
   - job:  SetupVM_and_RunTest_level3
-    dependsOn: SetupVM_level4
+    dependsOn:
+      - SetupVM_level5
+      - SetupVM_level4
     displayName: Set up and run tests
     timeoutInMinutes: 180
     condition: succeeded()
     variables:
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
+      lvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
+      iotHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      nestededge: true     
+      nestededge: true
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked    
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/e2e-clean-directory.yaml     
+        - status -equals unlocked
+    steps:
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/lock-test-agent.yaml
+      - template: templates/e2e-clean-directory.yaml
+
+      - task: Bash@3
+        displayName: 'Az login'
+        inputs:
+          targetType: inline
+          script: |
+            az login --service-principal -p $(edgebuild-service-principal-secret) -u $(servicePrincipal.clientId) --tenant $(servicePrincipal.tenantId)
+
       - template: templates/nested-get-root-ca.yaml
-      - template: templates/nested-get-device-name.yaml    
+      - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
           EventHubCompatibleEndpoint: $(EventHubStressConnStr)
           IotHubConnectionString: $(IotHubStressConnString)
+          test_type: nestededge_mqtt
+      - template: templates/nested-deploy-config.yaml
+        parameters:
+          deviceId: $(lvl5DeviceId)
+          deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
+          changeDeployConfigOnly: true
+          level: 5
+          name: 5
+      - template: templates/nested-deploy-config.yaml
+        parameters:
+          deviceId: $(parentDeviceId)
+          deploymentFile: nestededge_middleLayerBaseDeployment_amqp.json
+          changeDeployConfigOnly: true
+          level: 4
+          name: 4
+      - template: templates/e2e-run.yaml
+        parameters:
+          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
+          IotHubConnectionString: $(IotHubStressConnString)
+          test_type: nestededge_amqp
 
-  - job:  Clean_up     
+
+  - job:  Clean_up
     dependsOn:
-      - SetupVM_level5 
+      - SetupVM_level5
       - SetupVM_level4
       - SetupVM_and_RunTest_level3
     condition: always()
     displayName: Clean up identities and unlock agents
-    timeoutInMinutes: 1    
-    variables:    
-      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ] 
+    timeoutInMinutes: 2
+    variables:
+      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
+      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
+      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
       deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]         
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]       
-      deviceLvl3AgentName: $[ dependencies.SetupVM_and_RunTest_level3.outputs['lock_test_agent.agentName'] ]  
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]
+      deviceLvl3AgentName: $[ dependencies.SetupVM_and_RunTest_level3.outputs['lock_test_agent.agentName'] ]
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)          
+        - status -equals unlocked_$(Build.BuildId)
     steps:
-      - template: templates/nested-get-secrets.yaml  
+      - template: templates/nested-get-secrets.yaml
       - template: templates/unlock-test-agent.yaml
         parameters:
           agentName: $(deviceLvl5AgentName)
@@ -80,18 +116,18 @@ stages:
       - template: templates/unlock-test-agent.yaml
         parameters:
           agentName: $(deviceLvl4AgentName)
-          lvl: 4          
+          lvl: 4
       - template: templates/unlock-test-agent.yaml
         parameters:
           agentName: $(deviceLvl3AgentName)
-          lvl: 3     
+          lvl: 3
       - template: templates/nested-clean-identity.yaml
         parameters:
           iotHubName: $(deviceLvl5IoTHubName)
           deviceId: $(deviceLvl5DeviceId)
-          lvl: 5    
+          lvl: 5
       - template: templates/nested-clean-identity.yaml
         parameters:
           iotHubName: $(deviceLvl4IoTHubName)
-          deviceId: $(deviceLvl4DeviceId) 
-          lvl: 4              
+          deviceId: $(deviceLvl4DeviceId)
+          lvl: 4

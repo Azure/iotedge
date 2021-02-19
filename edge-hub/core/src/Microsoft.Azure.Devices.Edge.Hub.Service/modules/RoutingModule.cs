@@ -197,19 +197,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IMessageConverterProvider>()
                 .SingleInstance();
 
-            // IDeviceConnectivityManager
-            builder.Register(
-                    c =>
-                    {
-                        var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
-                        IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
-                            ? new NullDeviceConnectivityManager()
-                            : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
-                        return deviceConnectivityManager;
-                    })
-                .As<IDeviceConnectivityManager>()
-                .SingleInstance();
-
             // IDeviceClientProvider
             builder.Register(
                     c =>
@@ -223,6 +210,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
             if (this.isLegacyUpstream)
             {
+                // IDeviceConnectivityManager
+                builder.Register(
+                        c =>
+                        {
+                            var edgeHubCredentials = c.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
+                            IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
+                                ? new NullDeviceConnectivityManager()
+                                : new DeviceConnectivityManager(this.connectivityCheckFrequency, TimeSpan.FromMinutes(2), edgeHubCredentials.Identity) as IDeviceConnectivityManager;
+                            return deviceConnectivityManager;
+                        })
+                    .As<IDeviceConnectivityManager>()
+                    .SingleInstance();
+
                 // Task<ICloudConnectionProvider>
                 builder.Register(
                         async c =>
@@ -260,6 +260,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
             else
             {
+                // IDeviceConnectivityManager
+                builder.Register(
+                        c =>
+                        {
+                            IDeviceConnectivityManager deviceConnectivityManager = this.experimentalFeatures.DisableConnectivityCheck
+                                ? new NullDeviceConnectivityManager() as IDeviceConnectivityManager
+                                : new BrokeredDeviceConnectivityManager(c.Resolve<BrokeredCloudProxyDispatcher>());
+                            return deviceConnectivityManager;
+                        })
+                    .As<IDeviceConnectivityManager>()
+                    .SingleInstance();
+
                 builder.Register(
                     c =>
                     {
