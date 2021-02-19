@@ -168,10 +168,9 @@ where
                     if shutdown_signal.is_some() {
                         info!("received shutdown signal");
                         return Ok(ExitedWork::MessageChannel);
-                    } else {
-                        error!("failed listening for shutdown");
-                        return Err(MessageTesterError::ListenForShutdown);
                     }
+                    error!("failed listening for shutdown");
+                    return Err(MessageTesterError::ListenForShutdown);
                 }
             };
         }

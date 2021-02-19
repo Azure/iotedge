@@ -111,7 +111,7 @@ pub enum MessageTesterError {
     RejectedSubscription(String),
 
     #[error("expected settings to contain a batch id")]
-    MissingBatchId(),
+    MissingBatchId,
 }
 
 pub fn parse_sequence_number(publication: &ReceivedPublication) -> u32 {

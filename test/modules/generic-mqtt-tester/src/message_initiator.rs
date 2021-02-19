@@ -59,14 +59,9 @@ impl MessageInitiator {
         let payload_size = self.settings.message_size_in_bytes() as usize;
         let dummy_data = &vec![b'a'; payload_size];
         loop {
-            if let Some(messages_to_send) = self.settings.messages_to_send() {
-                if seq_num == messages_to_send {
-                    info!(
-                        "stopping test as we have sent max messages ({})",
-                        messages_to_send
-                    );
-                    break;
-                }
+            if Some(seq_num) == self.settings.messages_to_send() {
+                info!("stopping test as we have sent max messages",);
+                break;
             }
 
             info!("publishing message {}", seq_num);
