@@ -1,8 +1,4 @@
-use std::{
-    fmt::Debug,
-    hash::{Hash, Hasher},
-};
-
+use bincode::Result as BincodeResult;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +12,10 @@ lazy_static! {
         let v1 = BlockHeaderV1::new(0, 0, 0, 0, 0);
         let versioned_block = BlockVersion::Version1(v1);
 
-        bincode::serialized_size(&BlockHeaderWithHash::new(versioned_block)).unwrap()
+        bincode::serialized_size(
+            &BlockHeaderWithCrc::new(versioned_block).expect("unable to create sample data block"),
+        )
+        .expect("unable to serialize sample data block")
     };
 }
 
@@ -24,7 +23,7 @@ lazy_static! {
 pub const BLOCK_HINT: u32 = 0xdead_beef;
 
 /// + --------------+------+---------+
-/// | `BlockHeader` | hash | data... |
+/// | `BlockHeader` | crc  | data... |
 /// +---------------+------+---------+
 ///
 /// The `BlockHeader` contains attributes meaningful for data storage and
@@ -37,9 +36,9 @@ pub(crate) struct BlockHeaderV1 {
     hint: u32,
 
     // variable fields
-    // A hash over the entire data that follows the header, this provides
+    // A crc over the entire data that follows the header, this provides
     // integrity check.
-    data_hash: u64,
+    data_crc: u32,
 
     // The size of the data after the header.
     data_size: u64,
@@ -57,9 +56,9 @@ pub(crate) struct BlockHeaderV1 {
 }
 
 impl BlockHeaderV1 {
-    pub fn new(hint: u32, data_hash: u64, data_size: u64, order: u64, write_index: u64) -> Self {
+    pub fn new(hint: u32, data_crc: u32, data_size: u64, order: u64, write_index: u64) -> Self {
         Self {
-            data_hash,
+            data_crc,
             data_size,
             hint,
             order,
@@ -84,8 +83,8 @@ impl BlockHeaderV1 {
         self.write_index
     }
 
-    pub fn data_hash(&self) -> u64 {
-        self.data_hash
+    pub fn data_crc(&self) -> u32 {
+        self.data_crc
     }
 
     pub fn should_not_overwrite(&self) -> bool {
@@ -105,31 +104,31 @@ pub(crate) enum BlockVersion {
 }
 
 /// + ----------------------+---------+
-/// | `BlockHeaderWithHash` | data... |
+/// | `BlockHeaderWithCrc`  | data... |
 /// +-----------------------+---------+
 ///
-/// The `BlockHeaderWithHash` is a wrapper over the `BlockHeader` but also
-/// contains a hash over the header for validation.
+/// The `BlockHeaderWithCrc` is a wrapper over the `BlockHeader` but also
+/// contains a crc over the header for validation.
 #[derive(Copy, Clone, Debug, Deserialize, Hash, Serialize)]
 #[repr(C)]
-pub(crate) struct BlockHeaderWithHash {
+pub(crate) struct BlockHeaderWithCrc {
     inner: BlockVersion,
-    // A hash over the entire block header to guarantee integrity.
-    block_hash: u64,
+    // A crc over the entire block header to guarantee integrity.
+    block_crc: u32,
 }
 
-impl BlockHeaderWithHash {
-    pub fn new(versioned_block: BlockVersion) -> Self {
+impl BlockHeaderWithCrc {
+    pub fn new(versioned_block: BlockVersion) -> Result<Self, BlockError> {
         let header = versioned_block;
-        let header_hash = calculate_hash(&header);
-        Self {
+        let header_crc = calculate_crc(&header).map_err(BlockError::BlockCreation)?;
+        Ok(Self {
             inner: header,
-            block_hash: header_hash,
-        }
+            block_crc: header_crc,
+        })
     }
 
-    pub fn block_hash(&self) -> u64 {
-        self.block_hash
+    pub fn block_crc(&self) -> u32 {
+        self.block_crc
     }
 
     pub fn inner(&self) -> &BlockVersion {
@@ -141,24 +140,29 @@ impl BlockHeaderWithHash {
     }
 }
 
-/// A utility fn to calculate any entity that derives Hash.
-pub(crate) fn calculate_hash<T>(t: &T) -> u64
+/// A utility fn to calculate any crc over serialized objects.
+pub(crate) fn calculate_crc<T>(t: &T) -> BincodeResult<u32>
 where
-    T: Hash + ?Sized,
+    T: Serialize + ?Sized,
 {
-    let mut hasher = rustc_hash::FxHasher::default();
-    t.hash(&mut hasher);
-    hasher.finish()
+    let data = bincode::serialize(t)?;
+    Ok(calculate_crc_over_bytes(&data))
+}
+
+pub(crate) fn calculate_crc_over_bytes(bytes: &[u8]) -> u32 {
+    let mut hasher = crc32fast::Hasher::default();
+    hasher.update(&bytes);
+    hasher.finalize()
 }
 
 /// A utility fn that validates the integrity of both the block and data.
-pub(crate) fn validate(block: &BlockHeaderWithHash, data: &[u8]) -> StorageResult<()> {
-    let actual_block_hash = block.block_hash();
-    let block_hash = calculate_hash(&block.inner);
-    if actual_block_hash != block_hash {
-        return Err(RingBufferError::Validate(BlockError::BlockHash {
-            found: actual_block_hash,
-            expected: block_hash,
+pub(crate) fn validate(block: &BlockHeaderWithCrc, data: &[u8]) -> StorageResult<()> {
+    let actual_block_crc = block.block_crc();
+    let block_crc = calculate_crc(&block.inner)?;
+    if actual_block_crc != block_crc {
+        return Err(RingBufferError::Validate(BlockError::BlockCrc {
+            found: actual_block_crc,
+            expected: block_crc,
         })
         .into());
     }
@@ -175,12 +179,12 @@ pub(crate) fn validate(block: &BlockHeaderWithHash, data: &[u8]) -> StorageResul
         .into());
     }
 
-    let data_hash = calculate_hash(data);
-    let actual_data_hash = inner_block.data_hash();
-    if actual_data_hash != data_hash {
-        return Err(RingBufferError::Validate(BlockError::DataHash {
-            found: actual_data_hash,
-            expected: data_hash,
+    let data_crc = calculate_crc_over_bytes(data);
+    let actual_data_crc = inner_block.data_crc();
+    if actual_data_crc != data_crc {
+        return Err(RingBufferError::Validate(BlockError::DataCrc {
+            found: actual_data_crc,
+            expected: data_crc,
         })
         .into());
     }
@@ -190,11 +194,7 @@ pub(crate) fn validate(block: &BlockHeaderWithHash, data: &[u8]) -> StorageResul
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::hash_map::DefaultHasher,
-        hash::{Hash, Hasher},
-        iter,
-    };
+    use std::iter;
 
     use matches::assert_matches;
     use rand::{distributions::Alphanumeric, thread_rng, Rng};
@@ -213,25 +213,27 @@ mod tests {
     }
 
     fn test_serialize_helper(data: &str) {
-        let mut hasher = DefaultHasher::new();
-        data.hash(&mut hasher);
-        let data_hash = hasher.finish();
+        let result = calculate_crc(data);
+        assert_matches!(result, Ok(_));
+        let data_crc = result.unwrap();
 
         let result = bincode::serialized_size(&data);
         assert_matches!(result, Ok(_));
 
         let data_size = result.unwrap();
 
-        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_hash, data_size, 0, 0);
+        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_crc, data_size, 0, 0);
         let versioned_block = BlockVersion::Version1(v1);
 
-        let block_header_with_hash = BlockHeaderWithHash::new(versioned_block);
+        let result = BlockHeaderWithCrc::new(versioned_block);
+        assert_matches!(result, Ok(_));
+        let block_header_with_crc = result.unwrap();
 
-        let result = bincode::serialize(&block_header_with_hash);
+        let result = bincode::serialize(&block_header_with_crc);
         assert_matches!(result, Ok(_));
         let serialized_block = result.unwrap();
 
-        let result = bincode::deserialize::<BlockHeaderWithHash>(&serialized_block);
+        let result = bincode::deserialize::<BlockHeaderWithCrc>(&serialized_block);
         assert_matches!(result, Ok(_));
         let deserialized_block = result.unwrap();
 
@@ -243,12 +245,14 @@ mod tests {
         assert_matches!(result, Ok(_));
         let deserialized_data = result.unwrap();
 
-        let block_hash = calculate_hash(&block_header_with_hash.inner);
-        assert_eq!(block_hash, deserialized_block.block_hash());
+        let result = calculate_crc(&block_header_with_crc.inner);
+        assert_matches!(result, Ok(_));
+        let block_crc = result.unwrap();
+        assert_eq!(block_crc, deserialized_block.block_crc());
 
         let BlockVersion::Version1(deserialized_header) = deserialized_block.inner;
         assert_eq!(0, deserialized_header.write_index());
-        assert_eq!(data_hash, deserialized_header.data_hash());
+        assert_eq!(data_crc, deserialized_header.data_crc());
         assert_eq!(data_size, deserialized_header.data_size());
 
         assert_eq!(data, deserialized_data);
@@ -271,17 +275,19 @@ mod tests {
     }
 
     #[test]
-    fn validate_errs_when_data_hash_do_not_match() {
+    fn validate_errs_when_data_crc_do_not_match() {
         let v1 = BlockHeaderV1::new(BLOCK_HINT, 0x0000_0bad, 11, 0, 0);
         let versioned_block = BlockVersion::Version1(v1);
-        let block = BlockHeaderWithHash::new(versioned_block);
+        let result = BlockHeaderWithCrc::new(versioned_block);
+        assert_matches!(result, Ok(_));
+        let block = result.unwrap();
         let data = b"Hello World";
         let result = validate(&block, data);
-        let _expected = calculate_hash(&data);
+        let _expected = calculate_crc(&data);
         assert_matches!(
             result,
             Err(StorageError::RingBuffer(RingBufferError::Validate(
-                BlockError::DataHash {
+                BlockError::DataCrc {
                     found: 0x0000_0bad,
                     expected: _expected,
                 }
@@ -292,10 +298,14 @@ mod tests {
     #[test]
     fn validate_errs_when_data_size_do_not_match() {
         let data = b"Hello World";
-        let data_hash = calculate_hash(&data);
-        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_hash, 0, 0, 0);
+        let result = calculate_crc(&data);
+        assert_matches!(result, Ok(_));
+        let data_crc = result.unwrap();
+        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_crc, 0, 0, 0);
         let versioned_block = BlockVersion::Version1(v1);
-        let block = BlockHeaderWithHash::new(versioned_block);
+        let result = BlockHeaderWithCrc::new(versioned_block);
+        assert_matches!(result, Ok(_));
+        let block = result.unwrap();
         let result = validate(&block, data);
         let expected_result = bincode::serialize(&data);
         assert_matches!(expected_result, Ok(_));
@@ -312,13 +322,17 @@ mod tests {
     }
 
     #[test]
-    fn validate_errs_when_block_hash_do_not_match() {
+    fn validate_errs_when_block_crc_do_not_match() {
         let data = b"Hello World";
-        let data_hash = calculate_hash(&data);
-        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_hash, 19, 1, 0);
+        let result = calculate_crc(&data);
+        assert_matches!(result, Ok(_));
+        let data_crc = result.unwrap();
+        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_crc, 19, 1, 0);
         let versioned_block = BlockVersion::Version1(v1);
-        let mut block = BlockHeaderWithHash::new(versioned_block);
-        block.block_hash = 0x1;
+        let result = BlockHeaderWithCrc::new(versioned_block);
+        assert_matches!(result, Ok(_));
+        let mut block = result.unwrap();
+        block.block_crc = 0x1;
         let result = validate(&block, data);
         assert_matches!(
             result,
