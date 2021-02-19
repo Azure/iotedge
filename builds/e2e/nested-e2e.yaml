@@ -21,16 +21,16 @@ stages:
       transportType: mqtt
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
-      - SetupVM_level5
-      - SetupVM_level4
+      - SetupVM_level5_mqtt
+      - SetupVM_level4_mqtt
     displayName: Set up and run tests
     timeoutInMinutes: 180
     condition: succeeded()
     variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      lvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
-      iotHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
+      parentName: $[ dependencies.SetupVM_level4_mqtt.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ]
+      lvl5DeviceId: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ]
+      iotHubName: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ]
       os: linux
       arch: amd64
       artifactName: iotedged-ubuntu18.04-amd64
