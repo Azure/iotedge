@@ -2,7 +2,7 @@
   "modulesContent": {
     "$edgeAgent": {
       "properties.desired": {
-        "schemaVersion": "1.0",
+        "schemaVersion": "1.1",
         "runtime": {
           "type": "docker",
           "settings": {
@@ -38,11 +38,20 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "experimentalfeatures__enabled": {
+              "experimentalFeatures__enabled": {
                 "value": "true"
               },
               "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
+              },
+              "experimentalFeatures__mqttBrokerEnabled": {
+                "value": "true"
+              },
+              "DeviceScopeCacheRefreshDelaySecs": {
+                "value": 1
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
@@ -413,7 +422,7 @@
                 "value": "<TestInfo>"
               },
               "testMode": {
-                "value":  "<TestMode>"
+                "value": "<TestMode>"
               }
             },
             "settings": {
@@ -510,7 +519,7 @@
     },
     "$edgeHub": {
       "properties.desired": {
-        "schemaVersion": "1.0",
+        "schemaVersion": "1.2",
         "routes": {
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
@@ -519,6 +528,22 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        },
+        "mqttBroker": {
+          "authorizations": [
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
+                  ]
+                }
+              ]
+            }
+          ]
         }
       }
     },
