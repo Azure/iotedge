@@ -16,7 +16,7 @@ jobs:
     timeoutInMinutes: 180
     displayName: LinuxDotnet
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     steps:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -232,7 +232,7 @@ jobs:
 ################################################################################
     displayName: Manifest
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     dependsOn:
       - linux_dotnet_projects
       - linux_API_proxy_module
