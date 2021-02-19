@@ -25,7 +25,7 @@ namespace TestResultCoordinator.Reports
             return this.enumerator;
         }
 
-        public struct CloudTwinTestResultCollectionEnumerator : IAsyncEnumerator<TestOperationResult>
+        public class CloudTwinTestResultCollectionEnumerator : IAsyncEnumerator<TestOperationResult>
         {
             static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CloudTwinTestResultCollection));
             readonly RegistryManager registryManager;

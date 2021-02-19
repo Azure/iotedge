@@ -135,17 +135,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenActualSourceIsNotProvided(string actualSource)
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
-            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new TwinCountingReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     actualSource,
-                    mockActualStore.Object.GetAsyncEnumerator(),
+                    mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
                     UnmatchedResultsMaxSize));

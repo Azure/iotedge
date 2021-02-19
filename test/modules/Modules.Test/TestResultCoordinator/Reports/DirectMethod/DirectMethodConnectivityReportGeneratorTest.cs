@@ -367,8 +367,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
             IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
-            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
+            var receiverResultsEnumerator = Option.None<IAsyncEnumerator<TestOperationResult>>();
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
