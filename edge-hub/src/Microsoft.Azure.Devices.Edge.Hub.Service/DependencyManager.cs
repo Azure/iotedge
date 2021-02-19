@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
     using System.IO;
-    using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
@@ -93,8 +92,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 authenticationMode = AuthenticationMode.Scope;
             }
 
+            bool retryOnUnauthorizedException = authenticationMode != AuthenticationMode.Scope
+                && this.configuration.GetValue("RetryOnUnauthorizedException", true);
+
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, authenticationMode);
-            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, authenticationMode);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, retryOnUnauthorizedException);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
@@ -128,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ContainerBuilder builder,
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward,
             ExperimentalFeatures experimentalFeatures,
-            AuthenticationMode authenticationMode)
+            bool retryOnUnauthorizedException)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -192,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
-                    authenticationMode));
+                    retryOnUnauthorizedException));
         }
 
         void RegisterCommonModule(

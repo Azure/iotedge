@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
-            AuthenticationMode authenticationMode)
+            bool retryOnUnauthorizedException)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
-            this.retryOnUnauthorizedException = authenticationMode != AuthenticationMode.Scope;
+            this.retryOnUnauthorizedException = retryOnUnauthorizedException;
         }
 
         protected override void Load(ContainerBuilder builder)
