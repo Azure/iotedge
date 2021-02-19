@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# This script is intended to be used for nested edge tests. It deploy level 4 and level 5.
-# Level 3 is deveployed by specialized script for connectivity/long haul and quick start.
+# This script is intended to be used for nested edge tests. It deploys level 4 and level 5.
+# Level 3 is deployed by specialized script for connectivity/long haul and quick start.
 
 function create_certificates() {
     echo "Installing test root certificate bundle."
@@ -32,6 +32,16 @@ function setup_iotedge() {
     sudo chmod 644 /etc/aziot/certd/config.toml
     sudo cat /etc/aziot/certd/config.toml
 
+    # Grant aziot-edged access to edgeHub server certs.
+    >/tmp/principals.toml cat <<-EOF
+[[principal]]
+uid = $(id -u iotedge)
+certs = ["$edgeHub*server"]
+EOF
+    sudo mv /tmp/principals.toml /etc/aziot/certd/config.d/aziot-edged-principal.toml
+    sudo chown aziotcs:aziotcs /etc/aziot/certd/config.d/aziot-edged-principal.toml
+    sudo chmod 0600 /etc/aziot/certd/config.d/aziot-edged-principal.toml
+
     echo "Setup keyd"
     sudo touch /etc/aziot/keyd/config.toml
     echo "[aziot_keys]" | sudo tee  /etc/aziot/keyd/config.toml
@@ -44,6 +54,26 @@ function setup_iotedge() {
     sudo chown aziotks:aziotks /etc/aziot/keyd/config.toml
     sudo chmod 644 /etc/aziot/keyd/config.toml
     sudo cat /etc/aziot/keyd/config.toml
+
+    # Grant aziot-identityd access to device ID and master encryption key.
+    >/tmp/principals.toml cat <<-EOF
+[[principal]]
+uid = $(id -u aziotid)
+keys = ["device-id", "aziot_identityd_master_id"]
+EOF
+    sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+    sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+    sudo chmod 0600 /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+
+    # Grant aziot-edged access to device CA cert and master encryption key.
+    >/tmp/principals.toml cat <<-EOF
+[[principal]]
+uid = $(id -u iotedge)
+keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
+EOF
+    sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-edged-principal.toml
+    sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-edged-principal.toml
+    sudo chmod 0600 /etc/aziot/keyd/config.d/aziot-edged-principal.toml
 
     echo "Setup edged"
     echo "    Updating edge Agent"
@@ -130,7 +160,7 @@ function setup_iotedge() {
         echo "Environment=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/iotedge.service.d/proxy.conf
         sudo systemctl daemon-reload
-    fi   
+    fi
 
     echo "Start IoT edge"
     sudo systemctl start aziot-keyd aziot-certd aziot-identityd aziot-edged
@@ -228,10 +258,10 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 19 ]; then
             PROXY_ADDRESS="$arg"
-            saveNextArg=0    
+            saveNextArg=0
         elif [ $saveNextArg -eq 20 ]; then
             CHANGE_DEPLOY_CONFIG_ONLY="$arg"
-            saveNextArg=0                       
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -253,8 +283,8 @@ function process_args() {
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
                 '-iotHubName' ) saveNextArg=18;;
-                '-proxyAddress' ) saveNextArg=19;; 
-                '-changeDeployConfigOnly' ) saveNextArg=20;;               
+                '-proxyAddress' ) saveNextArg=19;;
+                '-changeDeployConfigOnly' ) saveNextArg=20;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 

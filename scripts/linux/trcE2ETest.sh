@@ -552,7 +552,7 @@ function process_args() {
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
-    [[ -z "$REPO_PATH" ]] && { print_error 'Checkout path is required'; exit 1; }
+    [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
 
     echo 'Required parameters are provided'
@@ -887,7 +887,7 @@ TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIE
 testRet=0
 if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
-    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
+    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
     run_longhaul_test && ret=$? || ret=$?

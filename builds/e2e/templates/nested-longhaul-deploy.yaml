@@ -37,7 +37,7 @@ parameters:
   quickstart.package.name: ''
   aziotis.artifact.name: ''
   aziotis.package.filter: ''
-  test.deploymentFileName: 'nested_long_haul_deployment.template.json'
+  test.deploymentFileName: ''
 steps:
   - checkout: self
     clean: true
@@ -149,6 +149,7 @@ steps:
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
             -testDuration  "${{ parameters['longHaul.testDuration'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
             -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
