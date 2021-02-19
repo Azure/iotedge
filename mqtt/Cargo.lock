@@ -988,16 +988,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3728d817d99e5ac407411fa471ff9800a778d88a24685968b36824eaf4bee400"
 
 [[package]]
-name = "memmap"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6585fd95e7bb50d6cc31e20d4cf9afb4e2ba16c5846fc76793f11218da9c475b"
-dependencies = [
- "libc",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "memoffset"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1114,13 +1104,13 @@ dependencies = [
  "bytes",
  "chrono",
  "config",
+ "crc32fast",
  "edgelet-client",
  "futures-util",
  "humantime 2.0.1",
  "humantime-serde",
  "lazy_static",
  "matches",
- "memmap",
  "mockall",
  "mqtt-broker",
  "mqtt-broker-tests-util",
@@ -1130,7 +1120,6 @@ dependencies = [
  "parking_lot 0.11.0",
  "rand 0.8.3",
  "regex",
- "rustc-hash",
  "serde",
  "serde_bytes",
  "serde_derive",
@@ -1947,12 +1936,6 @@ checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "rustc-hash"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
 name = "rustc_version"
