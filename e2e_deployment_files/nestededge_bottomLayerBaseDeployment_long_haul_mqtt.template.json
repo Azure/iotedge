@@ -559,7 +559,12 @@
               "allow": [
                 {
                   "operations": [
-                    "mqtt:connect"
+                    "mqtt:connect",
+                    "mqtt:publish",
+                    "mqtt:subscribe"
+                  ],
+                  "resources": [
+                    "#"
                   ]
                 }
               ]
