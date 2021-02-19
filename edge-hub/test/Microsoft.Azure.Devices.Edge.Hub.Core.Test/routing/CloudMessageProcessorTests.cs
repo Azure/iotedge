@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -93,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 return Task.FromResult(
                     id.Equals(device1Id)
                         ? Try.Success(cloudProxyMock.Object)
-                        : Try<ICloudProxy>.Failure(new Exception()));
+                        : Try<ICloudProxy>.Failure(new UnauthorizedException()));
             }
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1);
@@ -108,16 +109,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             ISinkResult<IRoutingMessage> result2 = await cloudMessageProcessor.ProcessAsync(message2, CancellationToken.None);
             Assert.NotNull(result2);
-            Assert.NotEmpty(result2.InvalidDetailsList);
-            Assert.Empty(result2.Failed);
+            Assert.Empty(result2.InvalidDetailsList);
+            Assert.NotEmpty(result2.Failed);
             Assert.Empty(result2.Succeeded);
             Assert.True(result2.SendFailureDetails.HasValue);
 
             ISinkResult<IRoutingMessage> resultBatch = await cloudMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
             Assert.NotNull(resultBatch);
             Assert.Equal(1, resultBatch.Succeeded.Count);
-            Assert.Empty(resultBatch.Failed);
-            Assert.Equal(1, resultBatch.InvalidDetailsList.Count);
+            Assert.Equal(1, resultBatch.Failed.Count);
+            Assert.Empty(resultBatch.InvalidDetailsList);
             Assert.True(resultBatch.SendFailureDetails.HasValue);
 
             ISinkResult<IRoutingMessage> resultBatchCancelled = await cloudMessageProcessor.ProcessAsync(new[] { message1, message2 }, new CancellationToken(true));
