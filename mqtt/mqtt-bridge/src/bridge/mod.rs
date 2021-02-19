@@ -19,7 +19,8 @@ use crate::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
         RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
-    }};
+    },
+};
 
 const BATCH_SIZE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(10) };
 

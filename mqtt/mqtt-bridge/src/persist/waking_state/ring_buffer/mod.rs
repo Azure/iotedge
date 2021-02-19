@@ -19,7 +19,7 @@ use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tracing::{error};
+use tracing::error;
 
 use crate::persist::{
     waking_state::{
