@@ -40,7 +40,7 @@ namespace Diagnostics
                     await EdgeAgent(config["management-uri"]);
                     break;
                 case "upstream":
-                    await Upstream(config["hostname"], config["port"], config["proxy"]);
+                    await Upstream(config["hostname"], config["port"], config["proxy"], config["isNested"]);
                     break;
                 case "local-time":
                     Console.WriteLine(DateTime.Now.ToUnixTimestamp());
@@ -71,7 +71,7 @@ namespace Diagnostics
             }
         }
 
-        static async Task Upstream(string hostname, string port, string proxy)
+        static async Task Upstream(string hostname, string port, string proxy, string isNested)
         {
             if (port == "443")
             {
@@ -91,10 +91,13 @@ namespace Diagnostics
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUrl);
                 HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
 
-                var keys = httpResponseMessage.Headers.GetValues("iothub-errorcode");
-                if (!keys.Contains("InvalidProtocolVersion"))
+                if (isNested != null)
                 {
-                    throw new Exception($"Wrong value for iothub-errorcode header");
+                    var keys = httpResponseMessage.Headers.GetValues("iothub-errorcode");
+                    if (!keys.Contains("InvalidProtocolVersion"))
+                    {
+                        throw new Exception($"Wrong value for iothub-errorcode header");
+                    }
                 }
             }
             else
