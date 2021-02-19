@@ -1,10 +1,13 @@
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
-    #[error("Unexpected block hash {found:?} expected {expected:?}")]
-    BlockHash { found: u64, expected: u64 },
+    #[error("Unexpected block crc {found:?} expected {expected:?}")]
+    BlockCrc { found: u32, expected: u32 },
 
-    #[error("Unexpected data hash {found:?} expected {expected:?}")]
-    DataHash { found: u64, expected: u64 },
+    #[error("Failed to create block. Caused by {0}")]
+    BlockCreation(#[from] bincode::Error),
+
+    #[error("Unexpected data crc {found:?} expected {expected:?}")]
+    DataCrc { found: u32, expected: u32 },
 
     #[error("Unexpected data size {found:?} expected {expected:?}")]
     DataSize { found: u64, expected: u64 },
@@ -15,6 +18,9 @@ pub enum BlockError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum RingBufferError {
+    #[error("Underlying block error occurred. Caused by {0}")]
+    Block(BlockError),
+
     #[error("Flushing failed. Caused by {0}")]
     Flush(std::io::Error),
 
@@ -48,5 +54,5 @@ pub enum RingBufferError {
     Serialization(#[from] bincode::Error),
 
     #[error("Failed to validate internal details. Caused by {0}")]
-    Validate(#[from] BlockError),
+    Validate(BlockError),
 }
