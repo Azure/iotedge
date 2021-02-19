@@ -12,8 +12,8 @@ cfg-if = "1.0"
 chrono = "0.4"
 clap = "2.33"
 futures-util = { version = "0.3", features = ["sink"] }
-tokio = { version = "0.2", features = ["dns", "macros", "rt-threaded", "signal", "stream", "tcp", "time"] }
 thiserror = "1.0"
+tokio = { version = "0.2", features = ["dns", "macros", "rt-threaded", "signal", "stream", "tcp", "time"] }
 tracing = "0.1"
 tracing-log = "0.1"
 tracing-subscriber = "0.1"
