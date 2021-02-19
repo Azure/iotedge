@@ -180,7 +180,7 @@ impl RingBuffer {
             return Err(StorageError::RingBuffer(RingBufferError::Full));
         }
 
-        let mut start = write_index;
+        let start = write_index;
 
         // Check if an existing block header is present. If the block is there
         // and if the overwrite flag is not set then we shouldn't write.
@@ -194,27 +194,16 @@ impl RingBuffer {
         }
 
         let should_flush = self.should_flush();
-
-        save_block_header(
+        save_block_header_and_data(
             &mut self.file,
             &block_header,
-            start,
-            self.max_file_size,
-            should_flush,
-        )?;
-
-        let mut end = start + block_size;
-        start = end % self.max_file_size;
-
-        save_data(
-            &mut self.file,
             &data,
             start,
             self.max_file_size,
             should_flush,
         )?;
 
-        end = start + data_size;
+        let end = start + data_size + block_size;
         self.metadata.file_pointers.write = end % self.max_file_size;
 
         // should only happen if we wrap around, this is a special case
@@ -251,18 +240,15 @@ impl RingBuffer {
 
         let mut start = read_index;
         let mut vdata = VecDeque::new();
+        let mut reader = BufReader::with_capacity(page_size::get(), &mut self.file);
         for _ in 0..count {
-            let block = load_block_header(&mut self.file, start, block_size, self.max_file_size)?;
+            let block = load_block_header(&mut reader, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is
             // a really bad state to be in as somehow the pointers don't
             // match to where data really is at.
             let BlockVersion::Version1(inner_block) = block.inner();
             if inner_block.hint() != BLOCK_HINT {
-                self.file.seek(SeekFrom::Start(0)).unwrap();
-                let mut buf = vec![];
-                self.file.read_to_end(&mut buf).unwrap();
-
                 return Err(RingBufferError::Validate(BlockError::Hint).into());
             }
 
@@ -270,7 +256,7 @@ impl RingBuffer {
             let index = inner_block.write_index();
             start += block_size;
             let end = start + data_size;
-            let publication = load_data(&mut self.file, start, data_size, self.max_file_size)?;
+            let publication = load_data(&mut reader, start, data_size, self.max_file_size)?;
 
             // Update start for the next block.
             start = end % self.max_file_size;
@@ -406,7 +392,7 @@ fn retrieve_ring_buffer_metadata(file: &mut File) -> BincodeResult<RingBufferMet
 }
 
 fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> RingBufferMetadata {
-    let mut reader = BufReader::new(file);
+    let mut reader = BufReader::with_capacity(page_size::get(), file);
     let mut block = match find_first_block(&mut reader) {
         Ok(block) => block,
         // If we didn't find a block at all, start as if everything is fresh.
@@ -504,19 +490,17 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
 }
 
 fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHeaderWithHash> {
-    let mut pos = 0;
     // We don't need any explicit returns elsewhere as EOF should be an ERR.
     #[allow(clippy::cast_possible_truncation)]
     let all_zeroes: Vec<u8> = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
     loop {
-        reader.seek(SeekFrom::Start(pos))?;
         #[allow(clippy::cast_possible_truncation)]
         let mut buf = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
         reader.read_exact(&mut buf)?;
 
         // If all zeroes we can skip faster.
         if buf == all_zeroes {
-            pos += *SERIALIZED_BLOCK_SIZE;
+            reader.seek(SeekFrom::Current(*SERIALIZED_BLOCK_SIZE as i64))?;
             continue;
         }
 
@@ -528,7 +512,7 @@ fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHea
             }
         }
 
-        pos += 1;
+        reader.seek(SeekFrom::Current(1))?;
     }
 }
 
@@ -567,8 +551,9 @@ where
     write(writable, start, &bytes, max_size, should_flush)
 }
 
-fn save_data<T>(
+fn save_block_header_and_data<T>(
     writable: &mut T,
+    block: &BlockHeaderWithHash,
     serialized_data: &[u8],
     start: u64,
     max_size: u64,
@@ -577,7 +562,9 @@ fn save_data<T>(
 where
     T: Write + Seek,
 {
-    write(writable, start, &serialized_data, max_size, should_flush)
+    let mut bytes = bincode::serialize(block)?;
+    bytes.extend_from_slice(serialized_data);
+    write(writable, start, &bytes, max_size, should_flush)
 }
 
 fn load_data<T>(
