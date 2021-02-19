@@ -19,8 +19,8 @@ use block::{calculate_crc_over_bytes, BlockHeaderV1};
 use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tracing::error;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use tracing::{debug, error};
 
 use crate::persist::{
     waking_state::{
@@ -133,6 +133,8 @@ impl RingBuffer {
 
         // For correctness, need to scan after best guess and see if can get more accurate.
         let metadata = find_pointers_and_order_post_crash(&mut file, max_file_size);
+
+        debug!("meta {:?}", metadata);
 
         Ok(Self {
             flush_options,
@@ -263,7 +265,7 @@ impl StreamWakeableState for RingBuffer {
 
         self.flush_state_update(should_flush, 1, total_size, timer.elapsed());
 
-        save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
+        self.save_ring_buffer_metadata()?;
 
         Ok(Key { offset: key })
     }
@@ -326,7 +328,7 @@ impl StreamWakeableState for RingBuffer {
             }
         }
 
-        save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
+        self.save_ring_buffer_metadata()?;
 
         Ok(vdata)
     }
@@ -375,7 +377,7 @@ impl StreamWakeableState for RingBuffer {
             self.has_read = false;
         }
 
-        save_ring_buffer_metadata(&self.metadata, &mut self.metadata_file)?;
+        self.save_ring_buffer_metadata()?;
 
         Ok(())
     }

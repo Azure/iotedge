@@ -332,20 +332,6 @@ impl Default for RingBufferSettings {
             flush_options: FlushOptions::AfterEachWrite,
         }
     }
-
-    pub fn flush_options(&self) -> &FlushOptions {
-        &self.flush_options
-    }
-}
-
-impl Default for RingBufferSettings {
-    fn default() -> Self {
-        Self {
-            max_file_size: unsafe { NonZeroU64::new_unchecked(4 * 1024 * 1024 * 1024) },
-            directory: PathBuf::from("/tmp/mqttd/"),
-            flush_options: FlushOptions::AfterEachWrite,
-        }
-    }
 }
 
 #[cfg(test)]

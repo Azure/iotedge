@@ -20,7 +20,7 @@ lazy_static! {
 }
 
 /// A constant set bytes to help determine if a set of data comprises a block.
-pub const BLOCK_HINT: u64 = 0xdead_beef;
+pub const BLOCK_HINT: u32 = 0xdead_beef;
 
 /// + --------------+------+---------+
 /// | `BlockHeader` | crc  | data... |
@@ -67,7 +67,7 @@ impl BlockHeaderV1 {
         }
     }
 
-    pub fn hint(&self) -> u64 {
+    pub fn hint(&self) -> u32 {
         self.hint
     }
 

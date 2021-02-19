@@ -64,16 +64,16 @@ impl PublicationStore<RingBuffer> {
         max_file_size: NonZeroU64,
         flush_options: FlushOptions,
         batch_size: NonZeroUsize,
-    ) -> StorageResult<Self> {
-        let rb = RingBuffer::new(file_path, metadata_file_path, max_file_size, flush_options)?;
-        Ok(Self::new(rb, batch_size))
+        max_size: NonZeroUsize,
+    ) -> PublicationStore<WakingMemoryStore> {
+        Self::new(WakingMemoryStore::new(max_size), batch_size)
     }
 }
 
 impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
-        file_path: PathBuf,
-        metadata_file_path: PathBuf,
+        file_path: &PathBuf,
+        metadata_file_path: &PathBuf,
         max_file_size: NonZeroU64,
         flush_options: FlushOptions,
         batch_size: NonZeroUsize,

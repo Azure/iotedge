@@ -58,99 +58,6 @@ impl Authorizer for DummySubscribeAuthorizer {
 /// - A client connects to remote broker and subscribes to receive messages from downstream
 /// - Clients publish messages
 ///	- Expects to receive messages downstream -> upstream and upstream -> downstream
-#[ignore = "perf only"]
-#[tokio::test]
-async fn test_perf() {
-    let subs = vec![
-        Direction::Out(TopicRule::new(
-            "temp/#".into(),
-            Some("to".into()),
-            Some("upstream".into()),
-        )),
-        Direction::In(TopicRule::new(
-            "filter/#".into(),
-            Some("to".into()),
-            Some("downstream".into()),
-        )),
-    ];
-
-    let (mut local_server_handle, _, mut upstream_server_handle, _) =
-        common::setup_brokers(AllowAll, AllowAll);
-    let (controller_handle, controller_task) = common::setup_bridge_controller(
-        local_server_handle.address(),
-        upstream_server_handle.tls_address().unwrap(),
-        subs,
-        "test_perf",
-    )
-    .await;
-
-    let mut local_client = TestClientBuilder::new(local_server_handle.address())
-        .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
-        .build();
-
-    local_client
-        .subscribe("downstream/filter/#", QoS::AtLeastOnce)
-        .await;
-
-    // wait to receive subscription ack
-    local_client.subscriptions().next().await;
-
-    let mut upstream_client = TestClientBuilder::new(upstream_server_handle.address())
-        .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
-        .build();
-
-    upstream_client
-        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
-        .await;
-
-    // wait to receive subscription ack
-    upstream_client.subscriptions().next().await;
-    println!("start");
-    let start_time = Instant::now();
-    for _ in 0..1_000_000 {
-        // send upstream
-        local_client
-            .publish_qos1("to/temp/1", "from local", false)
-            .await;
-
-        assert_matches!(
-            upstream_client.publications().next().await,
-            Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from local")
-        );
-    }
-
-    println!("time for upstream {:?}", start_time.elapsed());
-
-    let start_time = Instant::now();
-    for _ in 0..1_000_000 {
-        // send downstream
-        upstream_client
-            .publish_qos1("to/filter/1", "from upstream", false)
-            .await;
-
-        assert_matches!(
-            local_client.publications().next().await,
-            Some(ReceivedPublication { payload, .. }) if payload == Bytes::from("from upstream")
-        );
-    }
-
-    println!("time for downstream {:?}", start_time.elapsed());
-
-    controller_handle.shutdown();
-    controller_task.await.expect("controller task");
-
-    local_server_handle.shutdown().await;
-    upstream_server_handle.shutdown().await;
-    upstream_client.shutdown().await;
-    local_client.shutdown().await;
-}
-
-/// Scenario:
-///	- Creates 2 brokers and a bridge to connect between the brokers.
-///	- A client connects to local broker and subscribes to receive messages from upstream
-/// - A client connects to remote broker and subscribes to receive messages from downstream
-/// - Clients publish messages
-///	- Expects to receive messages downstream -> upstream and upstream -> downstream
 #[tokio::test]
 async fn send_message_upstream_downstream() {
     let subs = vec![
@@ -238,6 +145,7 @@ async fn send_message_upstream_downstream() {
 /// - Expects to receive messages downstream -> upstream
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
+    simple_logger::SimpleLogger::new().init().unwrap();
     let subs = vec![Direction::Out(TopicRule::new(
         "temp/#".into(),
         Some("to".into()),
