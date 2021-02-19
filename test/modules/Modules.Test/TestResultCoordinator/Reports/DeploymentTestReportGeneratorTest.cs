@@ -68,17 +68,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
-            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
                     testDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object.GetAsyncEnumerator(),
+                    mockActualStore.Object,
                     UnmatchedResultsMaxSize));
 
             Assert.StartsWith("testDescription", ex.Message);
@@ -89,17 +89,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
-            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
                     TestDescription,
                     trackingId,
                     "expectedSource",
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object.GetAsyncEnumerator(),
+                    mockActualStore.Object,
                     UnmatchedResultsMaxSize));
 
             Assert.StartsWith("trackingId", ex.Message);
@@ -110,17 +110,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenExpectedSourceIsNotProvided(string expectedSource)
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
-            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     expectedSource,
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object.GetAsyncEnumerator(),
+                    mockActualStore.Object,
                     UnmatchedResultsMaxSize));
 
             Assert.StartsWith("expectedSource", ex.Message);
@@ -149,17 +149,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData("")]
         public void TestConstructorThrowsWhenActualSourceIsNotProvided(string actualSource)
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
-            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DeploymentTestReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     actualSource,
-                    mockActualStore.Object.GetAsyncEnumerator(),
+                    mockActualStore.Object,
                     UnmatchedResultsMaxSize));
 
             Assert.StartsWith("actualSource", ex.Message);
@@ -168,14 +168,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [Fact]
         public void TestConstructorThrowsWhenActualStoreIsNotProvided()
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DeploymentTestReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     "actualSource",
                     null,
                     UnmatchedResultsMaxSize));
@@ -187,17 +187,17 @@ namespace Modules.Test.TestResultCoordinator.Reports
         [InlineData(0)]
         public void TestConstructorThrowsWhenUnmatchedResultsMaxSizeIsNonPositive(ushort unmatchedResultsMaxSize)
         {
-            var mockExpectedResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
-            var mockActualStore = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockExpectedResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
+            var mockActualStore = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                 () => new DeploymentTestReportGenerator(
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "expectedSource",
-                    mockExpectedResults.Object.GetAsyncEnumerator(),
+                    mockExpectedResults.Object,
                     "actualSource",
-                    mockActualStore.Object.GetAsyncEnumerator(),
+                    mockActualStore.Object,
                     unmatchedResultsMaxSize));
         }
 

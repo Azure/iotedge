@@ -56,7 +56,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
@@ -65,7 +65,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     testDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
-                    mockSenderResults.Object.GetAsyncEnumerator(),
+                    mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
@@ -79,7 +79,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
@@ -88,7 +88,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     trackingId,
                     "senderSource",
-                    mockSenderResults.Object.GetAsyncEnumerator(),
+                    mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
@@ -102,7 +102,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenSenderSourceIsNotProvided(string senderSource)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
@@ -111,7 +111,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     senderSource,
-                    mockSenderResults.Object.GetAsyncEnumerator(),
+                    mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
@@ -145,7 +145,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<IAsyncEnumerable<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
             IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
@@ -154,7 +154,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     TestDescription,
                     Guid.NewGuid().ToString(),
                     "senderSource",
-                    mockSenderResults.Object.GetAsyncEnumerator(),
+                    mockSenderResults.Object,
                     "receiverSource",
                     receiverResults.GetAsyncEnumerator(),
                     resultType));

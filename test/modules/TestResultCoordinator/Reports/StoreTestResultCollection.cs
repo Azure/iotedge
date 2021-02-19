@@ -20,7 +20,7 @@ namespace TestResultCoordinator.Reports
             this.enumerator = new StoreTestResultCollectionEnumerator(store, batchSize);
         }
 
-        public struct StoreTestResultCollectionEnumerator : IAsyncEnumerator<T>
+        public class StoreTestResultCollectionEnumerator : IAsyncEnumerator<T>
         {
             readonly int batchSize;
             readonly ISequentialStore<T> store;
