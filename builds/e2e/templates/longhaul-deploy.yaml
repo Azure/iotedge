@@ -38,7 +38,7 @@ parameters:
   test.runtimeLogLevel: ''
   test.testMode: ''
   test.useTRC: ''
-  test.deploymentFileName: 'long_haul_deployment.template.json'
+  test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
 
 steps:
