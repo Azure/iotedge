@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use block::BlockHeaderV1;
+use block::{calculate_crc_over_bytes, BlockHeaderV1};
 use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
@@ -22,10 +22,7 @@ use tracing::error;
 
 use crate::persist::{
     waking_state::ring_buffer::{
-        block::{
-            calculate_hash, validate, BlockHeaderWithHash, BlockVersion, BLOCK_HINT,
-            SERIALIZED_BLOCK_SIZE,
-        },
+        block::{validate, BlockHeaderWithCrc, BlockVersion, BLOCK_HINT, SERIALIZED_BLOCK_SIZE},
         error::{BlockError, RingBufferError},
         flush::{FlushOptions, FlushState},
     },
@@ -160,17 +157,12 @@ impl RingBuffer {
         let data = bincode::serialize(publication)?;
 
         let data_size = data.len() as u64;
-        let data_hash = calculate_hash(&data);
+        let data_crc = calculate_crc_over_bytes(&data);
 
         let write_index = self.metadata.file_pointers.write;
         let read_index = self.metadata.file_pointers.read_begin;
         let order = self.metadata.order;
         let key = write_index;
-
-        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_hash, data_size, order, write_index);
-        let versioned_block = BlockVersion::Version1(v1);
-
-        let block_header = BlockHeaderWithHash::new(versioned_block);
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
         let total_size = block_size + data_size;
@@ -204,6 +196,12 @@ impl RingBuffer {
                 return Err(StorageError::RingBuffer(RingBufferError::Full));
             }
         }
+
+        let v1 = BlockHeaderV1::new(BLOCK_HINT, data_crc, data_size, order, write_index);
+        let versioned_block = BlockVersion::Version1(v1);
+
+        let block_header =
+            BlockHeaderWithCrc::new(versioned_block).map_err(RingBufferError::Block)?;
 
         let should_flush = self.should_flush();
 
@@ -289,7 +287,7 @@ impl RingBuffer {
             self.metadata.file_pointers.read_end = start;
 
             // Validate the block and data. This should be data section in the file
-            // after a `BlockHeaderWithHash`.
+            // after a `BlockHeaderWithCrc`.
             validate(&block, &bincode::serialize(&publication)?)?;
 
             let key = Key { offset: index };
@@ -542,7 +540,7 @@ fn load_block_header(
     mut start: u64,
     size: u64,
     file_size: u64,
-) -> BincodeResult<BlockHeaderWithHash> {
+) -> BincodeResult<BlockHeaderWithCrc> {
     if start > file_size {
         start %= file_size;
     }
@@ -557,7 +555,7 @@ fn load_block_header(
 
 fn save_block_header(
     file: &mut File,
-    block: &BlockHeaderWithHash,
+    block: &BlockHeaderWithCrc,
     start: u64,
     file_size: u64,
     should_flush: bool,
