@@ -72,7 +72,7 @@ jobs:
         - run-connectivity -equals true
         - nested-edge -equals L3
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
       - task: Bash@3
         name: Print_test_parameters
