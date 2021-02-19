@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -138,56 +137,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-                Try<Option<ServiceIdentity>> tryServiceIdentity = await this.deviceScopeIdentitiesCache.TryGetServiceIdentity(identity.Id);
-                if (tryServiceIdentity.Success)
-                {
-                    return await tryServiceIdentity.Value
-                        .Filter(s => s.Status == ServiceIdentityStatus.Enabled)
-                        .Map(
-                            async si =>
-                            {
-                                Events.CreatingCloudConnectionOnBehalfOf(identity);
-                                ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
-                                string productInfo = connectionMetadata.EdgeProductInfo;
-                                Option<string> modelId = connectionMetadata.ModelId;
-                                try
-                                {
-                                    ICloudConnection cc = await CloudConnection.Create(
-                                        identity,
-                                        connectionStatusChangedHandler,
-                                        this.transportSettings,
-                                        this.messageConverterProvider,
-                                        this.clientProvider,
-                                        cloudListener,
-                                        this.edgeHubTokenProvider,
-                                        this.idleTimeout,
-                                        this.closeOnIdleTimeout,
-                                        this.operationTimeout,
-                                        productInfo,
-                                        modelId);
-                                    Events.SuccessCreatingCloudConnection(identity);
-                                    return Try.Success(cc);
-                                }
-                                catch (UnauthorizedException) when (this.giveupOnInvalidState)
-                                {
-                                    this.deviceScopeIdentitiesCache.BlockServiceIdentity(identity.Id);
-                                    throw;
-                                }
-                            })
-                        .GetOrElse(
-                            async () =>
-                            {
-                                Events.ServiceIdentityNotFound(identity);
-                                Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                                return await clientCredentials
-                                    .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                                    .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
-                            });
-                }
-                else
-                {
-                    return Try<ICloudConnection>.Failure(tryServiceIdentity.Exception);
-                }
+                Try<ServiceIdentity> tryServiceIdentity = await this.deviceScopeIdentitiesCache.TryGetServiceIdentity(identity.Id, true);
+                return await tryServiceIdentity.Ok()
+                    .Filter(identity => identity.Status == ServiceIdentityStatus.Enabled)
+                    .Map(async si =>
+                         {
+                             Events.CreatingCloudConnectionOnBehalfOf(identity);
+                             ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
+                             string productInfo = connectionMetadata.EdgeProductInfo;
+                             Option<string> modelId = connectionMetadata.ModelId;
+                             ICloudConnection cc = await CloudConnection.Create(
+                                identity,
+                                connectionStatusChangedHandler,
+                                this.transportSettings,
+                                this.messageConverterProvider,
+                                this.clientProvider,
+                                cloudListener,
+                                this.edgeHubTokenProvider,
+                                this.idleTimeout,
+                                this.closeOnIdleTimeout,
+                                this.operationTimeout,
+                                productInfo,
+                                modelId);
+                             Events.SuccessCreatingCloudConnection(identity);
+                             return Try.Success(cc);
+                         })
+                     .GetOrElse(
+                         async () =>
+                         {
+                             if (!this.giveupOnInvalidState)
+                             {
+                                 Events.ServiceIdentityNotFound(identity);
+                                 Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
+                                 return await clientCredentials
+                                     .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
+                                     .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                             }
+
+                             return Try<ICloudConnection>.Failure(new DeviceInvalidStateException("Device disabled."));
+                         });
             }
             catch (Exception ex)
             {

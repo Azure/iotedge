@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Amqp.Transport;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
-        static readonly TimeSpan BlockTime = TimeSpan.FromMinutes(5);
+        static readonly TimeSpan RefreshDelay = TimeSpan.FromMinutes(5);
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly AsyncLock cacheLock = new AsyncLock();
@@ -29,7 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly TimeSpan refreshRate;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
-        readonly ConcurrentDictionary<string, DateTime> blockedServiceIdentityCache = new ConcurrentDictionary<string, DateTime>();
 
         Task refreshCacheTask;
 
@@ -77,7 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
                 await serviceIdentity
                     .Map(s => this.HandleNewServiceIdentity(s))
-                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
+                    .GetOrElse(() => Task.CompletedTask); // Should not handle as removed identity because it can be None when service exception occurs (5XX error codes)
+            }
+            catch (DeviceInvalidStateException)
+            {
+                await this.HandleNoServiceIdentity(id);
             }
             catch (Exception e)
             {
@@ -104,6 +108,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return await this.GetServiceIdentityInternal(id);
+        }
+
+        public async Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refreshIfNotExists = false)
+        {
+            var storedServiceIdentity = await this.GetStoredServiceIdentity(id);
+
+            return await storedServiceIdentity.Match(
+                (ssi) =>
+                {
+                    return ssi.ServiceIdentity.Match(
+                        async (si) =>
+                        {
+                            if (si.Status != ServiceIdentityStatus.Enabled)
+                            {
+                                if (refreshIfNotExists && ssi.Timestamp + RefreshDelay >= DateTime.Now)
+                                {
+                                    await this.RefreshServiceIdentity(id);
+                                    return await this.TryGetServiceIdentity(id, false);
+                                }
+
+                                return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device disabled."));
+                            }
+
+                            return Try.Success(si);
+                        },
+                        async () =>
+                         {
+                             if (refreshIfNotExists && ssi.Timestamp + RefreshDelay >= DateTime.Now)
+                             {
+                                 await this.RefreshServiceIdentity(id);
+                                 return await this.TryGetServiceIdentity(id, false);
+                             }
+
+                             return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device removed from scope."));
+                         });
+                },
+                async () =>
+                {
+                    // TODO: was never in scope, should it try to refresh?
+                    if (refreshIfNotExists)
+                    {
+                        await this.RefreshServiceIdentity(id);
+                        return await this.TryGetServiceIdentity(id, false);
+                    }
+
+                    return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device not in scope."));
+                });
         }
 
         public void Dispose()
@@ -221,6 +272,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        async Task<Option<StoredServiceIdentity>> GetStoredServiceIdentity(string id)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            using (await this.cacheLock.LockAsync())
+            {
+                return this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity storedServiceIdentity)
+                    ? Option.Some(storedServiceIdentity)
+                    : Option.None<StoredServiceIdentity>();
+            }
+        }
+
         async Task HandleNoServiceIdentity(string id)
         {
             using (await this.cacheLock.LockAsync())
@@ -265,21 +327,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             string serviceIdentityString = JsonConvert.SerializeObject(storedServiceIdentity);
             await this.encryptedStore.Put(id, serviceIdentityString);
         }
-
-        public async Task<Try<Option<ServiceIdentity>>> TryGetServiceIdentity(string id, bool refreshIfNotExists = false)
-        {
-            if (this.blockedServiceIdentityCache.TryGetValue(id, out var time) && time + BlockTime >= DateTime.Now)
-            {
-                return Try<Option<ServiceIdentity>>.Failure(new UnauthorizedException($"Device is blocked by previous authorization failure upto {BlockTime}."));
-            }
-            else
-            {
-                this.blockedServiceIdentityCache.TryRemove(id, out _);
-                return Try.Success(await this.GetServiceIdentity(id, refreshIfNotExists));
-            }
-        }
-
-        public void BlockServiceIdentity(string id) => this.blockedServiceIdentityCache.AddOrUpdate(id, DateTime.Now, (_, __) => DateTime.Now);
 
         internal class StoredServiceIdentity
         {

@@ -304,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ThrowsAsync(new DeviceInvalidStateException("Device removed from scope"));
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -367,7 +367,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"))).ThrowsAsync(new DeviceInvalidStateException("Device removed"));
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d3"))).ReturnsAsync(Option.None<ServiceIdentity>());
 
             var updatedIdentities = new List<ServiceIdentity>();
@@ -434,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentitiesIterator())
                 .Returns(iterator1.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d1"), It.Is<string>(id => id == "m1"))).ReturnsAsync(Option.Some(si1_updated));
-            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.Is<string>(id => id == "m2"))).ReturnsAsync(Option.None<ServiceIdentity>());
+            serviceProxy.Setup(s => s.GetServiceIdentity(It.Is<string>(id => id == "d2"), It.Is<string>(id => id == "m2"))).ThrowsAsync(new DeviceInvalidStateException("Device removed from scope"));
 
             var updatedIdentities = new List<ServiceIdentity>();
             var removedIdentities = new List<string>();
@@ -625,6 +625,93 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si_device.Equals(deviceServiceIdentity.OrDefault()));
             Assert.True(moduleServiceIdentity.HasValue);
             Assert.True(si_module.Equals(moduleServiceIdentity.OrDefault()));
+        }
+
+        [Fact]
+        public async Task TryServiceIdentityFromService_WithExceptionTest()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ThrowsAsync(new Exception());
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ThrowsAsync(new Exception());
+
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
+
+            // Act
+            Try<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d2", true);
+            Try<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
+
+            // Assert
+            Assert.Throws<DeviceInvalidStateException>(()=> deviceServiceIdentity.Value);
+            Assert.Throws<DeviceInvalidStateException>(()=> moduleServiceIdentity.Value);
+            Assert.Contains("Device not in scope.", deviceServiceIdentity.Exception.Message);
+            Assert.Contains("Device not in scope.", moduleServiceIdentity.Exception.Message);
+        }
+
+        [Fact]
+        public async Task TryServiceIdentityFromService_WithDisabledTest()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
+            var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+
+            var si_device = new ServiceIdentity("d2", "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Disabled);
+            var si_module = new ServiceIdentity("d1", "m1", "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ReturnsAsync(Option.Some(si_device));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si_module));
+
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
+
+            // Act
+            Try<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d2", true);
+            Try<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
+
+            // Assert
+            Assert.Throws<DeviceInvalidStateException>(() => deviceServiceIdentity.Value);
+            Assert.Throws<DeviceInvalidStateException>(() => moduleServiceIdentity.Value);
+            Assert.Contains("Device disabled.", deviceServiceIdentity.Exception.Message);
+            Assert.Contains("Device disabled.", moduleServiceIdentity.Exception.Message);
+        }
+
+        [Fact]
+        public async Task TryServiceIdentityFromService_WithRemovedFromScopeTest()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
+            var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+
+            var si_device = new ServiceIdentity("d2", "1234", Enumerable.Empty<string>(), serviceAuthenticationNone, ServiceIdentityStatus.Enabled);
+            var si_module = new ServiceIdentity("d1", "m1", "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ReturnsAsync(Option.Some(si_device));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si_module));
+
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
+            
+            Try<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d2", true);
+            Try<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
+
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ThrowsAsync(new DeviceInvalidStateException("Device removed."));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ThrowsAsync(new DeviceInvalidStateException("Device removed."));
+            await deviceScopeIdentitiesCache.RefreshServiceIdentity("d2");
+            await deviceScopeIdentitiesCache.RefreshServiceIdentity("d1/m1");
+
+            // Act
+            Try<ServiceIdentity> updated_deviceServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d2", true);
+            Try<ServiceIdentity> updated_moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
+
+            // Assert
+            Assert.Throws<DeviceInvalidStateException>(() => updated_deviceServiceIdentity.Value);
+            Assert.Throws<DeviceInvalidStateException>(() => updated_moduleServiceIdentity.Value);
+            Assert.Contains("Device removed from scope.", updated_deviceServiceIdentity.Exception.Message);
+            Assert.Contains("Device removed from scope.", updated_moduleServiceIdentity.Exception.Message);
         }
 
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));

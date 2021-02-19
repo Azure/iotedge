@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -689,6 +690,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(It.IsAny<string>(), true)).ReturnsAsync(Try<ServiceIdentity>.Failure(new Exception()));
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
@@ -700,7 +703,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 edgeHubIdentity,
                 TimeSpan.FromMinutes(60),
@@ -867,6 +870,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.SetupSequence(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
                 .Returns(client1)
                 .Returns(client2);
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(It.IsAny<string>(), true)).ReturnsAsync(Try<ServiceIdentity>.Failure(new Exception()));
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
@@ -878,7 +883,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 new ModuleIdentity(iotHub, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
@@ -927,6 +932,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
 
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(It.IsAny<string>(), true)).ReturnsAsync(Try<ServiceIdentity>.Failure(new Exception()));
+
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
             var metadataStore = new Mock<IMetadataStore>();
@@ -937,7 +945,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 new ModuleIdentity(IotHubHostName, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),
@@ -995,6 +1003,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>())).Returns(client1);
 
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            deviceScopeIdentitiesCache.Setup(d => d.TryGetServiceIdentity(It.IsAny<string>(), true)).ReturnsAsync(Try<ServiceIdentity>.Failure(new Exception()));
+
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
             var metadataStore = new Mock<IMetadataStore>();
@@ -1005,7 +1016,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 deviceClientProvider.Object,
                 Option.None<UpstreamProtocol>(),
                 Mock.Of<ITokenProvider>(),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 new ModuleIdentity(iotHub, edgeDeviceId, "$edgeHub"),
                 TimeSpan.FromMinutes(60),

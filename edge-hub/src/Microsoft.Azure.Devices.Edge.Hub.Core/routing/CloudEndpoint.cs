@@ -27,14 +27,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class CloudEndpoint : Endpoint
     {
-        readonly Func<string, Task<Util.Try<ICloudProxy>>> cloudProxyGetterFunc;
+        readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
+        readonly Func<string, Task> cloudProxyCloseFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool giveupOnInvalidState;
 
         public CloudEndpoint(
             string id,
-            Func<string, Task<Util.Try<ICloudProxy>>> cloudProxyGetterFunc,
+            Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
+            Func<string, Task> cloudProxyCloseFunc, 
             Core.IMessageConverter<IRoutingMessage> messageConverter,
             bool giveupOnInvalidState = false,
             int maxBatchSize = 10,
@@ -43,6 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
+            this.cloudProxyCloseFunc = Preconditions.CheckNotNull(cloudProxyCloseFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
@@ -108,20 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
-            bool IsRetryable(Exception ex)
-            {
-                if (ex == null)
-                {
-                    return false;
-                }
-
-                if (ex is UnauthorizedException)
-                {
-                    return !this.giveupOnInvalidState;
-                }
-
-                return RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
-            }
+            bool IsRetryable(Exception ex) => ex != null && (RetryableExceptions.Any(re => re.IsInstanceOfType(ex)) || (!this.giveupOnInvalidState && ex is DeviceInvalidStateException));
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {
@@ -213,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     return HandleCancelled(routingMessages);
                 }
 
-                Util.Try<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
+                Try<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
                 if (cloudProxy.Success)
                 {
                     var cp = cloudProxy.Value;
@@ -234,6 +224,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                         return new SinkResult<IRoutingMessage>(routingMessages);
                     }
+                    catch (UnauthorizedException e) when (this.giveupOnInvalidState)
+                    {
+                        // close cloud proxy and this will trigger to create a new cloud connection when retrying to send messsage
+                        await this.cloudEndpoint.cloudProxyCloseFunc(id);
+                        return this.HandleException(e, id, routingMessages);
+                    }
                     catch (Exception ex)
                     {
                         return this.HandleException(ex, id, routingMessages);
@@ -241,8 +237,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
                 else
                 {
-                    return this.HandleException(cloudProxy.Exception, id, routingMessages);
+                    if (IsRetryable(cloudProxy.Exception))
+                    {
+                        return this.HandleNoConnection(id, routingMessages);
+                    }
+                    else
+                    {
+                        return this.HandleException(cloudProxy.Exception, id, routingMessages);
+                    }
                 }
+            }
+
+            ISinkResult HandleNoConnection(string identity, List<IRoutingMessage> routingMessages)
+            {
+                Events.IoTHubNotConnected(identity);
+                return GetSyncResultForFailedMessages(new EdgeHubConnectionException($"Could not get connection to IoT Hub for {identity}"), routingMessages);
             }
 
             ISinkResult HandleException(Exception ex, string id, List<IRoutingMessage> routingMessages)

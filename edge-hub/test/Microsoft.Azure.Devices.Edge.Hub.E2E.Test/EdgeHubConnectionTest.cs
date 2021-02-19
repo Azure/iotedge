@@ -62,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string sasKey = ConnectionStringHelper.GetSharedAccessKey(deviceConnStr);
             var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
+            var deviceScopeIdentityCache = new Mock<IDeviceScopeIdentitiesCache>();
+            deviceScopeIdentityCache.Setup(d => d.TryGetServiceIdentity(It.IsAny<string>(), true)).ReturnsAsync(Try<Core.Identity.Service.ServiceIdentity>.Failure(new DeviceInvalidStateException()));
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -70,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 new ClientProvider(),
                 Option.None<UpstreamProtocol>(),
                 new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentityCache.Object,
                 credentialsCache,
                 edgeHubCredentials.Identity,
                 TimeSpan.FromMinutes(60),

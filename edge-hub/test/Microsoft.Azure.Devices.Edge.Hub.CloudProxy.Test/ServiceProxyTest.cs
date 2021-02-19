@@ -160,6 +160,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         [Fact]
+        public async Task GetServiceIdentitiy_DeviceNotInScope_DeviceTest()
+        {
+            // Arrange
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(new DeviceScopeApiException("unauthorized", HttpStatusCode.Unauthorized, string.Empty));
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d2", null)).ThrowsAsync(new DeviceScopeApiException("forbidden", HttpStatusCode.Forbidden, string.Empty));
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d3", null)).ThrowsAsync(new DeviceScopeApiException("not found", HttpStatusCode.NotFound, string.Empty));
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act / Assert
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d1"));
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d2"));
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d3"));
+        }
+
+        [Fact]
         public async Task GetServiceIdentitiy_Exception_DeviceTest()
         {
             // Arrange
@@ -185,6 +201,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.False(serviceIdentity.HasValue);
+        }
+
+        [Fact]
+        public async Task GetServiceIdentitiy_ModuleNotInScope_DeviceTest()
+        {
+            // Arrange
+            var deviceScopeApiClient = new Mock<IDeviceScopeApiClient>();
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(new DeviceScopeApiException("unauthorized", HttpStatusCode.Unauthorized, string.Empty));
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d2", "m1")).ThrowsAsync(new DeviceScopeApiException("forbidden", HttpStatusCode.Forbidden, string.Empty));
+            deviceScopeApiClient.Setup(d => d.GetIdentity("d3", "m1")).ThrowsAsync(new DeviceScopeApiException("not found", HttpStatusCode.NotFound, string.Empty));
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
+
+            // Act / Assert
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d1", "m1"));
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d2", "m1"));
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d3", "m1"));
         }
 
         [Fact]
