@@ -10,7 +10,7 @@ jobs:
     timeoutInMinutes: 180
     displayName: LinuxDotnet
     pool: 
-      name: "Hosted Ubuntu 1604"
+      vmImage: ubuntu-18.04
     steps: 
       # Setup dependencies
       - bash: |
@@ -331,7 +331,7 @@ jobs:
 ################################################################################
     displayName: Publish Manifest Images
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     dependsOn:
       - linux_dotnet_projects
     steps:
