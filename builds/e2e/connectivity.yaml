@@ -5,6 +5,15 @@ variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
 
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
+
 jobs:
 ################################################################################
   - job: linux_amd64_moby
