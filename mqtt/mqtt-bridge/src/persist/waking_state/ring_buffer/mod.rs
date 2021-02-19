@@ -500,6 +500,8 @@ fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHea
 
         // If all zeroes we can skip faster.
         if buf == all_zeroes {
+            // This is okay since the block size is too small to wrap.
+            #[allow(clippy::cast_possible_wrap)]
             reader.seek(SeekFrom::Current(*SERIALIZED_BLOCK_SIZE as i64))?;
             continue;
         }
