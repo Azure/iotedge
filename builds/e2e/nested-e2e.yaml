@@ -17,6 +17,7 @@ stages:
 - stage: SetupVM
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
+    transportType: mqtt
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
       - SetupVM_level5
@@ -86,20 +87,20 @@ stages:
 
   - job:  Clean_up
     dependsOn:
-      - SetupVM_level5
-      - SetupVM_level4
+      - SetupVM_level5_mqtt 
+      - SetupVM_level4_mqtt
       - SetupVM_and_RunTest_level3
     condition: always()
     displayName: Clean up identities and unlock agents
-    timeoutInMinutes: 2
-    variables:
-      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ]
-      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5.outputs['createIdentity.iotHubName'] ]
-      deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4.outputs['createIdentity.iotHubName'] ]
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]
-      deviceLvl3AgentName: $[ dependencies.SetupVM_and_RunTest_level3.outputs['lock_test_agent.agentName'] ]
+    timeoutInMinutes: 2    
+    variables:    
+      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ] 
+      deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.iotHubName'] ]
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]         
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]       
+      deviceLvl3AgentName: $[ dependencies.SetupVM_and_RunTest_level3.outputs['lock_test_agent.agentName'] ]  
     pool:
       name: $(pool.name)
       demands:
