@@ -1,27 +1,51 @@
-use std::sync::Arc;
+use std::{
+    num::{NonZeroU64, NonZeroUsize},
+    path::PathBuf,
+    sync::Arc,
+};
 
-use anyhow::Result;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use tracing::debug;
 
 use crate::persist::{
-    loader::MessageLoader, waking_state::StreamWakeableState, Key, PersistError, WakingMemoryStore,
+    loader::MessageLoader,
+    waking_state::{
+        memory::WakingMemoryStore,
+        ring_buffer::{flush::FlushOptions, RingBuffer},
+        StreamWakeableState,
+    },
+    Key, PersistResult,
 };
 
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 struct PublicationStoreInner<S> {
     state: Arc<Mutex<S>>,
-    offset: u64,
     loader: MessageLoader<S>,
 }
 /// Persistence implementation used for the bridge
 pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 impl PublicationStore<WakingMemoryStore> {
-    pub fn new_memory(batch_size: usize) -> PublicationStore<WakingMemoryStore> {
-        Self::new(WakingMemoryStore::default(), batch_size)
+    pub fn new_memory(
+        batch_size: NonZeroUsize,
+        max_size: NonZeroUsize,
+    ) -> PublicationStore<WakingMemoryStore> {
+        Self::new(WakingMemoryStore::new(max_size), batch_size)
+    }
+}
+
+impl PublicationStore<RingBuffer> {
+    pub fn new_ring_buffer(
+        file_path: &PathBuf,
+        metadata_file_path: &PathBuf,
+        max_file_size: NonZeroU64,
+        flush_options: FlushOptions,
+        batch_size: NonZeroUsize,
+    ) -> PersistResult<Self> {
+        let rb = RingBuffer::new(file_path, metadata_file_path, max_file_size, flush_options)?;
+        Ok(Self::new(rb, batch_size))
     }
 }
 
@@ -29,49 +53,35 @@ impl<S> PublicationStore<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(state: S, batch_size: usize) -> Self {
+    pub fn new(state: S, batch_size: NonZeroUsize) -> Self {
         let state = Arc::new(Mutex::new(state));
-        let loader = MessageLoader::new(state.clone(), batch_size);
+        let loader = MessageLoader::new(state.clone(), batch_size.get());
 
-        let offset = 0;
-        let inner = PublicationStoreInner {
-            state,
-            offset,
-            loader,
-        };
+        let inner = PublicationStoreInner { state, loader };
         let inner = Arc::new(Mutex::new(inner));
 
         Self(inner)
     }
 
-    pub fn push(&self, message: Publication) -> Result<Key, PersistError> {
-        let mut inner_borrow = self.0.lock();
+    pub fn push(&self, message: &Publication) -> PersistResult<Key> {
+        let inner_borrow = self.0.lock();
+
+        let mut borrowed_store = inner_borrow.state.lock();
+        let key = borrowed_store.insert(message)?;
 
         debug!(
-            "persisting publication on topic {} with offset {}",
-            message.topic_name, inner_borrow.offset
+            "persisted publication on topic {} with key {:?}",
+            message.topic_name, key
         );
 
-        let key = Key {
-            offset: inner_borrow.offset,
-        };
-
-        let mut state_lock = inner_borrow.state.lock();
-        state_lock.insert(key, message)?;
-        drop(state_lock);
-
-        inner_borrow.offset += 1;
         Ok(key)
     }
 
-    pub fn remove(&self, key: Key) -> Result<(), PersistError> {
-        let inner = self.0.lock();
-
+    pub fn remove(&self, key: Key) -> PersistResult<()> {
         debug!("removing publication with key {:?}", key);
-
-        let mut state_lock = inner.state.lock();
-        state_lock.remove(key)?;
-        Ok(())
+        let lock = self.0.lock();
+        let mut state = lock.state.lock();
+        state.remove(key)
     }
 
     pub fn loader(&self) -> MessageLoader<S> {
@@ -88,23 +98,33 @@ impl<S: StreamWakeableState> Clone for PublicationStore<S> {
 
 #[cfg(test)]
 mod tests {
+
+    use std::num::NonZeroUsize;
+
     use bytes::Bytes;
     use futures_util::stream::TryStreamExt;
     use matches::assert_matches;
     use mqtt3::proto::{Publication, QoS};
+    use test_case::test_case;
 
-    use crate::persist::{publication_store::PublicationStore, Key, WakingMemoryStore};
+    use crate::persist::{
+        publication_store::PublicationStore,
+        waking_state::{
+            memory::test::TestWakingMemoryStore, ring_buffer::test::TestRingBuffer,
+            StreamWakeableState,
+        },
+        Key,
+    };
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
     #[tokio::test]
-    async fn insert() {
+    async fn insert(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
-        let batch_size: usize = 5;
+        let batch_size = NonZeroUsize::new(5).unwrap();
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
-        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -119,8 +139,8 @@ mod tests {
         };
 
         // insert some elements
-        persistence.push(pub1.clone()).unwrap();
-        persistence.push(pub2.clone()).unwrap();
+        let key1 = persistence.push(&pub1).unwrap();
+        let key2 = persistence.push(&pub2).unwrap();
 
         // get loader
         let mut loader = persistence.loader();
@@ -134,15 +154,15 @@ mod tests {
         assert_eq!(extracted2.1, pub2);
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
     #[tokio::test]
-    async fn remove() {
+    async fn remove(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
-        let batch_size: usize = 1;
+        let batch_size = NonZeroUsize::new(1).unwrap();
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -157,7 +177,7 @@ mod tests {
         };
 
         // insert some elements
-        persistence.push(pub1.clone()).unwrap();
+        persistence.push(&pub1).unwrap();
 
         // get loader
         let mut loader = persistence.loader();
@@ -167,20 +187,19 @@ mod tests {
         assert_matches!(persistence.remove(key1), Ok(_));
 
         // add a second message and verify this is returned by loader
-        persistence.push(pub2.clone()).unwrap();
+        let key2 = persistence.push(&pub2).unwrap();
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!((extracted.0, extracted.1), (key2, pub2));
     }
 
-    #[tokio::test]
-    async fn remove_key_inserted_but_not_retrieved() {
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
+    fn remove_key_inserted_but_not_retrieved(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
-        let batch_size: usize = 1;
+        let batch_size = NonZeroUsize::new(1).unwrap();
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -189,16 +208,16 @@ mod tests {
         };
 
         // can't remove an element that hasn't been seen
-        persistence.push(pub1).unwrap();
+        let key1 = persistence.push(&pub1).unwrap();
         let removed = persistence.remove(key1);
         assert_matches!(removed, Err(_));
     }
 
-    #[tokio::test]
-    async fn remove_key_dne() {
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
+    fn remove_key_dne(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
-        let batch_size: usize = 1;
+        let batch_size = NonZeroUsize::new(1).unwrap();
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
@@ -209,16 +228,15 @@ mod tests {
         assert_matches!(removal, Err(_));
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
     #[tokio::test]
-    async fn get_loader() {
+    async fn get_loader(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
-        let batch_size: usize = 1;
+        let batch_size = NonZeroUsize::new(2).unwrap();
         let persistence = PublicationStore::new(state, batch_size);
 
         // setup data
-        let key1 = Key { offset: 0 };
-        let key2 = Key { offset: 1 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -233,8 +251,8 @@ mod tests {
         };
 
         // insert 2 elements
-        persistence.push(pub1.clone()).unwrap();
-        persistence.push(pub2.clone()).unwrap();
+        let key1 = persistence.push(&pub1).unwrap();
+        let key2 = persistence.push(&pub2).unwrap();
 
         // get loader with batch size
         let mut loader = persistence.loader();

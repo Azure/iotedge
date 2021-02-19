@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto};
+use std::{collections::HashMap, convert::TryInto, num::NonZeroUsize};
 
 use tokio::sync::mpsc;
 
@@ -42,7 +42,13 @@ impl Default for Builder<WakingMemoryStore> {
         Self {
             local: PumpBuilder::default(),
             remote: PumpBuilder::default(),
-            store: Box::new(|| PublicationStore::new_memory(0)),
+            store: Box::new(|| {
+                // TODO: after merging in settings, we can hook in the settings value.
+                PublicationStore::new_memory(
+                    NonZeroUsize::new(10).unwrap(),
+                    NonZeroUsize::new(1024 * 1024 * 1024).unwrap(),
+                )
+            }),
         }
     }
 }

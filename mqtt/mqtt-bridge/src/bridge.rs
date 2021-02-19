@@ -1,3 +1,5 @@
+use std::num::NonZeroUsize;
+
 use futures_util::{
     future::{self, Either},
     pin_mut,
@@ -103,7 +105,13 @@ impl Bridge<WakingMemoryStore> {
                 ))
                 .with_rules(settings.subscriptions());
             })
-            .with_store(|| PublicationStore::new_memory(BATCH_SIZE))
+            .with_store(|| {
+                // TODO: can use values from settings after storage settings is merged.
+                PublicationStore::new_memory(
+                    NonZeroUsize::new(BATCH_SIZE).unwrap(),
+                    NonZeroUsize::new(1024 * 1024 * 1024).unwrap(),
+                )
+            })
             .build()?;
 
         debug!("created bridge {}...", settings.name());
