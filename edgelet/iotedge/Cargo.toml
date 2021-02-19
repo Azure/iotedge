@@ -20,6 +20,7 @@ hyper = "0.12"
 hyper-proxy = "0.5.1"
 hyper-tls = "0.3"
 lazy_static = "1"
+log = "0.4"
 native-tls = "0.2"
 nix = "0.18"
 openssl = "0.10"
@@ -42,7 +43,7 @@ aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service"
 aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziotctl-check-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
