@@ -17,9 +17,11 @@ stages:
 - stage: SetupVMs
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
+    parameters: 
+      transportType: mqtt
   - job:  Deploy_Connectivity_Linux_Amd64
     displayName: Set up and run connectivity tests on Linux Amd64
-    dependsOn: SetupVM_level4
+    dependsOn: SetupVM_level4_${{ parameters.transportType }}
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     strategy:
       matrix:
@@ -32,9 +34,9 @@ stages:
         Offline(5/5/5):
           testrun.config: 2
           testrun.network.description: "Offline(5/5/5)"
-          testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.network.frequencies: "00:05:00 00:05:00 1"
           testrun.network.runProfile: "Offline"
-          testrun.duration: "00:50:00"
+          testrun.duration: "00:10:00"
         Offline(10/10/3):
           testrun.config: 3
           testrun.network.description: "Offline(10/10/3)"
@@ -68,8 +70,8 @@ stages:
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked  
     variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
+      parentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
       aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
       aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
@@ -149,14 +151,14 @@ stages:
           connectivity.nested: 'true'
   - job:  Clean_up      
     dependsOn:
-      - SetupVM_level5 
-      - SetupVM_level4
+      - SetupVM_level5_${{ parameters.transportType }} 
+      - SetupVM_level4_${{ parameters.transportType }}
       - Deploy_connectivity_Linux_Amd64
     condition: always()
     displayName: Clean up identities and unlock agents
     variables:    
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]         
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]       
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['lock_test_agent.agentName'] ]         
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['lock_test_agent.agentName'] ]       
       amd64AgentName: $[ dependencies.Deploy_connectivity_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
     pool:
       name: $(pool.name)
