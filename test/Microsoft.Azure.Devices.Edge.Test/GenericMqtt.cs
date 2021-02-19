@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const int SecondsBeforeVerification = 90;
 
         [Test]
-        public async Task PriorityQueueModuleToModuleMessages()
+        public async Task GenericMqttTelemetry()
         {
             CancellationToken token = this.TestToken;
             string networkControllerImage = Context.Current.NetworkControllerImage.Expect(() => new ArgumentException("networkControllerImage parameter is required for Generic Mqtt test"));
