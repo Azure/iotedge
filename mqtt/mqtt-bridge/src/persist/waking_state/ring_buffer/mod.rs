@@ -487,7 +487,7 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
     }
 }
 
-fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHeaderWithHash> {
+fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHeaderWithCrc> {
     // We don't need any explicit returns elsewhere as EOF should be an ERR.
     #[allow(clippy::cast_possible_truncation)]
     let all_zeroes: Vec<u8> = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
@@ -504,7 +504,7 @@ fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHea
             continue;
         }
 
-        if let Ok(block) = bincode::deserialize::<BlockHeaderWithHash>(&buf) {
+        if let Ok(block) = bincode::deserialize::<BlockHeaderWithCrc>(&buf) {
             let BlockVersion::Version1(inner) = block.inner();
             // We maybe found a block.
             if inner.hint() == BLOCK_HINT {
@@ -521,7 +521,7 @@ fn load_block_header<T>(
     mut start: u64,
     size: u64,
     max_size: u64,
-) -> BincodeResult<BlockHeaderWithHash>
+) -> BincodeResult<BlockHeaderWithCrc>
 where
     T: Read + Seek,
 {
@@ -539,7 +539,7 @@ where
 
 fn save_block_header<T>(
     writable: &mut T,
-    block: &BlockHeaderWithHash,
+    block: &BlockHeaderWithCrc,
     start: u64,
     max_size: u64,
     should_flush: bool,
@@ -553,7 +553,7 @@ where
 
 fn save_block_header_and_data<T>(
     writable: &mut T,
-    block: &BlockHeaderWithHash,
+    block: &BlockHeaderWithCrc,
     serialized_data: &[u8],
     start: u64,
     max_size: u64,
