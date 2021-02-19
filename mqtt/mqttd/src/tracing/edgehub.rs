@@ -21,8 +21,8 @@ const EDGEHUB_2_RUST_LOG_LEVELS: [(&str, &str); 4] = [
 /// To make it work with rust log levels, we do a simple pre-processing.
 /// E.g: this string: `warning,mqtt_broker::broker=debug` becomes `warn,mqtt_broker::broker=debug`.
 pub fn init() {
-    let mut log_level = env::var(EDGE_HUB_LOG_LEVEL_ENV)
-        .map_or_else(|_| "info".into(), |level| level.to_lowercase());
+    let mut log_level =
+        env::var(EDGE_HUB_LOG_LEVEL_ENV).map_or_else(|_| "info".into(), sanitize_log_level);
 
     log_level = sanitize_log_level(log_level);
 
@@ -39,7 +39,7 @@ pub fn init() {
 
 // make sure to replace all edgehub-specific log levels to rust-compatible
 fn sanitize_log_level(log_level: impl Into<String>) -> String {
-    let mut log_level: String = log_level.into();
+    let mut log_level: String = log_level.into().to_lowercase();
     for (key, value) in &EDGEHUB_2_RUST_LOG_LEVELS {
         if log_level.contains(key) {
             log_level = log_level.replace(key, value);
