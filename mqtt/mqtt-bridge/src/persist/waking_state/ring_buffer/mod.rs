@@ -19,7 +19,7 @@ use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tracing::{debug, error};
+use tracing::{error};
 
 use crate::persist::{
     waking_state::{
@@ -132,8 +132,6 @@ impl RingBuffer {
 
         // For correctness, need to scan after best guess and see if can get more accurate.
         let metadata = find_pointers_and_order_post_crash(&mut file, max_file_size);
-
-        debug!("meta {:?}", metadata);
 
         Ok(Self {
             flush_options,
