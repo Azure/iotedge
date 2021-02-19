@@ -15,11 +15,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use block::{calculate_crc_over_bytes, BlockHeaderV1};
 use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::{debug, error};
 
 use crate::persist::{

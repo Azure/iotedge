@@ -1,10 +1,6 @@
 mod common;
 
-use std::{
-    any::Any,
-    convert::Infallible,
-    time::{Duration, Instant},
-};
+use std::{any::Any, convert::Infallible, time::Duration};
 
 use bytes::Bytes;
 use futures_util::StreamExt;
@@ -145,7 +141,6 @@ async fn send_message_upstream_downstream() {
 /// - Expects to receive messages downstream -> upstream
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
-    simple_logger::SimpleLogger::new().init().unwrap();
     let subs = vec![Direction::Out(TopicRule::new(
         "temp/#".into(),
         Some("to".into()),
