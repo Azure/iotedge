@@ -13,7 +13,7 @@ use crate::persist::{
 /// This facilitates sharing between multiple futures in a single threaded environment
 struct PublicationStoreInner<S> {
     state: Arc<Mutex<S>>,
-    offset: u32,
+    offset: u64,
     loader: MessageLoader<S>,
 }
 /// Persistence implementation used for the bridge
