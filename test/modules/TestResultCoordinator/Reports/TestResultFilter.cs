@@ -26,7 +26,7 @@ namespace TestResultCoordinator
             List<TestOperationResult> expectedResultsOutput = new List<TestOperationResult>();
             List<TestOperationResult> actualResultsOutput = new List<TestOperationResult>();
             int actualResultCounter = 0;
-            for (int expectedResultCounter = 0; expectedResultCounter < expectedResults.Count - 1; expectedResultCounter++)
+            for (int expectedResultCounter = 0; expectedResultCounter < expectedResults.Count; expectedResultCounter++)
             {
                 TestOperationResult expectedResult = expectedResults[expectedResultCounter];
                 if (expectedResult.CreatedAt > startIgnoringAt)
