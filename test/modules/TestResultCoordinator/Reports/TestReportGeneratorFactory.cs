@@ -234,8 +234,9 @@ namespace TestResultCoordinator.Reports
 
         async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(TimeSpan tolerancePeriod)
         {
+            IAsyncEnumerable<TestOperationResult> store = new StoreTestResultCollection<TestOperationResult>(this.Storage.GetStoreFromSource("networkController"), BatchSize);
             return await NetworkStatusTimeline.CreateAsync(
-                new StoreTestResultCollection<TestOperationResult>(this.Storage.GetStoreFromSource("networkController"), BatchSize),
+                store.GetAsyncEnumerator(),
                 tolerancePeriod);
         }
 

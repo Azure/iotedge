@@ -22,16 +22,15 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         NetworkControllerStatus initialNetworkControllerStatus;
 
         public static async Task<NetworkStatusTimeline> CreateAsync(
-            IAsyncEnumerable<TestOperationResult> networkControllerTestOperationResults,
+            IAsyncEnumerator<TestOperationResult> networkControllerTestOperationResults,
             TimeSpan tolerancePeriod,
             NetworkControllerStatus initialNetworkControllerStatus = NetworkControllerStatus.Disabled)
         {
             List<NetworkControllerTestResult> networkControllerTestResults = new List<NetworkControllerTestResult>();
 
-            IAsyncEnumerator<TestOperationResult> resultsEnumerator = networkControllerTestOperationResults.GetAsyncEnumerator();
-            while (await resultsEnumerator.MoveNextAsync())
+            while (await networkControllerTestOperationResults.MoveNextAsync())
             {
-                Option<NetworkControllerTestResult> networkControllerTestResult = GetNetworkControllerTestOperationResult(resultsEnumerator.Current);
+                Option<NetworkControllerTestResult> networkControllerTestResult = GetNetworkControllerTestOperationResult(networkControllerTestOperationResults.Current);
 
                 networkControllerTestResult.ForEach(
                     r =>
