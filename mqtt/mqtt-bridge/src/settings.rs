@@ -131,7 +131,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
-            storage: storage.or_else(|| Some(StorageSettings::default())),
+            storage,
         })
     }
 }
@@ -276,16 +276,6 @@ pub enum StorageSettings {
     RingBuffer(RingBufferSettings),
 }
 
-impl Default for StorageSettings {
-    fn default() -> Self {
-        StorageSettings::RingBuffer(RingBufferSettings {
-            max_file_size: NonZeroU64::new(DEFAULT_MAX_STORAGE_SIZE).unwrap(),
-            directory: PathBuf::from("/tmp/mqttd/"),
-            flush_options: FlushOptions::AfterEachWrite,
-        })
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct MemorySettings {
     max_size: NonZeroUsize,
@@ -315,6 +305,16 @@ impl RingBufferSettings {
 
     pub fn flush_options(&self) -> &FlushOptions {
         &self.flush_options
+    }
+}
+
+impl Default for RingBufferSettings {
+    fn default() -> Self {
+        Self {
+            max_file_size: unsafe { NonZeroU64::new_unchecked(4 * 1024 * 1024 * 1024) },
+            directory: PathBuf::from("/tmp/mqttd/"),
+            flush_options: FlushOptions::AfterEachWrite,
+        }
     }
 }
 
