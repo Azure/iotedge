@@ -146,7 +146,7 @@ stages:
           quickstart.package.name: '$(quickstart.package.name)'
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
-          connectivity.nested: true
+          connectivity.nested: 'true'
   - job:  Clean_up      
     dependsOn:
       - SetupVM_level5 
