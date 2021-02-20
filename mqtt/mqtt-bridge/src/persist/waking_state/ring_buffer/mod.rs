@@ -528,7 +528,7 @@ where
     if start > max_size {
         start %= max_size;
     }
-    let end = start + size as u64;
+    let end = start + size;
 
     if end > max_size {
         read_wrap_around(readable, start, size, max_size)
@@ -579,7 +579,7 @@ where
     if start > max_size {
         start %= max_size;
     }
-    let end = start + size as u64;
+    let end = start + size;
 
     if end > max_size {
         read_wrap_around(readable, start, size, max_size)
@@ -610,7 +610,7 @@ where
     R: Read + Seek,
     T: DeserializeOwned,
 {
-    let end = start + size as u64;
+    let end = start + size;
     let split = end - max_size;
     #[allow(clippy::cast_possible_truncation)]
     let first_half_size = (max_size - start) as usize;
