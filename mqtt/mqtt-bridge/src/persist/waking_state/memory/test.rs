@@ -1,9 +1,10 @@
 use std::{collections::VecDeque, num::NonZeroUsize, task::Waker};
 
-use crate::persist::{waking_state::memory::WakingMemoryStore, Key, StreamWakeableState};
 use mqtt3::proto::Publication;
 
-use crate::persist::PersistResult;
+use crate::persist::{
+    waking_state::memory::WakingMemoryStore, Key, PersistResult, StreamWakeableState,
+};
 
 pub struct TestWakingMemoryStore(WakingMemoryStore);
 

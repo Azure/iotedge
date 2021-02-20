@@ -384,7 +384,6 @@ impl StreamWakeableState for RingBuffer {
     }
 
     fn remove(&mut self, key: Key) -> PersistResult<()> {
-        #[allow(clippy::cast_possible_truncation)]
         RingBuffer::remove(self, key.offset)
     }
 
