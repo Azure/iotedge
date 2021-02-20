@@ -519,7 +519,7 @@ mod tests {
         assert_eq!(
             c2d.to_internal("devices/device_1/modules/module_a/foo/#", &client_id),
             None
-        );        
+        );
 
         // M2M incoming
         assert_eq!(
