@@ -78,7 +78,7 @@ namespace TestResultCoordinator
 
             int expectedFiltered = expectedResults.Count - expectedResultsOutput.Count;
             int actualFiltered = actualResults.Count - actualResultsOutput.Count;
-            Logger.LogInformation("Filtered {} expected results. Filtered {} actual results.", expectedFiltered, actualFiltered);
+            Logger.LogInformation("Filtered {0} expected results. Filtered {1} actual results.", expectedFiltered, actualFiltered);
 
             IAsyncEnumerable<TestOperationResult> expectedOutput = expectedResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             IAsyncEnumerable<TestOperationResult> actualOutput = actualResultsOutput.ToAsyncEnumerable<TestOperationResult>();
