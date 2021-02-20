@@ -10,19 +10,14 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string testDescription,
             string trackingId,
             string senderSource,
-            Option<string> receiverSource,
+            string receiverSource,
             string resultType,
             ulong senderSuccesses,
-            Option<ulong> receiverSuccesses,
+            ulong receiverSuccesses,
             ulong statusCodeZero,
             ulong unknown)
             : base(testDescription, trackingId, resultType)
         {
-            if (receiverSource.HasValue ^ receiverSuccesses.HasValue)
-            {
-                throw new ArgumentException("Provide both receiverSource and receiverSuccesses or neither.");
-            }
-
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
             this.ReceiverSource = receiverSource;
             this.SenderSuccesses = senderSuccesses;
@@ -32,14 +27,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         }
 
         public string SenderSource { get; }
-        public Option<string> ReceiverSource { get; }
+        public string ReceiverSource { get; }
         public ulong SenderSuccesses { get; }
-        public Option<ulong> ReceiverSuccesses { get; }
+        public ulong ReceiverSuccesses { get; }
         public ulong StatusCodeZero { get; }
         public ulong Unknown { get; }
 
-        public override string Title => this.ReceiverSource.HasValue ?
-            $"DirectMethod LongHaul Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
+        public override string Title => $"DirectMethod LongHaul Report for [{this.SenderSource}] and [{this.ReceiverSource}] ({this.ResultType})";
 
         public override bool IsPassed => this.IsPassedHelper();
 
@@ -51,7 +45,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 return false;
             }
 
-            bool senderAndReceiverSuccessesPass = this.ReceiverSuccesses.Match(r => this.SenderSuccesses == r, () => true);
+            bool senderAndReceiverSuccessesPass = this.SenderSuccesses == this.ReceiverSuccesses;
             // The SDK does not allow edgehub to de-register from iothub subscriptions, which results in DirectMethod clients sometimes receiving status code 0.
             // Github issue: https://github.com/Azure/iotedge/issues/681
             // We expect to get this status sometimes because of edgehub restarts, but if we receive too many we should fail the tests.
