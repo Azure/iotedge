@@ -69,15 +69,20 @@ namespace TestResultCoordinator
                 }
             }
 
-            // get all other actual results within the ignore threshold that have no matches 
+            // get all other actual results within the ignore threshold that have no matches
             while (actualResultCounter < actualResults.Count && actualResults[actualResultCounter].CreatedAt < startIgnoringAt)
             {
                 actualResultsOutput.Add(actualResults[actualResultCounter]);
                 actualResultCounter += 1;
             }
 
+            int expectedFiltered = expectedResults.Count - expectedResultsOutput.Count;
+            int actualFiltered = actualResults.Count - actualResultsOutput.Count;
+            Logger.LogInformation("Filtered {} expected results. Filtered {} actual results.", expectedFiltered, actualFiltered);
+
             IAsyncEnumerable<TestOperationResult> expectedOutput = expectedResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             IAsyncEnumerable<TestOperationResult> actualOutput = actualResultsOutput.ToAsyncEnumerable<TestOperationResult>();
+
             return (expectedOutput, actualOutput);
         }
     }
