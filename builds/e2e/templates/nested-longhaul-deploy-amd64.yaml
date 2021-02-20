@@ -17,8 +17,8 @@ jobs:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
-      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
+      identityServiceArtifactName: 'packages_ubuntu-18.04_amd64'
+      identityServicePackageFilter: 'aziot-identity-service_*_amd64.deb'
       hostPlatform: 'linux_amd64_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
@@ -63,5 +63,3 @@ jobs:
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'

@@ -18,8 +18,8 @@ jobs:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
-      aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
-      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
+      identityServiceArtifactName: 'packages_debian-9-slim_arm32v7'
+      identityServicePackageFilter: 'aziot-identity-service_*_armhf.deb'
       hostPlatform: 'linux_arm32v7_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-arm.tar.gz'
       nestededge: true
@@ -64,5 +64,3 @@ jobs:
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
