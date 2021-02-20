@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             string device1Id = "device1";
             string device2Id = "device2";
+            string device3Id = "device3";
 
             byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
             var properties = new Dictionary<string, string>()
@@ -79,6 +80,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.DeviceId, device2Id }
             };
 
+            var device3SystemProperties = new Dictionary<string, string>
+            {
+                { SystemProperties.DeviceId, device3Id }
+            };
+
             var cancelProperties = new Dictionary<string, string>()
             {
                 { "Delay", "true" },
@@ -88,13 +94,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device1SystemProperties);
             var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device2SystemProperties);
             var message3 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, cancelProperties, device1SystemProperties);
+            var message4 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, device3SystemProperties);
 
             Task<Try<ICloudProxy>> GetCloudProxy(string id)
             {
-                return Task.FromResult(
-                    id.Equals(device1Id)
-                        ? Try.Success(cloudProxyMock.Object)
-                        : Try<ICloudProxy>.Failure(new UnauthorizedException()));
+                if (id == device1Id)
+                {
+                    return Task.FromResult(Try.Success(cloudProxyMock.Object));
+                }
+                else if (id == device2Id)
+                {
+                    return Task.FromResult(Try<ICloudProxy>.Failure(new UnauthorizedException()));
+                }
+                else
+                {
+                    return Task.FromResult(Try<ICloudProxy>.Failure(new Exception()));
+                }
             }
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1);
@@ -107,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Empty(result1.InvalidDetailsList);
             Assert.False(result1.SendFailureDetails.HasValue);
 
+            // Should fail and retry later on UnauthorizedException
             ISinkResult<IRoutingMessage> result2 = await cloudMessageProcessor.ProcessAsync(message2, CancellationToken.None);
             Assert.NotNull(result2);
             Assert.Empty(result2.InvalidDetailsList);
@@ -135,6 +151,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(1, resultBatchCancelled2.Failed.Count);
             Assert.Empty(resultBatchCancelled2.InvalidDetailsList);
             Assert.True(resultBatchCancelled2.SendFailureDetails.HasValue);
+
+            // Should fail and mark operation invalid on unhandled exception which will drop the message
+            ISinkResult<IRoutingMessage> result4 = await cloudMessageProcessor.ProcessAsync(message4, CancellationToken.None);
+            Assert.NotNull(result4);
+            Assert.NotEmpty(result4.InvalidDetailsList);
+            Assert.Empty(result4.Failed);
+            Assert.Empty(result4.Succeeded);
+            Assert.True(result4.SendFailureDetails.HasValue);
+
+            // Initialize CloudEndpoint with retryOnUnauthorizedException=false
+            var cloudEndpoint2 = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1, retryOnUnauthorizedException: false);
+            var cloudMessageProcessor2 = cloudEndpoint2.CreateProcessor();
+
+            // Should fail and mark operation invalid on UnauthorizedException which will drop the message
+            var invalidOnUnauthorizedException = await cloudMessageProcessor2.ProcessAsync(message2, CancellationToken.None);
+            Assert.NotNull(invalidOnUnauthorizedException);
+            Assert.NotEmpty(invalidOnUnauthorizedException.InvalidDetailsList);
+            Assert.Empty(invalidOnUnauthorizedException.Failed);
+            Assert.Empty(invalidOnUnauthorizedException.Succeeded);
+            Assert.True(invalidOnUnauthorizedException.SendFailureDetails.HasValue);
+
+            // Should fail and mark operation invalid on unhandled exception which will drop the message
+            var invalidOnUnhandledException = await cloudMessageProcessor2.ProcessAsync(message4, CancellationToken.None);
+            Assert.NotNull(invalidOnUnhandledException);
+            Assert.NotEmpty(invalidOnUnhandledException.InvalidDetailsList);
+            Assert.Empty(invalidOnUnhandledException.Failed);
+            Assert.Empty(invalidOnUnhandledException.Succeeded);
+            Assert.True(invalidOnUnhandledException.SendFailureDetails.HasValue);
         }
 
         [Fact]

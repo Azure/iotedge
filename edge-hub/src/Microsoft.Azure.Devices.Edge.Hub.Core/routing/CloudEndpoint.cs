@@ -67,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             {
                 typeof(TimeoutException),
                 typeof(IOException),
-                typeof(IotHubException)
+                typeof(IotHubException),
+                typeof(UnauthorizedException)
             };
 
             readonly CloudEndpoint cloudEndpoint;
@@ -107,7 +108,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
-            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
+            bool IsRetryable(Exception ex)
+            {
+                if (ex == null)
+                {
+                    return false;
+                }
+
+                if(retryOnUnauthorizedException)
+                {
+                    return RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
+                }
+
+                return ex is TimeoutException || ex is IOException || ((ex as IotHubException)?.IsTransient??false);
+            }
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {
@@ -233,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             ISinkResult HandleException(Exception ex, string id, List<IRoutingMessage> routingMessages)
             {
-                if (IsRetryable(ex) || (this.retryOnUnauthorizedException && ex is UnauthorizedException))
+                if (this.IsRetryable(ex))
                 {
                     Events.RetryingMessage(id, ex);
                     return GetSyncResultForFailedMessages(new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"), routingMessages);
