@@ -117,23 +117,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-            {
-              "identities": [
-                "{{iot:identity}}"
-              ],
-              "allow": [
-                {
-                  "operations": [
-                    "mqtt:connect",
-                    "mqtt:publish",
-                    "mqtt:subscribe"
+              {
+                  "identities": [
+                      "{{iot:identity}}"
                   ],
-                  "resources": [
-                    "#"
+                  "allow": [
+                      {
+                          "operations": [
+                              "mqtt:connect"
+                          ]
+                      }
                   ]
-                }
-              ]
-            }
+              }
           ]
         }
       }
