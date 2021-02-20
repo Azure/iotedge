@@ -131,7 +131,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
-            storage: storage.or(Some(StorageSettings::default())),
+            storage: storage.or_else(|| Some(StorageSettings::default())),
         })
     }
 }
