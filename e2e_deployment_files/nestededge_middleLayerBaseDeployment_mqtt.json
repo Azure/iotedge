@@ -7,9 +7,15 @@
           "type": "docker",
           "settings": {
             "minDockerVersion": "v1.25",
-            "loggingOptions": ""
-          }
-        },
+            "loggingOptions": "",
+            "registryCredentials": {
+              "buildcr": {
+                "username": "<CR.Username>",
+                "password": "<CR.Password>",
+                "address": "<Container_Registry>"
+              }
+            }
+          },
         "systemModules": {
           "edgeAgent": {
             "type": "docker",
