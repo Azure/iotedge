@@ -9,10 +9,15 @@ namespace TestResultCoordinator
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Reports;
 
-    // Longhaul tests need to filter out recent results, so recent unmatched results
-    // that will soon be matched don't result in false failures. Implementations will
-    // clear out all expected results and the corresponding actual results up until
-    // some configurable ignore threshold.
+    /// <summary>
+    /// Longhaul tests need to filter out recent results, so recent unmatched results
+    /// that will soon be matched don't result in false failures. 
+    ///
+    /// This abstraction filters out any result with a CreatedAt
+    /// within the configurable ignore threshold, whith
+    /// the exception of actual results matching a
+    /// non-filtered expected result.
+    /// </summary>
     internal class TestResultFilter
     {
 
