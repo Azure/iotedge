@@ -561,7 +561,10 @@ fn save_block_header<T>(
     start: u64,
     max_size: u64,
     should_flush: bool,
-) -> PersistResult<()> {
+) -> PersistResult<()>
+where
+    T: Write + Seek,
+{
     let bytes = bincode::serialize(block)?;
     write(writable, start, &bytes, max_size, should_flush)
 }
@@ -573,8 +576,13 @@ fn save_block_header_and_data<T>(
     start: u64,
     max_size: u64,
     should_flush: bool,
-) -> PersistResult<()> {
-    file_write(file, start, &serialized_data, file_size, should_flush)
+) -> PersistResult<()>
+where
+    T: Write + Seek,
+{
+    let mut bytes = bincode::serialize(block)?;
+    bytes.extend_from_slice(serialized_data);
+    write(writable, start, &bytes, max_size, should_flush)
 }
 
 fn load_data<T>(
@@ -647,7 +655,10 @@ fn write<T>(
     bytes: &[u8],
     max_size: u64,
     should_flush: bool,
-) -> PersistResult<()> {
+) -> PersistResult<()>
+where
+    T: Write + Seek,
+{
     let end = start + bytes.len() as u64;
     if end > max_size {
         #[allow(clippy::cast_possible_truncation)]
