@@ -5,7 +5,7 @@ namespace TestResultCoordinator.Reports
     /// It is used to compare 2 test results whether they matches or not.
     /// </summary>
     /// <typeparam name="T">Type of test result.</typeparam>
-    internal interface ITestResultComparer<T>
+    interface ITestResultComparer<T>
     {
         bool Matches(T expected, T actual);
     }

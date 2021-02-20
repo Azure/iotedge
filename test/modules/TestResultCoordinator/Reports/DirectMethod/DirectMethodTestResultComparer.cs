@@ -10,7 +10,7 @@ namespace TestResultCoordinator.DirectMethod
     /// <summary>
     /// This test result comparer is used to determine if 2 TestOperationResult instances matches.
     /// </summary>
-    public sealed class DirectMethodTestOperationResultComparer : ITestResultComparer<TestOperationResult>
+    sealed class DirectMethodTestOperationResultComparer : ITestResultComparer<TestOperationResult>
     {
         public bool Matches(TestOperationResult value1, TestOperationResult value2)
         {
