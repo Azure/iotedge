@@ -15,7 +15,8 @@
                 "address": "<Container_Registry>"
               }
             }
-          },
+          }
+        },
         "systemModules": {
           "edgeAgent": {
             "type": "docker",
