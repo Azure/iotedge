@@ -115,12 +115,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     return false;
                 }
 
-                if(retryOnUnauthorizedException)
+                if (this.retryOnUnauthorizedException)
                 {
                     return RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
                 }
 
-                return ex is TimeoutException || ex is IOException || ((ex as IotHubException)?.IsTransient??false);
+                return ex is TimeoutException || ex is IOException || ((ex as IotHubException)?.IsTransient ?? false);
             }
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
