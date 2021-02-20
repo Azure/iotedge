@@ -14,6 +14,7 @@ use crate::persist::FlushOptions;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
+const DEFAULT_MAX_STORAGE_SIZE: u64 = 1024 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BridgeSettings {
@@ -130,7 +131,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
-            storage,
+            storage: storage.or(Some(StorageSettings::default())),
         })
     }
 }
@@ -275,6 +276,16 @@ pub enum StorageSettings {
     RingBuffer(RingBufferSettings),
 }
 
+impl Default for StorageSettings {
+    fn default() -> Self {
+        StorageSettings::RingBuffer(RingBufferSettings {
+            max_file_size: NonZeroU64::new(DEFAULT_MAX_STORAGE_SIZE).unwrap(),
+            directory: PathBuf::from("/tmp/mqttd/"),
+            flush_options: FlushOptions::AfterEachWrite,
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct MemorySettings {
     max_size: NonZeroUsize,
@@ -381,7 +392,15 @@ mod tests {
         {
             let settings = BridgeSettings::from_file("tests/config.json").unwrap();
             let storage = settings.storage();
-            assert_eq!(storage, None);
+            // Should exist from default impl.
+            assert!(storage.is_some());
+            let storage_settings = storage.unwrap();
+            assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+            if let StorageSettings::RingBuffer(rb) = storage_settings {
+                assert_eq!(rb.max_file_size(), NonZeroU64::new(1073741824).unwrap());
+                assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
+                assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+            }
         }
         {
             let settings = BridgeSettings::from_file("tests/config.memory.json").unwrap();
