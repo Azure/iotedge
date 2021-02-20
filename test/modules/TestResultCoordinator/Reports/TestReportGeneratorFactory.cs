@@ -22,6 +22,7 @@ namespace TestResultCoordinator.Reports
         {
             this.Storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.NetworkControllerType = networkControllerType;
+            this.LonghaulSettings = longhaulSettings;
         }
 
         ITestOperationResultStorage Storage { get; }

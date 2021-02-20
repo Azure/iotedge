@@ -8,6 +8,7 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
@@ -17,8 +18,12 @@ namespace TestResultCoordinator
     // some configurable ignore threshold.
     public abstract class TestResultFilter
     {
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
+
         public async Task<(IAsyncEnumerable<TestOperationResult>, IAsyncEnumerable<TestOperationResult>)> FilterResults(TimeSpan unmatchedResultTolerance, IAsyncEnumerable<TestOperationResult> expectedTestResultsEnumerable, IAsyncEnumerable<TestOperationResult> actualTestResultsEnumerable)
         {
+            Logger.LogInformation("Filtering out recent results based on ignore threshold of {0}", unmatchedResultTolerance.ToString());
+
             List<TestOperationResult> expectedResults = await expectedTestResultsEnumerable.ToListAsync();
             List<TestOperationResult> actualResults = await actualTestResultsEnumerable.ToListAsync();
             DateTime startIgnoringAt = DateTime.UtcNow.Subtract(unmatchedResultTolerance);
@@ -50,6 +55,29 @@ namespace TestResultCoordinator
             IAsyncEnumerable<TestOperationResult> expectedOutput = expectedResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             IAsyncEnumerable<TestOperationResult> actualOutput = actualResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             return (expectedOutput, actualOutput);
+
+            /*
+            Current problem:
+                iterates only through expected results and misses actual results at end
+                assumes that there will be no duplicate actual results
+            
+            iterate through max(sizeof(expected), sizeof(actual))
+                get actual and expected if there
+
+                if only one:
+                    add to output
+                
+                elif actual matches:
+                    add both to output
+                    while actual is a duplicate
+                        add to output
+                
+                else:
+                    add expected to output
+
+
+
+            */
         }
 
         // This should behave as following:
@@ -73,13 +101,13 @@ namespace TestResultCoordinator
 
         protected override bool FilterResultPair(TestOperationResult expectedResult, Option<TestOperationResult> actualResult, List<TestOperationResult> expectedResults, List<TestOperationResult> actualResults)
         {
-            expectedResults.Append(expectedResult);
+            expectedResults.Add(expectedResult);
             return actualResult.Match(
                 actualResult =>
                 {
                     if (this.comparer.Matches(expectedResult, actualResult))
                     {
-                        actualResults.Append(actualResult);
+                        actualResults.Add(actualResult);
                         return true;
                     }
                     else
