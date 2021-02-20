@@ -41,17 +41,7 @@ impl Default for TestRingBuffer {
         let file = result.unwrap();
         let file_path = file.path().to_path_buf();
 
-        let result = tempfile::NamedTempFile::new();
-        assert!(result.is_ok());
-        let file = result.unwrap();
-        let metadata_file_path = file.path().to_path_buf();
-
-        let result = RingBuffer::new(
-            &file_path,
-            &metadata_file_path,
-            MAX_FILE_SIZE,
-            FLUSH_OPTIONS,
-        );
+        let result = RingBuffer::new(&file_path, MAX_FILE_SIZE, FLUSH_OPTIONS);
         assert!(result.is_ok());
         Self(result.unwrap())
     }
