@@ -6,21 +6,26 @@ namespace TestResultCoordinator
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using TestResultCoordinator.Reports;
 
     // Longhaul tests need to filter out recent results, so recent unmatched results
     // that will soon be matched don't result in false failures. Implementations will
     // clear out all expected results and the corresponding actual results up until
     // some configurable ignore threshold.
-    public abstract class TestResultFilter
+    internal class TestResultFilter
     {
+
+        ITestResultComparer<TestOperationResult> Comparer;
+
+        internal TestResultFilter(ITestResultComparer<TestOperationResult> comparer)
+        {
+            this.Comparer = comparer;
+        }
+
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
 
-        public async Task<(IAsyncEnumerable<TestOperationResult>, IAsyncEnumerable<TestOperationResult>)> FilterResults(TimeSpan unmatchedResultTolerance, IAsyncEnumerable<TestOperationResult> expectedTestResultsEnumerable, IAsyncEnumerable<TestOperationResult> actualTestResultsEnumerable)
+        internal async Task<(IAsyncEnumerable<TestOperationResult>, IAsyncEnumerable<TestOperationResult>)> FilterResults(TimeSpan unmatchedResultTolerance, IAsyncEnumerable<TestOperationResult> expectedTestResultsEnumerable, IAsyncEnumerable<TestOperationResult> actualTestResultsEnumerable)
         {
             Logger.LogInformation("Filtering out recent results based on ignore threshold of {0}", unmatchedResultTolerance.ToString());
 
@@ -30,122 +35,44 @@ namespace TestResultCoordinator
 
             List<TestOperationResult> expectedResultsOutput = new List<TestOperationResult>();
             List<TestOperationResult> actualResultsOutput = new List<TestOperationResult>();
+            int expectedResultCounter = 0;
             int actualResultCounter = 0;
-            for (int expectedResultCounter = 0; expectedResultCounter < expectedResults.Count; expectedResultCounter++)
+            while (expectedResultCounter < expectedResults.Count && expectedResults[expectedResultCounter].CreatedAt < startIgnoringAt)
             {
                 TestOperationResult expectedResult = expectedResults[expectedResultCounter];
-                if (expectedResult.CreatedAt > startIgnoringAt)
-                {
-                    break;
-                }
+                expectedResultsOutput.Add(expectedResult);
+                expectedResultCounter += 1;
 
-                Option<TestOperationResult> actualResult = Option.None<TestOperationResult>();
                 if (actualResultCounter < actualResults.Count)
                 {
-                    actualResult = Option.Some(actualResults[actualResultCounter]);
-                }
+                    // TODO: can be split into own func HandleActualResults
+                    TestOperationResult actualResult = actualResults[actualResultCounter];
+                    bool doResultsMatch = this.Comparer.Matches(expectedResult, actualResult);
+                    if (doResultsMatch)
+                    {
+                        actualResultsOutput.Add(actualResult);
+                        actualResultCounter += 1;
 
-                bool hasHandledActualResult = this.FilterResultPair(expectedResult, actualResult, expectedResultsOutput, actualResultsOutput);
-                if (hasHandledActualResult)
-                {
-                    actualResultCounter += 1;
+                        // get all duplicate actual results
+                        while (actualResultCounter < actualResults.Count && this.Comparer.Matches(actualResult, actualResults[actualResultCounter]))
+                        {
+                            actualResultsOutput.Add(actualResults[actualResultCounter]);
+                            actualResultCounter += 1;
+                        }
+                    }
                 }
+            }
+
+            while (actualResultCounter < actualResults.Count && actualResults[actualResultCounter].CreatedAt < startIgnoringAt)
+            {
+                actualResultsOutput.Add(actualResults[actualResultCounter]);
+                actualResultCounter += 1;
             }
 
             IAsyncEnumerable<TestOperationResult> expectedOutput = expectedResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             IAsyncEnumerable<TestOperationResult> actualOutput = actualResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             return (expectedOutput, actualOutput);
 
-            /*
-            Current problem:
-                iterates only through expected results and misses actual results at end
-                assumes that there will be no duplicate actual results
-            
-            iterate through max(sizeof(expected), sizeof(actual))
-                get actual and expected if there
-
-                if only one:
-                    add to output
-                
-                elif actual matches:
-                    add both to output
-                    while actual is a duplicate
-                        add to output
-                
-                else:
-                    add expected to output
-
-
-
-            */
-        }
-
-        // This should behave as following:
-        // The expected result is within the threshold, so record it.
-        // If it is a success there will probably be an actual result
-        // also. However it is also possible there isn't if the actual
-        // source reporter has errors and doesn't report.
-        //
-        // Returns true if it has added the actual result.
-        protected abstract bool FilterResultPair(TestOperationResult expectedResult, Option<TestOperationResult> actualResult, List<TestOperationResult> expectedResults, List<TestOperationResult> actualResults);
-    }
-
-    public class SimpleTestOperationResultFilter : TestResultFilter
-    {
-        SimpleTestOperationResultComparer comparer;
-
-        public SimpleTestOperationResultFilter(SimpleTestOperationResultComparer comparer)
-        {
-            this.comparer = comparer;
-        }
-
-        protected override bool FilterResultPair(TestOperationResult expectedResult, Option<TestOperationResult> actualResult, List<TestOperationResult> expectedResults, List<TestOperationResult> actualResults)
-        {
-            expectedResults.Add(expectedResult);
-            return actualResult.Match(
-                actualResult =>
-                {
-                    if (this.comparer.Matches(expectedResult, actualResult))
-                    {
-                        actualResults.Add(actualResult);
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                },
-                () =>
-                {
-                    return false;
-                });
-        }
-    }
-
-    public class DirectMethodTestOperationResultFilter : TestResultFilter
-    {
-        public DirectMethodTestOperationResultFilter()
-        {
-        }
-
-        protected override bool FilterResultPair(TestOperationResult expectedResult, Option<TestOperationResult> actualResult, List<TestOperationResult> expectedResults, List<TestOperationResult> actualResults)
-        {
-            expectedResults.Append(expectedResult);
-            return actualResult.Match(
-                actualResult =>
-                {
-                    DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(expectedResult.Result);
-                    if ((int)dmSenderTestResult.HttpStatusCode == 200)
-                    {
-                        actualResults.Append(actualResult);
-                    }
-
-                    return true;
-                },
-                () =>
-                {
-                    return false;
-                });
         }
     }
 }

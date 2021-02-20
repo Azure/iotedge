@@ -7,6 +7,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
+    using TestResultCoordinator.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using TestResultCoordinator.Reports.DirectMethod.LongHaul;
@@ -48,7 +49,7 @@ namespace TestResultCoordinator.Reports
 
                         await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
                         {
-                            SimpleTestOperationResultFilter filter = new SimpleTestOperationResultFilter(new SimpleTestOperationResultComparer());
+                            TestResultFilter filter = new TestResultFilter(new SimpleTestOperationResultComparer());
                             TimeSpan unmatchedResultTolerance = longhaulSettings.UnmatchedResultTolerance;
                             (expectedTestResults, actualTestResults) = await filter.FilterResults(unmatchedResultTolerance, expectedTestResults, actualTestResults);
                         });
@@ -140,7 +141,7 @@ namespace TestResultCoordinator.Reports
 
                         await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
                         {
-                            DirectMethodTestOperationResultFilter filter = new DirectMethodTestOperationResultFilter();
+                            TestResultFilter filter = new TestResultFilter(new DirectMethodTestOperationResultComparer());
                             TimeSpan unmatchedResultTolerance = longhaulSettings.UnmatchedResultTolerance;
                             (senderTestResults, receiverTestResults) = await filter.FilterResults(unmatchedResultTolerance, senderTestResults, receiverTestResults);
                         });
