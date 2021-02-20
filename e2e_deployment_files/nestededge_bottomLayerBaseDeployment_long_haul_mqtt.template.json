@@ -569,6 +569,21 @@
                 }
               ]
             }
+          ],
+          "bridges": [
+            {
+              "endpoint": "$upstream",
+              "settings": [
+                {
+                  "direction": "in",
+                  "topic": "relay/#"
+                },
+                {
+                  "direction": "out",
+                  "topic": "initiate/#"
+                }
+              ]
+            }
           ]
         }
       }
