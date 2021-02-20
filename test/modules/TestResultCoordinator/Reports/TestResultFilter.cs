@@ -11,7 +11,7 @@ namespace TestResultCoordinator
 
     /// <summary>
     /// Longhaul tests need to filter out recent results, so recent unmatched results
-    /// that will soon be matched don't result in false failures. 
+    /// that will soon be matched don't result in false failures.
     ///
     /// This abstraction filters out any result with a CreatedAt
     /// within the configurable ignore threshold, whith
@@ -20,12 +20,11 @@ namespace TestResultCoordinator
     /// </summary>
     internal class TestResultFilter
     {
-
-        ITestResultComparer<TestOperationResult> Comparer;
+        ITestResultComparer<TestOperationResult> comparer;
 
         internal TestResultFilter(ITestResultComparer<TestOperationResult> comparer)
         {
-            this.Comparer = comparer;
+            this.comparer = comparer;
         }
 
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultCoordinator));
@@ -50,16 +49,15 @@ namespace TestResultCoordinator
 
                 if (actualResultCounter < actualResults.Count)
                 {
-                    // TODO: can be split into own func HandleActualResults
                     TestOperationResult actualResult = actualResults[actualResultCounter];
-                    bool doResultsMatch = this.Comparer.Matches(expectedResult, actualResult);
+                    bool doResultsMatch = this.comparer.Matches(expectedResult, actualResult);
                     if (doResultsMatch)
                     {
                         actualResultsOutput.Add(actualResult);
                         actualResultCounter += 1;
 
                         // get all duplicate actual results
-                        while (actualResultCounter < actualResults.Count && this.Comparer.Matches(actualResult, actualResults[actualResultCounter]))
+                        while (actualResultCounter < actualResults.Count && this.comparer.Matches(actualResult, actualResults[actualResultCounter]))
                         {
                             actualResultsOutput.Add(actualResults[actualResultCounter]);
                             actualResultCounter += 1;
@@ -77,7 +75,6 @@ namespace TestResultCoordinator
             IAsyncEnumerable<TestOperationResult> expectedOutput = expectedResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             IAsyncEnumerable<TestOperationResult> actualOutput = actualResultsOutput.ToAsyncEnumerable<TestOperationResult>();
             return (expectedOutput, actualOutput);
-
         }
     }
 }
