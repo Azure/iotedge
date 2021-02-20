@@ -58,15 +58,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task, object shutdownCtsObject)
         {
-            HttpOperationResponse<object> response = await task;
             // The cts object is coming from an external source, check it and put it into an Option for safe handling.
             Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
-            this.operatorWatch = Option.Some(
-                response.Watch<EdgeDeploymentDefinition, object>(
-                    onEvent: async (type, item) => await this.EdgeDeploymentOnEventHandlerAsync(type, item, shutdownCts),
-                    onClosed: () => this.RestartWatch(shutdownCts),
-                    onError: (ex) => this.HandleError(ex, shutdownCts)));
+            HttpOperationResponse<object> response;
+            try
+            {
+                response = await task;
+            }
+            catch (Exception ex)
+            {
+                Events.ListEdgeDeploymentFailed(ex);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
+
+            try
+            {
+                this.operatorWatch = Option.Some(
+                    response.Watch<EdgeDeploymentDefinition, object>(
+                        onEvent: async (type, item) => await this.EdgeDeploymentOnEventHandlerAsync(type, item, shutdownCts),
+                        onClosed: () => this.RestartWatch(shutdownCts),
+                        onError: (ex) => this.HandleError(ex, shutdownCts)));
+            }
+            catch (Exception watchEx)
+            {
+                Events.ContinueTaskFailed(watchEx);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
         }
 
         internal async Task EdgeDeploymentOnEventHandlerAsync(WatchEventType type, EdgeDeploymentDefinition item, Option<CancellationTokenSource> shutdownCts)
@@ -206,6 +226,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 DeploymentStatusFailed,
                 WatchClosed,
                 WatchRestartFailed,
+                ListTaskFailed,
+                ContinueTaskFailed,
             }
 
             public static void EdgeDeploymentWatchFailed(Exception ex)
@@ -246,6 +268,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             public static void EdgeDeploymentWatchRestartFailed(Exception ex)
             {
                 Log.LogError((int)EventIds.WatchRestartFailed, ex, "Exception caught while attempting edge deployment watch restart, requesting shutdown.");
+            }
+
+            public static void ListEdgeDeploymentFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.ListTaskFailed, ex, "Exception caught while attempting to list edge deployment, requesting shutdown.");
+            }
+
+            public static void ContinueTaskFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.ContinueTaskFailed, ex, "Exception caught while setting up edge deployment watch, requesting shutdown.");
             }
         }
     }
