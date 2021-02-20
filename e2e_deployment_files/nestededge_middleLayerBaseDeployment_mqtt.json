@@ -62,6 +62,27 @@
                 "value": "443"
               }
             }
+          },
+          "genericMqttTester": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TEST_SCENARIO": {
+                "value": "Relay"
+              },
+              "TRACKING_ID": {
+                "value": "AForgottenVariableLostToTimeAndSpace-PleaseRememberToRemoveMeSomedayFromTheRelayerScenarioOfGenericMqttTesterOrAlternativelyAddValidationInTheTesterAndGenerateTheTrackingIdFromAHigherYaml"
+              },
+              "TEST_START_DELAY": {
+                "value": "10s"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+            }
           }
         }
       }
@@ -91,6 +112,21 @@
                   "resources": [
                     "#"
                   ]
+                }
+              ]
+            }
+          ],
+          "bridges": [
+            {
+              "endpoint": "$upstream",
+              "settings": [
+                {
+                  "direction": "in",
+                  "topic": "relay/#"
+                },
+                {
+                  "direction": "out",
+                  "topic": "initiate/#"
                 }
               ]
             }
