@@ -6,7 +6,7 @@ use std::{
     collections::VecDeque,
     fmt::Debug,
     fs::{create_dir_all, File, OpenOptions},
-    io::{Read, Result as IOResult, Seek, SeekFrom, Write},
+    io::{BufReader, Read, Result as IOResult, Seek, SeekFrom, Write},
     num::NonZeroU64,
     path::PathBuf,
     task::Waker,
@@ -93,11 +93,8 @@ pub struct RingBuffer {
     file: File,
 
     // A collection of data that used for tracking state of the
-    // `RingBuffer` as well as saving state externally.
+    // `RingBuffer`.
     metadata: RingBufferMetadata,
-
-    // Stateful file for holding metadata.
-    metadata_file: File,
 
     // A waker for updating any pending batch after an insert.
     waker: Option<Waker>,
@@ -106,7 +103,6 @@ pub struct RingBuffer {
 impl RingBuffer {
     pub(crate) fn new(
         file_path: &PathBuf,
-        metadata_file_path: &PathBuf,
         max_file_size: NonZeroU64,
         flush_options: FlushOptions,
     ) -> StorageResult<Self> {
@@ -130,15 +126,8 @@ impl RingBuffer {
         file.set_len(max_file_size)
             .map_err(RingBufferError::FileCreate)?;
 
-        let mut metadata_file =
-            create_file(metadata_file_path).map_err(RingBufferError::FileCreate)?;
-
-        // Retrieving from metadata file is only best effort.
-        let best_guess_metadata = retrieve_ring_buffer_metadata(&mut metadata_file)?;
-
         // For correctness, need to scan after best guess and see if can get more accurate.
-        let metadata =
-            find_pointers_and_order_post_crash(&mut file, max_file_size, best_guess_metadata);
+        let metadata = find_pointers_and_order_post_crash(&mut file, max_file_size);
 
         Ok(Self {
             flush_options,
@@ -147,7 +136,6 @@ impl RingBuffer {
             max_file_size,
             file,
             metadata,
-            metadata_file,
             waker: None,
         })
     }
@@ -184,7 +172,7 @@ impl RingBuffer {
             return Err(StorageError::RingBuffer(RingBufferError::Full));
         }
 
-        let mut start = write_index;
+        let start = write_index;
 
         // Check if an existing block header is present. If the block is there
         // and if the overwrite flag is not set then we shouldn't write.
@@ -204,27 +192,16 @@ impl RingBuffer {
             BlockHeaderWithCrc::new(versioned_block).map_err(RingBufferError::Block)?;
 
         let should_flush = self.should_flush();
-
-        save_block_header(
+        save_block_header_and_data(
             &mut self.file,
             &block_header,
-            start,
-            self.max_file_size,
-            should_flush,
-        )?;
-
-        let mut end = start + block_size;
-        start = end % self.max_file_size;
-
-        save_data(
-            &mut self.file,
             &data,
             start,
             self.max_file_size,
             should_flush,
         )?;
 
-        end = start + data_size;
+        let end = start + data_size + block_size;
         self.metadata.file_pointers.write = end % self.max_file_size;
 
         // should only happen if we wrap around, this is a special case
@@ -261,18 +238,15 @@ impl RingBuffer {
 
         let mut start = read_index;
         let mut vdata = VecDeque::new();
+        let mut reader = BufReader::with_capacity(page_size::get(), &mut self.file);
         for _ in 0..count {
-            let block = load_block_header(&mut self.file, start, block_size, self.max_file_size)?;
+            let block = load_block_header(&mut reader, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is
             // a really bad state to be in as somehow the pointers don't
             // match to where data really is at.
             let BlockVersion::Version1(inner_block) = block.inner();
             if inner_block.hint() != BLOCK_HINT {
-                self.file.seek(SeekFrom::Start(0)).unwrap();
-                let mut buf = vec![];
-                self.file.read_to_end(&mut buf).unwrap();
-
                 return Err(RingBufferError::Validate(BlockError::Hint).into());
             }
 
@@ -280,7 +254,7 @@ impl RingBuffer {
             let index = inner_block.write_index();
             start += block_size;
             let end = start + data_size;
-            let publication = load_data(&mut self.file, start, data_size, self.max_file_size)?;
+            let publication = load_data(&mut reader, start, data_size, self.max_file_size)?;
 
             // Update start for the next block.
             start = end % self.max_file_size;
@@ -384,14 +358,6 @@ impl RingBuffer {
             self.flush_state.update(writes, bytes_written, millis);
         }
     }
-
-    fn save_ring_buffer_metadata(&mut self) -> BincodeResult<()> {
-        let buf = bincode::serialize(&self.metadata)?;
-        self.metadata_file.seek(SeekFrom::Start(0))?;
-        self.metadata_file.write_all(&buf)?;
-        self.metadata_file.flush()?;
-        Ok(())
-    }
 }
 
 impl Drop for RingBuffer {
@@ -399,10 +365,6 @@ impl Drop for RingBuffer {
         let result = self.file.flush();
         if let Some(err) = result.err() {
             error!("Failed to flush {:?}", err);
-        }
-        let result = self.save_ring_buffer_metadata();
-        if let Some(err) = result.err() {
-            error!("Failed to flush metadata {:?}", err);
         }
     }
 }
@@ -418,28 +380,15 @@ fn create_file(file_path: &PathBuf) -> IOResult<File> {
         .open(file_path)
 }
 
-fn retrieve_ring_buffer_metadata(file: &mut File) -> BincodeResult<RingBufferMetadata> {
-    let mut buf = vec![];
-    file.read_to_end(&mut buf)?;
-    if buf.is_empty() {
-        return Ok(RingBufferMetadata::default());
-    }
-    bincode::deserialize::<RingBufferMetadata>(&buf)
-}
-
-fn find_pointers_and_order_post_crash(
-    file: &mut File,
-    max_file_size: u64,
-    best_guess_metadata: RingBufferMetadata,
-) -> RingBufferMetadata {
-    let block_size = *SERIALIZED_BLOCK_SIZE;
-
-    let mut start = best_guess_metadata.file_pointers.write;
-    let mut end = start + block_size;
-    let mut read = best_guess_metadata.file_pointers.read_begin;
-    let mut write = best_guess_metadata.file_pointers.write;
-    let mut order = best_guess_metadata.order;
-    let can_read_from_wrap_around = best_guess_metadata.can_read_from_wrap_around;
+fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> RingBufferMetadata {
+    let mut reader = BufReader::with_capacity(page_size::get(), file);
+    let mut block = match find_first_block(&mut reader) {
+        Ok(block) => block,
+        // If we didn't find a block at all, start as if everything is fresh.
+        Err(_) => {
+            return RingBufferMetadata::default();
+        }
+    };
 
     // Now that a block has been found, we can find the last write.
     // We can scan each block we find and check the order on it, if
@@ -452,19 +401,18 @@ fn find_pointers_and_order_post_crash(
     // Read is found by scanning blocks marked for overwrite
     // and taking the value of the first non-overwrite block.
 
+    let BlockVersion::Version1(inner) = block.inner();
+
+    let block_size = *SERIALIZED_BLOCK_SIZE;
+    let mut start = inner.write_index();
+    let mut end = start + block_size;
+    let mut read = 0;
+    let mut order = inner.order();
+
     // if we have more write_updates than read_updates and write == read
     // then we must be in wrap_around case.
     let mut write_updates = 0;
     let mut read_updates = 0;
-    let mut block = match load_block_header(file, start, block_size, max_file_size) {
-        Ok(block) => block,
-        Err(_) => {
-            // Failed to load block, so go with what we already have.
-
-            return best_guess_metadata;
-        }
-    };
-
     loop {
         let BlockVersion::Version1(inner) = block.inner();
 
@@ -472,14 +420,13 @@ fn find_pointers_and_order_post_crash(
         if inner.hint() != BLOCK_HINT {
             return RingBufferMetadata {
                 file_pointers: FilePointers {
-                    write,
+                    write: start,
                     read_begin: read,
                     read_end: read,
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around: can_read_from_wrap_around
-                    || (write == read && write_updates > read_updates),
+                can_read_from_wrap_around: (start == read && write_updates > read_updates),
             };
         }
 
@@ -495,18 +442,15 @@ fn find_pointers_and_order_post_crash(
         // Found the last write, take whatever we got for read and write
         // and return the pointers.
         if inner.order() < order {
-            write = start;
-
             return RingBufferMetadata {
                 file_pointers: FilePointers {
-                    write,
+                    write: start,
                     read_begin: read,
                     read_end: read,
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around: can_read_from_wrap_around
-                    || (write == read && write_updates > read_updates),
+                can_read_from_wrap_around: (start == read && write_updates > read_updates),
             };
         }
 
@@ -516,116 +460,164 @@ fn find_pointers_and_order_post_crash(
         start = (end + data_size) % max_file_size;
         end = (start + block_size) % max_file_size;
 
-        block = match load_block_header(file, start, block_size, max_file_size) {
+        block = match load_block_header(&mut reader, start, block_size, max_file_size) {
             Ok(block) => block,
             Err(_) => {
                 return RingBufferMetadata {
                     file_pointers: FilePointers {
-                        write,
+                        write: start,
                         read_begin: read,
                         read_end: read,
                     },
                     order,
                     // Check to see if wrap around case.
-                    can_read_from_wrap_around: can_read_from_wrap_around
-                        || (write == read && write_updates > read_updates),
+                    can_read_from_wrap_around: (start == read && write_updates > read_updates),
                 };
             }
         };
     }
 }
 
-fn load_block_header(
-    file: &mut File,
-    mut start: u64,
-    size: u64,
-    file_size: u64,
-) -> BincodeResult<BlockHeaderWithCrc> {
-    if start > file_size {
-        start %= file_size;
-    }
-    let end = start + size as u64;
+fn find_first_block<T>(readable: &mut T) -> BincodeResult<BlockHeaderWithCrc>
+where
+    T: Read + Seek,
+{
+    // We don't need any explicit returns elsewhere as EOF should be an ERR.
+    #[allow(clippy::cast_possible_truncation)]
+    let all_zeroes: Vec<u8> = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
+    loop {
+        #[allow(clippy::cast_possible_truncation)]
+        let mut buf = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
+        readable.read_exact(&mut buf)?;
 
-    if end > file_size {
-        file_read_wrap_around(file, start, size, file_size)
-    } else {
-        file_read(file, start, size)
+        // If all zeroes we can skip faster.
+        if buf == all_zeroes {
+            // This is okay since the block size is too small to wrap.
+            #[allow(clippy::cast_possible_wrap)]
+            readable.seek(SeekFrom::Current(*SERIALIZED_BLOCK_SIZE as i64))?;
+            continue;
+        }
+
+        if let Ok(block) = bincode::deserialize::<BlockHeaderWithCrc>(&buf) {
+            let BlockVersion::Version1(inner) = block.inner();
+            // We maybe found a block.
+            if inner.hint() == BLOCK_HINT {
+                return Ok(block);
+            }
+        }
+
+        readable.seek(SeekFrom::Current(1))?;
     }
 }
 
-fn save_block_header(
-    file: &mut File,
+fn load_block_header<T>(
+    readable: &mut T,
+    mut start: u64,
+    size: u64,
+    max_size: u64,
+) -> BincodeResult<BlockHeaderWithCrc>
+where
+    T: Read + Seek,
+{
+    if start > max_size {
+        start %= max_size;
+    }
+    let end = start + size;
+
+    if end > max_size {
+        read_wrap_around(readable, start, size, max_size)
+    } else {
+        read(readable, start, size)
+    }
+}
+
+fn save_block_header<T>(
+    writable: &mut T,
     block: &BlockHeaderWithCrc,
     start: u64,
-    file_size: u64,
+    max_size: u64,
     should_flush: bool,
-) -> StorageResult<()> {
+) -> StorageResult<()>
+where
+    T: Write + Seek,
+{
     let bytes = bincode::serialize(block)?;
-    file_write(file, start, &bytes, file_size, should_flush)
+    write(writable, start, &bytes, max_size, should_flush)
 }
 
-fn save_data(
-    file: &mut File,
+fn save_block_header_and_data<T>(
+    writable: &mut T,
+    block: &BlockHeaderWithCrc,
     serialized_data: &[u8],
     start: u64,
-    file_size: u64,
+    max_size: u64,
     should_flush: bool,
-) -> StorageResult<()> {
-    file_write(file, start, &serialized_data, file_size, should_flush)
+) -> StorageResult<()>
+where
+    T: Write + Seek,
+{
+    let mut bytes = bincode::serialize(block)?;
+    bytes.extend_from_slice(serialized_data);
+    write(writable, start, &bytes, max_size, should_flush)
 }
 
-fn load_data(
-    file: &mut File,
+fn load_data<T>(
+    readable: &mut T,
     mut start: u64,
     size: u64,
-    file_size: u64,
-) -> BincodeResult<Publication> {
-    if start > file_size {
-        start %= file_size;
+    max_size: u64,
+) -> BincodeResult<Publication>
+where
+    T: Read + Seek,
+{
+    if start > max_size {
+        start %= max_size;
     }
-    let end = start + size as u64;
+    let end = start + size;
 
-    if end > file_size {
-        file_read_wrap_around(file, start, size, file_size)
+    if end > max_size {
+        read_wrap_around(readable, start, size, max_size)
     } else {
-        file_read(file, start, size)
+        read(readable, start, size)
     }
 }
 
-fn file_read<T>(file: &mut File, start: u64, size: u64) -> BincodeResult<T>
+fn read<R, T>(readable: &mut R, start: u64, size: u64) -> BincodeResult<T>
 where
+    R: Read + Seek,
     T: DeserializeOwned,
 {
-    file.seek(SeekFrom::Start(start))?;
+    readable.seek(SeekFrom::Start(start))?;
     #[allow(clippy::cast_possible_truncation)]
     let mut buf = vec![0; size as usize];
-    file.read_exact(&mut buf)?;
+    readable.read_exact(&mut buf)?;
     bincode::deserialize::<T>(&buf)
 }
 
-fn file_read_wrap_around<T>(
-    file: &mut File,
+fn read_wrap_around<R, T>(
+    readable: &mut R,
     start: u64,
     size: u64,
-    file_size: u64,
+    max_size: u64,
 ) -> BincodeResult<T>
 where
+    R: Read + Seek,
     T: DeserializeOwned,
 {
-    let end = start + size as u64;
-    let file_split = end - file_size;
+    let end = start + size;
+    let split = end - max_size;
     #[allow(clippy::cast_possible_truncation)]
-    let first_half_size = (file_size - start) as usize;
+    let first_half_size = (max_size - start) as usize;
     #[allow(clippy::cast_possible_truncation)]
-    let second_half_size = file_split as usize;
+    let second_half_size = split as usize;
 
-    file.seek(SeekFrom::Start(start))?;
+    readable.seek(SeekFrom::Start(start))?;
     let mut first_half = vec![0; first_half_size];
-    file.read_exact(&mut first_half)?;
+    readable.read_exact(&mut first_half)?;
 
-    file.seek(SeekFrom::Start(0))?;
+    readable.seek(SeekFrom::Start(0))?;
     let mut second_half = vec![0; second_half_size];
-    file.read_exact(&mut second_half)?;
+    readable.read_exact(&mut second_half)?;
 
     first_half.extend_from_slice(&second_half);
     let buf = first_half;
@@ -633,35 +625,45 @@ where
     bincode::deserialize::<T>(&buf)
 }
 
-fn file_write(
-    file: &mut File,
+fn write<T>(
+    writable: &mut T,
     start: u64,
     bytes: &[u8],
-    file_size: u64,
+    max_size: u64,
     should_flush: bool,
-) -> StorageResult<()> {
+) -> StorageResult<()>
+where
+    T: Write + Seek,
+{
     let end = start + bytes.len() as u64;
-    if end > file_size {
+    if end > max_size {
         #[allow(clippy::cast_possible_truncation)]
-        let file_split = (end - file_size) as usize;
-        let bytes_split = bytes.len() - file_split;
+        let split = (end - max_size) as usize;
+        let bytes_split = bytes.len() - split;
 
         let first_half = &bytes[..bytes_split];
-        file.seek(SeekFrom::Start(start))
+        writable
+            .seek(SeekFrom::Start(start))
             .map_err(RingBufferError::FileIO)?;
-        file.write(first_half).map_err(RingBufferError::FileIO)?;
+        writable
+            .write(first_half)
+            .map_err(RingBufferError::FileIO)?;
 
         let second_half = &bytes[bytes_split..];
-        file.seek(SeekFrom::Start(0))
+        writable
+            .seek(SeekFrom::Start(0))
             .map_err(RingBufferError::FileIO)?;
-        file.write(second_half).map_err(RingBufferError::FileIO)?;
+        writable
+            .write(second_half)
+            .map_err(RingBufferError::FileIO)?;
     } else {
-        file.seek(SeekFrom::Start(start))
+        writable
+            .seek(SeekFrom::Start(start))
             .map_err(RingBufferError::FileIO)?;
-        file.write(bytes).map_err(RingBufferError::FileIO)?;
+        writable.write(bytes).map_err(RingBufferError::FileIO)?;
     }
     if should_flush {
-        file.flush().map_err(RingBufferError::FileIO)?;
+        writable.flush().map_err(RingBufferError::FileIO)?;
     }
     Ok(())
 }
@@ -677,7 +679,7 @@ mod tests {
     use super::*;
 
     const FLUSH_OPTIONS: FlushOptions = FlushOptions::AfterEachWrite;
-    const MAX_FILE_SIZE: u64 = 1024;
+    const MAX_FILE_SIZE: u64 = 1024 * 1024;
     const MAX_FILE_SIZE_HALF: u64 = MAX_FILE_SIZE / 2;
     const MAX_FILE_SIZE_NON_ZERO: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(MAX_FILE_SIZE) };
     const MAX_FILE_SIZE_HALF_NON_ZERO: NonZeroU64 =
@@ -692,17 +694,7 @@ mod tests {
             let file = result.unwrap();
             let file_path = file.path().to_path_buf();
 
-            let result = tempfile::NamedTempFile::new();
-            assert_matches!(result, Ok(_));
-            let file = result.unwrap();
-            let metadata_file_path = file.path().to_path_buf();
-
-            let result = RingBuffer::new(
-                &file_path,
-                &metadata_file_path,
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file_path, MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert_matches!(result, Ok(_));
             Self(result.unwrap())
         }
@@ -731,59 +723,42 @@ mod tests {
             assert_matches!(result, Ok(_));
             let file = result.unwrap();
 
-            let result = tempfile::NamedTempFile::new();
-            assert_matches!(result, Ok(_));
-            let metadata_file = result.unwrap();
-
             let mut keys = vec![];
             // Create ring buffer and perform some operations and then destruct.
             {
                 let result = RingBuffer::new(
                     &file.path().to_path_buf(),
-                    &metadata_file.path().to_path_buf(),
                     MAX_FILE_SIZE_NON_ZERO,
                     FLUSH_OPTIONS,
                 );
                 assert!(result.is_ok());
                 let mut rb = result.unwrap();
-                for _ in 0..10 {
+                for _ in 0..100 {
                     let result = rb.insert(&publication);
                     assert_matches!(result, Ok(_));
                     keys.push(result.unwrap());
                 }
 
-                let result = rb.batch(4);
+                let result = rb.batch(40);
                 assert_matches!(result, Ok(_));
                 let mut batch = result.unwrap();
-                assert_eq!(batch.len(), 4);
-                for key in &keys[..4] {
+                assert_eq!(batch.len(), 40);
+                for key in &keys[..40] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
                 }
 
-                {
-                    let key = keys[0].offset;
-                    assert_matches!(rb.remove(key), Ok(_));
-                }
-
-                {
-                    let key = keys[1].offset;
-                    assert_matches!(rb.remove(key), Ok(_));
-                }
-
-                {
-                    let key = keys[2].offset;
-                    assert_matches!(rb.remove(key), Ok(_));
+                for key in &keys[..39] {
+                    assert_matches!(rb.remove(key.offset), Ok(_));
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
                 write = rb.metadata.file_pointers.write;
-                assert_eq!(rb.metadata.order, 10);
+                assert_eq!(rb.metadata.order, 100);
             }
             // Create ring buffer again and validate pointers match where they left off.
             {
                 let result = RingBuffer::new(
                     &file.path().to_path_buf(),
-                    &metadata_file.path().to_path_buf(),
                     MAX_FILE_SIZE_NON_ZERO,
                     FLUSH_OPTIONS,
                 );
@@ -793,14 +768,15 @@ mod tests {
                 let loaded_write = rb.metadata.file_pointers.write;
                 assert_eq!(read, loaded_read);
                 assert_eq!(write, loaded_write);
-                let result = rb.batch(2);
+                let result = rb.batch(61);
                 assert_matches!(result, Ok(_));
                 let mut batch = result.unwrap();
-                assert_eq!(batch.len(), 2);
-                for key in &keys[3..5] {
+                assert_eq!(batch.len(), 61);
+                for key in &keys[39..] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
+                    assert_matches!(rb.remove(key.offset), Ok(_));
                 }
-                assert_eq!(rb.metadata.order, 10);
+                assert_eq!(rb.metadata.order, 100);
             }
         });
         assert_matches!(result, Ok(_));
@@ -818,16 +794,11 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let mut keys = vec![];
         // Create ring buffer and perform some operations and then destruct.
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 MAX_FILE_SIZE_NON_ZERO,
                 FLUSH_OPTIONS,
             );
@@ -868,7 +839,6 @@ mod tests {
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 MAX_FILE_SIZE_HALF_NON_ZERO,
                 FLUSH_OPTIONS,
             );
@@ -901,10 +871,6 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -915,7 +881,6 @@ mod tests {
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 MAX_FILE_SIZE_NON_ZERO,
                 FLUSH_OPTIONS,
             );
@@ -948,7 +913,6 @@ mod tests {
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 MAX_FILE_SIZE_NON_ZERO,
                 FLUSH_OPTIONS,
             );
@@ -1116,10 +1080,6 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1130,7 +1090,6 @@ mod tests {
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 MAX_FILE_SIZE_NON_ZERO,
                 FLUSH_OPTIONS,
             );
@@ -1163,7 +1122,6 @@ mod tests {
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 MAX_FILE_SIZE_NON_ZERO,
                 FLUSH_OPTIONS,
             );
@@ -1191,13 +1149,8 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let result = RingBuffer::new(
             &file.path().to_path_buf(),
-            &metadata_file.path().to_path_buf(),
             MAX_FILE_SIZE_NON_ZERO,
             FLUSH_OPTIONS,
         );
@@ -1241,13 +1194,8 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let result = RingBuffer::new(
             &file.path().to_path_buf(),
-            &metadata_file.path().to_path_buf(),
             NonZeroU64::new(file_size).unwrap(),
             FLUSH_OPTIONS,
         );
@@ -1294,15 +1242,10 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let mut keys = vec![];
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
-                &metadata_file.path().to_path_buf(),
                 NonZeroU64::new(file_size).unwrap(),
                 FLUSH_OPTIONS,
             );
@@ -1319,7 +1262,6 @@ mod tests {
 
         let result = RingBuffer::new(
             &file.path().to_path_buf(),
-            &metadata_file.path().to_path_buf(),
             NonZeroU64::new(file_size).unwrap(),
             FLUSH_OPTIONS,
         );
@@ -1380,13 +1322,8 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let metadata_file = result.unwrap();
-
         let result = RingBuffer::new(
             &file.path().to_path_buf(),
-            &metadata_file.path().to_path_buf(),
             MAX_FILE_SIZE_NON_ZERO,
             FLUSH_OPTIONS,
         );
