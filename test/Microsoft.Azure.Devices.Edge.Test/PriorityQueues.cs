@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 async () =>
                 {
                     HashSet<int> results = new HashSet<int>();
-                    await this.iotHub.ReceiveEventsAsync(
+                    await this.IotHub.ReceiveEventsAsync(
                         this.runtime.DeviceId,
                         startTime,
                         data =>
@@ -345,7 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
             await Profiler.Run(
                 async () =>
-                    await this.iotHub.InvokeMethodAsync(
+                    await this.IotHub.InvokeMethodAsync(
                         this.runtime.DeviceId,
                         moduleName,
                         new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
@@ -359,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             do
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
-                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
                 Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
                 testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.GetPayloadAsJson());
             }
