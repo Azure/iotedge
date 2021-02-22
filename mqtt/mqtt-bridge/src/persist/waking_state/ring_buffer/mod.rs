@@ -145,6 +145,47 @@ impl RingBuffer {
         })
     }
 
+    fn should_flush(&self) -> bool {
+        match self.flush_options {
+            FlushOptions::AfterEachWrite => true,
+            FlushOptions::AfterXWrites(xwrites) => self.flush_state.writes >= xwrites,
+            FlushOptions::AfterXBytes(xbytes) => self.flush_state.bytes_written >= xbytes,
+            FlushOptions::AfterXTime(xelapsed) => self.flush_state.elapsed >= xelapsed,
+            FlushOptions::Off => false,
+        }
+    }
+
+    fn wake_up_task(&mut self) {
+        if let Some(waker) = self.waker.take() {
+            waker.wake();
+        }
+    }
+
+    fn flush_state_update(
+        &mut self,
+        should_flush: bool,
+        writes: u64,
+        bytes_written: u64,
+        millis: Duration,
+    ) {
+        if should_flush {
+            self.flush_state.reset(&self.flush_options);
+        } else {
+            self.flush_state.update(writes, bytes_written, millis);
+        }
+    }
+}
+
+impl Drop for RingBuffer {
+    fn drop(&mut self) {
+        let result = self.file.flush();
+        if let Some(err) = result.err() {
+            error!("Failed to flush {:?}", err);
+        }
+    }
+}
+
+impl StreamWakeableState for RingBuffer {
     fn insert(&mut self, publication: &Publication) -> PersistResult<Key> {
         let timer = Instant::now();
         let data = bincode::serialize(publication)?;
@@ -284,12 +325,13 @@ impl RingBuffer {
         Ok(vdata)
     }
 
-    fn remove(&mut self, key: u64) -> PersistResult<()> {
+    fn remove(&mut self, key: Key) -> PersistResult<()> {
         if !self.has_read {
             return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead));
         }
         let timer = Instant::now();
         let read_index = self.metadata.file_pointers.read_begin;
+        let key = key.offset;
         if key != read_index {
             return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex));
         }
@@ -332,63 +374,6 @@ impl RingBuffer {
 
     fn set_waker(&mut self, waker: &Waker) {
         self.waker = Some(waker.clone());
-    }
-
-    fn should_flush(&self) -> bool {
-        match self.flush_options {
-            FlushOptions::AfterEachWrite => true,
-            FlushOptions::AfterXWrites(xwrites) => self.flush_state.writes >= xwrites,
-            FlushOptions::AfterXBytes(xbytes) => self.flush_state.bytes_written >= xbytes,
-            FlushOptions::AfterXTime(xelapsed) => self.flush_state.elapsed >= xelapsed,
-            FlushOptions::Off => false,
-        }
-    }
-
-    fn wake_up_task(&mut self) {
-        if let Some(waker) = self.waker.take() {
-            waker.wake();
-        }
-    }
-
-    fn flush_state_update(
-        &mut self,
-        should_flush: bool,
-        writes: u64,
-        bytes_written: u64,
-        millis: Duration,
-    ) {
-        if should_flush {
-            self.flush_state.reset(&self.flush_options);
-        } else {
-            self.flush_state.update(writes, bytes_written, millis);
-        }
-    }
-}
-
-impl Drop for RingBuffer {
-    fn drop(&mut self) {
-        let result = self.file.flush();
-        if let Some(err) = result.err() {
-            error!("Failed to flush {:?}", err);
-        }
-    }
-}
-
-impl StreamWakeableState for RingBuffer {
-    fn insert(&mut self, value: &Publication) -> PersistResult<Key> {
-        RingBuffer::insert(self, value)
-    }
-
-    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
-        RingBuffer::batch(self, count)
-    }
-
-    fn remove(&mut self, key: Key) -> PersistResult<()> {
-        RingBuffer::remove(self, key.offset)
-    }
-
-    fn set_waker(&mut self, waker: &Waker) {
-        RingBuffer::set_waker(self, waker)
     }
 }
 
@@ -771,7 +756,7 @@ mod tests {
                 }
 
                 for key in &keys[..39] {
-                    assert_matches!(rb.remove(key.offset), Ok(_));
+                    assert_matches!(rb.remove(*key), Ok(_));
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
@@ -797,7 +782,7 @@ mod tests {
                 assert_eq!(batch.len(), 61);
                 for key in &keys[39..] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
-                    assert_matches!(rb.remove(key.offset), Ok(_));
+                    assert_matches!(rb.remove(*key), Ok(_));
                 }
                 assert_eq!(rb.metadata.order, 100);
             }
@@ -842,17 +827,17 @@ mod tests {
             }
 
             {
-                let key = keys[0].offset;
+                let key = keys[0];
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
             {
-                let key = keys[1].offset;
+                let key = keys[1];
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
             {
-                let key = keys[2].offset;
+                let key = keys[2];
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
@@ -928,7 +913,7 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key.offset);
+                let result = rb.remove(*key);
                 assert_matches!(result, Ok(_));
             }
             assert_eq!(rb.metadata.order, 5);
@@ -1029,7 +1014,7 @@ mod tests {
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
 
-        let result = rb.0.remove(batch[0].0.offset);
+        let result = rb.0.remove(batch[0].0);
         assert_matches!(result, Ok(_));
 
         // need bigger pub
@@ -1138,7 +1123,7 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key.offset);
+                let result = rb.remove(*key);
                 assert_matches!(result, Ok(_));
             }
         }
@@ -1306,7 +1291,7 @@ mod tests {
     #[test]
     fn it_errs_on_remove_when_no_read() {
         let mut rb = TestRingBuffer::default();
-        let result = rb.0.remove(1);
+        let result = rb.0.remove(Key { offset: 1 });
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
@@ -1331,7 +1316,7 @@ mod tests {
         let result = rb.0.batch(1);
         assert_matches!(result, Ok(_));
 
-        let result = rb.0.remove(1);
+        let result = rb.0.remove(Key { offset: 1 });
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
@@ -1369,7 +1354,7 @@ mod tests {
         let result = write(file.path(), "garbage");
         assert_matches!(result, Ok(_));
 
-        let result = rb.remove(0);
+        let result = rb.remove(Key { offset: 0 });
         assert_matches!(result, Err(_));
     }
 
@@ -1399,7 +1384,7 @@ mod tests {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
 
-            let result = rb.0.remove(key.offset);
+            let result = rb.0.remove(key);
             assert_matches!(result, Ok(_));
         }
     }
