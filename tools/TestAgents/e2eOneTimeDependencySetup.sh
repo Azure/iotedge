@@ -27,4 +27,5 @@ sudo apt-get update; \
 
 # Install Azure CLI ( https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-apt?view=azure-cli-latest )
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+az config set extension.use_dynamic_install=yes_without_prompt
 az extension add --name azure-iot

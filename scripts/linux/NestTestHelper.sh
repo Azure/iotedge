@@ -10,6 +10,7 @@ function clean_up() {
     rm -rf /var/lib/iotedge/
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
+    rm -rf /etc/systemd/system/aziot-*.service.d/
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -56,7 +57,7 @@ function get_iotedged_artifact_folder() {
     
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu16.04-amd64"
+        path="$testDir/artifacts/iotedged-ubuntu18.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$testDir/artifacts/iotedged-ubuntu18.04-aarch64"
     else

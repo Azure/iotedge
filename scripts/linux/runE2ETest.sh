@@ -72,7 +72,7 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-amd64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -102,7 +102,7 @@ function get_long_haul_deployment_artifact_file() {
     local nestedEdgeTest=$(printenv E2E_nestedEdgeTest)
 
     if [[ ! -z "$nestedEdgeTest" ]]; then
-      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nested_long_haul_deployment.template.json"
+      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nestededge_bottomLayerBaseDeployment_long_haul_amqp.template.json"
     fi
 
     echo "$path"

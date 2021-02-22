@@ -201,7 +201,6 @@ mod tests {
         let mut state_lock = state.lock();
         let num_elements = 10_usize;
         for i in 0..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
@@ -219,7 +218,6 @@ mod tests {
         let mut elements = loader.next_batch().unwrap();
 
         for count in 0..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
             let num_elements = count as u64;
 
             assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)

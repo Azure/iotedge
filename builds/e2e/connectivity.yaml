@@ -2,8 +2,18 @@ trigger: none
 pr: none
 
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
 
 jobs:
 ################################################################################
