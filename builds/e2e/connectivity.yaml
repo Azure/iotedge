@@ -190,6 +190,7 @@ jobs:
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          testInfo.testName: '$(testInfo.testName)'
 
 
 ################################################################################
@@ -353,3 +354,4 @@ jobs:
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          testInfo.testName: '$(testInfo.testName)'
