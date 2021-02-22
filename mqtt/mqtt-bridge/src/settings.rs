@@ -420,7 +420,7 @@ mod tests {
             assert_eq!(mem.max_size(), NonZeroUsize::new(1024).unwrap());
         }
     }
-    
+
     #[test]
     #[serial(env_settings)]
     fn from_file_reads_storage_settings_with_ring_buffer_override() {
