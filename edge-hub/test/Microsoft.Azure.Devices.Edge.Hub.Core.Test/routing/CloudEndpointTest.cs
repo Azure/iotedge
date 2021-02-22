@@ -161,6 +161,44 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             }
         }
 
+        [Theory]
+        [MemberData(nameof(GetRetryableExceptionsTestDataWhileDropMessage))]
+        public async Task RetryableExceptionsTestWhileDropMessage(Exception exception, bool isRetryable)
+        {
+            // Arrange
+            string id = "d1";
+            var cloudProxy = new Mock<ICloudProxy>();
+            cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
+                .ThrowsAsync(exception);
+            var cloudEndpoint = new CloudEndpoint(Guid.NewGuid().ToString(), _ => Task.FromResult(Try.Success(cloudProxy.Object)), new RoutingMessageConverter(), retryOnUnauthorizedException: false);
+            IProcessor processor = cloudEndpoint.CreateProcessor();
+            var message = new RoutingMessage(TelemetryMessageSource.Instance, new byte[0], ImmutableDictionary<string, string>.Empty, new Dictionary<string, string>
+            {
+                [Core.SystemProperties.ConnectionDeviceId] = id
+            });
+
+            // Act
+            ISinkResult<IRoutingMessage> result = await processor.ProcessAsync(message, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            if (isRetryable)
+            {
+                Assert.Equal(1, result.Failed.Count);
+                Assert.Equal(0, result.Succeeded.Count);
+                Assert.Equal(0, result.InvalidDetailsList.Count);
+                Assert.Equal(message, result.Failed.First());
+            }
+            else
+            {
+                Assert.Equal(1, result.InvalidDetailsList.Count);
+                Assert.Equal(0, result.Succeeded.Count);
+                Assert.Equal(0, result.Failed.Count);
+                Assert.Equal(message, result.InvalidDetailsList.First().Item);
+                Assert.Equal(FailureKind.InvalidInput, result.InvalidDetailsList.First().FailureKind);
+            }
+        }
+
         public static IEnumerable<object[]> GetRetryableExceptionsTestData()
         {
             yield return new object[] { new IotHubException("Dummy"), true };
@@ -174,6 +212,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             yield return new object[] { new DeviceMaximumQueueDepthExceededException("Dummy"), true };
 
             yield return new object[] { new IotHubSuspendedException("Dummy"), true };
+
+            yield return new object[] { new ArgumentException("Dummy"), false };
+
+            yield return new object[] { new ArgumentNullException("dummy"), false };
+        }
+
+        public static IEnumerable<object[]> GetRetryableExceptionsTestDataWhileDropMessage()
+        {
+            yield return new object[] { new IotHubException("Dummy", true), true };
+
+            yield return new object[] { new IotHubException("Dummy", false), false };
+
+            yield return new object[] { new IOException("Dummy"), true };
+
+            yield return new object[] { new TimeoutException("Dummy"), true };
+
+            yield return new object[] { new UnauthorizedException("Dummy"), false };
+
+            yield return new object[] { new DeviceMaximumQueueDepthExceededException("Dummy"), false };
+
+            yield return new object[] { new IotHubSuspendedException("Dummy"), false };
 
             yield return new object[] { new ArgumentException("Dummy"), false };
 
