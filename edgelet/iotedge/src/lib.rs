@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+// #![deny(rust_2018_idioms, warnings)]
+// #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
     clippy::let_and_return,
@@ -48,5 +48,5 @@ pub trait Command {
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
-    pub aziot_edged: String,
+    pub iotedged: String,
 }

@@ -325,7 +325,7 @@ fn run() -> Result<(), Error> {
 
     match matches.subcommand() {
         ("check", Some(args)) => {
-            let check = Check::new(
+            let mut check = Check::new(
                 args.value_of_os("config-file")
                     .expect("arg has a default value")
                     .to_os_string()
@@ -360,8 +360,7 @@ fn run() -> Result<(), Error> {
                 aziot_bin.into(),
                 args.value_of("iothub-hostname").map(ToOwned::to_owned),
             );
-
-            tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)
+            check.execute(&mut tokio_runtime)
         }
         ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
