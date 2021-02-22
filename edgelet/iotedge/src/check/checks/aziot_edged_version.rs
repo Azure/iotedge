@@ -29,16 +29,6 @@ impl Checker for AziotEdgedVersion {
         check: &mut Check,
         tokio_runtime: &mut tokio::runtime::Runtime,
     ) -> CheckResult {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
-            return CheckResult::Skipped;
-        };
-
-        if settings.parent_hostname().is_some() {
-            return CheckResult::Ignored;
-        }
-
         let latest_versions = if let Some(expected_aziot_edged_version) =
             &check.expected_aziot_edged_version
         {
@@ -46,6 +36,19 @@ impl Checker for AziotEdgedVersion {
                 iotedged: expected_aziot_edged_version.clone(),
             }))
         } else {
+            let settings = if let Some(settings) = &check.settings {
+                settings
+            } else {
+                return CheckResult::Skipped;
+            };
+
+            if settings.parent_hostname().is_some() {
+                // This is a nested Edge device so it may not be able to access aka.ms or github.com.
+                // In the best case the request would be blocked immediately, but in the worst case it may take a long time to time out.
+                // The user didn't provide the `expected_aziot_edged_version` param on the CLI, so we just ignore this check.
+                return CheckResult::Ignored;
+            }
+
             let proxy = std::env::var("HTTPS_PROXY")
                 .ok()
                 .or_else(|| std::env::var("https_proxy").ok())
@@ -78,7 +81,7 @@ impl Checker for AziotEdgedVersion {
                         Ok(response)
                     })
                     .and_then(move |response| match response.status() {
-                        hyper::StatusCode::MOVED_PERMANENTLY => {
+                        status_code if status_code.is_redirection() => {
                             let uri = response
                                 .headers()
                                 .get(hyper::header::LOCATION)
