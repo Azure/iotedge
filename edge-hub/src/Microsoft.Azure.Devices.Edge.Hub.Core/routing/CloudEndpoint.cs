@@ -30,13 +30,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Func<string, Task<Util.Try<ICloudProxy>>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
-        readonly bool retryOnUnauthorizedException;
+        readonly bool giveupOnInvalidState;
 
         public CloudEndpoint(
             string id,
             Func<string, Task<Util.Try<ICloudProxy>>> cloudProxyGetterFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            bool retryOnUnauthorizedException = true,
+            bool giveupOnInvalidState = false,
             int maxBatchSize = 10,
             int fanoutFactor = 10)
             : base(id)
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
-            this.retryOnUnauthorizedException = retryOnUnauthorizedException;
+            this.giveupOnInvalidState = giveupOnInvalidState;
             Events.Created(id, maxBatchSize, fanoutFactor);
         }
 
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public override int FanOutFactor { get; }
 
-        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this, this.retryOnUnauthorizedException);
+        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this, this.giveupOnInvalidState);
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
@@ -73,12 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             readonly CloudEndpoint cloudEndpoint;
 
-            readonly bool retryOnUnauthorizedException;
+            readonly bool giveupOnInvalidState;
 
-            public CloudMessageProcessor(CloudEndpoint endpoint, bool retryOnUnauthorizedException)
+            public CloudMessageProcessor(CloudEndpoint endpoint, bool giveupOnInvalidState)
             {
                 this.cloudEndpoint = Preconditions.CheckNotNull(endpoint);
-                this.retryOnUnauthorizedException = retryOnUnauthorizedException;
+                this.giveupOnInvalidState = giveupOnInvalidState;
             }
 
             public Endpoint Endpoint => this.cloudEndpoint;
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
                 if (ex is UnauthorizedException)
                 {
-                    return this.retryOnUnauthorizedException;
+                    return !this.giveupOnInvalidState;
                 }
 
                 return RetryableExceptions.Any(re => re.IsInstanceOfType(ex));

@@ -160,8 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Empty(result4.Succeeded);
             Assert.True(result4.SendFailureDetails.HasValue);
 
-            // Initialize CloudEndpoint with retryOnUnauthorizedException=false
-            var cloudEndpoint2 = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1, retryOnUnauthorizedException: false);
+            // Initialize CloudEndpoint with giveupOnInvalidState=true
+            var cloudEndpoint2 = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1, giveupOnInvalidState: true);
             var cloudMessageProcessor2 = cloudEndpoint2.CreateProcessor();
 
             // Should fail and mark operation invalid on UnauthorizedException which will drop the message

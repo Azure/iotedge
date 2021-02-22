@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
         readonly IMetadataStore metadataStore;
-        readonly bool retryOnUnauthorizedException;
+        readonly bool giveupOnInvalidState;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             bool useServerHeartbeat,
             Option<IWebProxy> proxy,
             IMetadataStore metadataStore,
-            bool retryOnUnauthorizedException = true)
+            bool giveupOnInvalidState = false)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
             this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
-            this.retryOnUnauthorizedException = retryOnUnauthorizedException;
+            this.giveupOnInvalidState = giveupOnInvalidState;
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                                     Events.SuccessCreatingCloudConnection(identity);
                                     return Try.Success(cc);
                                 }
-                                catch (UnauthorizedException) when (!this.retryOnUnauthorizedException)
+                                catch (UnauthorizedException) when (this.giveupOnInvalidState)
                                 {
                                     this.deviceScopeIdentitiesCache.BlockServiceIdentity(identity.Id);
                                     throw;

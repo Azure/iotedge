@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly ConcurrentDictionary<string, Endpoint> cache;
         readonly int maxBatchSize;
         readonly int upstreamFanOutFactor;
-        readonly bool retryOnUnauthorizedException;
+        readonly bool giveupOnInvalidState;
 
         public EndpointFactory(
             IConnectionManager connectionManager,
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             string edgeDeviceId,
             int maxBatchSize,
             int upstreamFanOutFactor,
-            bool retryOnUnauthorizedException = true)
+            bool giveupOnInvalidState = false)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.cache = new ConcurrentDictionary<string, Endpoint>();
             this.maxBatchSize = maxBatchSize;
             this.upstreamFanOutFactor = upstreamFanOutFactor;
-            this.retryOnUnauthorizedException = retryOnUnauthorizedException;
+            this.giveupOnInvalidState = giveupOnInvalidState;
         }
 
         public Endpoint CreateSystemEndpoint(string endpoint)
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         "iothub",
                         id => this.connectionManager.TryGetCloudConnection(id),
                         this.messageConverter,
-                        this.retryOnUnauthorizedException,
+                        this.giveupOnInvalidState,
                         this.maxBatchSize,
                         this.upstreamFanOutFactor));
             }

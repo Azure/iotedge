@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
-        readonly bool retryOnUnauthorizedException;
+        readonly bool giveupOnInvalidState;
 
         public RoutingModule(
             string iotHubName,
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
-            bool retryOnUnauthorizedException)
+            bool giveupOnInvalidState)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
-            this.retryOnUnauthorizedException = retryOnUnauthorizedException;
+            this.giveupOnInvalidState = giveupOnInvalidState;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.useServerHeartbeat,
                             proxy,
                             metadataStore,
-                            this.retryOnUnauthorizedException);
+                            this.giveupOnInvalidState);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -284,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.edgeDeviceId,
                             this.maxUpstreamBatchSize,
                             this.upstreamFanOutFactor,
-                            this.retryOnUnauthorizedException) as IEndpointFactory;
+                            this.giveupOnInvalidState) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
