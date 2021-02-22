@@ -233,7 +233,7 @@ mod tests {
             FlushOptions, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore,
         },
         pump::TopicMapperUpdates,
-        settings::BridgeSettings,
+        settings::{BridgeSettings, MemorySettings, RingBufferSettings},
     };
 
     use super::{StoreMqttEventHandler, TopicMapper};
@@ -247,7 +247,7 @@ mod tests {
 
     impl Default for MemoryPublicationStore {
         fn default() -> Self {
-            PublicationStore::new_memory(BATCH_SIZE, MAX_SIZE)
+            PublicationStore::new_memory(BATCH_SIZE, &MemorySettings::new(MAX_SIZE))
         }
     }
 
@@ -255,16 +255,16 @@ mod tests {
 
     impl Default for RingBufferPublicationStore {
         fn default() -> Self {
-            let result = tempfile::NamedTempFile::new();
+            let result = tempfile::tempdir();
             assert!(result.is_ok());
-            let file = result.unwrap();
-            let file_path = file.path().to_path_buf();
+            let dir = result.unwrap();
+            let dir_path = dir.path().to_path_buf();
 
             let result = PublicationStore::new_ring_buffer(
-                &file_path,
-                MAX_FILE_SIZE,
-                FLUSH_OPTIONS,
                 BATCH_SIZE,
+                &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
+                "test".to_owned(),
+                "local",
             );
             assert!(result.is_ok());
             result.unwrap()

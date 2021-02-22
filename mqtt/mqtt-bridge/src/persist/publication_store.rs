@@ -1,21 +1,16 @@
-use std::{
-    num::{NonZeroU64, NonZeroUsize},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{num::NonZeroUsize, sync::Arc};
 
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 use tracing::debug;
 
-use crate::persist::{
-    loader::MessageLoader,
-    waking_state::{
-        memory::WakingMemoryStore,
-        ring_buffer::{flush::FlushOptions, RingBuffer},
-        StreamWakeableState,
+use crate::{
+    persist::{
+        loader::MessageLoader,
+        waking_state::{memory::WakingMemoryStore, ring_buffer::RingBuffer, StreamWakeableState},
+        Key, PersistResult,
     },
-    Key, PersistResult,
+    settings::{MemorySettings, RingBufferSettings},
 };
 
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
@@ -30,20 +25,26 @@ pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(
         batch_size: NonZeroUsize,
-        max_size: NonZeroUsize,
+        memory_settings: &MemorySettings,
     ) -> PublicationStore<WakingMemoryStore> {
+        let max_size = memory_settings.max_size();
         Self::new(WakingMemoryStore::new(max_size), batch_size)
     }
 }
 
 impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
-        file_path: &PathBuf,
-        max_file_size: NonZeroU64,
-        flush_options: FlushOptions,
         batch_size: NonZeroUsize,
+        ring_buffer_settings: &RingBufferSettings,
+        device_id: String,
+        suffix: &str,
     ) -> PersistResult<Self> {
-        let rb = RingBuffer::new(file_path, max_file_size, flush_options)?;
+        let mut file_path = ring_buffer_settings.directory().clone();
+        file_path.push(device_id);
+        file_path.push(suffix);
+        let max_file_size = ring_buffer_settings.max_file_size();
+        let flush_options = ring_buffer_settings.flush_options();
+        let rb = RingBuffer::new(&file_path, max_file_size, *flush_options)?;
         Ok(Self::new(rb, batch_size))
     }
 }

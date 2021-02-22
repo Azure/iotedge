@@ -13,9 +13,9 @@ use mqtt_util::Credentials;
 use crate::{
     client::{ClientError, MqttClientConfig},
     config_update::BridgeDiff,
-    persist::{PersistError, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{PersistError, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore},
     pump::{Builder, Pump, PumpError, PumpHandle, PumpMessage},
-    settings::ConnectionSettings,
+    settings::{ConnectionSettings, MemorySettings, RingBufferSettings},
     upstream::{
         ConnectivityError, ConnectivityState, LocalUpstreamMqttEventHandler,
         LocalUpstreamPumpEvent, LocalUpstreamPumpEventHandler, RemoteUpstreamMqttEventHandler,
@@ -81,6 +81,7 @@ impl Bridge<WakingMemoryStore> {
         system_address: &str,
         device_id: &str,
         settings: &ConnectionSettings,
+        memory_settings: MemorySettings,
     ) -> Result<Self, BridgeError> {
         const BATCH_SIZE: usize = 10;
 
@@ -105,11 +106,60 @@ impl Bridge<WakingMemoryStore> {
                 ))
                 .with_rules(settings.subscriptions());
             })
-            .with_store(|| {
-                // TODO: can use values from settings after storage settings is merged.
-                PublicationStore::new_memory(
+            .with_store(move |_| {
+                Ok(PublicationStore::new_memory(
                     NonZeroUsize::new(BATCH_SIZE).unwrap(),
-                    NonZeroUsize::new(1024 * 1024 * 1024).unwrap(),
+                    &memory_settings,
+                ))
+            })
+            .build()?;
+
+        debug!("created bridge {}...", settings.name());
+
+        Ok(Bridge {
+            local_pump,
+            remote_pump,
+        })
+    }
+}
+
+impl Bridge<RingBuffer> {
+    pub fn new_upstream(
+        system_address: &str,
+        device_id: &str,
+        settings: &ConnectionSettings,
+        ring_buffer_settings: RingBufferSettings,
+    ) -> Result<Self, BridgeError> {
+        const BATCH_SIZE: usize = 10;
+
+        debug!("creating bridge {}...", settings.name());
+        let device_id = String::from(device_id);
+
+        let (local_pump, remote_pump) = Builder::default()
+            .with_local(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    system_address,
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    Credentials::Anonymous(format!("{}/{}/$bridge", device_id, settings.name())),
+                ))
+                .with_rules(settings.forwards());
+            })
+            .with_remote(|pump| {
+                pump.with_config(MqttClientConfig::new(
+                    settings.address(),
+                    settings.keep_alive(),
+                    settings.clean_session(),
+                    settings.credentials().clone(),
+                ))
+                .with_rules(settings.subscriptions());
+            })
+            .with_store(move |suffix| {
+                PublicationStore::new_ring_buffer(
+                    NonZeroUsize::new(BATCH_SIZE).unwrap(),
+                    &ring_buffer_settings,
+                    device_id.clone(),
+                    suffix,
                 )
             })
             .build()?;
@@ -238,4 +288,7 @@ pub enum BridgeError {
 
     #[error("failed to get publish handle from client. Caused by: {0}")]
     ClientShutdown(#[from] ShutdownError),
+
+    #[error("storage not set")]
+    UnsetStorage,
 }

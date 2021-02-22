@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto, num::NonZeroUsize};
+use std::{collections::HashMap, convert::TryInto};
 
 use tokio::sync::mpsc;
 
@@ -6,7 +6,7 @@ use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
     messages::{self, StoreMqttEventHandler, TopicMapper},
-    persist::{PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{PersistResult, PublicationStore, StreamWakeableState, WakingMemoryStore},
     settings::TopicRule,
     upstream::{
         ConnectivityMqttEventHandler, LocalRpcMqttEventHandler, LocalUpstreamMqttEventHandler,
@@ -22,6 +22,9 @@ pub type PumpPair<S> = (
     Pump<S, RemoteUpstreamMqttEventHandler<S>, RemoteUpstreamPumpEventHandler>,
 );
 
+type StoreCreateFn<S> = dyn Fn(&str) -> PersistResult<PublicationStore<S>>;
+type BoxedStorageCreatedFn<S> = Box<StoreCreateFn<S>>;
+
 /// Constructs a pair of bridge pumps: local and remote.
 ///
 /// Local pump connects to a local broker, subscribes to topics to receive
@@ -34,7 +37,7 @@ pub type PumpPair<S> = (
 pub struct Builder<S> {
     local: PumpBuilder,
     remote: PumpBuilder,
-    store: Box<dyn Fn() -> PublicationStore<S>>,
+    store: Option<BoxedStorageCreatedFn<S>>,
 }
 
 impl Default for Builder<WakingMemoryStore> {
@@ -42,13 +45,7 @@ impl Default for Builder<WakingMemoryStore> {
         Self {
             local: PumpBuilder::default(),
             remote: PumpBuilder::default(),
-            store: Box::new(|| {
-                // TODO: after merging in settings, we can hook in the settings value.
-                PublicationStore::new_memory(
-                    NonZeroUsize::new(10).unwrap(),
-                    NonZeroUsize::new(1024 * 1024 * 1024).unwrap(),
-                )
-            }),
+            store: None,
         }
     }
 }
@@ -78,19 +75,24 @@ where
     /// Setups a factory to create publication store.
     pub fn with_store<F, S1>(self, store: F) -> Builder<S1>
     where
-        F: Fn() -> PublicationStore<S1> + 'static,
+        F: Fn(&str) -> PersistResult<PublicationStore<S1>> + 'static,
     {
         Builder {
             local: self.local,
             remote: self.remote,
-            store: Box::new(store),
+            store: Some(Box::new(store)),
         }
     }
 
     /// Creates a pair of local and remote pump.
     pub fn build(&mut self) -> Result<PumpPair<S>, BridgeError> {
-        let remote_store = (self.store)();
-        let local_store = (self.store)();
+        let store = if let Some(store) = &self.store {
+            store
+        } else {
+            return Err(BridgeError::UnsetStorage);
+        };
+        let remote_store = (store)("remote")?;
+        let local_store = (store)("local")?;
 
         let (remote_messages_send, remote_messages_recv) = mpsc::channel(100);
         let (local_messages_send, local_messages_recv) = mpsc::channel(100);
