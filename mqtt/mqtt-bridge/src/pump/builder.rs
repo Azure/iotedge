@@ -86,11 +86,8 @@ where
 
     /// Creates a pair of local and remote pump.
     pub fn build(&mut self) -> Result<PumpPair<S>, BridgeError> {
-        let store = if let Some(store) = &self.store {
-            store
-        } else {
-            return Err(BridgeError::UnsetStorage);
-        };
+        let store = self.store.as_ref().ok_or(BridgeError::UnsetStorage)?;
+        
         let remote_store = (store)("remote")?;
         let local_store = (store)("local")?;
 
