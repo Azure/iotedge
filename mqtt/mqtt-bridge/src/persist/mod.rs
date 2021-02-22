@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 pub use loader::MessageLoader;
 pub use publication_store::PublicationStore;
 use waking_state::ring_buffer::error::RingBufferError;
-pub use waking_state::{memory::WakingMemoryStore, StreamWakeableState};
+pub use waking_state::{
+    memory::WakingMemoryStore, ring_buffer::flush::FlushOptions, StreamWakeableState,
+};
 
 /// Keys used in persistence.
 /// Ordered by offset
