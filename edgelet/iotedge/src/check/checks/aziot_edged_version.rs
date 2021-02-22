@@ -4,6 +4,7 @@ use failure::{self, Context, Fail, ResultExt};
 use futures::{future, Future, Stream};
 use regex::Regex;
 
+use edgelet_core::RuntimeSettings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
@@ -28,6 +29,16 @@ impl Checker for AziotEdgedVersion {
         check: &mut Check,
         tokio_runtime: &mut tokio::runtime::Runtime,
     ) -> CheckResult {
+        let settings = if let Some(settings) = &check.settings {
+            settings
+        } else {
+            return CheckResult::Skipped;
+        };
+
+        if settings.parent_hostname().is_some() {
+            return CheckResult::Ignored;
+        }
+
         let latest_versions = if let Some(expected_aziot_edged_version) =
             &check.expected_aziot_edged_version
         {
