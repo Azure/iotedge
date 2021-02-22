@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 }
             }
 
-            // delay helyett inkabb azt kellene, hogy vizsgalni a cloud proxy call-t, hogy bekapcsolja-e a szubscriptiont (vagy ki)
+            // TODO: would be better to monitor proxy calls the detect if it has finished
             await Task.Delay(TimeSpan.FromSeconds(3));
 
             var knownConnections = connectionHandler.AsPrivateAccessible().knownConnections as ConcurrentDictionary<IIdentity, IDeviceListener>;
