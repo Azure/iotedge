@@ -29,6 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     [Integration]
     public class ConnectionEventTest
     {
+        const int SafeProcessingDelayMs = 2000;
+
+        static readonly TimeSpan TotalProcessingTimeout = TimeSpan.FromSeconds(30);
+
         static readonly string iotHubName = "testHub";
         static readonly string edgeModuleName = "$edgeHub";
         static readonly string edgeDeviceId = "testDevice";
@@ -46,39 +50,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             //    desired property change, so after reconnection, edgeHub should re-subscribe for all clients.
             var (subscriptionChangeHandler, cloudProxyDispatcher, brokerConnector) = await SetupEnvironment();
             var allClients = await ConnectClientsAsync(subscriptionChangeHandler);
-
-            await Task.Delay(2000);
-            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
-
-            await Task.Delay(2000);
-            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Disconnected\"}")));
-
-            await Task.Delay(2000);
-
             var clients = new HashSet<IIdentity>();
-            brokerConnector.SetPacketSpy(Spy);
 
-            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+            var lockObject = new object();
 
-            // We don't know when all the clients get processed, so keep looping for a while
-            var startTime = DateTime.Now;
-            while (DateTime.Now - startTime < TimeSpan.FromSeconds(30))
-            {
-                bool isCountEqual;
-                lock (clients)
-                {
-                    isCountEqual = allClients.Count == clients.Count;
-                }
-
-                if (isCountEqual)
-                {
-                    break;
-                }
-                else
-                {
-                    await Task.Delay(100);
-                }
-            }
+            await SetupSpyAndGenerateEvents(Spy, cloudProxyDispatcher, brokerConnector);            
+            await WaitTillClientCountMatch(allClients, clients, lockObject, TotalProcessingTimeout);
 
             Assert.True(allClients.SetEquals(clients));
 
@@ -88,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 {
                     var segments = packet.Topic.Split('/');
 
-                    lock (clients)
+                    lock (lockObject)
                     {
                         if (segments.Length == 6)
                         {
@@ -106,41 +83,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         [Fact]
         public async Task OnReconnectionClientsGetTwinsPulled()
         {
+            // This test is similar to OnReconnectionClientsGetResubscribed(), except it check if on reconnection
+            // the device/module twins are pulled for every client
             var (subscriptionChangeHandler, cloudProxyDispatcher, brokerConnector) = await SetupEnvironment();
             var allClients = await ConnectClientsAsync(subscriptionChangeHandler);
-
-            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
-
-            await Task.Delay(2000);
-
-            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Disconnected\"}")));
-
-            await Task.Delay(2000);
-
             var clients = new HashSet<IIdentity>();
-            brokerConnector.SetPacketSpy(Spy);
 
-            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+            var lockObject = new object();
 
-            // We don't know when all the clients get processed, so keep looping for a while
-            var startTime = DateTime.Now;
-            while (DateTime.Now - startTime < TimeSpan.FromSeconds(30))
-            {
-                bool isCountEqual;
-                lock (clients)
-                {
-                    isCountEqual = allClients.Count == clients.Count;
-                }
-
-                if (isCountEqual)
-                {
-                    break;
-                }
-                else
-                {
-                    await Task.Delay(100);
-                }
-            }
+            await SetupSpyAndGenerateEvents(Spy, cloudProxyDispatcher, brokerConnector);
+            await WaitTillClientCountMatch(allClients, clients, lockObject, TotalProcessingTimeout);
 
             Assert.True(allClients.SetEquals(clients));
 
@@ -165,6 +117,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                                    Encoding.UTF8.GetBytes(@"{""deviceId"":null,""etag"":null,""version"":null,""properties"":{""desired"":{""$version"":1},""reported"":{""$version"":1}}}")));
                     
                     clients.Add(identity);
+                }
+            }
+        }
+
+        async Task SetupSpyAndGenerateEvents(Action<RpcPacket> spy, IMessageConsumer cloudProxyDispatcher, NullBrokerConnector brokerConnector)
+        {
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+            await Task.Delay(SafeProcessingDelayMs);
+
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Disconnected\"}")));
+            await Task.Delay(SafeProcessingDelayMs);
+
+            brokerConnector.SetPacketSpy(spy);
+
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+        }
+
+        async Task WaitTillClientCountMatch(HashSet<IIdentity> clientSet1, HashSet<IIdentity> clientSet2, object lockObject, TimeSpan timeout)
+        {
+            // We don't know when all the clients get processed, so keep looping for a while
+            var startTime = DateTime.Now;
+            while (DateTime.Now - startTime < timeout)
+            {
+                bool isCountEqual;
+                lock (lockObject)
+                {
+                    isCountEqual = clientSet1.Count == clientSet2.Count;
+                }
+
+                if (isCountEqual)
+                {
+                    break;
+                }
+                else
+                {
+                    await Task.Delay(100);
                 }
             }
         }
