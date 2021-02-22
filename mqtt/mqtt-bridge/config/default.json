@@ -6,5 +6,11 @@
         "forwards": []
     },
     "remotes": [],
+    "storage": {
+        "type": "ring_buffer",
+        "max_file_size": 1024,
+        "directory": "/tmp/mqttd/",
+        "flush_options": "aftereachwrite"
+    },
     "messages": {}
 }

@@ -131,7 +131,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
-            storage: storage.or_else(|| Some(StorageSettings::default())),
+            storage,
         })
     }
 }
@@ -268,6 +268,7 @@ struct UpstreamSettings {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "type")]
 pub enum StorageSettings {
     #[serde(rename = "memory")]
     Memory(MemorySettings),
@@ -397,7 +398,7 @@ mod tests {
             let storage_settings = storage.unwrap();
             assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
             if let StorageSettings::RingBuffer(rb) = storage_settings {
-                assert_eq!(rb.max_file_size(), NonZeroU64::new(1_073_741_824).unwrap());
+                assert_eq!(rb.max_file_size(), NonZeroU64::new(1024).unwrap());
                 assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
                 assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
             }

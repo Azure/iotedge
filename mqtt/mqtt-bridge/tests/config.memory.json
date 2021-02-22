@@ -54,9 +54,8 @@
         }
     ],
     "storage": {
-        "memory": {
-            "max_size": 1024
-        }
+        "type": "memory",
+        "max_size": 1024
     },
     "messages": {}
 }
