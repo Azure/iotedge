@@ -334,6 +334,22 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
+    fn new_reads_storage_settings() {
+        let settings = BridgeSettings::new().unwrap();
+        let storage = settings.storage();
+        // Should exist from default.json.
+        assert!(storage.is_some());
+        let storage_settings = storage.unwrap();
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
+            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        }
+    }
+
+    #[test]
+    #[serial(env_settings)]
     fn from_file_reads_nested_bridge_settings() {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let upstream = settings.upstream().unwrap();
@@ -378,41 +394,45 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
-    fn from_file_reads_storage_settings() {
-        {
-            let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-            let storage = settings.storage();
-            // Should exist from default impl.
-            assert!(storage.is_some());
-            let storage_settings = storage.unwrap();
-            assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-            if let StorageSettings::RingBuffer(rb) = storage_settings {
-                assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-                assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
-                assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
-            }
+    fn from_file_reads_storage_settings_without_explicit_storage() {
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let storage = settings.storage();
+        // Should exist from default.json.
+        assert!(storage.is_some());
+        let storage_settings = storage.unwrap();
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
+            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
         }
-        {
-            let settings = BridgeSettings::from_file("tests/config.memory.json").unwrap();
-            let storage = settings.storage();
-            assert!(storage.is_some());
-            let storage_settings = storage.unwrap();
-            assert_matches!(storage_settings, StorageSettings::Memory(_));
-            if let StorageSettings::Memory(mem) = storage_settings {
-                assert_eq!(mem.max_size(), NonZeroUsize::new(1024).unwrap());
-            }
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_with_memory_override() {
+        let settings = BridgeSettings::from_file("tests/config.memory.json").unwrap();
+        let storage = settings.storage();
+        assert!(storage.is_some());
+        let storage_settings = storage.unwrap();
+        assert_matches!(storage_settings, StorageSettings::Memory(_));
+        if let StorageSettings::Memory(mem) = storage_settings {
+            assert_eq!(mem.max_size(), NonZeroUsize::new(1024).unwrap());
         }
-        {
-            let settings = BridgeSettings::from_file("tests/config.ring_buffer.json").unwrap();
-            let storage = settings.storage();
-            assert!(storage.is_some());
-            let storage_settings = storage.unwrap();
-            assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-            if let StorageSettings::RingBuffer(rb) = storage_settings {
-                assert_eq!(rb.max_file_size(), NonZeroU64::new(1024).unwrap());
-                assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/tests/"));
-                assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
-            }
+    }
+    
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_with_ring_buffer_override() {
+        let settings = BridgeSettings::from_file("tests/config.ring_buffer.json").unwrap();
+        let storage = settings.storage();
+        assert!(storage.is_some());
+        let storage_settings = storage.unwrap();
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(2048).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/tests/"));
+            assert_eq!(*rb.flush_options(), FlushOptions::Off);
         }
     }
 

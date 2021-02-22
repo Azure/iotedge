@@ -55,9 +55,9 @@
     ],
     "storage": {
         "type": "ring_buffer",
-        "max_file_size": 1024,
+        "max_file_size": 2048,
         "directory": "/tmp/mqttd/tests/",
-        "flush_options": "aftereachwrite"
+        "flush_options": "off"
     },
     "messages": {}
 }
