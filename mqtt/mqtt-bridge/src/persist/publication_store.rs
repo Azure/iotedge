@@ -33,6 +33,12 @@ impl PublicationStore<WakingMemoryStore> {
 }
 
 impl PublicationStore<RingBuffer> {
+    /// `RingBuffer` requires a file path in order to function.
+    /// To provide a safe isolated file for `RingBuffer`, a 
+    /// device_id and 'suffix' (local/remote) are appended to the path.
+    /// This way neither pump can interfere with the other's file.
+    /// It also allows for a device to have clear isolated dir for
+    /// storage files.
     pub fn new_ring_buffer(
         batch_size: NonZeroUsize,
         ring_buffer_settings: &RingBufferSettings,
