@@ -14,7 +14,6 @@ use crate::persist::FlushOptions;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
-const DEFAULT_MAX_STORAGE_SIZE: u64 = 1024 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BridgeSettings {
@@ -277,16 +276,6 @@ pub enum StorageSettings {
     RingBuffer(RingBufferSettings),
 }
 
-impl Default for StorageSettings {
-    fn default() -> Self {
-        StorageSettings::RingBuffer(RingBufferSettings {
-            max_file_size: NonZeroU64::new(DEFAULT_MAX_STORAGE_SIZE).unwrap(),
-            directory: PathBuf::from("/tmp/mqttd/"),
-            flush_options: FlushOptions::AfterEachWrite,
-        })
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct MemorySettings {
     max_size: NonZeroUsize,
@@ -398,7 +387,7 @@ mod tests {
             let storage_settings = storage.unwrap();
             assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
             if let StorageSettings::RingBuffer(rb) = storage_settings {
-                assert_eq!(rb.max_file_size(), NonZeroU64::new(1024).unwrap());
+                assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
                 assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
                 assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
             }
