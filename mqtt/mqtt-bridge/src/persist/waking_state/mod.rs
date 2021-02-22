@@ -6,6 +6,7 @@ use mqtt3::proto::Publication;
 use crate::persist::{Key, PersistError};
 
 pub mod memory;
+#[allow(dead_code)]
 pub mod ring_buffer;
 
 // TODO: Currently rocksdb does not compile on musl.
@@ -71,7 +72,6 @@ mod tests {
         // insert a bunch of elements
         let num_elements = 10_usize;
         for i in 0..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
@@ -97,7 +97,6 @@ mod tests {
         // insert a bunch of elements
         let num_elements = 10_usize;
         for i in 0..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
             let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
@@ -124,7 +123,6 @@ mod tests {
 
         // check that the ordering is maintained
         for count in 2..num_elements {
-            #[allow(clippy::cast_possible_truncation)]
             let num_elements = count as u64;
             let extracted_offset = loader.try_next().await.unwrap().unwrap().0.offset;
             assert_eq!(extracted_offset, num_elements)

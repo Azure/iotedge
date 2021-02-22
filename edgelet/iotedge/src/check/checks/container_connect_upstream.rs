@@ -139,6 +139,10 @@ impl ContainerConnectUpstream {
             &port,
         ]);
 
+        if settings.parent_hostname().is_some() {
+            args.extend(&["--isNested", "true"]);
+        }
+
         if &port == "443" {
             let proxy = settings
                 .agent()

@@ -430,6 +430,7 @@ fn execute_inner(
             aziot_keys: Default::default(),
             preloaded_keys: Default::default(),
             endpoints: Default::default(),
+            principal: Default::default(),
         };
 
         keyd_config.aziot_keys.insert(
@@ -474,6 +475,7 @@ fn execute_inner(
             cert_issuance: Default::default(),
             preloaded_certs: Default::default(),
             endpoints: Default::default(),
+            principal: Default::default(),
         };
 
         if let Some(preloaded_device_id_cert_uri) = preloaded_device_id_cert_uri {

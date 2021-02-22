@@ -23,6 +23,7 @@ jobs:
             docker buildx rm  mbuilder || true  && \
             docker buildx create --name mbuilder  || true  && \
             docker buildx use mbuilder
+            docker -v
         displayName: 'Set build version'
       - bash: |
             # Need to login to EdgeBuilds Container Registry for base images.

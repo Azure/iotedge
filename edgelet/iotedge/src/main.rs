@@ -4,8 +4,10 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::let_unit_value, clippy::similar_names)]
 
+use std::ffi::OsStr;
 use std::io;
 use std::process;
+use std::str::FromStr;
 
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
@@ -17,7 +19,7 @@ use support_bundle::OutputLocation;
 
 use iotedge::{
     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    Unknown, Version,
+    System, Unknown, Version,
 };
 
 fn main() {
@@ -224,6 +226,39 @@ fn run() -> Result<(), Error> {
                 )
         )
         .subcommand(
+            SubCommand::with_name("system")
+                .about("Manage system services for IoT Edge.")
+                .unset_setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("logs")
+                    .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
+                    .arg(
+                        Arg::with_name("args")
+                            .last(true)
+                            .help("Additional argumants to pass to journalctl. See journalctl -h for more information.")
+                            .min_values(0),
+                    )
+                )
+                .subcommand(
+                    SubCommand::with_name("restart")
+                    .about("Restarts iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("status")
+                    .about("Report the status of iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("set-log-level")
+                    .about("Set the log level of iotedged and all of its dependencies.")
+                    .arg(
+                        Arg::with_name("log_level")
+                        .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
+                        .possible_values(&["trace", "debug", "info", "warn",  "error"])
+                        .required(true),
+                    )
+                )
+        )
+        .subcommand(
             SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
@@ -385,6 +420,26 @@ fn run() -> Result<(), Error> {
             }
             (command, _) => {
                 eprintln!("Unknown init subcommand {:?}", command);
+                std::process::exit(1);
+            }
+        },
+        ("system", Some(args)) => match args.subcommand() {
+            ("logs", Some(args)) => {
+                let jctl_args: Vec<&OsStr> = args
+                    .values_of_os("args")
+                    .map_or_else(Vec::new, std::iter::Iterator::collect);
+
+                System::get_system_logs(&jctl_args)
+            }
+            ("restart", Some(_args)) => System::system_restart(),
+            ("status", Some(_args)) => System::get_system_status(),
+            ("set-log-level", Some(args)) => System::set_log_level(
+                log::Level::from_str(args.value_of("log_level").expect("Value is required"))
+                    .expect("Value is restricted to parsable fields"),
+            ),
+
+            (command, _) => {
+                eprintln!("Unknown system subcommand {:?}", command);
                 std::process::exit(1);
             }
         },

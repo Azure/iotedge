@@ -164,6 +164,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Log.Information($"Resetting {configFile} to {defaultFile}");
             File.Copy(defaultFile, configFile, true);
             OsPlatform.Current.SetOwner(configFile, owner, "644");
+
+            // Clear existing principals.
+            string principalsPath = Path.Combine(
+                Path.GetDirectoryName(configFile),
+                "config.d");
+
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+
+                Directory.CreateDirectory(principalsPath);
+                OsPlatform.Current.SetOwner(principalsPath, owner, "755");
+                Log.Information($"Cleared {principalsPath}");
+            }
         }
     }
 
