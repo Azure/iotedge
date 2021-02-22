@@ -380,15 +380,6 @@ fn create_file(file_path: &PathBuf) -> IOResult<File> {
         .open(file_path)
 }
 
-fn retrieve_ring_buffer_metadata(file: &mut File) -> BincodeResult<RingBufferMetadata> {
-    let mut buf = vec![];
-    file.read_to_end(&mut buf)?;
-    if buf.is_empty() {
-        return Ok(RingBufferMetadata::default());
-    }
-    bincode::deserialize::<RingBufferMetadata>(&buf)
-}
-
 fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> RingBufferMetadata {
     let mut reader = BufReader::with_capacity(page_size::get(), file);
     let mut block = match find_first_block(&mut reader) {
@@ -487,20 +478,23 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
     }
 }
 
-fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHeaderWithCrc> {
+fn find_first_block<T>(readable: &mut T) -> BincodeResult<BlockHeaderWithCrc>
+where
+    T: Read + Seek,
+{
     // We don't need any explicit returns elsewhere as EOF should be an ERR.
     #[allow(clippy::cast_possible_truncation)]
     let all_zeroes: Vec<u8> = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
     loop {
         #[allow(clippy::cast_possible_truncation)]
         let mut buf = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
-        reader.read_exact(&mut buf)?;
+        readable.read_exact(&mut buf)?;
 
         // If all zeroes we can skip faster.
         if buf == all_zeroes {
             // This is okay since the block size is too small to wrap.
             #[allow(clippy::cast_possible_wrap)]
-            reader.seek(SeekFrom::Current(*SERIALIZED_BLOCK_SIZE as i64))?;
+            readable.seek(SeekFrom::Current(*SERIALIZED_BLOCK_SIZE as i64))?;
             continue;
         }
 
@@ -512,7 +506,7 @@ fn find_first_block(reader: &mut BufReader<&mut File>) -> BincodeResult<BlockHea
             }
         }
 
-        reader.seek(SeekFrom::Current(1))?;
+        readable.seek(SeekFrom::Current(1))?;
     }
 }
 
