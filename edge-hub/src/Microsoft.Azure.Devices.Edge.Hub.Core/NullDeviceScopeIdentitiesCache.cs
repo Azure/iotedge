@@ -37,6 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RefreshServiceIdentity(string deviceId, string moduleId) => Task.CompletedTask;
 
-        public Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refreshIfNotExists = false) => Task.FromResult(Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device not in scope")));
+        public Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refresh = false) => Task.FromResult(Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device not in scope")));
     }
 }
