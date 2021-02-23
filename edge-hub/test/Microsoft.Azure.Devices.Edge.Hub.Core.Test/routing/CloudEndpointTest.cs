@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> { { "connectionDeviceId", "myConnectionDeviceId" } });
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try<ICloudProxy>.Failure(new DeviceInvalidStateException("Device removed from scope"))), id => Task.CompletedTask, routingMessageConverter, false);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try<ICloudProxy>.Failure(new DeviceInvalidStateException("Device removed from scope"))), id => Task.CompletedTask, routingMessageConverter, true);
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
