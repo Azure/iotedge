@@ -55,6 +55,7 @@ impl BridgeSettings {
         subs: Vec<Direction>,
         clean_session: bool,
         keep_alive: Duration,
+        storage_dir_override: &PathBuf,
     ) -> Result<Self, ConfigError> {
         let mut this = Self::new()?;
         let upstream_connection_settings = ConnectionSettings {
@@ -66,6 +67,11 @@ impl BridgeSettings {
             keep_alive,
         };
         this.upstream = Some(upstream_connection_settings);
+        let mut storage = this.storage.clone();
+        if let StorageSettings::RingBuffer(ref mut ring_buffer_settings) = storage {
+            ring_buffer_settings.directory = storage_dir_override.clone();
+            this.storage = storage.clone();
+        }
         Ok(this)
     }
 
@@ -326,8 +332,9 @@ mod tests {
     use matches::assert_matches;
     use serial_test::serial;
 
-    use super::*;
     use mqtt_broker_tests_util::env;
+
+    use super::*;
 
     #[test]
     #[serial(env_settings)]
