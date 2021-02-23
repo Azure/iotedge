@@ -152,6 +152,19 @@ fn run() -> Result<(), Error> {
             SubCommand::with_name("config")
                 .about("Manage Azure IoT Edge system configuration.")
                 .subcommand(
+                    SubCommand::with_name("apply")
+                    .about("Apply Azure IoT Edge system configuration values.")
+                    .arg(
+                        Arg::with_name("config-file")
+                            .short("c")
+                            .long("config-file")
+                            .value_name("FILE")
+                            .help("The path of the IoT Edge system configuration file")
+                            .takes_value(true)
+                            .default_value("/etc/aziot/config.toml"),
+                    )
+                )
+                .subcommand(
                     SubCommand::with_name("import")
                     .about("Initialize Azure IoT Edge system configuration by importing configuration of an existing pre-1.2 installation.")
                     .arg(
@@ -367,6 +380,15 @@ fn run() -> Result<(), Error> {
         }
         ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
         ("config", Some(args)) => match args.subcommand() {
+            ("apply", Some(args)) => {
+                let config_file = args
+                    .value_of_os("config-file")
+                    .expect("arg has a default value");
+                let config_file = std::path::Path::new(config_file);
+
+                let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
+                Ok(())
+            }
             ("import", Some(args)) => {
                 let old_config_file = args
                     .value_of_os("config-file")
