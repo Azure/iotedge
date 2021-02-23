@@ -148,19 +148,12 @@ where
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
 
-                    let result = self.store.push(&publication).map_err(BridgeError::Store);
-
-                    if result.is_err() {
-                        let err = result.unwrap_err();
-                        match err {
-                            // If we are full we are dropping the message on ground
-                            BridgeError::Store(PersistError::RingBuffer(RingBufferError::Full)) => {
-                                return Ok(Handled::Fully);
-                            }
-                            _ => return Err(err),
-                        }
-                    }
-                    return Ok(Handled::Fully);
+                    return match self.store.push(&publication) {
+                        Ok(_) => Ok(Handled::Fully),
+                        // If we are full we are dropping the message on ground.
+                        Err(PersistError::RingBuffer(RingBufferError::Full)) => Ok(Handled::Fully),
+                        Err(err) => Err(BridgeError::Store(err)),
+                    };
                 }
                 warn!("no topic matched");
             }
