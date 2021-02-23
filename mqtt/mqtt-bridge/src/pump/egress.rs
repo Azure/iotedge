@@ -88,7 +88,6 @@ where
                     break;
                 }
                 key = publications.select_next_some() => {
-
                     if let Err(e) = store.remove(key) {
                         error!(error = %e, "failed removing publication from store");
                     }

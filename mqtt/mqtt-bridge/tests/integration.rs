@@ -234,7 +234,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
 /// - A client connects to remote broker and subscribes to receive messages from downstream
 /// - Clients publish messages
 /// - Subscription updates are sent to bridge
-///	- Expects to receive only messages after subscription update
+///	- Expects to receive only messages after subscription update (downstream -> upstream and upstream -> downstream)
 #[tokio::test]
 async fn bridge_settings_update() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
