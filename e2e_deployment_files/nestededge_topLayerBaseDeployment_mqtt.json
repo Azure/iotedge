@@ -46,6 +46,9 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
+              },
+              "https_proxy": {
+                "value": "<proxyAddress>"
               }
             },
             "status": "running",
