@@ -82,7 +82,6 @@ namespace TestResultCoordinator
             {
                 case TestMode.Connectivity:
                     {
-                        Logger.LogInformation("Running in Connectivity Mode");
                         this.ConnectivitySpecificSettings = Option.Some(new ConnectivitySpecificSettings()
                         {
                             TestDuration = testDuration,
@@ -93,7 +92,6 @@ namespace TestResultCoordinator
 
                 case TestMode.LongHaul:
                     {
-                        Logger.LogInformation("Running in LongHaul Mode");
                         this.LongHaulSpecificSettings = Option.Some(new LongHaulSpecificSettings()
                         {
                             SendReportFrequency = sendReportFrequency

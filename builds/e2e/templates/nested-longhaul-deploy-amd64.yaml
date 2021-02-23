@@ -48,6 +48,7 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
+          longHaul.testDuration: '$(longHaul.testDuration)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
