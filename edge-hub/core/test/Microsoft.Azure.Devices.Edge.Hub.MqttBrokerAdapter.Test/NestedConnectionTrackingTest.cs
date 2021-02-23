@@ -27,6 +27,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
     using IMessage = Core.IMessage;
 
+    // This test is to ensure that edgeHub is able to consistently track that which clients are connected
+    // and what is their subscription state.
+    // EdgeHub, when clients connect through the MQTT Broker, it does not "see" clients directly. The
+    // broker sends connection events, listing the connected clients, and the broker also sends subscription
+    // events when a client subscribes/unsubscribes.
+    // In nested scenario, edgeHub does not even receive those events directly. In that case child-edgeHub
+    // forwards certain operations (e.g. client_1 subscribed to something). As the parent MQTT Broker sees
+    // only the child-edgeHub as children (not the clients connected to child-edgeHub), all the subscription
+    // events are aggregated into one notification (as child-edgeHub subscribes in name of every of its clients)
+    //
+    // The following test generates clients both direct and nested. Then these clients generate thousands of
+    // events, including messages an subscription/unsubscriptions. During the test it randomly checks that the
+    // current state of edgeHub is what it is supposed to be. It does not check the status after every operation
+    // to save processing time - it checks only ~20 percent of the events. It does not mean that it easily misses
+    // problems, because older status changes still have effect (subscribing to M2M 3 iterations ago still should
+    // in effect at the current iteration.
+    //
+    // One of the main classes below is the "Playbook" class. It pre-generates random subscription/unsubscription
+    // events and moments for sending messages. Every test client has a playbook. Then the test start playing the
+    // playbooks for the clients with every iteraton.
+    //
+    // At random moments (~20% of the iteration) the code calculates the expected current state and compares it
+    // to the real state of the system.
+
     [Integration]
     public class NestedConnectionTrackingTest
     {
@@ -164,37 +188,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
-        List<TestClient> GenerateClients(int clientCount, double moduleRatio, double directRatio)
-        {
-            var rnd = new Random(921752);
-            var result = new List<TestClient>();
-
-            for (var i = 0; i < clientCount; i++)
-            {
-                bool isModule = moduleRatio > rnd.NextDouble();
-                bool isDirect = directRatio > rnd.NextDouble();
-
-                var identity = isModule ? new ModuleIdentity(iotHubName, "device_" + i.ToString(), "module_" + i.ToString()) as IIdentity
-                                        : new DeviceIdentity(iotHubName, "device_" + i.ToString()) as IIdentity;
-
-                var newClient = new TestClient(isDirect, identity);
-
-                result.Add(newClient);
-            }
-
-            return result;
-        }
-
         [Fact]
         public async Task ConnectionsAndSubscriptionsAreBeingTracked()
         {
+            // Generating the necessary edgeHub components and the test clients
+            var (connectionManager, connectionHandler, subscriptionChangeHandler, telemetryHandler) = await SetupEdgeHub("something");
+            var clients = GenerateClients(100, 0.5, 0.5);
+
             var rnd = new Random(548196703);
             var subscriptionTypes = new[] { SubscriptionOrMessage.C2D, SubscriptionOrMessage.DesiredPropertyUpdates, SubscriptionOrMessage.DirectMethod, SubscriptionOrMessage.TwinResponse };
 
-            var (connectionManager, connectionHandler, subscriptionChangeHandler, telemetryHandler) = await SetupEdgeHub("something");
-
-            var clients = GenerateClients(100, 0.5, 0.5);
-
+            // Start playing the playbook. At every iteration it executes the operations (e.g. subscribe to twin results) that the playbook of a
+            // given client dictates.
             for (var phase = 0; phase < PlaybookLength; phase++)
             {
                 // get a randomized order of clients so the messages are more stochastic
@@ -215,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                         var currentSubscriptions = new List<string>();
                         foreach (var sub in subscriptionTypes)
                         {
-                            // we are interested only in changes. Note, that the playbook handles the call with -1 (phase=0), so on error in the next line
+                            // we are interested only in changes. Note, that the playbook handles the call with -1 (phase=0), so no error at the next line
                             if (client.Playbook.IsActive(sub, phase) ^ client.Playbook.IsActive(sub, phase-1))
                             {
                                 hasChanged = true;
@@ -245,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                         foreach (var sub in subscriptionTypes)
                         {
                             // just store all the subscribed topics. Note, that this code does not care if the result is the same as previously,
-                            // however resending an event twice should not cause problem for edgeHub
+                            // however resending an event twice should not cause problems for edgeHub
                             if (client.Playbook.IsActive(sub, phase))
                             {
                                 client.SetNoticed();
@@ -265,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 await subscriptionChangeHandler.HandleAsync(new MqttPublishInfo("$edgehub/nested_dev/$edgeHub/subscriptions", Encoding.UTF8.GetBytes(edgeHubsubscriptionEvent)));
 
                 // we do a phase check at around %20 of the steps
-                if (rnd.NextDouble() < 0.2)
+                if (rnd.NextDouble() < 0.2 || phase+1 == PlaybookLength)
                 {
                     var clientsShouldBeKnown = new HashSet<IIdentity>(clients.Where(c => c.IsNoticed).Select(c => c.Identity));
 
@@ -331,14 +336,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                     }
                 }
             }
+        }
 
-            // TODO: would be better to monitor proxy calls the detect if it has finished
-            await Task.Delay(TimeSpan.FromSeconds(3));
+        List<TestClient> GenerateClients(int clientCount, double moduleRatio, double directRatio)
+        {
+            var rnd = new Random(921752);
+            var result = new List<TestClient>();
 
-            var knownConnections = connectionHandler.AsPrivateAccessible().knownConnections as ConcurrentDictionary<IIdentity, IDeviceListener>;
-            var subscriptions = connectionManager.GetSubscriptions(clients.First().Identity.Id);
+            for (var i = 0; i < clientCount; i++)
+            {
+                bool isModule = moduleRatio > rnd.NextDouble();
+                bool isDirect = directRatio > rnd.NextDouble();
 
-            var connectedClients = connectionManager.GetConnectedClients().ToArray();
+                var identity = isModule ? new ModuleIdentity(iotHubName, "device_" + i.ToString(), "module_" + i.ToString()) as IIdentity
+                                        : new DeviceIdentity(iotHubName, "device_" + i.ToString()) as IIdentity;
+
+                var newClient = new TestClient(isDirect, identity);
+
+                result.Add(newClient);
+            }
+
+            return result;
         }
 
         static Dictionary<SubscriptionOrMessage, Func<bool, IIdentity, string>> SubscriptionGenerator = new Dictionary<SubscriptionOrMessage, Func<bool, IIdentity, string>>()
