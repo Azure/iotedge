@@ -87,7 +87,7 @@ impl Bridge<WakingMemoryStore> {
 
         debug!("creating bridge {}...", settings.name());
 
-        let (local_pump, remote_pump) = Builder::default()
+        let (local_pump, remote_pump) = Builder::<WakingMemoryStore>::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
                     system_address,
@@ -133,9 +133,9 @@ impl Bridge<RingBuffer> {
         const BATCH_SIZE: usize = 10;
 
         debug!("creating bridge {}...", settings.name());
-        let device_id = String::from(device_id);
+        let bridge_name = String::from(settings.name());
 
-        let (local_pump, remote_pump) = Builder::default()
+        let (local_pump, remote_pump) = Builder::<RingBuffer>::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
                     system_address,
@@ -158,7 +158,7 @@ impl Bridge<RingBuffer> {
                 PublicationStore::new_ring_buffer(
                     NonZeroUsize::new(BATCH_SIZE).unwrap(),
                     &ring_buffer_settings,
-                    device_id.clone(),
+                    &bridge_name,
                     suffix,
                 )
             })
