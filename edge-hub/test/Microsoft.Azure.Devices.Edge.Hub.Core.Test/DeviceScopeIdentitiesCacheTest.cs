@@ -634,8 +634,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var store = GetEntityStore("cache");
 
             var serviceProxy = new Mock<IServiceProxy>();
-            //serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ThrowsAsync(new Exception());
-            //serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ThrowsAsync(new Exception());
 
             DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
 

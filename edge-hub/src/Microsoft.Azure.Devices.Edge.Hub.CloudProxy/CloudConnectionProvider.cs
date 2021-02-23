@@ -175,7 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
                                  return Try<ICloudConnection>.Failure(ex);
                              }
-
                          })
                      .GetOrElse(
                          async () =>

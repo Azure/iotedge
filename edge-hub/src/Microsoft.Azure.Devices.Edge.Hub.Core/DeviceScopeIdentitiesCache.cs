@@ -38,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
            IServiceProxy serviceProxy,
            IKeyValueStore<string, string> encryptedStorage,
            IDictionary<string, StoredServiceIdentity> initialCache,
-           TimeSpan refreshRate) : this(serviceProxy, encryptedStorage, initialCache, refreshRate, DefaultRefreshDelay)
+           TimeSpan refreshRate)
+            : this(serviceProxy, encryptedStorage, initialCache, refreshRate, DefaultRefreshDelay)
         {
         }
 
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return deviceScopeIdentitiesCache;
         }
 
-        public static async Task<DeviceScopeIdentitiesCache> Create(
+        internal static async Task<DeviceScopeIdentitiesCache> Create(
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate,
@@ -145,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     if (refresh && ssi.Timestamp + this.refreshDelay <= DateTime.UtcNow)
                     {
                         await this.RefreshServiceIdentity(id);
-                        return await TryGetServiceIdentity(id, false);
+                        return await this.TryGetServiceIdentity(id, false);
                     }
 
                     return ssi.ServiceIdentity.Match(
@@ -165,11 +166,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 },
                 async () =>
                 {
-                    // TODO: should it refresh if was never in cache? if refreshed it will show as removed from scope
+                    // refresh if was never in cache, it will updated the cache and look as removed from scope
                     if (refresh)
                     {
                         await this.RefreshServiceIdentity(id);
-                        return await TryGetServiceIdentity(id, false);
+                        return await this.TryGetServiceIdentity(id, false);
                     }
                     else
                     {
