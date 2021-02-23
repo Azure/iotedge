@@ -644,8 +644,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Try<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
 
             // Assert
-            Assert.Throws<DeviceInvalidStateException>(()=> deviceServiceIdentity.Value);
-            Assert.Throws<DeviceInvalidStateException>(()=> moduleServiceIdentity.Value);
+            Assert.Throws<DeviceInvalidStateException>(() => deviceServiceIdentity.Value);
+            Assert.Throws<DeviceInvalidStateException>(() => moduleServiceIdentity.Value);
             Assert.Contains("Device not in scope.", deviceServiceIdentity.Exception.Message);
             Assert.Contains("Device not in scope.", moduleServiceIdentity.Exception.Message);
         }
@@ -694,7 +694,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ReturnsAsync(Option.Some(si_module));
 
             DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, store, TimeSpan.FromHours(1));
-            
+
             Try<ServiceIdentity> deviceServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d2", true);
             Try<ServiceIdentity> moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
 

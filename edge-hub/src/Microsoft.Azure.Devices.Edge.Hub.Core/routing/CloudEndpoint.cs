@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
-            Func<string, Task> cloudProxyCloseFunc, 
+            Func<string, Task> cloudProxyCloseFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
             bool giveupOnInvalidState = false,
             int maxBatchSize = 10,
@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
                 else
                 {
-                    if (IsRetryable(cloudProxy.Exception))
+                    if (this.IsRetryable(cloudProxy.Exception))
                     {
                         return this.HandleNoConnection(id, routingMessages);
                     }

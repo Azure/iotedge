@@ -155,60 +155,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(0, sinkResult.Succeeded.Count);
         }
 
-        //[Fact]
-        //public async Task UnauthorizedException_RetryTest()
-        //{
-        //    // Arrange
-        //    string id = "d1";
-        //    var cloudProxy = new Mock<ICloudProxy>();
-        //    cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
-        //        .ThrowsAsync(new UnauthorizedException());
-        //    var cloudEndpoint = new CloudEndpoint(Guid.NewGuid().ToString(), _ => Task.FromResult(Try.Success(cloudProxy.Object)), id => Task.CompletedTask, new RoutingMessageConverter());
-        //    IProcessor processor = cloudEndpoint.CreateProcessor();
-        //    var message = new RoutingMessage(TelemetryMessageSource.Instance, new byte[0], ImmutableDictionary<string, string>.Empty, new Dictionary<string, string>
-        //    {
-        //        [Core.SystemProperties.ConnectionDeviceId] = id
-        //    });
-
-        //    // Act
-        //    ISinkResult<IRoutingMessage> result = await processor.ProcessAsync(message, CancellationToken.None);
-
-        //    // Assert
-        //    Assert.NotNull(result);
-        //    Assert.Equal(1, result.Failed.Count);
-        //    Assert.Equal(0, result.Succeeded.Count);
-        //    Assert.Equal(0, result.InvalidDetailsList.Count);
-        //    Assert.Equal(message, result.Failed.First());
-        //}
-
-        //[Fact]
-        //public async Task UnauthorizedException_RetryAndCloseCloudProxyTest()
-        //{
-        //    // Arrange
-        //    string id = "d1";
-        //    var cloudProxy = new Mock<ICloudProxy>();
-        //    cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
-        //        .ThrowsAsync(new UnauthorizedException());
-        //    cloudProxy.Setup(c => c.CloseAsync()).ReturnsAsync(true);
-        //    var cloudEndpoint = new CloudEndpoint(Guid.NewGuid().ToString(), _ => Task.FromResult(Try.Success(cloudProxy.Object)), id => cloudProxy.Object.CloseAsync(), new RoutingMessageConverter(), false);
-        //    IProcessor processor = cloudEndpoint.CreateProcessor();
-        //    var message = new RoutingMessage(TelemetryMessageSource.Instance, new byte[0], ImmutableDictionary<string, string>.Empty, new Dictionary<string, string>
-        //    {
-        //        [Core.SystemProperties.ConnectionDeviceId] = id
-        //    });
-
-        //    // Act
-        //    ISinkResult<IRoutingMessage> result = await processor.ProcessAsync(message, CancellationToken.None);
-
-        //    // Assert
-        //    Assert.NotNull(result);
-        //    Assert.Equal(1, result.Failed.Count);
-        //    Assert.Equal(0, result.Succeeded.Count);
-        //    Assert.Equal(0, result.InvalidDetailsList.Count);
-        //    Assert.Equal(message, result.Failed.First());
-        //    cloudProxy.VerifyAll();
-        //}
-
         [Theory]
         [MemberData(nameof(GetRetryableExceptionsTestData))]
         public async Task RetryableExceptionsTest(Exception exception, bool isRetryable)
@@ -311,6 +257,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             yield return new object[] { new ArgumentNullException("dummy"), false };
         }
-
     }
 }

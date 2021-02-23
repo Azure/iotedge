@@ -112,6 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                     return Task.FromResult(Try<ICloudProxy>.Failure(new Exception()));
                 }
             }
+
             Task RemoveCloudProxy(string id) => Task.CompletedTask;
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, RemoveCloudProxy, routingMessageConverter, maxBatchSize: 1);
@@ -222,6 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             {
                 return Task.FromResult(Try.Success(cloudProxyMock.Object));
             }
+
             Task RemoveCloudProxy(string id) => Task.CompletedTask;
 
             var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, RemoveCloudProxy, routingMessageConverter);
@@ -300,7 +302,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 }
 
                 return Task.FromResult(Try.Success(cp));
-            };
+            }
 
             Task RemoveCloudProxy(string id) => Task.CompletedTask;
 
