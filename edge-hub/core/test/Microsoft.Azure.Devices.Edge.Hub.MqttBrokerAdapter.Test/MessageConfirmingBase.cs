@@ -86,6 +86,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             {
             }
 
+            public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
+            {
+            }
+
             Action<string, FeedbackStatus> ConfirmAction { get; }
         }
     }
