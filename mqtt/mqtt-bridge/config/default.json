@@ -5,13 +5,6 @@
         "subscriptions": [],
         "forwards": []
     },
-    "storage": {
-        "ring_buffer": {
-            "max_file_size": 1048576,
-            "directory": "/tmp/mqttd/config/",
-            "flush_options": "aftereachwrite"
-        }
-    },
     "remotes": [],
     "storage": {
         "type": "ring_buffer",

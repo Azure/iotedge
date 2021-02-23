@@ -71,11 +71,15 @@ async fn send_message_upstream_downstream() {
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
-        "send_message_upstream_downstream",
+        &storage_dir_override,
     )
     .await;
 
@@ -158,11 +162,14 @@ async fn send_message_upstream_with_crash_is_lossless() {
         .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
         .build();
 
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
-        "send_message_upstream_with_crash_is_lossless",
+        &storage_dir_override,
     )
     .await;
 
@@ -202,7 +209,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
-        "send_message_upstream_with_crash_is_lossless",
+        &storage_dir_override,
     )
     .await;
 
@@ -232,11 +239,15 @@ async fn send_message_upstream_with_crash_is_lossless() {
 async fn bridge_settings_update() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (mut controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         vec![],
-        "bridge_settings_update",
+        &storage_dir_override,
     )
     .await;
 
@@ -349,11 +360,15 @@ async fn subscribe_to_upstream_rejected_should_retry() {
             Some("downstream".into()),
         )),
     ];
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
-        "subscribe_to_upstream_rejected_should_retry",
+        &storage_dir_override,
     )
     .await;
 
@@ -435,11 +450,15 @@ async fn connect_to_upstream_failure_should_retry() {
     ];
     let upstream_tcp_address = "localhost:8801".to_string();
     let upstream_tls_address = "localhost:8802".to_string();
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_tls_address.clone(),
         subs,
-        "connect_to_upstream_failure_should_retry",
+        &storage_dir_override,
     )
     .await;
     let mut local_client = TestClientBuilder::new(local_server_handle.address())
@@ -517,11 +536,15 @@ async fn bridge_forwards_messages_after_restart() {
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
-        "bridge_forwards_messages_after_restart",
+        &storage_dir_override,
     )
     .await;
 
@@ -582,7 +605,7 @@ async fn bridge_forwards_messages_after_restart() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
-        "bridge_forwards_messages_after_restart",
+        &storage_dir_override,
     )
     .await;
 
@@ -641,11 +664,15 @@ async fn recreate_upstream_bridge_when_fails() {
             Some("downstream".into()),
         )),
     ];
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (mut controller_handle, _) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
-        "recreate_upstream_bridge_when_fails",
+        &storage_dir_override,
     )
     .await;
 

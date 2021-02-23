@@ -55,6 +55,7 @@ impl BridgeSettings {
         subs: Vec<Direction>,
         clean_session: bool,
         keep_alive: Duration,
+        storage_dir_override: &PathBuf,
     ) -> Result<Self, ConfigError> {
         let mut this = Self::new()?;
         let upstream_connection_settings = ConnectionSettings {
@@ -66,6 +67,11 @@ impl BridgeSettings {
             keep_alive,
         };
         this.upstream = Some(upstream_connection_settings);
+        let mut storage = this.storage.clone();
+        if let StorageSettings::RingBuffer(ref mut ring_buffer_settings) = storage {
+            ring_buffer_settings.directory = storage_dir_override.clone();
+            this.storage = storage.clone();
+        }
         Ok(this)
     }
 
@@ -102,7 +108,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
 
             messages: MessagesSettings,
 
-            storage: Option<StorageSettings>,
+            storage: StorageSettings,
         }
 
         let Inner {
@@ -318,10 +324,6 @@ impl RingBufferSettings {
     pub fn flush_options(&self) -> &FlushOptions {
         &self.flush_options
     }
-
-    pub fn flush_options(&self) -> &FlushOptions {
-        &self.flush_options
-    }
 }
 
 impl Default for RingBufferSettings {
@@ -340,7 +342,6 @@ mod tests {
     use matches::assert_matches;
     use serial_test::serial;
 
-    use super::*;
     use mqtt_broker_tests_util::env;
 
     use super::*;

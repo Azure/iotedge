@@ -3,7 +3,7 @@ use std::{cmp::min, collections::VecDeque, num::NonZeroUsize, task::Waker};
 use mqtt3::proto::Publication;
 use tracing::debug;
 
-use crate::persist::{Key, MemoryError, StorageResult, StreamWakeableState};
+use crate::persist::{Key, MemoryError, PersistResult, StreamWakeableState};
 
 pub mod error;
 #[cfg(test)]
@@ -30,7 +30,7 @@ impl WakingMemoryStore {
 }
 
 impl StreamWakeableState for WakingMemoryStore {
-    fn insert(&mut self, value: &Publication) -> StorageResult<Key> {
+    fn insert(&mut self, value: &Publication) -> PersistResult<Key> {
         let key = Key {
             offset: self.queue.len() as u64,
         };
@@ -50,7 +50,7 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(key)
     }
 
-    fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
+    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
         let count = min(count, self.queue.len());
         let output: VecDeque<_> = self.queue.drain(..count).collect();
 
@@ -61,7 +61,7 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(output)
     }
 
-    fn remove(&mut self, key: Key) -> StorageResult<()> {
+    fn remove(&mut self, key: Key) -> PersistResult<()> {
         debug!(
             "Removing publication with key {:?}. Current state of loaded messages: {:?}",
             key, self.loaded

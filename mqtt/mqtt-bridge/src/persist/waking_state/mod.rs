@@ -7,8 +7,6 @@ use crate::persist::{Key, PersistResult};
 pub mod memory;
 pub mod ring_buffer;
 
-pub type StorageResult<T> = Result<T, StorageError>;
-
 /// Responsible for waking waiting streams when new elements are added.
 /// Exposes a get method for retrieving a count of elements in order of insertion.
 ///

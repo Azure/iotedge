@@ -5,9 +5,10 @@ use futures_util::{
     pin_mut,
 };
 use mqtt3::ShutdownError;
-use mqtt_util::Credentials;
 use tracing::{debug, error, info, info_span};
 use tracing_futures::Instrument;
+
+use mqtt_util::Credentials;
 
 use crate::{
     client::{ClientError, MqttClientConfig},
@@ -21,8 +22,6 @@ use crate::{
         RemoteUpstreamPumpEvent, RemoteUpstreamPumpEventHandler, RpcError,
     },
 };
-
-const BATCH_SIZE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(10) };
 
 pub struct BridgeHandle {
     local_pump_handle: PumpHandle<LocalUpstreamPumpEvent>,
@@ -88,7 +87,7 @@ impl Bridge<WakingMemoryStore> {
 
         debug!("creating bridge {}...", settings.name());
 
-        let (local_pump, remote_pump) = Builder::default()
+        let (local_pump, remote_pump) = Builder::<WakingMemoryStore>::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
                     system_address,
@@ -134,9 +133,9 @@ impl Bridge<RingBuffer> {
         const BATCH_SIZE: usize = 10;
 
         debug!("creating bridge {}...", settings.name());
-        let device_id = String::from(device_id);
+        let bridge_name = String::from(settings.name());
 
-        let (local_pump, remote_pump) = Builder::default()
+        let (local_pump, remote_pump) = Builder::<RingBuffer>::default()
             .with_local(|pump| {
                 pump.with_config(MqttClientConfig::new(
                     system_address,
@@ -156,15 +155,10 @@ impl Bridge<RingBuffer> {
                 .with_rules(settings.subscriptions());
             })
             .with_store(move |suffix| {
-                let mut file_path = file_path.clone();
-                let mut metadata_file_path = file_path.clone();
-                file_path.push(suffix);
-                metadata_file_path.push(suffix.to_owned() + "." + "metadata.state");
-
                 PublicationStore::new_ring_buffer(
                     NonZeroUsize::new(BATCH_SIZE).unwrap(),
                     &ring_buffer_settings,
-                    device_id.clone(),
+                    &bridge_name,
                     suffix,
                 )
             })
@@ -257,7 +251,7 @@ where
 #[derive(Debug, thiserror::Error)]
 pub enum BridgeError {
     #[error("failed to save to store. Caused by: {0}")]
-    Store(#[from] StorageError),
+    Store(#[from] PersistError),
 
     #[error("failed to subscribe to topic. Caused by: {0}")]
     Subscribe(#[source] ClientError),

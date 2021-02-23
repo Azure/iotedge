@@ -24,7 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{PublicationStore, RingBufferError, StorageError, StreamWakeableState},
+    persist::{PersistError, PublicationStore, RingBufferError, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -154,7 +154,7 @@ where
                         let err = result.unwrap_err();
                         match err {
                             // If we are full we are dropping the message on ground
-                            BridgeError::Store(StorageError::RingBuffer(RingBufferError::Full)) => {
+                            BridgeError::Store(PersistError::RingBuffer(RingBufferError::Full)) => {
                                 return Ok(Handled::Fully);
                             }
                             _ => return Err(err),
@@ -274,34 +274,8 @@ mod tests {
             let result = PublicationStore::new_ring_buffer(
                 BATCH_SIZE,
                 &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
-                "test".to_owned(),
+                "test",
                 "local",
-            );
-            assert!(result.is_ok());
-            result.unwrap()
-        }
-    }
-
-    type RingBufferPublicationStore = PublicationStore<RingBuffer>;
-
-    impl Default for RingBufferPublicationStore {
-        fn default() -> Self {
-            let result = tempfile::NamedTempFile::new();
-            assert!(result.is_ok());
-            let file = result.unwrap();
-            let file_path = file.path().to_path_buf();
-
-            let result = tempfile::NamedTempFile::new();
-            assert!(result.is_ok());
-            let file = result.unwrap();
-            let metadata_file_path = file.path().to_path_buf();
-
-            let result = PublicationStore::new_ring_buffer(
-                &file_path,
-                &metadata_file_path,
-                MAX_FILE_SIZE,
-                FLUSH_OPTIONS,
-                BATCH_SIZE,
             );
             assert!(result.is_ok());
             result.unwrap()

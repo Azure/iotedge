@@ -13,8 +13,6 @@ use crate::{
     settings::{MemorySettings, RingBufferSettings},
 };
 
-use crate::persist::StorageError;
-
 /// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
 struct PublicationStoreInner<S> {
@@ -44,41 +42,15 @@ impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
         batch_size: NonZeroUsize,
         ring_buffer_settings: &RingBufferSettings,
-        device_id: String,
+        bridge_name: &str,
         suffix: &str,
     ) -> PersistResult<Self> {
         let mut file_path = ring_buffer_settings.directory().clone();
-        file_path.push(device_id);
+        file_path.push(bridge_name);
         file_path.push(suffix);
         let max_file_size = ring_buffer_settings.max_file_size();
         let flush_options = ring_buffer_settings.flush_options();
         let rb = RingBuffer::new(&file_path, max_file_size, *flush_options)?;
-        Ok(Self::new(rb, batch_size))
-    }
-}
-
-impl PublicationStore<RingBuffer> {
-    pub fn new_ring_buffer(
-        file_path: PathBuf,
-        metadata_file_path: PathBuf,
-        max_file_size: NonZeroU64,
-        flush_options: FlushOptions,
-        batch_size: NonZeroUsize,
-        max_size: NonZeroUsize,
-    ) -> PublicationStore<WakingMemoryStore> {
-        Self::new(WakingMemoryStore::new(max_size), batch_size)
-    }
-}
-
-impl PublicationStore<RingBuffer> {
-    pub fn new_ring_buffer(
-        file_path: &PathBuf,
-        metadata_file_path: &PathBuf,
-        max_file_size: NonZeroU64,
-        flush_options: FlushOptions,
-        batch_size: NonZeroUsize,
-    ) -> StorageResult<Self> {
-        let rb = RingBuffer::new(file_path, metadata_file_path, max_file_size, flush_options)?;
         Ok(Self::new(rb, batch_size))
     }
 }
@@ -89,7 +61,7 @@ where
 {
     pub fn new(state: S, batch_size: NonZeroUsize) -> Self {
         let state = Arc::new(Mutex::new(state));
-        let loader = MessageLoader::new(state.clone(), batch_size.get());
+        let loader = MessageLoader::new(state.clone(), batch_size);
 
         let inner = PublicationStoreInner { state, loader };
         let inner = Arc::new(Mutex::new(inner));
