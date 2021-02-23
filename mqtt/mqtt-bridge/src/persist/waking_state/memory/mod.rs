@@ -3,9 +3,7 @@ use std::{cmp::min, collections::VecDeque, num::NonZeroUsize, task::Waker};
 use mqtt3::proto::Publication;
 use tracing::debug;
 
-use crate::persist::{
-    waking_state::memory::error::MemoryError, Key, PersistResult, StreamWakeableState,
-};
+use crate::persist::{Key, MemoryError, PersistResult, StreamWakeableState};
 
 pub mod error;
 #[cfg(test)]

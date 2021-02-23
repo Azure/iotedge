@@ -24,7 +24,7 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{PublicationStore, StreamWakeableState},
+    persist::{PersistError, PublicationStore, RingBufferError, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
@@ -147,9 +147,13 @@ where
 
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
-                    self.store.push(&publication).map_err(BridgeError::Store)?;
 
-                    return Ok(Handled::Fully);
+                    return match self.store.push(&publication) {
+                        Ok(_) => Ok(Handled::Fully),
+                        // If we are full we are dropping the message on ground.
+                        Err(PersistError::RingBuffer(RingBufferError::Full)) => Ok(Handled::Fully),
+                        Err(err) => Err(BridgeError::Store(err)),
+                    };
                 }
                 warn!("no topic matched");
             }
@@ -263,7 +267,7 @@ mod tests {
             let result = PublicationStore::new_ring_buffer(
                 BATCH_SIZE,
                 &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
-                "test".to_owned(),
+                "test",
                 "local",
             );
             assert!(result.is_ok());
