@@ -6,9 +6,7 @@ use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
     messages::{self, StoreMqttEventHandler, TopicMapper},
-    persist::{
-        PersistResult, PublicationStore, StreamWakeableState,
-    },
+    persist::{PersistResult, PublicationStore, StreamWakeableState},
     settings::TopicRule,
     upstream::{
         ConnectivityMqttEventHandler, LocalRpcMqttEventHandler, LocalUpstreamMqttEventHandler,

@@ -446,7 +446,7 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
             read_updates += 1;
             read = end + data_size;
         }
-        
+
         // Found the last write, take whatever we got for read and write
         // and return the pointers.
         if inner.order() < order {
