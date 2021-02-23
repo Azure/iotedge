@@ -15,3 +15,22 @@ members = [
     "management",
     "systemd",
 ]
+
+[patch."https://github.com/Azure/iot-identity-service"]
+aziot-cert-common-http = { path = "../../iot-identity-service/cert/aziot-cert-common-http" }
+aziot-certd-config = { path = "../../iot-identity-service/cert/aziot-certd-config" }
+aziot-identity-common = { path = "../../iot-identity-service/identity/aziot-identity-common" }
+aziot-identity-common-http = { path = "../../iot-identity-service/identity/aziot-identity-common-http" }
+aziot-identityd-config = { path = "../../iot-identity-service/identity/aziot-identityd-config" }
+aziot-key-client = { path = "../../iot-identity-service/key/aziot-key-client" }
+aziot-key-common = { path = "../../iot-identity-service/key/aziot-key-common" }
+aziot-key-common-http = { path = "../../iot-identity-service/key/aziot-key-common-http" }
+aziot-key-openssl-engine = { path = "../../iot-identity-service/key/aziot-key-openssl-engine" }
+aziot-keyd-config = { path = "../../iot-identity-service/key/aziot-keyd-config" }
+aziot-keys-common = { path = "../../iot-identity-service/key/aziot-keys-common" }
+aziot-tpmd-config = { path = "../../iot-identity-service/tpm/aziot-tpmd-config" }
+aziotctl-common = { path = "../../iot-identity-service/aziotctl/aziotctl-common" }
+config-common = { path = "../../iot-identity-service/config-common" }
+http-common = { path = "../../iot-identity-service/http-common" }
+openssl-sys2 = { path = "../../iot-identity-service/openssl-sys2" }
+openssl2 = { path = "../../iot-identity-service/openssl2" }

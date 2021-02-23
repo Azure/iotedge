@@ -86,7 +86,9 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/aziot-edged.mgmt.socket $(TARGET)/$(PACKAGE)/debian/aziot-edged.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.yaml.template
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/template.toml $(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/default.toml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
+	$(INSTALL) -d -m 0700 $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.d
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices

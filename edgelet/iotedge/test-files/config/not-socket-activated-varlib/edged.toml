@@ -1,0 +1,32 @@
+hostname = "my-device"
+homedir = "/var/lib/aziot/edged"
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+imagePullPolicy = "on-create"
+
+[agent.config]
+image = "mcr.microsoft.com/azureiotedge-agent:1.0"
+
+[agent.config.createOptions]
+
+[agent.config.auth]
+
+[agent.env]
+
+[connect]
+workload_uri = "unix:///var/lib/iotedge/workload.sock"
+management_uri = "unix:///var/lib/iotedge/mgmt.sock"
+
+[listen]
+workload_uri = "unix:///var/lib/iotedge/workload.sock"
+management_uri = "unix:///var/lib/iotedge/mgmt.sock"
+min_tls_version = "tls1.0"
+
+[watchdog]
+max_retries = "infinite"
+
+[moby_runtime]
+uri = "unix:///var/run/docker.sock"
+network = "azure-iot-edge"

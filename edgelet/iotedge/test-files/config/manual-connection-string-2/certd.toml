@@ -1,0 +1,9 @@
+homedir_path = "/var/lib/aziot/certd"
+
+[cert_issuance]
+
+[preloaded_certs]
+
+[[principal]]
+uid = 5558
+certs = ["aziot-edge/module/*"]

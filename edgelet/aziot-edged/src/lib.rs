@@ -713,8 +713,8 @@ mod tests {
     };
     use docker::models::ContainerCreateBody;
 
-    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.yaml";
-    static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.yaml";
+    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.toml";
+    static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
 
@@ -724,25 +724,23 @@ mod tests {
         }
     }
 
-    lazy_static! {
-        // Tests that call Main::new cannot run in parallel because they initialize hsm-sys
-        // (via hsm_client_crypto_init) which is not thread-safe.
-        static ref LOCK: Mutex<()> = Mutex::new(());
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
     }
 
     #[test]
     fn settings_for_nested_edge() {
-        let _guard = LOCK.lock().unwrap();
-
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NESTED_EDGE);
+        let settings = Settings::new().unwrap();
         assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]
     fn settings_for_edge_ca_cert() {
-        let _guard = LOCK.lock().unwrap();
-
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_EDGE_CA_CERT_ID)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_EDGE_CA_CERT_ID);
+        let settings = Settings::new().unwrap();
         assert_eq!(settings.edge_ca_cert(), Some("iotedge-test-ca"));
     }
 }

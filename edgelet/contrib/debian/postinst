@@ -15,42 +15,43 @@ case "$1" in
             fi
             chown ${USER}:${GROUP} /var/lib/aziot/edged
             chown ${USER}:${GROUP} /var/log/aziot/edged
-            chown ${USER}:${GROUP} /etc/aziot/edged/config.yaml.template
-            if [ ! -f /etc/aziot/edged/config.yaml ]; then
-                cp -a /etc/aziot/edged/config.yaml.template /etc/aziot/edged/config.yaml
-            fi
+            chown root:root /etc/aziot/config.toml.edge.template
+            chown ${USER}:${GROUP} /etc/aziot/edged/config.toml.default
 
             chmod 755 /var/lib/aziot/edged
             chmod 755 /var/log/aziot/edged
-            chmod 400 /etc/aziot/edged/config.yaml.template
-            chmod 400 /etc/aziot/edged/config.yaml
+            chmod 400 /etc/aziot/config.toml.edge.template
+            chmod 400 /etc/aziot/edged/config.toml.default
 
         fi
 
-        # Set the hostname
-        sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/aziot/edged/config.yaml
+        if [ ! -f '/etc/aziot/config.toml' ]; then
+            echo "==============================================================================="
+            echo ""
+            echo "                              Azure IoT Edge"
+            echo ""
+            echo "  IMPORTANT: Please configure the device with provisioning information."
+            echo ""
 
-        echo "==============================================================================="
-        echo ""
-        echo "                              Azure IoT Edge"
-        echo ""
-        echo "  IMPORTANT: Please update the configuration file located at:"
-        echo ""
-        echo "    /etc/aziot/edged/config.yaml"
-        echo ""
-        echo "  with your container runtime configuration."
-        echo ""
-        echo "  To configure the Identity Service with provisioning information, use:"
-        echo ""
-        echo "    'aziot init'"
-        echo ""
-        echo "  To restart all services for provisioning changes to take effect, use:"
-        echo ""
-        echo "    'systemctl restart aziot-keyd aziot-certd aziot-identityd aziot-edged'"
-        echo ""
-        echo "  These commands may need to be run with sudo depending on your environment."
-        echo ""
-        echo "==============================================================================="
+            if [ -f '/etc/iotedge/config.yaml' ]; then
+                echo "  Detected /etc/iotedge/config.yaml from a previously installed version of IoT Edge."
+                echo "  You can import the previous configuration using:"
+                echo ""
+                echo "    iotedge config import"
+                echo ""
+                echo "Alternatively, copy the configuration file at /etc/aziot/config.toml.edge.template to /etc/aziot/config.toml,"
+            else
+                echo "Copy the configuration file at /etc/aziot/config.toml.edge.template to /etc/aziot/config.toml,"
+            fi
+
+            echo "  update it with your device information, then apply your configuration changes with:"
+            echo ""
+            echo "    iotedge config apply"
+            echo ""
+            echo "  You may need to run iotedge config commands with sudo, depending on your environment."
+            echo ""
+            echo "==============================================================================="
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

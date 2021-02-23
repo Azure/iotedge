@@ -35,7 +35,6 @@ use checker::Checker;
 mod checks;
 
 pub struct Check {
-    config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     dont_run: BTreeSet<String>,
@@ -87,7 +86,6 @@ pub enum CheckResult {
 
 impl Check {
     pub fn new(
-        config_file: PathBuf,
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
@@ -194,7 +192,6 @@ impl Check {
 
         future::Either::B(latest_versions.then(move |latest_versions| {
             Ok(Check {
-                config_file,
                 container_engine_config_path,
                 diagnostics_image_name,
                 dont_run,
@@ -739,21 +736,29 @@ mod tests {
         Check, CheckResult, Checker,
     };
 
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
+    }
+
     #[test]
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
-            let config_file = format!(
-                "{}/../edgelet-docker/test/{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "linux",
-                filename,
+        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
+            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-docker/test/{}/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "linux",
+                    filename,
+                ),
             );
 
             let mut check = runtime
                 .block_on(Check::new(
-                    config_file.into(),
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
@@ -806,17 +811,21 @@ mod tests {
     fn config_file_checks_ok_old_moby() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
-            let config_file = format!(
-                "{}/../edgelet-docker/test/{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "linux",
-                filename,
+        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
+            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-docker/test/{}/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "linux",
+                    filename,
+                ),
             );
 
             let mut check = runtime
                 .block_on(Check::new(
-                    config_file.into(),
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                     Default::default(),
@@ -877,17 +886,22 @@ mod tests {
     fn parse_settings_err() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "bad_sample_settings.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
+        let filename = "bad_sample_settings.toml";
+
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                filename,
+            ),
         );
 
         let mut check = runtime
             .block_on(Check::new(
-                config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
@@ -902,20 +916,7 @@ mod tests {
             .unwrap();
 
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => {
-                let err = err
-                    .iter_causes()
-                    .nth(1)
-                    .expect("expected to find cause-of-cause-of-error");
-                assert!(
-                    err.to_string()
-                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 7 column 5"),
-                    "parsing {} produced unexpected error: {}",
-                    filename,
-                    err,
-                );
-            }
-
+            CheckResult::Failed(_) => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
@@ -924,17 +925,22 @@ mod tests {
     fn moby_runtime_uri_wants_moby_based_on_server_version() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
+        let filename = "sample_settings.toml";
+
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                filename,
+            ),
         );
 
         let mut check = runtime
             .block_on(super::Check::new(
-                config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),

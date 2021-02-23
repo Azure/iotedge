@@ -61,7 +61,11 @@ where
             })
             .map(|(module_id, genid)| {
                 let module_id = module_id.to_string();
-                let alias = format!("{}{}server", module_id, genid.to_string());
+                let alias = format!(
+                    "aziot-edge/module/{}:{}:server",
+                    module_id,
+                    genid.to_string()
+                );
 
                 req.into_body().concat2().then(move |body| {
                     let body =

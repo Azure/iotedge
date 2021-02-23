@@ -1,0 +1,12 @@
+[aziot_keys]
+homedir_path = "/var/lib/aziot/keyd"
+
+[preloaded_keys]
+
+[[principal]]
+uid = 5556
+keys = ["aziot_identityd_master_id"]
+
+[[principal]]
+uid = 5558
+keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]

@@ -3,22 +3,17 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
     Connect, Endpoints, Listen, MobyNetwork, ModuleSpec, RuntimeSettings, Settings as BaseSettings,
     UrlExt, WatchdogSettings,
 };
-use edgelet_utils::YamlFileSource;
 use failure::{Context, Fail, ResultExt};
 
 use url::Url;
 
 use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind};
-
-#[cfg(unix)]
-pub const DEFAULTS: &str = include_str!("../config/unix/default.yaml");
 
 /// This is the key for the docker network Id.
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
@@ -71,14 +66,23 @@ pub struct Settings {
     pub moby_runtime: MobyRuntime,
 }
 
-impl Settings {
-    pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
-        let mut config = Config::default();
-        config.merge(YamlFileSource::String(DEFAULTS.into()))?;
-        config.merge(YamlFileSource::File(filename.into()))?;
-        config.merge(Environment::with_prefix("iotedge"))?;
+pub const CONFIG_FILE_DEFAULT: &str = "/etc/aziot/edged/config.toml";
 
-        let mut settings: Self = config.try_into()?;
+impl Settings {
+    pub fn new() -> Result<Self, LoadSettingsError> {
+        const CONFIG_ENV_VAR: &str = "AZIOT_EDGED_CONFIG";
+        const CONFIG_DIRECTORY_ENV_VAR: &str = "AZIOT_TPMD_CONFIG_DIR";
+        const CONFIG_DIRECTORY_DEFAULT: &str = "/etc/aziot/edged/config.d";
+
+        let config_path: std::path::PathBuf =
+            std::env::var_os(CONFIG_ENV_VAR).map_or_else(|| CONFIG_FILE_DEFAULT.into(), Into::into);
+
+        let config_directory_path: std::path::PathBuf = std::env::var_os(CONFIG_DIRECTORY_ENV_VAR)
+            .map_or_else(|| CONFIG_DIRECTORY_DEFAULT.into(), Into::into);
+
+        let mut settings: Settings =
+            config_common::read_config(&config_path, &config_directory_path)
+                .map_err(|err| LoadSettingsError(Context::new(Box::new(err))))?;
 
         init_agent_spec(&mut settings)?;
 
@@ -293,12 +297,6 @@ impl From<std::io::Error> for LoadSettingsError {
     }
 }
 
-impl From<config::ConfigError> for LoadSettingsError {
-    fn from(err: config::ConfigError) -> Self {
-        LoadSettingsError(Context::new(Box::new(err)))
-    }
-}
-
 impl From<serde_json::Error> for LoadSettingsError {
     fn from(err: serde_json::Error) -> Self {
         LoadSettingsError(Context::new(Box::new(err)))
@@ -327,25 +325,29 @@ impl From<ErrorKind> for LoadSettingsError {
 mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
-    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use super::{MobyNetwork, MobyRuntime, RuntimeSettings, Settings, Url};
     use crate::settings::agent_image_resolve;
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
 
     #[cfg(unix)]
-    static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
+    static GOOD_SETTINGS: &str = "test/linux/sample_settings.toml";
     #[cfg(unix)]
-    static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
+    static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.toml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/linux/case_sensitive.yaml";
+    static GOOD_SETTINGS_CASE_SENSITIVE: &str = "test/linux/case_sensitive.toml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
+    static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.toml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.yaml";
+    static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.toml";
     #[cfg(unix)]
-    static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.yaml";
+    static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.toml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.yaml";
+    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.toml";
+
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
+    }
 
     #[test]
     fn network_default() {
@@ -366,10 +368,12 @@ mod tests {
 
     #[test]
     fn network_get_settings() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_NETWORK));
-        assert!(settings.is_ok());
-        let s = settings.unwrap();
-        let moby_runtime = s.moby_runtime();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NETWORK);
+
+        let settings = Settings::new().unwrap();
+        let moby_runtime = settings.moby_runtime();
         assert_eq!(
             moby_runtime.uri().to_owned().into_string(),
             "http://localhost:2375/".to_string()
@@ -402,19 +406,25 @@ mod tests {
 
     #[test]
     fn no_file_gets_error() {
-        let settings = Settings::new(Path::new("garbage"));
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", "garbage");
+        let settings = Settings::new();
         assert!(settings.is_err());
     }
 
     #[test]
     fn bad_file_gets_error() {
-        let settings = Settings::new(Path::new(BAD_SETTINGS));
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS);
+        let settings = Settings::new();
         assert!(settings.is_err());
     }
 
     #[test]
     fn case_of_names_of_keys_is_preserved() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_CASE_SENSITIVE)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CASE_SENSITIVE);
+        let settings = Settings::new().unwrap();
 
         let env = settings.agent().env();
         assert_eq!(env.get("AbC").map(AsRef::as_ref), Some("VAluE1"));
@@ -426,17 +436,18 @@ mod tests {
 
     #[test]
     fn watchdog_settings_are_read() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS));
-        println!("{:?}", settings);
-        assert!(settings.is_ok());
-        let s = settings.unwrap();
-        let watchdog_settings = s.watchdog();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+        let settings = Settings::new().unwrap();
+        let watchdog_settings = settings.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
     }
 
     #[test]
     fn tls_settings_are_none_by_default() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+        let settings = Settings::new().unwrap();
         assert_eq!(
             settings.listen().min_tls_version(),
             edgelet_core::Protocol::Tls10
@@ -445,7 +456,9 @@ mod tests {
 
     #[test]
     fn networking_config_is_set() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+        let settings = Settings::new().unwrap();
         let create_options = settings.agent().config().create_options();
         assert!(create_options
             .networking_config()
@@ -457,7 +470,9 @@ mod tests {
 
     #[test]
     fn agent_labels_are_set() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS);
+        let settings = Settings::new().unwrap();
         let create_options = settings.agent().config().create_options();
         let labels = create_options.labels().unwrap();
         assert_eq!(
@@ -472,7 +487,9 @@ mod tests {
 
     #[test]
     fn agent_image_is_resolved() {
-        let mut settings = Settings::new(Path::new(GOOD_SETTINGS_IMAGE_RESOLVE)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_IMAGE_RESOLVE);
+        let mut settings = Settings::new().unwrap();
         agent_image_resolve(&mut settings).unwrap();
 
         assert_eq!(
@@ -484,7 +501,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn content_trust_env_are_set_properly() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_CONTENT_TRUST)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_CONTENT_TRUST);
+        let settings = Settings::new().unwrap();
         if let Some(content_trust_map) = settings
             .moby_runtime()
             .content_trust()
@@ -510,7 +529,9 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn content_trust_env_are_not_set_properly() {
-        let settings = Settings::new(Path::new(BAD_SETTINGS_CONTENT_TRUST));
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", BAD_SETTINGS_CONTENT_TRUST);
+        let settings = Settings::new();
         assert!(settings.is_err());
     }
 }

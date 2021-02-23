@@ -1,0 +1,154 @@
+# ==============================================================================
+# Hostname
+# ==============================================================================
+#
+# Comment out the next line to override the default hostname of this device.
+#
+# hostname = "my-device"
+
+
+# ==============================================================================
+# Provisioning
+# ==============================================================================
+#
+# Comment out one block and replace the stub values with yours.
+
+
+## Manual provisioning with connection string
+#
+# [provisioning]
+# source = "manual"
+# connection_string = "HostName=example.azure-devices.net;DeviceId=my-device;SharedAccessKey=YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU="
+
+
+## Manual provisioning with symmetric key
+# [provisioning]
+# source = "manual"
+# iothub_hostname = "example.azure-devices.net"
+# device_id = "my-device"
+# 
+# [provisioning.authentication]
+# method = "sas"
+#
+# device_id_pk = { value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU=" }     # inline key (base64), or...
+# device_id_pk = { uri = "file:///var/secrets/device-id.key" }                  # file URI, or...
+# device_id_pk = { uri = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" } # PKCS#11 URI
+
+
+## Manual provisioning with X.509 certificate
+# [provisioning]
+# source = "manual"
+# iothub_hostname = "example.azure-devices.net"
+# device_id = "my-device"
+# 
+# [provisioning.authentication]
+# method = "x509"
+#
+# identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
+# identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
+# identity_cert = { method = "local_ca", common_name = "my-device" } # dynamically issued by a local CA
+#
+# identity_pk = "file:///var/secrets/device-id.key.pem"                        # file URI, or...
+# identity_pk = { uri = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" } # PKCS#11 URI
+
+
+## DPS provisioning with symmetric key
+# [provisioning]
+# source = "dps"
+# global_endpoint = "https://global.azure-devices-provisioning.net"
+# id_scope = "0ab1234C5D6"
+# 
+# [provisioning.attestation]
+# method = "symmetric_key"
+# registration_id = "my-symmkey-devices"
+#
+# symmetric_key = { value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg==" } # inline key (base64), or...
+# symmetric_key = { uri = "file:///var/secrets/device-id.key" }                                                          # file URI, or...
+# symmetric_key = { uri = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" }                                         # PKCS#11 URI
+
+
+## DPS provisioning with X.509 certificate
+# [provisioning]
+# source = "dps"
+# global_endpoint = "https://global.azure-devices-provisioning.net"
+# id_scope = "0ab1234C5D6"
+# 
+# [provisioning.attestation]
+# method = "x509"
+# registration_id = "my-symmkey-devices"
+#
+# identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
+# identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
+# identity_cert = { method = "local_ca", common_name = "my-device" } # dynamically issued by a local CA
+#
+# identity_pk = "file:///var/secrets/device-id.key.pem"                        # file URI, or...
+# identity_pk = { uri = "pkcs11:slot-id=0;object=device%20id?pin-value=1234" } # PKCS#11 URI
+
+
+## DPS provisioning with TPM
+# [provisioning]
+# source = "dps"
+# global_endpoint = "https://global.azure-devices-provisioning.net"
+# id_scope = "0ab1234C5D6"
+# 
+# [provisioning.attestation]
+# method = "tpm"
+# registration_id = "my-symmkey-devices"
+
+
+# ==============================================================================
+# Cert issuance
+# ==============================================================================
+#
+# If you configured any dynamically issued certs above, uncomment the block
+# corresponding to the issuance method and replace the stub values with yours.
+
+
+# Cert issuance via EST
+# ---------------------
+
+# [cert_issuance.est]
+# trusted_certs = [
+#     "file:///var/secrets/est-id-ca.pem",
+# ]
+# 
+# [cert_issuance.est.auth]
+# username = "estuser"
+# password = "estpwd"
+#
+# # EST ID cert already on device, or...
+# identity_cert = "file:///var/secrets/est-id.pem"
+#
+# identity_pk = "file:///var/secrets/est-id.key.pem"            # file URI, or...
+# identity_pk = "pkcs11:slot-id=0;object=est-id?pin-value=1234" # PKCS#11 URI
+#
+# # EST ID cert requested via EST bootstrap ID cert
+# bootstrap_identity_cert = "file:///var/secrets/est-bootstrap-id.pem"
+#
+# bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"            # file URI, or...
+# bootstrap_identity_pk = "pkcs11:slot-id=0;object=est-bootstrap-id?pin-value=1234" # PKCS#11 URI
+#
+# [cert_issuance.est.urls]
+# default = "https://example.org/.well-known/est"
+
+
+# Cert issuance via local CA
+# --------------------------
+
+# [cert_issuance.local_ca]
+# cert = "file:///var/secrets/local-ca.pem"
+#
+# pk = "file:///var/secrets/local-ca.key.pem"            # file URI, or...
+# pk = "pkcs11:slot-id=0;object=local-ca?pin-value=1234" # PKCS#11 URI
+
+
+# ==============================================================================
+# PKCS#11
+# ==============================================================================
+#
+# If you used any PKCS#11 URIs above, uncomment the next block and
+# replace the stub values with your PKCS#11 configuration.
+
+# [aziot_keys]
+# pkcs11_lib_path = "/usr/lib/libmypkcs11.so"
+# pkcs11_base_slot = "pkcs11:slot-id=0?pin-value=1234"

@@ -1,0 +1,10 @@
+homedir_path = "/var/lib/aziot/certd"
+
+[cert_issuance]
+
+[preloaded_certs]
+device-id = "file:///var/secrets/device-id.pem"
+
+[[principal]]
+uid = 5558
+certs = ["aziot-edge/module/*"]
