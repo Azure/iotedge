@@ -139,9 +139,11 @@ async fn send_message_upstream_downstream() {
 /// - A client connects to remote broker and subscribes to receive messages from downstream
 /// - Client publish message upstream
 ///	- Expects to receive messages downstream -> upstream
-/// - Client publish message upstream
+/// - Shutdown upstream to simulate disconnect
+/// - Client publish message upstream with retain
 /// - Disconnect bridge and shutdown (simulate process restart)
 /// - Reconnect bridge
+/// - Reconnect and resubscribe for upstream
 /// - Expects to receive messages downstream -> upstream
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
@@ -197,21 +199,38 @@ async fn send_message_upstream_with_crash_is_lossless() {
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
     );
 
-    // send upstream but disconnect afterwards
+    upstream_server_handle.shutdown().await;
+
+    // send upstream (with retain) after shutting down upstream
     local_client
-        .publish_qos1("to/temp/1", "from local again", false)
+        .publish_qos1("to/temp/1", "from local again", true)
         .await;
 
+    // Simulate restart
     controller_handle.shutdown();
     controller_task.await.expect("controller task");
+
+    let (mut upstream_server_handle, _) = common::setup_upstream_broker(AllowAll, None, None);
+
+    // re-subscribe and reconnect
+    upstream_client = TestClientBuilder::new(upstream_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
+        .build();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
-        subs,
+        subs.clone(),
         &storage_dir_override,
     )
     .await;
+
+    upstream_client
+        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    upstream_client.subscriptions().next().await;
 
     assert_matches!(
         upstream_client.publications().next().await,
