@@ -2,9 +2,9 @@ use bincode::Result as BincodeResult;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::persist::waking_state::ring_buffer::{
-    error::{BlockError, RingBufferError},
-    StorageResult,
+use crate::persist::waking_state::{
+    ring_buffer::error::{BlockError, RingBufferError},
+    PersistResult,
 };
 
 lazy_static! {
@@ -156,7 +156,7 @@ pub(crate) fn calculate_crc_over_bytes(bytes: &[u8]) -> u32 {
 }
 
 /// A utility fn that validates the integrity of both the block and data.
-pub(crate) fn validate(block: &BlockHeaderWithCrc, data: &[u8]) -> StorageResult<()> {
+pub(crate) fn validate(block: &BlockHeaderWithCrc, data: &[u8]) -> PersistResult<()> {
     let actual_block_crc = block.block_crc();
     let block_crc = calculate_crc(&block.inner)?;
     if actual_block_crc != block_crc {
@@ -199,7 +199,7 @@ mod tests {
     use matches::assert_matches;
     use rand::{distributions::Alphanumeric, thread_rng, Rng};
 
-    use crate::persist::StorageError;
+    use crate::persist::PersistError;
 
     use super::*;
 
@@ -286,7 +286,7 @@ mod tests {
         let _expected = calculate_crc(&data);
         assert_matches!(
             result,
-            Err(StorageError::RingBuffer(RingBufferError::Validate(
+            Err(PersistError::RingBuffer(RingBufferError::Validate(
                 BlockError::DataCrc {
                     found: 0x0000_0bad,
                     expected: _expected,
@@ -312,7 +312,7 @@ mod tests {
         let _expected = expected_result.unwrap();
         assert_matches!(
             result,
-            Err(StorageError::RingBuffer(RingBufferError::Validate(
+            Err(PersistError::RingBuffer(RingBufferError::Validate(
                 BlockError::DataSize {
                     found: 0,
                     expected: _expected,
@@ -336,7 +336,7 @@ mod tests {
         let result = validate(&block, data);
         assert_matches!(
             result,
-            Err(StorageError::RingBuffer(RingBufferError::Validate(_)))
+            Err(PersistError::RingBuffer(RingBufferError::Validate(_)))
         );
     }
 }

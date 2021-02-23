@@ -94,7 +94,6 @@ where
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     use std::{sync::Arc, time::Duration};
@@ -102,30 +101,32 @@ mod tests {
     use bytes::Bytes;
     use futures_util::{future::join, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
+    use parking_lot::Mutex;
+    use test_case::test_case;
     use tokio::time;
 
     use crate::persist::{
         loader::{Key, MessageLoader},
-        waking_state::StreamWakeableState,
-        WakingMemoryStore,
+        waking_state::{memory::test::TestWakingMemoryStore, ring_buffer::test::TestRingBuffer},
+        StreamWakeableState,
     };
-    use parking_lot::Mutex;
 
-    #[test]
-    fn smaller_batch_size_respected() {
+    const BATCH_SIZE: usize = 5;
+
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
+    #[tokio::test]
+    async fn smaller_batch_size_respected(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -134,14 +135,14 @@ mod tests {
         };
 
         // insert elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2).unwrap();
-        drop(state_lock);
-
+        let key1;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(&pub1).unwrap();
+            let _key2 = borrowed_state.insert(&pub2).unwrap();
+        }
         // get batch size elements
-        let batch_size = 1;
-        let mut loader = MessageLoader::new(state, batch_size);
+        let mut loader = MessageLoader::new(state, 1);
         let mut elements = loader.next_batch().unwrap();
 
         // verify
@@ -150,21 +151,20 @@ mod tests {
         assert_eq!((extracted.0, extracted.1), (key1, pub1));
     }
 
-    #[test]
-    fn larger_batch_size_respected() {
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
+    #[tokio::test]
+    async fn larger_batch_size_respected(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -173,14 +173,16 @@ mod tests {
         };
 
         // insert elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2.clone()).unwrap();
-        drop(state_lock);
+        let key1;
+        let key2;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(&pub1).unwrap();
+            key2 = borrowed_state.insert(&pub2).unwrap();
+        }
 
         // get batch size elements
-        let batch_size = 5;
-        let mut loader = MessageLoader::new(state, batch_size);
+        let mut loader = MessageLoader::new(state, BATCH_SIZE);
         let mut elements = loader.next_batch().unwrap();
 
         // verify
@@ -191,17 +193,17 @@ mod tests {
         assert_eq!((extracted2.0, extracted2.1), (key2, pub2));
     }
 
-    #[test]
-    fn ordering_maintained_across_inserts() {
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
+    #[tokio::test]
+    async fn ordering_maintained_across_inserts(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // add many elements
-        let mut state_lock = state.lock();
         let num_elements = 10_usize;
+        let mut keys = vec![];
         for i in 0..num_elements {
-            let key = Key { offset: i as u64 };
             let publication = Publication {
                 topic_name: i.to_string(),
                 qos: QoS::ExactlyOnce,
@@ -209,36 +211,36 @@ mod tests {
                 payload: Bytes::new(),
             };
 
-            state_lock.insert(key, publication).unwrap();
+            let key = {
+                let mut borrowed_state = state.lock();
+                borrowed_state.insert(&publication).unwrap()
+            };
+            keys.push(key);
         }
-        drop(state_lock);
 
         // verify insertion order
         let mut loader = MessageLoader::new(state, num_elements);
         let mut elements = loader.next_batch().unwrap();
 
-        for count in 0..num_elements {
-            let num_elements = count as u64;
-
-            assert_eq!(elements.pop_front().unwrap().0.offset, num_elements)
+        for key in keys {
+            assert_eq!(elements.pop_front().unwrap().0.offset, key.offset)
         }
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
     #[tokio::test]
-    async fn retrieve_elements() {
+    async fn retrieve_elements(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -247,14 +249,15 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2.clone()).unwrap();
-        drop(state_lock);
-
+        let key1;
+        let key2;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(&pub1).unwrap();
+            key2 = borrowed_state.insert(&pub2).unwrap();
+        }
         // get loader
-        let batch_size = 5;
-        let mut loader = MessageLoader::new(state.clone(), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), BATCH_SIZE);
 
         // make sure same publications come out in correct order
         let extracted1 = loader.try_next().await.unwrap().unwrap();
@@ -265,21 +268,20 @@ mod tests {
         assert_eq!(extracted2.1, pub2);
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
     #[tokio::test]
-    async fn delete_and_retrieve_new_elements() {
+    async fn delete_and_retrieve_new_elements(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let key2 = Key { offset: 1 };
         let pub2 = Publication {
             topic_name: "2".to_string(),
             qos: QoS::ExactlyOnce,
@@ -288,51 +290,54 @@ mod tests {
         };
 
         // insert some elements
-        let mut state_lock = state.lock();
-        state_lock.insert(key1, pub1.clone()).unwrap();
-        state_lock.insert(key2, pub2.clone()).unwrap();
-        drop(state_lock);
+        let key1;
+        let key2;
+        {
+            let mut borrowed_state = state.lock();
+            key1 = borrowed_state.insert(&pub1).unwrap();
+            key2 = borrowed_state.insert(&pub2).unwrap();
+        }
 
         // get loader
-        let batch_size = 5;
-        let mut loader = MessageLoader::new(state.clone(), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), BATCH_SIZE);
 
         // process inserted messages
         loader.try_next().await.unwrap().unwrap();
         loader.try_next().await.unwrap().unwrap();
 
         // remove inserted elements
-        let mut state_lock = state.lock();
-        state_lock.remove(key1).unwrap();
-        state_lock.remove(key2).unwrap();
-        drop(state_lock);
+        {
+            let mut borrowed_state = state.lock();
+            borrowed_state.remove(key1).unwrap();
+            borrowed_state.remove(key2).unwrap();
+        }
 
         // insert new elements
-        let key3 = Key { offset: 2 };
         let pub3 = Publication {
             topic_name: "test".to_string(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let mut state_lock = state.lock();
-        state_lock.insert(key3, pub3.clone()).unwrap();
-        drop(state_lock);
-
+        let key3;
+        {
+            let mut borrowed_state = state.lock();
+            key3 = borrowed_state.insert(&pub3).unwrap();
+        }
         // verify new elements are there
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted.0, key3);
         assert_eq!(extracted.1, pub3);
     }
 
+    #[test_case(TestRingBuffer::default())]
+    #[test_case(TestWakingMemoryStore::default())]
     #[tokio::test]
-    async fn poll_stream_does_not_block_when_map_empty() {
+    async fn poll_stream_does_not_block_when_map_empty(state: impl StreamWakeableState) {
         // setup state
-        let state = WakingMemoryStore::default();
         let state = Arc::new(Mutex::new(state));
 
         // setup data
-        let key1 = Key { offset: 0 };
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -341,15 +346,13 @@ mod tests {
         };
 
         // get loader
-        let batch_size = 5;
-        let mut loader = MessageLoader::new(state.clone(), batch_size);
+        let mut loader = MessageLoader::new(state.clone(), BATCH_SIZE);
 
         // async function that waits for a message to enter the state
-        let key_copy = key1;
         let pub_copy = pub1.clone();
         let poll_stream = async move {
             let extracted = loader.try_next().await.unwrap().unwrap();
-            assert_eq!((key_copy, pub_copy), extracted);
+            assert_eq!((Key { offset: 0 }, pub_copy), extracted);
         };
 
         // add an element to the state
@@ -358,9 +361,10 @@ mod tests {
             time::delay_for(Duration::from_secs(2)).await;
 
             // insert element once stream is polled
-            let mut state_lock = state.lock();
-            state_lock.insert(key1, pub1).unwrap();
-            drop(state_lock);
+            {
+                let mut borrowed_state = state.lock();
+                let _key = borrowed_state.insert(&pub1).unwrap();
+            }
         };
 
         join(poll_stream, insert).await;
