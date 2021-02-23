@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# This script is intended to be used for nested edge tests. It deploy level 4 and level 5.
-# Level 3 is deveployed by specialized script for connectivity/long haul and quick start.
+# This script is intended to be used for nested edge tests. It deploys level 4 and level 5.
+# Level 3 is deployed by specialized script for connectivity/long haul and quick start.
 
 function create_certificates() {
     echo "Installing test root certificate bundle."
@@ -32,6 +32,16 @@ function setup_iotedge() {
     sudo chmod 644 /etc/aziot/certd/config.toml
     sudo cat /etc/aziot/certd/config.toml
 
+    # Grant aziot-edged access to edgeHub server certs.
+    >/tmp/principals.toml cat <<-EOF
+[[principal]]
+uid = $(id -u iotedge)
+certs = ["$edgeHub*server"]
+EOF
+    sudo mv /tmp/principals.toml /etc/aziot/certd/config.d/aziot-edged-principal.toml
+    sudo chown aziotcs:aziotcs /etc/aziot/certd/config.d/aziot-edged-principal.toml
+    sudo chmod 0600 /etc/aziot/certd/config.d/aziot-edged-principal.toml
+
     echo "Setup keyd"
     sudo touch /etc/aziot/keyd/config.toml
     echo "[aziot_keys]" | sudo tee  /etc/aziot/keyd/config.toml
@@ -44,6 +54,26 @@ function setup_iotedge() {
     sudo chown aziotks:aziotks /etc/aziot/keyd/config.toml
     sudo chmod 644 /etc/aziot/keyd/config.toml
     sudo cat /etc/aziot/keyd/config.toml
+
+    # Grant aziot-identityd access to device ID and master encryption key.
+    >/tmp/principals.toml cat <<-EOF
+[[principal]]
+uid = $(id -u aziotid)
+keys = ["device-id", "aziot_identityd_master_id"]
+EOF
+    sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+    sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+    sudo chmod 0600 /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+
+    # Grant aziot-edged access to device CA cert and master encryption key.
+    >/tmp/principals.toml cat <<-EOF
+[[principal]]
+uid = $(id -u iotedge)
+keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
+EOF
+    sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-edged-principal.toml
+    sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-edged-principal.toml
+    sudo chmod 0600 /etc/aziot/keyd/config.d/aziot-edged-principal.toml
 
     echo "Setup edged"
     echo "    Updating edge Agent"
@@ -99,9 +129,6 @@ function setup_iotedge() {
     echo "name = \"aziot-edge\"" | sudo tee -a  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
     sudo chown "$(id -u aziotid):$(id -g aziotid)" /etc/aziot/identityd/config.d/aziot-edged-principal.toml
 
-    #deploy the config in azure portal
-    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
-
     echo "Setup /var/secrets/aziot/keyd/device-id"
     sudo mkdir -p /var/secrets
     sudo mkdir -p /var/secrets/aziot
@@ -113,6 +140,27 @@ function setup_iotedge() {
     sudo mv device-id  /var/secrets/aziot/keyd/device-id
     sudo chmod 600 /var/secrets/aziot/keyd/device-id
     sudo chown aziotks:aziotks /var/secrets/aziot/keyd/device-id
+
+    if [ ! -z $PROXY_ADDRESS ]; then
+        echo "Configuring the bootstrapping edgeAgent to use http proxy"
+        sudo sed -i "47s|.*|  env:|" /etc/aziot/edged/config.yaml
+        sudo sed -i "48i\    https_proxy: \"${PROXY_ADDRESS}\"" /etc/aziot/edged/config.yaml
+
+        echo "Adding proxy configuration to docker"
+        sudo mkdir -p /etc/systemd/system/docker.service.d/
+        { echo "[Service]";
+        echo "Environment=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+
+        echo "Adding proxy configuration to IoT Edge daemon"
+        sudo mkdir -p /etc/systemd/system/iotedge.service.d/
+        { echo "[Service]";
+        echo "Environment=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/iotedge.service.d/proxy.conf
+        sudo systemctl daemon-reload
+    fi
 
     echo "Start IoT edge"
     sudo systemctl start aziot-keyd aziot-certd aziot-identityd aziot-edged
@@ -135,6 +183,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<proxyAddress>@$PROXY_ADDRESS@g" "$deployment_working_file"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -143,6 +192,9 @@ function prepare_test_from_artifacts() {
     if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
     fi
+
+    #deploy the config in azure portal
+    az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
 }
 
 function process_args() {
@@ -204,6 +256,12 @@ function process_args() {
         elif [ $saveNextArg -eq 18 ]; then
             IOT_HUB_NAME="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 19 ]; then
+            PROXY_ADDRESS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 20 ]; then
+            CHANGE_DEPLOY_CONFIG_ONLY="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -225,6 +283,8 @@ function process_args() {
                 '-connectionString' ) saveNextArg=16;;
                 '-deviceId' ) saveNextArg=17;;
                 '-iotHubName' ) saveNextArg=18;;
+                '-proxyAddress' ) saveNextArg=19;;
+                '-changeDeployConfigOnly' ) saveNextArg=20;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -237,7 +297,6 @@ function process_args() {
     done
 
     # Required parameters
-    [[ -z "$CONNECTION_STRING" ]] && { print_error 'CONNECTION_STRING is required.'; exit 1; }
     [[ -z "$DEVICE_ID" ]] && { print_error 'DEVICE_ID is required.'; exit 1; }
     [[ -z "$SUBSCRIPTION" ]] && { print_error 'SUBSCRIPTION is required.'; exit 1; }
     [[ -z "$LEVEL" ]] && { print_error 'Level is required.'; exit 1; }
@@ -249,16 +308,6 @@ function process_args() {
     [[ -z "$STORAGE_ACCOUNT_CONNECTION_STRING" ]] && { print_error 'Storage account connection string is required'; exit 1; }
 
     echo 'Required parameters are provided'
-}
-
-function test_setup() {
-    local funcRet=0
-
-    prepare_test_from_artifacts && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
-
-    create_iotedge_service_config && funcRet=$? || funcRet=$?
-    if [ $funcRet -ne 0 ]; then return $funcRet; fi
 }
 
 function set_output_params() {
@@ -298,10 +347,15 @@ working_folder="$E2E_TEST_DIR/working"
 connectivity_deployment_artifact_file="e2e_deployment_files/$DEPLOYMENT_FILE_NAME"
 deployment_working_file="$working_folder/deployment.json"
 
-test_setup
-create_certificates
-setup_iotedge
-set_output_params
+prepare_test_from_artifacts
+
+
+if [ "$CHANGE_DEPLOY_CONFIG_ONLY" != "true" ]; then
+    create_iotedge_service_config
+    create_certificates
+    setup_iotedge
+    set_output_params
+fi
 
 #clean up
 #az iot hub device-identity delete -n ${iotHubName} -d ${iotEdgeDevicesName}

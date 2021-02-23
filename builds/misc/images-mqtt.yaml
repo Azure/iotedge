@@ -3,7 +3,14 @@ trigger:
   branches:
     include:
       - master
+  paths:
+    include:
+      - "mqtt/*"
+      - "builds/*"
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
 
 jobs:
 ################################################################################

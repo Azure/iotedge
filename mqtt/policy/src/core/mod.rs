@@ -67,6 +67,7 @@ where
         }
     }
 
+    #[allow(clippy::unnecessary_wraps)]
     fn eval_static_rules(&self, request: &Request<RC>) -> Result<Option<EffectOrd>> {
         // lookup an identity
         match self.static_rules.get(&request.identity) {

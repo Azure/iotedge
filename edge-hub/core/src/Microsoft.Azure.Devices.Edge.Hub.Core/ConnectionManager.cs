@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 throw new ArgumentException($"A connection for {id} not found.");
             }
 
-            // setting 'hasChanged' to false, so if not device connection, it doesn't indicate status change
+            // setting 'hasChanged' to false, so if no device connection, it doesn't indicate status change
             bool hasChanged = false;
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>
@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 throw new ArgumentException($"A connection for {id} not found.");
             }
 
-            // setting 'hasChanged' to false, so if not device connection, it doesn't indicate status change
+            // setting 'hasChanged' to false, so if no device connection, it doesn't indicate status change
             bool hasChanged = false;
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>

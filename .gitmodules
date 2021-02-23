@@ -1,3 +1,0 @@
-[submodule "edgelet/aziot"]
-	path = edgelet/aziot
-	url = https://github.com/Azure/iot-identity-service.git

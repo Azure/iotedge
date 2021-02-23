@@ -1,6 +1,9 @@
 trigger: none
 pr: none
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 resources:
   pipelines:
   - pipeline: images
@@ -14,209 +17,35 @@ stages:
 - stage: SetupVMs
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
-  - job:  Deploy_Longhaul_Linux_Amd64
-    displayName: Set up and run longhaul tests on Linux Amd64
-    dependsOn: SetupVM_level4
-    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - status -equals unlocked  
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
-      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
-      hostPlatform: 'linux_amd64_moby'
-      quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
-      nestededge: true
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml 
-      - template: templates/nested-longhaul-deploy.yaml
-        parameters:
-          release.label: 'lh$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(az.pipeline.images.artifacts)'
-          container.registry: '$(cr.address)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
-          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: '$(hostPlatform)'
-          longHaul.parentHostname: '$(parentName)'
-          longHaul.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
-          quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
-  - job:  Deploy_Longhaul_Linux_Arm32
-    displayName: Set up and run longhaul tests on Arm32
-    dependsOn: SetupVM_level4
-    condition: and(succeeded(), eq(variables['run.linux.arm32v7.moby'], 'true'))
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - status -equals unlocked   
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
-      aziotis.artifact.name: 'packages_debian-9-slim_arm32v7'
-      aziotis.package.filter: 'aziot-identity-service_*_armhf.deb'
-      hostPlatform: 'linux_arm32v7_moby'
-      quickstart.package.name: 'IotEdgeQuickstart.linux-arm.tar.gz'
-      nestededge: true
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml   
-      - template: templates/nested-longhaul-deploy.yaml
-        parameters:
-          release.label: 'lh$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(az.pipeline.images.artifacts)'
-          container.registry: '$(cr.address)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
-          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: '$(hostPlatform)'
-          longHaul.parentHostname: '$(parentName)'
-          longHaul.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
-          quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
-  - job:  Deploy_Longhaul_Linux_Arm64
-    displayName: Set up and run longhaul tests on Linux Arm64
-    dependsOn: SetupVM_level4
-    condition: and(succeeded(), eq(variables['run.linux.arm64v8.docker'], 'true'))  
-    pool:
-      name: $(pool.name)
-      demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - status -equals unlocked
-    variables:
-      parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
-      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
-      aziotis.artifact.name: 'packages_ubuntu-18.04_aarch64'
-      aziotis.package.filter: 'aziot-identity-service_*_arm64.deb'
-      hostPlatform: 'linux_arm64v8_docker'
-      quickstart.package.name: 'IotEdgeQuickstart.linux-arm64.tar.gz'
-      nestededge: true     
-    steps:   
-      - template: templates/nested-get-secrets.yaml     
-      - template: templates/lock-test-agent.yaml     
-      - template: templates/nested-get-root-ca.yaml  
-      - template: templates/nested-longhaul-deploy.yaml
-        parameters:
-          release.label: 'lh$(agent.group)'
-          test.buildNumber: '$(Build.BuildNumber)'
-          test.buildId: '$(Build.BuildId)'
-          test.startDelay: '$(test.startDelay)'
-          build.source.branch: '$(Build.SourceBranchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
-          edgelet.source.branch: '$(edgelet.package.branchName)'
-          images.source.branch: '$(images.branchName)'
-          edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(az.pipeline.images.artifacts)'
-          container.registry: '$(cr.address)'
-          container.registry.username: '$(edgebuilds-azurecr-io-username)'
-          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
-          loadGen.message.frequency: '$(loadGen.message.frequency)'
-          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
-          longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
-          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
-          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
-          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
-          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: '$(hostPlatform)'
-          longHaul.parentHostname: '$(parentName)'
-          longHaul.parentEdgeDevice: '$(parentDeviceId)'
-          testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
-          quickstart.package.name: '$(quickstart.package.name)'
-          aziotis.artifact.name: '$(aziotis.artifact.name)'
-          aziotis.package.filter: '$(aziotis.package.filter)'
+    parameters:
+      transportType: amqp
+  - template: templates/nested-longhaul-deploy-amd64.yaml
+    parameters:
+      transportType: amqp
+  - template: templates/nested-parent-vm-setup.yaml
+    parameters:
+      transportType: mqtt
+  - template: templates/nested-longhaul-deploy-amd64.yaml
+    parameters:
+      transportType: mqtt
+
   - job:  Clean_up      
     dependsOn:
-      - SetupVM_level5 
-      - SetupVM_level4
-      - Deploy_Longhaul_Linux_Amd64
-      - Deploy_Longhaul_Linux_Arm32
-      - Deploy_Longhaul_Linux_Arm64
+      - SetupVM_level5_amqp
+      - SetupVM_level5_mqtt
+      - SetupVM_level4_amqp
+      - SetupVM_level4_mqtt
+      - Deploy_Longhaul_Linux_Amd64_amqp
+      - Deploy_Longhaul_Linux_Amd64_mqtt
     condition: eq(variables['test.pipeline'], 'true')
     displayName: Clean up identities and unlock agents
     variables:    
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5.outputs['lock_test_agent.agentName'] ]         
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4.outputs['lock_test_agent.agentName'] ]       
-      amd64AgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
-      arm32AgentName: $[ dependencies.Deploy_Longhaul_Linux_Arm32.outputs['lock_test_agent.agentName'] ]  
-      arm64AgentName: $[ dependencies.Deploy_Longhaul_Linux_Arm64.outputs['lock_test_agent.agentName'] ]  
+      deviceLvl5AmqpAgentName: $[ dependencies.SetupVM_level5_amqp.outputs['lock_test_agent.agentName'] ]
+      deviceLvl5MqttAgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]
+      deviceLvl4AmqpAgentName: $[ dependencies.SetupVM_level4_amqp.outputs['lock_test_agent.agentName'] ]
+      deviceLvl4MqttAgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]
+      amd64AmqpAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_amqp.outputs['lock_test_agent.agentName'] ]
+      amd64MqttAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_mqtt.outputs['lock_test_agent.agentName'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -228,21 +57,25 @@ stages:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agent.yaml 
         parameters:
-          agentName: $(deviceLvl5AgentName)
+          agentName: $(deviceLvl5AmqpAgentName)
           lvl: 5  
       - template: templates/unlock-test-agent.yaml 
         parameters:
-          agentName: $(deviceLvl4AgentName)
-          lvl: 4             
+          agentName: $(deviceLvl5MqttAgentName)
+          lvl: 5  
       - template: templates/unlock-test-agent.yaml 
         parameters:
-          agentName: $(amd64AgentName)
+          agentName: $(deviceLvl4AmqpAgentName)
+          lvl: 4     
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl4MqttAgentName)
+          lvl: 4     
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(amd64AmqpAgentName)
           lvl: 3  
       - template: templates/unlock-test-agent.yaml 
         parameters:
-          agentName: $(arm32AgentName)
-          lvl: 3  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(arm64AgentName)
-          lvl: 3  
+          agentName: $(amd64MqttAgentName)
+          lvl: 3
