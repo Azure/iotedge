@@ -42,7 +42,7 @@ matches = "0.1"
 rand = "0.8"
 serial_test = "0.4"
 tempfile = "3"
-test-case = "1.0"
+test-case = "1.1"
 tokio = { version = "0.2", features = ["macros"] }
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
