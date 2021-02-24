@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
 {
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -103,7 +104,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1,
                 ["mod2"] = TestModule2
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config1_1 = new DeploymentConfig(
             "1.0",
@@ -113,7 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             {
                 ["mod1"] = TestModule1_1,
                 ["mod2"] = TestModule2_1
-            });
+            },
+            null);
 
         static readonly DeploymentConfig Config2 = new DeploymentConfig(
             "1.0",
@@ -122,7 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new Dictionary<string, IModule>
             {
                 ["mod1"] = TestModule1
-            });
+            },
+            null);
 
         static readonly DeploymentConfigInfo ConfigInfo1 = new DeploymentConfigInfo(1, Config1);
         static readonly DeploymentConfigInfo ConfigInfo1_1 = new DeploymentConfigInfo(1, Config1_1);
