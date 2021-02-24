@@ -267,6 +267,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(response);
         }
 
+        public static async Task<IEnumerable<X509Certificate2>> GetManifestTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
+        {
+            string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetManifestTrustBundleAsync();
+            return ParseManifestTrustedBundleCerts(response);
+        }
+
         public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
         {
             string cert, privateKey;
@@ -338,6 +344,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             Preconditions.CheckNotNull(trustedCACerts, nameof(trustedCACerts));
             return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
+        }
+
+        internal static IEnumerable<X509Certificate2> ParseManifestTrustedBundleCerts(string manifestTrustedCACerts)
+        {
+            Preconditions.CheckNotNull(manifestTrustedCACerts, nameof(manifestTrustedCACerts));
+            return GetCertificatesFromPem(ParsePemCerts(manifestTrustedCACerts));
         }
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>

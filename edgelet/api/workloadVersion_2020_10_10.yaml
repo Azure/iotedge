@@ -476,7 +476,7 @@ definitions:
       certificate:
         type: string
         format: bytes
-        description: Base64 encoded PEM formatted byte array containing the manifest trusted root certificate authority.
+        description: Base64 encoded PEM formatted byte array containing the manifest trust root certificate authority.
     required:
       - certificate
 
