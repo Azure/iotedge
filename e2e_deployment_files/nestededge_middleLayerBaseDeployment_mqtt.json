@@ -36,18 +36,15 @@
               "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               },
               "DeviceScopeCacheRefreshDelaySecs": {
-                "value": 1
+                "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }                   
+              }
             },
             "status": "running",
             "restartPolicy": "always"
