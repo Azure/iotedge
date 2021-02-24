@@ -253,8 +253,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
             deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.Is<string>(i => i == deviceIdentity.Id), false))
                 .ThrowsAsync(new DeviceInvalidStateException("Device is disabled."));
-            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.Is<string>(i => i == deviceIdentity.Id), true))
-                .Returns(Task.CompletedTask);
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
@@ -294,8 +292,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
             deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.Is<string>(i => i == deviceIdentity.Id), false))
                 .ThrowsAsync(new DeviceInvalidStateException());
-            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.Is<string>(i => i == deviceIdentity.Id), true))
-               .Returns(Task.CompletedTask);
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var edgeHub = Mock.Of<IEdgeHub>();
