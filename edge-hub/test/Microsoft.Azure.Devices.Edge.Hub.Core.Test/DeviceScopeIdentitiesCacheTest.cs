@@ -764,7 +764,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Try<ServiceIdentity> not_updated_moduleServiceIdentity = await deviceScopeIdentitiesCache.TryGetServiceIdentity("d1/m1", true);
 
             // wait for refresh delay
-            await Task.Delay(5000);
+            await Task.Delay(10000);
 
             serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ThrowsAsync(new DeviceInvalidStateException("Device removed."));
             serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ThrowsAsync(new DeviceInvalidStateException("Device removed."));
