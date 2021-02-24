@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             HttpOperationResponse<V1PodList> podListResp = await task;
             try
             {
-                response = await task;
+                podListResp = await task;
             }
             catch (Exception ex)
             {
