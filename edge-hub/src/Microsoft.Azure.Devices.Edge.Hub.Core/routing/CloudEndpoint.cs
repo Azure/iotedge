@@ -28,7 +28,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     public class CloudEndpoint : Endpoint
     {
         readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
-        readonly Func<string, Task> cloudProxyCloseFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
         readonly bool giveupOnInvalidState;
@@ -36,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
-            Func<string, Task> cloudProxyCloseFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
             bool giveupOnInvalidState = false,
             int maxBatchSize = 10,
@@ -45,7 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         {
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
-            this.cloudProxyCloseFunc = Preconditions.CheckNotNull(cloudProxyCloseFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
@@ -223,12 +220,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         }
 
                         return new SinkResult<IRoutingMessage>(routingMessages);
-                    }
-                    catch (UnauthorizedException e) when (this.giveupOnInvalidState)
-                    {
-                        // close cloud proxy and this will trigger to create a new cloud connection when retrying to send messsage
-                        await this.cloudEndpoint.cloudProxyCloseFunc(id);
-                        return this.HandleException(e, id, routingMessages);
                     }
                     catch (Exception ex)
                     {

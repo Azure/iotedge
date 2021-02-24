@@ -126,6 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             switch (statusCode)
             {
+                case HttpStatusCode.BadRequest:
                 case HttpStatusCode.Unauthorized:
                 case HttpStatusCode.Forbidden:
                 case HttpStatusCode.NotFound:

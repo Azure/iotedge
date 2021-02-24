@@ -82,13 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 : Task.CompletedTask;
         }
 
-        public Task RemoveCloudConnection(string id)
-        {
-            return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
-                ? device.CloudConnection.Filter(cp => cp.IsActive).ForEachAsync(cp => cp.CloseAsync())
-                : Task.CompletedTask;
-        }
-
         public Option<IDeviceProxy> GetDeviceConnection(string id)
         {
             return this.devices.TryGetValue(Preconditions.CheckNonWhiteSpace(id, nameof(id)), out ConnectedDevice device)
