@@ -1,5 +1,6 @@
 use std::{
     collections::VecDeque,
+    num::NonZeroUsize,
     pin::Pin,
     sync::Arc,
     task::{Context, Poll},
@@ -9,7 +10,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::persist::{waking_state::StreamWakeableState, Key, PersistError};
+use crate::persist::{waking_state::StreamWakeableState, Key, PersistResult};
 
 /// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
 /// This facilitates sharing between multiple futures in a single threaded environment
@@ -32,20 +33,20 @@ impl<S> MessageLoader<S>
 where
     S: StreamWakeableState,
 {
-    pub fn new(state: Arc<Mutex<S>>, batch_size: usize) -> Self {
+    pub fn new(state: Arc<Mutex<S>>, batch_size: NonZeroUsize) -> Self {
         let batch = VecDeque::new();
 
         let inner = MessageLoaderInner {
             state,
             batch,
-            batch_size,
+            batch_size: batch_size.get(),
         };
         let inner = Arc::new(Mutex::new(inner));
 
         Self(inner)
     }
 
-    fn next_batch(&mut self) -> Result<VecDeque<(Key, Publication)>, PersistError> {
+    fn next_batch(&mut self) -> PersistResult<VecDeque<(Key, Publication)>> {
         let inner = self.0.lock();
         let mut state_lock = inner.state.lock();
         let batch = state_lock.batch(inner.batch_size)?;
@@ -64,7 +65,7 @@ impl<S> Stream for MessageLoader<S>
 where
     S: StreamWakeableState,
 {
-    type Item = Result<(Key, Publication), PersistError>;
+    type Item = PersistResult<(Key, Publication)>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut inner = self.0.lock();
@@ -96,7 +97,7 @@ where
 }
 #[cfg(test)]
 mod tests {
-    use std::{sync::Arc, time::Duration};
+    use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
     use bytes::Bytes;
     use futures_util::{future::join, stream::TryStreamExt};
@@ -142,7 +143,7 @@ mod tests {
             let _key2 = borrowed_state.insert(&pub2).unwrap();
         }
         // get batch size elements
-        let mut loader = MessageLoader::new(state, 1);
+        let mut loader = MessageLoader::new(state, NonZeroUsize::new(1).unwrap());
         let mut elements = loader.next_batch().unwrap();
 
         // verify
@@ -182,7 +183,7 @@ mod tests {
         }
 
         // get batch size elements
-        let mut loader = MessageLoader::new(state, BATCH_SIZE);
+        let mut loader = MessageLoader::new(state, NonZeroUsize::new(BATCH_SIZE).unwrap());
         let mut elements = loader.next_batch().unwrap();
 
         // verify
@@ -219,7 +220,7 @@ mod tests {
         }
 
         // verify insertion order
-        let mut loader = MessageLoader::new(state, num_elements);
+        let mut loader = MessageLoader::new(state, NonZeroUsize::new(num_elements).unwrap());
         let mut elements = loader.next_batch().unwrap();
 
         for key in keys {
@@ -257,7 +258,7 @@ mod tests {
             key2 = borrowed_state.insert(&pub2).unwrap();
         }
         // get loader
-        let mut loader = MessageLoader::new(state.clone(), BATCH_SIZE);
+        let mut loader = MessageLoader::new(state.clone(), NonZeroUsize::new(BATCH_SIZE).unwrap());
 
         // make sure same publications come out in correct order
         let extracted1 = loader.try_next().await.unwrap().unwrap();
@@ -299,7 +300,7 @@ mod tests {
         }
 
         // get loader
-        let mut loader = MessageLoader::new(state.clone(), BATCH_SIZE);
+        let mut loader = MessageLoader::new(state.clone(), NonZeroUsize::new(BATCH_SIZE).unwrap());
 
         // process inserted messages
         loader.try_next().await.unwrap().unwrap();
@@ -346,7 +347,7 @@ mod tests {
         };
 
         // get loader
-        let mut loader = MessageLoader::new(state.clone(), BATCH_SIZE);
+        let mut loader = MessageLoader::new(state.clone(), NonZeroUsize::new(BATCH_SIZE).unwrap());
 
         // async function that waits for a message to enter the state
         let pub_copy = pub1.clone();

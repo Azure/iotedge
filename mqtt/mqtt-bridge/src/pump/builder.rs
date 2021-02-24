@@ -6,7 +6,7 @@ use crate::{
     bridge::BridgeError,
     client::{MqttClient, MqttClientConfig, MqttClientExt},
     messages::{self, StoreMqttEventHandler, TopicMapper},
-    persist::{PersistResult, PublicationStore, StreamWakeableState, WakingMemoryStore},
+    persist::{PersistResult, PublicationStore, StreamWakeableState},
     settings::TopicRule,
     upstream::{
         ConnectivityMqttEventHandler, LocalRpcMqttEventHandler, LocalUpstreamMqttEventHandler,
@@ -40,7 +40,7 @@ pub struct Builder<S> {
     store: Option<BoxedStorageCreatedFn<S>>,
 }
 
-impl Default for Builder<WakingMemoryStore> {
+impl<S> Default for Builder<S> {
     fn default() -> Self {
         Self {
             local: PumpBuilder::default(),

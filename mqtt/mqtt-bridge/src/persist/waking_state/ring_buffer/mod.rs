@@ -15,7 +15,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use block::{calculate_crc_over_bytes, BlockHeaderV1};
 use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
@@ -26,7 +25,8 @@ use crate::persist::{
     waking_state::{
         ring_buffer::{
             block::{
-                validate, BlockHeaderWithCrc, BlockVersion, BLOCK_HINT, SERIALIZED_BLOCK_SIZE,
+                calculate_crc_over_bytes, validate, BlockHeaderV1, BlockHeaderWithCrc,
+                BlockVersion, BLOCK_HINT, SERIALIZED_BLOCK_SIZE,
             },
             error::{BlockError, RingBufferError},
             flush::{FlushOptions, FlushState},

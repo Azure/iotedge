@@ -7,9 +7,10 @@ use serde::{Deserialize, Serialize};
 
 pub use loader::MessageLoader;
 pub use publication_store::PublicationStore;
-use waking_state::{memory::error::MemoryError, ring_buffer::error::RingBufferError};
+use waking_state::memory::error::MemoryError;
 pub use waking_state::{
-    memory::WakingMemoryStore, ring_buffer::flush::FlushOptions, ring_buffer::RingBuffer,
+    memory::WakingMemoryStore,
+    ring_buffer::{error::RingBufferError, flush::FlushOptions, RingBuffer},
     StreamWakeableState,
 };
 

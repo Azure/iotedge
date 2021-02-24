@@ -42,11 +42,11 @@ impl PublicationStore<RingBuffer> {
     pub fn new_ring_buffer(
         batch_size: NonZeroUsize,
         ring_buffer_settings: &RingBufferSettings,
-        device_id: String,
+        bridge_name: &str,
         suffix: &str,
     ) -> PersistResult<Self> {
         let mut file_path = ring_buffer_settings.directory().clone();
-        file_path.push(device_id);
+        file_path.push(bridge_name);
         file_path.push(suffix);
         let max_file_size = ring_buffer_settings.max_file_size();
         let flush_options = ring_buffer_settings.flush_options();
@@ -61,7 +61,7 @@ where
 {
     pub fn new(state: S, batch_size: NonZeroUsize) -> Self {
         let state = Arc::new(Mutex::new(state));
-        let loader = MessageLoader::new(state.clone(), batch_size.get());
+        let loader = MessageLoader::new(state.clone(), batch_size);
 
         let inner = PublicationStoreInner { state, loader };
         let inner = Arc::new(Mutex::new(inner));
