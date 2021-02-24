@@ -39,7 +39,7 @@ jobs:
           imageName: azureiotedge-api-proxy
           project: api-proxy-module
           version: $(buildVersion)
-          buildx_flag: true
+          buildx_flag: false
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
