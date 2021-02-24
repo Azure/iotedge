@@ -72,11 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             File.Move(file, file + ".backup", true);
                         }
 
-                        // The name of the default aziot-edged config file differs based on OS.
-                        string configDefault = file.Contains("edged") ? this.daemon.GetDefaultEdgedConfig() : file + ".default";
-
                         // Reset all config files to the default file.
-                        ResetConfigFile(file, configDefault, owner);
+                        ResetConfigFile(file, file + ".default", owner);
                     }
 
                     await this.daemon.ConfigureAsync(

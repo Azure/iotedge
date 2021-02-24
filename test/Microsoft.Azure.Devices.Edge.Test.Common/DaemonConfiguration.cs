@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             public string PrincipalsPath;
             public string Owner;
             public uint Uid;
-            public IConfigDocument Document;
+            public TomlDocument Document;
         }
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";

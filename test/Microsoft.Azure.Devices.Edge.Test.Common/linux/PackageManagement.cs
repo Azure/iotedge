@@ -60,11 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
         }
 
-        public string GetDefaultEdgedConfig()
-        {
-            return "/etc/aziot/edged/config.toml.default";
-        }
-
         public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy)
         {
             throw new NotImplementedException("aziot-edge and aziot-identity-service currently aren't available in package repos");

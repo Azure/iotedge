@@ -88,7 +88,7 @@ namespace IotEdgeQuickstart.Details
             public string Owner;
             public string PrincipalsPath;
             public uint Uid;
-            public IConfigDocument Document;
+            public TomlDocument Document;
         }
 
         public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)

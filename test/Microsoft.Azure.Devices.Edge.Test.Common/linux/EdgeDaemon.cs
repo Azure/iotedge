@@ -245,10 +245,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 }
             }
         }
-
-        public string GetDefaultEdgedConfig()
-        {
-            return this.packageManagement.GetDefaultEdgedConfig();
-        }
     }
 }
