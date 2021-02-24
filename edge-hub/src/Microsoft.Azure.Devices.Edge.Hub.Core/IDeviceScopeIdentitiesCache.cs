@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false);
 
-        Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refresh = false);
+        Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refreshIfOutOfDate = false);
 
         void InitiateCacheRefresh();
 

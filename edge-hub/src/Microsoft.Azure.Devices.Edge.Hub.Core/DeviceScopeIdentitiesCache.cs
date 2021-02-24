@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
-        readonly TimeSpan refreshDelay;
+        readonly TimeSpan purgeInterval;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
 
@@ -48,13 +48,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan refreshRate,
-            TimeSpan refreshDelay)
+            TimeSpan purgeInterval)
         {
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.serviceIdentityCache = initialCache;
             this.refreshRate = refreshRate;
-            this.refreshDelay = refreshDelay;
+            this.purgeInterval = purgeInterval;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
         }
 
@@ -115,6 +115,64 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        bool IsUp2Date(StoredServiceIdentity storedServiceIdentity) => storedServiceIdentity.Timestamp + this.purgeInterval > DateTime.UtcNow;
+
+        Try<ServiceIdentity> ExtractServiceIdentity(StoredServiceIdentity storedServiceIdentity) => this.ExtractServiceIdentity(storedServiceIdentity.ServiceIdentity);
+
+        Try<ServiceIdentity> ExtractServiceIdentity(Option<ServiceIdentity> serviceIdentity)
+        {
+            return serviceIdentity.Map(si =>
+            {
+                if (si.Status != ServiceIdentityStatus.Enabled)
+                {
+                    return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device is disabled."));
+                }
+                else
+                {
+                    return Try.Success(si);
+                }
+            }).GetOrElse(Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
+        }
+
+        async Task<Try<ServiceIdentity>> RefreshServiceIdentityAsync(string id)
+        {
+            try
+            {
+                // start refresh
+                Events.RefreshingServiceIdentity(id);
+                // Successfully get response from server
+                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
+                // If found device, update it otherwise something is wrong with the device, set it as invalid
+                await serviceIdentity
+                    .Map(s => this.HandleNewServiceIdentity(s))
+                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
+                return this.ExtractServiceIdentity(serviceIdentity);
+            }
+            catch (DeviceInvalidStateException ex)
+            {
+                Events.ErrorRefreshingCache(ex, id);
+                // Device either out of scope or remove, set it as invalid
+                await this.HandleNoServiceIdentity(id);
+                return Try<ServiceIdentity>.Failure(ex);
+            }
+            catch (Exception e)
+            {
+                // Refresh failed
+                Events.ErrorRefreshingCache(e, id);
+                return Try<ServiceIdentity>.Failure(e);
+            }
+        }
+
+        public async Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refreshIfOutOfDate = false)
+        {
+            Option<StoredServiceIdentity> storedServiceIdentity = await this.GetStoredServiceIdentity(id);
+            // if stored service identity is up to date, use it, otherwise refresh
+            return await storedServiceIdentity.Filter(ssi => !refreshIfOutOfDate || this.IsUp2Date(ssi))
+                .Map(ssi => this.ExtractServiceIdentity(ssi))
+                .Map(ssi => Task.FromResult(ssi))
+                .GetOrElse(() => this.RefreshServiceIdentityAsync(id));
+        }
+
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
         {
             List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
@@ -134,49 +192,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             return await this.GetServiceIdentityInternal(id);
-        }
-
-        public async Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refresh = false)
-        {
-            var storedServiceIdentity = await this.GetStoredServiceIdentity(id);
-
-            return await storedServiceIdentity.Match(
-                async (ssi) =>
-                {
-                    if (refresh && ssi.Timestamp + this.refreshDelay <= DateTime.UtcNow)
-                    {
-                        await this.RefreshServiceIdentity(id);
-                        return await this.TryGetServiceIdentity(id, false);
-                    }
-
-                    return ssi.ServiceIdentity.Match(
-                        (si) =>
-                        {
-                            if (si.Status != ServiceIdentityStatus.Enabled)
-                            {
-                                return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device disabled."));
-                            }
-
-                            return Try.Success(si);
-                        },
-                        () =>
-                         {
-                             return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device removed from scope."));
-                         });
-                },
-                async () =>
-                {
-                    // refresh if was never in cache, it will updated the cache and look as removed from scope
-                    if (refresh)
-                    {
-                        await this.RefreshServiceIdentity(id);
-                        return await this.TryGetServiceIdentity(id, false);
-                    }
-                    else
-                    {
-                        return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device not in scope."));
-                    }
-                });
         }
 
         public void Dispose()

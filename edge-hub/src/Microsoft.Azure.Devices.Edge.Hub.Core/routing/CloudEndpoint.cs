@@ -30,13 +30,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
-        readonly bool giveupOnInvalidState;
+        readonly bool trackDeviceState;
 
         public CloudEndpoint(
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            bool giveupOnInvalidState = false,
+            bool trackDeviceState = false,
             int maxBatchSize = 10,
             int fanoutFactor = 10)
             : base(id)
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
-            this.giveupOnInvalidState = giveupOnInvalidState;
+            this.trackDeviceState = trackDeviceState;
             Events.Created(id, maxBatchSize, fanoutFactor);
         }
 
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public override int FanOutFactor { get; }
 
-        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this, this.giveupOnInvalidState);
+        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this, this.trackDeviceState);
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
@@ -73,12 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             readonly CloudEndpoint cloudEndpoint;
 
-            readonly bool giveupOnInvalidState;
+            readonly bool trackDeviceState;
 
-            public CloudMessageProcessor(CloudEndpoint endpoint, bool giveupOnInvalidState)
+            public CloudMessageProcessor(CloudEndpoint endpoint, bool trackDeviceState)
             {
                 this.cloudEndpoint = Preconditions.CheckNotNull(endpoint);
-                this.giveupOnInvalidState = giveupOnInvalidState;
+                this.trackDeviceState = trackDeviceState;
             }
 
             public Endpoint Endpoint => this.cloudEndpoint;
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
-            bool IsRetryable(Exception ex) => ex != null && (RetryableExceptions.Any(re => re.IsInstanceOfType(ex)) || (!this.giveupOnInvalidState && ex is DeviceInvalidStateException));
+            bool IsRetryable(Exception ex) => ex != null && (RetryableExceptions.Any(re => re.IsInstanceOfType(ex)) || (!this.trackDeviceState && ex is DeviceInvalidStateException));
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {

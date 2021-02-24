@@ -92,11 +92,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 authenticationMode = AuthenticationMode.Scope;
             }
 
-            bool giveupOnInvalidState = authenticationMode == AuthenticationMode.Scope
-                && this.configuration.GetValue("GiveupOnInvalidState", false);
+            bool trackDeviceState = authenticationMode == AuthenticationMode.Scope
+                && this.configuration.GetValue("TrackDeviceState", false);
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, authenticationMode);
-            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, giveupOnInvalidState);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
@@ -130,7 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ContainerBuilder builder,
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward,
             ExperimentalFeatures experimentalFeatures,
-            bool giveupOnInvalidState)
+            bool scopeAuthenticationOnly,
+            bool trackDeviceState)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -194,7 +195,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
-                    giveupOnInvalidState));
+                    scopeAuthenticationOnly,
+                    trackDeviceState));
         }
 
         void RegisterCommonModule(

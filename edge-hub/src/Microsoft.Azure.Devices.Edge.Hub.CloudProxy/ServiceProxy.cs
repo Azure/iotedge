@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (DeviceScopeApiException ex)
             {
                 Events.ErrorRequestResult(deviceId, ex.StatusCode);
-                this.MapErrorCode(ex.StatusCode);
+                throw this.MapException(ex);
             }
 
             Option<ServiceIdentity> serviceIdentityResult =
@@ -84,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (DeviceScopeApiException ex)
             {
                 Events.ErrorRequestResult(id, ex.StatusCode);
-                this.MapErrorCode(ex.StatusCode);
+                throw this.MapException(ex);
             }
 
             Option<ServiceIdentity> serviceIdentityResult =
@@ -122,15 +123,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             return serviceIdentityResult;
         }
 
-        void MapErrorCode(HttpStatusCode statusCode)
+        Exception MapException(DeviceScopeApiException ex)
         {
-            switch (statusCode)
+            switch (ex.StatusCode)
             {
+                case HttpStatusCode.InternalServerError:
+                case HttpStatusCode.ServiceUnavailable:
+                    return new TimeoutException($"Request failed: [{ex.StatusCode}: {ex.Message}].");
                 case HttpStatusCode.BadRequest:
+                    return new ArgumentException($"Invalid request: [{ex.StatusCode}: {ex.Message}].");
                 case HttpStatusCode.Unauthorized:
                 case HttpStatusCode.Forbidden:
+                    return new DeviceInvalidStateException($"Deviced not in scope: [{ex.StatusCode}: {ex.Message}].");
                 case HttpStatusCode.NotFound:
-                    throw new DeviceInvalidStateException("Deviced not in scope");
+                    return new DeviceInvalidStateException($"Deviced not found: [{ex.StatusCode}: {ex.Message}].");
+                default:
+                    return new Exception($"Request failed: [{ex.StatusCode}: {ex.Message}].");
             }
         }
 
