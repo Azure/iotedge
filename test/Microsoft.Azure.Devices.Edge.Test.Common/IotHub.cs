@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public Task DeleteDeviceIdentityAsync(Device device, CancellationToken token) =>
-            this.RegistryManager.RemoveDeviceAsync(device);
+            this.RegistryManager.RemoveDeviceAsync(device.Id);
 
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
@@ -227,6 +227,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             await receiver.CloseAsync();
+        }
+
+        public async Task UpdateEdgeEnableStatus(string deviceId, bool enabled)
+        {
+            var edge = await this.RegistryManager.GetDeviceAsync(deviceId);
+
+            if (!edge.Capabilities.IotEdge)
+            {
+                throw new ArgumentException($"{deviceId} is not an Edge device!");
+            }
+
+            edge.Status = enabled ? DeviceStatus.Enabled : DeviceStatus.Disabled;
+            var updated = await this.RegistryManager.UpdateDeviceAsync(edge);
+            Log.Information($"Updated enabled status for {deviceId}, enabled: {enabled}");
+            Log.Information($"{updated.Id}, enabled: {updated.Status}");
         }
     }
 }

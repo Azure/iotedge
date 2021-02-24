@@ -17,13 +17,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     // we have our own timeout mechanism.
     public class ManualProvisioningFixture : BaseFixture
     {
-        protected readonly IotHub iotHub;
+        public IotHub IotHub { get; }
+
         protected IEdgeDaemon daemon;
         protected CertificateAuthority ca;
 
         public ManualProvisioningFixture()
         {
-            this.iotHub = new IotHub(
+            this.IotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
                 Context.Current.TestRunnerProxy);
@@ -50,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             {
                 await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                var agent = new EdgeAgent(device.Id, this.iotHub);
+                var agent = new EdgeAgent(device.Id, this.IotHub);
                 await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                 await agent.PingAsync(token);
             }
