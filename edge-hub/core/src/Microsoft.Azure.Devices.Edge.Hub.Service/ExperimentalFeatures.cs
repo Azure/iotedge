@@ -26,10 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return experimentalFeatures;
         }
 
-        public static bool IsViaBrokerUpstream(ExperimentalFeatures experimentalFeatures, bool hasGatewayHostname)
+        public static bool IsViaBrokerUpstream(ExperimentalFeatures experimentalFeatures, bool nestedEdgeEnabled, bool hasGatewayHostname)
         {
             bool isLegacyUpstream = !experimentalFeatures.Enabled
                 || !experimentalFeatures.EnableMqttBroker
+                || !nestedEdgeEnabled
                 || !hasGatewayHostname;
 
             return isLegacyUpstream;

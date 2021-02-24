@@ -215,6 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
             bool isLegacyUpstream = ExperimentalFeatures.IsViaBrokerUpstream(
                     experimentalFeatures,
+                    nestedEdgeEnabled,
                     this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue);
 
             builder.RegisterModule(
