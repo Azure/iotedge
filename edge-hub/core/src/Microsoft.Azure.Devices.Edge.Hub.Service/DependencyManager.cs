@@ -124,10 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
-            bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, true);
-
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled);
-            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled);
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, experimentalFeatures);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname));
@@ -178,8 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterRoutingModule(
             ContainerBuilder builder,
             StoreAndForward storeAndForward,
-            ExperimentalFeatures experimentalFeatures,
-            bool nestedEdgeEnabled)
+            ExperimentalFeatures experimentalFeatures)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -215,7 +212,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool closeCloudConnectionOnDeviceDisconnect = this.configuration.GetValue("CloseCloudConnectionOnDeviceDisconnect", true);
             bool isLegacyUpstream = ExperimentalFeatures.IsViaBrokerUpstream(
                     experimentalFeatures,
-                    nestedEdgeEnabled,
                     this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue);
 
             builder.RegisterModule(
@@ -250,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     messageCleanupIntervalSecs,
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
-                    nestedEdgeEnabled,
+                    experimentalFeatures.EnableNestedEdge,
                     isLegacyUpstream));
         }
 
@@ -259,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool optimizeForPerformance,
             StoreAndForward storeAndForward,
             MetricsConfig metricsConfig,
-            bool nestedEdgeEnabled)
+            ExperimentalFeatures experimentalFeatures)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
@@ -309,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storeAndForward.StorageMaxTotalWalSize,
                     storeAndForward.StorageMaxOpenFiles,
                     storeAndForward.StorageLogLevel,
-                    nestedEdgeEnabled));
+                    experimentalFeatures.EnableNestedEdge));
         }
 
         static string GetProductInfo()

@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IDeviceScopeApiClientProvider securityScopesApiClientProvider;
         readonly bool nestedEdgeEnabled;
 
-        public ServiceProxy(IDeviceScopeApiClientProvider securityScopesApiClientProvider, bool nestedEdgeEnabled = true)
+        public ServiceProxy(IDeviceScopeApiClientProvider securityScopesApiClientProvider, bool nestedEdgeEnabled = false)
         {
             this.securityScopesApiClientProvider = Preconditions.CheckNotNull(securityScopesApiClientProvider, nameof(securityScopesApiClientProvider));
             this.nestedEdgeEnabled = nestedEdgeEnabled;
