@@ -13,3 +13,7 @@ keys = ["aziot_identityd_master_id"]
 [[principal]]
 uid = 5558
 keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
+
+[[principal]]
+uid = 5555
+keys = ["aziot-edged-ca"]

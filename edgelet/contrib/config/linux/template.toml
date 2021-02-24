@@ -240,7 +240,7 @@ management_uri = "@listen_management_uri@"
 # Moby runtime
 # ==============================================================================
 #
-# If you need to override the default Moiby runtime configuration,
+# If you need to override the default Moby runtime configuration,
 # replace the values in this section with your own.
 
 [moby_runtime]

@@ -174,7 +174,6 @@ const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 /// This is used for both DPS attestation and manual authentication modes.
 const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
-const AZIOT_EDGED_COMMONNAME: &str = "iotedged workload ca";
 const AZIOT_EDGED_TLS_COMMONNAME: &str = "iotedged";
 // 2 hours
 const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
