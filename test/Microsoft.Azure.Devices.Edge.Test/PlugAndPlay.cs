@@ -37,6 +37,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
+
+            // If broker is on, MQTT will be used by default in nested environment. And new MQTT won't work for P&P
+            if (Context.Current.NestedEdge && brokerOn)
+            {
+                Assert.Ignore();
+            }
+
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
@@ -85,6 +92,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
             CancellationToken token = this.TestToken;
+
+            // If broker is on, MQTT will be used by default in nested environment. And new MQTT won't work for P&P
+            if (Context.Current.NestedEdge && brokerOn)
+            {
+                Assert.Ignore();
+            }
+
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
