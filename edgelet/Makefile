@@ -103,7 +103,7 @@ deb: release
 		-e 's|@listen_management_uri@|fd://aziot-edged.mgmt.socket|' \
 		$(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
 
-	$(INSTALL) -d -m 0700 $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.d
+	$(INSTALL) -d $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.d
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices

@@ -17,11 +17,13 @@ case "$1" in
             chown ${USER}:${GROUP} /var/log/aziot/edged
             chown root:root /etc/aziot/config.toml.edge.template
             chown ${USER}:${GROUP} /etc/aziot/edged/config.toml.default
+            chown ${USER}:${GROUP} /etc/aziot/edged/config.d
 
             chmod 755 /var/lib/aziot/edged
             chmod 755 /var/log/aziot/edged
             chmod 400 /etc/aziot/config.toml.edge.template
             chmod 400 /etc/aziot/edged/config.toml.default
+            chmod 700 /etc/aziot/edged/config.d
 
         fi
 
