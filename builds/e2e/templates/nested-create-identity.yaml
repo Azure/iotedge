@@ -13,13 +13,13 @@ steps:
       script: |
         echo "Extracting hub name from connection string"
         #extract full hub name
-        tmp=$(echo "$(ConnectivityNestedEdge-ConnectionString)" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
+        tmp=$(echo "$(IotHubStressConnString)" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
         #remove the .azure-devices.net  from $tmp
         iotHubName=$(echo $tmp | sed -n 's/\(.?*\)\..*/\1/p')
         echo "Found Hub name: ${iotHubName}"
 
         az account set --subscription $(azure.subscription)
-        deviceId="level_$(level)_$(Build.BuildNumber)"
+        deviceId="level_$(level)_$(Build.BuildId)$(transportType)"
 
         echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscription)"
         if [ "$LEVEL" = "5" ]; then
@@ -39,3 +39,4 @@ steps:
         #set output variable outside job
         echo "##vso[task.setvariable variable=connectionString;isOutput=true]${connectionString}"
         echo "##vso[task.setvariable variable=parentDeviceId;isOutput=true]${deviceId}"
+        echo "##vso[task.setvariable variable=iotHubName;isOutput=true]${iotHubName}"

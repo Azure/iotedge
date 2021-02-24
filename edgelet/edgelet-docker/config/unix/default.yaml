@@ -3,18 +3,18 @@ agent:
   type: "docker"
   env: {}
   config:
-    image: "mcr.microsoft.com/azureiotedge-agent:1.0"
+    image: "mcr.microsoft.com/azureiotedge-agent:1.1"
     auth: {}
 
 hostname: "localhost"
 
 connect:
-  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 listen:
-  management_uri: "unix:///var/lib/aziot/edged/aziot-edged.mgmt.sock"
-  workload_uri: "unix:///var/lib/aziot/edged/aziot-edged.workload.sock"
+  management_uri: "unix:///var/lib/iotedge/mgmt.sock"
+  workload_uri: "unix:///var/lib/iotedge/workload.sock"
 
 homedir: "/var/lib/aziot/edged"
 

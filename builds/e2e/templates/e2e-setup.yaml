@@ -41,8 +41,8 @@ steps:
     Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
     Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
 
-    Write-Output '>> Package Build ID=$(packageBuildId)'
-    Write-Output '>> Image Build ID=$(imageBuildId)'
+    Write-Output ">> Package Build ID=$packageBuildId"
+    Write-Output ">> Image Build ID=$imageBuildId"
   displayName: Override artifacts with user-supplied args
 
 - task: DownloadBuildArtifacts@0
@@ -55,6 +55,7 @@ steps:
     buildId: $(imageBuildId)
     downloadType: single
     artifactName: $(az.pipeline.images.artifacts)
+    allowPartiallySucceededBuilds: true
     itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
 - task: DownloadBuildArtifacts@0
@@ -67,6 +68,7 @@ steps:
     buildId: $(packageBuildId)
     downloadType: single
     artifactName: $(artifactName)
+    allowPartiallySucceededBuilds: true
 
 - task: PowerShell@2
   displayName: 'Download aziot-identity-service'
@@ -78,7 +80,7 @@ steps:
     ARTIFACT_NAME: $(identityServiceArtifactName)
     PACKAGE_FILTER: $(identityServicePackageFilter)
     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
-
+    IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null
@@ -111,7 +113,7 @@ steps:
     {
       $nestededge = "true"
       $imagePrefix = '$upstream:443/$(cr.labelPrefix)azureiotedge'
-      $diagnosticImagePrefix ='$(parentName):443/$(cr.labelPrefix)azureiotedge' 
+      $diagnosticImagePrefix ='$(parentName):443/$(cr.labelPrefix)azureiotedge'
       $caCertScriptPath = Convert-Path "/certs"
       $rootCaCertificatePath = Convert-Path "/certs/certs/azure-iot-test-only.root.ca.cert.pem"
       $rootCaPrivateKeyPath = Convert-Path "/certs/private/azure-iot-test-only.root.ca.key.pem"
@@ -119,20 +121,21 @@ steps:
     {
       $nestededge = "false"
       $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
-      $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge' 
+      $diagnosticImagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
       $caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates'
       $rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
 
-    echo "Edge agent image: $imagePrefix-agent:$imageTag"    
+    echo "Edge agent image: $imagePrefix-agent:$imageTag"
 
     $context = @{
-      nestededge = "$nestededge"
-      dpsIdScope = '$(dps.idScope)'
+      nestededge = "$nestededge";
+      dpsIdScope = '$(dps.idScope)';
+      isa95Tag = 'false';
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
-      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";      
+      diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
       tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
@@ -163,6 +166,13 @@ steps:
       $context['hostname'] = '$(deviceName)'
       $context['parentHostname'] = '$(parentName)'
       $context['parentDeviceId'] = '$(parentDeviceId)'
+
+      if ('$(test_type)' -eq 'nestededge_isa95')
+      {
+        $context['deviceId'] = '$(Lvl3DeviceId)'
+        $context['edgeProxy'] = '$(proxyAddress)'
+        $context['isa95Tag'] = 'true'
+      }
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
@@ -175,7 +185,8 @@ steps:
 
     if ($env:AGENT_PROXYURL)
     {
-      $context['proxy'] = $env:AGENT_PROXYURL
+      $context['testRunnerProxy'] = $env:AGENT_PROXYURL
+      $context['edgeProxy'] = $env:AGENT_PROXYURL
     }
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'

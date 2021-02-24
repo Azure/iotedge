@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -12,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
     using Serilog;
     using Serilog.Events;
@@ -22,12 +20,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
     {
         IEdgeDaemon daemon;
 
-        private string[] configFiles =
+        private (string, string)[] configFiles =
         {
-            "/etc/aziot/keyd/config.toml",
-            "/etc/aziot/certd/config.toml",
-            "/etc/aziot/identityd/config.toml",
-            "/etc/aziot/edged/config.yaml"
+            ("/etc/aziot/keyd/config.toml", "aziotks"),
+            ("/etc/aziot/certd/config.toml", "aziotcs"),
+            ("/etc/aziot/identityd/config.toml", "aziotid"),
+            ("/etc/aziot/tpmd/config.toml", "aziotts"),
+            ("/etc/aziot/edged/config.yaml", "iotedge")
         };
 
         [OneTimeSetUp]
@@ -55,18 +54,29 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
-                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.Proxy, token);
+                    await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
-                    // Create a directory for the tests to store certs, keys, etc.
-                    Directory.CreateDirectory("/etc/aziot/e2e_tests");
+                    // Clean the directory for test certs, keys, etc.
+                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    {
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    }
+
+                    Directory.CreateDirectory(FixedPaths.E2E_TEST_DIR);
 
                     // Backup any existing service config files.
-                    foreach (string file in this.configFiles)
+                    foreach ((string file, string owner) in this.configFiles)
                     {
                         if (File.Exists(file))
                         {
                             File.Move(file, file + ".backup", true);
                         }
+
+                        // The name of the default aziot-edged config file differs based on OS.
+                        string configDefault = file.Contains("edged") ? this.daemon.GetDefaultEdgedConfig() : file + ".default";
+
+                        // Reset all config files to the default file.
+                        ResetConfigFile(file, configDefault, owner);
                     }
 
                     await this.daemon.ConfigureAsync(
@@ -91,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 config.SetEdgeAgentImage(edgeAgent);
                             });
 
-                            Context.Current.Proxy.ForEach(proxy =>
+                            Context.Current.EdgeProxy.ForEach(proxy =>
                             {
                                 config.AddHttpsProxy(proxy);
                                 msgBuilder.AppendLine(", proxy '{ProxyUri}'");
@@ -125,10 +135,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
 
                     // Delete test certs, keys, etc.
-                    Directory.Delete("/etc/aziot/e2e_tests", true);
+                    Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
 
                     // Restore backed up config files.
-                    foreach (string file in this.configFiles)
+                    foreach ((string file, string _) in this.configFiles)
                     {
                         string backupFile = file + ".backup";
 
@@ -147,6 +157,28 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Log.CloseAndFlush();
             });
+
+        private static void ResetConfigFile(string configFile, string defaultFile, string owner)
+        {
+            // Reset the config file to the default.
+            Log.Information($"Resetting {configFile} to {defaultFile}");
+            File.Copy(defaultFile, configFile, true);
+            OsPlatform.Current.SetOwner(configFile, owner, "644");
+
+            // Clear existing principals.
+            string principalsPath = Path.Combine(
+                Path.GetDirectoryName(configFile),
+                "config.d");
+
+            if (Directory.Exists(principalsPath))
+            {
+                Directory.Delete(principalsPath, true);
+
+                Directory.CreateDirectory(principalsPath);
+                OsPlatform.Current.SetOwner(principalsPath, owner, "755");
+                Log.Information($"Cleared {principalsPath}");
+            }
+        }
     }
 
     // Generates a test CA cert, test CA key, and trust bundle.
@@ -178,10 +210,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         public void AddCertsToConfig(DaemonConfiguration config)
         {
-            string path = $"/etc/aziot/e2e_tests/{this.deviceId}";
-            string certPath = $"{path}/device_ca_cert.pem";
-            string keyPath = $"{path}/device_ca_cert_key.pem";
-            string trustBundlePath = $"{path}/trust_bundle.pem";
+            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, this.deviceId);
+            string certPath = Path.Combine(path, "device_ca_cert.pem");
+            string keyPath = Path.Combine(path, "device_ca_cert_key.pem");
+            string trustBundlePath = Path.Combine(path, "trust_bundle.pem");
 
             Directory.CreateDirectory(path);
             File.Copy(this.certs.TrustedCertificatesPath, trustBundlePath);

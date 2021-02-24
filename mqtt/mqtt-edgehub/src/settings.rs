@@ -1,10 +1,9 @@
 use std::{
     collections::HashMap,
-    env,
     path::{Path, PathBuf},
 };
 
-use config::{Config, ConfigError, File, FileFormat};
+use config::{Config, ConfigError, Environment, File, FileFormat, Source, Value};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
@@ -27,33 +26,59 @@ lazy_static! {
     };
 }
 
+/// `BrokerEnvironment` is our custom implementation of `config::Source`
+/// that can handle existing `EdgeHub` env settings and convert them
+/// into broker config structure.
 #[derive(Debug, Clone)]
 pub struct BrokerEnvironment;
 
-impl config::Source for BrokerEnvironment {
-    fn clone_into_box(&self) -> Box<dyn config::Source + Send + Sync> {
+impl Source for BrokerEnvironment {
+    fn clone_into_box(&self) -> Box<dyn Source + Send + Sync> {
         Box::new((*self).clone())
     }
 
-    // Currently, BrokerEnvironment allows only the following four environment variables to be set externally.
-    // Otherwise, all values must come from the default.json file
-    fn collect(&self) -> Result<HashMap<String, config::Value>, ConfigError> {
+    // Currently, BrokerEnvironment allows only the env variables explicitly
+    // defined in the method below.
+    //
+    // We use intermediate instance of `Config` to enumerate all env vars
+    // and then manually map them to our internal config structure.
+    // This is done for two reasons:
+    // - our broker config structure does not match legacy EdgeHub env vars,
+    // - `Config` does a bunch of useful things - takes care of
+    //   evn vars casing, prefixing, separators...
+    //
+    // NOTE: if adding new env vars - don't forget to use lowercase
+    // and update `check_env_var_name_override` test.
+    fn collect(&self) -> Result<HashMap<String, Value>, ConfigError> {
+        let mut host_env = Config::new();
+        // regular env vars
+        host_env.merge(Environment::new())?;
+        // broker specific vars
+        host_env.merge(Environment::with_prefix("MqttBroker_").separator(":"))?;
+        host_env.merge(Environment::with_prefix("MqttBroker_").separator("__"))?;
+
         let mut result: HashMap<String, config::Value> = HashMap::new();
-        if let Ok(val) = env::var("mqttBroker__max_queued_messages") {
-            result.insert("broker.session.max_queued_messages".into(), val.into());
+
+        // session
+        if let Ok(val) = host_env.get::<Value>("maxinflightmessages") {
+            result.insert("broker.session.max_inflight_messages".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("maxqueuedmessages") {
+            result.insert("broker.session.max_queued_messages".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("maxqueuedbytes") {
+            result.insert("broker.session.max_queued_size".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("whenfull") {
+            result.insert("broker.session.when_full".into(), val);
         }
 
-        if let Ok(val) = env::var("mqttBroker__max_queued_bytes") {
-            result.insert("broker.session.max_queued_size".into(), val.into());
+        // persistance
+        if let Ok(val) = host_env.get::<Value>("storagefolder") {
+            result.insert("broker.persistence.folder_path".into(), val.clone());
+            result.insert("bridge.persistence.folder_path".into(), val);
         }
 
-        if let Ok(val) = env::var("mqttBroker__max_inflight_messages") {
-            result.insert("broker.session.max_inflight_messages".into(), val.into());
-        }
-
-        if let Ok(val) = env::var("mqttBroker__when_full") {
-            result.insert("broker.session.when_full".into(), val.into());
-        }
         Ok(result)
     }
 }
@@ -246,14 +271,16 @@ mod tests {
     use super::{AuthConfig, ListenerConfig, Settings, TcpTransportConfig, TlsTransportConfig};
 
     const DAYS: u64 = 24 * 60 * 60;
+    const MINS: u64 = 60;
 
     #[test]
     #[serial(env_settings)]
     fn check_env_var_name_override() {
-        let _max_inflight_messages = env::set_var("mqttBroker__max_inflight_messages", "17");
-        let _max_queued_messages = env::set_var("mqttBroker__max_queued_messages", "1001");
-        let _max_queued_bytes = env::set_var("mqttBroker__max_queued_bytes", "1");
-        let _when_full = env::set_var("mqttBroker__when_full", "drop_old");
+        let _max_inflight_messages = env::set_var("MqttBroker__MaxInflightMessages", "17");
+        let _max_queued_messages = env::set_var("MqttBroker__MaxQueuedMessages", "1001");
+        let _max_queued_bytes = env::set_var("MqttBroker__MaxQueuedBytes", "1");
+        let _when_full = env::set_var("MqttBroker__WhenFull", "drop_old");
+        let _storage_folder = env::set_var("StorageFolder", "/iotedge/storage");
 
         let settings = Settings::new().unwrap();
 
@@ -269,39 +296,13 @@ mod tests {
                 QueueFullAction::DropOld,
             )
         );
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn check_other_env_vars_cant_be_overridden() {
-        let _broker_session_max_inflight_messages =
-            env::set_var("broker__session__max_inflight_messages", "17");
-        let _max_queued_messages = env::set_var("broker__session__max_queued_messages", "1001");
-        let _max_queued_bytes = env::set_var("broker__session__max_queued_bytes", "1");
-        let _when_full = env::set_var("broker__session__when_full", "drop_old");
-
-        let _tcp = env::set_var("listener__tcp__address", "0.0.0.0:1880");
-        let _tls = env::set_var("listener__tls__address", "0.0.0.0:1880");
-        let _system = env::set_var("listener__system__address", "0.0.0.0:1880");
-        let _port = env::set_var("auth__port", "7121");
-        let _base_url = env::set_var("auth__base_url", "/authWRONGticate");
-
-        let settings = Settings::new().unwrap();
-
-        let listener = &ListenerConfig::new(
-            Some(TcpTransportConfig::new("0.0.0.0:1883")),
-            Some(TlsTransportConfig::new("0.0.0.0:8883", None)),
-            TcpTransportConfig::new("0.0.0.0:1882"),
-        );
-        let auth = &AuthConfig::new(7120, "/authenticate/");
-
-        assert_eq!(settings.broker().session(), &SessionConfig::default());
         assert_eq!(
             settings.broker().persistence(),
-            &SessionPersistenceConfig::default()
+            &SessionPersistenceConfig::new(
+                "/iotedge/storage".into(),
+                Duration::from_secs(5 * MINS)
+            )
         );
-        assert_eq!(settings.listener(), listener);
-        assert_eq!(settings.auth(), auth);
     }
 
     #[test]

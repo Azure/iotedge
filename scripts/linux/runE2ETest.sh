@@ -14,9 +14,10 @@ function clean_up() {
     systemctl stop aziot-edged || true
 
     echo 'Remove IoT Edge and config file'
-    rm -rf /var/lib/aziot/edged/
-    rm -rf /etc/systemd/system/aziot-edged.service.d/
-    rm -rf /etc/aziot/edged/config.yaml
+    rm -rf /var/lib/aziot/
+    rm -rf /var/lib/iotedge/
+    rm -rf /etc/aziot/
+    rm -rf /etc/systemd/system/aziot-*.service.d/
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true
@@ -71,7 +72,7 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-amd64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -101,7 +102,7 @@ function get_long_haul_deployment_artifact_file() {
     local nestedEdgeTest=$(printenv E2E_nestedEdgeTest)
 
     if [[ ! -z "$nestedEdgeTest" ]]; then
-      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nested_long_haul_deployment.template.json"
+      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nestededge_bottomLayerBaseDeployment_long_haul_amqp.template.json"
     fi
 
     echo "$path"
@@ -1236,6 +1237,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
+    EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -205,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
+                .Setup(cr => cr.GetOrCreateDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
                 .Returns((IIdentity i, bool _) => CreateListenerFromIdentity(i));
 
             return (connectionRegistry, identityProvider);
@@ -289,6 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             public Task ProcessMethodResponseAsync(IMessage message) => Task.CompletedTask;
             public Task RemoveDesiredPropertyUpdatesSubscription(string correlationId) => Task.CompletedTask;
             public Task RemoveSubscription(DeviceSubscription subscription) => Task.CompletedTask;
+            public Task RemoveSubscriptions() => Task.CompletedTask;
             public Task SendGetTwinRequest(string correlationId) => Task.CompletedTask;
             public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage, string correlationId) => Task.CompletedTask;
 
@@ -299,6 +301,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
 
             public void BindDeviceProxy(IDeviceProxy deviceProxy)
+            {
+            }
+
+            public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
             {
             }
         }

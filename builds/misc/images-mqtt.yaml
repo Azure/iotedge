@@ -3,7 +3,14 @@ trigger:
   branches:
     include:
       - master
+  paths:
+    include:
+      - "mqtt/*"
+      - "builds/*"
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
 
 jobs:
 ################################################################################
@@ -31,12 +38,8 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os alpine --arch amd64 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
-      - template: templates/copy-rust-binaries.yaml
-        parameters:
-          should.publish.amd64: "true"
-          artifact.folder.path: "mqtt/target"
-          destination.folder.path: "mqtt/build-context"
-          artifact.name: "mqttd"
+      - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
+        displayName: Consolidate MQTT Broker artifacts
 
       - task: Docker@2
         displayName: Build amd64 image
@@ -80,12 +83,8 @@ jobs:
           filePath: scripts/linux/cross-platform-rust-build.sh
           arguments: --os ubuntu18.04 --arch arm32v7 --build-path mqtt/mqttd --cargo-flags '--no-default-features --features="generic"'
 
-      - template: templates/copy-rust-binaries.yaml
-        parameters:
-          should.publish.arm32v7: "true"
-          artifact.folder.path: "mqtt/target"
-          destination.folder.path: "mqtt/build-context"
-          artifact.name: "mqttd"
+      - script: scripts/linux/consolidate-build-artifacts.sh --artifact-name 'mqttd'
+        displayName: Consolidate MQTT Broker artifacts
 
       - task: Docker@2
         displayName: Build arm32v7 image

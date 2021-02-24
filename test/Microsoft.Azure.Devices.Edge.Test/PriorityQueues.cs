@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("Unstable")]
+        [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToHubMessages()
         {
             CancellationToken token = this.TestToken;
@@ -76,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ToggleConnectivity(networkOn, NetworkControllerModuleName, token);
             PriorityQueueTestStatus loadGenTestStatus = await this.PollUntilFinishedAsync(LoadGenModuleName, token);
             ConcurrentQueue<MessageTestResult> messages = new ConcurrentQueue<MessageTestResult>();
-            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, token);
+            await this.ReceiveEventsFromIotHub(deployment.StartTime, messages, loadGenTestStatus, trackingId, token);
             while (messages.TryDequeue(out MessageTestResult messageTestResult))
             {
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
@@ -110,13 +111,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.ValidateResultsAsync();
         }
 
-        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, CancellationToken token)
+        async Task ReceiveEventsFromIotHub(DateTime startTime, ConcurrentQueue<MessageTestResult> messages, PriorityQueueTestStatus loadGenTestStatus, string trackingId, CancellationToken token)
         {
             await Profiler.Run(
                 async () =>
                 {
                     HashSet<int> results = new HashSet<int>();
-                    await this.iotHub.ReceiveEventsAsync(
+                    await this.IotHub.ReceiveEventsAsync(
                         this.runtime.DeviceId,
                         startTime,
                         data =>
@@ -127,13 +128,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             {
                                 int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
                                 Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
-                                messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+
+                                var receivedTrackingId = (string)data.Properties["trackingId"];
+                                if (!receivedTrackingId.IsNullOrWhiteSpace() && receivedTrackingId.Equals(trackingId))
                                 {
-                                    TrackingId = data.Properties["trackingId"].ToString(),
-                                    BatchId = data.Properties["batchId"].ToString(),
-                                    SequenceNumber = data.Properties["sequenceNumber"].ToString()
-                                });
-                                results.Add(sequenceNumber);
+                                    messages.Enqueue(new MessageTestResult("hubtest.receive", DateTime.UtcNow)
+                                    {
+                                        TrackingId = data.Properties["trackingId"].ToString(),
+                                        BatchId = data.Properties["batchId"].ToString(),
+                                        SequenceNumber = data.Properties["sequenceNumber"].ToString()
+                                    });
+                                    results.Add(sequenceNumber);
+                                }
+                                else
+                                {
+                                    var message = receivedTrackingId.IsNullOrWhiteSpace() ? "EMPTY" : receivedTrackingId;
+                                    Log.Verbose($"Message contains incorrect tracking id: {message}. Ignoring.");
+                                }
                             }
                             else
                             {
@@ -334,7 +345,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         private async Task ToggleConnectivity(bool connectivityOn, string moduleName, CancellationToken token) =>
             await Profiler.Run(
                 async () =>
-                    await this.iotHub.InvokeMethodAsync(
+                    await this.IotHub.InvokeMethodAsync(
                         this.runtime.DeviceId,
                         moduleName,
                         new CloudToDeviceMethod("toggleConnectivity", TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20)).SetPayloadJson($"{{\"networkOnValue\": \"{connectivityOn}\"}}"),
@@ -348,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             do
             {
                 await Task.Delay(TimeSpan.FromSeconds(5));
-                var result = await this.iotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
+                var result = await this.IotHub.InvokeMethodAsync(this.runtime.DeviceId, moduleName, new CloudToDeviceMethod("IsFinished", TimeSpan.FromSeconds(300), TimeSpan.FromSeconds(300)), token);
                 Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
                 testStatus = JsonConvert.DeserializeObject<PriorityQueueTestStatus>(result.GetPayloadAsJson());
             }

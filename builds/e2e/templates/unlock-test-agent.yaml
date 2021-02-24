@@ -1,7 +1,11 @@
+parameters:
+  agentName: ''
+  lvl: ''
+
 steps:
   - task: Bash@3
-    name: unlock_test_agent
-    displayName: 'Release $(Agent.Name)'
+    displayName: 'Release ${{parameters.agentName}} on level ${{ parameters.lvl }}'
+    condition: always()
     env:
       POOL_ID: 123
       API_VER: 6.0
@@ -9,10 +13,15 @@ steps:
     inputs:
       targetType: inline
       script: |
+        agentName="${{ parameters.agentName }}"
+        if [ -z $agentName ]; then
+          exit 0
+        fi
+
         # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
         agentsInfo=$(curl -s -u :$(edgebuild-1-PAT) --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
         # Filter test agent ID given the name
-        agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="$(Agent.Name)") | .id')
+        agentId=$(echo $agentsInfo | jq '.value | .[] | select(.name=="${{ parameters.agentName }}") | .id')
         # Get test agent's capabilities
         agentCapabilities=$(curl -s -u :$(edgebuild-1-PAT) --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
         # Filter for user capabilities, access "status" field and append buildId as a suffix

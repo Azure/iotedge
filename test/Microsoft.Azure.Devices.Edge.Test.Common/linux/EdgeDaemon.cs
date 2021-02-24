@@ -107,16 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Edged = "/etc/aziot/edged/config.yaml"
                     };
 
-                    // The name of the default aziot-edged config file differs based on OS.
-                    string edgedDefault = this.packageManagement.GetDefaultEdgedConfig();
-
-                    DaemonConfiguration.CreateConfigFile(paths.Keyd, paths.Keyd + ".default", "aziotks");
-                    DaemonConfiguration.CreateConfigFile(paths.Certd, paths.Certd + ".default", "aziotcs");
-                    DaemonConfiguration.CreateConfigFile(paths.Identityd, paths.Identityd + ".default", "aziotid");
-                    DaemonConfiguration.CreateConfigFile(paths.Edged, edgedDefault, "iotedge");
-
-                    uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
-                    DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -213,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         {
                             Log.Verbose($"Uninstall command '{command}' ran successfully");
                         }
-                    }, "Uninstalled edge component");
+                    }, $"Successful: {command}");
                 }
                 catch (Win32Exception e)
                 {
@@ -255,12 +246,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             }
         }
 
-        private static async Task<uint> GetIotedgeUid(CancellationToken token)
+        public string GetDefaultEdgedConfig()
         {
-            string[] output = await Process.RunAsync("id", "-u iotedge", token);
-            string uid = output[0].Trim();
-
-            return System.Convert.ToUInt32(uid, 10);
+            return this.packageManagement.GetDefaultEdgedConfig();
         }
     }
 }

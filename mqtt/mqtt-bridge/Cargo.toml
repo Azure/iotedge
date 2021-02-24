@@ -11,11 +11,13 @@ bincode = "1.2"
 bson = "1.1"
 bytes = "0.5"
 config = { version = "0.10", features = ["json"], default-features = false }
+crc32fast = "1.2.1"
 futures-util = "0.3"
 humantime = "2.0"
 humantime-serde = "1.0"
 lazy_static = "1.4"
 mockall = "0.8"
+page_size = "0.4"
 parking_lot = "0.11"
 regex = "1"
 serde = { version = "1.0", features = ["derive", "rc"] }
@@ -37,9 +39,10 @@ mqtt-util = { path = "../mqtt-util" }
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 matches = "0.1"
+rand = "0.8"
 serial_test = "0.4"
 tempfile = "3"
-test-case = "1.0"
+test-case = "1.1"
 tokio = { version = "0.2", features = ["macros"] }
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }

@@ -1,22 +1,23 @@
-use std::time::Duration;
-
-use bytes::Bytes;
+use bytes::BufMut;
+use bytes::BytesMut;
 use futures_util::{
     future::{self, Either},
     pin_mut, StreamExt,
-};
-use mqtt3::{
-    proto::{Publication, QoS},
-    PublishHandle,
 };
 use tokio::{
     sync::mpsc::{self, Receiver},
     time,
 };
 use tracing::info;
+use uuid::{self, Uuid};
+
+use mqtt3::{
+    proto::{Publication, QoS},
+    PublishHandle,
+};
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{MessageTesterError, ShutdownHandle, FORWARDS_TOPIC, SEND_SOURCE};
+use crate::{settings::Settings, ExitedWork, MessageTesterError, ShutdownHandle, SEND_SOURCE};
 
 /// Responsible for starting to send the messages that will be relayed and
 /// tracked by the test module.
@@ -24,19 +25,17 @@ pub struct MessageInitiator {
     publish_handle: PublishHandle,
     shutdown_recv: Receiver<()>,
     shutdown_handle: ShutdownHandle,
-    tracking_id: String,
-    batch_id: String,
     reporting_client: TrcClient,
-    message_frequency: Duration,
+    settings: Settings,
+    batch_id: Uuid,
 }
 
 impl MessageInitiator {
     pub fn new(
         publish_handle: PublishHandle,
-        tracking_id: String,
-        batch_id: String,
         reporting_client: TrcClient,
-        message_frequency: Duration,
+        settings: Settings,
+        batch_id: Uuid,
     ) -> Self {
         let (shutdown_send, shutdown_recv) = mpsc::channel::<()>(1);
         let shutdown_handle = ShutdownHandle(shutdown_send);
@@ -45,25 +44,36 @@ impl MessageInitiator {
             publish_handle,
             shutdown_recv,
             shutdown_handle,
-            tracking_id,
-            batch_id,
             reporting_client,
-            message_frequency,
+            settings,
+            batch_id,
         }
     }
 
-    pub async fn run(mut self) -> Result<(), MessageTesterError> {
+    pub async fn run(mut self) -> Result<ExitedWork, MessageTesterError> {
         info!("starting message loop");
 
         let mut seq_num: u32 = 0;
         let mut publish_handle = self.publish_handle.clone();
+
+        let payload_size = self.settings.message_size_in_bytes() as usize;
+        let dummy_data = &vec![b'a'; payload_size];
         loop {
-            info!("publishing message {} to upstream broker", seq_num);
+            if Some(seq_num) == self.settings.messages_to_send() {
+                info!("stopping test as we have sent max messages",);
+                break;
+            }
+
+            info!("publishing message {}", seq_num);
+            let mut payload = BytesMut::with_capacity(payload_size + 4);
+            payload.put_u32(seq_num);
+            payload.put_u128_le(self.batch_id.to_u128_le());
+            payload.put_slice(&dummy_data);
             let publication = Publication {
-                topic_name: FORWARDS_TOPIC.to_string(),
+                topic_name: self.settings.initiate_topic(),
                 qos: QoS::ExactlyOnce,
                 retain: true,
-                payload: Bytes::from(seq_num.to_string()),
+                payload: payload.into(),
             };
 
             let shutdown_recv_fut = self.shutdown_recv.next();
@@ -84,10 +94,10 @@ impl MessageInitiator {
             self.report_message_sent(seq_num).await?;
             seq_num += 1;
 
-            time::delay_for(self.message_frequency).await;
+            time::delay_for(self.settings.message_frequency()).await;
         }
 
-        Ok(())
+        Ok(ExitedWork::MessageInitiator)
     }
 
     pub fn shutdown_handle(&self) -> ShutdownHandle {
@@ -96,8 +106,8 @@ impl MessageInitiator {
 
     async fn report_message_sent(&self, sequence_number: u32) -> Result<(), MessageTesterError> {
         let result = MessageTestResult::new(
-            self.tracking_id.clone(),
-            self.batch_id.clone(),
+            self.settings.tracking_id(),
+            self.batch_id.to_string(),
             sequence_number,
         );
 

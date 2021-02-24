@@ -22,8 +22,8 @@ steps:
       Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
       Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
 
-      Write-Output '>> Package Build ID=$(packageBuildId)'
-      Write-Output '>> Image Build ID=$(imageBuildId)'
+      Write-Output ">> Package Build ID=$packageBuildId"
+      Write-Output ">> Image Build ID=$imageBuildId"
     displayName: Override artifacts with user-supplied args       
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Images Artifacts'
@@ -35,6 +35,7 @@ steps:
       buildId: $(imageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: $(az.pipeline.images.artifacts)
+      allowPartiallySucceededBuilds: true
       itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt 
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
@@ -45,7 +46,8 @@ steps:
       buildVersionToDownload: specific
       buildId: $(packageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
-      artifactName: $(artifactName)   
+      allowPartiallySucceededBuilds: true
+      artifactName: $(artifactName)
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
     inputs:
@@ -56,6 +58,7 @@ steps:
       ARTIFACT_NAME: $(identityServiceArtifactName)
       PACKAGE_FILTER: $(identityServicePackageFilter)
       DOWNLOAD_PATH: $(Build.StagingDirectory) 
+      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
   - task: Bash@3     
     displayName: 'Install artifacts'
     name: InstallArtifacts
@@ -71,7 +74,9 @@ steps:
         sudo dpkg --purge aziot-edge aziot-identity-service
 
         sudo rm -rf /var/lib/aziot/
+        sudo rm -rf /var/lib/iotedge/
         sudo rm -rf /etc/aziot/
+        sudo rm -rf /etc/systemd/system/aziot-*.service.d/ 
 
         echo 'Restart docker'
         sudo systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
@@ -88,35 +93,8 @@ steps:
         sudo dpkg -i --force-confnew ${iotedge_library}
         echo "  Install edgelet"
         sudo dpkg -i --force-confnew ${iotedge_package}          
-  - task: Bash@3
-    displayName: 'Deployment iotedge on agent'
-    name: deployIoTEdge
-    inputs:
-      targetType: inline
-      script: |
-        declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
-        . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
-
-        chmod +x $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh
-
-        sudo $(Build.Repository.LocalPath)/scripts/linux/nested-edge-deploy-agent.sh \
-          -testDir "$(Agent.HomeDirectory)/.." \
-          -releaseLabel "ct$(agent.group)" \
-          -artifactImageBuildNumber "$BuildNumber" \
-          -containerRegistry "$(cr.address)" \
-          -containerRegistryUsername "$(edgebuilds-azurecr-io-username)" \
-          -containerRegistryPassword "$(edgebuilds-azurecr-io-pwd)" \
-          -iotHubConnectionString "$(ConnectivityNestedEdge-ConnectionString)" \
-          -deploymentFileName "$(deploymentFile)" \
-          -storageAccountConnectionString "$(EdgeConnectivityStorageAccountConnString)" \
-          -edgeRuntimeBuildNumber "$(Build.BuildNumber)" \
-          -customEdgeAgentImage "$(customEdgeAgent.image)" \
-          -customEdgeHubImage "$(customEdgeHub.image)" \
-          -subscription "$(azure.subscription)" \
-          -level "$(level)" \
-          -parentName "$(parentName)" \
-          -connectionString "$(connectionString)" \
-          -iotHubName "$(iotHubName)" \
-          -deviceId "$(deviceId)" \
-          -waitForTestComplete \
-          -cleanAll
+  - template: nested-deploy-config.yaml
+    parameters:
+      deploymentFile: $(deploymentFile)
+      deviceId: $(deviceId)
+      level: $(level)

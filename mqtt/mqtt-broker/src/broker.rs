@@ -86,17 +86,13 @@ where
                                 error!(message = "an error occurred while updating authorization info", error = %e);
                                 // TODO return an error instead?
                                 break;
-                            } else {
-                                self.reauthorize();
-                                debug!("successfully updated authorization info");
                             }
+                            self.reauthorize();
+                            debug!("successfully updated authorization info");
                         }
                         SystemEvent::Publish(publication) => {
-                            if let Err(e) = self.publish_all(publication) {
-                                warn!(message = "an error occurred sending publication", error = %e);
-                            } else {
-                                debug!("successfully send publication");
-                            }
+                            self.publish_all(publication);
+                            debug!("successfully send publication");
                         }
                         SystemEvent::SessionCleanup(expiration) => {
                             self.cleanup_sessions(expiration);
@@ -282,20 +278,12 @@ where
     }
 
     fn process_shutdown(&mut self) -> Result<(), Error> {
-        let mut sessions = vec![];
         let client_ids = self.sessions.keys().cloned().collect::<Vec<ClientId>>();
 
         for client_id in client_ids {
-            if let Some(session) = self.close_session(&client_id)? {
-                sessions.push(session)
-            }
+            self.process_drop_connection(&client_id)?;
         }
 
-        for session in sessions {
-            if let Err(e) = session.send(ClientEvent::DropConnection) {
-                warn!(error = %e, message = "an error occurred closing the session", client_id = %session.client_id());
-            }
-        }
         Ok(())
     }
 
@@ -417,8 +405,8 @@ where
                 let subscriptions =
                     StateChange::new_subscription_change(&client_id, Some(&session)).try_into()?;
 
-                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
-                self.publish_all(subscriptions)?;
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?);
+                self.publish_all(subscriptions);
             }
             OpenSession::DuplicateSession(old_session, ack) => {
                 // Drop the old connection
@@ -461,9 +449,7 @@ where
             session.send(ClientEvent::DropConnection)?;
 
             // Ungraceful disconnect - send the will
-            if let Some(will) = session.into_will() {
-                self.publish_all(will)?;
-            }
+            self.try_send_will(client_id, session)
         } else {
             debug!("no session for {}", client_id);
         }
@@ -477,9 +463,7 @@ where
             debug!("session removed");
 
             // Ungraceful disconnect - send the will
-            if let Some(will) = session.into_will() {
-                self.publish_all(will)?;
-            }
+            self.try_send_will(client_id, session)
         } else {
             debug!("no session for {}", client_id);
         }
@@ -508,7 +492,7 @@ where
         sub: proto::Subscribe,
     ) -> Result<(), Error> {
         let subscriptions = if let Some(session) = self.sessions.get_mut(client_id) {
-            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub)?;
+            let (suback, subscriptions) = subscribe(&self.authorizer, session, sub);
             session.send(ClientEvent::SubAck(suback))?;
             subscriptions
         } else {
@@ -536,7 +520,7 @@ where
 
             let change =
                 StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
-            self.publish_all(change)?;
+            self.publish_all(change);
         } else {
             debug!("no session for {}", client_id);
         }
@@ -556,7 +540,7 @@ where
 
                 let change =
                     StateChange::new_subscription_change(client_id, Some(&session)).try_into()?;
-                self.publish_all(change)?;
+                self.publish_all(change);
 
                 Ok(())
             }
@@ -610,7 +594,7 @@ where
                     }
 
                     if let Some(publication) = maybe_publication {
-                        self.publish_all(publication)?
+                        self.publish_all(publication)
                     }
                 }
                 Ok(Authorization::Forbidden(reason)) => {
@@ -707,7 +691,7 @@ where
         };
 
         if let Some(publication) = maybe_publication {
-            self.publish_all(publication)?
+            self.publish_all(publication)
         }
         Ok(())
     }
@@ -805,8 +789,8 @@ where
                 };
                 let events = vec![];
 
-                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
-                self.publish_all(subscription_change)?;
+                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?);
+                self.publish_all(subscription_change);
 
                 OpenSession::OpenedSession(ack, events)
             }
@@ -880,11 +864,9 @@ where
         let new_session = match self.sessions.remove(client_id) {
             Some(Session::Transient(connected)) => {
                 info!("closing transient session for {}", client_id);
-                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
-                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
-                self.publish_all(
-                    StateChange::new_subscription_change(client_id, None).try_into()?,
-                )?;
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?);
+                self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?);
+                self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?);
 
                 let (state, will, handle) = connected.into_parts();
                 Some(Session::new_disconnecting(
@@ -899,7 +881,7 @@ where
                 // to be sent on the connection
 
                 info!("moving persistent session to offline for {}", client_id);
-                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
+                self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?);
 
                 let (state, will, handle) = connected.into_parts();
                 let client_info = state.client_info().clone();
@@ -923,20 +905,25 @@ where
     fn drop_session(&mut self, client_id: &ClientId) -> Result<(), Error> {
         if let Some(session) = self.sessions.remove(client_id) {
             info!("dropping session for {}", client_id);
-            self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?)?;
-            self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?)?;
-            self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?)?;
+            self.publish_all(StateChange::new_connection_change(&self.sessions).try_into()?);
+            self.publish_all(StateChange::new_session_change(&self.sessions).try_into()?);
+            self.publish_all(StateChange::new_subscription_change(client_id, None).try_into()?);
 
             // Ungraceful drop session - send the will
-            if let Some(will) = session.into_will() {
-                self.publish_all(will)?;
-            }
+            self.try_send_will(client_id, session)
         };
 
         Ok(())
     }
 
-    fn publish_all(&mut self, mut publication: proto::Publication) -> Result<(), Error> {
+    fn try_send_will(&mut self, client_id: &ClientId, session: Session) {
+        if let Some(will) = session.into_will() {
+            debug!("sending will for {}", client_id);
+            self.publish_all(will);
+        }
+    }
+
+    fn publish_all(&mut self, mut publication: proto::Publication) {
         if publication.retain {
             // [MQTT-3.3.1-6]. If the Server receives a QoS 0 message with the
             // RETAIN flag set to 1 it MUST discard any message previously
@@ -976,8 +963,6 @@ where
                 warn!(message = "error processing message", error = %e);
             }
         }
-
-        Ok(())
     }
 }
 
@@ -985,7 +970,7 @@ fn subscribe<Z>(
     authorizer: &Z,
     session: &mut Session,
     subscribe: proto::Subscribe,
-) -> Result<(proto::SubAck, Vec<Subscription>), Error>
+) -> (proto::SubAck, Vec<Subscription>)
 where
     Z: Authorizer,
 {
@@ -1034,7 +1019,7 @@ where
         qos: acks,
     };
 
-    Ok((suback, subscriptions))
+    (suback, subscriptions)
 }
 
 fn publish_to(session: &mut Session, publication: &proto::Publication) -> Result<(), Error> {
@@ -1436,13 +1421,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::UnacceptableProtocolVersion,
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1488,11 +1475,13 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Accepted,
-                ..
-            })))
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Accepted,
+                    ..
+                })
+            ))
         );
     }
 
@@ -1533,13 +1522,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::BadUserNameOrPassword,
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1585,13 +1576,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::ServerUnavailable,
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1641,13 +1634,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::NotAuthorized
                     ),
-                ..
-            })))
+                    ..
+                })
+            ))
         );
         assert_matches!(
             rx1.recv().await,
@@ -1695,13 +1690,15 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx1.recv().await.unwrap(),
-            Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Refused(
+            Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Refused(
                         proto::ConnectionRefusedReason::ServerUnavailable,
                     ),
-                ..
-            }))
+                    ..
+                })
+            )
         );
         assert_matches!(
             rx1.recv().await,
@@ -2405,11 +2402,13 @@ pub(crate) mod tests {
 
         assert_matches!(
             rx.recv().await,
-            Some(Message::Client(_, ClientEvent::ConnAck(proto::ConnAck {
-                return_code:
-                    proto::ConnectReturnCode::Accepted,
-                ..
-            })))
+            Some(Message::Client(
+                _,
+                ClientEvent::ConnAck(proto::ConnAck {
+                    return_code: proto::ConnectReturnCode::Accepted,
+                    ..
+                })
+            ))
         );
 
         Ok((client_id, rx))

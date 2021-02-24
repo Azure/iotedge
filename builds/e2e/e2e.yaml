@@ -1,26 +1,25 @@
 trigger: none
 pr: none
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: iiot
+    branch: master
     trigger:
       branches:
       - master
       - release/*
-      - iiot
-      - preview/iiot
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: iiot
+    branch: master
     trigger:
       branches:
       - master
       - release/*
-      - iiot
-      - preview/iiot
 
 jobs:
 
@@ -78,6 +77,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
+        - centos -equals 7
 
     variables:
       os: linux

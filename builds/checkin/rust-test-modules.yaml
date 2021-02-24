@@ -10,7 +10,7 @@ jobs:
   ################################################################################
     displayName: Check pipeline preconditions (changes ARE in builds or test modules)
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - checkout: self
         submodules: false
@@ -31,7 +31,7 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - checkout: self
         submodules: false

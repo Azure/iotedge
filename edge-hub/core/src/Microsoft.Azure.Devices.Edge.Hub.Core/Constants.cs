@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string ServiceApiIdHeaderKey = "x-ms-edge-moduleId";
         public const string OriginEdgeHeaderKey = "x-ms-edge-origin";
         public const string ClientCertificateHeaderKey = "x-ms-edge-clientcert";
+        public const int ApiProxyPort = 8080;
 
         public const string SchemaVersionKey = "schemaVersion";
         public static readonly Version SchemaVersion_1_0 = new Version("1.0");

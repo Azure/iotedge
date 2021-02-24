@@ -1,0 +1,26 @@
+agent:
+  name: edgeAgent
+  type: docker
+  config:
+    image: "mcr.microsoft.com/azureiotedge-agent:1.0"
+    createOptions: {}
+    auth: {}
+  env: {}
+  imagePullPolicy: on-create
+hostname: my-device
+connect:
+  workload_uri: "unix:///my/own/iotedge.workload.sock"
+  management_uri: "unix:///var/run/iotedge/mgmt.sock"
+listen:
+  workload_uri: "unix:///my/own/iotedge.workload.sock"
+  management_uri: "fd://aziot-edged.mgmt.socket"
+  min_tls_version: tls1.0
+homedir: /var/lib/aziot/edged
+watchdog:
+  max_retries: ~
+edge_ca_cert: aziot-edged-ca
+edge_ca_key: aziot-edged-ca
+trust_bundle_cert: aziot-edged-trust-bundle
+moby_runtime:
+  uri: "unix:///var/run/docker.sock"
+  network: azure-iot-edge

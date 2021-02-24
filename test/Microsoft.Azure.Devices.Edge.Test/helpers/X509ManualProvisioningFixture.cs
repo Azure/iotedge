@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
                             Context.Current.ParentDeviceId,
-                            this.iotHub,
+                            this.IotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
                             token);
@@ -43,10 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             device.Id,
                             Context.Current.EdgeAgentImage,
                             Context.Current.EdgeHubImage,
-                            Context.Current.Proxy,
+                            Context.Current.EdgeProxy,
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,
-                            this.iotHub);
+                            this.IotHub);
 
                         TestCertificates testCerts;
                         (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);
@@ -92,9 +92,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             // Generated credentials need to be copied out of the script path because future runs
             // of the script will overwrite them.
-            string path = $"/etc/aziot/e2e_tests/{deviceId}";
-            string certPath = $"{path}/device_id_cert.pem";
-            string keyPath = $"{path}/device_id_cert_key.pem";
+            string path = Path.Combine(FixedPaths.E2E_TEST_DIR, deviceId);
+            string certPath = Path.Combine(path, "device_id_cert.pem");
+            string keyPath = Path.Combine(path, "device_id_cert_key.pem");
 
             Directory.CreateDirectory(path);
             File.Copy(identityCerts.CertificatePath, certPath);
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             File.Copy(identityCerts.KeyPath, keyPath);
             OsPlatform.Current.SetOwner(keyPath, "aziotks", "600");
 
-            X509Certificate2 deviceCert = new X509Certificate2(identityCerts.CertificatePath);
+            X509Certificate2 deviceCert = new X509Certificate2(certPath);
 
             return (new X509Thumbprint()
             {
