@@ -1,6 +1,8 @@
 mod block;
 pub mod error;
 pub mod flush;
+#[cfg(test)]
+pub mod test;
 
 use std::{
     collections::VecDeque,
@@ -13,7 +15,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use block::{calculate_crc_over_bytes, BlockHeaderV1};
 use mqtt3::proto::Publication;
 
 use bincode::Result as BincodeResult;
@@ -21,15 +22,19 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tracing::error;
 
 use crate::persist::{
-    waking_state::ring_buffer::{
-        block::{validate, BlockHeaderWithCrc, BlockVersion, BLOCK_HINT, SERIALIZED_BLOCK_SIZE},
-        error::{BlockError, RingBufferError},
-        flush::{FlushOptions, FlushState},
+    waking_state::{
+        ring_buffer::{
+            block::{
+                calculate_crc_over_bytes, validate, BlockHeaderV1, BlockHeaderWithCrc,
+                BlockVersion, BLOCK_HINT, SERIALIZED_BLOCK_SIZE,
+            },
+            error::{BlockError, RingBufferError},
+            flush::{FlushOptions, FlushState},
+        },
+        PersistResult, StreamWakeableState,
     },
-    Key, StorageError,
+    Key, PersistError,
 };
-
-pub type StorageResult<T> = Result<T, StorageError>;
 
 /// Convenience struct for tracking read and write pointers into the file.
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -105,7 +110,7 @@ impl RingBuffer {
         file_path: &PathBuf,
         max_file_size: NonZeroU64,
         flush_options: FlushOptions,
-    ) -> StorageResult<Self> {
+    ) -> PersistResult<Self> {
         let mut file = create_file(file_path).map_err(RingBufferError::FileCreate)?;
 
         // We cannot allow for file truncation if an existing file exists. That will surely
@@ -140,7 +145,48 @@ impl RingBuffer {
         })
     }
 
-    fn insert(&mut self, publication: &Publication) -> StorageResult<Key> {
+    fn should_flush(&self) -> bool {
+        match self.flush_options {
+            FlushOptions::AfterEachWrite => true,
+            FlushOptions::AfterXWrites(xwrites) => self.flush_state.writes >= xwrites,
+            FlushOptions::AfterXBytes(xbytes) => self.flush_state.bytes_written >= xbytes,
+            FlushOptions::AfterXTime(xelapsed) => self.flush_state.elapsed >= xelapsed,
+            FlushOptions::Off => false,
+        }
+    }
+
+    fn wake_up_task(&mut self) {
+        if let Some(waker) = self.waker.take() {
+            waker.wake();
+        }
+    }
+
+    fn flush_state_update(
+        &mut self,
+        should_flush: bool,
+        writes: u64,
+        bytes_written: u64,
+        millis: Duration,
+    ) {
+        if should_flush {
+            self.flush_state.reset(&self.flush_options);
+        } else {
+            self.flush_state.update(writes, bytes_written, millis);
+        }
+    }
+}
+
+impl Drop for RingBuffer {
+    fn drop(&mut self) {
+        let result = self.file.flush();
+        if let Some(err) = result.err() {
+            error!("Failed to flush {:?}", err);
+        }
+    }
+}
+
+impl StreamWakeableState for RingBuffer {
+    fn insert(&mut self, publication: &Publication) -> PersistResult<Key> {
         let timer = Instant::now();
         let data = bincode::serialize(publication)?;
 
@@ -158,18 +204,18 @@ impl RingBuffer {
         // There are two cases for this:
         // 1. write has wrapped around and is now behind read
         if write_index < read_index && write_index + total_size > read_index {
-            return Err(StorageError::RingBuffer(RingBufferError::Full));
+            return Err(PersistError::RingBuffer(RingBufferError::Full));
         }
         // 2. write has reached the end (or close enough) but read has not moved
         if read_index == 0 && write_index + total_size > self.max_file_size {
-            return Err(StorageError::RingBuffer(RingBufferError::Full));
+            return Err(PersistError::RingBuffer(RingBufferError::Full));
         }
         // 3. check if write would wrap around end and corrupt
         if write_index > read_index
             && write_index + total_size > self.max_file_size
             && (write_index + total_size) % self.max_file_size > read_index
         {
-            return Err(StorageError::RingBuffer(RingBufferError::Full));
+            return Err(PersistError::RingBuffer(RingBufferError::Full));
         }
 
         let start = write_index;
@@ -181,7 +227,7 @@ impl RingBuffer {
             let BlockVersion::Version1(inner) = block_header.inner();
             let should_not_overwrite = inner.should_not_overwrite();
             if should_not_overwrite {
-                return Err(StorageError::RingBuffer(RingBufferError::Full));
+                return Err(PersistError::RingBuffer(RingBufferError::Full));
             }
         }
 
@@ -220,7 +266,7 @@ impl RingBuffer {
         Ok(Key { offset: key })
     }
 
-    fn batch(&mut self, count: usize) -> StorageResult<VecDeque<(Key, Publication)>> {
+    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
         let write_index = self.metadata.file_pointers.write;
         let read_index = self.metadata.file_pointers.read_begin;
 
@@ -279,25 +325,26 @@ impl RingBuffer {
         Ok(vdata)
     }
 
-    fn remove(&mut self, key: u64) -> StorageResult<()> {
+    fn remove(&mut self, key: Key) -> PersistResult<()> {
         if !self.has_read {
-            return Err(StorageError::RingBuffer(RingBufferError::RemoveBeforeRead));
+            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead));
         }
         let timer = Instant::now();
         let read_index = self.metadata.file_pointers.read_begin;
+        let key = key.offset;
         if key != read_index {
-            return Err(StorageError::RingBuffer(RingBufferError::RemovalIndex));
+            return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex));
         }
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
         let start = key;
         let mut block = load_block_header(&mut self.file, start, block_size, self.max_file_size)
-            .map_err(StorageError::Serialization)?;
+            .map_err(PersistError::Serialization)?;
 
         let BlockVersion::Version1(inner_block) = block.inner_mut();
         if inner_block.hint() != BLOCK_HINT {
-            return Err(StorageError::RingBuffer(RingBufferError::NonExistantKey));
+            return Err(PersistError::RingBuffer(RingBufferError::NonExistantKey));
         }
 
         inner_block.set_should_not_overwrite(false);
@@ -327,45 +374,6 @@ impl RingBuffer {
 
     fn set_waker(&mut self, waker: &Waker) {
         self.waker = Some(waker.clone());
-    }
-
-    fn should_flush(&self) -> bool {
-        match self.flush_options {
-            FlushOptions::AfterEachWrite => true,
-            FlushOptions::AfterXWrites(xwrites) => self.flush_state.writes >= xwrites,
-            FlushOptions::AfterXBytes(xbytes) => self.flush_state.bytes_written >= xbytes,
-            FlushOptions::AfterXTime(xelapsed) => self.flush_state.elapsed >= xelapsed,
-            FlushOptions::Off => false,
-        }
-    }
-
-    fn wake_up_task(&mut self) {
-        if let Some(waker) = self.waker.take() {
-            waker.wake();
-        }
-    }
-
-    fn flush_state_update(
-        &mut self,
-        should_flush: bool,
-        writes: u64,
-        bytes_written: u64,
-        millis: Duration,
-    ) {
-        if should_flush {
-            self.flush_state.reset(&self.flush_options);
-        } else {
-            self.flush_state.update(writes, bytes_written, millis);
-        }
-    }
-}
-
-impl Drop for RingBuffer {
-    fn drop(&mut self) {
-        let result = self.file.flush();
-        if let Some(err) = result.err() {
-            error!("Failed to flush {:?}", err);
-        }
     }
 }
 
@@ -537,7 +545,7 @@ fn save_block_header<T>(
     start: u64,
     max_size: u64,
     should_flush: bool,
-) -> StorageResult<()>
+) -> PersistResult<()>
 where
     T: Write + Seek,
 {
@@ -552,7 +560,7 @@ fn save_block_header_and_data<T>(
     start: u64,
     max_size: u64,
     should_flush: bool,
-) -> StorageResult<()>
+) -> PersistResult<()>
 where
     T: Write + Seek,
 {
@@ -631,7 +639,7 @@ fn write<T>(
     bytes: &[u8],
     max_size: u64,
     should_flush: bool,
-) -> StorageResult<()>
+) -> PersistResult<()>
 where
     T: Write + Seek,
 {
@@ -748,7 +756,7 @@ mod tests {
                 }
 
                 for key in &keys[..39] {
-                    assert_matches!(rb.remove(key.offset), Ok(_));
+                    assert_matches!(rb.remove(*key), Ok(_));
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
@@ -774,7 +782,7 @@ mod tests {
                 assert_eq!(batch.len(), 61);
                 for key in &keys[39..] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
-                    assert_matches!(rb.remove(key.offset), Ok(_));
+                    assert_matches!(rb.remove(*key), Ok(_));
                 }
                 assert_eq!(rb.metadata.order, 100);
             }
@@ -819,17 +827,17 @@ mod tests {
             }
 
             {
-                let key = keys[0].offset;
+                let key = keys[0];
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
             {
-                let key = keys[1].offset;
+                let key = keys[1];
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
             {
-                let key = keys[2].offset;
+                let key = keys[2];
                 assert_matches!(rb.remove(key), Ok(_));
             }
 
@@ -844,7 +852,7 @@ mod tests {
             );
             assert_matches!(
                 result,
-                Err(StorageError::RingBuffer(RingBufferError::FileTruncation {
+                Err(PersistError::RingBuffer(RingBufferError::FileTruncation {
                     current: MAX_FILE_SIZE,
                     new: MAX_FILE_SIZE_HALF,
                 }))
@@ -905,7 +913,7 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key.offset);
+                let result = rb.remove(*key);
                 assert_matches!(result, Ok(_));
             }
             assert_eq!(rb.metadata.order, 5);
@@ -971,7 +979,7 @@ mod tests {
         }
         assert_eq!(rb.0.metadata.order, inserts);
         let result = rb.0.insert(&publication);
-        assert_matches!(result, Err(StorageError::RingBuffer(RingBufferError::Full)));
+        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
         assert_eq!(rb.0.metadata.order, inserts);
     }
 
@@ -1006,7 +1014,7 @@ mod tests {
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
 
-        let result = rb.0.remove(batch[0].0.offset);
+        let result = rb.0.remove(batch[0].0);
         assert_matches!(result, Ok(_));
 
         // need bigger pub
@@ -1024,7 +1032,7 @@ mod tests {
         };
 
         let result = rb.0.insert(&big_publication);
-        assert_matches!(result, Err(StorageError::RingBuffer(RingBufferError::Full)));
+        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
         assert_eq!(rb.0.metadata.order, inserts);
     }
 
@@ -1115,7 +1123,7 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key.offset);
+                let result = rb.remove(*key);
                 assert_matches!(result, Ok(_));
             }
         }
@@ -1283,11 +1291,11 @@ mod tests {
     #[test]
     fn it_errs_on_remove_when_no_read() {
         let mut rb = TestRingBuffer::default();
-        let result = rb.0.remove(1);
+        let result = rb.0.remove(Key { offset: 1 });
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
-            StorageError::RingBuffer(RingBufferError::RemoveBeforeRead)
+            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead)
         );
     }
 
@@ -1308,11 +1316,11 @@ mod tests {
         let result = rb.0.batch(1);
         assert_matches!(result, Ok(_));
 
-        let result = rb.0.remove(1);
+        let result = rb.0.remove(Key { offset: 1 });
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
-            StorageError::RingBuffer(RingBufferError::RemovalIndex)
+            PersistError::RingBuffer(RingBufferError::RemovalIndex)
         );
     }
 
@@ -1346,7 +1354,7 @@ mod tests {
         let result = write(file.path(), "garbage");
         assert_matches!(result, Ok(_));
 
-        let result = rb.remove(0);
+        let result = rb.remove(Key { offset: 0 });
         assert_matches!(result, Err(_));
     }
 
@@ -1376,7 +1384,7 @@ mod tests {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
 
-            let result = rb.0.remove(key.offset);
+            let result = rb.0.remove(key);
             assert_matches!(result, Ok(_));
         }
     }

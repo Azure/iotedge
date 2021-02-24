@@ -1,0 +1,61 @@
+{
+    "iotedge_gatewayhostname": "edge1",
+    "iotedge_deviceid": "d1",
+    "iotedge_moduleid": "mymodule",
+    "iotedge_modulegenerationid": "321",
+    "iotedge_workloaduri": "uri",
+    "iotedge_iothubhostname": "iothub",
+    "upstream": {
+        "subscriptions": [
+            {
+                "direction": "both",
+                "topic": "temp/#",
+                "outPrefix": "floor/kitchen"
+            },
+            {
+                "direction": "out",
+                "topic": "floor/#",
+                "inPrefix": "local",
+                "outPrefix": "remote"
+            },
+            {
+                "direction": "out",
+                "topic": "pattern/#"
+            },
+            {
+                "direction": "out",
+                "topic": "floor2/#",
+                "inPrefix": "",
+                "outPrefix": ""
+            }
+        ]
+    },
+    "remotes": [
+        {
+            "name": "r1",
+            "address": "remote:8883",
+            "client_id": "client",
+            "username": "mymodule",
+            "password": "pass",
+            "keep_alive": "1m",
+            "clean_session": false,
+            "subscriptions": [
+                {
+                    "direction": "in",
+                    "topic": "temp/#",
+                    "outPrefix": "floor/kitchen"
+                },
+                {
+                    "direction": "out",
+                    "topic": "some",
+                    "outPrefix": "remote"
+                }
+            ]
+        }
+    ],
+    "storage": {
+        "type": "memory",
+        "max_size": 1024
+    },
+    "messages": {}
+}

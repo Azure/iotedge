@@ -17,7 +17,7 @@
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
-            "https_proxy": {	
+            "https_proxy": {
               "value": "<proxyAddress>"
             }
           },
@@ -28,21 +28,15 @@
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "experimentalFeatures__enabled": {
-                "value": "true"
-              },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "DeviceScopeCacheRefreshDelaySecs": {
                 "value": 1
               },
               "RuntimeLogLevel": {
                 "value": "debug"
               },
-              "https_proxy": {	
+              "https_proxy": {
                 "value": "<proxyAddress>"
-              }                                 
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -64,7 +58,7 @@
                 "value": "-1"
               }
             }
-          }          
+          }
         }
       }
     },
@@ -79,18 +73,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
-                  ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
                   ]
-              }
+                }
+              ]
+            }
           ]
         }
       }
