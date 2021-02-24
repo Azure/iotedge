@@ -6,8 +6,8 @@
 # - PACKAGE_FILTER: Filter for the package in the GitHub artifact. Example: aziot-identity-service_*_amd64.deb
 # - DOWNLOAD_PATH: Where to save the aziot-identity-service package.
 # - AGENT_PROXYURL: HTTP proxy and port, if needed.
-# - IDENTITY_SERVICE_COMMIT: Commit of iot-identity-service to use. If not set, the script will try to use the iotedge
-# repo's aziot submodule.
+# - IDENTITY_SERVICE_COMMIT: Commit of iot-identity-service to use. If not set, the script will try to determine
+# the commit from Cargo.lock.
 #
 # GitHub artifacts expire after 90 days. So if this script runs more than 90 days after the aziot submodule's
 # commit, it will fail.
@@ -29,7 +29,14 @@ $aziot_commit = if($env:IDENTITY_SERVICE_COMMIT)
 }
 else
 {
-    git submodule | awk '{print $1;}'
+    # Any package in the iot-identity-service repo will have the same Git commit hash.
+    # So, this script selects the first package in that repo.
+    $matches = Select-String -Path ./edgelet/Cargo.lock -Pattern `
+        'github.com/Azure/iot-identity-service\?branch=[ -~]+#(?<commit>\w+)' | `
+        Select-Object -First 1
+    $commit = $matches.Matches.Groups | Where-Object -Property Name -EQ 'commit'
+
+    $commit.Value
 }
 
 if([string]::IsNullOrEmpty($aziot_commit))

@@ -1,9 +1,14 @@
 name: $(version)
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  
 jobs:
 ################################################################################
   - job: linux_API_proxy_module
 ################################################################################
     displayName: linuxAPIProxy
+    timeoutInMinutes: 120
     pool:
       vmImage: 'ubuntu-18.04'
     steps:
@@ -13,6 +18,12 @@ jobs:
             else
               echo '##vso[task.setvariable variable=buildVersion]$(version)'
             fi
+            sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+            docker buildx rm  mbuilder || true  && \
+            docker buildx create --name mbuilder  || true  && \
+            docker buildx use mbuilder
+            docker -v
         displayName: 'Set build version'
       - bash: |
             # Need to login to EdgeBuilds Container Registry for base images.
@@ -28,6 +39,7 @@ jobs:
           imageName: azureiotedge-api-proxy
           project: api-proxy-module
           version: $(buildVersion)
+          buildx_flag: true
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:

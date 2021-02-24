@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
-                this.iotHub,
+                this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>(),
