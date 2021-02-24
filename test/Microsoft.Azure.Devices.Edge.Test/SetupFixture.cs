@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             ("/etc/aziot/certd/config.toml", "aziotcs"),
             ("/etc/aziot/identityd/config.toml", "aziotid"),
             ("/etc/aziot/tpmd/config.toml", "aziotts"),
-            ("/etc/aziot/edged/config.yaml", "iotedge")
+            ("/etc/aziot/edged/config.toml", "iotedge")
         };
 
         [OneTimeSetUp]
