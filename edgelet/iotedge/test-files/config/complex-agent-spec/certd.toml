@@ -2,10 +2,13 @@
 # Do not edit it manually; any edits will be lost when the command is run again.
 
 homedir_path = "/var/lib/aziot/certd"
-
-[cert_issuance]
+[cert_issuance.aziot-edged-ca]
+method = "self_signed"
+common_name = "my-device"
+expiry_days = 1
 
 [preloaded_certs]
+aziot-edged-trust-bundle = ["aziot-edged-ca"]
 
 [[principal]]
 uid = 5558

@@ -2,6 +2,7 @@
 # Do not edit it manually; any edits will be lost when the command is run again.
 
 hostname = "my-device"
+trust_bundle_cert = "aziot-edged-trust-bundle"
 homedir = "/var/lib/aziot/edged"
 
 [agent]

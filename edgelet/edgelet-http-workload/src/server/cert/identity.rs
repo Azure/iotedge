@@ -99,7 +99,7 @@ where
             })
             .and_then(move |(alias, props, cfg)| {
                 let response = refresh_cert(
-                    &key_client,
+                    key_client,
                     cert_client,
                     alias,
                     &props,
@@ -107,7 +107,7 @@ where
                         cert_id: cfg.edge_ca_cert().to_string(),
                         key_id: cfg.edge_ca_key().to_string(),
                     },
-                    &ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
+                    ErrorKind::CertOperation(CertOperation::CreateIdentityCert),
                 )
                 .map_err(|_| {
                     Error::from(ErrorKind::CertOperation(CertOperation::CreateIdentityCert))

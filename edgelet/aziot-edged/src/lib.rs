@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,

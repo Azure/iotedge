@@ -11,6 +11,8 @@ use super::super_config;
 
 const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 
+const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
+
 pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
     // But it's convenient to not do this for the sake of development because the the development machine doesn't necessarily
@@ -177,7 +179,10 @@ fn execute_inner(
 
     certd_config.principal.push(aziot_certd_config::Principal {
         uid: iotedge_uid.as_raw(),
-        certs: vec!["aziot-edged/module/*".to_owned()],
+        certs: vec![
+            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            "aziot-edged/module/*".to_owned(),
+        ],
     });
 
     identityd_config
@@ -197,39 +202,54 @@ fn execute_inner(
         ],
     });
 
-    let (edge_ca_cert, edge_ca_key) = match edge_ca {
-        Some(super_config::EdgeCa { cert, pk }) => {
-            keyd_config.preloaded_keys.insert(
-                edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
-                pk.to_string(),
-            );
+    let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
-            certd_config.preloaded_certs.insert(
-                edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
-                aziot_certd_config::PreloadedCert::Uri(cert),
-            );
+    let (edge_ca_cert, edge_ca_key) = if let Some(super_config::EdgeCa { cert, pk }) = edge_ca {
+        keyd_config.preloaded_keys.insert(
+            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            pk.to_string(),
+        );
 
-            (
-                Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-                Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
-            )
-        }
+        certd_config.preloaded_certs.insert(
+            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            aziot_certd_config::PreloadedCert::Uri(cert),
+        );
 
-        None => (None, None),
+        (
+            Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+            Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+        )
+    } else {
+        certd_config.cert_issuance.certs.insert(
+            edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+            aziot_certd_config::CertIssuanceOptions {
+                method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
+                common_name: Some(identityd_config.hostname.clone()),
+                expiry_days: Some(1),
+            },
+        );
+
+        keyd_config.principal.push(aziot_keyd_config::Principal {
+            uid: aziotcs_uid.as_raw(),
+            keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+        });
+
+        (None, None)
     };
 
-    let trust_bundle_cert = match trust_bundle_cert {
-        Some(cert) => {
-            certd_config.preloaded_certs.insert(
-                edgelet_core::TRUST_BUNDLE_ALIAS.to_owned(),
-                aziot_certd_config::PreloadedCert::Uri(cert),
-            );
+    if let Some(trust_bundle_cert) = trust_bundle_cert {
+        certd_config.preloaded_certs.insert(
+            TRUST_BUNDLE_USER_ALIAS.to_owned(),
+            aziot_certd_config::PreloadedCert::Uri(trust_bundle_cert),
+        );
 
-            Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned())
-        }
+        trust_bundle_certs.push(TRUST_BUNDLE_USER_ALIAS.to_owned());
+    }
 
-        None => None,
-    };
+    certd_config.preloaded_certs.insert(
+        edgelet_core::TRUST_BUNDLE_ALIAS.to_owned(),
+        aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
+    );
 
     let edged_config = edgelet_docker::Settings {
         base: edgelet_core::Settings {
@@ -238,7 +258,7 @@ fn execute_inner(
 
             edge_ca_cert,
             edge_ca_key,
-            trust_bundle_cert,
+            trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
 
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
