@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var deviceScopeIdentityCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentityCache.Setup(d => d.TryGetServiceIdentity(It.IsAny<string>(), false)).ReturnsAsync(Try<Core.Identity.Service.ServiceIdentity>.Failure(new DeviceInvalidStateException()));
+            deviceScopeIdentityCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), It.IsAny<bool>())).ThrowsAsync(new DeviceInvalidStateException());
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var cloudConnectionProvider = new CloudConnectionProvider(

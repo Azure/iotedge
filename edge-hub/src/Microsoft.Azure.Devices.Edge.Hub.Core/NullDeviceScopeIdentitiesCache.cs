@@ -37,6 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RefreshServiceIdentity(string _, string __) => Task.CompletedTask;
 
-        public Task<Try<ServiceIdentity>> TryGetServiceIdentity(string _, bool __ = false) => Task.FromResult(Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device identity not found in cache.")));
+        public Task VerifyServiceIdentityState(string _, bool __ = false) => throw new DeviceInvalidStateException("Device identity not found in cache.");
     }
 }

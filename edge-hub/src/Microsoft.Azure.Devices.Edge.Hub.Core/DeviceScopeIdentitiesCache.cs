@@ -2,14 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Amqp.Transport;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -28,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
-        readonly TimeSpan purgeInterval;
+        readonly TimeSpan refreshDelay;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
 
@@ -48,13 +44,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan refreshRate,
-            TimeSpan purgeInterval)
+            TimeSpan refreshDelay)
         {
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.serviceIdentityCache = initialCache;
             this.refreshRate = refreshRate;
-            this.purgeInterval = purgeInterval;
+            this.refreshDelay = refreshDelay;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
         }
 
@@ -115,26 +111,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        bool IsUp2Date(StoredServiceIdentity storedServiceIdentity) => storedServiceIdentity.Timestamp + this.purgeInterval > DateTime.UtcNow;
+        bool NoNeedToRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshIfOutOfDate) => !refreshIfOutOfDate || storedServiceIdentity.Timestamp + this.refreshDelay > DateTime.UtcNow;
 
-        Try<ServiceIdentity> ExtractServiceIdentity(StoredServiceIdentity storedServiceIdentity) => this.ExtractServiceIdentity(storedServiceIdentity.ServiceIdentity);
+        void VerifyServiceIdentity(StoredServiceIdentity storedServiceIdentity) => this.VerifyServiceIdentity(storedServiceIdentity.ServiceIdentity);
 
-        Try<ServiceIdentity> ExtractServiceIdentity(Option<ServiceIdentity> serviceIdentity)
-        {
-            return serviceIdentity.Map(si =>
-            {
-                if (si.Status != ServiceIdentityStatus.Enabled)
+        void VerifyServiceIdentity(Option<ServiceIdentity> serviceIdentity) => serviceIdentity.ForEach(
+                si =>
                 {
-                    return Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device is disabled."));
-                }
-                else
-                {
-                    return Try.Success(si);
-                }
-            }).GetOrElse(Try<ServiceIdentity>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
-        }
+                    if (si.Status != ServiceIdentityStatus.Enabled)
+                    {
+                        throw new DeviceInvalidStateException("Device is disabled.");
+                    }
+                },
+                () => throw new DeviceInvalidStateException("Device is out of scope."));
 
-        async Task<Try<ServiceIdentity>> RefreshServiceIdentityAsync(string id)
+        async Task RefreshServiceIdentityAsync(string id)
         {
             try
             {
@@ -146,31 +137,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await serviceIdentity
                     .Map(s => this.HandleNewServiceIdentity(s))
                     .GetOrElse(() => this.HandleNoServiceIdentity(id));
-                return this.ExtractServiceIdentity(serviceIdentity);
+                this.VerifyServiceIdentity(serviceIdentity);
             }
             catch (DeviceInvalidStateException ex)
             {
                 Events.ErrorRefreshingCache(ex, id);
                 // Device either out of scope or remove, set it as invalid
                 await this.HandleNoServiceIdentity(id);
-                return Try<ServiceIdentity>.Failure(ex);
+                throw;
             }
             catch (Exception e)
             {
                 // Refresh failed
                 Events.ErrorRefreshingCache(e, id);
-                return Try<ServiceIdentity>.Failure(e);
+                throw;
             }
         }
 
-        public async Task<Try<ServiceIdentity>> TryGetServiceIdentity(string id, bool refreshIfOutOfDate = false)
+        public async Task VerifyServiceIdentityState(string id, bool refreshIfOutOfDate = false)
         {
             Option<StoredServiceIdentity> storedServiceIdentity = await this.GetStoredServiceIdentity(id);
             // if stored service identity is up to date, use it, otherwise refresh
-            return await storedServiceIdentity.Filter(ssi => !refreshIfOutOfDate || this.IsUp2Date(ssi))
-                .Map(ssi => this.ExtractServiceIdentity(ssi))
-                .Map(ssi => Task.FromResult(ssi))
-                .GetOrElse(() => this.RefreshServiceIdentityAsync(id));
+            await storedServiceIdentity.Filter(ssi => this.NoNeedToRefresh(ssi, refreshIfOutOfDate))
+                .ForEachAsync(
+                    ssi =>
+                    {
+                        this.VerifyServiceIdentity(ssi);
+                        return Task.CompletedTask;
+                    },
+                    () => this.RefreshServiceIdentityAsync(id));
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
