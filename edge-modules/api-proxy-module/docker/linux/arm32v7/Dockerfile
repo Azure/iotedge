@@ -3,15 +3,11 @@
 # Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
 #-------------------------------------------------------------------------------------------------------------
 
-ARG DIR=.
-
-FROM arm32v7/alpine:3.13.1
+FROM arm32v7/nginx:1.19.7-alpine
 WORKDIR /app
 COPY ./docker/linux/arm32v7/api-proxy-module .
 COPY ./docker/linux/arm32v7/templates .
-RUN	apk update && \
-    apk add nginx && \
-	mkdir /run/nginx
+
 #expose ports
 EXPOSE 443/tcp	
 EXPOSE 80/tcp

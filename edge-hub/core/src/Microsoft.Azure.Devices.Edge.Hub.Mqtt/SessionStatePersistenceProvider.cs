@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -17,12 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
     public class SessionStatePersistenceProvider : ISessionStatePersistenceProvider
     {
-        internal const string C2DSubscriptionTopicPrefix = @"messages/devicebound/#";
-        internal const string MethodSubscriptionTopicPrefix = @"$iothub/methods/POST/";
-        internal const string TwinSubscriptionTopicPrefix = @"$iothub/twin/PATCH/properties/desired/";
-        internal const string TwinResponseTopicFilter = "$iothub/twin/res/#";
-        static readonly Regex ModuleMessageTopicRegex = new Regex("^devices/.+/modules/.+/#$");
-
         readonly IEdgeHub edgeHub;
         readonly AsyncLock setLock = new AsyncLock();
 
@@ -50,20 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 try
                 {
-                    IEnumerable<(DeviceSubscription, bool)> subscriptions = sessionState.SubscriptionRegistrations
-                        .Select(
-                            subscriptionRegistration =>
-                            {
-                                string topicName = subscriptionRegistration.Key;
-                                bool addSubscription = subscriptionRegistration.Value;
-                                DeviceSubscription deviceSubscription = GetDeviceSubscription(topicName);
-                                if (deviceSubscription == DeviceSubscription.Unknown)
-                                {
-                                    Events.UnknownTopicSubscription(topicName, id);
-                                }
-
-                                return (deviceSubscription, addSubscription);
-                            });
+                    IEnumerable<(DeviceSubscription, bool)> subscriptions = SessionStateParser.GetDeviceSubscriptions(sessionState.SubscriptionRegistrations, id);
                     Events.ProcessingSessionSubscriptions(id, subscriptions);
 
                     await this.edgeHub.ProcessSubscriptions(id, subscriptions);
@@ -78,35 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // is re-established. Setting subscriptions is an idempotent operation.
         }
 
-        internal static DeviceSubscription GetDeviceSubscription(string topicName)
-        {
-            Preconditions.CheckNonWhiteSpace(topicName, nameof(topicName));
-            if (topicName.StartsWith(MethodSubscriptionTopicPrefix))
-            {
-                return DeviceSubscription.Methods;
-            }
-            else if (topicName.StartsWith(TwinSubscriptionTopicPrefix))
-            {
-                return DeviceSubscription.DesiredPropertyUpdates;
-            }
-            else if (topicName.EndsWith(C2DSubscriptionTopicPrefix))
-            {
-                return DeviceSubscription.C2D;
-            }
-            else if (topicName.Equals(TwinResponseTopicFilter))
-            {
-                return DeviceSubscription.TwinResponse;
-            }
-            else if (ModuleMessageTopicRegex.IsMatch(topicName))
-            {
-                return DeviceSubscription.ModuleMessages;
-            }
-            else
-            {
-                return DeviceSubscription.Unknown;
-            }
-        }
-
         static class Events
         {
             const int IdStart = MqttEventIds.SessionStatePersistenceProvider;
@@ -114,14 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
             enum EventIds
             {
-                UnknownSubscription = IdStart,
-                ErrorHandlingSubscription,
+                ErrorHandlingSubscription = IdStart,
                 ProcessingSessionSubscriptions
-            }
-
-            public static void UnknownTopicSubscription(string topicName, string id)
-            {
-                Log.LogInformation((int)EventIds.UnknownSubscription, Invariant($"Ignoring unknown subscription to topic {topicName} for client {id}."));
             }
 
             public static void ErrorProcessingSubscriptions(string id, Exception exception)
