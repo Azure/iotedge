@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             var cloudProxy = new Mock<ICloudProxy>();
             cloudProxy.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>()))
                 .ThrowsAsync(exception);
-            var cloudEndpoint = new CloudEndpoint(Guid.NewGuid().ToString(), _ => Task.FromResult(Try.Success(cloudProxy.Object)), new RoutingMessageConverter(), giveupOnInvalidState: true);
+            var cloudEndpoint = new CloudEndpoint(Guid.NewGuid().ToString(), _ => Task.FromResult(Try.Success(cloudProxy.Object)), new RoutingMessageConverter(), trackDeviceState: true);
             IProcessor processor = cloudEndpoint.CreateProcessor();
             var message = new RoutingMessage(TelemetryMessageSource.Instance, new byte[0], ImmutableDictionary<string, string>.Empty, new Dictionary<string, string>
             {

@@ -55,7 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool checkEntireQueueOnCleanup;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly bool closeCloudConnectionOnDeviceDisconnect;
-        readonly bool giveupOnInvalidState;
+        readonly bool scopeAuthenticationOnly;
+        readonly bool trackDeviceState;
 
         public RoutingModule(
             string iotHubName,
@@ -86,7 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool checkEntireQueueOnCleanup,
             ExperimentalFeatures experimentalFeatures,
             bool closeCloudConnectionOnDeviceDisconnect,
-            bool giveupOnInvalidState)
+            bool scopeAuthenticationOnly,
+            bool trackDeviceState)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -116,7 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.checkEntireQueueOnCleanup = checkEntireQueueOnCleanup;
             this.experimentalFeatures = experimentalFeatures;
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
-            this.giveupOnInvalidState = giveupOnInvalidState;
+            this.scopeAuthenticationOnly = scopeAuthenticationOnly;
+            this.trackDeviceState = trackDeviceState;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -239,7 +242,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.useServerHeartbeat,
                             proxy,
                             metadataStore,
-                            this.giveupOnInvalidState);
+                            this.scopeAuthenticationOnly,
+                            this.trackDeviceState);
                         return cloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
@@ -284,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.edgeDeviceId,
                             this.maxUpstreamBatchSize,
                             this.upstreamFanOutFactor,
-                            this.giveupOnInvalidState) as IEndpointFactory;
+                            this.scopeAuthenticationOnly && this.trackDeviceState) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();

@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
         readonly IMetadataStore metadataStore;
-        readonly bool giveupOnInvalidState;
+        readonly bool trackDeviceState;
+        readonly bool scopeAuthenticationOnly;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(
@@ -49,7 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             bool useServerHeartbeat,
             Option<IWebProxy> proxy,
             IMetadataStore metadataStore,
-            bool giveupOnInvalidState = false)
+            bool scopeAuthenticationOnly = true,
+            bool trackDeviceState = false)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -65,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
             this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
-            this.giveupOnInvalidState = giveupOnInvalidState;
+            this.trackDeviceState = trackDeviceState;
+            this.scopeAuthenticationOnly = scopeAuthenticationOnly;
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
@@ -131,73 +134,94 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.Connect(identity, connectionStatusChangedHandler, false);
+
+        async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache = false)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
             try
             {
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
-                Try<ServiceIdentity> tryServiceIdentity = await this.deviceScopeIdentitiesCache.TryGetServiceIdentity(identity.Id);
-                return await tryServiceIdentity.Ok()
-                    .Map(async si =>
-                         {
-                             Events.CreatingCloudConnectionOnBehalfOf(identity);
-                             ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
-                             string productInfo = connectionMetadata.EdgeProductInfo;
-                             Option<string> modelId = connectionMetadata.ModelId;
-                             try
-                             {
-                                 ICloudConnection cc = await CloudConnection.Create(
-                                    identity,
-                                    connectionStatusChangedHandler,
-                                    this.transportSettings,
-                                    this.messageConverterProvider,
-                                    this.clientProvider,
-                                    cloudListener,
-                                    this.edgeHubTokenProvider,
-                                    this.idleTimeout,
-                                    this.closeOnIdleTimeout,
-                                    this.operationTimeout,
-                                    productInfo,
-                                    modelId);
-                                 Events.SuccessCreatingCloudConnection(identity);
-                                 return Try.Success(cc);
-                             }
-                             catch (UnauthorizedException ex)
-                             {
-                                 Events.ErrorCreatingCloudConnection(identity, ex);
-
-                                 if (this.giveupOnInvalidState)
-                                 {
-                                     await this.deviceScopeIdentitiesCache.TryGetServiceIdentity(identity.Id, true);
-                                 }
-
-                                 return Try<ICloudConnection>.Failure(ex);
-                             }
-                         })
-                     .GetOrElse(
-                         async () =>
-                         {
-                             if (!this.giveupOnInvalidState)
-                             {
-                                 Events.ServiceIdentityNotFound(identity);
-                                 Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                                 return await clientCredentials
-                                     .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                                     .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
-                             }
-                             else
-                             {
-                                 await this.deviceScopeIdentitiesCache.TryGetServiceIdentity(identity.Id, true);
-                                 return Try<ICloudConnection>.Failure(tryServiceIdentity.Exception);
-                             }
-                         });
+                // if it's not retry, get device service identity from cache, try to fetch it if missed
+                await this.deviceScopeIdentitiesCache.VerifyServiceIdentityState(identity.Id, refreshOutOfDateCache);
+                return await this.TryCreateCloudConnectionFromServiceIdentity(identity, connectionStatusChangedHandler, refreshOutOfDateCache, cloudListener);
+            }
+            catch (DeviceInvalidStateException ex)
+            {
+                return await this.TryRecoverCloudConnection(identity, connectionStatusChangedHandler, refreshOutOfDateCache, ex);
             }
             catch (Exception ex)
             {
                 Events.ErrorCreatingCloudConnection(identity, ex);
                 return Try<ICloudConnection>.Failure(ex);
+            }
+        }
+
+        private async Task<Try<ICloudConnection>> TryCreateCloudConnectionFromServiceIdentity(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache, CloudListener cloudListener)
+        {
+            Events.CreatingCloudConnectionOnBehalfOf(identity);
+            ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
+            string productInfo = connectionMetadata.EdgeProductInfo;
+            Option<string> modelId = connectionMetadata.ModelId;
+            try
+            {
+                ICloudConnection cc = await CloudConnection.Create(
+                               identity,
+                               connectionStatusChangedHandler,
+                               this.transportSettings,
+                               this.messageConverterProvider,
+                               this.clientProvider,
+                               cloudListener,
+                               this.edgeHubTokenProvider,
+                               this.idleTimeout,
+                               this.closeOnIdleTimeout,
+                               this.operationTimeout,
+                               productInfo,
+                               modelId);
+                Events.SuccessCreatingCloudConnection(identity);
+                return Try.Success(cc);
+            }
+            catch (UnauthorizedException ex) when (this.scopeAuthenticationOnly && this.trackDeviceState)
+            {
+                return await this.TryRecoverCloudConnection(identity, connectionStatusChangedHandler, refreshOutOfDateCache, ex);
+            }
+        }
+
+        async Task<Try<ICloudConnection>> TryRecoverCloudConnection(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache, Exception ex)
+        {
+            Events.ErrorCreatingCloudConnection(identity, ex);
+            if (this.scopeAuthenticationOnly)
+            {
+                if (this.trackDeviceState)
+                {
+                    if (refreshOutOfDateCache)
+                    {
+                        // recover failed
+                        Events.ErrorCreatingCloudConnection(identity, ex);
+                        return Try<ICloudConnection>.Failure(ex);
+                    }
+                    else
+                    {
+                        // recover: try to update out of date cache and try again
+                        return await this.Connect(identity, connectionStatusChangedHandler, true);
+                    }
+                }
+                else
+                {
+                    // old behave
+                    Events.ErrorCreatingCloudConnection(identity, ex);
+                    return Try<ICloudConnection>.Failure(ex);
+                }
+            }
+            else
+            {
+                // try with cached device credentials
+                Events.ServiceIdentityNotFound(identity);
+                Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
+                return await clientCredentials
+                    .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
+                    .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
             }
         }
 
