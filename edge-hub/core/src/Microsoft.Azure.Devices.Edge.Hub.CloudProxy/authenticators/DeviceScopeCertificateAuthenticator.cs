@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             IAuthenticator underlyingAuthenticator,
             IList<X509Certificate2> trustBundle,
             bool syncServiceIdentityOnFailure,
-            bool nestedEdgeEnabled = true)
+            bool nestedEdgeEnabled = false)
             : base(deviceScopeIdentitiesCache, underlyingAuthenticator, false, syncServiceIdentityOnFailure, nestedEdgeEnabled)
         {
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
