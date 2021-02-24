@@ -2,16 +2,37 @@
 # Hostname
 # ==============================================================================
 #
-# Comment out the next line to override the default hostname of this device.
+# Uncomment the next line to override the default hostname of this device.
 #
 # hostname = "my-device"
+
+
+# ==============================================================================
+# Parent hostname
+# ==============================================================================
+#
+# If this is a Nested Edge device, uncomment the next line to set the
+# parent hostname of this device.
+#
+# parent_hostname = "my-parent-device"
+
+
+# ==============================================================================
+# Trust bundle cert
+# ==============================================================================
+#
+# If you have any trusted CA certificates required for Edge module communication,
+# uncomment the next line and set the value to a file URI for
+# the path of the file.
+#
+# trust_bundle_cert = "file:///var/secrets/trust-bundle.pem"
 
 
 # ==============================================================================
 # Provisioning
 # ==============================================================================
 #
-# Comment out one block and replace the stub values with yours.
+# Uncomment one block and replace the stub values with yours.
 
 
 ## Manual provisioning with connection string
@@ -60,7 +81,7 @@
 # 
 # [provisioning.attestation]
 # method = "symmetric_key"
-# registration_id = "my-symmkey-devices"
+# registration_id = "my-device"
 #
 # symmetric_key = { value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg==" } # inline key (base64), or...
 # symmetric_key = { uri = "file:///var/secrets/device-id.key" }                                                          # file URI, or...
@@ -75,7 +96,7 @@
 # 
 # [provisioning.attestation]
 # method = "x509"
-# registration_id = "my-symmkey-devices"
+# registration_id = "my-device"
 #
 # identity_cert = "file:///var/secrets/device-id.pem"                # file URI, or...
 # identity_cert = { method = "est", common_name = "my-device" }      # dynamically issued via EST, or...
@@ -93,7 +114,7 @@
 # 
 # [provisioning.attestation]
 # method = "tpm"
-# registration_id = "my-symmkey-devices"
+# registration_id = "my-device"
 
 
 # ==============================================================================
@@ -152,3 +173,76 @@
 # [aziot_keys]
 # pkcs11_lib_path = "/usr/lib/libmypkcs11.so"
 # pkcs11_base_slot = "pkcs11:slot-id=0?pin-value=1234"
+
+
+# ==============================================================================
+# Default Edge Agent
+# ==============================================================================
+#
+# Specify the parameters of the default Edge Agent module below.
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+# imagePullPolicy = "..."   # "on-create" or "never". Defaults to "on-create"
+
+[agent.config]
+image = "microsoft/azureiotedge-agent:1.0"
+# createOptions = { }       # Docker container create options, in TOML format.
+
+[agent.env]
+# "RuntimeLogLevel" = "debug"
+# "UpstreamProtocol" = "AmqpWs"
+
+
+# ==============================================================================
+# Daemon management and workload API endpoints
+# ==============================================================================
+#
+# If you need to override the management and workload API endpoints,
+# replace the values in this section with your own.
+
+[connect]
+workload_uri = "@connect_workload_uri@"
+management_uri = "@connect_management_uri@"
+
+[listen]
+workload_uri = "@listen_workload_uri@"
+management_uri = "@listen_workload_uri@"
+
+
+# ==============================================================================
+# Edge Agent watchdog
+# ==============================================================================
+#
+# If you need to override the default Edge Agent watchdog settings,
+# uncomment this section and replace the values with your own.
+#
+# [watchdog]
+# max_retries = "infinite"   # the string "infinite" or a positive integer. Defaults to "infinite"
+
+
+# ==============================================================================
+# Edge CA certificate
+# ==============================================================================
+#
+# If you have your own Edge CA certificate that you want all module certificates
+# to be issued by, uncomment this section and replace the values with your own.
+#
+# [edge_ca]
+# cert = "file:///var/secrets/edge-ca.pem"                          # file URI
+#
+# pk = "file:///var/secrets/edge-ca.key.pem"                        # file URI, or...
+# pk = { uri = "pkcs11:slot-id=0;object=edge%20ca?pin-value=1234" } # PKCS#11 URI
+
+
+# ==============================================================================
+# Moby runtime
+# ==============================================================================
+#
+# If you need to override the default Moiby runtime configuration,
+# replace the values in this section with your own.
+
+[moby_runtime]
+uri = "unix:///var/run/docker.sock"
+network = "azure-iot-edge"

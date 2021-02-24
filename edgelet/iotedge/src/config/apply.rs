@@ -154,20 +154,13 @@ fn execute_inner(
 
     let super_config::Config {
         parent_hostname,
-
         trust_bundle_cert,
-
         aziot,
-
         agent,
-
         connect,
         listen,
-
         watchdog,
-
         edge_ca,
-
         moby_runtime,
     } = toml::from_slice(&config).map_err(|err| format!("could not parse config file: {}", err))?;
 
@@ -182,7 +175,7 @@ fn execute_inner(
 
     certd_config.principal.push(aziot_certd_config::Principal {
         uid: iotedge_uid.as_raw(),
-        certs: vec!["aziot-edge/module/*".to_owned()],
+        certs: vec!["aziot-edged/module/*".to_owned()],
     });
 
     identityd_config

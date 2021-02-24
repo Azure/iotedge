@@ -175,33 +175,6 @@ impl<'de> serde::Deserialize<'de> for RetryLimit {
                 }
             }
 
-            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(RetryLimit::Num(
-                    v.try_into().map_err(serde::de::Error::custom)?,
-                ))
-            }
-
-            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(RetryLimit::Num(
-                    v.try_into().map_err(serde::de::Error::custom)?,
-                ))
-            }
-
-            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(RetryLimit::Num(
-                    v.try_into().map_err(serde::de::Error::custom)?,
-                ))
-            }
-
             fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
             where
                 E: serde::de::Error,

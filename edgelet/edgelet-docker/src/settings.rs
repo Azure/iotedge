@@ -69,9 +69,13 @@ pub struct Settings {
 pub const CONFIG_FILE_DEFAULT: &str = "/etc/aziot/edged/config.toml";
 
 impl Settings {
+    /// Load the aziot-edged configuration.
+    ///
+    /// Configuration is made up of /etc/aziot/edged/config.toml (overridden by the AZIOT_EDGED_CONFIG env var)
+    /// and any files in the /etc/aziot/edged/config.d directory (overridden by the AZIOT_EDGED_CONFIG_DIR env var).
     pub fn new() -> Result<Self, LoadSettingsError> {
         const CONFIG_ENV_VAR: &str = "AZIOT_EDGED_CONFIG";
-        const CONFIG_DIRECTORY_ENV_VAR: &str = "AZIOT_TPMD_CONFIG_DIR";
+        const CONFIG_DIRECTORY_ENV_VAR: &str = "AZIOT_EDGED_CONFIG_DIR";
         const CONFIG_DIRECTORY_DEFAULT: &str = "/etc/aziot/edged/config.d";
 
         let config_path: std::path::PathBuf =

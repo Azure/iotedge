@@ -11,4 +11,4 @@ homedir_path = "/var/lib/aziot/certd"
 
 [[principal]]
 uid = 5558
-certs = ["aziot-edge/module/*"]
+certs = ["aziot-edged/module/*"]

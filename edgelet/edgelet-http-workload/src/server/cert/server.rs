@@ -62,7 +62,7 @@ where
             .map(|(module_id, genid)| {
                 let module_id = module_id.to_string();
                 let alias = format!(
-                    "aziot-edge/module/{}:{}:server",
+                    "aziot-edged/module/{}:{}:server",
                     module_id,
                     genid.to_string()
                 );

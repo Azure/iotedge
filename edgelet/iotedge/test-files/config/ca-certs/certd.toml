@@ -11,4 +11,4 @@ aziot-edged-trust-bundle = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
 uid = 5558
-certs = ["aziot-edge/module/*"]
+certs = ["aziot-edged/module/*"]

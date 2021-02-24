@@ -54,7 +54,7 @@ where
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
             .map(|module_id| {
                 let cn = module_id.to_string();
-                let alias = format!("aziot-edge/module/{}:identity", module_id);
+                let alias = format!("aziot-edged/module/{}:identity", module_id);
                 let module_uri =
                     prepare_cert_uri_module(cfg.iot_hub_name(), cfg.device_id(), module_id);
 

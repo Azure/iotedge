@@ -5,7 +5,7 @@ provisioning:
   attestation:
     method: 'x509'
     # TODO: Remove this when IS supports registration ID being optional for DPS-X509
-    registration_id: 'my-x509-devices'
+    registration_id: 'my-device'
     identity_cert: 'file:///var/secrets/device-id.pem'
     identity_pk: 'file:///var/secrets/device-id.key.pem'
   dynamic_reprovisioning: true
