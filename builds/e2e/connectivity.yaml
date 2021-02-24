@@ -110,27 +110,50 @@ jobs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
           SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString,GitHubAccessToken'
+      - pwsh: |
+          $imageBuildId = $(resources.pipeline.images.runID)
+          $packageBuildId = $(resources.pipeline.packages.runID)
+
+          if ('$(az.pipeline.images.buildId)')
+          {
+            Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+            $imageBuildId = '$(az.pipeline.images.buildId)'
+          }
+
+          if ('$(az.pipeline.packages.buildId)')
+          {
+            Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+            $packageBuildId = '$(az.pipeline.packages.buildId)'
+          }
+
+          Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+          Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+          Write-Output ">> Package Build ID=$packageBuildId"
+          Write-Output ">> Image Build ID=$imageBuildId"
+        displayName: Override artifacts with user-supplied args     
+    
       - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
+          project: $(resources.pipeline.packages.projectID)
+          pipeline: $(resources.pipeline.packages.pipelineName)
+          buildVersionToDownload: specific
+          buildId: $(packageBuildId)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
           allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         inputs:
           buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
+          project: $(resources.pipeline.images.projectID)
+          pipeline: $(resources.pipeline.images.pipelineName)
+          buildVersionToDownload: specific
+          buildId: $(imageBuildId)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
@@ -143,16 +166,15 @@ jobs:
             $(images.artifact.name.linux)/CACertificates/certGen.sh
             $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       - task: PowerShell@2
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download aziot-identity-service'
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
         inputs:
-          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+          filePath: $(Build.StagingDirectory)/core-linux/scripts/local/test/DownloadIdentityService.ps1
         env:
           GITHUB_TOKEN: $(GitHubAccessToken)
           ARTIFACT_NAME: $(aziotis.artifact.name)
           PACKAGE_FILTER: $(aziotis.package.filter)
-          DOWNLOAD_PATH: $(Build.StagingDirectory)
-          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+          DOWNLOAD_PATH: $(Build.StagingDirectory) 
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
