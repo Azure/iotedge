@@ -152,11 +152,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeApiClient.Setup(d => d.GetIdentity("d1", null)).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
 
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
+            // Act / Assert
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d1"));
         }
 
         [Fact]
@@ -196,11 +193,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeApiClient.Setup(d => d.GetIdentity("d1", "m1")).ThrowsAsync(new DeviceScopeApiException("bad request", HttpStatusCode.BadRequest, string.Empty));
             IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClient.Object);
 
-            // Act
-            Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1");
-
-            // Assert
-            Assert.False(serviceIdentity.HasValue);
+            // Act / Assert
+            await Assert.ThrowsAsync<DeviceInvalidStateException>(() => serviceProxy.GetServiceIdentity("d1", "m1"));
         }
 
         [Fact]
