@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act / Assert
             IServiceIdentitiesIterator iterator = serviceProxy.GetServiceIdentitiesIterator();
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiClient.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "edgedevice");
@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiClient.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act / Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "edgedevice"));
@@ -209,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiClient.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
@@ -229,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiClient.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act / Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice"));
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
@@ -275,7 +275,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var deviceScopeApiClientProvider = new Mock<IDeviceScopeApiClientProvider>();
             deviceScopeApiClientProvider.Setup(p => p.CreateDeviceScopeClient()).Returns(deviceScopeApiResult.Object);
 
-            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object);
+            IServiceProxy serviceProxy = new ServiceProxy(deviceScopeApiClientProvider.Object, false);
 
             // Act
             Option<ServiceIdentity> serviceIdentity = await serviceProxy.GetServiceIdentity("d1", "m1", "edgedevice");
@@ -391,7 +391,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static Module GetModule(string deviceId, string moduleId)
         {
-            string moduleJson = @"{                        
+            string moduleJson = @"{
                       ""deviceId"": """ + deviceId + @""",
                       ""moduleId"": """ + moduleId + @""",
                       ""managedBy"": ""iotEdge"",
