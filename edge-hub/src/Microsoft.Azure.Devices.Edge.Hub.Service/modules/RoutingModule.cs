@@ -288,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.edgeDeviceId,
                             this.maxUpstreamBatchSize,
                             this.upstreamFanOutFactor,
-                            this.trackDeviceState) as IEndpointFactory;
+                            this.scopeAuthenticationOnly && this.trackDeviceState) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
