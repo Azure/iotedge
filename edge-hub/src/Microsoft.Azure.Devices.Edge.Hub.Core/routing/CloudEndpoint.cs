@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         internal class CloudMessageProcessor : IProcessor
         {
-            static readonly ISet<Type> RetryableExceptions = new HashSet<Type>
+            readonly ISet<Type> RetryableExceptions = new HashSet<Type>
             {
                 typeof(TimeoutException),
                 typeof(IOException),
@@ -73,12 +73,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             readonly CloudEndpoint cloudEndpoint;
 
-            readonly bool giveupOnInvalidState;
-
             public CloudMessageProcessor(CloudEndpoint endpoint, bool giveupOnInvalidState)
             {
                 this.cloudEndpoint = Preconditions.CheckNotNull(endpoint);
-                this.giveupOnInvalidState = giveupOnInvalidState;
+
+                if (!giveupOnInvalidState)
+                {
+                    RetryableExceptions.Add(typeof(DeviceInvalidStateException));
+                }
             }
 
             public Endpoint Endpoint => this.cloudEndpoint;
@@ -108,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
-            bool IsRetryable(Exception ex) => ex != null && (RetryableExceptions.Any(re => re.IsInstanceOfType(ex)) || (!this.giveupOnInvalidState && ex is DeviceInvalidStateException));
+            bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {
