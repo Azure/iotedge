@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
-                this.iotHub,
+                this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.Some(TestModelId),
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         async Task ValidateIdentity(string deviceId, Option<string> moduleId, string expectedModelId, CancellationToken token)
         {
-            Twin twin = await this.iotHub.GetTwinAsync(deviceId, moduleId, token);
+            Twin twin = await this.IotHub.GetTwinAsync(deviceId, moduleId, token);
             string actualModelId = twin.ModelId;
             Assert.AreEqual(expectedModelId, actualModelId);
         }

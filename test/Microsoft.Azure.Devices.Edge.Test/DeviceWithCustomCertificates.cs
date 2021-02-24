@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     parentId,
                     testAuth.UseSecondaryCertificate(),
                     this.ca,
-                    this.iotHub,
+                    this.IotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>(),
