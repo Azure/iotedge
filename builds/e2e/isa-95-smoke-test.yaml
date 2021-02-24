@@ -26,7 +26,6 @@ stages:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      vsts.project: $(System.TeamProjectId)
       level: '5'
       deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
       parentName: ''
@@ -62,7 +61,6 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
-      vsts.project: $(System.TeamProjectId)
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
@@ -97,7 +95,6 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
-      vsts.project: $(System.TeamProjectId)
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
