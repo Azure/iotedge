@@ -114,7 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new Dictionary<string, IModule>
                 {
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null) }
-                });
+                },
+                null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             ModuleSet currentModuleSet = desiredModuleSet;
@@ -232,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
-            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>());
+            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), new Dictionary<string, IModule>(), null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -274,7 +275,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new Dictionary<string, IModule>
                 {
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null) }
-                });
+                },
+                null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
@@ -312,6 +314,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var encryptionDecryptionProvider = new Mock<IEncryptionProvider>();
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
+
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 runtimeInfo,
@@ -319,7 +322,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new Dictionary<string, IModule>
                 {
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null) }
-                });
+                },
+                null);
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null);
             var recordKeeper = Option.Some(new TestPlanRecorder());
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
@@ -375,7 +379,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var testPlan = new Plan(commandList);
             var token = default(CancellationToken);
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule }, null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredSet = deploymentConfig.GetModuleSet();
             ModuleSet currentSet = ModuleSet.Create(currentModule);
@@ -424,7 +428,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var testPlan = new Plan(new List<ICommand>());
             var token = default(CancellationToken);
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["CustomModule"] = desiredModule });
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["CustomModule"] = desiredModule }, null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredSet = deploymentConfig.GetModuleSet();
             ModuleSet currentSet = ModuleSet.Create(currentModule);
@@ -478,8 +482,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
-
-            var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo.Object, new SystemModules(null, null), ImmutableDictionary<string, IModule>.Empty));
+            var deploymentConfigInfo = new DeploymentConfigInfo(1, new DeploymentConfig("1.0", runtimeInfo.Object, new SystemModules(null, null), ImmutableDictionary<string, IModule>.Empty, null));
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
             mockEnvironment.Setup(e => e.GetModulesAsync(token))
@@ -538,7 +541,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var testPlan = new Plan(commandList);
             var token = default(CancellationToken);
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule }, null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredSet = deploymentConfig.GetModuleSet();
             ModuleSet currentSet = ModuleSet.Create(currentModule);
@@ -592,7 +595,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var testPlan = new Plan(commandList);
             var token = default(CancellationToken);
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
+            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule }, null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             ModuleSet desiredSet = deploymentConfig.GetModuleSet();
             ModuleSet currentSet = ModuleSet.Create(currentModule);
@@ -655,7 +658,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
-
             var deploymentConfig = new DeploymentConfig(
                 "1.0",
                 Mock.Of<IRuntimeInfo>(),
@@ -663,7 +665,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new Dictionary<string, IModule>
                 {
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, new ConfigurationInfo("1"), null) }
-                });
+                },
+                null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             var token = default(CancellationToken);
 
@@ -727,7 +730,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var availabilityMetric = Mock.Of<IDeploymentMetrics>();
 
-            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), modules);
+            var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), modules, null);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
             var token = default(CancellationToken);
 
