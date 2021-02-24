@@ -51,6 +51,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
+            Logger.LogInformation($"Start to generate report by {nameof(DirectMethodLongHaulReportGenerator)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
+
             ulong senderSuccesses = 0;
             ulong receiverSuccesses = 0;
             ulong statusCodeZero = 0;
@@ -82,6 +84,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 receiverResults++;
             }
 
+            Logger.LogInformation($"Successfully finished creating {nameof(DirectMethodLongHaulReport)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             receiverSuccesses = receiverResults;
             return new DirectMethodLongHaulReport(
                 this.TestDescription,

@@ -121,7 +121,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 hasReceiverResult = reportGeneratorMetadata.HasReceiverResult;
             }
 
-            Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
+            Logger.LogInformation($"Successfully finished creating {nameof(DirectMethodConnectivityReport)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodConnectivityReport(
                 this.TestDescription,
                 this.trackingId,
