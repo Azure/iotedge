@@ -54,7 +54,7 @@ pub fn execute(
     if !force && new_config_file.exists() {
         return Err(format!(
             "\
-File {} already exists. IoT Edge has already been configured.
+File {} already exists. Azure IoT Edge has already been configured.
 
 To have the configuration take effect, run:
 
@@ -74,15 +74,17 @@ To reconfigure IoT Edge, run:
     common_config::write_file(new_config_file, &config, &root_user, 0o0600)
         .map_err(|err| format!("{:?}", err))?;
 
-    println!("IoT Edge has been configured successfully!");
+    println!("Azure IoT Edge has been configured successfully!");
     println!(
         "The configuration has been written to {}",
         new_config_file.display()
     );
-
-    // TODO: Ask for confirmation.
-
-    super::apply::execute(new_config_file)?;
+    println!("To apply the new configuration to services, run:");
+    println!();
+    println!(
+        "    iotedge config apply -c '{}'",
+        new_config_file.display()
+    );
 
     Ok(())
 }

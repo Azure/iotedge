@@ -127,8 +127,10 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     .map_err(|err| format!("{:?}", err))?;
 
     println!("Azure IoT Edge has been configured successfully!");
-
-    // TODO: `iotedge system restart`
+    println!();
+    println!("Restarting service for configuration to take effect...");
+    crate::System::system_restart().map_err(|err| format!("{}", err))?;
+    println!("Done.");
 
     Ok(())
 }
