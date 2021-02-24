@@ -146,6 +146,7 @@ jobs:
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
@@ -257,6 +258,7 @@ jobs:
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
@@ -368,4 +370,5 @@ jobs:
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
