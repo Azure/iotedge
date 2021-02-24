@@ -85,7 +85,7 @@ impl Settings {
             .map_or_else(|| CONFIG_DIRECTORY_DEFAULT.into(), Into::into);
 
         let mut settings: Settings =
-            config_common::read_config(&config_path, &config_directory_path)
+            config_common::read_config(&config_path, Some(&config_directory_path))
                 .map_err(|err| LoadSettingsError(Context::new(Box::new(err))))?;
 
         init_agent_spec(&mut settings)?;
