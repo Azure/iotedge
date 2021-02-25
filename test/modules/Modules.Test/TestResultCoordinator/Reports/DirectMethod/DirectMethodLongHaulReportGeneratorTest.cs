@@ -216,9 +216,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> timestamps,
             int batchSize,
             bool expectedIsPassed,
-            ulong expectedOk,
-            ulong expectedStatusCodeZero,
-            ulong expectedUnknown)
+            long expectedOk,
+            long expectedStatusCodeZero,
+            long expectedUnknown)
         {
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
@@ -259,7 +259,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedUnknown, report.Unknown);
+            Assert.Equal(expectedUnknown, report.Other.Sum(x => x.Value));
         }
 
         [Theory]
@@ -271,9 +271,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> timestamps,
             int batchSize,
             bool expectedIsPassed,
-            ulong expectedOk,
-            ulong expectedStatusCodeZero,
-            ulong expectedUnknown)
+            long expectedOk,
+            long expectedStatusCodeZero,
+            long expectedUnknown)
         {
             string senderSource = "senderSource";
             var values = receiverStoreValues;
@@ -303,7 +303,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedUnknown, report.Unknown);
+            Assert.Equal(expectedUnknown, report.Other.Sum(x => x.Value));
         }
 
         [Fact]
@@ -330,10 +330,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var report = (DirectMethodLongHaulReport)await reportGenerator.CreateReportAsync();
 
-            Assert.Equal(0UL, report.ReceiverSuccesses.Expect<ArgumentException>(() => throw new ArgumentException("impossible")));
-            Assert.Equal(0UL, report.SenderSuccesses);
-            Assert.Equal(0UL, report.StatusCodeZero);
-            Assert.Equal(0UL, report.Unknown);
+            Assert.Equal(0L, report.ReceiverSuccesses.Expect<ArgumentException>(() => throw new ArgumentException("impossible")));
+            Assert.Equal(0L, report.SenderSuccesses);
+            Assert.Equal(0L, report.StatusCodeZero);
+            Assert.Equal(0L, report.Other.Sum(x => x.Value));
             Assert.True(report.IsPassed);
         }
 
