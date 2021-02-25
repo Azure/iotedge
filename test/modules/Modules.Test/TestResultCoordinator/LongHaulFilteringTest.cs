@@ -33,7 +33,7 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
-        public async Task FilterTestIncludeDuplicatesAndIgnoreResultsAfterTolerance()
+        public async Task FilterTestIncludeDuplicateActualResultsAndIgnoreResultsAfterTolerance()
         {
             TestableTestResultFilter filter = new TestableTestResultFilter(new SimpleTestOperationResultComparer(), this.Expected2, this.Actual2);
             TimeSpan unmatchedResultTolerance = TimeSpan.FromMinutes(5);
@@ -49,7 +49,7 @@ namespace Modules.Test.TestResultCoordinator
         }
 
         [Fact]
-        public async Task FilterTestActualResultWithNoMatch()
+        public async Task FilterTestActualResultAtEndWithNoMatch()
         {
             TestableTestResultFilter filter = new TestableTestResultFilter(new SimpleTestOperationResultComparer(), this.Expected3, this.Actual3);
             TimeSpan unmatchedResultTolerance = TimeSpan.FromMinutes(5);

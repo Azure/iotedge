@@ -20,7 +20,7 @@ namespace TestResultCoordinator
     ///
     /// The current implementation mimics the way the report generators iterate over results.
     /// These report generators assume:
-    ///    - having an unexpected actual result at the very beginning is impossible
+    ///    - having an unexpected actual result anywhere except the end is impossible
     ///    - having duplicate actual results is possible
     ///    - having trailing actual results with no matching expected results is possible
     ///
