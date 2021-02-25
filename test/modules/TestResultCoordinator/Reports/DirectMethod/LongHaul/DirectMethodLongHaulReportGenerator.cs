@@ -2,7 +2,9 @@
 namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -55,15 +57,16 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            ulong senderSuccesses = 0;
-            Option<ulong> receiverSuccesses = Option.None<ulong>();
-            ulong statusCodeZero = 0;
-            ulong unknown = 0;
+            long senderSuccesses = 0;
+            Option<long> receiverSuccesses = Option.None<long>();
+            long statusCodeZero = 0;
+            Dictionary<HttpStatusCode, long> other = new Dictionary<HttpStatusCode, long>();
             while (await this.SenderTestResults.MoveNextAsync())
             {
                 this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
-                switch ((int)dmSenderTestResult.HttpStatusCode)
+                HttpStatusCode statusCode = dmSenderTestResult.HttpStatusCode;
+                switch ((int)statusCode)
                 {
                     case 0:
                         statusCodeZero++;
@@ -72,14 +75,22 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                         senderSuccesses++;
                         break;
                     default:
-                        unknown++;
+                        if (other.ContainsKey(statusCode))
+                        {
+                            other[statusCode]++;
+                        }
+                        else
+                        {
+                            other.Add(statusCode, 1);
+                        }
+
                         break;
                 }
             }
 
             await this.ReceiverTestResults.ForEachAsync(async r =>
             {
-                ulong receiverResults = 0;
+                long receiverResults = 0;
                 while (await r.MoveNextAsync())
                 {
                     // ReceiverSource will always be there if ReceiverTestResults is so it's safe to put OrDefault
@@ -100,7 +111,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 senderSuccesses,
                 receiverSuccesses,
                 statusCodeZero,
-                unknown);
+                other);
         }
 
         void ValidateDataSource(TestOperationResult current, string expectedSource)
