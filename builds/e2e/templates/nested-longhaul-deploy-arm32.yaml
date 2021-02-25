@@ -66,3 +66,4 @@ jobs:
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
+          testInfo.testName: '$(testInfo.testName)'
