@@ -166,6 +166,10 @@ stages:
         parameters:
           agentName: $(deviceLvl3AgentName)
           lvl: 3
+      - pwsh: |
+          #Sleep 30s to let the rules time to set
+          Start-Sleep -s 30 
+        displayName: Wait for network to lock
       - template: templates/nested-get-root-ca.yaml    
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-run.yaml
