@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
+  <Import Project="..\..\..\netstandardVersion.props" />
 
   <ItemGroup>
     <ProjectReference Include="..\es6numberserializer\es6numberserializer.csproj" />

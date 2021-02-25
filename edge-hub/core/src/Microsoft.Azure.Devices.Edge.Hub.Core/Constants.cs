@@ -28,11 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string ServiceApiIdHeaderKey = "x-ms-edge-moduleId";
         public const string OriginEdgeHeaderKey = "x-ms-edge-origin";
         public const string ClientCertificateHeaderKey = "x-ms-edge-clientcert";
+        public const int ApiProxyPort = 8080;
 
         public const string SchemaVersionKey = "schemaVersion";
         public static readonly Version SchemaVersion_1_0 = new Version("1.0");
         public static readonly Version SchemaVersion_1_1 = new Version("1.1");
         public static readonly Version SchemaVersion_1_2 = new Version("1.2");
-        public static readonly Version LatestSchemaVersion = SchemaVersion_1_2;
+        public static readonly Version SchemaVersion_1_3 = new Version("1.3");
+        public static readonly Version LatestSchemaVersion = SchemaVersion_1_3;
     }
 }

@@ -35,22 +35,42 @@ parameters:
   longHaul.parentEdgeDevice: ''
   testResultCoordinator.storageAccountConnectionString: ''
   quickstart.package.name: ''
-  aziotis.artifact.name: ''
-  aziotis.package.filter: ''
-  test.deploymentFileName: 'nested_long_haul_deployment.template.json'
+  test.deploymentFileName: ''
 steps:
   - checkout: self
     clean: true
     fetchDepth: 100
     submodules: recursive
+  - pwsh: |
+      $imageBuildId = $(resources.pipeline.images.runID)
+      $packageBuildId = $(resources.pipeline.packages.runID)
+
+      if ('$(az.pipeline.images.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
+        $imageBuildId = '$(az.pipeline.images.buildId)'
+      }
+
+      if ('$(az.pipeline.packages.buildId)')
+      {
+        Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
+        $packageBuildId = '$(az.pipeline.packages.buildId)'
+      }
+
+      Write-Output "##vso[task.setvariable variable=imageBuildId]$imageBuildId"
+      Write-Output "##vso[task.setvariable variable=packageBuildId]$packageBuildId"
+
+      Write-Output ">> Package Build ID=$packageBuildId"
+      Write-Output ">> Image Build ID=$imageBuildId"
+    displayName: Override artifacts with user-supplied args     
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     inputs:
       buildType: specific
-      project: $(System.TeamProjectId)
-      pipeline: $(edgelet.package.build)
-      branchName: $(edgelet.package.branchName)
-      buildVersionToDownload: latestFromBranch
+      project: $(resources.pipeline.packages.projectID)
+      pipeline: $(resources.pipeline.packages.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(packageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: ${{ parameters['edgelet.artifact.name'] }}
       allowPartiallySucceededBuilds: true
@@ -58,10 +78,10 @@ steps:
     displayName: 'Download Images Artifacts'
     inputs:
       buildType: specific
-      project: $(System.TeamProjectId)
-      pipeline: $(images.build)
-      branchName: $(images.branchName)
-      buildVersionToDownload: latestFromBranch
+      project: $(resources.pipeline.images.projectID)
+      pipeline: $(resources.pipeline.images.pipelineName)
+      buildVersionToDownload: specific
+      buildId: $(imageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       artifactName: ${{ parameters['images.artifact.name'] }}
       allowPartiallySucceededBuilds: true
@@ -79,9 +99,10 @@ steps:
       filePath: $(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}/scripts/local/test/DownloadIdentityService.ps1
     env:
       GITHUB_TOKEN: $(GitHubAccessToken)
-      ARTIFACT_NAME: $(aziotis.artifact.name)
-      PACKAGE_FILTER: $(aziotis.package.filter)
+      ARTIFACT_NAME: $(identityServiceArtifactName)
+      PACKAGE_FILTER: $(identityServicePackageFilter)
       DOWNLOAD_PATH: $(Build.StagingDirectory)
+      IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'
     inputs:
@@ -98,7 +119,7 @@ steps:
     displayName: 'Copy aziot-identity-service'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "$(aziotis.package.filter)"
+      Contents: "$(identityServicePackageFilter)"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
   - task: Bash@3
     displayName: 'Generate device certificates'

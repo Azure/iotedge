@@ -1,23 +1,25 @@
+parameters:
+  transportType: 'amqp'
+
 jobs:
-  - job: SetupVM_level5
-    displayName: SettingUp level 5
+  - job: SetupVM_level5_${{ parameters.transportType }}
+    displayName: SettingUp level 5 for ${{ parameters.transportType }} 
     timeoutInMinutes: 180
     variables:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      vsts.project: $(System.TeamProjectId)
       level: 5
-      deploymentFile: 'nestededge_topLayerBaseDeployment.json'
+      deploymentFile: 'nestededge_topLayerBaseDeployment_${{ parameters.transportType }}.json'
       parentName: ''
       parentDeviceId: ''
+      transportType: ${{ parameters.transportType }}
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - run-idle -equals true
        - status -equals unlocked
     steps:
      - template: nested-get-secrets.yaml
@@ -27,27 +29,26 @@ jobs:
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
 
-  - job: SetupVM_level4
-    dependsOn: SetupVM_level5
-    displayName: SettingUp level 4
+  - job: SetupVM_level4_${{ parameters.transportType }}
+    dependsOn: SetupVM_level5_${{ parameters.transportType }}
+    displayName: SettingUp level 4 for ${{ parameters.transportType }}
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
-      vsts.project: $(System.TeamProjectId)
-      parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
-      deploymentFile: 'nestededge_middleLayerBaseDeployment.json'
+      parentName: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
+      deploymentFile: 'nestededge_middleLayerBaseDeployment_${{ parameters.transportType }}.json'
       level: 4
+      transportType: ${{ parameters.transportType }}
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - run-idle -equals true 
        - status -equals unlocked    
     steps:
       - template: nested-get-secrets.yaml  

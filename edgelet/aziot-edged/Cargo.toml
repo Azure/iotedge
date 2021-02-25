@@ -26,6 +26,17 @@ native-tls = "0.2"
 url = "2"
 url_serde = "0.2"
 
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
@@ -33,18 +44,8 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-utils = { path = "../edgelet-utils" }
-aziot-cert-common-http = { path = "../aziot/cert/aziot-cert-common-http" }
-aziot-identity-common = { path = "../aziot/identity/aziot-identity-common" }
-aziot-identity-common-http = { path = "../aziot/identity/aziot-identity-common-http" }
-aziot-key-client = { path = "../aziot/key/aziot-key-client" }
-aziot-key-common = { path = "../aziot/key/aziot-key-common" }
-aziot-key-common-http = { path = "../aziot/key/aziot-key-common-http" }
-aziot-key-openssl-engine = { path = "../aziot/key/aziot-key-openssl-engine" }
 cert-client = { path = "../cert-client" }
 identity-client = { path = "../identity-client" }
-http-common = { path = "../aziot/http-common" }
-openssl2 = { path = "../aziot/openssl2" }
-openssl-sys2 = { path = "../aziot/openssl-sys2" }
 
 [dev_dependencies]
 lazy_static = "1"

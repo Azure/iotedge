@@ -23,6 +23,7 @@ jobs:
             docker buildx rm  mbuilder || true  && \
             docker buildx create --name mbuilder  || true  && \
             docker buildx use mbuilder
+            docker -v
         displayName: 'Set build version'
       - bash: |
             # Need to login to EdgeBuilds Container Registry for base images.
@@ -38,7 +39,7 @@ jobs:
           imageName: azureiotedge-api-proxy
           project: api-proxy-module
           version: $(buildVersion)
-          buildx_flag: true
+          buildx_flag: false
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
