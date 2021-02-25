@@ -32,8 +32,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         const string EdgeHubModuleId = "$edgeHub";
 
-        [Fact]
-        public async Task TestEdgeHubConnection()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task TestEdgeHubConnection(bool useScopeOnly)
         {
             const string EdgeDeviceId = "testHubEdgeDevice1";
             var twinMessageConverter = new TwinMessageConverter();
@@ -63,7 +65,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var deviceScopeIdentityCache = new Mock<IDeviceScopeIdentitiesCache>();
-            deviceScopeIdentityCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), It.IsAny<bool>())).ThrowsAsync(new DeviceInvalidStateException());
+
+            if (useScopeOnly)
+            {
+                deviceScopeIdentityCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
+            }
+            else
+            {
+                deviceScopeIdentityCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), It.IsAny<bool>())).ThrowsAsync(new DeviceInvalidStateException());
+            }
+
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var cloudConnectionProvider = new CloudConnectionProvider(
@@ -80,7 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: useScopeOnly);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider, deviceConnectivityManager);
 
