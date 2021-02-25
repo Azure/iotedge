@@ -153,6 +153,7 @@ install: release
 		-e 's|@listen_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
 		$(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
 
+	$(INSTALL) -d -m 0700 $(DESTDIR)$(sysconfdir)/aziot/edged/config.d
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/aziot-edged.service $(DESTDIR)$(unitdir)/aziot-edged.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
