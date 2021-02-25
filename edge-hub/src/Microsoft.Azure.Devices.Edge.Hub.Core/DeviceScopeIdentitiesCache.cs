@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
                 await serviceIdentity
                     .Map(s => this.HandleNewServiceIdentity(s))
-                    .GetOrElse(() => Task.CompletedTask); // Should not handle as removed identity because it can be None when service exception occurs (5XX error codes)
+                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
             }
             catch (DeviceInvalidStateException)
             {
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 },
                 () => throw new DeviceInvalidStateException("Device is out of scope."));
 
-        async Task RefreshServiceIdentityAsync(string id)
+        async Task RefreshServiceIdentityInternal(string id)
         {
             try
             {
@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         this.VerifyServiceIdentity(ssi);
                         return Task.CompletedTask;
                     },
-                    () => this.RefreshServiceIdentityAsync(id));
+                    () => this.RefreshServiceIdentityInternal(id));
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
