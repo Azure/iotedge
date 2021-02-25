@@ -4,6 +4,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -59,13 +60,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long senderSuccesses = 0;
             Option<long> receiverSuccesses = Option.None<long>();
             long statusCodeZero = 0;
-            Dictionary<int, long> other = new Dictionary<int, long>();
+            Dictionary<HttpStatusCode, long> other = new Dictionary<HttpStatusCode, long>();
             while (await this.SenderTestResults.MoveNextAsync())
             {
                 this.ValidateDataSource(this.SenderTestResults.Current, this.SenderSource);
                 DirectMethodTestResult dmSenderTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.SenderTestResults.Current.Result);
-                int statusCode = (int)dmSenderTestResult.HttpStatusCode;
-                switch (statusCode)
+                HttpStatusCode statusCode = dmSenderTestResult.HttpStatusCode;
+                switch ((int)statusCode)
                 {
                     case 0:
                         statusCodeZero++;

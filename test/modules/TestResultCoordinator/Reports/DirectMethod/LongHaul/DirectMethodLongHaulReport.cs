@@ -4,8 +4,8 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Org.BouncyCastle.Math.EC.Rfc7748;
 
     class DirectMethodLongHaulReport : TestResultReportBase
     {
@@ -18,7 +18,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long senderSuccesses,
             Option<long> receiverSuccesses,
             long statusCodeZero,
-            Dictionary<int, long> other)
+            Dictionary<HttpStatusCode, long> other)
             : base(testDescription, trackingId, resultType)
         {
             if (receiverSource.HasValue ^ receiverSuccesses.HasValue)
@@ -39,7 +39,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         public long SenderSuccesses { get; }
         public Option<long> ReceiverSuccesses { get; }
         public long StatusCodeZero { get; }
-        public Dictionary<int, long> Other { get; }
+        public Dictionary<HttpStatusCode, long> Other { get; }
 
         public override string Title => this.ReceiverSource.HasValue ?
             $"DirectMethod LongHaul Report for [{this.SenderSource}] and [{this.ReceiverSource.OrDefault()}] ({this.ResultType})" : $"DirectMethod Report for [{this.SenderSource}] ({this.ResultType})";
