@@ -1278,82 +1278,18 @@ mod tests {
         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
         Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
-        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Settings,
-        Stream, SystemResources,
+        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
+        SystemResources,
     };
 
     use std::path::Path;
 
-    use config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use json_patch::merge;
-    use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
         Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
     };
-    #[cfg(target_os = "linux")]
-    use tempfile::TempDir;
-
-    fn make_settings(merge_json: Option<JsonValue>) -> (Settings, TempDir) {
-        let tmp_dir = TempDir::new().unwrap();
-        let mut config = Config::default();
-        let mut config_json = json!({
-            "provisioning": {
-                "source": "manual",
-                "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
-            },
-            "agent": {
-                "name": "edgeAgent",
-                "type": "docker",
-                "env": {},
-                "config": {
-                    "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
-                    "auth": {}
-                }
-            },
-            "hostname": "zoo",
-            "connect": {
-                "management_uri": "unix:///var/lib/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/lib/iotedge/workload.sock"
-            },
-            "listen": {
-                "management_uri": "unix:///var/lib/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/lib/iotedge/workload.sock"
-            },
-            "homedir": tmp_dir.path(),
-            "moby_runtime": {
-                 "uri": "unix:///var/run/docker.sock",
-                "network": "azure-iot-edge"
-            }
-        });
-
-        if let Some(merge_json) = merge_json {
-            merge(&mut config_json, &merge_json);
-        }
-
-        config
-            .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
-            .unwrap();
-
-        (config.try_into().unwrap(), tmp_dir)
-    }
-
-    #[test]
-    fn invalid_uri_prefix_fails() {
-        let (settings, _tmp_dir) = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "foo:///this/is/not/valid"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings)
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err).any(|err| err
-            .to_string()
-            .contains("URL does not have a recognized scheme")));
-    }
 
     #[test]
     fn merge_env_empty() {

@@ -349,9 +349,6 @@
               "verificationDelay": {
                 "value": "<TestResultCoordinator.VerificationDelay>"
               },
-              "sendReportFrequency": {
-                "value": "<SendReportFrequency>"
-              },
               "eventHubConnectionString": {
                 "value": "<TestResultCoordinator.EventHubConnectionString>"
               },

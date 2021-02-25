@@ -3,5 +3,7 @@ aziot-edged usr/libexec/aziot
 debian/aziot-edged.mgmt.socket lib/systemd/system
 debian/aziot-edged.workload.socket lib/systemd/system
 debian/aziot-edged.service lib/systemd/system
-etc/aziot/edged/config.yaml.template
+etc/aziot/config.toml.edge.template
+etc/aziot/edged/config.toml.default
+etc/aziot/edged/config.d
 etc/logrotate.d/aziot-edge
