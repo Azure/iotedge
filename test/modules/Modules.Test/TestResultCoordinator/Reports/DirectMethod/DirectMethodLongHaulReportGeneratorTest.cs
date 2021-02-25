@@ -180,17 +180,17 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             string resultType = TestOperationResultType.DirectMethod.ToString();
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodLongHaulReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                (IAsyncEnumerator<TestOperationResult>)senderResults,
+                senderResults.GetAsyncEnumerator(),
                 receiverSource,
-                (IAsyncEnumerator<TestOperationResult>)receiverResults,
+                receiverResults.GetAsyncEnumerator(),
                 resultType);
 
             Guid guid = Guid.NewGuid();
