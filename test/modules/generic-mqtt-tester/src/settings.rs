@@ -29,6 +29,8 @@ pub struct Settings {
     relay_topic: String,
 
     messages_to_send: Option<u32>,
+
+    iotedge_moduleid: String,
 }
 
 impl Settings {
@@ -103,6 +105,10 @@ impl Settings {
 
     pub fn messages_to_send(&self) -> Option<u32> {
         self.messages_to_send
+    }
+
+    pub fn module_id(&self) -> String {
+        self.module_id.clone()
     }
 }
 

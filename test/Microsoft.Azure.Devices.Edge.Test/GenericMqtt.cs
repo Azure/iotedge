@@ -14,7 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class GenericMqtt : SasManualProvisioningFixture
     {
         const string NetworkControllerModuleName = "networkController";
-        const string GenericMqttTesterModuleName = "GenericMqttTester";
+        const string GenericMqttInitatorModuleName = "GenericMqttInitiator";
+        const string GenericMqttRelayerModuleName = "GenericMqttRelayer";
         const int GenericMqttTesterMaxMessages = 10;
         const string GenericMqttTesterTestStartDelay = "45s";
         const int SecondsBeforeVerification = 90;
@@ -30,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Action<EdgeConfigBuilder> addMqttBrokerConfig = MqttBrokerUtil.BuildAddBrokerToDeployment(false);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
-            Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttTesterModuleName, GenericMqttTesterModuleName);
+            Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttInitatorModuleName, GenericMqttInitatorModuleName);
             Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, trcImage, genericMqttTesterImage);
             Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
-                    builder.AddModule(GenericMqttTesterModuleName, genericMqttTesterImage)
+                    builder.AddModule(GenericMqttInitatorModuleName, genericMqttTesterImage)
                         .WithEnvironment(new[]
                         {
                             ("TEST_SCENARIO", "Initiate"),
@@ -51,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             ("TEST_START_DELAY", GenericMqttTesterTestStartDelay),
                         });
 
-                    builder.AddModule(GenericMqttTesterModuleName, genericMqttTesterImage)
+                    builder.AddModule(GenericMqttRelayerModuleName, genericMqttTesterImage)
                         .WithEnvironment(new[]
                         {
                             ("TEST_SCENARIO", "Relay"),
