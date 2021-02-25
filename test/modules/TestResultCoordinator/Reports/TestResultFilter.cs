@@ -33,8 +33,8 @@ namespace TestResultCoordinator
         {
             Logger.LogInformation("Filtering out recent results based on ignore threshold of {0}", unmatchedResultTolerance.ToString());
 
-            List<TestOperationResult> expectedResults = await expectedTestResultsEnumerable.ToListAsync();
-            List<TestOperationResult> actualResults = await actualTestResultsEnumerable.ToListAsync();
+            List<TestOperationResult> expectedResults = await this.ConvertToList(expectedTestResultsEnumerable);
+            List<TestOperationResult> actualResults = await this.ConvertToList(actualTestResultsEnumerable);
             List<TestOperationResult> expectedResultsOutput = new List<TestOperationResult>();
             List<TestOperationResult> actualResultsOutput = new List<TestOperationResult>();
 
@@ -84,6 +84,11 @@ namespace TestResultCoordinator
             IAsyncEnumerable<TestOperationResult> actualOutput = actualResultsOutput.ToAsyncEnumerable<TestOperationResult>();
 
             return (expectedOutput, actualOutput);
+        }
+
+        protected virtual async Task<List<TestOperationResult>> ConvertToList(IAsyncEnumerable<TestOperationResult> asyncEnumerable)
+        {
+            return await asyncEnumerable.ToListAsync();
         }
     }
 }
