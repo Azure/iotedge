@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -31,8 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         readonly IIdentity edgeHubIdentity;
         readonly TimeSpan operationTimeout;
         readonly IMetadataStore metadataStore;
-        readonly bool trackDeviceState;
         readonly bool scopeAuthenticationOnly;
+        readonly bool trackDeviceState;
         Option<IEdgeHub> edgeHub;
 
         public CloudConnectionProvider(
@@ -67,8 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.edgeHubIdentity = Preconditions.CheckNotNull(edgeHubIdentity, nameof(edgeHubIdentity));
             this.operationTimeout = operationTimeout;
             this.metadataStore = Preconditions.CheckNotNull(metadataStore, nameof(metadataStore));
-            this.trackDeviceState = trackDeviceState;
             this.scopeAuthenticationOnly = scopeAuthenticationOnly;
+            this.trackDeviceState = trackDeviceState;
         }
 
         public void BindEdgeHub(IEdgeHub edgeHubInstance)
