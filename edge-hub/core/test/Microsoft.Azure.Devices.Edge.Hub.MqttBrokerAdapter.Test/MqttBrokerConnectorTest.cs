@@ -10,6 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -374,6 +377,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 Assert.Equal("hoo", Encoding.ASCII.GetString(broker.Publications.First().Item2));
             }
         }
+
+        [Fact]
+        public async Task MessagesFromUpstreamHandledOnSeparatePath()
+        {
+            using var broker = new MiniMqttServer();
+
+            var upstreamMilestone = new SemaphoreSlim(0, 1);
+            var downstreamMilestone = new SemaphoreSlim(0, 1);
+
+            var edgeHubStub = new EdgeHubStub(() => upstreamMilestone.Release());
+
+            var upstreamDispatcher = new BrokeredCloudProxyDispatcher();
+            upstreamDispatcher.BindEdgeHub(edgeHubStub);
+
+            var consumers = new IMessageConsumer[]
+            {
+                new ConsumerStub
+                    {
+                        ShouldHandle = true,
+                        Handler = _ =>
+                        {
+                            upstreamMilestone.Wait(); // this blocks the pump for downstream messages
+                            downstreamMilestone.Release();
+                        }
+                    },
+
+                upstreamDispatcher
+            };
+
+            using var sut = new ConnectorBuilder()
+                                    .WithConsumers(consumers)
+                                    .Build();
+
+            await sut.ConnectAsync(HOST, broker.Port);
+
+            // handled by downstream pump and the pump gets blocked
+            await broker.PublishAsync("boo", Encoding.ASCII.GetBytes("hoo"));
+
+            // handled by upstream pump that let's downstream pump getting unblocked
+            await broker.PublishAsync("$downstream/device_1/methods/post/foo/?$rid=123", new byte[0]);
+
+            // check if downsteam pump got unblocked
+            Assert.True(await downstreamMilestone.WaitAsync(TimeSpan.FromSeconds(5)));
+        }
     }
 
     class ProducerStub : IMessageProducer
@@ -454,6 +501,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Mock.Get(systemComponentIdProvider).SetupGet(s => s.EdgeHubBridgeId).Returns("some_id");
 
             return new DisposableMqttBrokerConnector(componentDiscovery, systemComponentIdProvider);
+        }
+    }
+
+    class EdgeHubStub : IEdgeHub
+    {
+        Action whenCalled;
+
+        public EdgeHubStub(Action whenCalled)
+        {
+            this.whenCalled = whenCalled;
+        }
+
+        public void Dispose()
+        {
+        }
+
+        public IDeviceScopeIdentitiesCache GetDeviceScopeIdentitiesCache() => throw new NotImplementedException();
+        public string GetEdgeDeviceId() => "x";
+
+        public Task<IMessage> GetTwinAsync(string id)
+        {
+            this.whenCalled();
+            return Task.FromResult(new EdgeMessage(new byte[0], new Dictionary<string, string>(), new Dictionary<string, string>()) as IMessage);
+        }
+
+        public Task<DirectMethodResponse> InvokeMethodAsync(string id, DirectMethodRequest methodRequest)
+        {
+            this.whenCalled();
+            return Task.FromResult(new DirectMethodResponse("boo", new byte[0], 200));
+        }
+
+        public Task ProcessDeviceMessage(IIdentity identity, IMessage message) => WhenCalled();
+        public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> message) => WhenCalled();
+        public Task AddSubscription(string id, DeviceSubscription deviceSubscription) => WhenCalled();
+        public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions) => WhenCalled();
+        public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription) => WhenCalled();
+        public Task RemoveSubscriptions(string id) => WhenCalled();
+        public Task SendC2DMessageAsync(string id, IMessage message) => WhenCalled();
+        public Task UpdateDesiredPropertiesAsync(string id, IMessage twinCollection) => WhenCalled();
+        public Task UpdateReportedPropertiesAsync(IIdentity identity, IMessage reportedPropertiesMessage) => WhenCalled();
+
+        Task WhenCalled()
+        {
+            this.whenCalled();
+            return Task.CompletedTask;
         }
     }
 
