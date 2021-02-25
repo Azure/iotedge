@@ -152,11 +152,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Empty(resultBatchCancelled2.InvalidDetailsList);
             Assert.True(resultBatchCancelled2.SendFailureDetails.HasValue);
 
-            // Should fail and mark operation invalid on unhandled exception which will drop the message
+            // Should handle as no connection on unhandled exception
             ISinkResult<IRoutingMessage> result4 = await cloudMessageProcessor.ProcessAsync(message4, CancellationToken.None);
             Assert.NotNull(result4);
-            Assert.NotEmpty(result4.InvalidDetailsList);
-            Assert.Empty(result4.Failed);
+            Assert.Empty(result4.InvalidDetailsList);
+            Assert.NotEmpty(result4.Failed);
             Assert.Empty(result4.Succeeded);
             Assert.True(result4.SendFailureDetails.HasValue);
 
