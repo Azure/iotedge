@@ -127,7 +127,7 @@ fi
 %{_libexecdir}/aziot/aziot-edged
 
 # config
-%attr(400, root, root) %{aziot_confdir}/config.toml.edge.template
+%attr(600, root, root) %{aziot_confdir}/config.toml.edge.template
 %attr(400, %{iotedge_user}, %{iotedge_group}) %{iotedge_confdir}/config.toml.default
 %attr(700, %{iotedge_user}, %{iotedge_group}) %dir %{iotedge_confdir}/config.d
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}

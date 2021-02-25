@@ -21,7 +21,7 @@ case "$1" in
 
             chmod 755 /var/lib/aziot/edged
             chmod 755 /var/log/aziot/edged
-            chmod 400 /etc/aziot/config.toml.edge.template
+            chmod 600 /etc/aziot/config.toml.edge.template
             chmod 400 /etc/aziot/edged/config.toml.default
             chmod 700 /etc/aziot/edged/config.d
 
