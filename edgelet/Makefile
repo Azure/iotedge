@@ -86,7 +86,24 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/aziot-edged.mgmt.socket $(TARGET)/$(PACKAGE)/debian/aziot-edged.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/aziot-edged.8 $(TARGET)/$(PACKAGE)/man/aziot-edged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.yaml.template
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
+	sed -i \
+		-e 's|@connect_workload_uri@|unix:///var/run/iotedge/workload.sock|' \
+		-e 's|@connect_management_uri@|unix:///var/run/iotedge/mgmt.sock|' \
+		-e 's|@listen_workload_uri@|fd://aziot-edged.workload.socket|' \
+		-e 's|@listen_management_uri@|fd://aziot-edged.mgmt.socket|' \
+		$(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
+	sed -i \
+		-e 's|@connect_workload_uri@|unix:///var/run/iotedge/workload.sock|' \
+		-e 's|@connect_management_uri@|unix:///var/run/iotedge/mgmt.sock|' \
+		-e 's|@listen_workload_uri@|fd://aziot-edged.workload.socket|' \
+		-e 's|@listen_management_uri@|fd://aziot-edged.mgmt.socket|' \
+		$(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
+
+	$(INSTALL) -d $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.d
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
@@ -119,7 +136,24 @@ rpm-dist:
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(DESTDIR)$(libexecdir)/aziot/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/aziot/edged/config.yaml
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
+	sed -i \
+		-e 's|@connect_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
+		-e 's|@connect_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
+		-e 's|@listen_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
+		-e 's|@listen_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
+		$(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
+
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
+	sed -i \
+		-e 's|@connect_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
+		-e 's|@connect_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
+		-e 's|@listen_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
+		-e 's|@listen_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
+		$(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
+
+	$(INSTALL) -d -m 0700 $(DESTDIR)$(sysconfdir)/aziot/edged/config.d
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/aziot-edge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/aziot-edged.service $(DESTDIR)$(unitdir)/aziot-edged.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
@@ -142,7 +176,8 @@ uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedge
 	-rm -f $(DESTDIR)$(man1)/iotedge.1
 	-rm -f $(DESTDIR)$(man8)/aziot-edged.8
-	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
+	-rm $(DESTDIR)$(systconfdir)/aziot/config.toml.edge.template
+	-rm $(DESTDIR)$(systconfdir)/aziot/edged/config.toml.default
 	-rm $(DESTDIR)$(systconfdir)/logrotate.d/aziot-edge
 	-rm $(DESTDIR)$(docdir)/LICENSE
 	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
