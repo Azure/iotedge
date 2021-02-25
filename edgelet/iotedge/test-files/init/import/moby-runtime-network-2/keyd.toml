@@ -1,6 +1,0 @@
-[aziot_keys]
-homedir_path = "/var/lib/aziot/keyd"
-
-[preloaded_keys]
-aziot-edged-ca = "file:///var/secrets/device-ca.key.pem"
-device-id = "file:///var/secrets/aziot/keyd/device-id"
