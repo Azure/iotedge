@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
                 else
                 {
-                    if (this.IsRetryable(cloudProxy.Exception))
+                    if (this.IsRetryable(cloudProxy.Exception) || !this.trackDeviceState)
                     {
                         return this.HandleNoConnection(id, routingMessages);
                     }

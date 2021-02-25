@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
-        public async Task Events_CloudProxyThrowsTest()
+        public async Task Events_CloudProxyGetterReturnException_ShouldHandleAsNoConnection()
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
             var routingMessage = Mock.Of<IRoutingMessage>();
