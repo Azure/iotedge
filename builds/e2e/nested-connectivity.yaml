@@ -83,7 +83,6 @@ stages:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
     steps:  
-      - template: templates/lock-test-agent.yaml     
       - template: templates/set-run-flag.yaml
       - task: Bash@3
         name: Print_test_parameters
