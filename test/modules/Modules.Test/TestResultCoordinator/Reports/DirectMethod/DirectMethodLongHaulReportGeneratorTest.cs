@@ -188,9 +188,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
+                (IAsyncEnumerator<TestOperationResult>)senderResults,
                 receiverSource,
-                receiverResults,
+                (IAsyncEnumerator<TestOperationResult>)receiverResults,
                 resultType);
 
             Guid guid = Guid.NewGuid();
