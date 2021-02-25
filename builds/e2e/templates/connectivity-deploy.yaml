@@ -87,7 +87,7 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,NetworkDescription=${{ parameters['networkController.description'] }}"
-        testInfo="$testInfo,TestName=$testName"
+        testInfo="$testInfo,TestName=${{ parameters['testInfo.testName'] }}"
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
 
