@@ -105,6 +105,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         }
 
         [Fact]
+        public async Task Events_CloudProxyThrowsTest()
+        {
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var routingMessage = Mock.Of<IRoutingMessage>();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> { { "connectionDeviceId", "myConnectionDeviceId" } });
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try<ICloudProxy>.Failure(new Exception("EdgeHubConnectionException"))), routingMessageConverter);
+
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+            ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.OrDefault().FailureKind);
+            Assert.Equal(typeof(EdgeHubConnectionException), sinkResult.SendFailureDetails.OrDefault().RawException.GetType());
+        }
+
+        [Fact]
         public async Task Events_CloudProxyNotFoundWithDeviceInvalidStateExceptionTest()
         {
             Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
@@ -144,7 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> { { "messageId", "myConnectionDeviceId" } });
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try<ICloudProxy>.Failure(new Exception("Exception"))), routingMessageConverter);
+            var cloudProxy = Mock.Of<ICloudProxy>();
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try.Success(cloudProxy)), routingMessageConverter);
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
