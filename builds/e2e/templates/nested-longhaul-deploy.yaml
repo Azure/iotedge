@@ -153,7 +153,7 @@ steps:
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
-        testInfo="$testInfo,TestName=$testName"
+        testInfo="$testInfo,TestName=${{ parameters['testInfo.testName'] }}"
         
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         
