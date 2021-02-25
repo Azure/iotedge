@@ -53,6 +53,7 @@ jobs:
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.logType: '$(logAnalyticsLogType)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
