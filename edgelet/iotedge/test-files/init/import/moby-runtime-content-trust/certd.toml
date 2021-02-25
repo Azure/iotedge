@@ -1,7 +1,0 @@
-homedir_path = "/var/lib/aziot/certd"
-
-[cert_issuance]
-
-[preloaded_certs]
-"content-trust-contoso1.azurecr.io" = "file:///var/secrets/contoso1-ca.pem"
-"content-trust-contoso2.azurecr.io" = "file:///var/secrets/contoso2-ca.pem"

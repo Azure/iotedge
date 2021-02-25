@@ -6,7 +6,7 @@ Wants=network-online.target docker.service
 Documentation=man:aziot-edged(8)
 
 [Service]
-ExecStart=/usr/libexec/aziot/aziot-edged -c /etc/aziot/edged/config.yaml
+ExecStart=/usr/libexec/aziot/aziot-edged
 KillMode=process
 TimeoutStartSec=600
 TimeoutStopSec=40
