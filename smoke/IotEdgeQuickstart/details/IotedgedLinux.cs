@@ -257,7 +257,7 @@ namespace IotEdgeQuickstart.Details
                 Path.Combine(config[CERTD].PrincipalsPath, "aziot-edged-principal.toml"),
                 config[CERTD].Owner,
                 config[EDGED].Uid,
-                new string[] { "$edgeHub*server" });
+                new string[] { "aziot-edged/module/*" });
         }
 
         public async Task Configure(
