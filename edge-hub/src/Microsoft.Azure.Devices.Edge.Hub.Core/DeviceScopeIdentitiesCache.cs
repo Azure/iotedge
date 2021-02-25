@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        bool NoNeedToRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshIfOutOfDate) => !refreshIfOutOfDate || storedServiceIdentity.Timestamp + this.refreshDelay > DateTime.UtcNow;
+        bool ShouldNotRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshIfOutOfDate) => !refreshIfOutOfDate || storedServiceIdentity.Timestamp + this.refreshDelay > DateTime.UtcNow;
 
         void VerifyServiceIdentity(StoredServiceIdentity storedServiceIdentity) => this.VerifyServiceIdentity(storedServiceIdentity.ServiceIdentity);
 
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Option<StoredServiceIdentity> storedServiceIdentity = await this.GetStoredServiceIdentity(id);
             // if stored service identity is up to date, use it, otherwise refresh
-            await storedServiceIdentity.Filter(ssi => this.NoNeedToRefresh(ssi, refreshIfOutOfDate))
+            await storedServiceIdentity.Filter(ssi => this.ShouldNotRefresh(ssi, refreshIfOutOfDate))
                 .ForEachAsync(
                     ssi =>
                     {

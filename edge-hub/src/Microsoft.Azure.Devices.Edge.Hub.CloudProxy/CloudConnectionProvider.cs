@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        private async Task<Try<ICloudConnection>> TryCreateCloudConnectionFromServiceIdentity(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache, CloudListener cloudListener)
+        async Task<Try<ICloudConnection>> TryCreateCloudConnectionFromServiceIdentity(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache, CloudListener cloudListener)
         {
             Events.CreatingCloudConnectionOnBehalfOf(identity);
             ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
@@ -188,14 +188,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<Try<ICloudConnection>> TryRecoverCloudConnection(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache, Exception ex)
+        async Task<Try<ICloudConnection>> TryRecoverCloudConnection(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool wasRefreshed, Exception ex)
         {
             Events.ErrorCreatingCloudConnection(identity, ex);
             if (this.scopeAuthenticationOnly)
             {
                 if (this.trackDeviceState)
                 {
-                    if (refreshOutOfDateCache)
+                    if (wasRefreshed)
                     {
                         // recover failed
                         Events.ErrorCreatingCloudConnection(identity, ex);
