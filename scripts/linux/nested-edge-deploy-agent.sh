@@ -36,7 +36,7 @@ function setup_iotedge() {
     >/tmp/principals.toml cat <<-EOF
 [[principal]]
 uid = $(id -u iotedge)
-certs = ["$edgeHub*server"]
+certs = ["aziot-edged/module/*"]
 EOF
     sudo mv /tmp/principals.toml /etc/aziot/certd/config.d/aziot-edged-principal.toml
     sudo chown aziotcs:aziotcs /etc/aziot/certd/config.d/aziot-edged-principal.toml
