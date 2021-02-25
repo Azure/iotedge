@@ -221,7 +221,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                 return await clientCredentials
                     .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                    .GetOrElse(() => {
+                    .GetOrElse(() =>
+                    {
                         var ex = new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache");
                         Events.ErrorCreatingCloudConnection(identity, ex);
                         return Task.FromResult(Try<ICloudConnection>.Failure(ex));
