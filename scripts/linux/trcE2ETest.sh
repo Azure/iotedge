@@ -887,7 +887,7 @@ if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
     RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
-    run_longhaul_test && ret=$? || ret=$?
+    run_longhaul_test && testRet=$? || testRet=$?
 elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
     TEST_DURATION="${TEST_DURATION:-01:00:00}"
