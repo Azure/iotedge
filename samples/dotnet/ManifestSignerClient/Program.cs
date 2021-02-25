@@ -3,19 +3,22 @@
 namespace ManifestSignerClient
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json.Linq;
+
     class Program
     {
         // Edit the launchSettings.json or directly add the values of the Environmental variables
-        static readonly string ManifestVersion = Environment.GetEnvironmentVariable("MANIFEST_VERSION");
         static readonly string DsaAlgorithm = Environment.GetEnvironmentVariable("DSA_ALGORITHM");
         static readonly string DeploymentManifestFilePath = Environment.GetEnvironmentVariable("DEPLOYMENT_MANIFEST_FILE_PATH");
         static readonly string SignedDeploymentManifestFilePath = Environment.GetEnvironmentVariable("SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH");
         static readonly string UseTestingCA = Environment.GetEnvironmentVariable("USE_TESTING_CA");
         static readonly string DeviceRootCaPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_DEVICE_ROOT_CA_PATH");
+        static readonly string IntermediateCaPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_INTERMEDIATE_CA_PATH");
         static readonly string SignerPrivateKeyPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH");
         static readonly string SignerCertPath = Environment.GetEnvironmentVariable("MANIFEST_TRUST_SIGNER_CERT_PATH");
 
@@ -23,15 +26,6 @@ namespace ManifestSignerClient
         {
             Console.WriteLine("Display settings from launchSettings.json");
             Console.WriteLine("================================================================================================");
-
-            if (string.IsNullOrEmpty(ManifestVersion))
-            {
-                throw new Exception("Manifest Version number is empty. Please update it in launchSettings.json");
-            }
-            else
-            {
-                Console.WriteLine($"Manifest Version number is {ManifestVersion}");
-            }
 
             if (string.IsNullOrEmpty(DsaAlgorithm))
             {
@@ -78,6 +72,15 @@ namespace ManifestSignerClient
                 Console.WriteLine($"Device Root CA path is {DeviceRootCaPath}");
             }
 
+            if (string.IsNullOrEmpty(IntermediateCaPath))
+            {
+                Console.WriteLine("No Intermdiate CA support in Manifest file. If needed, please update it in launchSettings.json");
+            }
+            else
+            {
+                Console.WriteLine($"Intermdiate CA path is {IntermediateCaPath}");
+            }
+
             if (string.IsNullOrEmpty(SignerPrivateKeyPath))
             {
                 throw new Exception("Signer Private key path is empty. Please update it in launchSettings.json");
@@ -104,68 +107,40 @@ namespace ManifestSignerClient
             var signerCert = CertificateUtil.GetBase64CertContent(SignerCertPath);
             var signerCert1 = signerCert.Substring(0, signerCert.Length / 2);
             var signerCert2 = signerCert.Substring(signerCert.Length / 2);
-            object headerObject = new
+            object headerObject;
+            if (string.IsNullOrEmpty(IntermediateCaPath))
             {
-                version = ManifestVersion,
-                cert1 = signerCert1,
-                cert2 = signerCert2
-            };
+                headerObject = new
+                {
+                    signercert = new string[] { signerCert1, signerCert2 }
+                };
+            }
+            else
+            {
+                var intermediatecacert = CertificateUtil.GetBase64CertContent(IntermediateCaPath);
+                var intermediatecacert1 = intermediatecacert.Substring(0, intermediatecacert.Length / 2);
+                var intermediatecacert2 = intermediatecacert.Substring(intermediatecacert.Length / 2);
+                headerObject = new
+                {
+                    signercert = new string[] { signerCert1, signerCert2 },
+                    intermediatecacert = new string[] { intermediatecacert1, intermediatecacert2 },
+                };
+            }
 
             return JObject.FromObject(headerObject);
         }
 
-        static string GetAlgorithmScheme(string DsaAlgorithm)
+        static bool VerifyCertificate()
         {
-            if (DsaAlgorithm.Length < 2)
-            {
-                throw new Exception("DSA algorithm is not specific correctly \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-            }
-
-            if (DsaAlgorithm[0..2] == "ES" || DsaAlgorithm[0..2] == "RS")
-            {
-                return DsaAlgorithm[0..2];
-            }
-            else
-            {
-                throw new Exception("DSA Algorithm Type not supported \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-            }
-        }
-
-        private static HashAlgorithmName GetHashAlgorithm(string DsaAlgorithm)
-        {
-            try
-            {
-                if (DsaAlgorithm.Length <= 2 || DsaAlgorithm.Length > 5)
-                {
-                    throw new Exception("SHA algorithm is not specific correctly \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-                }
-                else if (DsaAlgorithm[2..5] == "256")
-                {
-                    return HashAlgorithmName.SHA256;
-                }
-                else if (DsaAlgorithm[2..5] == "384")
-                {
-                    return HashAlgorithmName.SHA384;
-                }
-                else if (DsaAlgorithm[2..5] == "512")
-                {
-                    return HashAlgorithmName.SHA512;
-                }
-                else
-                {
-                    throw new Exception("SHA Algorithm Type not supported \n Supported Algorithm types: \n === In ECDSA === \n 1. EC256 \n 2. EC384 \n 3. EC512 \n === In RSA === \n 1. RS256 \n 2. RS384 \n 3. RS512");
-                }
-            }
-            catch (Exception e)
-            {
-                throw e;
-            }
-        }
-
-        static bool VerifyCertificate(X509Certificate2 signerCertificate, X509Certificate2 rootCertificate)
-        {
+            var signerCertificate = new X509Certificate2(SignerCertPath);
+            var rootCertificate = new X509Certificate2(DeviceRootCaPath);
             var chain = new X509Chain();
             chain.ChainPolicy.ExtraStore.Add(rootCertificate);
+            if (!string.IsNullOrEmpty(IntermediateCaPath))
+            {
+                var intermediateCertificate = new X509Certificate2(IntermediateCaPath);
+                chain.ChainPolicy.ExtraStore.Add(intermediateCertificate);
+            }
 
             if (UseTestingCA == "true")
             {
@@ -187,10 +162,8 @@ namespace ManifestSignerClient
             {
                 // Check launch settings and display it
                 CheckInputAndDisplayLaunchSettings();
-                var signerCertificate = new X509Certificate2(SignerCertPath);
-                var rootCertificate = new X509Certificate2(DeviceRootCaPath);
-                var result = VerifyCertificate(signerCertificate, rootCertificate);
-                if (!result)
+                // Verify certificate chaining
+                if (!VerifyCertificate())
                 {
                     throw new Exception("Please provide a signer cert issued by the given root CA");
                 }
@@ -209,8 +182,7 @@ namespace ManifestSignerClient
                 if (deploymentManifestContentJson["modulesContent"] != null)
                 {
                     // Get the DSA and SHA algorithm
-                    var dsaAlgorithmScheme = GetAlgorithmScheme(DsaAlgorithm);
-                    var shaAlgorithm = GetHashAlgorithm(DsaAlgorithm);
+                    KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(DsaAlgorithm.ToString());
 
                     // Read the signer certificate and manifest version number and create integrity header object
                     var header = GetIntegrityHeader(SignerCertPath);
@@ -243,7 +215,7 @@ namespace ManifestSignerClient
                                 Console.WriteLine($"Signing Module: {property.Name}");
                                 object signature = new
                                 {
-                                    bytes = CertificateUtil.GetJsonSignature(dsaAlgorithmScheme, shaAlgorithm, modulesDesired.ToString(), header, SignerPrivateKeyPath),
+                                    bytes = CertificateUtil.GetJsonSignature(algoResult.Key, algoResult.Value, modulesDesired.ToString(), header, SignerPrivateKeyPath),
                                     algorithm = DsaAlgorithm
                                 };
                                 deploymentManifestContentJson["modulesContent"][property.Name]["properties.desired"]["integrity"] = JObject.FromObject(new { header, signature });
