@@ -80,7 +80,7 @@ EOF
     sudo cp /etc/aziot/edged/config.toml.default /etc/aziot/edged/config.toml
     sudo sed -i "14s|.*|image = \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/aziot/edged/config.toml
     if [ -z $PARENT_NAME ]; then
-        sudo sed -i "15s|.*|auth = { serveraddress: \"${CONTAINER_REGISTRY}\", username = \"${CONTAINER_REGISTRY_USERNAME}\", password = \"${CONTAINER_REGISTRY_PASSWORD}\" }|" /etc/aziot/edged/config.toml
+        sudo sed -i "15s|.*|auth = { serveraddress = \"${CONTAINER_REGISTRY}\", username = \"${CONTAINER_REGISTRY_USERNAME}\", password = \"${CONTAINER_REGISTRY_PASSWORD}\" }|" /etc/aziot/edged/config.toml
     fi
 
     if [ ! -z $PARENT_NAME ]; then
