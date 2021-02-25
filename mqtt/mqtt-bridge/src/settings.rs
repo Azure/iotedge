@@ -1,9 +1,16 @@
-use std::{path::Path, time::Duration, vec::Vec};
+use std::{
+    num::{NonZeroU64, NonZeroUsize},
+    path::{Path, PathBuf},
+    time::Duration,
+    vec::Vec,
+};
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 
 use mqtt_util::{CredentialProviderSettings, Credentials};
+
+use crate::persist::FlushOptions;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
@@ -15,6 +22,8 @@ pub struct BridgeSettings {
     remotes: Vec<ConnectionSettings>,
 
     messages: MessagesSettings,
+
+    storage: StorageSettings,
 }
 
 impl BridgeSettings {
@@ -46,7 +55,9 @@ impl BridgeSettings {
         subs: Vec<Direction>,
         clean_session: bool,
         keep_alive: Duration,
+        storage_dir_override: &PathBuf,
     ) -> Result<Self, ConfigError> {
+        let mut this = Self::new()?;
         let upstream_connection_settings = ConnectionSettings {
             name: "$upstream".into(),
             address: addr,
@@ -55,11 +66,13 @@ impl BridgeSettings {
             clean_session,
             keep_alive,
         };
-        Ok(Self {
-            upstream: Some(upstream_connection_settings),
-            remotes: vec![],
-            messages: MessagesSettings {},
-        })
+        this.upstream = Some(upstream_connection_settings);
+        let mut storage = this.storage.clone();
+        if let StorageSettings::RingBuffer(ref mut ring_buffer_settings) = storage {
+            ring_buffer_settings.directory = storage_dir_override.clone();
+            this.storage = storage.clone();
+        }
+        Ok(this)
     }
 
     pub fn upstream(&self) -> Option<&ConnectionSettings> {
@@ -72,6 +85,10 @@ impl BridgeSettings {
 
     pub fn messages(&self) -> &MessagesSettings {
         &self.messages
+    }
+
+    pub fn storage(&self) -> &StorageSettings {
+        &self.storage
     }
 }
 
@@ -90,6 +107,8 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             remotes: Vec<ConnectionSettings>,
 
             messages: MessagesSettings,
+
+            storage: StorageSettings,
         }
 
         let Inner {
@@ -97,6 +116,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream,
             remotes,
             messages,
+            storage,
         } = serde::Deserialize::deserialize(deserializer)?;
 
         let upstream_connection_settings = nested_bridge.map(|nested_bridge| ConnectionSettings {
@@ -116,6 +136,7 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
             messages,
+            storage,
         })
     }
 }
@@ -251,14 +272,69 @@ struct UpstreamSettings {
     subscriptions: Vec<Direction>,
 }
 
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "type")]
+pub enum StorageSettings {
+    #[serde(rename = "memory")]
+    Memory(MemorySettings),
+
+    #[serde(rename = "ring_buffer")]
+    RingBuffer(RingBufferSettings),
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct MemorySettings {
+    max_size: NonZeroUsize,
+}
+
+impl MemorySettings {
+    pub fn new(max_size: NonZeroUsize) -> Self {
+        Self { max_size }
+    }
+
+    pub fn max_size(&self) -> NonZeroUsize {
+        self.max_size
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct RingBufferSettings {
+    max_file_size: NonZeroU64,
+    directory: PathBuf,
+    flush_options: FlushOptions,
+}
+
+impl RingBufferSettings {
+    pub fn new(max_file_size: NonZeroU64, directory: PathBuf, flush_options: FlushOptions) -> Self {
+        Self {
+            max_file_size,
+            directory,
+            flush_options,
+        }
+    }
+
+    pub fn max_file_size(&self) -> NonZeroU64 {
+        self.max_file_size
+    }
+
+    pub fn directory(&self) -> &PathBuf {
+        &self.directory
+    }
+
+    pub fn flush_options(&self) -> &FlushOptions {
+        &self.flush_options
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use config::ConfigError;
+    use matches::assert_matches;
     use serial_test::serial;
 
-    use super::BridgeSettings;
-    use super::Credentials;
     use mqtt_broker_tests_util::env;
+
+    use super::*;
 
     #[test]
     #[serial(env_settings)]
@@ -273,6 +349,20 @@ mod tests {
 
         assert_eq!(settings.remotes().len(), 0);
         assert_eq!(settings.upstream(), None);
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn new_reads_storage_settings() {
+        let settings = BridgeSettings::new().unwrap();
+        let storage_settings = settings.storage();
+        // Should exist from default.json.
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
+            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        }
     }
 
     #[test]
@@ -317,6 +407,44 @@ mod tests {
             }
             _ => panic!("Expected plaintext settings"),
         };
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_without_explicit_storage() {
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let storage_settings = settings.storage();
+        // Should exist from default.json.
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
+            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        }
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_with_memory_override() {
+        let settings = BridgeSettings::from_file("tests/config.memory.json").unwrap();
+        let storage_settings = settings.storage();
+        assert_matches!(storage_settings, StorageSettings::Memory(_));
+        if let StorageSettings::Memory(mem) = storage_settings {
+            assert_eq!(mem.max_size(), NonZeroUsize::new(1024).unwrap());
+        }
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_with_ring_buffer_override() {
+        let settings = BridgeSettings::from_file("tests/config.ring_buffer.json").unwrap();
+        let storage_settings = settings.storage();
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(2048).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/tests/"));
+            assert_eq!(*rb.flush_options(), FlushOptions::Off);
+        }
     }
 
     #[test]

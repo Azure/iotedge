@@ -47,7 +47,7 @@ steps:
       buildId: $(packageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       allowPartiallySucceededBuilds: true
-      artifactName: $(artifactName)   
+      artifactName: $(artifactName)
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
     inputs:

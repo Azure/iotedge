@@ -42,7 +42,7 @@
                 "value": "true"
               },
               "DeviceScopeCacheRefreshDelaySecs": {
-                "value": 1
+                "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"

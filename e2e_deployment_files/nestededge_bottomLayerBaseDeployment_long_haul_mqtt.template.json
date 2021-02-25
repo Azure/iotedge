@@ -513,6 +513,27 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
+          },
+          "genericMqttTester": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TEST_SCENARIO": {
+                "value": "Initiate"
+              },
+              "TRACKING_ID": {
+                "value": "<TrackingId>"
+              },
+              "TEST_START_DELAY": {
+                "value": "10s"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+            }
           }
         }
       }
@@ -538,8 +559,28 @@
               "allow": [
                 {
                   "operations": [
-                    "mqtt:connect"
+                    "mqtt:connect",
+                    "mqtt:publish",
+                    "mqtt:subscribe"
+                  ],
+                  "resources": [
+                    "#"
                   ]
+                }
+              ]
+            }
+          ],
+          "bridges": [
+            {
+              "endpoint": "$upstream",
+              "settings": [
+                {
+                  "direction": "in",
+                  "topic": "relay/#"
+                },
+                {
+                  "direction": "out",
+                  "topic": "initiate/#"
                 }
               ]
             }
@@ -607,15 +648,22 @@
             "TestDescription": "direct method | cloud | mqtt"
           },
           "reportMetadata9": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "genericMqttTester.send",
+            "ActualSource": "genericMqttTester.receive",
+            "TestDescription": "messages | local | mqtt | generic"
+          },
+          "reportMetadata10": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
             "TestDescription": "network controller"
           },
-          "reportMetadata10": {
+          "reportMetadata11": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata11": {
+          "reportMetadata12": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }

@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
             else
             {
-                sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.iotHub);
+                sensor = new EdgeModule(SensorName, this.runtime.DeviceId, this.IotHub);
                 startTime = DateTime.Now;
             }
 

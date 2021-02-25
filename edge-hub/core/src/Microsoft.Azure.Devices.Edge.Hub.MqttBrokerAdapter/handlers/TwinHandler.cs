@@ -23,8 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string TwinUpdateIndirectDevice = "$iothub/+/twin/reported/#";
         const string TwinUpdateIndirectModule = "$iothub/+/+/twin/reported/#";
 
-        const string TwinGetPublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
-        const string TwinUpdatePublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)";
+        const string TwinGetPublishPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/get/\?\$rid=(?<rid>.+)";
+        const string TwinUpdatePublishPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/reported/\?\$rid=(?<rid>.+)";
 
         const string TwinSubscriptionForResultsPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/res/\#$";
         const string TwinSubscriptionForPatchPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/twin/desired/\#$";
@@ -183,11 +183,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var rid = match.Groups["rid"];
 
+            var isDirect = string.Equals(match.Groups["dialect"].Value, MqttBrokerAdapterConstants.DirectTopicPrefix);
+
             var identity = id2.Success
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity);
+            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity, isDirect);
             var listener = default(IDeviceListener);
 
             try

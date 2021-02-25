@@ -40,7 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
                 new SystemModules(Option.None<IEdgeAgentModule>(), Option.None<IEdgeHubModule>()),
-                new Dictionary<string, IModule>());
+                new Dictionary<string, IModule>(),
+                null);
 
             var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore, restartPolicyManager, systemInfo.OperatingSystemType, systemInfo.Architecture, systemInfo.Version);
 
@@ -176,7 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 "1.0",
                 new DockerRuntimeInfo("docker", new DockerRuntimeConfig(minDockerVersion, dockerLoggingOptions)),
                 new SystemModules(edgeAgentModule, edgeHubModule),
-                new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2, [contentTrustModule.Name] = contentTrustModule });
+                new Dictionary<string, IModule> { [module1.Name] = module1, [module2.Name] = module2, [contentTrustModule.Name] = contentTrustModule },
+                null);
 
             var environment = new DockerEnvironment(runtimeInfoProvider, deploymentConfig, moduleStateStore.Object, restartPolicyManager.Object, OperatingSystemType, Architecture, Version);
 

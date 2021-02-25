@@ -7,7 +7,14 @@
           "type": "docker",
           "settings": {
             "minDockerVersion": "v1.25",
-            "loggingOptions": ""
+            "loggingOptions": "",
+            "registryCredentials": {
+              "buildcr": {
+                "username": "<CR.Username>",
+                "password": "<CR.Password>",
+                "address": "<Container_Registry>"
+              }
+            }
           }
         },
         "systemModules": {
@@ -36,7 +43,7 @@
                 "value": "true"
               },
               "DeviceScopeCacheRefreshDelaySecs": {
-                "value": 1
+                "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
@@ -62,6 +69,27 @@
                 "value": "443"
               }
             }
+          },
+          "genericMqttTester": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TEST_SCENARIO": {
+                "value": "Relay"
+              },
+              "TRACKING_ID": {
+                "value": "AForgottenVariableLostToTimeAndSpace-PleaseRememberToRemoveMeSomedayFromTheRelayerScenarioOfGenericMqttTesterOrAlternativelyAddValidationInTheTesterAndGenerateTheTrackingIdFromAHigherYaml"
+              },
+              "TEST_START_DELAY": {
+                "value": "10s"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+            }
           }
         }
       }
@@ -77,18 +105,38 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect",
+                    "mqtt:publish",
+                    "mqtt:subscribe"
                   ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+                  "resources": [
+                    "#"
                   ]
-              }
+                }
+              ]
+            }
+          ],
+          "bridges": [
+            {
+              "endpoint": "$upstream",
+              "settings": [
+                {
+                  "direction": "in",
+                  "topic": "relay/#"
+                },
+                {
+                  "direction": "out",
+                  "topic": "initiate/#"
+                }
+              ]
+            }
           ]
         }
       }
