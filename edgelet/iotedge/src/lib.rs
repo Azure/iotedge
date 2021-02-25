@@ -20,8 +20,8 @@ use futures::Future;
 use serde_derive::Deserialize;
 
 mod check;
+pub mod config;
 mod error;
-pub mod init;
 mod list;
 mod logs;
 mod restart;
