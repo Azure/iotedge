@@ -3,8 +3,11 @@ set -e
 
 case "$1" in
     purge)
-        if [ -f /etc/aziot/edged/config.yaml ]; then
-            rm /etc/aziot/edged/config.yaml
+        if [ -f /etc/aziot/edged/config.toml ]; then
+            rm /etc/aziot/edged/config.toml
+        fi
+        if [ -d /etc/aziot/edged/config.d ]; then
+            rm -r /etc/aziot/edged/config.d
         fi
         if [ -d /var/lib/aziot/edged ]; then
             rm -rf /var/lib/aziot/edged
