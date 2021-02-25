@@ -61,9 +61,6 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -93,9 +90,6 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
@@ -181,9 +175,6 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
@@ -216,9 +207,6 @@
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
@@ -258,9 +246,6 @@
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver1"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
@@ -316,9 +301,6 @@
               "TargetModuleId": {
                 "value": "directMethodReceiver2"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -370,9 +352,6 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "verificationDelay": {
                 "value": "<TestResultCoordinator.VerificationDelay>"
               },
@@ -413,7 +392,7 @@
                 "value": "<TestInfo>"
               },
               "testMode": {
-                "value":  "<TestMode>"
+                "value": "<TestMode>"
               }
             },
             "settings": {
