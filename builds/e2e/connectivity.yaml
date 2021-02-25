@@ -98,7 +98,10 @@ jobs:
             echo "deploymentFileName=$(deploymentFileName)"
             echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.flag'], 1)
@@ -274,7 +277,10 @@ jobs:
             echo "deploymentFileName=$(deploymentFileName)"
             echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: and(succeeded(), eq(variables['run.flag'], 1))

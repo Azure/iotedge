@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -405,6 +406,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
 
             public void BindDeviceProxy(IDeviceProxy deviceProxy)
+            {
+            }
+
+            public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
             {
             }
 

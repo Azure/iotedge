@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId1}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId1}" },
                                         deny = new[]
                                         {
                                             new
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Option.Some(this.runtime.DeviceId),
                     false,
                     this.ca,
-                    this.iotHub,
+                    this.IotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>(),
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId2}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId2}" },
                                         allow = new[]
                                         {
                                             new
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             // Create device manually. We can't use LeafDevice.CreateAsync() since it is not
             // idempotent and cannot be retried reliably.
-            Devices.Device edge = await this.iotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
+            Devices.Device edge = await this.IotHub.GetDeviceIdentityAsync(this.runtime.DeviceId, token);
             Devices.Device leaf = new Devices.Device(deviceId2)
             {
                 Authentication = new AuthenticationMechanism
@@ -154,10 +154,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Scope = edge.Scope
             };
 
-            leaf = await this.iotHub.CreateDeviceIdentityAsync(leaf, token);
+            leaf = await this.IotHub.CreateDeviceIdentityAsync(leaf, token);
 
             string connectionString =
-                $"HostName={this.iotHub.Hostname};" +
+                $"HostName={this.IotHub.Hostname};" +
                 $"DeviceId={leaf.Id};" +
                 $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
                 $"GatewayHostName={Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower())}";
@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await client.OpenAsync();
             }, token);
 
-            await this.iotHub.DeleteDeviceIdentityAsync(leaf, token);
+            await this.IotHub.DeleteDeviceIdentityAsync(leaf, token);
         }
 
         /// <summary>
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 {
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId1}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId1}" },
                                         allow = new[]
                                         {
                                             new
@@ -219,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     },
                                     new
                                     {
-                                        identities = new[] { $"{this.iotHub.Hostname}/{deviceId2}" },
+                                        identities = new[] { $"{this.IotHub.Hostname}/{deviceId2}" },
                                         deny = new[]
                                         {
                                             new
@@ -261,7 +261,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
-                this.iotHub,
+                this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.None<string>(),
@@ -289,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Option.Some(this.runtime.DeviceId),
                     false,
                     this.ca,
-                    this.iotHub,
+                    this.IotHub,
                     Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                     token,
                     Option.None<string>(),
