@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Events.SuccessCreatingCloudConnection(identity);
                 return Try.Success(cc);
             }
-            catch (UnauthorizedException ex) when (this.scopeAuthenticationOnly && this.trackDeviceState)
+            catch (UnauthorizedException ex) when (this.trackDeviceState)
             {
                 return await this.TryRecoverCloudConnection(identity, connectionStatusChangedHandler, refreshOutOfDateCache, ex);
             }
