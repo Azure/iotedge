@@ -129,7 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -311,7 +312,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -490,7 +492,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -684,7 +687,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -860,7 +864,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -1032,7 +1037,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -1111,7 +1117,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -1260,7 +1267,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(edgeAgentDesiredModule, edgeHubDesiredModule),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -1514,7 +1522,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(edgeAgent, edgeHub),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -1657,7 +1666,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
                     new SystemModules(edgeAgent, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);
@@ -1779,7 +1789,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                     "1.0",
                     new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, registryCreds)),
                     new SystemModules(null, null),
-                    new Dictionary<string, IModule>());
+                    new Dictionary<string, IModule>(),
+                    null);
                 var deploymentConfigInfo = new DeploymentConfigInfo(
                     DesiredVersion,
                     deploymentConfig);

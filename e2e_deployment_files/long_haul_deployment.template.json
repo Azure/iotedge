@@ -41,7 +41,7 @@
               "experimentalfeatures__enabled": {
                 "value": "true"
               },
-              "NestedEdgeEnabled": {
+              "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "false"
               }
             },
@@ -413,7 +413,7 @@
                 "value": "<TestInfo>"
               },
               "testMode": {
-                "value": "<TestMode>"
+                "value":  "<TestMode>"
               }
             },
             "settings": {
