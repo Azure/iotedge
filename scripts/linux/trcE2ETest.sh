@@ -547,6 +547,7 @@ function process_args() {
     [[ -z "$IOT_HUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
     [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_LOGTYPE" ]] && { print_error 'Log analytics log type is required'; exit 1; }
     [[ -z "$METRICS_ENDPOINTS_CSV" ]] && { print_error 'Metrics endpoints csv is required'; exit 1; }
     [[ -z "$METRICS_SCRAPE_FREQUENCY_IN_SECS" ]] && { print_error 'Metrics scrape frequency is required'; exit 1; }
     [[ -z "$METRICS_UPLOAD_TARGET" ]] && { print_error 'Metrics upload target is required'; exit 1; }
@@ -854,7 +855,6 @@ EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 EDGE_RUNTIME_BUILD_NUMBER=${EDGE_RUNTIME_BUILD_NUMBER:-$ARTIFACT_IMAGE_BUILD_NUMBER}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
-LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
 VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
 TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
