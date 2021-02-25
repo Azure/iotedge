@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             string cloudEndpointId = Guid.NewGuid().ToString();
 
             Mock.Get(routingMessage).Setup(rm => rm.SystemProperties).Returns(new Dictionary<string, string> { { "connectionDeviceId", "myConnectionDeviceId" } });
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try<ICloudProxy>.Failure(new DeviceInvalidStateException("Device removed from scope"))), routingMessageConverter, true);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, id => Task.FromResult(Try<ICloudProxy>.Failure(new DeviceInvalidStateException("Device removed from scope"))), routingMessageConverter, trackDeviceState: true);
 
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
             ISinkResult<IRoutingMessage> sinkResult = await cloudMessageProcessor.ProcessAsync(routingMessage, CancellationToken.None);
@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
         [Theory]
         [MemberData(nameof(GetRetryableExceptionsTestData))]
-        public async Task RetryableExceptionsTestWhileDropMessageEnabled(Exception exception, bool isRetryable)
+        public async Task RetryableExceptionsTestWhileTrackDeviceStateEnabled(Exception exception, bool isRetryable)
         {
             // Arrange
             string id = "d1";
@@ -214,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             // Assert
             Assert.NotNull(result);
-            if (!isRetryable)
+            if (!isRetryable || exception is DeviceInvalidStateException)
             {
                 Assert.Equal(1, result.InvalidDetailsList.Count);
                 Assert.Equal(0, result.Succeeded.Count);
@@ -242,6 +242,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             yield return new object[] { new TimeoutException("Dummy"), true };
 
             yield return new object[] { new UnauthorizedException("Dummy"), true };
+
+            yield return new object[] { new DeviceInvalidStateException("Dummy"), true };
 
             yield return new object[] { new DeviceMaximumQueueDepthExceededException("Dummy"), true };
 
