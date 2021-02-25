@@ -5,6 +5,8 @@ use futures_util::StreamExt;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
+use opentelemetry::{global, KeyValue};
+
 use mqtt3::proto;
 
 use crate::{
@@ -258,7 +260,23 @@ where
                 info!("broker received UNSUBACK, ignoring");
                 Ok(())
             }
-            ClientEvent::PublishFrom(publish, _) => self.process_publish(&client_id, publish),
+            ClientEvent::PublishFrom(publish, _) => {
+                // TODO: Create an abstraction to reduce boiler plate code added below. The
+                // method should/could take meter_name, instrument_name, and instrument_description.
+                let meter = global::meter("azure/iotedge/mqttbroker");
+                let client_msgs_received_counter = meter
+                    .u64_counter("mqtt.broker.client.messages.received")
+                    .with_description(
+                        "Total number of client messages received by this MQTT Broker instance.",
+                    )
+                    .init();
+                client_msgs_received_counter.add(
+                    1,
+                    &[KeyValue::new("client_id", client_id.as_str().to_owned())],
+                );
+                // END TODO
+                self.process_publish(&client_id, publish)
+            }
             ClientEvent::PublishTo(_publish) => {
                 info!("broker received a PublishTo, ignoring");
                 Ok(())
