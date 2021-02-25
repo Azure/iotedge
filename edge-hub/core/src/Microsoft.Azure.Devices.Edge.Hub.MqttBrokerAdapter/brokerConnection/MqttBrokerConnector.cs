@@ -406,7 +406,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             Events.UpstreamForwardingLoopStarted();
 
-            var channel = this.downstreamPublications.Expect(() => new Exception("No upstream channel is prepared to read"));
+            var channel = this.upstreamPublications.Expect(() => new Exception("No upstream channel is prepared to read"));
             while (await channel.Reader.WaitToReadAsync())
             {
                 var publishInfo = default(MqttPublishInfo);
