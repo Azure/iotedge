@@ -352,13 +352,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         async Task DownstreamLoop()
         {
             Events.DownstreamForwardingLoopStarted();
-            while (await this.downstreamPublications.Expect(ChannelIsBroken).Reader.WaitToReadAsync())
+
+            var channel = this.downstreamPublications.Expect(() => new Exception("No downstream channel is prepared to read"));
+            while (await channel.Reader.WaitToReadAsync())
             {
                 var publishInfo = default(MqttPublishInfo);
 
                 try
                 {
-                    publishInfo = await this.downstreamPublications.Expect(ChannelIsBroken).Reader.ReadAsync();
+                    publishInfo = await channel.Reader.ReadAsync();
                 }
                 catch (Exception e)
                 {
@@ -392,55 +394,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             Events.DownstreamForwardingLoopStopped();
-
-            Exception ChannelIsBroken()
-            {
-                return new Exception("Channel is broken, exiting downstream forwarding loop by error");
-            }
         }
 
         async Task UpstreamLoop()
         {
             var upstreamDispatcher = this.components.Consumers.Where(c => c is BrokeredCloudProxyDispatcher).FirstOrDefault();
-
             if (upstreamDispatcher == null)
             {
                 throw new InvalidOperationException("There is no BrokeredCloudProxyDispatcher found in message consumer list");
             }
 
             Events.UpstreamForwardingLoopStarted();
-            while (await this.upstreamPublications.Expect(ChannelIsBroken).Reader.WaitToReadAsync())
+
+            var channel = this.downstreamPublications.Expect(() => new Exception("No upstream channel is prepared to read"));
+            while (await channel.Reader.WaitToReadAsync())
             {
                 var publishInfo = default(MqttPublishInfo);
 
                 try
                 {
-                    publishInfo = await this.upstreamPublications.Expect(ChannelIsBroken).Reader.ReadAsync();
-                }
-                catch (Exception e)
-                {
-                    Events.FailedToForwardUpstream(e);
-                    continue;
-                }
+                    publishInfo = await channel.Reader.ReadAsync();
 
-                try
-                {
                     var accepted = await upstreamDispatcher.HandleAsync(publishInfo);
                     Events.MessageForwarded(upstreamDispatcher.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
                 }
                 catch (Exception e)
                 {
                     Events.FailedToForwardUpstream(e);
-                    // Keep going...
+                    // keep going
                 }
             }
 
             Events.UpstreamForwardingLoopStopped();
-
-            Exception ChannelIsBroken()
-            {
-                return new Exception("Channel is broken, exiting upstream forwarding loop by error");
-            }
         }
 
         // these are statics, so they don't use the state to acquire 'client' - making easier to handle parallel
