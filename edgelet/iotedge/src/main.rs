@@ -247,7 +247,6 @@ fn run() -> Result<(), Error> {
         .subcommand(
             SubCommand::with_name("system")
                 .about("Manage system services for IoT Edge.")
-                .unset_setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("logs")
                     .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
