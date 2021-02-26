@@ -62,7 +62,8 @@ namespace TestResultCoordinator.Reports
                             actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
-                            Settings.Current.UnmatchedResultsMaxSize);
+                            Settings.Current.UnmatchedResultsMaxSize,
+                            metadata.LongHaulEventHubMode);
                     }
 
                 case TestReportType.TwinCountingReport:
