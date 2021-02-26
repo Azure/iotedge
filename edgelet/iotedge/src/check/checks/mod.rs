@@ -1,4 +1,4 @@
-// mod aziot_edged_version;
+mod aziot_edged_version;
 mod connect_management_uri;
 mod container_connect_upstream;
 mod container_engine_dns;
@@ -14,7 +14,7 @@ mod pull_agent_from_upstream;
 mod storage_mounted_from_host;
 mod well_formed_config;
 
-// pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
+pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
 pub(crate) use self::container_engine_dns::ContainerEngineDns;
@@ -84,8 +84,7 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
                 Box::new(ParentHostname::default()),
                 Box::new(ContainerResolveParentHostname::default()),
                 Box::new(ConnectManagementUri::default()),
-                // TODO: re-enable after sorting out which URL 1.2 version info will be pulled from
-                // Box::new(AziotEdgedVersion::default()),
+                Box::new(AziotEdgedVersion::default()),
                 Box::new(ContainerLocalTime::default()),
                 Box::new(ContainerEngineDns::default()),
                 Box::new(ContainerEngineIPv6::default()),
