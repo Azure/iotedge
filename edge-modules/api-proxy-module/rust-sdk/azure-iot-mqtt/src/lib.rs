@@ -43,14 +43,14 @@ pub enum Authentication {
 		key: Vec<u8>,
 		max_token_valid_duration: std::time::Duration,
 		/// Trusted server root certificate, if any
-		server_root_certificate: Option<native_tls::Certificate>,
+		server_root_certificate: Vec<native_tls::Certificate>,
 	},
 
 	/// SAS token to be used directly
 	SasToken {
 		token: String,
 		/// Trusted server root certificate, if any
-		server_root_certificate: Option<native_tls::Certificate>,
+		server_root_certificate: Vec<native_tls::Certificate>,
 	},
 
 	/// Client certificate
@@ -60,7 +60,7 @@ pub enum Authentication {
 		/// Password to decrypt the private key
 		password: String,
 		/// Trusted server root certificate, if any
-		server_root_certificate: Option<native_tls::Certificate>,
+		server_root_certificate: Vec<native_tls::Certificate>,
 	},
 
 	/// Connect as an Edge module
