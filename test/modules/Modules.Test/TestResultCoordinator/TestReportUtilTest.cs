@@ -332,8 +332,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
             Assert.Equal(TestReportType.DirectMethodLongHaulReport, reportMetadata.TestReportType);
             Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
-            Assert.True(reportMetadata.ReceiverSource.HasValue);
-            reportMetadata.ReceiverSource.ForEach(x => Assert.Equal("directMethodReceiver1.receive", x));
+            Assert.Equal("directMethodReceiver1.receive", reportMetadata.ReceiverSource);
         }
 
         [Fact]
@@ -360,31 +359,6 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
             Assert.False(reportMetadata.ReceiverSource.HasValue);
             Assert.Equal(new TimeSpan(0, 0, 0, 0, 5), reportMetadata.TolerancePeriod);
-        }
-
-        [Fact]
-        public void ParseReportMetadataList_ParseDirectMethodLongHaulTestReportMetadataWithoutReceiverSource()
-        {
-            const string testDataJson =
-                @"{
-                    ""reportMetadata"": {
-                        ""TestDescription"": ""edge agent ping"",
-                        ""TestReportType"": ""DirectMethodLongHaulReport"",
-                        ""SenderSource"": ""directMethodSender1.send"",
-                        ""TolerancePeriod"": ""00:00:00.005""
-                    }
-                }";
-
-            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
-
-            Assert.Single(results);
-            var reportMetadata = results[0] as DirectMethodLongHaulReportMetadata;
-            Assert.NotNull(reportMetadata);
-            Assert.Equal("edge agent ping", reportMetadata.TestDescription);
-            Assert.Equal(TestOperationResultType.DirectMethod, reportMetadata.TestOperationResultType);
-            Assert.Equal(TestReportType.DirectMethodLongHaulReport, reportMetadata.TestReportType);
-            Assert.Equal("directMethodSender1.send", reportMetadata.SenderSource);
-            Assert.False(reportMetadata.ReceiverSource.HasValue);
         }
 
         [Fact]
