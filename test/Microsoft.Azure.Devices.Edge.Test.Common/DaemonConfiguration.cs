@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             public string PrincipalsPath;
             public string Owner;
             public uint Uid;
-            public IConfigDocument Document;
+            public TomlDocument Document;
         }
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
@@ -43,10 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             this.config = new Dictionary<Service, Config>();
 
-            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true, "aziotks");
-            this.InitServiceConfig(Service.Certd, configFiles.Certd, true, "aziotcs");
-            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true, "aziotid");
-            this.InitServiceConfig(Service.Edged, configFiles.Edged, false, "iotedge");
+            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, "aziotks");
+            this.InitServiceConfig(Service.Certd, configFiles.Certd, "aziotcs");
+            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, "aziotid");
+            this.InitServiceConfig(Service.Edged, configFiles.Edged, "iotedge");
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -59,19 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
-        void InitServiceConfig(Service service, string path, bool toml, string owner)
+        void InitServiceConfig(Service service, string path, string owner)
         {
             Config config;
             string contents = File.ReadAllText(path);
 
-            if (toml)
-            {
-                config.Document = new TomlDocument(contents);
-            }
-            else
-            {
-                config.Document = new YamlDocument(contents);
-            }
+            config.Document = new TomlDocument(contents);
 
             config.ConfigPath = path;
             config.PrincipalsPath = Path.Combine(
@@ -109,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Service.Certd,
                 "aziot-edged",
                 this.config[Service.Edged].Uid,
-                new string[] { "$edgeHub*server" });
+                new string[] { "aziot-edged/module/*" });
         }
 
         public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)

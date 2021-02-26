@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
                             Context.Current.ParentDeviceId,
-                            this.iotHub,
+                            this.IotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
                             token);
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.EdgeProxy,
                             Context.Current.Registries,
                             Context.Current.OptimizeForPerformance,
-                            this.iotHub);
+                            this.IotHub);
 
                         TestCertificates testCerts;
                         (testCerts, this.ca) = await TestCertificates.GenerateCertsAsync(device.Id, token);

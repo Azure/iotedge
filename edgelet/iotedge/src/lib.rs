@@ -20,8 +20,8 @@ use futures::Future;
 use serde_derive::Deserialize;
 
 mod check;
+pub mod config;
 mod error;
-pub mod init;
 mod list;
 mod logs;
 mod restart;
@@ -48,5 +48,5 @@ pub trait Command {
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
-    pub aziot_edged: String,
+    pub iotedged: String,
 }

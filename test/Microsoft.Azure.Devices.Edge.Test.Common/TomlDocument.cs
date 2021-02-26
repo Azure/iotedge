@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Linq;
     using Nett;
 
-    class TomlDocument : IConfigDocument
+    class TomlDocument
     {
         private TomlTable document;
 
