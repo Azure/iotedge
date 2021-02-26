@@ -12,11 +12,16 @@ use futures::StreamExt;
 use opentelemetry::metrics::{self, MetricsError};
 use opentelemetry::sdk::metrics::{selectors, PushController};
 use opentelemetry_otlp::ExporterConfig;
+use opentelemetry_prometheus::PrometheusExporter;
 use std::time::Duration;
 
 fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Instant> {
     // opentelemetry::util::tokio_interval_stream(duration).skip(1)
     tokio::time::interval(duration).skip(1)
+}
+
+fn init_prometheus_metrics_exporter() -> Result<PrometheusExporter, MetricsError> {
+    opentelemetry_prometheus::exporter().try_init()
 }
 
 fn init_otlp_metrics_exporter() -> metrics::Result<PushController> {
@@ -50,7 +55,8 @@ fn init_otlp_metrics_exporter() -> metrics::Result<PushController> {
 async fn main() -> Result<()> {
     tracing::init();
 
-    init_otlp_metrics_exporter()?;
+    // init_otlp_metrics_exporter()?;
+    init_prometheus_metrics_exporter()?;
 
     let config_path = create_app()
         .get_matches()
