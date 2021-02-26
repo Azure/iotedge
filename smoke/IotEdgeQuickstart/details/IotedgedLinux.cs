@@ -72,7 +72,7 @@ namespace IotEdgeQuickstart.Details
         const string KEYD = "/etc/aziot/keyd/config.toml";
         const string CERTD = "/etc/aziot/certd/config.toml";
         const string IDENTITYD = "/etc/aziot/identityd/config.toml";
-        const string EDGED = "/etc/aziot/edged/config.yaml";
+        const string EDGED = "/etc/aziot/edged/config.toml";
 
         readonly string archivePath;
         readonly Option<RegistryCredentials> credentials;
@@ -88,7 +88,7 @@ namespace IotEdgeQuickstart.Details
             public string Owner;
             public string PrincipalsPath;
             public uint Uid;
-            public IConfigDocument Document;
+            public TomlDocument Document;
         }
 
         public IotedgedLinux(string archivePath, Option<RegistryCredentials> credentials, Option<HttpUris> httpUris, UriSocks uriSocks, Option<string> proxy, Option<UpstreamProtocolType> upstreamProtocol, bool requireEdgeInstallation, bool overwritePackages)
@@ -210,19 +210,12 @@ namespace IotEdgeQuickstart.Details
             }
         }
 
-        private static async Task<Config> InitConfig(string template, bool toml, string owner)
+        private static async Task<Config> InitConfig(string template, string owner)
         {
             Config config;
             string text = File.ReadAllText(template);
 
-            if (toml)
-            {
-                config.Document = new TomlDocument(text);
-            }
-            else
-            {
-                config.Document = new YamlDocument(text);
-            }
+            config.Document = new TomlDocument(text);
 
             string principalsPath = Path.Combine(
                 Path.GetDirectoryName(template),
@@ -264,7 +257,7 @@ namespace IotEdgeQuickstart.Details
                 Path.Combine(config[CERTD].PrincipalsPath, "aziot-edged-principal.toml"),
                 config[CERTD].Owner,
                 config[EDGED].Uid,
-                new string[] { "$edgeHub*server" });
+                new string[] { "aziot-edged/module/*" });
         }
 
         public async Task Configure(
@@ -289,10 +282,10 @@ namespace IotEdgeQuickstart.Details
 
             // Initialize each service's config file.
             Dictionary<string, Config> config = new Dictionary<string, Config>();
-            config.Add(KEYD, await InitConfig(KEYD + ".default", true, "aziotks"));
-            config.Add(CERTD, await InitConfig(CERTD + ".default", true, "aziotcs"));
-            config.Add(IDENTITYD, await InitConfig(IDENTITYD + ".default", true, "aziotid"));
-            config.Add(EDGED, await InitConfig(EDGED + ".template", false, "iotedge"));
+            config.Add(KEYD, await InitConfig(KEYD + ".default", "aziotks"));
+            config.Add(CERTD, await InitConfig(CERTD + ".default", "aziotcs"));
+            config.Add(IDENTITYD, await InitConfig(IDENTITYD + ".default", "aziotid"));
+            config.Add(EDGED, await InitConfig(EDGED + ".default", "iotedge"));
 
             // Directory for storing keys; create it if it doesn't exist.
             string keyDir = "/var/secrets/aziot/keyd/";
