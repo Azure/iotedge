@@ -65,33 +65,13 @@ stages:
           EventHubCompatibleEndpoint: $(EventHubStressConnStr)
           IotHubConnectionString: $(IotHubStressConnString)
           test_type: nestededge_mqtt
-      - template: templates/nested-deploy-config.yaml
-        parameters:
-          deviceId: $(lvl5DeviceId)
-          deploymentFile: nestededge_topLayerBaseDeployment_amqp.json
-          changeDeployConfigOnly: true
-          level: 5
-          name: 5
-      - template: templates/nested-deploy-config.yaml
-        parameters:
-          deviceId: $(parentDeviceId)
-          deploymentFile: nestededge_middleLayerBaseDeployment_amqp.json
-          changeDeployConfigOnly: true
-          level: 4
-          name: 4
-      - template: templates/e2e-run.yaml
-        parameters:
-          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
-          IotHubConnectionString: $(IotHubStressConnString)
-          test_type: nestededge_amqp
-
 
   - job:  Clean_up
     dependsOn:
       - SetupVM_level5_mqtt 
       - SetupVM_level4_mqtt
       - SetupVM_and_RunTest_level3
-    condition: always()
+    condition: false
     displayName: Clean up identities and unlock agents
     timeoutInMinutes: 2    
     variables:    
