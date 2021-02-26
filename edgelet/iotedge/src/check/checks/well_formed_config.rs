@@ -12,10 +12,10 @@ pub(crate) struct WellFormedConfig {}
 
 impl Checker for WellFormedConfig {
     fn id(&self) -> &'static str {
-        "config-toml-well-formed"
+        "aziot-edged-config-well-formed"
     }
     fn description(&self) -> &'static str {
-        "config.toml is well-formed"
+        "aziot-edged configuration is well-formed"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)
