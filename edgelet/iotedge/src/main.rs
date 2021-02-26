@@ -151,6 +151,7 @@ fn run() -> Result<(), Error> {
         .subcommand(
             SubCommand::with_name("config")
                 .about("Manage Azure IoT Edge system configuration.")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("apply")
                     .about("Apply Azure IoT Edge system configuration values.")
@@ -247,7 +248,7 @@ fn run() -> Result<(), Error> {
         .subcommand(
             SubCommand::with_name("system")
                 .about("Manage system services for IoT Edge.")
-                .unset_setting(AppSettings::SubcommandRequiredElseHelp)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("logs")
                     .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
