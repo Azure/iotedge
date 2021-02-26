@@ -15,9 +15,9 @@ namespace TestResultCoordinator.Reports
         readonly string testDescription;
         readonly string trackingId;
         readonly string expectedSource;
-        readonly ITestResultCollection<TestOperationResult> expectedTestResults;
+        readonly IAsyncEnumerator<TestOperationResult> expectedTestResults;
         readonly string actualSource;
-        readonly ITestResultCollection<TestOperationResult> actualTestResults;
+        readonly IAsyncEnumerator<TestOperationResult> actualTestResults;
         readonly string resultType;
         readonly ushort unmatchedResultsMaxSize;
         SimpleTestOperationResultComparer testResultComparer;
@@ -26,9 +26,9 @@ namespace TestResultCoordinator.Reports
             string testDescription,
             string trackingId,
             string expectedSource,
-            ITestResultCollection<TestOperationResult> expectedTestResults,
+            IAsyncEnumerator<TestOperationResult> expectedTestResults,
             string actualSource,
-            ITestResultCollection<TestOperationResult> actualTestResults,
+            IAsyncEnumerator<TestOperationResult> actualTestResults,
             string testOperationResultType,
             SimpleTestOperationResultComparer testResultComparer,
             ushort unmatchedResultsMaxSize)
