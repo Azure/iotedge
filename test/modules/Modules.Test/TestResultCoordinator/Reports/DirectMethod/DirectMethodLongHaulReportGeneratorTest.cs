@@ -216,9 +216,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> timestamps,
             int batchSize,
             bool expectedIsPassed,
-            ulong expectedOk,
-            ulong expectedStatusCodeZero,
-            ulong expectedUnknown)
+            long expectedOk,
+            long expectedStatusCodeZero,
+            long expectedOther)
         {
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
@@ -259,7 +259,65 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedUnknown, report.Unknown);
+            Assert.Equal(expectedOther, report.Other.Sum(x => x.Value));
+        }
+
+        [Fact]
+        public async Task TestOtherStatusCodeOrder()
+        {
+            var x = DirectMethodLongHaulReportData.GetStatusCodeTestData;
+            IEnumerable<ulong> senderStoreValues = (IEnumerable<ulong>)x[0];
+            IEnumerable<ulong> receiverStoreValues = (IEnumerable<ulong>)x[1];
+            IEnumerable<HttpStatusCode> statusCodes = (IEnumerable<HttpStatusCode>)x[2];
+            IEnumerable<DateTime> timestamps = (IEnumerable<DateTime>)x[3];
+            int batchSize = (int)x[4];
+            bool expectedIsPassed = (bool)x[5];
+            long expectedOk = (long)x[6];
+            long expectedStatusCodeZero = (long)x[7];
+            Dictionary<HttpStatusCode, long> expectedOtherDict = (Dictionary<HttpStatusCode, long>)x[8];
+
+            string senderSource = "senderSource";
+            string receiverSource = "receiverSource";
+            string resultType = TestOperationResultType.DirectMethod.ToString();
+
+            var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
+                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+
+            var reportGenerator = new DirectMethodLongHaulReportGenerator(
+                TestDescription,
+                Guid.NewGuid().ToString(),
+                senderSource,
+                senderResults,
+                Option.Some(receiverSource),
+                receiverResults,
+                resultType);
+
+            Guid guid = Guid.NewGuid();
+
+            List<(long, TestOperationResult)> senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
+            for (int i = 0; i < senderStoreData.Count; i += batchSize)
+            {
+                int startingOffset = i;
+                mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
+            }
+
+            List<(long, TestOperationResult)> receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, guid);
+            for (int j = 0; j < receiverStoreData.Count; j += batchSize)
+            {
+                int startingOffset = j;
+                mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
+            }
+
+            var report = (DirectMethodLongHaulReport)await reportGenerator.CreateReportAsync();
+            Assert.Equal(expectedIsPassed, report.IsPassed);
+            Assert.Equal(expectedOk, report.SenderSuccesses);
+            Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
+            Assert.Equal(expectedOtherDict.Sum(x => x.Value), report.Other.Sum(x => x.Value));
+            Assert.Equal(expectedOtherDict[HttpStatusCode.ServiceUnavailable], report.Other[HttpStatusCode.ServiceUnavailable]);
+            Assert.Equal(expectedOtherDict[HttpStatusCode.InternalServerError], report.Other[HttpStatusCode.InternalServerError]);
         }
 
         [Theory]
@@ -271,9 +329,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> timestamps,
             int batchSize,
             bool expectedIsPassed,
-            ulong expectedOk,
-            ulong expectedStatusCodeZero,
-            ulong expectedUnknown)
+            long expectedOk,
+            long expectedStatusCodeZero,
+            long expectedOther)
         {
             string senderSource = "senderSource";
             var values = receiverStoreValues;
@@ -303,7 +361,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedUnknown, report.Unknown);
+            Assert.Equal(expectedOther, report.Other.Sum(x => x.Value));
         }
 
         [Fact]
@@ -330,10 +388,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
             var report = (DirectMethodLongHaulReport)await reportGenerator.CreateReportAsync();
 
-            Assert.Equal(0UL, report.ReceiverSuccesses.Expect<ArgumentException>(() => throw new ArgumentException("impossible")));
-            Assert.Equal(0UL, report.SenderSuccesses);
-            Assert.Equal(0UL, report.StatusCodeZero);
-            Assert.Equal(0UL, report.Unknown);
+            Assert.Equal(0L, report.ReceiverSuccesses.Expect<ArgumentException>(() => throw new ArgumentException("impossible")));
+            Assert.Equal(0L, report.SenderSuccesses);
+            Assert.Equal(0L, report.StatusCodeZero);
+            Assert.Equal(0L, report.Other.Sum(x => x.Value));
             Assert.True(report.IsPassed);
         }
 
