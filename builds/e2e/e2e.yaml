@@ -132,6 +132,10 @@ jobs:
   - job: EFLOW_amd64
 ################################################################################	
     displayName: EFLOW amd64
+    env:
+      NUGET_HTTP_CACHE_PATH: "/var/tmp/NuGet/v3-cache"
+      NUGET_PACKAGES: "/var/tmp/NuGet/packages"
+      NUGET_PLUGINS_CACHE_PATH: "/var/tmp/NuGet/plugins-cache"
 
     pool:
       name: $(pool.name)
