@@ -24,9 +24,9 @@ namespace TestResultCoordinator.Reports
             string testDescription,
             string trackingId,
             string expectedSource,
-            ITestResultCollection<TestOperationResult> expectedTestResults,
+            IAsyncEnumerator<TestOperationResult> expectedTestResults,
             string actualSource,
-            ITestResultCollection<TestOperationResult> actualTestResults,
+            IAsyncEnumerator<TestOperationResult> actualTestResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer,
             ushort unmatchedResultsMaxSize)
@@ -44,11 +44,11 @@ namespace TestResultCoordinator.Reports
 
         internal string ActualSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> ActualTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> ActualTestResults { get; }
 
         internal string ExpectedSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> ExpectedTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> ExpectedTestResults { get; }
 
         internal string ResultType { get; }
 
