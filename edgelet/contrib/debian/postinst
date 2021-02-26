@@ -39,7 +39,7 @@ case "$1" in
                 echo "  Detected /etc/iotedge/config.yaml from a previously installed version"
                 echo "  of IoT Edge. You can import its configuration using:"
                 echo ""
-                echo "    iotedge config import"
+                echo "    sudo iotedge config import"
                 echo ""
                 echo "  To create a new configuration from scratch instead, copy the template file "
             else
@@ -50,10 +50,7 @@ case "$1" in
             echo "  update it with your device information, then apply your configuration changes"
             echo "  with:"
             echo ""
-            echo "    iotedge config apply"
-            echo ""
-            echo "  You may need to run iotedge config commands with sudo, depending on "
-            echo "  your environment."
+            echo "    sudo iotedge config apply"
             echo ""
             echo "==============================================================================="
         fi
