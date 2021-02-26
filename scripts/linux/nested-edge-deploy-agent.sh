@@ -145,17 +145,26 @@ EOF
         echo "Adding proxy configuration to docker"
         sudo mkdir -p /etc/systemd/system/docker.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
         sudo systemctl daemon-reload
         sudo systemctl restart docker
 
         echo "Adding proxy configuration to IoT Edge daemon"
+        sudo mkdir -p /etc/systemd/system/aziot-identityd.service.d/
+        { echo "[Service]";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/aziot-identityd.service.d/proxy.conf
+        sudo systemctl daemon-reload           
+
+        echo "Adding proxy configuration to IoT Edge daemon"
         sudo mkdir -p /etc/systemd/system/aziot-edged.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/aziot-edged.service.d/proxy.conf
         sudo systemctl daemon-reload
+
+     
     fi
 
     echo "Start IoT edge"
