@@ -29,7 +29,7 @@ jobs:
           testrun.network.description: "Online"
           testrun.network.frequencies: "00:00:00 00:00:00 0"
           testrun.network.runProfile: "Online"
-          testrun.duration: "01:00:00"
+          testrun.duration: "00:10:00"
         Offline(5/5/5):
           testrun.config: 2
           testrun.network.description: "Offline(5/5/5)"
