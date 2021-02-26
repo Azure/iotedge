@@ -166,8 +166,32 @@ impl mqtt3::IoSource for IoSource {
 				tls_connector_builder.identity(identity);
 			}
 			if let Some(server_root_certificate) = server_root_certificate {
-				tls_connector_builder.add_root_certificate(server_root_certificate);
+
+				let mut current_cert = String::new();
+				let mut lines = server_root_certificate.lines();
+		
+				if lines.next() != Some("-----BEGIN CERTIFICATE-----") {
+					return std::io::Error::new(std::io::ErrorKind::Other, "malformed PEM: does not start with BEGIN CERTIFICATE");
+				}
+		
+				for line in lines {
+					if line == "-----END CERTIFICATE-----" {
+						tls_connector_builder.add_root_certificate(std::mem::take(&mut current_cert));
+					}
+					else if line == "-----BEGIN CERTIFICATE-----" {
+						if !current_cert.is_empty() {
+							return std::io::Error::new(std::io::ErrorKind::Other, "malformed PEM: BEGIN CERTIFICATE without prior END CERTIFICATE");
+						}
+					}
+					else {
+						tls_connector_builder.add_root_certificate(line);
+					}
+				}
+				if !current_cert.is_empty() {
+					return std::io::Error::new(std::io::ErrorKind::Other, "malformed PEM: BEGIN CERTIFICATE without corresponding END CERTIFICATE");
+				}
 			}
+			
 			let connector =
 				tls_connector_builder.build()
 				.map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, format!("could not create TLS connector: {}", err)))?;
