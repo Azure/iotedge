@@ -1,4 +1,8 @@
-use std::{time::Duration, fs, path::{Path, PathBuf}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -6,9 +10,9 @@ use futures_util::pin_mut;
 use tracing::{error, info};
 
 use mqtt_broker::{
-    auth::{AllowAll, Authorizer, authenticate_fn_ok},
-    AuthId, Broker, BrokerBuilder, BrokerSnapshot, FilePersistor,
-    MakeMqttPacketProcessor, Persist, Server, ServerCertificate, VersionedFileFormat,
+    auth::{authenticate_fn_ok, AllowAll, Authorizer},
+    AuthId, Broker, BrokerBuilder, BrokerSnapshot, FilePersistor, MakeMqttPacketProcessor, Persist,
+    Server, ServerCertificate, VersionedFileFormat,
 };
 use mqtt_generic::settings::{CertificateConfig, Settings};
 
@@ -29,7 +33,7 @@ impl Bootstrap for GenericBootstrap {
     type Authorizer = AllowAll;
 
     async fn make_broker(
-        &self, 
+        &self,
         settings: &Self::Settings,
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)> {
         info!("loading state...");
