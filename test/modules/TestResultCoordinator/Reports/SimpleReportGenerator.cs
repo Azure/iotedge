@@ -19,7 +19,7 @@ namespace TestResultCoordinator.Reports
             string testDescription,
             string trackingId,
             string source,
-            ITestResultCollection<TestOperationResult> testResults,
+            IAsyncEnumerator<TestOperationResult> testResults,
             TestOperationResultType testOperationResultType)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
@@ -33,7 +33,7 @@ namespace TestResultCoordinator.Reports
 
         internal string TestDescription { get; }
 
-        internal ITestResultCollection<TestOperationResult> TestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> TestResults { get; }
 
         internal string ResultType { get; }
 
