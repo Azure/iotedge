@@ -19,7 +19,7 @@ namespace TestResultCoordinator.Reports.LegacyTwin
             string trackingId,
             string resultType,
             string senderSource,
-            ITestResultCollection<TestOperationResult> senderTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -34,7 +34,7 @@ namespace TestResultCoordinator.Reports.LegacyTwin
 
         internal string SenderSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {

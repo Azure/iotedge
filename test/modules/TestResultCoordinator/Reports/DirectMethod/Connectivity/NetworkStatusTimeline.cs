@@ -22,7 +22,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         NetworkControllerStatus initialNetworkControllerStatus;
 
         public static async Task<NetworkStatusTimeline> CreateAsync(
-            ITestResultCollection<TestOperationResult> networkControllerTestOperationResults,
+            IAsyncEnumerator<TestOperationResult> networkControllerTestOperationResults,
             TimeSpan tolerancePeriod,
             NetworkControllerStatus initialNetworkControllerStatus = NetworkControllerStatus.Disabled)
         {
@@ -96,7 +96,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             // Return network controller status at given time
             NetworkControllerStatus networkControllerStatus = this.initialNetworkControllerStatus;
             bool isWithinTolerancePeriod = false;
-            for (int i = 0;  i < this.networkControllerTestResults.Count; i += 2)
+            for (int i = 0; i < this.networkControllerTestResults.Count; i += 2)
             {
                 NetworkControllerTestResult curr = this.networkControllerTestResults[i];
                 if (statusTime <= curr.CreatedAt)

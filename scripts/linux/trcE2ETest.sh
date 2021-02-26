@@ -161,7 +161,7 @@ function prepare_test_from_artifacts() {
     mkdir -p "$quickstart_working_folder"
     tar -C "$quickstart_working_folder" -xzf "$(get_artifact_file "$E2E_TEST_DIR" quickstart)"
 
-    echo "Copy deployment artifact to $deployment_working_file"
+    echo "Copy deployment artifact $DEPLOYMENT_FILE_NAME to $deployment_working_file"
     cp "$REPO_PATH/e2e_deployment_files/$DEPLOYMENT_FILE_NAME" "$deployment_working_file"
 
     sed -i -e "s@<Architecture>@$image_architecture_label@g" "$deployment_working_file"
@@ -171,7 +171,6 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
-    sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
@@ -220,8 +219,8 @@ function prepare_test_from_artifacts() {
     fi
 
     if [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
+        sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
         sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
-
         sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
         sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
     fi
@@ -849,7 +848,6 @@ process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-TEST_DURATION="${TEST_DURATION:-01:00:00}"
 DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 EDGE_RUNTIME_BUILD_NUMBER=${EDGE_RUNTIME_BUILD_NUMBER:-$ARTIFACT_IMAGE_BUILD_NUMBER}
@@ -879,7 +877,6 @@ deployment_working_file="$working_folder/deployment.json"
 tracking_id=$(cat /proc/sys/kernel/random/uuid)
 TEST_INFO="$TEST_INFO,TestId=$tracking_id"
 TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
-TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
 TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
 TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
@@ -890,9 +887,12 @@ if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
     RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
 
-    run_longhaul_test && ret=$? || ret=$?
+    run_longhaul_test && testRet=$? || testRet=$?
 elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
+    TEST_DURATION="${TEST_DURATION:-01:00:00}"
+
+    TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 
     is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
     if [ "$is_build_canceled" -eq '1' ]; then
