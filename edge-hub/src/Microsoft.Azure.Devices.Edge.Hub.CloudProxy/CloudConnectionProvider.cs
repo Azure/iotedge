@@ -174,11 +174,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetOrElse(
                         async () =>
                         {
-                            Events.ServiceIdentityNotFound(identity);
-                            Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                            return await clientCredentials
-                                .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                                .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                            if (!this.scopeAuthenticationOnly)
+                            {
+                                Events.ServiceIdentityNotFound(identity);
+                                Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
+                                return await clientCredentials
+                                    .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
+                                    .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                            }
+                            else
+                            {
+                                throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache");
+                            }
                         });
             }
             catch (Exception ex)
