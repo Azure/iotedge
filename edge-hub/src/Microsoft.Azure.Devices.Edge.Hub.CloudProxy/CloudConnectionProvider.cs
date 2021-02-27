@@ -174,7 +174,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetOrElse(
                         async () =>
                         {
-                            if (!this.scopeAuthenticationOnly)
+                            // allow to use credential cache when auth mode was set to Scope and identity is for edgeHub
+                            if (!this.scopeAuthenticationOnly || this.edgeHubIdentity.Id.Equals(identity.Id))
                             {
                                 Events.ServiceIdentityNotFound(identity);
                                 Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
@@ -252,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 Events.ErrorCreatingCloudConnection(identity, ex);
-                if (this.scopeAuthenticationOnly)
+                if (this.scopeAuthenticationOnly && !this.edgeHubIdentity.Id.Equals(identity.Id))
                 {
                     if (this.trackDeviceState)
                     {
@@ -276,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 }
                 else
                 {
-                    // try with cached device credentials
+                    // try with cached device credentials if auth mode is not Scope or identity is for edgeHub
                     Events.ServiceIdentityNotFound(identity);
                     Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
                     return await clientCredentials

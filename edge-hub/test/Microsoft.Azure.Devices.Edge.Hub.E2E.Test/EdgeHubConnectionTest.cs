@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -33,10 +34,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         const string EdgeHubModuleId = "$edgeHub";
 
         [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task TestEdgeHubConnection(bool useScopeOnly)
+        [InlineData(true, true)]
+        [InlineData(true, false)]
+        [InlineData(false, false)]
+        public async Task TestEdgeHubConnection(bool useScopeOnly, bool trackDeviceState)
         {
+            // Note: useScopeOnly = false and trackDeviceState = true should never happen because trackDeviceState can be enabled when scopeOnly is true
             const string EdgeDeviceId = "testHubEdgeDevice1";
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
@@ -66,9 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var deviceScopeIdentityCache = new Mock<IDeviceScopeIdentitiesCache>();
 
-            if (useScopeOnly)
+            if (!trackDeviceState)
             {
-                deviceScopeIdentityCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
+                deviceScopeIdentityCache.Setup(d => d.GetServiceIdentity(It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(Option.None<ServiceIdentity>());
             }
             else
             {
@@ -92,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: useScopeOnly);
+                scopeAuthenticationOnly: useScopeOnly,
+                trackDeviceState: trackDeviceState);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider, deviceConnectivityManager);
 
