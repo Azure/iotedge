@@ -46,8 +46,6 @@ namespace TestResultCoordinator.Reports
                         var metadata = (CountingReportMetadata)testReportMetadata;
                         var expectedTestResults = this.GetResults(metadata.ExpectedSource);
                         var actualTestResults = this.GetResults(metadata.ActualSource);
-                        ILogger Logger = ModuleUtil.CreateLogger(nameof(TestReportGeneratorFactory));
-                        Logger.LogInformation($"DRB - {metadata.LongHaulEventHubMode}");
 
                         await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
                         {
