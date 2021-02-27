@@ -7,6 +7,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using TestResultCoordinator.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using TestResultCoordinator.Reports.DirectMethod.LongHaul;
@@ -45,6 +46,8 @@ namespace TestResultCoordinator.Reports
                         var metadata = (CountingReportMetadata)testReportMetadata;
                         var expectedTestResults = this.GetResults(metadata.ExpectedSource);
                         var actualTestResults = this.GetResults(metadata.ActualSource);
+                        ILogger Logger = ModuleUtil.CreateLogger(nameof(TestReportGeneratorFactory));
+                        Logger.LogInformation($"DRB - {metadata.LongHaulEventHubMode}");
 
                         await this.LonghaulSettings.ForEachAsync(async (longhaulSettings) =>
                         {

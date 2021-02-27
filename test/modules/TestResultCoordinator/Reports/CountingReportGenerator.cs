@@ -130,12 +130,12 @@ namespace TestResultCoordinator.Reports
             {
                 // If we are are using EventHub to receive messages, we see an issue where EventHub can accrue large delays after
                 // running for a while. Therefore, if we are using EventHub with this counting report, we do two things.
-                // 1. We ignore extra expected results
-                // 2. We make sure that the last result we got from EventHub (i.e. the lastLoadedResult) is within 24 hours.
+                // 1. We ignore extra expected results (skipping the last hasExpectedResults loop above)
+                // 2. We make sure that the last result we got from EventHub (i.e. the lastLoadedResult) is within 1 hour.
                 //    This is an arbitrary tolerance period that we have defined, and can be tuned as needed.
                 // TODO: There is either something wrong with the EventHub service or something wrong with the way we are using it,
                 // Because we should not be accruing such large delays. If we move off EventHub, we should fix this as well.
-                if (lastLoadedResult.CreatedAt < DateTime.UtcNow - TimeSpan.FromHours(24))
+                if (lastLoadedResult.CreatedAt > DateTime.UtcNow - TimeSpan.FromHours(1))
                 {
                     stillReceivingFromEventHub = Option.Some(true);
                 }
