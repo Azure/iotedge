@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         const string TelemetryIndirectDevice = "$iothub/+/messages/events/#";
         const string TelemetryIndirectModule = "$iothub/+/+/messages/events/#";
 
-        const string TelemetryPublishPattern = @"^((\$edgehub)|(\$iothub))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/messages/events(/(?<bag>.*))?";
+        const string TelemetryPublishPattern = @"^((?<dialect>(\$edgehub)|(\$iothub)))/(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/messages/events(/(?<bag>.*))?";
 
         static readonly string[] subscriptions = new[] { TelemetryDirectDevice, TelemetryDirectModule, TelemetryIndirectDevice, TelemetryIndirectModule };
 
@@ -53,11 +53,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             var id2 = match.Groups["id2"];
             var bag = match.Groups["bag"];
 
+            var isDirect = string.Equals(match.Groups["dialect"].Value, MqttBrokerAdapterConstants.DirectTopicPrefix);
+
             var identity = id2.Success
                                 ? this.identityProvider.Create(id1.Value, id2.Value)
                                 : this.identityProvider.Create(id1.Value);
 
-            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity);
+            var maybeListener = await this.connectionRegistry.GetOrCreateDeviceListenerAsync(identity, isDirect);
             var listener = default(IDeviceListener);
 
             try

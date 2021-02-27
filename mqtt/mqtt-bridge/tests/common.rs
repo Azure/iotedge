@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use tokio::task::JoinHandle;
 
@@ -75,6 +75,7 @@ pub async fn setup_bridge_controller(
     local_address: String,
     upstream_address: String,
     subs: Vec<Direction>,
+    storage_dir_override: &PathBuf,
 ) -> (BridgeControllerHandle, JoinHandle<()>) {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
         "bridge".into(),
@@ -89,6 +90,7 @@ pub async fn setup_bridge_controller(
         subs,
         false,
         Duration::from_secs(5),
+        storage_dir_override,
     )
     .unwrap();
 

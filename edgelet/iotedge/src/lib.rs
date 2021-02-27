@@ -20,12 +20,13 @@ use futures::Future;
 use serde_derive::Deserialize;
 
 mod check;
+pub mod config;
 mod error;
-pub mod init;
 mod list;
 mod logs;
 mod restart;
 mod support_bundle;
+mod system;
 mod unknown;
 mod version;
 
@@ -35,6 +36,7 @@ pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
 pub use crate::support_bundle::SupportBundleCommand;
+pub use crate::system::System;
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 
@@ -46,5 +48,5 @@ pub trait Command {
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
-    pub aziot_edged: String,
+    pub iotedged: String,
 }

@@ -34,7 +34,7 @@ impl Bootstrap for GenericBootstrap {
     ) -> Result<(Broker<Self::Authorizer>, FilePersistor<VersionedFileFormat>)> {
         info!("loading state...");
         let persistence_config = settings.broker().persistence();
-        let state_dir = persistence_config.file_path();
+        let state_dir = persistence_config.folder_path();
 
         fs::create_dir_all(state_dir.clone())?;
         let mut persistor = FilePersistor::new(state_dir, VersionedFileFormat::default());

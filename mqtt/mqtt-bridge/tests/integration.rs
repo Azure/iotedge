@@ -71,10 +71,15 @@ async fn send_message_upstream_downstream() {
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        &storage_dir_override,
     )
     .await;
 
@@ -129,6 +134,119 @@ async fn send_message_upstream_downstream() {
 }
 
 /// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers.
+///	- A client connects to local broker and subscribes to receive messages from upstream
+/// - A client connects to remote broker and subscribes to receive messages from downstream
+/// - Client publish message upstream
+///	- Expects to receive messages downstream -> upstream
+/// - Shutdown upstream to simulate disconnect
+/// - Client publish message upstream with retain
+/// - Disconnect bridge and shutdown (simulate process restart)
+/// - Reconnect bridge
+/// - Reconnect and resubscribe for upstream
+/// - Expects to receive messages downstream -> upstream
+#[tokio::test]
+async fn send_message_upstream_with_crash_is_lossless() {
+    let subs = vec![Direction::Out(TopicRule::new(
+        "temp/#".into(),
+        Some("to".into()),
+        Some("upstream".into()),
+    ))];
+
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        common::setup_brokers(AllowAll, AllowAll);
+
+    let mut local_client = TestClientBuilder::new(local_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("local_client".into()))
+        .build();
+
+    let mut upstream_client = TestClientBuilder::new(upstream_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
+        .build();
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs.clone(),
+        &storage_dir_override,
+    )
+    .await;
+
+    local_client
+        .subscribe("downstream/filter/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    local_client.subscriptions().next().await;
+
+    upstream_client
+        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    upstream_client.subscriptions().next().await;
+
+    // send upstream
+    local_client
+        .publish_qos1("to/temp/1", "from local", false)
+        .await;
+
+    assert_matches!(
+        upstream_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local")
+    );
+
+    upstream_server_handle.shutdown().await;
+
+    // send upstream (with retain) after shutting down upstream
+    local_client
+        .publish_qos1("to/temp/1", "from local again", true)
+        .await;
+
+    // Simulate restart
+    controller_handle.shutdown();
+    controller_task.await.expect("controller task");
+
+    let (mut upstream_server_handle, _) = common::setup_upstream_broker(AllowAll, None, None);
+
+    // re-subscribe and reconnect
+    upstream_client = TestClientBuilder::new(upstream_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("upstream_client".into()))
+        .build();
+
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs.clone(),
+        &storage_dir_override,
+    )
+    .await;
+
+    upstream_client
+        .subscribe("upstream/temp/#", QoS::AtLeastOnce)
+        .await;
+
+    // wait to receive subscription ack
+    upstream_client.subscriptions().next().await;
+
+    assert_matches!(
+        upstream_client.publications().next().await,
+        Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("from local again")
+    );
+
+    controller_handle.shutdown();
+    controller_task.await.expect("controller task");
+
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    upstream_client.shutdown().await;
+    local_client.shutdown().await;
+}
+
+/// Scenario:
 ///	- Creates 2 brokers and a bridge to connect between the brokers,
 ///   but without any subscriptions to downstream and upstream.
 ///	- A client connects to local broker and subscribes to receive messages from upstream
@@ -140,10 +258,15 @@ async fn send_message_upstream_downstream() {
 async fn bridge_settings_update() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (mut controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         vec![],
+        &storage_dir_override,
     )
     .await;
 
@@ -296,10 +419,15 @@ async fn subscribe_to_upstream_rejected_should_retry() {
             Some("downstream".into()),
         )),
     ];
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        &storage_dir_override,
     )
     .await;
 
@@ -381,10 +509,15 @@ async fn connect_to_upstream_failure_should_retry() {
     ];
     let upstream_tcp_address = "localhost:8801".to_string();
     let upstream_tls_address = "localhost:8802".to_string();
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_tls_address.clone(),
         subs,
+        &storage_dir_override,
     )
     .await;
     let mut local_client = TestClientBuilder::new(local_server_handle.address())
@@ -462,10 +595,15 @@ async fn bridge_forwards_messages_after_restart() {
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
+        &storage_dir_override,
     )
     .await;
 
@@ -526,6 +664,7 @@ async fn bridge_forwards_messages_after_restart() {
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        &storage_dir_override,
     )
     .await;
 
@@ -584,10 +723,15 @@ async fn recreate_upstream_bridge_when_fails() {
             Some("downstream".into()),
         )),
     ];
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (mut controller_handle, _) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
+        &storage_dir_override,
     )
     .await;
 

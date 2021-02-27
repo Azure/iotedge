@@ -1,6 +1,9 @@
 trigger: none
 pr: none
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 resources:
   pipelines:
   - pipeline: images
@@ -74,6 +77,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-new-e2e-tests -equals true
+        - centos -equals 7
 
     variables:
       os: linux

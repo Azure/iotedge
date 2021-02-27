@@ -112,18 +112,27 @@ where
             Credentials::Anonymous(client_id) => (client_id.into(), None),
         };
 
-        let client_id = if clean_session { None } else { Some(client_id) };
-
         Self::validate(client_id.as_ref(), username.as_ref(), &keep_alive)?;
 
-        let client = Client::new(
-            client_id,
-            username,
-            None,
-            io_source,
-            DEFAULT_MAX_RECONNECT,
-            keep_alive,
-        );
+        let client = if clean_session {
+            Client::new(
+                Some(client_id),
+                username,
+                None,
+                io_source,
+                DEFAULT_MAX_RECONNECT,
+                keep_alive,
+            )
+        } else {
+            Client::from_state(
+                client_id,
+                username,
+                None,
+                io_source,
+                DEFAULT_MAX_RECONNECT,
+                keep_alive,
+            )
+        };
 
         Ok(Self {
             client,
@@ -132,13 +141,11 @@ where
     }
 
     fn validate(
-        client_id: Option<&String>,
+        client_id: &str,
         username: Option<&String>,
         keep_alive: &Duration,
     ) -> Result<(), ClientError> {
-        if let Some(id) = client_id {
-            validate_length(id)?;
-        };
+        validate_length(client_id)?;
 
         if let Some(name) = username {
             validate_length(name)?;
