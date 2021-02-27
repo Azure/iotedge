@@ -51,7 +51,8 @@ namespace TestResultCoordinator
             string networkControllerRunProfileName,
             ushort unmatchedResultsMaxSize,
             string testInfo,
-            TestMode testMode)
+            TestMode testMode,
+            TimeSpan unmatchedResultTolerance)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -94,7 +95,8 @@ namespace TestResultCoordinator
                     {
                         this.LongHaulSpecificSettings = Option.Some(new LongHaulSpecificSettings()
                         {
-                            SendReportFrequency = sendReportFrequency
+                            SendReportFrequency = sendReportFrequency,
+                            UnmatchedResultTolerance = unmatchedResultTolerance
                         });
                         break;
                     }
@@ -161,7 +163,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<string>(TestConstants.NetworkController.RunProfilePropertyName),
                 configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"),
-                configuration.GetValue("testMode", TestMode.Connectivity));
+                configuration.GetValue("testMode", TestMode.Connectivity),
+                configuration.GetValue("unmatchedResultTolerance", TimeSpan.FromMinutes(1)));
         }
 
         public string IoTHubConnectionString { get; }
@@ -216,7 +219,11 @@ namespace TestResultCoordinator
             };
 
             this.TestResultEventReceivingServiceSettings.ForEach(settings => fields.Add(nameof(settings.ConsumerGroupName), settings.ConsumerGroupName));
-            this.LongHaulSpecificSettings.ForEach(settings => fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString()));
+            this.LongHaulSpecificSettings.ForEach(settings =>
+            {
+                fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString());
+                fields.Add(nameof(settings.UnmatchedResultTolerance), settings.UnmatchedResultTolerance.ToString());
+            });
             this.ConnectivitySpecificSettings.ForEach(settings =>
             {
                 fields.Add(nameof(settings.TestDuration), settings.TestDuration.ToString());
@@ -276,5 +283,6 @@ namespace TestResultCoordinator
     internal struct LongHaulSpecificSettings
     {
         public TimeSpan SendReportFrequency;
+        public TimeSpan UnmatchedResultTolerance;
     }
 }

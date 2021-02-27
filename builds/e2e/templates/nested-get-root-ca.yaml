@@ -1,6 +1,7 @@
 steps:
   - task: Bash@3
     displayName: 'Get rootCA'
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
     inputs:
       targetType: inline
       script: |

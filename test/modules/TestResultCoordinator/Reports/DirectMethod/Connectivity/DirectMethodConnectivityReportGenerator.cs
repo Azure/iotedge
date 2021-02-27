@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using System.Threading.Tasks;
@@ -23,9 +24,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             string testDescription,
             string trackingId,
             string senderSource,
-            ITestResultCollection<TestOperationResult> senderTestResults,
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
             Option<string> receiverSource,
-            Option<ITestResultCollection<TestOperationResult>> receiverTestResults,
+            Option<IAsyncEnumerator<TestOperationResult>> receiverTestResults,
             string resultType,
             NetworkStatusTimeline networkStatusTimeline,
             NetworkControllerType networkControllerType)
@@ -48,11 +49,11 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
 
         internal Option<string> ReceiverSource { get; }
 
-        internal Option<ITestResultCollection<TestOperationResult>> ReceiverTestResults { get; }
+        internal Option<IAsyncEnumerator<TestOperationResult>> ReceiverTestResults { get; }
 
         internal string SenderSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
         internal string ResultType { get; }
 
@@ -120,7 +121,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                 hasReceiverResult = reportGeneratorMetadata.HasReceiverResult;
             }
 
-            Logger.LogInformation($"Successfully finished creating DirectMethodReport for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
+            Logger.LogInformation($"Successfully finished creating {nameof(DirectMethodConnectivityReport)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
             return new DirectMethodConnectivityReport(
                 this.TestDescription,
                 this.trackingId,
@@ -146,7 +147,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         {
             ulong mismatchSuccess = 0;
             string receiverSource = this.ReceiverSource.OrDefault();
-            ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
+            IAsyncEnumerator<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
             this.ValidateDataSource(receiverTestResults.Current, receiverSource);
             DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(receiverTestResults.Current.Result);
 
@@ -202,7 +203,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
         async Task<DirectMethodReportGeneratorMetadata> ProcessMismatchFailureCase()
         {
             ulong mismatchFailure = 0;
-            ITestResultCollection<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
+            IAsyncEnumerator<TestOperationResult> receiverTestResults = this.ReceiverTestResults.OrDefault();
 
             Logger.LogError($"[{nameof(DirectMethodConnectivityReportGenerator)}] Receiver test result source has unexpected results.");
 
@@ -222,7 +223,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
             DirectMethodTestResult dmSenderTestResult,
             NetworkControllerStatus networkControllerStatus,
             bool isWithinTolerancePeriod,
-            ITestResultCollection<TestOperationResult> senderTestResults)
+            IAsyncEnumerator<TestOperationResult> senderTestResults)
         {
             ulong networkOnSuccess = 0;
             ulong networkOffSuccess = 0;

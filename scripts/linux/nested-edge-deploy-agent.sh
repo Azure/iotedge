@@ -80,7 +80,7 @@ EOF
     sudo cp /etc/aziot/edged/config.toml.default /etc/aziot/edged/config.toml
     sudo sed -i "14s|.*|image = \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/aziot/edged/config.toml
     if [ -z $PARENT_NAME ]; then
-        sudo sed -i "15s|.*|auth = { serveraddress: \"${CONTAINER_REGISTRY}\", username = \"${CONTAINER_REGISTRY_USERNAME}\", password = \"${CONTAINER_REGISTRY_PASSWORD}\" }|" /etc/aziot/edged/config.toml
+        sudo sed -i "15s|.*|auth = { serveraddress = \"${CONTAINER_REGISTRY}\", username = \"${CONTAINER_REGISTRY_USERNAME}\", password = \"${CONTAINER_REGISTRY_PASSWORD}\" }|" /etc/aziot/edged/config.toml
     fi
 
     if [ ! -z $PARENT_NAME ]; then
@@ -145,17 +145,26 @@ EOF
         echo "Adding proxy configuration to docker"
         sudo mkdir -p /etc/systemd/system/docker.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
         sudo systemctl daemon-reload
         sudo systemctl restart docker
 
         echo "Adding proxy configuration to IoT Edge daemon"
+        sudo mkdir -p /etc/systemd/system/aziot-identityd.service.d/
+        { echo "[Service]";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/aziot-identityd.service.d/proxy.conf
+        sudo systemctl daemon-reload           
+
+        echo "Adding proxy configuration to IoT Edge daemon"
         sudo mkdir -p /etc/systemd/system/aziot-edged.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/aziot-edged.service.d/proxy.conf
         sudo systemctl daemon-reload
+
+     
     fi
 
     echo "Start IoT edge"
