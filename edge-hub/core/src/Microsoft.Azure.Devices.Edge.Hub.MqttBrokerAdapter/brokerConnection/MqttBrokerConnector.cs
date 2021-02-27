@@ -26,8 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         readonly TaskCompletionSource<bool> onConnectedTcs = new TaskCompletionSource<bool>();
 
-        Option<Channel<MqttPublishInfo>> publications;
-        Option<Task> forwardingLoop;
+        Option<Channel<MqttPublishInfo>> upstreamPublications;
+        Option<Channel<MqttPublishInfo>> downstreamPublications;
+        Option<Task> forwardingLoops;
         Option<MqttClient> mqttClient;
 
         AtomicBoolean isRetrying = new AtomicBoolean(false);
@@ -72,14 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             client.MqttMsgPublished += this.ConfirmPublished;
             client.MqttMsgPublishReceived += this.ForwardPublish;
 
-            this.publications = Option.Some(Channel.CreateUnbounded<MqttPublishInfo>(
-                                    new UnboundedChannelOptions
-                                    {
-                                        SingleReader = true,
-                                        SingleWriter = true
-                                    }));
-
-            this.forwardingLoop = Option.Some(this.StartForwardingLoop());
+            this.forwardingLoops = Option.Some(this.StartForwardingLoops());
 
             // if ConnectAsync is supposed to manage starting it with broker down,
             // put a loop here to keep trying - see 'TriggerReconnect' below
@@ -90,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 client.MqttMsgPublished -= this.ConfirmPublished;
                 client.MqttMsgPublishReceived -= this.ForwardPublish;
 
-                await this.StopForwardingLoopAsync();
+                await this.StopForwardingLoopsAsync();
 
                 lock (this.guard)
                 {
@@ -149,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                                 }
                             }
 
-                            await this.StopForwardingLoopAsync();
+                            await this.StopForwardingLoopsAsync();
 
                             Events.Closed();
                         },
@@ -215,9 +209,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         void ForwardPublish(object sender, MqttMsgPublishEventArgs e)
         {
-            var isWritten = this.publications.Match(
+            bool isWritten;
+            if (!string.IsNullOrEmpty(e.Topic) && e.Topic.StartsWith("$downstream/"))
+            {
+                // messages from upstream come with prefix downstream - because for the parent we are downstream
+                isWritten = this.upstreamPublications.Match(
                                     channel => channel.Writer.TryWrite(new MqttPublishInfo(e.Topic, e.Message)),
                                     () => false);
+            }
+            else
+            {
+                isWritten = this.downstreamPublications.Match(
+                                    channel => channel.Writer.TryWrite(new MqttPublishInfo(e.Topic, e.Message)),
+                                    () => false);
+            }
 
             if (!isWritten)
             {
@@ -305,71 +310,122 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 TaskCreationOptions.LongRunning);
         }
 
-        Task StartForwardingLoop()
+        Task StartForwardingLoops()
         {
-            var loopTask = Task.Factory.StartNew(
-                                async () =>
-                                {
-                                    Events.ForwardingLoopStarted();
-                                    while (await this.publications.Expect(ChannelIsBroken).Reader.WaitToReadAsync())
-                                    {
-                                        var publishInfo = default(MqttPublishInfo);
+            this.CreateMessageChannels();
 
-                                        try
-                                        {
-                                            publishInfo = await this.publications.Expect(ChannelIsBroken).Reader.ReadAsync();
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            Events.FailedToForward(e);
-                                            continue;
-                                        }
+            var downstreamTask = Task.Factory.StartNew(this.DownstreamLoop, TaskCreationOptions.LongRunning);
+            var upstreamTask = Task.Factory.StartNew(this.UpstreamLoop, TaskCreationOptions.LongRunning);
 
-                                        var accepted = false;
-                                        foreach (var consumer in this.components.Consumers)
-                                        {
-                                            try
-                                            {
-                                                accepted = await consumer.HandleAsync(publishInfo);
-                                                if (accepted)
-                                                {
-                                                    Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
-                                                    break;
-                                                }
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                Events.FailedToForward(e);
-                                                // Keep going with other consumers...
-                                            }
-                                        }
-
-                                        if (!accepted)
-                                        {
-                                            Events.MessageNotForwarded(publishInfo.Topic, publishInfo.Payload.Length);
-                                        }
-                                    }
-
-                                    Events.ForwardingLoopStopped();
-                                },
-                                TaskCreationOptions.LongRunning);
-
-            return loopTask;
-
-            Exception ChannelIsBroken()
-            {
-                return new Exception("Channel is broken, exiting forwarding loop by error");
-            }
+            return Task.WhenAll(downstreamTask, upstreamTask);
         }
 
-        async Task StopForwardingLoopAsync()
+        async Task StopForwardingLoopsAsync()
         {
-            this.publications.ForEach(channel => channel.Writer.Complete());
+            this.downstreamPublications.ForEach(channel => channel.Writer.Complete());
+            this.upstreamPublications.ForEach(channel => channel.Writer.Complete());
 
-            await this.forwardingLoop.ForEachAsync(loop => loop);
+            await this.forwardingLoops.ForEachAsync(loop => loop);
 
-            this.forwardingLoop = Option.None<Task>();
-            this.publications = Option.None<Channel<MqttPublishInfo>>();
+            this.forwardingLoops = Option.None<Task>();
+            this.downstreamPublications = Option.None<Channel<MqttPublishInfo>>();
+            this.upstreamPublications = Option.None<Channel<MqttPublishInfo>>();
+        }
+
+        void CreateMessageChannels()
+        {
+            this.downstreamPublications = Option.Some(Channel.CreateUnbounded<MqttPublishInfo>(
+                                            new UnboundedChannelOptions
+                                            {
+                                                SingleReader = true,
+                                                SingleWriter = true
+                                            }));
+
+            this.upstreamPublications = Option.Some(Channel.CreateUnbounded<MqttPublishInfo>(
+                                            new UnboundedChannelOptions
+                                            {
+                                                SingleReader = true,
+                                                SingleWriter = true
+                                            }));
+        }
+
+        async Task DownstreamLoop()
+        {
+            Events.DownstreamForwardingLoopStarted();
+
+            var channel = this.downstreamPublications.Expect(() => new Exception("No downstream channel is prepared to read"));
+            while (await channel.Reader.WaitToReadAsync())
+            {
+                var publishInfo = default(MqttPublishInfo);
+
+                try
+                {
+                    publishInfo = await channel.Reader.ReadAsync();
+                }
+                catch (Exception e)
+                {
+                    Events.FailedToForwardDownstream(e);
+                    continue;
+                }
+
+                var accepted = false;
+                foreach (var consumer in this.components.Consumers)
+                {
+                    try
+                    {
+                        accepted = await consumer.HandleAsync(publishInfo);
+                        if (accepted)
+                        {
+                            Events.MessageForwarded(consumer.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                            break;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Events.FailedToForwardDownstream(e);
+                        // Keep going with other consumers...
+                    }
+                }
+
+                if (!accepted)
+                {
+                    Events.MessageNotForwarded(publishInfo.Topic, publishInfo.Payload.Length);
+                }
+            }
+
+            Events.DownstreamForwardingLoopStopped();
+        }
+
+        async Task UpstreamLoop()
+        {
+            var upstreamDispatcher = this.components.Consumers.Where(c => c is BrokeredCloudProxyDispatcher).FirstOrDefault();
+            if (upstreamDispatcher == null)
+            {
+                throw new InvalidOperationException("There is no BrokeredCloudProxyDispatcher found in message consumer list");
+            }
+
+            Events.UpstreamForwardingLoopStarted();
+
+            var channel = this.upstreamPublications.Expect(() => new Exception("No upstream channel is prepared to read"));
+            while (await channel.Reader.WaitToReadAsync())
+            {
+                var publishInfo = default(MqttPublishInfo);
+
+                try
+                {
+                    publishInfo = await channel.Reader.ReadAsync();
+
+                    var accepted = await upstreamDispatcher.HandleAsync(publishInfo);
+                    Events.MessageForwarded(upstreamDispatcher.GetType().Name, accepted, publishInfo.Topic, publishInfo.Payload.Length);
+                }
+                catch (Exception e)
+                {
+                    Events.FailedToForwardUpstream(e);
+                    // keep going
+                }
+            }
+
+            Events.UpstreamForwardingLoopStopped();
         }
 
         // these are statics, so they don't use the state to acquire 'client' - making easier to handle parallel
@@ -483,8 +539,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 QosMismatch,
                 UnknownMessageId,
                 CouldNotForwardMessage,
-                ForwardingLoopStarted,
-                ForwardingLoopStopped,
+                DownstreamForwardingLoopStarted,
+                DownstreamForwardingLoopStopped,
+                UpstreamForwardingLoopStarted,
+                UpstreamForwardingLoopStopped,
+                FailedToForwardUpstream,
+                FailedToForwardDownstream,
                 MessageForwarded,
                 MessageNotForwarded,
                 FailedToForward,
@@ -503,11 +563,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void QosMismatch() => Log.LogError((int)EventIds.QosMismatch, "MQTT server did not grant QoS for every requested subscription");
             public static void UnknownMessageId(ushort id) => Log.LogError((int)EventIds.UnknownMessageId, "Unknown message id received : {0}", id);
             public static void CouldNotForwardMessage(string topic, int len) => Log.LogWarning((int)EventIds.CouldNotForwardMessage, "Could not forward MQTT message from connector. Topic {0}, Msg. len {1} bytes", topic, len);
-            public static void ForwardingLoopStarted() => Log.LogInformation((int)EventIds.ForwardingLoopStarted, "Forwarding loop started");
-            public static void ForwardingLoopStopped() => Log.LogInformation((int)EventIds.ForwardingLoopStopped, "Forwarding loop stopped");
+            public static void DownstreamForwardingLoopStarted() => Log.LogInformation((int)EventIds.DownstreamForwardingLoopStarted, "Downstream forwarding loop started");
+            public static void DownstreamForwardingLoopStopped() => Log.LogInformation((int)EventIds.DownstreamForwardingLoopStopped, "Downstream forwarding loop stopped");
+            public static void UpstreamForwardingLoopStarted() => Log.LogInformation((int)EventIds.UpstreamForwardingLoopStarted, "Upstream forwarding loop started");
+            public static void UpstreamForwardingLoopStopped() => Log.LogInformation((int)EventIds.UpstreamForwardingLoopStopped, "Upstream forwarding loop stopped");
             public static void MessageForwarded(string consumer, bool accepted, string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message forwarded to {0} and it {1}. Topic {2}, Msg. len {3} bytes", consumer, accepted ? "accepted" : "ignored", topic, len);
             public static void MessageNotForwarded(string topic, int len) => Log.LogDebug((int)EventIds.MessageForwarded, "Message has not been forwarded to any consumers. Topic {0}, Msg. len {1} bytes", topic, len);
-            public static void FailedToForward(Exception e) => Log.LogError((int)EventIds.FailedToForward, e, "Failed to forward message.");
+            public static void FailedToForwardUpstream(Exception e) => Log.LogError((int)EventIds.FailedToForwardUpstream, e, "Failed to forward message from upstream.");
+            public static void FailedToForwardDownstream(Exception e) => Log.LogError((int)EventIds.FailedToForwardDownstream, e, "Failed to forward message from downstream.");
             public static void CouldNotConnect() => Log.LogInformation((int)EventIds.CouldNotConnect, "Could not connect to MQTT Broker, possibly it is not running. To disable MQTT Broker Connector, please set 'mqttBrokerSettings__enabled' environment variable to 'false'");
             public static void TimeoutReceivingSubAcks(Exception e) => Log.LogError((int)EventIds.TimeoutReceivingSubAcks, e, "MQTT Broker has not acknowledged subscriptions in time");
         }

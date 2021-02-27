@@ -22,7 +22,6 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   longHaul.sendReportFrequency: ''
-  longHaul.testDuration: ''
   analyzer.consumerGroupId: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
@@ -38,7 +37,7 @@ parameters:
   test.runtimeLogLevel: ''
   test.testMode: ''
   test.useTRC: ''
-  test.deploymentFileName: 'long_haul_deployment.template.json'
+  test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
 
 steps:
@@ -89,7 +88,7 @@ steps:
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
-        testInfo="$testInfo,TestName=$testName"
+        testInfo="$testInfo,TestName=longhaul (single-node)"
 
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
           chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
@@ -103,8 +102,8 @@ steps:
             -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
             -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
-            -testDuration  "${{ parameters['longHaul.testDuration'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
+            -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
             -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
             -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \

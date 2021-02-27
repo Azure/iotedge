@@ -6,19 +6,15 @@ use std::path::PathBuf;
 
 use failure::Fail;
 use failure::{self, ResultExt};
-use futures::{future, Future, Stream};
 
 use edgelet_docker::Settings;
-use edgelet_http::client::ClientImpl;
-use edgelet_http::MaybeProxyClient;
 
-use aziotctl_check_common::{
+use aziotctl_common::{
     CheckOutputSerializable, CheckOutputSerializableStreaming, CheckResultSerializable,
     CheckResultsSerializable, CheckerMetaSerializable,
 };
 
-use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
-use crate::LatestVersions;
+use crate::error::{Error, ErrorKind};
 
 mod additional_info;
 use self::additional_info::AdditionalInfo;
@@ -35,12 +31,11 @@ use checker::Checker;
 mod checks;
 
 pub struct Check {
-    config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     dont_run: BTreeSet<String>,
     aziot_edged: PathBuf,
-    latest_versions: Result<super::LatestVersions, Option<Error>>,
+    expected_aziot_edged_version: Option<String>,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
@@ -87,7 +82,6 @@ pub enum CheckResult {
 
 impl Check {
     pub fn new(
-        config_file: PathBuf,
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
@@ -98,121 +92,25 @@ impl Check {
         warnings_as_errors: bool,
         aziot_bin: std::ffi::OsString,
         iothub_hostname: Option<String>,
-    ) -> impl Future<Item = Self, Error = Error> + Send {
-        let latest_versions = if let Some(expected_aziot_edged_version) =
-            expected_aziot_edged_version
-        {
-            future::Either::A(future::ok::<_, Error>(LatestVersions {
-                aziot_edged: expected_aziot_edged_version,
-            }))
-        } else {
-            let proxy = std::env::var("HTTPS_PROXY")
-                .ok()
-                .or_else(|| std::env::var("https_proxy").ok())
-                .map(|proxy| proxy.parse::<hyper::Uri>())
-                .transpose()
-                .context(ErrorKind::FetchLatestVersions(
-                    FetchLatestVersionsReason::CreateClient,
-                ));
-            let hyper_client = proxy.and_then(|proxy| {
-                MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
-                    FetchLatestVersionsReason::CreateClient,
-                ))
-            });
-            let hyper_client = match hyper_client {
-                Ok(hyper_client) => hyper_client,
-                Err(err) => {
-                    return future::Either::A(future::err(err.into()));
-                }
-            };
+    ) -> Check {
+        Check {
+            container_engine_config_path,
+            diagnostics_image_name,
+            dont_run,
+            aziot_edged,
+            expected_aziot_edged_version,
+            output_format,
+            verbose,
+            warnings_as_errors,
+            aziot_bin,
 
-            let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
-                .body(hyper::Body::default())
-                .expect("can't fail to create request");
+            additional_info: AdditionalInfo::new(),
 
-            future::Either::B(
-                hyper_client
-                    .call(request)
-                    .then(|response| -> Result<_, Error> {
-                        let response = response.context(ErrorKind::FetchLatestVersions(
-                            FetchLatestVersionsReason::GetResponse,
-                        ))?;
-                        Ok(response)
-                    })
-                    .and_then(move |response| match response.status() {
-                        hyper::StatusCode::MOVED_PERMANENTLY => {
-                            let uri = response
-                                .headers()
-                                .get(hyper::header::LOCATION)
-                                .ok_or(ErrorKind::FetchLatestVersions(
-                                    FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
-                                ))?
-                                .to_str()
-                                .context(ErrorKind::FetchLatestVersions(
-                                    FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
-                                ))?;
-                            let request = hyper::Request::get(uri)
-                                .body(hyper::Body::default())
-                                .expect("can't fail to create request");
-                            Ok(hyper_client.call(request).map_err(|err| {
-                                err.context(ErrorKind::FetchLatestVersions(
-                                    FetchLatestVersionsReason::GetResponse,
-                                ))
-                                .into()
-                            }))
-                        }
-                        status_code => Err(ErrorKind::FetchLatestVersions(
-                            FetchLatestVersionsReason::ResponseStatusCode(status_code),
-                        )
-                        .into()),
-                    })
-                    .flatten()
-                    .and_then(|response| -> Result<_, Error> {
-                        match response.status() {
-                            hyper::StatusCode::OK => {
-                                Ok(response.into_body().concat2().map_err(|err| {
-                                    err.context(ErrorKind::FetchLatestVersions(
-                                        FetchLatestVersionsReason::GetResponse,
-                                    ))
-                                    .into()
-                                }))
-                            }
-                            status_code => Err(ErrorKind::FetchLatestVersions(
-                                FetchLatestVersionsReason::ResponseStatusCode(status_code),
-                            )
-                            .into()),
-                        }
-                    })
-                    .flatten()
-                    .and_then(|body| {
-                        Ok(serde_json::from_slice(&body).context(
-                            ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::GetResponse),
-                        )?)
-                    }),
-            )
-        };
-
-        future::Either::B(latest_versions.then(move |latest_versions| {
-            Ok(Check {
-                config_file,
-                container_engine_config_path,
-                diagnostics_image_name,
-                dont_run,
-                aziot_edged,
-                latest_versions: latest_versions.map_err(Some),
-                output_format,
-                verbose,
-                warnings_as_errors,
-                aziot_bin,
-
-                additional_info: AdditionalInfo::new(),
-
-                iothub_hostname,
-                settings: None,
-                docker_host_arg: None,
-                docker_server_version: None,
-            })
-        }))
+            iothub_hostname,
+            settings: None,
+            docker_host_arg: None,
+            docker_server_version: None,
+        }
     }
 
     pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
@@ -739,33 +637,39 @@ mod tests {
         Check, CheckResult, Checker,
     };
 
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
+    }
+
     #[test]
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
-            let config_file = format!(
-                "{}/../edgelet-docker/test/{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "linux",
-                filename,
+        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
+            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-docker/test/{}/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "linux",
+                    filename,
+                ),
             );
 
-            let mut check = runtime
-                .block_on(Check::new(
-                    config_file.into(),
-                    "daemon.json".into(), // unused for this test
-                    "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                    Default::default(),
-                    Some("1.0.0".to_owned()),  // unused for this test
-                    "aziot-edged".into(),      // unused for this test
-                    super::OutputFormat::Text, // unused for this test
-                    false,
-                    false,
-                    "".into(), // unused for this test
-                    None,
-                ))
-                .unwrap();
+            let mut check = Check::new(
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),  // unused for this test
+                "aziot-edged".into(),      // unused for this test
+                super::OutputFormat::Text, // unused for this test
+                false,
+                false,
+                "".into(), // unused for this test
+                None,
+            );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
@@ -806,29 +710,31 @@ mod tests {
     fn config_file_checks_ok_old_moby() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
-            let config_file = format!(
-                "{}/../edgelet-docker/test/{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "linux",
-                filename,
+        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
+            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-docker/test/{}/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "linux",
+                    filename,
+                ),
             );
 
-            let mut check = runtime
-                .block_on(Check::new(
-                    config_file.into(),
-                    "daemon.json".into(), // unused for this test
-                    "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                    Default::default(),
-                    Some("1.0.0".to_owned()),  // unused for this test
-                    "aziot-edged".into(),      // unused for this test
-                    super::OutputFormat::Text, // unused for this test
-                    false,
-                    false,
-                    "".into(), // unused for this test
-                    None,
-                ))
-                .unwrap();
+            let mut check = Check::new(
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),  // unused for this test
+                "aziot-edged".into(),      // unused for this test
+                super::OutputFormat::Text, // unused for this test
+                false,
+                false,
+                "".into(), // unused for this test
+                None,
+            );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
@@ -877,45 +783,35 @@ mod tests {
     fn parse_settings_err() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "bad_sample_settings.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
+        let filename = "bad_sample_settings.toml";
+
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                filename,
+            ),
         );
 
-        let mut check = runtime
-            .block_on(Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()),  // unused for this test
-                "aziot-edged".into(),      // unused for this test
-                super::OutputFormat::Text, // unused for this test
-                false,
-                false,
-                "".into(), // unused for this test
-                None,
-            ))
-            .unwrap();
+        let mut check = Check::new(
+            "daemon.json".into(), // unused for this test
+            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+            Default::default(),
+            Some("1.0.0".to_owned()),  // unused for this test
+            "aziot-edged".into(),      // unused for this test
+            super::OutputFormat::Text, // unused for this test
+            false,
+            false,
+            "".into(), // unused for this test
+            None,
+        );
 
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => {
-                let err = err
-                    .iter_causes()
-                    .nth(1)
-                    .expect("expected to find cause-of-cause-of-error");
-                assert!(
-                    err.to_string()
-                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 7 column 5"),
-                    "parsing {} produced unexpected error: {}",
-                    filename,
-                    err,
-                );
-            }
-
+            CheckResult::Failed(_) => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
@@ -924,29 +820,32 @@ mod tests {
     fn moby_runtime_uri_wants_moby_based_on_server_version() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
+        let filename = "sample_settings.toml";
+
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                filename,
+            ),
         );
 
-        let mut check = runtime
-            .block_on(super::Check::new(
-                config_file.into(),
-                "daemon.json".into(), // unused for this test
-                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
-                Default::default(),
-                Some("1.0.0".to_owned()),  // unused for this test
-                "aziot-edged".into(),      // unused for this test
-                super::OutputFormat::Text, // unused for this test
-                false,
-                false,
-                "".into(), // unused for this test
-                None,
-            ))
-            .unwrap();
+        let mut check = super::Check::new(
+            "daemon.json".into(), // unused for this test
+            "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+            Default::default(),
+            Some("1.0.0".to_owned()),  // unused for this test
+            "aziot-edged".into(),      // unused for this test
+            super::OutputFormat::Text, // unused for this test
+            false,
+            false,
+            "".into(), // unused for this test
+            None,
+        );
 
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
             CheckResult::Ok => (),

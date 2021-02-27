@@ -2,6 +2,7 @@ trigger: none
 pr: none
 
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
   # Variable defined in VSTS
@@ -145,6 +146,7 @@ jobs:
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
@@ -174,7 +176,8 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,GitHubAccessToken'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+      - template: templates/e2e-clean-directory.yaml
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -256,6 +259,7 @@ jobs:
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
@@ -285,7 +289,8 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,GitHubAccessToken'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+      - template: templates/e2e-clean-directory.yaml
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -367,4 +372,5 @@ jobs:
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'

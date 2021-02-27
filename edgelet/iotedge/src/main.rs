@@ -4,8 +4,10 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::let_unit_value, clippy::similar_names)]
 
+use std::ffi::OsStr;
 use std::io;
 use std::process;
+use std::str::FromStr;
 
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
@@ -17,7 +19,7 @@ use support_bundle::OutputLocation;
 
 use iotedge::{
     Check, Command, Error, ErrorKind, List, Logs, OutputFormat, Restart, SupportBundleCommand,
-    Unknown, Version,
+    System, Unknown, Version,
 };
 
 fn main() {
@@ -66,15 +68,6 @@ fn run() -> Result<(), Error> {
         .subcommand(
             SubCommand::with_name("check")
                 .about("Check for common config and deployment issues")
-                .arg(
-                    Arg::with_name("config-file")
-                        .short("c")
-                        .long("config-file")
-                        .value_name("FILE")
-                        .help("Sets daemon configuration file")
-                        .takes_value(true)
-                        .default_value("/etc/aziot/edged/config.yaml"),
-                )
                 .arg(
                     Arg::with_name("container-engine-config-file")
                         .long("container-engine-config-file")
@@ -155,6 +148,53 @@ fn run() -> Result<(), Error> {
                 ),
         )
         .subcommand(SubCommand::with_name("check-list").about("List the checks that are run for 'iotedge check'"))
+        .subcommand(
+            SubCommand::with_name("config")
+                .about("Manage Azure IoT Edge system configuration.")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("apply")
+                    .about("Apply Azure IoT Edge system configuration values.")
+                    .arg(
+                        Arg::with_name("config-file")
+                            .short("c")
+                            .long("config-file")
+                            .value_name("FILE")
+                            .help("The path of the IoT Edge system configuration file")
+                            .takes_value(true)
+                            .default_value("/etc/aziot/config.toml"),
+                    )
+                )
+                .subcommand(
+                    SubCommand::with_name("import")
+                    .about("Initialize Azure IoT Edge system configuration by importing configuration of an existing pre-1.2 installation.")
+                    .arg(
+                        Arg::with_name("config-file")
+                            .short("c")
+                            .long("config-file")
+                            .value_name("FILE")
+                            .help("The path of the pre-1.2 configuration file to import")
+                            .takes_value(true)
+                            .default_value("/etc/iotedge/config.yaml"),
+                    )
+                    .arg(
+                        Arg::with_name("out-config-file")
+                            .short("o")
+                            .long("out-config-file")
+                            .value_name("FILE")
+                            .help("The path of the Azure IoT Edge system configuration file to write to")
+                            .takes_value(true)
+                            .default_value("/etc/aziot/config.toml"),
+                    )
+                    .arg(
+                        Arg::with_name("force")
+                            .short("f")
+                            .long("force")
+                            .help("Overwrite the new configuration file if it already exists")
+                            .takes_value(false),
+                    )
+                )
+        )
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
@@ -206,20 +246,35 @@ fn run() -> Result<(), Error> {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("init")
-                .about("Initialize Azure IoT Edge configuration.")
-                .unset_setting(AppSettings::SubcommandRequiredElseHelp)
+            SubCommand::with_name("system")
+                .about("Manage system services for IoT Edge.")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
-                    SubCommand::with_name("import")
-                    .about("Initializing Azure IoT Edge configuration by importing an existing Azure IoT Edge <1.2 configuration.")
+                    SubCommand::with_name("logs")
+                    .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
                     .arg(
-                        Arg::with_name("config-file")
-                            .short("c")
-                            .long("config-file")
-                            .value_name("FILE")
-                            .help("Sets path of old IoT Edge configuration file")
-                            .takes_value(true)
-                            .default_value("/etc/iotedge/config.yaml"),
+                        Arg::with_name("args")
+                            .last(true)
+                            .help("Additional argumants to pass to journalctl. See journalctl -h for more information.")
+                            .min_values(0),
+                    )
+                )
+                .subcommand(
+                    SubCommand::with_name("restart")
+                    .about("Restarts iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("status")
+                    .about("Report the status of iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("set-log-level")
+                    .about("Set the log level of iotedged and all of its dependencies.")
+                    .arg(
+                        Arg::with_name("log_level")
+                        .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
+                        .possible_values(&["trace", "debug", "info", "warn",  "error"])
+                        .required(true),
                     )
                 )
         )
@@ -290,11 +345,7 @@ fn run() -> Result<(), Error> {
 
     match matches.subcommand() {
         ("check", Some(args)) => {
-            let check = Check::new(
-                args.value_of_os("config-file")
-                    .expect("arg has a default value")
-                    .to_os_string()
-                    .into(),
+            let mut check = Check::new(
                 args.value_of_os("container-engine-config-file")
                     .expect("arg has a default value")
                     .to_os_string()
@@ -325,10 +376,41 @@ fn run() -> Result<(), Error> {
                 aziot_bin.into(),
                 args.value_of("iothub-hostname").map(ToOwned::to_owned),
             );
-
-            tokio_runtime.block_on(check)?.execute(&mut tokio_runtime)
+            check.execute(&mut tokio_runtime)
         }
         ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
+        ("config", Some(args)) => match args.subcommand() {
+            ("apply", Some(args)) => {
+                let config_file = args
+                    .value_of_os("config-file")
+                    .expect("arg has a default value");
+                let config_file = std::path::Path::new(config_file);
+
+                let () = iotedge::config::apply::execute(config_file).map_err(ErrorKind::Config)?;
+                Ok(())
+            }
+            ("import", Some(args)) => {
+                let old_config_file = args
+                    .value_of_os("config-file")
+                    .expect("arg has a default value");
+                let old_config_file = std::path::Path::new(old_config_file);
+
+                let new_config_file = args
+                    .value_of_os("out-config-file")
+                    .expect("arg has a default value");
+                let new_config_file = std::path::Path::new(new_config_file);
+
+                let force = args.is_present("force");
+
+                let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
+                    .map_err(ErrorKind::Config)?;
+                Ok(())
+            }
+            (command, _) => {
+                eprintln!("Unknown config subcommand {:?}", command);
+                std::process::exit(1);
+            }
+        },
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
@@ -369,22 +451,23 @@ fn run() -> Result<(), Error> {
             }
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
-        ("init", Some(args)) => match args.subcommand() {
-            ("", _) => {
-                let () = iotedge::init::execute().map_err(ErrorKind::Init)?;
-                Ok(())
+        ("system", Some(args)) => match args.subcommand() {
+            ("logs", Some(args)) => {
+                let jctl_args: Vec<&OsStr> = args
+                    .values_of_os("args")
+                    .map_or_else(Vec::new, std::iter::Iterator::collect);
+
+                System::get_system_logs(&jctl_args)
             }
-            ("import", Some(args)) => {
-                let old_config_file = args
-                    .value_of_os("config-file")
-                    .expect("arg has a default value");
-                let old_config_file = std::path::Path::new(old_config_file);
-                let () =
-                    iotedge::init::import::execute(old_config_file).map_err(ErrorKind::Init)?;
-                Ok(())
-            }
+            ("restart", Some(_args)) => System::system_restart(),
+            ("status", Some(_args)) => System::get_system_status(),
+            ("set-log-level", Some(args)) => System::set_log_level(
+                log::Level::from_str(args.value_of("log_level").expect("Value is required"))
+                    .expect("Value is restricted to parsable fields"),
+            ),
+
             (command, _) => {
-                eprintln!("Unknown init subcommand {:?}", command);
+                eprintln!("Unknown system subcommand {:?}", command);
                 std::process::exit(1);
             }
         },

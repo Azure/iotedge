@@ -104,11 +104,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Keyd = "/etc/aziot/keyd/config.toml",
                         Certd = "/etc/aziot/certd/config.toml",
                         Identityd = "/etc/aziot/identityd/config.toml",
-                        Edged = "/etc/aziot/edged/config.yaml"
+                        Edged = "/etc/aziot/edged/config.toml"
                     };
 
-                    uint iotedgeUid = await EdgeDaemon.GetIotedgeUid(token);
-                    DaemonConfiguration conf = new DaemonConfiguration(paths, iotedgeUid);
+                    DaemonConfiguration conf = new DaemonConfiguration(paths);
                     (string msg, object[] props) = await config(conf);
 
                     message += $" {msg}";
@@ -245,19 +244,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await Task.Delay(250, token).ConfigureAwait(false);
                 }
             }
-        }
-
-        public string GetDefaultEdgedConfig()
-        {
-            return this.packageManagement.GetDefaultEdgedConfig();
-        }
-
-        private static async Task<uint> GetIotedgeUid(CancellationToken token)
-        {
-            string[] output = await Process.RunAsync("id", "-u iotedge", token);
-            string uid = output[0].Trim();
-
-            return System.Convert.ToUInt32(uid, 10);
         }
     }
 }
