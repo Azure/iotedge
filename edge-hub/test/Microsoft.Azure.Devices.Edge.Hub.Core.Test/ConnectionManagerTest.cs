@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
             var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
-            Assert.Throws<DeviceInvalidStateException>(() => proxyTry.Value);
+            Assert.Throws<InvalidOperationException>(() => proxyTry.Value);
         }
 
         [Fact]
@@ -894,7 +894,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
-            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), false)).ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.IsAny<string>(), false)).ReturnsAsync(Option.None<ServiceIdentity>());
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
@@ -1075,7 +1075,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client1)
                 .Returns(client2);
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
-            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), false)).ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.IsAny<string>(), false)).ReturnsAsync(Option.None<ServiceIdentity>());
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
@@ -1138,7 +1138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(client2);
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
-            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), false)).ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.IsAny<string>(), false)).ReturnsAsync(Option.None<ServiceIdentity>());
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
@@ -1210,7 +1210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             deviceClientProvider.Setup(d => d.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>())).Returns(client1);
 
             var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
-            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityState(It.IsAny<string>(), false)).ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.IsAny<string>(), false)).ReturnsAsync(Option.None<ServiceIdentity>());
 
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
             await credentialsCache.Add(module1Credentials);
