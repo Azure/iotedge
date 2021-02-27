@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -133,9 +134,61 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.Connect(identity, connectionStatusChangedHandler, false);
+        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.trackDeviceState ? this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, false)
+            : this.ConnectInternal(identity, connectionStatusChangedHandler);
 
-        async Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache = false)
+        // Method is used in case trackDeviceState change has any issues to be able to switch to old behavior
+        async Task<Try<ICloudConnection>> ConnectInternal(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+        {
+            Preconditions.CheckNotNull(identity, nameof(identity));
+
+            try
+            {
+                var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
+                Option<ServiceIdentity> serviceIdentity = (await this.deviceScopeIdentitiesCache.GetServiceIdentity(identity.Id))
+                    .Filter(s => s.Status == ServiceIdentityStatus.Enabled);
+                return await serviceIdentity
+                    .Map(
+                        async si =>
+                        {
+                            Events.CreatingCloudConnectionOnBehalfOf(identity);
+                            ConnectionMetadata connectionMetadata = await this.metadataStore.GetMetadata(identity.Id);
+                            string productInfo = connectionMetadata.EdgeProductInfo;
+                            Option<string> modelId = connectionMetadata.ModelId;
+                            ICloudConnection cc = await CloudConnection.Create(
+                                identity,
+                                connectionStatusChangedHandler,
+                                this.transportSettings,
+                                this.messageConverterProvider,
+                                this.clientProvider,
+                                cloudListener,
+                                this.edgeHubTokenProvider,
+                                this.idleTimeout,
+                                this.closeOnIdleTimeout,
+                                this.operationTimeout,
+                                productInfo,
+                                modelId);
+                            Events.SuccessCreatingCloudConnection(identity);
+                            return Try.Success(cc);
+                        })
+                    .GetOrElse(
+                        async () =>
+                        {
+                            Events.ServiceIdentityNotFound(identity);
+                            Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
+                            return await clientCredentials
+                                .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
+                                .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                        });
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorCreatingCloudConnection(identity, ex);
+                return Try<ICloudConnection>.Failure(ex);
+            }
+        }
+
+        async Task<Try<ICloudConnection>> ConnectInternalWithDeviceStateTracking(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache = false)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
@@ -189,43 +242,45 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         async Task<Try<ICloudConnection>> TryRecoverCloudConnection(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool wasRefreshed, Exception ex)
         {
-            Events.ErrorCreatingCloudConnection(identity, ex);
-            if (this.scopeAuthenticationOnly)
+            try
             {
-                if (this.trackDeviceState)
+                Events.ErrorCreatingCloudConnection(identity, ex);
+                if (this.scopeAuthenticationOnly)
                 {
-                    if (wasRefreshed)
+                    if (this.trackDeviceState)
                     {
-                        // recover failed
-                        Events.ErrorCreatingCloudConnection(identity, ex);
-                        return Try<ICloudConnection>.Failure(ex);
+                        if (wasRefreshed)
+                        {
+                            Events.ErrorCreatingCloudConnection(identity, ex);
+                            return Try<ICloudConnection>.Failure(ex);
+                        }
+                        else
+                        {
+                            // recover: try to update out of date cache and try again
+                            return await this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, true);
+                        }
                     }
                     else
                     {
-                        // recover: try to update out of date cache and try again
-                        return await this.Connect(identity, connectionStatusChangedHandler, true);
+                        // old behavior
+                        Events.ErrorCreatingCloudConnection(identity, ex);
+                        return Try<ICloudConnection>.Failure(ex);
                     }
                 }
                 else
                 {
-                    // old behave
-                    Events.ErrorCreatingCloudConnection(identity, ex);
-                    return Try<ICloudConnection>.Failure(ex);
+                    // try with cached device credentials
+                    Events.ServiceIdentityNotFound(identity);
+                    Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
+                    return await clientCredentials
+                        .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
+                        .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
                 }
             }
-            else
+            catch (Exception e)
             {
-                // try with cached device credentials
-                Events.ServiceIdentityNotFound(identity);
-                Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                return await clientCredentials
-                    .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                    .GetOrElse(() =>
-                    {
-                        var ex = new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache");
-                        Events.ErrorCreatingCloudConnection(identity, ex);
-                        return Task.FromResult(Try<ICloudConnection>.Failure(ex));
-                    });
+                Events.ErrorCreatingCloudConnection(identity, e);
+                return Try<ICloudConnection>.Failure(e);
             }
         }
 
