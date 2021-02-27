@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             bool trackDeviceState = authenticationMode == AuthenticationMode.Scope
-                && this.configuration.GetValue("TrackDeviceState", false);
+                && this.configuration.GetValue("TrackDeviceState", true);
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, authenticationMode);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
