@@ -87,7 +87,7 @@ pub async fn setup_bridge_controller(
         upstream_address,
         credentials,
         subs,
-        true,
+        false,
         Duration::from_secs(5),
     )
     .unwrap();

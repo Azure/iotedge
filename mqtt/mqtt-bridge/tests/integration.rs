@@ -232,6 +232,46 @@ async fn bridge_settings_update() {
 
 /// Scenario:
 ///	- Creates 2 brokers and a bridge to connect between the brokers.
+/// - Shutdown local and upstream broker and check session was persisted
+#[tokio::test]
+async fn bridge_uses_persistent_session() {
+    let subs = vec![
+        Direction::Out(TopicRule::new(
+            "temp/#".into(),
+            Some("to".into()),
+            Some("upstream".into()),
+        )),
+        Direction::In(TopicRule::new(
+            "filter/#".into(),
+            Some("to".into()),
+            Some("downstream".into()),
+        )),
+    ];
+
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        common::setup_brokers(AllowAll, AllowAll);
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        subs,
+    )
+    .await;
+
+    // delay to have brige connected to brokers
+    tokio::time::delay_for(Duration::from_secs(2)).await;
+
+    let (_, sessions) = local_server_handle.shutdown().await.into_parts();
+    assert_eq!(1, sessions.len());
+
+    let (_, sessions) = upstream_server_handle.shutdown().await.into_parts();
+    assert_eq!(1, sessions.len());
+
+    controller_handle.shutdown();
+    controller_task.await.expect("controller task");
+}
+
+/// Scenario:
+///	- Creates 2 brokers and a bridge to connect between the brokers.
 /// - Remote broker is set to deny the subscription from the bridge
 ///	- A client connects to local broker and subscribes to receive messages from upstream
 /// - A client connects to remote broker and subscribes to receive messages from downstream
