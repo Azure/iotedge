@@ -190,6 +190,11 @@ type = "docker"
 image = "mcr.microsoft.com/azureiotedge-agent:1.0"
 # createOptions = { }       # Docker container create options, in TOML format.
 
+# [agent.config.auth]
+# serveraddress = "example.azurecr.io"
+# username = "username"
+# password = "password"
+
 [agent.env]
 # "RuntimeLogLevel" = "debug"
 # "UpstreamProtocol" = "AmqpWs"

@@ -46,7 +46,6 @@ jobs:
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
           loadGen.message.frequency: '$(loadGen.message.frequency)'
-          longHaul.testDuration: '$(longHaul.testDuration)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'

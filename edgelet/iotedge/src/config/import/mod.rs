@@ -218,7 +218,7 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             }) => common_config::super_config::Provisioning {
                 always_reprovision_on_startup,
                 provisioning: common_config::super_config::ProvisioningType::Dps {
-                    global_endpoint: global_endpoint.to_string(),
+                    global_endpoint,
                     id_scope: scope_id,
                     attestation: common_config::super_config::DpsAttestationMethod::SymmetricKey {
                         registration_id,
@@ -242,7 +242,7 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             }) => common_config::super_config::Provisioning {
                 always_reprovision_on_startup,
                 provisioning: common_config::super_config::ProvisioningType::Dps {
-                    global_endpoint: global_endpoint.to_string(),
+                    global_endpoint,
                     id_scope: scope_id,
                     attestation: common_config::super_config::DpsAttestationMethod::X509 {
                         // TODO: Remove this when IS supports registration ID being optional for DPS-X509
@@ -273,7 +273,7 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             }) => common_config::super_config::Provisioning {
                 always_reprovision_on_startup,
                 provisioning: common_config::super_config::ProvisioningType::Dps {
-                    global_endpoint: global_endpoint.to_string(),
+                    global_endpoint,
                     id_scope: scope_id,
                     attestation: common_config::super_config::DpsAttestationMethod::Tpm {
                         registration_id,

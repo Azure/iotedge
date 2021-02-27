@@ -22,16 +22,11 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             string testDescription,
             string trackingId,
             string senderSource,
-            ITestResultCollection<TestOperationResult> senderTestResults,
-            Option<string> receiverSource,
-            Option<ITestResultCollection<TestOperationResult>> receiverTestResults,
+            IAsyncEnumerator<TestOperationResult> senderTestResults,
+            string receiverSource,
+            IAsyncEnumerator<TestOperationResult> receiverTestResults,
             string resultType)
         {
-            if (receiverSource.HasValue ^ receiverTestResults.HasValue)
-            {
-                throw new ArgumentException("Provide both receiverSource and receiverTestResults or neither.");
-            }
-
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.SenderSource = Preconditions.CheckNonWhiteSpace(senderSource, nameof(senderSource));
@@ -41,13 +36,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
         }
 
-        internal Option<string> ReceiverSource { get; }
+        internal string ReceiverSource { get; }
 
-        internal Option<ITestResultCollection<TestOperationResult>> ReceiverTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> ReceiverTestResults { get; }
 
         internal string SenderSource { get; }
 
-        internal ITestResultCollection<TestOperationResult> SenderTestResults { get; }
+        internal IAsyncEnumerator<TestOperationResult> SenderTestResults { get; }
 
         internal string ResultType { get; }
 
@@ -58,7 +53,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         public async Task<ITestResultReport> CreateReportAsync()
         {
             long senderSuccesses = 0;
-            Option<long> receiverSuccesses = Option.None<long>();
+            long receiverSuccesses = 0;
             long statusCodeZero = 0;
             Dictionary<HttpStatusCode, long> other = new Dictionary<HttpStatusCode, long>();
             while (await this.SenderTestResults.MoveNextAsync())
@@ -88,20 +83,16 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
                 }
             }
 
-            await this.ReceiverTestResults.ForEachAsync(async r =>
+            long receiverResults = 0;
+            while (await this.ReceiverTestResults.MoveNextAsync())
             {
-                long receiverResults = 0;
-                while (await r.MoveNextAsync())
-                {
-                    // ReceiverSource will always be there if ReceiverTestResults is so it's safe to put OrDefault
-                    this.ValidateDataSource(r.Current, this.ReceiverSource.Expect<ArgumentException>(
-                        () => throw new ArgumentException("Impossible case. ReceiverSource must be filled in if ReceiverTestResults are")));
-                    DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(r.Current.Result);
-                    receiverResults++;
-                }
+                this.ValidateDataSource(this.ReceiverTestResults.Current, this.ReceiverSource);
+                DirectMethodTestResult dmReceiverTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(this.ReceiverTestResults.Current.Result);
+                receiverResults++;
+            }
 
-                receiverSuccesses = Option.Some(receiverResults);
-            });
+            Logger.LogInformation($"Successfully finished creating {nameof(DirectMethodLongHaulReport)} for Sources [{this.SenderSource}] and [{this.ReceiverSource}]");
+            receiverSuccesses = receiverResults;
             return new DirectMethodLongHaulReport(
                 this.TestDescription,
                 this.trackingId,

@@ -45,7 +45,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
             string resultType = "resultType1";
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
+            IAsyncEnumerator<TestOperationResult> expectedResultsEnumerator = expectedResults.GetAsyncEnumerator();
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)
@@ -55,9 +56,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
             }
 
             int j = 0;
-            while (await expectedResults.MoveNextAsync())
+            while (await expectedResultsEnumerator.MoveNextAsync())
             {
-                Assert.Equal(expectedStoreValues[j], expectedResults.Current.Result);
+                Assert.Equal(expectedStoreValues[j], expectedResultsEnumerator.Current.Result);
                 j++;
             }
         }
