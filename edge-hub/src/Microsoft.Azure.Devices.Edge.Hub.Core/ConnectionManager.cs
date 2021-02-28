@@ -97,7 +97,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnection(id), c));
         }
 
-        public async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
+        public async Task<Try<ICloudProxy>> GetCloudConnectionTry(string id)
+        {
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnection(id);
+            return cloudProxyTry.Success
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnection(id), cloudProxyTry.Value))
+                : cloudProxyTry;
+        }
+
+        async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
         {
             IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);

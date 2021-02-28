@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Integration]
-        public async Task TryGetCloudConnection_NoScopeIdentityAndNoCredential_ShouldReturnFailure()
+        public async Task GetCloudConnectionTry_NoScopeIdentityAndNoCredential_ShouldReturnFailure()
         {
             var deviceCredentials1Id = "Device1";
 
@@ -189,13 +189,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var cloudConnection = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
+            var cloudConnection = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
             Assert.Throws<InvalidOperationException>(() => cloudConnection.Value);
         }
 
         [Fact]
         [Integration]
-        public async Task TryGetCloudConnection_ScopeOnly_ScopeIdentityNotFound_ShouldReturnFailure()
+        public async Task GetCloudConnectionTry_ScopeOnly_ScopeIdentityNotFound_ShouldReturnFailure()
         {
             var deviceCredentials1Id = "Device1";
 
@@ -236,13 +236,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
+            var proxyTry = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
             Assert.Throws<InvalidOperationException>(() => proxyTry.Value);
         }
 
         [Fact]
         [Integration]
-        public async Task TryGetCloudConnection_ScopeOnlyAndRecover_ZeroRefreshDelay_ShouldSucceed()
+        public async Task GetCloudConnectionTry_ScopeOnlyAndRecover_ZeroRefreshDelay_ShouldSucceed()
         {
             var deviceCredentials1Id = "Device1";
 
@@ -288,13 +288,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
+            var proxyTry = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
             Assert.True(proxyTry.Success);
         }
 
         [Fact]
         [Integration]
-        public async Task TryGetCloudConnection_ScopeOnlyAndRecover_RefreshDeled_ShouldReturnFailure()
+        public async Task GetCloudConnectionTry_ScopeOnlyAndRecover_RefreshDeled_ShouldReturnFailure()
         {
             var deviceCredentials1Id = "Device1";
 
@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
+            var proxyTry = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
             Assert.Throws<DeviceInvalidStateException>(() => proxyTry.Value);
         }
 
