@@ -26,7 +26,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         Task UninstallAsync(CancellationToken token);
 
         Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token);
-
-        string GetDefaultEdgedConfig();
     }
 }

@@ -2,21 +2,20 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::too_many_lines)]
+#![allow(clippy::default_trait_access, clippy::too_many_lines)]
 
 use std::collections::{BTreeMap, HashMap};
 use std::str;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use config::{Config, File, FileFormat};
 use failure::Fail;
 use futures::future;
 use futures::prelude::*;
 use hyper::{Body, Method, Request, Response, StatusCode};
-use json_patch::merge;
 use maplit::btreemap;
-use serde_json::{self, json, Value as JsonValue};
+use serde_json::{self, json};
+use tempfile::NamedTempFile;
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 
@@ -42,47 +41,50 @@ const IMAGE_NAME: &str = "nginx:latest";
 const INVALID_IMAGE_NAME: &str = "invalidname:latest";
 const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
 
-fn make_settings(merge_json: Option<JsonValue>) -> Settings {
-    let mut config = Config::default();
-    let mut config_json = json!({
-        "provisioning": {
-            "source": "manual",
-            "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
-        },
-        "agent": {
-            "name": "edgeAgent",
-            "type": "docker",
-            "env": {},
-            "config": {
-                "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
-                "auth": {}
-            }
-        },
-        "hostname": "zoo",
-        "connect": {
-            "management_uri": "unix:///var/lib/iotedge/mgmt.sock",
-            "workload_uri": "unix:///var/lib/iotedge/workload.sock"
-        },
-        "listen": {
-            "management_uri": "unix:///var/lib/iotedge/mgmt.sock",
-            "workload_uri": "unix:///var/lib/iotedge/workload.sock"
-        },
-        "homedir": "/var/lib/aziot/edged",
-        "moby_runtime": {
-            "uri": "unix:///var/run/docker.sock",
-            "network": "azure-iot-edge"
-        }
-    });
+fn make_settings(moby_runtime: &str) -> Settings {
+    use std::io::Write;
 
-    if let Some(merge_json) = merge_json {
-        merge(&mut config_json, &merge_json);
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
     }
 
-    config
-        .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
-        .unwrap();
+    let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
-    config.try_into().unwrap()
+    let mut config_file = NamedTempFile::new().expect("could not create tempfile for config");
+
+    config_file
+        .write_all(
+            r#"
+hostname = "zoo"
+homedir = "/var/lib/aziot/edged"
+
+[agent]
+name = "edgeAgent"
+type = "docker"
+
+[agent.config]
+image = "microsoft/azureiotedge-agent:1.0"
+
+[connect]
+workload_uri = "unix:///var/lib/iotedge/workload.sock"
+management_uri = "unix:///var/lib/iotedge/mgmt.sock"
+
+[listen]
+workload_uri = "unix:///var/lib/iotedge/workload.sock"
+management_uri = "unix:///var/lib/iotedge/mgmt.sock"
+
+"#
+            .as_bytes(),
+        )
+        .expect("could not write to config file");
+
+    config_file
+        .write_all(moby_runtime.as_bytes())
+        .expect("could not write to config file");
+
+    std::env::set_var("AZIOT_EDGED_CONFIG", config_file.path());
+
+    Settings::new().unwrap()
 }
 
 fn make_get_networks_handler(
@@ -219,11 +221,14 @@ fn image_pull_with_invalid_image_name_fails() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         let auth = AuthConfig::new()
@@ -320,11 +325,14 @@ fn image_pull_with_invalid_image_host_fails() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         let auth = AuthConfig::new()
@@ -435,11 +443,14 @@ fn image_pull_with_invalid_creds_fails() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         // password is written to guarantee base64 encoding has '-' and/or '_'
@@ -534,11 +545,14 @@ fn image_pull_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         let auth = AuthConfig::new()
@@ -620,11 +634,14 @@ fn image_pull_with_creds_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         let auth = AuthConfig::new()
@@ -683,11 +700,14 @@ fn image_remove_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings)
         .and_then(|runtime| ModuleRegistry::remove(&runtime, IMAGE_NAME));
@@ -794,11 +814,14 @@ fn container_create_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         let mut env = BTreeMap::new();
@@ -875,11 +898,14 @@ fn container_start_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.start("m1"));
 
@@ -910,11 +936,14 @@ fn container_stop_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task =
         DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.stop("m1", None));
@@ -947,11 +976,14 @@ fn container_stop_with_timeout_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings)
         .and_then(|runtime| runtime.stop("m1", Some(Duration::from_secs(600))));
@@ -983,11 +1015,14 @@ fn container_remove_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings)
         .and_then(|runtime| ModuleRuntime::remove(&runtime, "m1"));
@@ -1102,11 +1137,14 @@ fn container_list_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.list());
 
@@ -1182,11 +1220,14 @@ fn container_logs_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
         let options = LogOptions::new()
@@ -1220,11 +1261,15 @@ fn image_remove_with_white_space_name_fails() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let image_name = "     ";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1254,11 +1299,15 @@ fn create_fails_for_non_docker_type() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "not_docker";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1298,11 +1347,15 @@ fn start_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1330,11 +1383,15 @@ fn start_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "      ";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1362,11 +1419,15 @@ fn stop_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1394,11 +1455,15 @@ fn stop_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "     ";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1426,11 +1491,15 @@ fn restart_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1458,11 +1527,15 @@ fn restart_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "      ";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1490,11 +1563,15 @@ fn remove_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1522,11 +1599,15 @@ fn remove_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "      ";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1554,11 +1635,15 @@ fn get_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1586,11 +1671,15 @@ fn get_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
+
     let name = "    ";
 
     let task = DockerModuleRuntime::make_runtime(settings)
@@ -1637,11 +1726,14 @@ fn runtime_init_network_does_not_exist_create() {
     let (server, port) = run_tcp_server("127.0.0.1", network_handler);
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     //act
     let task = DockerModuleRuntime::make_runtime(settings);
@@ -1701,29 +1793,27 @@ fn network_ipv6_create() {
     let (server, port) = run_tcp_server("127.0.0.1", network_handler);
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port),
-            "network": {
-                "name": "my-network",
-                "ipv6": true,
-                "ipam": {
-                    "config": [
-                        {
-                            "gateway": "172.18.0.1",
-                            "subnet": "172.18.0.0/16",
-                            "ip_range": "172.18.0.0/16"
-                        },
-                        {
-                            "gateway": "172.20.0.1",
-                            "subnet": "172.20.0.0/16",
-                            "ip_range": "172.20.0.0/24"
-                        }
-                    ]
-                }
-            }
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+
+[moby_runtime.network]
+name = "my-network"
+ipv6 = true
+
+[[moby_runtime.network.ipam.config]]
+gateway = "172.18.0.1"
+subnet = "172.18.0.0/16"
+ip_range = "172.18.0.0/16"
+
+[[moby_runtime.network.ipam.config]]
+gateway = "172.20.0.1"
+subnet = "172.20.0.0/16"
+ip_range = "172.20.0.0/24"
+"#,
+        port
+    ));
 
     //act
     let task = DockerModuleRuntime::make_runtime(settings);
@@ -1780,11 +1870,14 @@ fn runtime_init_network_exist_do_not_create() {
     let (server, port) = run_tcp_server("127.0.0.1", network_handler);
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     //act
     let task = DockerModuleRuntime::make_runtime(settings);
@@ -1842,11 +1935,14 @@ fn runtime_system_info_succeeds() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task =
         DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.system_info());
@@ -1899,11 +1995,14 @@ fn runtime_system_info_none_returns_unkown() {
     );
     let server = server.map_err(|err| panic!(err));
 
-    let settings = make_settings(Some(json!({
-        "moby_runtime": {
-            "uri": &format!("http://localhost:{}", port)
-        }
-    })));
+    let settings = make_settings(&format!(
+        r#"
+[moby_runtime]
+uri = "http://localhost:{}"
+network = "azure-iot-edge"
+"#,
+        port
+    ));
 
     let task =
         DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.system_info());

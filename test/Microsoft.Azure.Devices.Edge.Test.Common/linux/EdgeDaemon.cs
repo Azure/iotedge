@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Keyd = "/etc/aziot/keyd/config.toml",
                         Certd = "/etc/aziot/certd/config.toml",
                         Identityd = "/etc/aziot/identityd/config.toml",
-                        Edged = "/etc/aziot/edged/config.yaml"
+                        Edged = "/etc/aziot/edged/config.toml"
                     };
 
                     DaemonConfiguration conf = new DaemonConfiguration(paths);
@@ -244,11 +244,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     await Task.Delay(250, token).ConfigureAwait(false);
                 }
             }
-        }
-
-        public string GetDefaultEdgedConfig()
-        {
-            return this.packageManagement.GetDefaultEdgedConfig();
         }
     }
 }
