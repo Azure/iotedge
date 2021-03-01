@@ -1,10 +1,27 @@
 # 1.2.0-rc4 (2020-03-1)
-* BREAKING CHANGE *
+## BREAKING CHANGE 
 This release uses new Identity Service (IS) artifact which is not backward compatible.
-For the instruction on how to upgrade from the old iotedge to the new Identity Service:
+For details on the new Identity Service: https://azure.github.io/iot-identity-service/
 
-PLACE HOLDER FOR NOW.
+## Edge Agent
+### Bug Fixes
 
+### Features
+
+## Edge Hub
+### Bug Fixes
+
+### Features
+
+## API Proxy
+### Bug Fixes
+
+### Features
+
+## MQTT Broker
+### Bug Fixes
+
+### Features
 
 # 1.2.0-rc3 (2020-12-22)
 This is only container image update. We do not publish edgelet artifact in this release.
