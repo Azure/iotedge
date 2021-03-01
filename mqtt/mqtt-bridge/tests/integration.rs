@@ -145,6 +145,7 @@ async fn send_message_upstream_downstream() {
 /// - Reconnect bridge
 /// - Reconnect and resubscribe for upstream
 /// - Expects to receive messages downstream -> upstream
+#[ignore = "Re-enable when RingBuffer is default again"]
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
     let subs = vec![Direction::Out(TopicRule::new(

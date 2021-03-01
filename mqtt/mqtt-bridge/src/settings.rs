@@ -357,11 +357,9 @@ mod tests {
         let settings = BridgeSettings::new().unwrap();
         let storage_settings = settings.storage();
         // Should exist from default.json.
-        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-        if let StorageSettings::RingBuffer(rb) = storage_settings {
-            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
-            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        assert_matches!(storage_settings, StorageSettings::Memory(_));
+        if let StorageSettings::Memory(mem) = storage_settings {
+            assert_eq!(mem.max_size(), NonZeroUsize::new(1_073_741_824).unwrap());
         }
     }
 
@@ -415,11 +413,9 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let storage_settings = settings.storage();
         // Should exist from default.json.
-        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-        if let StorageSettings::RingBuffer(rb) = storage_settings {
-            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
-            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        assert_matches!(storage_settings, StorageSettings::Memory(_));
+        if let StorageSettings::Memory(mem) = storage_settings {
+            assert_eq!(mem.max_size(), NonZeroUsize::new(1_073_741_824).unwrap());
         }
     }
 
