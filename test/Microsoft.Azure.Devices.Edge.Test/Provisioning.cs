@@ -82,6 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("Unstable")]
         public async Task DpsX509()
         {
             (string, string, string) rootCa =
