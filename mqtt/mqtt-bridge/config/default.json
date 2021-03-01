@@ -7,8 +7,10 @@
     },
     "remotes": [],
     "storage": {
-        "type": "memory",
-        "max_size": 1073741824
+        "type": "ring_buffer",
+        "max_file_size": 33554432,
+        "directory": "/tmp/mqttd/",
+        "flush_options": "aftereachwrite"
     },
     "messages": {}
 }
