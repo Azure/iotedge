@@ -16,14 +16,14 @@ openssl = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-openssl-engine = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-client = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-common-http = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-identity-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+http-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+openssl2 = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+openssl-sys2 = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
 
 cert-client = { path = "../cert-client" }
 edgelet-core = { path = "../edgelet-core" }

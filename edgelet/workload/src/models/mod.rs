@@ -22,6 +22,8 @@ mod sign_response;
 pub use self::sign_response::SignResponse;
 mod trust_bundle_response;
 pub use self::trust_bundle_response::TrustBundleResponse;
+mod aad_response;
+pub use self::aad_response::AADResponse;
 
 // TODO(farcaller): sort out files
 pub struct File;

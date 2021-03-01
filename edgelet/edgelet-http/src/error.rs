@@ -20,6 +20,9 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
+    #[fail(display = "Unable to get aad token")] // TODO: Make error better
+    AAD,
+    
     #[fail(display = "An error occurred while authorizing the HTTP request")]
     Authorization,
 

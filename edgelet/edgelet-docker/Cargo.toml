@@ -23,7 +23,7 @@ tokio-process = "0.2"
 url = { version = "2", features = ["serde"] }
 url_serde = "0.2"
 
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
 cert-client = { path = "../cert-client" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }

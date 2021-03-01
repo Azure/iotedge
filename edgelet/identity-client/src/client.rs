@@ -158,6 +158,29 @@ impl IdentityClient {
 
         Box::new(identities)
     }
+
+    pub fn get_aad_token(&self) -> Box<dyn Future<Item = String, Error = Error> + Send> {
+        let client = self.client.clone();
+        let uri = format!(
+            "/identities/device/aad?api-version={}&type=aziot",
+            self.api_version
+        );
+
+        let body = serde_json::json! {{ }};
+        let token = build_request_uri(&self.host, &uri)
+            .into_future()
+            .and_then(move |uri| {
+                request::<_, _, aziot_identity_common_http::get_aad_identity::Response>(
+                    &client,
+                    hyper::Method::POST,
+                    &uri,
+                    Some(&body),
+                )
+                .map(|token| token.token)
+            });
+
+        Box::new(token)
+    }
 }
 
 fn build_request_uri(host: &Url, uri: &str) -> Result<Uri, Error> {

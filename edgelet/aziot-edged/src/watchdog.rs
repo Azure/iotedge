@@ -228,7 +228,7 @@ where
     let runtime_copy = runtime.clone();
 
     let id_mgr = identity_client::IdentityClient::new(
-        aziot_identity_common_http::ApiVersion::V2020_09_01,
+        aziot_identity_common_http::ApiVersion::V2020_12_10,
         &identityd_url,
     );
 
