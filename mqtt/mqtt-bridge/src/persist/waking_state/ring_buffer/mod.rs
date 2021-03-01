@@ -225,8 +225,22 @@ impl StreamWakeableState for RingBuffer {
         let result = load_block_header(&mut self.file, start, block_size, self.max_file_size);
         if let Ok(block_header) = result {
             let BlockVersion::Version1(inner) = block_header.inner();
+            // It is possible that we end up writing a smaller block on wrap-around,
+            // where the file pointers will end up being in the middle of random data.
+            // To avoid this, we need to check if we have a block of data, if we do,
+            // we will need to just allow the write. Above cases will prevent us from
+            // accidentally corrupting.
+            let mut allow_write = false;
+            let bin_block = bincode::serialize(inner)?;
+            if bin_block.iter().map(|&x| u64::from(x)).sum::<u64>() != 0
+                && inner.hint() != BLOCK_HINT
+            {
+                // This is a bad block, where we wrote something smaller
+                // and this is okay, we just need to allow the write.
+                allow_write = true;
+            }
             let should_not_overwrite = inner.should_not_overwrite();
-            if should_not_overwrite {
+            if !allow_write && should_not_overwrite {
                 return Err(PersistError::RingBuffer(RingBufferError::Full));
             }
         }
@@ -950,6 +964,59 @@ mod tests {
             }
             assert_eq!(rb.metadata.order, 10);
         }
+    }
+
+    #[test]
+    fn it_inserts_ok_after_leftover_and_wrap_around_is_smaller() {
+        let mut rb = TestRingBuffer::default();
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        let result = bincode::serialize(&publication);
+        assert_matches!(result, Ok(_));
+        let data = result.unwrap();
+
+        let data_size = data.len() as u64;
+
+        let total_size = block_size + data_size;
+
+        let inserts = MAX_FILE_SIZE / total_size;
+        for _ in 0..inserts {
+            let result = rb.0.insert(&publication);
+            assert_matches!(result, Ok(_));
+        }
+
+        let result = rb.0.batch(2);
+        assert_matches!(result, Ok(_));
+        let batch = result.unwrap();
+        for entry in batch {
+            let result = rb.0.remove(entry.0);
+            assert_matches!(result, Ok(_));
+        }
+
+        let smaller_publication = Publication {
+            topic_name: "t".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let result = rb.0.insert(&smaller_publication);
+        assert_matches!(result, Ok(_));
+
+        let result = rb.0.insert(&publication);
+        assert_matches!(result, Ok(_));
+
+        assert_eq!(rb.0.metadata.order, inserts + 2);
+        let result = rb.0.insert(&publication);
+        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
+        assert_eq!(rb.0.metadata.order, inserts + 2);
     }
 
     #[test]
