@@ -39,7 +39,7 @@ impl Client {
 		})
 	}
 
-	pub(crate) fn get_server_root_certificate(&self) -> impl Future<Output = Result<native_tls::Certificate, Error>> {
+	pub(crate) fn get_server_root_certificate(&self) -> impl Future<Output = Result<Vec<native_tls::Certificate>, Error>> {
 		let url =
 			make_hyper_uri(self.scheme, &*self.base, "/trust-bundle?api-version=2019-01-30")
 			.map_err(|err| Error::GetServerRootCertificate(ApiErrorReason::ConstructRequestUrl(err)));
@@ -75,11 +75,42 @@ impl Client {
 				serde_json::from_slice(&*response)
 				.map_err(|err| Error::GetServerRootCertificate(ApiErrorReason::ParseResponseBody(Box::new(err))))?;
 
-			let certificate =
-				native_tls::Certificate::from_pem(certificate.as_bytes())
-				.map_err(|err| Error::GetServerRootCertificate(ApiErrorReason::ParseResponseBody(Box::new(err))))?;
+			let mut server_root_certificate = vec![];
 
-			Ok(certificate)
+			let mut current_cert = String::new();
+			let mut lines = certificate.lines();
+	
+			if lines.next() != Some("-----BEGIN CERTIFICATE-----") {
+				return Err(Error::GetServerRootCertificate(ApiErrorReason::ParseResponseBody("malformed PEM: does not start with BEGIN CERTIFICATE".into())));
+			}	
+			current_cert.push_str("-----BEGIN CERTIFICATE-----\n");
+
+			for line in lines {
+
+				if line == "-----END CERTIFICATE-----" {
+					current_cert.push_str("\n-----END CERTIFICATE-----");
+					let current_cert = std::mem::take(&mut current_cert);
+					let certificate =
+						native_tls::Certificate::from_pem(current_cert.as_bytes())
+						.map_err(|err| Error::GetServerRootCertificate(ApiErrorReason::ParseResponseBody(Box::new(err))))?;
+
+					server_root_certificate.push(certificate);
+				}
+				else if line == "-----BEGIN CERTIFICATE-----" {
+					if !current_cert.is_empty() {
+						return Err(Error::GetServerRootCertificate(ApiErrorReason::ParseResponseBody("malformed PEM: BEGIN CERTIFICATE without prior END CERTIFICATE".into())));
+					}
+					current_cert.push_str("-----BEGIN CERTIFICATE-----\n");
+				}
+				else {
+					current_cert.push_str(line);
+				}
+			}
+			if !current_cert.is_empty() {
+				return Err(Error::GetServerRootCertificate(ApiErrorReason::ParseResponseBody("malformed PEM: BEGIN CERTIFICATE without corresponding END CERTIFICATE".into())));
+			}
+
+			Ok(server_root_certificate)
 		}
 	}
 
