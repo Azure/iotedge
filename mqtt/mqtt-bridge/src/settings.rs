@@ -6,7 +6,7 @@ use std::{
 };
 
 use config::{Config, ConfigError, Environment, File, FileFormat};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use mqtt_util::{CredentialProviderSettings, Credentials};
 
@@ -14,6 +14,8 @@ use crate::persist::FlushOptions;
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
+const ENV_VAR_SEPARATOR: &str = "__";
+const DEFAULT_STORAGE_MEMORY_VAR: &str = "DEFAULT_STORAGE_MEMORY";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BridgeSettings {
@@ -31,7 +33,16 @@ impl BridgeSettings {
         let mut config = Config::new();
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::new())?;
+        config.merge(Environment::new().separator(ENV_VAR_SEPARATOR))?;
+
+        if let Ok(default_storage_memory) =
+            config.get_bool(&DEFAULT_STORAGE_MEMORY_VAR.to_ascii_lowercase())
+        {
+            if default_storage_memory {
+                config.set("storage.type", "memory")?;
+                config.set("storage.max_size", 1024 * 1024 * 1024)?;
+            }
+        }
 
         config.try_into()
     }
@@ -44,7 +55,16 @@ impl BridgeSettings {
 
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::new())?;
+        config.merge(Environment::new().separator(ENV_VAR_SEPARATOR))?;
+
+        if let Ok(default_storage_memory) =
+            config.get_bool(&DEFAULT_STORAGE_MEMORY_VAR.to_ascii_lowercase())
+        {
+            if default_storage_memory {
+                config.set("storage.type", "memory")?;
+                config.set("storage.max_size", 1024 * 1024 * 1024)?;
+            }
+        }
 
         config.try_into()
     }
@@ -284,6 +304,7 @@ pub enum StorageSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct MemorySettings {
+    #[serde(deserialize_with = "deserialize_with_usize")]
     max_size: NonZeroUsize,
 }
 
@@ -299,6 +320,7 @@ impl MemorySettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct RingBufferSettings {
+    #[serde(deserialize_with = "deserialize_with_u64")]
     max_file_size: NonZeroU64,
     directory: PathBuf,
     flush_options: FlushOptions,
@@ -324,6 +346,46 @@ impl RingBufferSettings {
     pub fn flush_options(&self) -> &FlushOptions {
         &self.flush_options
     }
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NonZeroU64OrOther {
+    U64(u64),
+    STR(String),
+}
+
+fn deserialize_with_u64<'de, D>(deserializer: D) -> Result<NonZeroU64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = match NonZeroU64OrOther::deserialize(deserializer)? {
+        NonZeroU64OrOther::STR(v) => v.parse::<u64>().map_err(|err| {
+            serde::de::Error::custom(format!("Cannot parse into u64 due to {}", err))
+        })?,
+        NonZeroU64OrOther::U64(v) => v,
+    };
+    Ok(NonZeroU64::new(value).unwrap())
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum NonZeroUsizeOrOther {
+    Usize(usize),
+    STR(String),
+}
+
+fn deserialize_with_usize<'de, D>(deserializer: D) -> Result<NonZeroUsize, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = match NonZeroUsizeOrOther::deserialize(deserializer)? {
+        NonZeroUsizeOrOther::STR(v) => v.parse::<usize>().map_err(|err| {
+            serde::de::Error::custom(format!("Cannot parse into usize due to {}", err))
+        })?,
+        NonZeroUsizeOrOther::Usize(v) => v,
+    };
+    Ok(NonZeroUsize::new(value).unwrap())
 }
 
 #[cfg(test)]
@@ -357,10 +419,32 @@ mod tests {
         let settings = BridgeSettings::new().unwrap();
         let storage_settings = settings.storage();
         // Should exist from default.json.
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(
+                rb.max_file_size(),
+                NonZeroU64::new(1024 * 1024 * 32).unwrap()
+            );
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd"));
+            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        }
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn new_reads_storage_settings_with_default_storage_override() {
+        std::env::set_var(DEFAULT_STORAGE_MEMORY_VAR, "true");
+        let settings = BridgeSettings::new().unwrap();
+        let storage_settings = settings.storage();
+
         assert_matches!(storage_settings, StorageSettings::Memory(_));
         if let StorageSettings::Memory(mem) = storage_settings {
-            assert_eq!(mem.max_size(), NonZeroUsize::new(1_073_741_824).unwrap());
+            assert_eq!(
+                mem.max_size(),
+                NonZeroUsize::new(1024 * 1024 * 1024).unwrap()
+            );
         }
+        std::env::remove_var(DEFAULT_STORAGE_MEMORY_VAR);
     }
 
     #[test]
@@ -413,10 +497,66 @@ mod tests {
         let settings = BridgeSettings::from_file("tests/config.json").unwrap();
         let storage_settings = settings.storage();
         // Should exist from default.json.
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(
+                rb.max_file_size(),
+                NonZeroU64::new(1024 * 1024 * 32).unwrap()
+            );
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd"));
+            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+        }
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_with_env_override() {
+        std::env::set_var("STORAGE__TYPE", "ring_buffer");
+        std::env::set_var("STORAGE__DIRECTORY", "/tmp/mqttd/test1");
+        std::env::set_var("STORAGE__MAX_FILE_SIZE", "2048");
+        std::env::set_var("STORAGE__FLUSH_OPTIONS", "off");
+        let settings = BridgeSettings::from_file("tests/config.memory.json").unwrap();
+        let storage_settings = settings.storage();
+
+        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
+        if let StorageSettings::RingBuffer(rb) = storage_settings {
+            assert_eq!(rb.max_file_size(), NonZeroU64::new(2048).unwrap());
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/test1"));
+            assert_eq!(*rb.flush_options(), FlushOptions::Off);
+        }
+
+        std::env::set_var("STORAGE__TYPE", "memory");
+        std::env::set_var("STORAGE__MAX_SIZE", "2048");
+        let settings = BridgeSettings::from_file("tests/config.ring_buffer.json").unwrap();
+        let storage_settings = settings.storage();
+
         assert_matches!(storage_settings, StorageSettings::Memory(_));
         if let StorageSettings::Memory(mem) = storage_settings {
-            assert_eq!(mem.max_size(), NonZeroUsize::new(1_073_741_824).unwrap());
+            assert_eq!(mem.max_size(), NonZeroUsize::new(2048).unwrap());
         }
+
+        std::env::remove_var("STORAGE__TYPE");
+        std::env::remove_var("STORAGE__DIRECTORY");
+        std::env::remove_var("STORAGE__MAX_SIZE");
+        std::env::remove_var("STORAGE__MAX_FILE_SIZE");
+        std::env::remove_var("STORAGE__FLUSH_OPTIONS");
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn from_file_reads_storage_settings_with_default_storage_override() {
+        std::env::set_var(DEFAULT_STORAGE_MEMORY_VAR, "true");
+        let settings = BridgeSettings::from_file("tests/config.ring_buffer.json").unwrap();
+        let storage_settings = settings.storage();
+
+        assert_matches!(storage_settings, StorageSettings::Memory(_));
+        if let StorageSettings::Memory(mem) = storage_settings {
+            assert_eq!(
+                mem.max_size(),
+                NonZeroUsize::new(1024 * 1024 * 1024).unwrap()
+            );
+        }
+        std::env::remove_var(DEFAULT_STORAGE_MEMORY_VAR);
     }
 
     #[test]
