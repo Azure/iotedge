@@ -220,31 +220,6 @@ impl StreamWakeableState for RingBuffer {
 
         let start = write_index;
 
-        // Check if an existing block header is present. If the block is there
-        // and if the overwrite flag is not set then we shouldn't write.
-        let result = load_block_header(&mut self.file, start, block_size, self.max_file_size);
-        if let Ok(block_header) = result {
-            let BlockVersion::Version1(inner) = block_header.inner();
-            // It is possible that we end up writing a smaller block on wrap-around,
-            // where the file pointers will end up being in the middle of random data.
-            // To avoid this, we need to check if we have a block of data, if we do,
-            // we will need to just allow the write. Above cases will prevent us from
-            // accidentally corrupting.
-            let mut allow_write = false;
-            let bin_block = bincode::serialize(inner)?;
-            if bin_block.iter().map(|&x| u64::from(x)).sum::<u64>() != 0
-                && inner.hint() != BLOCK_HINT
-            {
-                // This is a bad block, where we wrote something smaller
-                // and this is okay, we just need to allow the write.
-                allow_write = true;
-            }
-            let should_not_overwrite = inner.should_not_overwrite();
-            if !allow_write && should_not_overwrite {
-                return Err(PersistError::RingBuffer(RingBufferError::Full));
-            }
-        }
-
         let v1 = BlockHeaderV1::new(BLOCK_HINT, data_crc, data_size, order, write_index);
         let versioned_block = BlockVersion::Version1(v1);
 
