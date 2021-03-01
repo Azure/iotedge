@@ -954,7 +954,6 @@ mod tests {
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
         let result = bincode::serialize(&publication);
-        assert_matches!(result, Ok(_));
         let data = result.unwrap();
 
         let data_size = data.len() as u64;
@@ -963,16 +962,15 @@ mod tests {
 
         let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
-            let result = rb.0.insert(&publication);
-            assert_matches!(result, Ok(_));
+            rb.0.insert(&publication)
+                .expect("Failed to insert into RingBuffer");
         }
 
         let result = rb.0.batch(2);
-        assert_matches!(result, Ok(_));
         let batch = result.unwrap();
         for entry in batch {
-            let result = rb.0.remove(entry.0);
-            assert_matches!(result, Ok(_));
+            rb.0.remove(entry.0)
+                .expect("Failed to remove from RingBuffer");
         }
 
         let smaller_publication = Publication {
@@ -982,11 +980,11 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let result = rb.0.insert(&smaller_publication);
-        assert_matches!(result, Ok(_));
+        rb.0.insert(&smaller_publication)
+            .expect("Failed to insert into RingBuffer");
 
-        let result = rb.0.insert(&publication);
-        assert_matches!(result, Ok(_));
+        rb.0.insert(&publication)
+            .expect("Failed to insert into RingBuffer");
 
         assert_eq!(rb.0.metadata.order, inserts + 2);
         let result = rb.0.insert(&publication);
