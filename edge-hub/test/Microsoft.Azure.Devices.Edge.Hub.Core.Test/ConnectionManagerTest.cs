@@ -115,7 +115,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
@@ -183,7 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
@@ -230,7 +232,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: true);
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
@@ -468,7 +471,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
 
             cloudConnectionProvider.BindEdgeHub(edgeHub.Object);
 
@@ -580,7 +585,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
@@ -716,7 +723,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
@@ -777,7 +786,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
@@ -915,7 +926,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
@@ -1096,7 +1108,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
@@ -1159,7 +1172,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
@@ -1231,7 +1245,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                scopeAuthenticationOnly: false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 

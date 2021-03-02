@@ -444,7 +444,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(hostname), deviceConnectivityManager);

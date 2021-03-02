@@ -146,7 +146,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -191,7 +193,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
             var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
             string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
@@ -232,7 +236,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -274,6 +280,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                scopeAuthenticationOnly: true,
                 trackDeviceState: true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -315,6 +322,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                scopeAuthenticationOnly: true,
                 trackDeviceState: true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -357,7 +365,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                true);
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -399,7 +408,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -445,7 +455,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -490,7 +501,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                false);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act

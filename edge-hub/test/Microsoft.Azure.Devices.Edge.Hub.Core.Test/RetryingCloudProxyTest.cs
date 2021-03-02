@@ -83,7 +83,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
@@ -184,7 +186,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
@@ -269,7 +273,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 TimeSpan.FromMinutes(10),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
             connectionProvider.BindEdgeHub(edgeHub.Object);
 
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();

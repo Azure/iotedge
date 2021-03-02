@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
-    using System.Runtime.Serialization;
 
     public class DeviceInvalidStateException : Exception
     {
@@ -17,11 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public DeviceInvalidStateException(string message, Exception innerException)
             : base(message, innerException)
-        {
-        }
-
-        protected DeviceInvalidStateException(SerializationInfo info, StreamingContext context)
-            : base(info, context)
         {
         }
     }

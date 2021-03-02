@@ -50,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             bool useServerHeartbeat,
             Option<IWebProxy> proxy,
             IMetadataStore metadataStore,
-            bool scopeAuthenticationOnly = true,
-            bool trackDeviceState = false)
+            bool scopeAuthenticationOnly,
+            bool trackDeviceState)
         {
             Preconditions.CheckRange(connectionPoolSize, 1, nameof(connectionPoolSize));
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
@@ -134,7 +134,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) => this.trackDeviceState ? this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, false)
+        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
+            => this.trackDeviceState
+            ? this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, false)
             : this.ConnectInternal(identity, connectionStatusChangedHandler);
 
         // Method is used in case trackDeviceState change has any issues to be able to switch to old behavior
@@ -196,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<Try<ICloudConnection>> ConnectInternalWithDeviceStateTracking(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache = false)
+        async Task<Try<ICloudConnection>> ConnectInternalWithDeviceStateTracking(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
