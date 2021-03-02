@@ -10,8 +10,12 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 
 ## Edge Hub
 ### Bug Fixes
+* Fix MQTT client persistent session's subscription when the client reconnects ( [7e2d191](https://github.com/Azure/iotedge/commit/7e2d191cb8b4cd45bcec7653c523b8f8ab5e707f) )
+* Consolidate log levels between EdgeHub and Broker ( [45bcc83](https://github.com/Azure/iotedge/commit/45bcc835b00b940923a99839de4548cdbbabc619) )
+* Restrict local authentication for ApiProxy connections to port 8080 ( [11bfea5](https://github.com/Azure/iotedge/commit/11bfea5fb35bf1f1a98ec6ff402343d32bd8dde4) )
 
 ### Features
+* Optimize Nested Edge descendents mapping ( [2cf92db](https://github.com/Azure/iotedge/commit/2cf92dbe26e5e256239613678f3b3f84f8b94935) )
 
 ## API Proxy
 ### Bug Fixes
@@ -22,6 +26,19 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 ### Bug Fixes
 
 ### Features
+* Introduced Ring Buffer to MQTT Bridge ( [c9d7ea3](https://github.com/Azure/iotedge/commit/c9d7ea3456b2b8c7893a050a5d1779d0f59a14de), [b86f014](https://github.com/Azure/iotedge/commit/b86f01494796cb7698d0c0eab9ed718755982c10), [8df7e88](https://github.com/Azure/iotedge/commit/8df7e8806712844d8e3ef53bcd41b01d1d37f09a), [2af9dac](https://github.com/Azure/iotedge/commit/2af9dacdc499f2f4326b5ef896d68df38ad3e43d), [6f12c88](https://github.com/Azure/iotedge/commit/6f12c88b6c1d9227f95e9f12c2c496083426415f), [a027808](https://github.com/Azure/iotedge/commit/a027808352d6c7f971d810235411a0fd956f4653), [7b35db9](https://github.com/Azure/iotedge/commit/7b35db925862162820999086c415879b264edbcc) )
+* Configuration improvement ( [45bcc83](https://github.com/Azure/iotedge/commit/45bcc835b00b940923a99839de4548cdbbabc619), [a8223af](https://github.com/Azure/iotedge/commit/a8223af8c437ac5155e1c9b2b8341b734773ab5b) )
+
+
+## Aziot Edge
+### Bug Fixes
+* Improve `iotedge check` ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [7245c8e](https://github.com/Azure/iotedge/commit/7245c8e053b97596dd05a6c70160d4569f77bee4) [455cef9](https://github.com/Azure/iotedge/commit/455cef92f2945cbe08c5b5e5abb39fe5311353ff) )
+* Bugfix iotedge CLI ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [c6a9bbb](https://github.com/Azure/iotedge/commit/c6a9bbb44737bac51c8945ed86bf776ef9a8279a) )
+
+### Features
+* Convert iotedged config to TOML, and implement `iotedge config` ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [d0978bf](https://github.com/Azure/iotedge/commit/d0978bf63bdd5624543680424452ee5c08fe285a) )
+* Support Nested Edge topology ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [dc7c929](https://github.com/Azure/iotedge/commit/dc7c92944beb3747c6f5341321025c9b541056f6) )
+* Introduce `iotedge system` commands ( [cbe03af](https://github.com/Azure/iotedge/commit/cbe03af512105fcc3b8899a5aebce547cf924de9) )
 
 # 1.2.0-rc3 (2020-12-22)
 This is only container image update. We do not publish edgelet artifact in this release.
