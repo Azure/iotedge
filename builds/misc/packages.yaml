@@ -3,8 +3,6 @@ trigger:
   branches:
     include:
       - master
-      - iiot
-      - preview/iiot
 pr: none
 jobs:
 
@@ -47,7 +45,7 @@ jobs:
           os: debian10
           arch: aarch64
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
-          
+
         Ubuntu1804-amd64:
           os: ubuntu18.04
           arch: amd64
