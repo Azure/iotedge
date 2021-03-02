@@ -697,8 +697,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             await deviceScopeIdentitiesCache.VerifyServiceIdentityState("d2", true);
             await deviceScopeIdentitiesCache.VerifyServiceIdentityState("d1/m1", true);
 
-            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ThrowsAsync(new DeviceInvalidStateException("Device removed."));
-            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ThrowsAsync(new DeviceInvalidStateException("Device removed."));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2")).ThrowsAsync(new DeviceInvalidStateException("Device is out of scope."));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d1", "m1")).ThrowsAsync(new DeviceInvalidStateException("Device is out of scope."));
 
             await deviceScopeIdentitiesCache.VerifyServiceIdentityState("d2", true);
             await deviceScopeIdentitiesCache.VerifyServiceIdentityState("d1/m1", true);
@@ -709,8 +709,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var moduleInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityState("d1/m1", true));
 
             // Assert
-            Assert.Contains("Device removed.", deviceInvalidStateException.Message);
-            Assert.Contains("Device removed.", moduleInvalidStateException.Message);
+            Assert.Contains("Device is out of scope.", deviceInvalidStateException.Message);
+            Assert.Contains("Device is out of scope.", moduleInvalidStateException.Message);
             serviceProxy.VerifyAll();
         }
 

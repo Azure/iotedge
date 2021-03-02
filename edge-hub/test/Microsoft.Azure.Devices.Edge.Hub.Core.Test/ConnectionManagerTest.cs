@@ -262,10 +262,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
 
+            var serviceIdentity = new ServiceIdentity(deviceCredentials1Id, deviceCredentials1Id, new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Enabled);
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.SetupSequence(p => p.GetServiceIdentity(deviceCredentials1Id))
                 .ReturnsAsync(Option.None<ServiceIdentity>())
-                .ReturnsAsync(Option.Some(new ServiceIdentity("dummy", "dummy", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Enabled)));
+                .ReturnsAsync(Option.Some(serviceIdentity));
 
             var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceProxy.Object, GetEntityStore("store"), TimeSpan.FromMinutes(10), refreshDelay: TimeSpan.Zero);
 

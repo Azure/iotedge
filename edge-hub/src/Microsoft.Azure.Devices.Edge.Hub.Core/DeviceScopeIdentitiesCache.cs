@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection.Metadata.Ecma335;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
@@ -147,25 +148,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public async Task VerifyServiceIdentityState(string id, bool refreshCachedIdentity = false)
         {
             Option<StoredServiceIdentity> storedServiceIdentity = await this.GetStoredServiceIdentity(id);
-            // if stored service identity is up to date, use it, otherwise refresh
-            await storedServiceIdentity.Match(
-                async (ssi) =>
+
+            var ssi = await storedServiceIdentity.Match(async (ssi) => {
+                if (ShouldRefresh(ssi, refreshCachedIdentity))
                 {
-                    if (this.ShouldRefresh(ssi, refreshCachedIdentity))
-                    {
-                        await this.RefreshServiceIdentityInternal(id);
-                        await this.VerifyServiceIdentityState(id, false);
-                    }
-                    else
-                    {
-                        this.VerifyServiceIdentity(id, ssi);
-                    }
-                },
-                async () =>
-                {
-                    await this.RefreshServiceIdentityInternal(id);
-                    await this.VerifyServiceIdentityState(id, false);
-                });
+                    await this.RefreshServiceIdentity(id);
+                    return await this.GetStoredServiceIdentity(id);
+                }
+                else return storedServiceIdentity;
+            },
+            async () =>
+           {
+               await this.RefreshServiceIdentity(id);
+               return await this.GetStoredServiceIdentity(id);
+           });
+
+            this.VerifyServiceIdentity(id, ssi.Expect(() => {
+                Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
+                return new DeviceInvalidStateException("Device is out of scope.");
+            }));
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
