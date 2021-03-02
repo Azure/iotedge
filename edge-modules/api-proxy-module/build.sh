@@ -1,5 +1,5 @@
 #!/bin/bash
-#https://github.com/Azure/iotedge/blob/iiot/scripts/linux/cross-platform-rust-build.sh
+#https://github.com/Azure/iotedge/blob/master/scripts/linux/cross-platform-rust-build.sh
 ###############################################################################
 # This script builds a static binary of the api-proxy-module
 ###############################################################################
