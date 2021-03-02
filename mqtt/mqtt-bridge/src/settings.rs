@@ -422,7 +422,7 @@ mod tests {
         assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
         if let StorageSettings::RingBuffer(rb) = storage_settings {
             assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd"));
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
             assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
         }
     }
@@ -497,7 +497,7 @@ mod tests {
         assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
         if let StorageSettings::RingBuffer(rb) = storage_settings {
             assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd"));
+            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
             assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
         }
     }
