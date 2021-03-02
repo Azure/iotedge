@@ -39,7 +39,7 @@ jobs:
       identityServiceArtifactName: packages_debian-9-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
 
-    timeoutInMinutes: 120
+    timeoutInMinutes: 180
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -61,6 +61,8 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+
+    timeoutInMinutes: 180
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -85,6 +87,8 @@ jobs:
       artifactName: iotedged-centos7-amd64
       identityServiceArtifactName: packages_centos-7_amd64
       identityServicePackageFilter: aziot-identity-service-*.x86_64.rpm
+
+    timeoutInMinutes: 180
 
     steps:
     - template: templates/e2e-clean-directory.yaml
