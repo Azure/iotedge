@@ -10,10 +10,35 @@ use mqttd::{app, tracing};
 use futures::stream::Stream;
 use futures::StreamExt;
 use opentelemetry::metrics::{self, MetricsError};
-use opentelemetry::sdk::metrics::{selectors, PushController};
-use opentelemetry_otlp::ExporterConfig;
+use opentelemetry::sdk::metrics::PushController;
+// use opentelemetry_otlp::ExporterConfig;
+use hyper::{
+    header::CONTENT_TYPE,
+    service::{make_service_fn, service_fn},
+    Body, Request, Response, Server,
+};
 use opentelemetry_prometheus::PrometheusExporter;
+use prometheus::{Encoder, TextEncoder};
+use std::convert::Infallible;
 use std::time::Duration;
+
+async fn serve_req(
+    _req: Request<Body>,
+    prom_exporter: PrometheusExporter,
+) -> Result<Response<Body>, hyper::Error> {
+    let mut buffer = vec![];
+    let encoder = TextEncoder::new();
+    let metric_families = prom_exporter.registry().gather();
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+
+    let response = Response::builder()
+        .status(200)
+        .header(CONTENT_TYPE, encoder.format_type())
+        .body(Body::from(buffer))
+        .unwrap();
+
+    Ok(response)
+}
 
 fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Instant> {
     // opentelemetry::util::tokio_interval_stream(duration).skip(1)
@@ -55,8 +80,8 @@ fn init_otlp_metrics_exporter() -> metrics::Result<PushController> {
 async fn main() -> Result<()> {
     tracing::init();
 
-    // init_otlp_metrics_exporter()?;
-    init_prometheus_metrics_exporter()?;
+    init_otlp_metrics_exporter()?;
+    let prom_exporter = init_prometheus_metrics_exporter()?;
 
     let config_path = create_app()
         .get_matches()
@@ -68,7 +93,25 @@ async fn main() -> Result<()> {
         app.setup(config_path)?;
     }
 
-    app.run().await?;
+    let app_fut = app.run();
+
+    // For every connection, we must make a `Service` to handle all
+    // incoming HTTP requests on said connection.
+    let make_svc = make_service_fn(move |_conn| {
+        let prom_exporter = prom_exporter.clone();
+        // This is the `Service` that will handle the connection.
+        // `service_fn` is a helper to convert a function that
+        // returns a Response into a `Service`.
+        async move { Ok::<_, Infallible>(service_fn(move |req| serve_req(req, prom_exporter.clone()))) }
+    });
+
+    let addr = ([127, 0, 0, 1], 3000).into();
+
+    let server_fut = Server::bind(&addr).serve(make_svc);
+
+    println!("Listening on http://{}", addr);
+
+    let (_server_res, _app_res) = futures::join!(server_fut, app_fut);
 
     Ok(())
 }
