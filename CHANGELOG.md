@@ -12,7 +12,6 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Fix getmodules error filter rfc3339 datetime ( [3a98e83](https://github.com/Azure/iotedge/commit/3a98e830d762317325b77ba8b4958bc0d878c06c) )
 * Update current config when a plan is empty ( [087de0b](https://github.com/Azure/iotedge/commit/087de0b59d3354bf17055ff91371bd024494db48) )
 
-
 ## Edge Hub
 ### Bug Fixes
 * Fix MQTT client persistent session's subscription when the client reconnects ( [7e2d191](https://github.com/Azure/iotedge/commit/7e2d191cb8b4cd45bcec7653c523b8f8ab5e707f) )
@@ -54,7 +53,7 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Retry non-iothub subscription when rejected by server ( [be3d482](https://github.com/Azure/iotedge/commit/be3d482d522394b00db740c127173c23549a31dc) )
 
 ### Features
-* Introduced Ring Buffer to MQTT Bridge ( [a24f6bb](https://github.com/Azure/iotedge/commit/a24f6bb27221a75993f92e1f40af49279ca77643), [e9d4d2b](https://github.com/Azure/iotedge/commit/e9d4d2b1f3f46389dacd97977cc8975635f67ab5), [c9d7ea3](https://github.com/Azure/iotedge/commit/c9d7ea3456b2b8c7893a050a5d1779d0f59a14de), [b86f014](https://github.com/Azure/iotedge/commit/b86f01494796cb7698d0c0eab9ed718755982c10), [8df7e88](https://github.com/Azure/iotedge/commit/8df7e8806712844d8e3ef53bcd41b01d1d37f09a), [2af9dac](https://github.com/Azure/iotedge/commit/2af9dacdc499f2f4326b5ef896d68df38ad3e43d), [6f12c88](https://github.com/Azure/iotedge/commit/6f12c88b6c1d9227f95e9f12c2c496083426415f), [a027808](https://github.com/Azure/iotedge/commit/a027808352d6c7f971d810235411a0fd956f4653), [7b35db9](https://github.com/Azure/iotedge/commit/7b35db925862162820999086c415879b264edbcc) )
+* Introduced Ring Buffer to MQTT Bridge ( [354b04f](https://github.com/Azure/iotedge/commit/354b04fd2b29bf26702f1cf637bcb8357a98582d), [a24f6bb](https://github.com/Azure/iotedge/commit/a24f6bb27221a75993f92e1f40af49279ca77643), [e9d4d2b](https://github.com/Azure/iotedge/commit/e9d4d2b1f3f46389dacd97977cc8975635f67ab5), [c9d7ea3](https://github.com/Azure/iotedge/commit/c9d7ea3456b2b8c7893a050a5d1779d0f59a14de), [b86f014](https://github.com/Azure/iotedge/commit/b86f01494796cb7698d0c0eab9ed718755982c10), [8df7e88](https://github.com/Azure/iotedge/commit/8df7e8806712844d8e3ef53bcd41b01d1d37f09a), [2af9dac](https://github.com/Azure/iotedge/commit/2af9dacdc499f2f4326b5ef896d68df38ad3e43d), [6f12c88](https://github.com/Azure/iotedge/commit/6f12c88b6c1d9227f95e9f12c2c496083426415f), [a027808](https://github.com/Azure/iotedge/commit/a027808352d6c7f971d810235411a0fd956f4653), [7b35db9](https://github.com/Azure/iotedge/commit/7b35db925862162820999086c415879b264edbcc) )
 * Configuration improvement ( [45bcc83](https://github.com/Azure/iotedge/commit/45bcc835b00b940923a99839de4548cdbbabc619), [a8223af](https://github.com/Azure/iotedge/commit/a8223af8c437ac5155e1c9b2b8341b734773ab5b) )
 
 
@@ -66,6 +65,7 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Configuration changes for content trust with certificate service ( [9e2f4b8](https://github.com/Azure/iotedge/commit/9e2f4b8b03cc75358ad2a44dc6a213299115721e) )
 * Retry getting device information on startup ( [492a159](https://github.com/Azure/iotedge/commit/492a15918aa2facaf130b7993ace663cd5ffe077) )
 * Add iotedge-init-import command to migrate pre-1.2 config to 1.2+ config ( [e3bf3c9](https://github.com/Azure/iotedge/commit/e3bf3c9871bc9339253ac662eeefbcae43782287) )
+* Temporarily raise quickstart EdgeCA cert's expiry to 30 days ( [9cc5b8f](https://github.com/Azure/iotedge/commit/9cc5b8f727bcd7de51fb021c8b231aadf8d4f381) )
 
 ### Features
 * Convert iotedged config to TOML, and implement `iotedge config` ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [d0978bf](https://github.com/Azure/iotedge/commit/d0978bf63bdd5624543680424452ee5c08fe285a) )
