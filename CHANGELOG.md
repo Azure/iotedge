@@ -1,3 +1,165 @@
+# 1.2.0-rc4 (2020-03-1)
+## AWARENESS
+This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
+
+### Impact to Edge modules
+Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
+
+### Impact to installing / configuring IoT Edge
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://azure.github.io/iot-identity-service/packaging.html).
+
+
+## Edge Agent
+### Bug Fixes
+* Improve Edge Agent's Prometheus parser ( [a4ae2c1](https://github.com/Azure/iotedge/commit/a4ae2c116296ad086a9f2cb7ccd2f077c5692301) )
+* Update Base Images for Security Vulnerability ( [6fe4de3](https://github.com/Azure/iotedge/commit/6fe4de3f16a11d7a294a278b55a07b15fdf7ecd6) )
+* Consolidate environment variables for EdgeHub and Broker ( [6167323](https://github.com/Azure/iotedge/commit/6167323e772a61d55f2120c9673360194dd4f1b4) )
+* Fix getmodules error filter rfc3339 datetime ( [3a98e83](https://github.com/Azure/iotedge/commit/3a98e830d762317325b77ba8b4958bc0d878c06c) )
+* Update current config when a plan is empty ( [087de0b](https://github.com/Azure/iotedge/commit/087de0b59d3354bf17055ff91371bd024494db48) )
+
+## Edge Hub
+### Bug Fixes
+* Fix MQTT client persistent session's subscription when the client reconnects ( [7e2d191](https://github.com/Azure/iotedge/commit/7e2d191cb8b4cd45bcec7653c523b8f8ab5e707f) )
+* Consolidate log levels between EdgeHub and Broker ( [45bcc83](https://github.com/Azure/iotedge/commit/45bcc835b00b940923a99839de4548cdbbabc619) )
+* Restrict local authentication for ApiProxy connections to port 8080 ( [11bfea5](https://github.com/Azure/iotedge/commit/11bfea5fb35bf1f1a98ec6ff402343d32bd8dde4) )
+* Update Base Images for Security Vulnerability ( [6fe4de3](https://github.com/Azure/iotedge/commit/6fe4de3f16a11d7a294a278b55a07b15fdf7ecd6) )
+* Stop EdgeHub if initial twin has no base configuration ( [7701250](https://github.com/Azure/iotedge/commit/770125073da574cff7249bb46328443aa899e58a) )
+* Fix Message Store Exception when cleaning up an updated message ( [a478ce8](https://github.com/Azure/iotedge/commit/a478ce84630fc59398aa53969e684d0f01905673) )
+* Disable the use of http proxy for Amqp/Mqtt over TCP ( [e3f9c27](https://github.com/Azure/iotedge/commit/e3f9c27a2613e0e5181b97225a42e4986207eaa9) )
+* Added timeout sending messages to MQTT broker to prevent infinite waiting ( [0ce632f](https://github.com/Azure/iotedge/commit/0ce632f675d092c7867c0c77d3a1239a0abd29d0) )
+* Improve EdgeHub config parsing ( [a59cfe2](https://github.com/Azure/iotedge/commit/a59cfe233c1ef7cc807d60a4678500ecb76ab282) )
+* Set default auth mode to Scope ( [399a9a3](https://github.com/Azure/iotedge/commit/399a9a357e2dd98b03bd46ab81d303dd12bb0bdb) )
+
+### Features
+* Optimize Nested Edge descendents mapping ( [2cf92db](https://github.com/Azure/iotedge/commit/2cf92dbe26e5e256239613678f3b3f84f8b94935) )
+* Support MQTT bridge events ( [a31eed4](https://github.com/Azure/iotedge/commit/a31eed41c60d8b18ecd3b524e3235a8978c219e1) )
+* Handle thumbprint auth through API proxy for WebSocket ( [f710e43](https://github.com/Azure/iotedge/commit/f710e439afee72edc561486e2a0ef6d9d0994bfa) )
+* Introduce unsubscription through nested levels on client-disconnect ( [eca18ee](https://github.com/Azure/iotedge/commit/eca18eec732409f80237026ee6a81e4dfc5c42b6) )
+
+
+## API Proxy
+### Bug Fixes
+* 1.50 Rust toolchain update ( [040c54d](https://github.com/Azure/iotedge/commit/040c54dedf2f29a33c3302b468379b82c5dd3276) )
+* Adding web sockect support for API proxy  ( [86ab1a0](https://github.com/Azure/iotedge/commit/86ab1a0ec158916410281744b7b64c005d6644e4) )
+* Update Base Images for Security Vulnerability ( [6edad21](https://github.com/Azure/iotedge/commit/6edad2143d37af8a4213ffbe898e873faec36b58) )
+* Fixing error message at API proxy start ( [4629a74](https://github.com/Azure/iotedge/commit/4629a749ef19adcca289eb573d1c2ec6e259bbbf) )
+* Allow EdgeAgent image to be resolved via parent address ( [32834a6](https://github.com/Azure/iotedge/commit/32834a662a014365b26be13a86756368f2f3a5bf) )
+* Change API proxy to accept a trustbundle with more than one root certificate ( [f1fc6d9](https://github.com/Azure/iotedge/commit/f1fc6d9c092985b4f5d395c5effce03f4e5cacd1) )
+
+### Features
+* Handle thumbprint auth through API proxy for WebSocket ( [f710e43](https://github.com/Azure/iotedge/commit/f710e439afee72edc561486e2a0ef6d9d0994bfa) )
+
+
+## MQTT Broker
+### Bug Fixes
+* 1.50 Rust toolchain update ( [040c54d](https://github.com/Azure/iotedge/commit/040c54dedf2f29a33c3302b468379b82c5dd3276) )
+* Persist in-flight queue on broker restart ( [6d81b94](https://github.com/Azure/iotedge/commit/6d81b94d413484e41243469e2430bff75ae514ee) )
+* Send MQTT "will" on broker shutdown ( [3dced1c](https://github.com/Azure/iotedge/commit/3dced1ce9bfcc7fdb9b15348dbe6d6e152503175) )
+* Retry non-iothub subscription when rejected by server ( [be3d482](https://github.com/Azure/iotedge/commit/be3d482d522394b00db740c127173c23549a31dc) )
+
+### Features
+* Introduced Ring Buffer to MQTT Bridge ( [354b04f](https://github.com/Azure/iotedge/commit/354b04fd2b29bf26702f1cf637bcb8357a98582d), [a24f6bb](https://github.com/Azure/iotedge/commit/a24f6bb27221a75993f92e1f40af49279ca77643), [e9d4d2b](https://github.com/Azure/iotedge/commit/e9d4d2b1f3f46389dacd97977cc8975635f67ab5), [c9d7ea3](https://github.com/Azure/iotedge/commit/c9d7ea3456b2b8c7893a050a5d1779d0f59a14de), [b86f014](https://github.com/Azure/iotedge/commit/b86f01494796cb7698d0c0eab9ed718755982c10), [8df7e88](https://github.com/Azure/iotedge/commit/8df7e8806712844d8e3ef53bcd41b01d1d37f09a), [2af9dac](https://github.com/Azure/iotedge/commit/2af9dacdc499f2f4326b5ef896d68df38ad3e43d), [6f12c88](https://github.com/Azure/iotedge/commit/6f12c88b6c1d9227f95e9f12c2c496083426415f), [a027808](https://github.com/Azure/iotedge/commit/a027808352d6c7f971d810235411a0fd956f4653), [7b35db9](https://github.com/Azure/iotedge/commit/7b35db925862162820999086c415879b264edbcc) )
+* Configuration improvement ( [45bcc83](https://github.com/Azure/iotedge/commit/45bcc835b00b940923a99839de4548cdbbabc619), [a8223af](https://github.com/Azure/iotedge/commit/a8223af8c437ac5155e1c9b2b8341b734773ab5b) )
+
+
+## aziot-edge
+### Bug Fixes
+* Improve `iotedge check` ( [6c7fc9b](https://github.com/Azure/iotedge/commit/6c7fc9b75360f34f9d66db6dc1d2656fa04fd83c), [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [7245c8e](https://github.com/Azure/iotedge/commit/7245c8e053b97596dd05a6c70160d4569f77bee4), [455cef9](https://github.com/Azure/iotedge/commit/455cef92f2945cbe08c5b5e5abb39fe5311353ff) )
+* Bugfix iotedge CLI ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [c6a9bbb](https://github.com/Azure/iotedge/commit/c6a9bbb44737bac51c8945ed86bf776ef9a8279a) )
+* Fix import of listen URIs when original config used socket activation ( [e4794ae](https://github.com/Azure/iotedge/commit/e4794aee0aa6c7d78bee83d62662d5935bf8f381) )
+* Configuration changes for content trust with certificate service ( [9e2f4b8](https://github.com/Azure/iotedge/commit/9e2f4b8b03cc75358ad2a44dc6a213299115721e) )
+* Retry getting device information on startup ( [492a159](https://github.com/Azure/iotedge/commit/492a15918aa2facaf130b7993ace663cd5ffe077) )
+* Add iotedge-init-import command to migrate pre-1.2 config to 1.2+ config ( [e3bf3c9](https://github.com/Azure/iotedge/commit/e3bf3c9871bc9339253ac662eeefbcae43782287) )
+* Temporarily raise quickstart EdgeCA cert's expiry to 30 days ( [9cc5b8f](https://github.com/Azure/iotedge/commit/9cc5b8f727bcd7de51fb021c8b231aadf8d4f381) )
+
+### Features
+* Convert iotedged config to TOML, and implement `iotedge config` ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [d0978bf](https://github.com/Azure/iotedge/commit/d0978bf63bdd5624543680424452ee5c08fe285a) )
+* Support Nested Edge topology ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [dc7c929](https://github.com/Azure/iotedge/commit/dc7c92944beb3747c6f5341321025c9b541056f6) )
+* Introduce `iotedge system` commands ( [cbe03af](https://github.com/Azure/iotedge/commit/cbe03af512105fcc3b8899a5aebce547cf924de9) )
+* Make edgelet's certificate CA configurable ( [6073a78](https://github.com/Azure/iotedge/commit/6073a78a44af6dbdb78a28ac5b473b0b0b2d2874) )
+
+
+# 1.2.0-rc3 (2020-12-22)
+This is only container image update. We do not publish edgelet artifact in this release.
+Please use the edgelet artifacts from release 1.2.0-rc1.
+
+## Edge Agent
+### Bug Fixes
+* Add HostConfig properties ([503d51b](https://github.com/Azure/iotedge/commit/503d51b1627fc9e594b2f15277e1f987b2e44362))
+* Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
+
+### Features
+* Update service SDK to 1.28.1-NestedEdge and and devices SDK to 1.33.1-NestedEdge ([858106f](https://github.com/Azure/iotedge/commit/858106ffcb90c435c396eef39fad29cd355de3cb))
+
+## Edge Hub
+### Bug Fixes
+* Prevent stackflow when syncing circularly nested hierarchies ([bf58151](https://github.com/Azure/iotedge/commit/bf581517c0cb0d5861957dbf1567dc73a02e434f))
+* Fix message count metrics ([c8d189b](https://github.com/Azure/iotedge/commit/c8d189b29b90c9c9adec337c5b00ea141685e2bf))
+* Policy engine fixes ([21dfb49](https://github.com/Azure/iotedge/commit/21dfb49a35dc6c50044221c8ff8ac2a7844d0ab1))
+* Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
+* Fix bug with MQTT Bridge prefixes ([f9cf9a3](https://github.com/Azure/iotedge/commit/f9cf9a3772feafa63db3a5d2c9ebd12840eee996))
+* Treat initial container connection state as disconnected ([ff92b28](https://github.com/Azure/iotedge/commit/ff92b28adb0d1c45f69fe2d770f65cf6372e4b7f))
+* Lock down MQTT Broker environment variables ([36175e1](https://github.com/Azure/iotedge/commit/36175e1c5952c7ab99f103eaa7489de5eca996c3))
+* MQTT Bridge remove all sub when upstream bridge is missing from configuration update ([ba655e3](https://github.com/Azure/iotedge/commit/ba655e3e0c29a47275a6b59381b875d010a79844))
+* EdgeHub awaits for Twin in non MQTT Broker scenario ([ee0b87f](https://github.com/Azure/iotedge/commit/ee0b87f5cee30db6dc470b45f127eb394c2d1db2))
+
+### Features
+* Enable PnP for MQTT Broker ([baf74c8](https://github.com/Azure/iotedge/commit/baf74c8d01c0e04896596492fe6f0ad0a1b40bd8))
+* Add message cleanup interval environment variable ([dbcc2d9](https://github.com/Azure/iotedge/commit/dbcc2d91afeca8a21ba170f6ae595b1f4d1cd645))
+* Update service SDK to 1.28.1-NestedEdge and and devices SDK to 1.33.1-NestedEdge ([858106f](https://github.com/Azure/iotedge/commit/858106ffcb90c435c396eef39fad29cd355de3cb))
+* Support for sha256 thumbprint authentication ([dac5710](https://github.com/Azure/iotedge/commit/dac5710d79b034031ead89c14a66feb04ed5d8a7))
+* Add client connection related EdgeHub metrics ([c7da97b](https://github.com/Azure/iotedge/commit/c7da97bf1a2df6b7995613631dc8258cd8b6aa4b))
+
+## Other Module Images
+### Bug Fixes
+* Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
+
+# 1.2.0-rc2 (2020-11-20)
+This is only container image update. We do not publish edgelet artifact in this release. 
+Please use the edgelet artifacts from release 1.2.0-rc1.
+
+## Edge Agent
+### Bug Fixes
+* Connect to parent IoT Edge device in a hierarchical configuration. ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
+* Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
+
+## Edge Hub
+### Bug Fixes
+* Improve M2M feedback handling ([b1eceeb](https://github.com/Azure/iotedge/commit/b1eceebc09ef0c696baee60926b31de3abc55f2f))
+* Fix Policy Engine issue where not all variable rules are evaluated ([d83850c](https://github.com/Azure/iotedge/commit/d83850c6261444006e2aa091909eedf1fcfeb8b6))
+* Use fully qualified name for the authenticated identity on MQTT broker ([cfed086](https://github.com/Azure/iotedge/commit/cfed086299f4cd716d8ab49c6e09847b5c45c828))
+* Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
+
+## Other modules
+### Bug Fixes
+* Apply proxy setting only for http protocol ([dd8b529](https://github.com/Azure/iotedge/commit/dd8b529d67fcc0fc5adaa92ecf4d1758dfed4eaf))
+* Fix vulnerability issues in ARM-based docker images ([383aee3](https://github.com/Azure/iotedge/commit/383aee305aed93fd82bde1224d9843914612882d))
+
+
+# 1.2.0-rc1 (2020-11-09)
+* Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
+* Preview support for MQTT 3.1.1 compliant broker in EdgeHub. 
+* Updates to `iotedge check` troubleshooting command to work in hierarchical configuration.
+
+## Edge Agent
+### Features
+* Connect to parent IoT Edge device in a hierarchical configuration. ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
+* Upload module logs and support bundle in a hierarchical configuration. ([37e8d08](https://github.com/Azure/iotedge/commit/37e8d08ba0af6571f629b7606c518dcc24e81ca6))
+* Pull docker container images in a hierarchical configuration ([e82200d](https://github.com/Azure/iotedge/commit/e82200d31ad5745e7a8cb75abd99005ff314bede))
+
+## Edge Hub
+### Features
+* Authenticate clients in a hierarchical configuration, including child IoT Edge devices that may be connecting on behalf of their children ([32a4e06](https://github.com/Azure/iotedge/commit/32a4e06ee0e4538210caa551169970c17f61bde0))
+* Added module creation APIs to allow child IoT Edge devices to create modules in IoT Hub ([6336d92](https://github.com/Azure/iotedge/commit/6336d9209a56716fdcda29722e4c2bed451029a8))
+* MQTT 3.1.1 compliant broker ([eb4a8cb](https://github.com/Azure/iotedge/commit/eb4a8cb9554ac48bc5c7954853cf4b211e4e37a2))
+* Support for setting authorization policies for custom MQTT topics ([5effde9](https://github.com/Azure/iotedge/commit/5effde9b6d261cd1368943138191850a2ff0d465))
+* Support for bridging MQTT topics to MQTT Broker in parent IoT Edge device ([5a79646](https://github.com/Azure/iotedge/commit/5a796463c97c3831990ed5aba58d06ee79049ca7))
+
+## iotedged
+### Features
+* Configuration updates to support nesting IoT Edge devices ([b92785c](https://github.com/Azure/iotedge/commit/b92785c2fa1b123daf3f9a21b5f7c2f4110f9b19))
+* Updates to `iotedge check` troubleshooting command to work in hierarchical configuration ([c0bad52](https://github.com/Azure/iotedge/commit/c0bad527da979fc0d8d1c810474e5078dfee83ca), [24b1c78](https://github.com/Azure/iotedge/commit/24b1c78f835068de7795f960660d45a889b4ae1b))
+
 # 1.0.8 (2019-07-22)
 * Preview support for Linux arm64
 * Upgrade Moby version in .cab file to 3.0.5 ([f23aca1](https://github.com/Azure/iotedge/commit/f23aca1fb532574e6ee7ebb0b70452d4c672ae1a))
