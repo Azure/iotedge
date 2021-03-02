@@ -3,6 +3,7 @@
 This release uses new Identity Service (IS) artifact which is not backward compatible.
 For details on the new Identity Service: https://azure.github.io/iot-identity-service/
 
+
 ## Edge Agent
 ### Bug Fixes
 * Improve Edge Agent's Prometheus parser ( [a4ae2c1](https://github.com/Azure/iotedge/commit/a4ae2c116296ad086a9f2cb7ccd2f077c5692301) )
@@ -10,6 +11,7 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Consolidate environment variables for EdgeHub and Broker ( [6167323](https://github.com/Azure/iotedge/commit/6167323e772a61d55f2120c9673360194dd4f1b4) )
 * Fix getmodules error filter rfc3339 datetime ( [3a98e83](https://github.com/Azure/iotedge/commit/3a98e830d762317325b77ba8b4958bc0d878c06c) )
 * Update current config when a plan is empty ( [087de0b](https://github.com/Azure/iotedge/commit/087de0b59d3354bf17055ff91371bd024494db48) )
+
 
 ## Edge Hub
 ### Bug Fixes
@@ -30,6 +32,7 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Handle thumbprint auth through API proxy for WebSocket ( [f710e43](https://github.com/Azure/iotedge/commit/f710e439afee72edc561486e2a0ef6d9d0994bfa) )
 * Introduce unsubscription through nested levels on client-disconnect ( [eca18ee](https://github.com/Azure/iotedge/commit/eca18eec732409f80237026ee6a81e4dfc5c42b6) )
 
+
 ## API Proxy
 ### Bug Fixes
 * 1.50 Rust toolchain update ( [040c54d](https://github.com/Azure/iotedge/commit/040c54dedf2f29a33c3302b468379b82c5dd3276) )
@@ -41,13 +44,13 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 ### Features
 * Handle thumbprint auth through API proxy for WebSocket ( [f710e43](https://github.com/Azure/iotedge/commit/f710e439afee72edc561486e2a0ef6d9d0994bfa) )
 
+
 ## MQTT Broker
 ### Bug Fixes
 * 1.50 Rust toolchain update ( [040c54d](https://github.com/Azure/iotedge/commit/040c54dedf2f29a33c3302b468379b82c5dd3276) )
 * Persist in-flight queue on broker restart ( [6d81b94](https://github.com/Azure/iotedge/commit/6d81b94d413484e41243469e2430bff75ae514ee) )
 * Send MQTT "will" on broker shutdown ( [3dced1c](https://github.com/Azure/iotedge/commit/3dced1ce9bfcc7fdb9b15348dbe6d6e152503175) )
 * Retry non-iothub subscription when rejected by server ( [be3d482](https://github.com/Azure/iotedge/commit/be3d482d522394b00db740c127173c23549a31dc) )
-
 
 ### Features
 * Introduced Ring Buffer to MQTT Bridge ( [a24f6bb](https://github.com/Azure/iotedge/commit/a24f6bb27221a75993f92e1f40af49279ca77643), [e9d4d2b](https://github.com/Azure/iotedge/commit/e9d4d2b1f3f46389dacd97977cc8975635f67ab5), [c9d7ea3](https://github.com/Azure/iotedge/commit/c9d7ea3456b2b8c7893a050a5d1779d0f59a14de), [b86f014](https://github.com/Azure/iotedge/commit/b86f01494796cb7698d0c0eab9ed718755982c10), [8df7e88](https://github.com/Azure/iotedge/commit/8df7e8806712844d8e3ef53bcd41b01d1d37f09a), [2af9dac](https://github.com/Azure/iotedge/commit/2af9dacdc499f2f4326b5ef896d68df38ad3e43d), [6f12c88](https://github.com/Azure/iotedge/commit/6f12c88b6c1d9227f95e9f12c2c496083426415f), [a027808](https://github.com/Azure/iotedge/commit/a027808352d6c7f971d810235411a0fd956f4653), [7b35db9](https://github.com/Azure/iotedge/commit/7b35db925862162820999086c415879b264edbcc) )
@@ -62,7 +65,6 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Configuration changes for content trust with certificate service ( [9e2f4b8](https://github.com/Azure/iotedge/commit/9e2f4b8b03cc75358ad2a44dc6a213299115721e) )
 * Retry getting device information on startup ( [492a159](https://github.com/Azure/iotedge/commit/492a15918aa2facaf130b7993ace663cd5ffe077) )
 * Add iotedge-init-import command to migrate pre-1.2 config to 1.2+ config ( [e3bf3c9](https://github.com/Azure/iotedge/commit/e3bf3c9871bc9339253ac662eeefbcae43782287) )
-
 
 ### Features
 * Convert iotedged config to TOML, and implement `iotedge config` ( [e254d9c](https://github.com/Azure/iotedge/commit/e254d9cabbcb07ad7247bffa68082c4c6dd8b45c), [d0978bf](https://github.com/Azure/iotedge/commit/d0978bf63bdd5624543680424452ee5c08fe285a) )
