@@ -306,6 +306,8 @@ where
                 debug!("dropping connection due to connect packet error");
                 let message = Message::Client(client_id, ClientEvent::DropConnection);
                 try_send!(connreq.handle_mut(), message);
+
+                info!("client connection refused");
             };
         };
 
@@ -347,7 +349,7 @@ where
         // section 3.2 and it MUST close the Network Connection.
         let auth_id = match connreq.auth() {
             Auth::Identity(auth_id) => {
-                debug!(
+                info!(
                     "client {} successfully authenticated: {}",
                     client_id, auth_id
                 );
@@ -374,7 +376,7 @@ where
         let activity = Activity::new(client_info, operation);
         match self.authorizer.authorize(&activity) {
             Ok(Authorization::Allowed) => {
-                debug!("successfully authorized: {}", &activity);
+                info!("successfully authorized: {}", &activity);
             }
             Ok(Authorization::Forbidden(reason)) => {
                 warn!("not authorized: {}; reason: {}", &activity, reason);
@@ -428,7 +430,7 @@ where
             }
         }
 
-        debug!("connect handled.");
+        info!("connect handled.");
         Ok(())
     }
 
@@ -439,7 +441,7 @@ where
         } else {
             debug!("no session for {}", client_id);
         }
-        debug!("disconnect handled.");
+        info!("disconnect handled.");
         Ok(())
     }
 
@@ -453,7 +455,7 @@ where
         } else {
             debug!("no session for {}", client_id);
         }
-        debug!("drop connection handled.");
+        info!("drop connection handled.");
         Ok(())
     }
 
@@ -467,7 +469,7 @@ where
         } else {
             debug!("no session for {}", client_id);
         }
-        debug!("close session handled.");
+        info!("close session handled.");
         Ok(())
     }
 
@@ -992,8 +994,10 @@ where
                 match session.subscribe_to(subscribe_to) {
                     Ok((qos, subscription)) => {
                         if let Some(subscription) = subscription {
+                            info!("subscribed to {} with qos {:?}", subscription.filter(), qos);
                             subscriptions.push(subscription);
                         }
+
                         qos
                     }
                     Err(e) => {
