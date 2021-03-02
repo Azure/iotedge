@@ -40,6 +40,7 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Update Base Images for Security Vulnerability ( [6edad21](https://github.com/Azure/iotedge/commit/6edad2143d37af8a4213ffbe898e873faec36b58) )
 * Fixing error message at API proxy start ( [4629a74](https://github.com/Azure/iotedge/commit/4629a749ef19adcca289eb573d1c2ec6e259bbbf) )
 * Allow EdgeAgent image to be resolved via parent address ( [32834a6](https://github.com/Azure/iotedge/commit/32834a662a014365b26be13a86756368f2f3a5bf) )
+* Change API proxy to accept a trustbundle with more than one root certificate ( [f1fc6d9](https://github.com/Azure/iotedge/commit/f1fc6d9c092985b4f5d395c5effce03f4e5cacd1) )
 
 ### Features
 * Handle thumbprint auth through API proxy for WebSocket ( [f710e43](https://github.com/Azure/iotedge/commit/f710e439afee72edc561486e2a0ef6d9d0994bfa) )
