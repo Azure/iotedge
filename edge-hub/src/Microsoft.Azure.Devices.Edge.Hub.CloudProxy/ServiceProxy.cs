@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 case HttpStatusCode.NotFound:
                     return new DeviceInvalidStateException($"Device not found: [{ex.StatusCode}: {ex.Message}].");
                 default:
-                    return new TimeoutException($"Request failed: [{ex.StatusCode}: {ex.Message}].");
+                    return new TimeoutException($"Request failed: [{ex.StatusCode}: {ex.Message}].", ex);
             }
         }
 

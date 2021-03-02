@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        bool ShouldRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshIfOutOfDate) => refreshIfOutOfDate && storedServiceIdentity.Timestamp + this.refreshDelay <= DateTime.UtcNow;
+        bool ShouldRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshCachedIdentity) => refreshCachedIdentity && storedServiceIdentity.Timestamp + this.refreshDelay <= DateTime.UtcNow;
 
         void VerifyServiceIdentity(string id, StoredServiceIdentity storedServiceIdentity) => this.VerifyServiceIdentity(id, storedServiceIdentity.ServiceIdentity);
 

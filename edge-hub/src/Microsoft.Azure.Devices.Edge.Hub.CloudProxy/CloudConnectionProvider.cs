@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        async Task<Try<ICloudConnection>> ConnectInternalWithDeviceStateTracking(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshOutOfDateCache)
+        async Task<Try<ICloudConnection>> ConnectInternalWithDeviceStateTracking(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler, bool refreshCachedIdentity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
 
@@ -206,12 +206,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 var cloudListener = new CloudListener(this.edgeHub.Expect(() => new InvalidOperationException("EdgeHub reference should not be null")), identity.Id);
                 // if it's not retry, get device service identity from cache, try to fetch it if missed
-                await this.deviceScopeIdentitiesCache.VerifyServiceIdentityState(identity.Id, refreshOutOfDateCache);
-                return await this.TryCreateCloudConnectionFromServiceIdentity(identity, connectionStatusChangedHandler, refreshOutOfDateCache, cloudListener);
+                await this.deviceScopeIdentitiesCache.VerifyServiceIdentityState(identity.Id, refreshCachedIdentity);
+                return await this.TryCreateCloudConnectionFromServiceIdentity(identity, connectionStatusChangedHandler, refreshCachedIdentity, cloudListener);
             }
             catch (DeviceInvalidStateException ex)
             {
-                return await this.TryRecoverCloudConnection(identity, connectionStatusChangedHandler, refreshOutOfDateCache, ex);
+                return await this.TryRecoverCloudConnection(identity, connectionStatusChangedHandler, refreshCachedIdentity, ex);
             }
             catch (Exception ex)
             {
