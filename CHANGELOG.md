@@ -1,12 +1,13 @@
 # 1.2.0-rc4 (2020-03-1)
-**AWARENESS**
-This release contains a significant refactoring to the IoT Edge security daemon. It separates out the functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
+## AWARENESS
+This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
 
-_Impact to Edge modules_
-Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority. 
+### Impact to Edge modules
+Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
 
-_Impact to installing / configuring IoT Edge_
-The refactoring does affect the packaging, installation, and configuration of IoT Edge's host-level components. While we've attempted to minimize the impact of these, there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://azure.github.io/iot-identity-service/packaging.html).
+### Impact to installing / configuring IoT Edge
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://azure.github.io/iot-identity-service/packaging.html).
+
 
 ## Edge Agent
 ### Bug Fixes
