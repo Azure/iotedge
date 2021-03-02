@@ -149,21 +149,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Option<StoredServiceIdentity> storedServiceIdentity = await this.GetStoredServiceIdentity(id);
 
-            var ssi = await storedServiceIdentity.Match(async (ssi) => {
-                if (ShouldRefresh(ssi, refreshCachedIdentity))
+            var ssi = await storedServiceIdentity.Match(
+                async (ssi) =>
                 {
-                    await this.RefreshServiceIdentity(id);
-                    return await this.GetStoredServiceIdentity(id);
-                }
-                else return storedServiceIdentity;
-            },
-            async () =>
-           {
-               await this.RefreshServiceIdentity(id);
-               return await this.GetStoredServiceIdentity(id);
-           });
+                    if (this.ShouldRefresh(ssi, refreshCachedIdentity))
+                    {
+                        await this.RefreshServiceIdentity(id);
+                        return await this.GetStoredServiceIdentity(id);
+                    }
+                    else
+                    {
+                        return storedServiceIdentity;
+                    }
+                },
+                async () =>
+               {
+                   await this.RefreshServiceIdentity(id);
+                   return await this.GetStoredServiceIdentity(id);
+               });
 
-            this.VerifyServiceIdentity(id, ssi.Expect(() => {
+            this.VerifyServiceIdentity(id, ssi.Expect(() =>
+            {
                 Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
                 return new DeviceInvalidStateException("Device is out of scope.");
             }));

@@ -134,8 +134,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             }
         }
 
-        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
-            => this.trackDeviceState
+        public Task<Try<ICloudConnection>> Connect(IIdentity identity, Action<string, CloudConnectionStatus> connectionStatusChangedHandler) =>
+            this.trackDeviceState
             ? this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, false)
             : this.ConnectInternal(identity, connectionStatusChangedHandler);
 
