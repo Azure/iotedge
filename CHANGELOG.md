@@ -11,8 +11,6 @@ For details on the new Identity Service: https://azure.github.io/iot-identity-se
 * Fix getmodules error filter rfc3339 datetime ( [3a98e83](https://github.com/Azure/iotedge/commit/3a98e830d762317325b77ba8b4958bc0d878c06c) )
 * Update current config when a plan is empty ( [087de0b](https://github.com/Azure/iotedge/commit/087de0b59d3354bf17055ff91371bd024494db48) )
 
-### Features
-
 ## Edge Hub
 ### Bug Fixes
 * Fix MQTT client persistent session's subscription when the client reconnects ( [7e2d191](https://github.com/Azure/iotedge/commit/7e2d191cb8b4cd45bcec7653c523b8f8ab5e707f) )
