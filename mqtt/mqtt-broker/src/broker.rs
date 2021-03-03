@@ -349,7 +349,7 @@ where
         // section 3.2 and it MUST close the Network Connection.
         let auth_id = match connreq.auth() {
             Auth::Identity(auth_id) => {
-                info!(
+                debug!(
                     "client {} successfully authenticated: {}",
                     client_id, auth_id
                 );
@@ -376,7 +376,7 @@ where
         let activity = Activity::new(client_info, operation);
         match self.authorizer.authorize(&activity) {
             Ok(Authorization::Allowed) => {
-                info!("successfully authorized: {}", &activity);
+                debug!("successfully authorized: {}", &activity);
             }
             Ok(Authorization::Forbidden(reason)) => {
                 warn!("not authorized: {}; reason: {}", &activity, reason);
@@ -994,7 +994,7 @@ where
                 match session.subscribe_to(subscribe_to) {
                     Ok((qos, subscription)) => {
                         if let Some(subscription) = subscription {
-                            info!("subscribed to {} with qos {:?}", subscription.filter(), qos);
+                            debug!("subscribed to {} with qos {:?}", subscription.filter(), qos);
                             subscriptions.push(subscription);
                         }
 
