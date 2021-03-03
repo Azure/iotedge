@@ -892,6 +892,244 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(si1_updated.Equals(receivedServiceIdentity.OrDefault()));
         }
 
+        [Fact]
+        public async Task VerifyServiceIdentityState_FromService_WithException()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", It.IsAny<string>())).ThrowsAsync(new DeviceInvalidStateException("Device is out of scope."));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m1", It.IsAny<string>())).ThrowsAsync(new DeviceInvalidStateException("Device is out of scope."));
+
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("deviceId"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+
+            // Act
+            var deviceInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2", false, true));
+            var moduleInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2/m1", false, true));
+
+            // Assert
+            Assert.Contains("Device is out of scope.", deviceInvalidStateException.Message);
+            Assert.Contains("Device is out of scope.", moduleInvalidStateException.Message);
+            serviceProxy.VerifyAll();
+        }
+
+        [Fact]
+        public async Task VerifyServiceIdentityState_FromService_WithDisabled()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            var serviceAuthenticationNone = new ServiceAuthentication(ServiceAuthenticationType.None);
+            var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+
+            var si_device = new ServiceIdentity("d2", "1234", new List<string>() { Constants.IotEdgeIdentityCapability }, serviceAuthenticationNone, ServiceIdentityStatus.Disabled);
+            var si_module = new ServiceIdentity("d2", "m1", "e1", Enumerable.Empty<string>(), "2345", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Disabled);
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", It.IsAny<string>())).ReturnsAsync(Option.Some(si_device));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m1", It.IsAny<string>())).ReturnsAsync(Option.Some(si_module));
+
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("d2"), serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromMinutes(2));
+
+            // Act
+            var deviceInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2", false, true));
+            var moduleInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2/m1", false, true));
+
+            // Assert
+            Assert.Contains("Device is disabled.", deviceInvalidStateException.Message);
+            Assert.Contains("Device is disabled.", moduleInvalidStateException.Message);
+            serviceProxy.VerifyAll();
+        }
+
+        [Fact]
+        public async Task VerifyServiceIdentityState_FromService_WithRemovedFromScopeTest()
+        {
+            // Arrange
+            var refreshDelay = TimeSpan.FromSeconds(2);
+            var store = GetEntityStore("cache");
+            var serviceAuthenticationSas = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+
+            var si_device = new ServiceIdentity("d2", "1234", new List<string>() { Constants.IotEdgeIdentityCapability }, serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+            var si_module = new ServiceIdentity("d2", "m1", "e1", Enumerable.Empty<string>(), "1234", Enumerable.Empty<string>(), serviceAuthenticationSas, ServiceIdentityStatus.Enabled);
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", It.IsAny<string>())).ReturnsAsync(Option.Some(si_device));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m1", It.IsAny<string>())).ReturnsAsync(Option.Some(si_module));
+
+            DeviceScopeIdentitiesCache deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree("d2"), serviceProxy.Object, store, TimeSpan.FromHours(1), refreshDelay);
+
+            await deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2", false, true);
+            await deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2/m1", false, true);
+
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", It.IsAny<string>())).ThrowsAsync(new DeviceInvalidStateException("Device is out of scope."));
+            serviceProxy.Setup(s => s.GetServiceIdentity("d2", "m1", It.IsAny<string>())).ThrowsAsync(new DeviceInvalidStateException("Device is out of scope."));
+
+            await deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2", false, true);
+            await deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2/m1", false, true);
+
+            // Act
+            await Task.Delay(refreshDelay + TimeSpan.FromSeconds(5));
+            var deviceInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2", false, true));
+            var moduleInvalidStateException = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState("d2/m1", false, true));
+
+            // Assert
+            Assert.Contains("Device is out of scope.", deviceInvalidStateException.Message);
+            Assert.Contains("Device is out of scope.", moduleInvalidStateException.Message);
+            serviceProxy.VerifyAll();
+        }
+
+        [Fact]
+        public async Task VerifyServiceIdentityAuthChain_AllEnabled_ShouldSucceed()
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            List<string> edgeCapability = new List<string>() { Constants.IotEdgeIdentityCapability };
+            var serviceAuth = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            string parentEdgeId = "parentEdge";
+            string childEdgeId = "childEdge";
+            string leafId = "leaf";
+            var parentEdge = new ServiceIdentity(parentEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
+            var childEdge = new ServiceIdentity(childEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity(leafId, "1234", Enumerable.Empty<string>(), serviceAuth, ServiceIdentityStatus.Enabled);
+            string authChain = leafId + ";" + childEdgeId + ";" + parentEdgeId;
+
+            var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
+            serviceIdentityHierarchy.Setup(s => s.Get(parentEdgeId)).ReturnsAsync(Option.Some(parentEdge));
+            serviceIdentityHierarchy.Setup(s => s.Get(childEdgeId)).ReturnsAsync(Option.Some(childEdge));
+            serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(Option.Some(leaf));
+            serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+
+            var identitiesIterator = new Mock<IServiceIdentitiesIterator>();
+            identitiesIterator.Setup(i => i.HasNext).Returns(false);
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(identitiesIterator.Object);
+
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+
+            // Act
+            var authChainActual = await deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState(leafId, true, false);
+
+            // Assert
+            Assert.Equal(authChain, authChainActual);
+        }
+
+        [Theory]
+        [InlineData(ServiceIdentityStatus.Disabled, ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Enabled)]
+        [InlineData(ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Disabled, ServiceIdentityStatus.Enabled)]
+        [InlineData(ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Disabled)]
+        public async Task VerifyServiceIdentityAuthChain_Disabled_ShouldThrow(ServiceIdentityStatus leafStatus, ServiceIdentityStatus childEdgeStatus, ServiceIdentityStatus parentEdgeStatus)
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            List<string> edgeCapability = new List<string>() { Constants.IotEdgeIdentityCapability };
+            var serviceAuth = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            string parentEdgeId = "parentEdge";
+            string childEdgeId = "childEdge";
+            string leafId = "leaf";
+            var parentEdge = new ServiceIdentity(parentEdgeId, "1234", edgeCapability, serviceAuth, parentEdgeStatus);
+            var childEdge = new ServiceIdentity(childEdgeId, "1234", edgeCapability, serviceAuth, childEdgeStatus);
+            var leaf = new ServiceIdentity(leafId, "1234", Enumerable.Empty<string>(), serviceAuth, leafStatus);
+            string authChain = leafId + ";" + childEdgeId + ";" + parentEdgeId;
+
+            var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
+            serviceIdentityHierarchy.Setup(s => s.Get(parentEdgeId)).ReturnsAsync(Option.Some(parentEdge));
+            serviceIdentityHierarchy.Setup(s => s.Get(childEdgeId)).ReturnsAsync(Option.Some(childEdge));
+            serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(Option.Some(leaf));
+            serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+
+            var serviceProxy = new Mock<IServiceProxy>();
+
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+
+            // Act / Assert
+            var ex = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState(leafId, true, false));
+            Assert.Contains("Device is disabled.", ex.Message);
+        }
+
+        [Theory]
+        [InlineData(ServiceIdentityStatus.Disabled, ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Enabled)]
+        [InlineData(ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Disabled, ServiceIdentityStatus.Enabled)]
+        [InlineData(ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Enabled, ServiceIdentityStatus.Disabled)]
+        public async Task VerifyServiceIdentityAuthChain_Disabled_WithRefresh_ShouldSucceed(ServiceIdentityStatus leafStatus, ServiceIdentityStatus childEdgeStatus, ServiceIdentityStatus parentEdgeStatus)
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            List<string> edgeCapability = new List<string>() { Constants.IotEdgeIdentityCapability };
+            var serviceAuth = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            string parentEdgeId = "parentEdge";
+            string childEdgeId = "childEdge";
+            string leafId = "leaf";
+            var parentEdge = new ServiceIdentity(parentEdgeId, "1234", edgeCapability, serviceAuth, parentEdgeStatus);
+            var childEdge = new ServiceIdentity(childEdgeId, "1234", edgeCapability, serviceAuth, childEdgeStatus);
+            var leaf = new ServiceIdentity(leafId, "1234", Enumerable.Empty<string>(), serviceAuth, leafStatus);
+            var updatedParentEdge = new ServiceIdentity(parentEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
+            var updateChildEdge = new ServiceIdentity(childEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
+            var updatedLeaf = new ServiceIdentity(leafId, "1234", Enumerable.Empty<string>(), serviceAuth, ServiceIdentityStatus.Enabled);
+            string authChain = leafId + ";" + childEdgeId + ";" + parentEdgeId;
+
+            var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
+            serviceIdentityHierarchy.SetupSequence(s => s.Get(parentEdgeId))
+                .ReturnsAsync(Option.Some(parentEdge))
+                .ReturnsAsync(Option.Some(updatedParentEdge));
+            serviceIdentityHierarchy.SetupSequence(s => s.Get(childEdgeId))
+                .ReturnsAsync(Option.Some(childEdge))
+                .ReturnsAsync(Option.Some(updateChildEdge));
+            serviceIdentityHierarchy.SetupSequence(s => s.Get(leafId))
+                .ReturnsAsync(Option.Some(leaf))
+                .ReturnsAsync(Option.Some(updatedLeaf));
+            serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+
+            var serviceProxy = new Mock<IServiceProxy>();
+            serviceProxy.Setup(s => s.GetServiceIdentity(parentEdgeId, It.IsAny<string>())).ReturnsAsync(Option.Some(updatedParentEdge));
+            serviceProxy.Setup(s => s.GetServiceIdentity(childEdgeId, It.IsAny<string>())).ReturnsAsync(Option.Some(updateChildEdge));
+            serviceProxy.Setup(s => s.GetServiceIdentity(leafId, It.IsAny<string>())).ReturnsAsync(Option.Some(updatedLeaf));
+
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+
+            // Act
+            var authChainActual = await deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState(leafId, true, true);
+
+            // Assert
+            Assert.Equal(authChain, authChainActual);
+        }
+
+        [Theory]
+        [InlineData(true, false, false)]
+        [InlineData(false, true, false)]
+        [InlineData(false, false, true)]
+        public async Task VerifyServiceIdentityAuthChain_Missing_ShouldThrow(bool leafMissing, bool childMissing, bool parentMissing)
+        {
+            // Arrange
+            var store = GetEntityStore("cache");
+            List<string> edgeCapability = new List<string>() { Constants.IotEdgeIdentityCapability };
+            var serviceAuth = new ServiceAuthentication(new SymmetricKeyAuthentication(GetKey(), GetKey()));
+            string parentEdgeId = "parentEdge";
+            string childEdgeId = "childEdge";
+            string leafId = "leaf";
+            var parentEdge = new ServiceIdentity(parentEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
+            var childEdge = new ServiceIdentity(childEdgeId, "1234", edgeCapability, serviceAuth, ServiceIdentityStatus.Enabled);
+            var leaf = new ServiceIdentity(leafId, "1234", Enumerable.Empty<string>(), serviceAuth, ServiceIdentityStatus.Enabled);
+            string authChain = leafId + ";" + childEdgeId + ";" + parentEdgeId;
+
+            var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
+
+            var parentEdgeInHierarchy = parentMissing ? Option.None<ServiceIdentity>() : Option.Some(parentEdge);
+            var childEdgeInHierarchy = childMissing ? Option.None<ServiceIdentity>() : Option.Some(childEdge);
+            var leafInHierarchy = leafMissing ? Option.None<ServiceIdentity>() : Option.Some(leaf);
+            serviceIdentityHierarchy.Setup(s => s.Get(parentEdgeId)).ReturnsAsync(parentEdgeInHierarchy);
+            serviceIdentityHierarchy.Setup(s => s.Get(childEdgeId)).ReturnsAsync(childEdgeInHierarchy);
+            serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(leafInHierarchy);
+            serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+
+            var serviceProxy = new Mock<IServiceProxy>();
+
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+
+            // Act / Assert
+            var ex = await Assert.ThrowsAsync<DeviceInvalidStateException>(() => deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState(leafId, true, false));
+            Assert.Contains("Device is out of scope.", ex.Message);
+        }
+
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 
         static IEntityStore<string, string> GetEntityStore(string entityName)

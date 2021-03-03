@@ -165,6 +165,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Events.SkipRefreshServiceIdentity(refreshTarget, this.identitiesLastRefreshTime[refreshTarget], this.refreshDelay);
                 }
             }
+            catch (DeviceInvalidStateException ex)
+            {
+                Events.ErrorRefreshingCache(ex, refreshTarget, this.edgeDeviceId);
+
+                await this.HandleNoServiceIdentity(refreshTarget);
+                this.identitiesLastRefreshTime[refreshTarget] = DateTime.UtcNow;
+            }
             catch (Exception e)
             {
                 Events.ErrorRefreshingCache(e, refreshTarget, onBehalfOfDevice);
@@ -186,6 +193,77 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
             Events.GettingServiceIdentity(id);
             return await this.GetServiceIdentityInternal(id);
+        }
+
+        public async Task<string> VerifyServiceIdentityAuthChainState(string id, bool isNestedEdgeEnabled, bool refreshCachedIdentity)
+        {
+            if (isNestedEdgeEnabled)
+            {
+                return await this.VerifyServiceIdentityAuthChainState(id, refreshCachedIdentity);
+            }
+            else
+            {
+                await this.VerifyServiceIdentityState(id, refreshCachedIdentity);
+                return string.Empty;
+            }
+}
+
+        async Task VerifyServiceIdentityState(string id, bool refreshCachedIdentity = false)
+        {
+            if (refreshCachedIdentity)
+            {
+                await this.RefreshServiceIdentityInternal(id, this.edgeDeviceId, !refreshCachedIdentity);
+            }
+
+            Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentity(id);
+
+            this.VerifyServiceIdentity(serviceIdentity.Expect(() =>
+            {
+                Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
+                return new DeviceInvalidStateException("Device is out of scope.");
+            }));
+        }
+
+        async Task<string> VerifyServiceIdentityAuthChainState(string id, bool refreshCachedIdentity = false)
+        {
+            var authChainTry = await this.serviceIdentityHierarchy.TryGetAuthChain(id);
+
+            // refresh all identities in chain if a chain was returned
+            // if device was not found in hierachy or its auth chain is not set use the id that passed in to refresh
+            string authChain = authChainTry.Ok().GetOrElse(id);
+
+            string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
+
+            if (refreshCachedIdentity)
+            {
+                Events.RefreshingAuthChain(authChain);
+
+                await this.RefreshServiceIdentities(ids);
+                authChain = (await this.serviceIdentityHierarchy.TryGetAuthChain(id)).Value;
+            }
+
+            ids = AuthChainHelpers.GetAuthChainIds(authChain);
+
+            foreach (var parentId in ids)
+            {
+                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentity(parentId);
+                this.VerifyServiceIdentity(serviceIdentity.Expect(() =>
+                {
+                    Events.VerifyServiceIdentityFailure(parentId, "Device is out of scope.");
+                    return new DeviceInvalidStateException("Device is out of scope.");
+                }));
+            }
+
+            return authChain;
+        }
+
+        void VerifyServiceIdentity(ServiceIdentity serviceIdentity)
+        {
+            if (serviceIdentity.Status != ServiceIdentityStatus.Enabled)
+            {
+                Events.VerifyServiceIdentityFailure(serviceIdentity.Id, "Device is disabled.");
+                throw new DeviceInvalidStateException("Device is disabled.");
+            }
         }
 
         public Task<Option<string>> GetAuthChain(string targetId)
@@ -430,7 +508,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 RefreshingServiceIdentity,
                 SkipRefreshServiceIdentity,
                 RefreshingAuthChain,
-                GettingServiceIdentity
+                GettingServiceIdentity,
+                VerifyServiceIdentity
             }
 
             public static void Created() =>
@@ -499,6 +578,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void InitializingRefreshTask(TimeSpan refreshRate) =>
                 Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
+
+            internal static void VerifyServiceIdentityFailure(string id, string reason) =>
+                Log.LogDebug((int)EventIds.VerifyServiceIdentity, $"Service identity {id} is not valid because: {reason}.");
         }
     }
 }

@@ -25,25 +25,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public string GetActorDeviceId() => this.actorDeviceId;
 
-        public Task<Option<string>> GetAuthChain(string id)
+        public async Task<Option<string>> GetAuthChain(string id)
         {
-            Option<string> authChain = Option.None<string>();
+            return (await this.TryGetAuthChain(id)).Ok();
+        }
+
+        public Task<Try<string>> TryGetAuthChain(string id)
+        {
+            string authChain = string.Empty;
 
             if (this.identities.TryGetValue(id, out ServiceIdentity identity))
             {
                 if (identity.Id != this.actorDeviceId)
                 {
                     // All identities are immediate children of the actor Edge
-                    authChain = Option.Some($"{identity.Id};{this.actorDeviceId}");
+                    authChain = $"{identity.Id};{this.actorDeviceId}";
                 }
                 else
                 {
                     // Special case for the self-identity of the Edge device
-                    authChain = Option.Some(this.actorDeviceId);
+                    authChain = this.actorDeviceId;
                 }
+
+                return Task.FromResult(Util.Try.Success(authChain));
             }
 
-            return Task.FromResult(authChain);
+            return Task.FromResult(Util.Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
         }
 
         public Task<Option<string>> GetEdgeAuthChain(string id) => throw new NotImplementedException("Nested Edge not enabled");
