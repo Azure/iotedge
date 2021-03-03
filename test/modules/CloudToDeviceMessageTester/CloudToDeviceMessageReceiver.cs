@@ -5,6 +5,7 @@ namespace CloudToDeviceMessageTester
     using System.Collections.Generic;
     using System.IO;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -59,7 +60,7 @@ namespace CloudToDeviceMessageTester
             string trackingId = message.Properties[TestConstants.Message.TrackingIdPropertyName];
             string batchId = message.Properties[TestConstants.Message.BatchIdPropertyName];
             string sequenceNumber = message.Properties[TestConstants.Message.SequenceNumberPropertyName];
-            var testResultReceived = new MessageTestResult(this.moduleId + ".receive", DateTime.UtcNow)
+            var testResultReceived = new MessageTestResult(this.moduleId + ".send", DateTime.UtcNow)
             {
                 TrackingId = trackingId,
                 BatchId = batchId,
@@ -76,6 +77,11 @@ namespace CloudToDeviceMessageTester
             OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
 
+            Guid batchId = Guid.NewGuid();
+            this.logger.LogInformation($"Batch Id={batchId}");
+            Guid trackingId = Guid.NewGuid();
+            this.logger.LogInformation($"Tracking Id={trackingId}");
+
             try
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
@@ -86,37 +92,30 @@ namespace CloudToDeviceMessageTester
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
                 await this.deviceClient.OpenAsync();
+                int messageCount = 0;
+
+                int delay = new Random().Next((int)TimeSpan.FromMinutes(5).TotalMilliseconds, (int)TimeSpan.FromMinutes(50).TotalMilliseconds);
+                this.logger.LogInformation($"Leaf device update after {TimeSpan.FromMilliseconds(delay).TotalMinutes}");
 
                 while (!ct.IsCancellationRequested)
                 {
                     this.logger.LogInformation("Ready to receive message");
                     try
                     {
-                        Message message = await this.deviceClient.ReceiveAsync();
+                        messageCount++;
+                        var message = new Message(Encoding.ASCII.GetBytes("Leaf message."));
+                        message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageCount.ToString());
+                        message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+                        message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId.ToString());
+                        await this.deviceClient.SendEventAsync(message);
 
-                        if (message == null)
-                        {
-                            this.logger.LogWarning("Received message is null");
-                            continue;
-                        }
-
-                        if (!message.Properties.ContainsKey(TestConstants.Message.SequenceNumberPropertyName) ||
-                            !message.Properties.ContainsKey(TestConstants.Message.BatchIdPropertyName) ||
-                            !message.Properties.ContainsKey(TestConstants.Message.TrackingIdPropertyName))
-                        {
-                            string messageBody = new StreamReader(message.BodyStream).ReadToEnd();
-                            string propertyKeys = string.Join(",", message.Properties.Keys);
-                            this.logger.LogWarning($"Received message doesn't contain required key. property keys: {propertyKeys}, message body: {messageBody}, lock token: {message.LockToken}.");
-                            continue;
-                        }
-
-                        this.logger.LogInformation($"Message received. " +
+                        this.logger.LogInformation($"Message sent. " +
                             $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
                             $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
-                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, " +
-                            $"LockToken: {message.LockToken}.");
+                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, ");
                         await this.ReportTestResult(message);
-                        await this.deviceClient.CompleteAsync(message);
+
+                        await Task.Delay(TimeSpan.FromMinutes(1));
                     }
                     catch (Exception ex)
                     {
