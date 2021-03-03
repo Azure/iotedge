@@ -83,7 +83,8 @@ jobs:
       sshEndpoint: iotedge-mqtt-perf-amd64-conn
       runOptions: commands
       commands: |
-        docker restart mqtt-broker
+        docker rm -f mqtt-broker || true
+        docker run -d --network=host --security-opt apparmor=docker-default --name=mqtt-broker $(cat brokerImageName.txt)
     continueOnError: true 
     condition: eq(variables['arch'], 'amd64')
 
@@ -94,6 +95,7 @@ jobs:
       sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
       runOptions: commands
       commands: |
-        docker restart mqtt-broker
+        docker rm -f mqtt-broker || true
+        docker run -d --network=host --security-opt apparmor=docker-default --name=mqtt-broker $(cat brokerImageName.txt)
     continueOnError: true 
     condition: eq(variables['arch'], 'arm32v7')
