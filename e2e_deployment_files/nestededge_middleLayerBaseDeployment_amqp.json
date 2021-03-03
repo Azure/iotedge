@@ -80,7 +80,7 @@
               }
             },
             "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-relayer:20210303.1-linux-amd64",
+              "image": "$upstream:443/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           }
