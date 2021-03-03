@@ -6,6 +6,15 @@ variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
 
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
+
 jobs:
 ################################################################################
   - job: linux_amd64_moby
@@ -89,7 +98,10 @@ jobs:
             echo "deploymentFileName=$(deploymentFileName)"
             echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.flag'], 1)
@@ -181,6 +193,7 @@ jobs:
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          testInfo.testName: '$(testInfo.testName)'
 
 
 ################################################################################
@@ -264,7 +277,10 @@ jobs:
             echo "deploymentFileName=$(deploymentFileName)"
             echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: and(succeeded(), eq(variables['run.flag'], 1))
@@ -344,3 +360,5 @@ jobs:
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          connectivity.nested: 'false'
+          testInfo.testName: '$(testInfo.testName)'

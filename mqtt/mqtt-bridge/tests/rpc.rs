@@ -16,10 +16,15 @@ use mqtt_broker_tests_util::client::TestClientBuilder;
 async fn get_twin_update_via_rpc() {
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
         common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
     let (controller_handle, controller_task) = common::setup_bridge_controller(
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         Vec::new(),
+        &storage_dir_override,
     )
     .await;
 

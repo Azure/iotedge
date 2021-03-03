@@ -2,6 +2,7 @@ trigger: none
 pr: none
 
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   itProxy: http://10.16.8.4:3128
   otProxy: http://10.16.5.4:3128 
   ressourceGroup: nested-edge-isa95 
@@ -25,7 +26,6 @@ stages:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
-      vsts.project: $(System.TeamProjectId)
       level: '5'
       deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
       parentName: ''
@@ -61,7 +61,6 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
-      vsts.project: $(System.TeamProjectId)
       parentName: $[ dependencies.SetupVM_level5.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
@@ -96,7 +95,6 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
-      vsts.project: $(System.TeamProjectId)
       parentName: $[ dependencies.SetupVM_level4.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
@@ -168,6 +166,10 @@ stages:
         parameters:
           agentName: $(deviceLvl3AgentName)
           lvl: 3
+      - pwsh: |
+          #Sleep 30s to let the rules time to set
+          Start-Sleep -s 30 
+        displayName: Wait for network to lock
       - template: templates/nested-get-root-ca.yaml    
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-run.yaml

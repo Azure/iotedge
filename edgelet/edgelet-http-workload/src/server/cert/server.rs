@@ -61,7 +61,11 @@ where
             })
             .map(|(module_id, genid)| {
                 let module_id = module_id.to_string();
-                let alias = format!("{}{}server", module_id, genid.to_string());
+                let alias = format!(
+                    "aziot-edged/module/{}:{}:server",
+                    module_id,
+                    genid.to_string()
+                );
 
                 req.into_body().concat2().then(move |body| {
                     let body =
@@ -121,7 +125,7 @@ where
             })
             .and_then(move |(alias, props, cfg)| {
                 let response = refresh_cert(
-                    &key_client,
+                    key_client,
                     cert_client,
                     alias,
                     &props,
@@ -129,7 +133,7 @@ where
                         cert_id: cfg.edge_ca_cert().to_string(),
                         key_id: cfg.edge_ca_key().to_string(),
                     },
-                    &ErrorKind::CertOperation(CertOperation::GetServerCert),
+                    ErrorKind::CertOperation(CertOperation::GetServerCert),
                 )
                 .map_err(|_| Error::from(ErrorKind::CertOperation(CertOperation::GetServerCert)));
                 Ok(response)

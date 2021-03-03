@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                     Context.Current.DeviceId.GetOrElse(DeviceId.Current.Generate()),
                     Context.Current.ParentDeviceId,
-                    this.iotHub,
+                    this.IotHub,
                     AuthenticationType.Sas,
                     null,
                     token);
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     Context.Current.EdgeProxy,
                     Context.Current.Registries,
                     Context.Current.OptimizeForPerformance,
-                    this.iotHub);
+                    this.IotHub);
 
                 // This is a temporary solution see ticket: 9288683
                 if (!Context.Current.ISA95Tag)

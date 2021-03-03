@@ -1,5 +1,5 @@
 #!/bin/bash
-#https://github.com/Azure/iotedge/blob/iiot/scripts/linux/cross-platform-rust-build.sh
+#https://github.com/Azure/iotedge/blob/master/scripts/linux/cross-platform-rust-build.sh
 ###############################################################################
 # This script builds a static binary of the api-proxy-module
 ###############################################################################
@@ -161,7 +161,7 @@ build_project()
         exit 1
     fi
 
-    execute cd "$API_PROXY_DIR" 
+    execute cd "$API_PROXY_DIR"
     # prepare docker folder
     local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
     execute mkdir -p "$EXE_DOCKER_DIR"
