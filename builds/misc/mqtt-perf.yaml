@@ -52,6 +52,7 @@ stages:
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
+  condition: always() # run stage even if previous failed
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
@@ -67,6 +68,7 @@ stages:
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
+  condition: always() # run stage even if previous failed
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
@@ -82,6 +84,7 @@ stages:
     clientDop: 4 # the number of max threads that can execute mqtt-benchmark tool code simultaneously
 
   pool: $(pool.name)
+  condition: always() # run stage even if previous failed
   jobs:
     - template: templates/mqtt-perf-setup.yaml
     - template: templates/mqtt-perf-run.yaml
