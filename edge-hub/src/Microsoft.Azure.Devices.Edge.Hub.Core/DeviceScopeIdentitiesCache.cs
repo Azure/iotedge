@@ -100,8 +100,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         bool ShouldRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshCachedIdentity) => refreshCachedIdentity && storedServiceIdentity.Timestamp + this.refreshDelay <= DateTime.UtcNow;
 
-        void VerifyServiceIdentity(string id, StoredServiceIdentity storedServiceIdentity) => this.VerifyServiceIdentity(id, storedServiceIdentity.ServiceIdentity);
-
         void VerifyServiceIdentity(string id, Option<ServiceIdentity> serviceIdentity) => serviceIdentity.ForEach(
                 si =>
                 {
@@ -116,34 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
                     throw new DeviceInvalidStateException("Device is out of scope.");
                 });
-
-        async Task RefreshServiceIdentityInternal(string id)
-        {
-            try
-            {
-                // start refresh
-                Events.RefreshingServiceIdentity(id);
-                // Successfully get response from server
-                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentityFromService(id);
-                // If found device, update it otherwise something is wrong with the device, set it as invalid
-                await serviceIdentity
-                    .Map(s => this.HandleNewServiceIdentity(s))
-                    .GetOrElse(() => this.HandleNoServiceIdentity(id));
-            }
-            catch (DeviceInvalidStateException ex)
-            {
-                Events.ErrorRefreshingCache(ex, id);
-                // Device either out of scope or remove, set it as invalid
-                await this.HandleNoServiceIdentity(id);
-                throw;
-            }
-            catch (Exception e)
-            {
-                // Refresh failed
-                Events.ErrorRefreshingCache(e, id);
-                throw;
-            }
-        }
 
         public async Task VerifyServiceIdentityState(string id, bool refreshCachedIdentity = false)
         {
@@ -168,11 +138,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                    return await this.GetStoredServiceIdentity(id);
                });
 
-            this.VerifyServiceIdentity(id, ssi.Expect(() =>
+            var si = ssi.Expect(() =>
             {
                 Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
                 return new DeviceInvalidStateException("Device is out of scope.");
-            }));
+            }).ServiceIdentity;
+
+            this.VerifyServiceIdentity(id, si);
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)

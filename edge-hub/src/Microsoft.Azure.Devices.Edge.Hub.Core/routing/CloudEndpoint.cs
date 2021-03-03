@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             string id,
             Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            bool trackDeviceState = false,
+            bool trackDeviceState = true,
             int maxBatchSize = 10,
             int fanoutFactor = 10)
             : base(id)

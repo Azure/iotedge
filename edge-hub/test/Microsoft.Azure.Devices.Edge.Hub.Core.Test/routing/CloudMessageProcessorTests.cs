@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 }
             }
 
-            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1);
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1, trackDeviceState: false);
             IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
 
             ISinkResult<IRoutingMessage> result1 = await cloudMessageProcessor.ProcessAsync(message1, CancellationToken.None);
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.True(result4.SendFailureDetails.HasValue);
 
             // Initialize CloudEndpoint with trackDeviceState=true
-            var cloudEndpoint2 = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1, trackDeviceState: true);
+            var cloudEndpoint2 = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, maxBatchSize: 1);
             var cloudMessageProcessor2 = cloudEndpoint2.CreateProcessor();
 
             // Should fail and mark operation invalid on UnauthorizedException which will drop the message

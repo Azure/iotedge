@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             string edgeDeviceId,
             int maxBatchSize,
             int upstreamFanOutFactor,
-            bool trackDeviceState = false)
+            bool trackDeviceState = true)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
