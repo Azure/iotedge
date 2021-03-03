@@ -257,24 +257,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Events.ErrorCreatingCloudConnection(identity, ex);
                 if (this.scopeAuthenticationOnly && !this.edgeHubIdentity.Id.Equals(identity.Id))
                 {
-                    if (this.trackDeviceState)
+                    if (wasRefreshed)
                     {
-                        if (wasRefreshed)
-                        {
-                            Events.ErrorCreatingCloudConnection(identity, ex);
-                            return Try<ICloudConnection>.Failure(ex);
-                        }
-                        else
-                        {
-                            // recover: try to update out of date cache and try again
-                            return await this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, true);
-                        }
+                        Events.ErrorCreatingCloudConnection(identity, ex);
+                        return Try<ICloudConnection>.Failure(ex);
                     }
                     else
                     {
-                        // old behavior
-                        Events.ErrorCreatingCloudConnection(identity, ex);
-                        return Try<ICloudConnection>.Failure(ex);
+                        // recover: try to update out of date cache and try again
+                        return await this.ConnectInternalWithDeviceStateTracking(identity, connectionStatusChangedHandler, true);
                     }
                 }
                 else

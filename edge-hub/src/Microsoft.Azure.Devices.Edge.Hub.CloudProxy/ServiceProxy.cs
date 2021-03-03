@@ -129,10 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 case HttpStatusCode.Unauthorized:
                 case HttpStatusCode.Forbidden:
-                    return new DeviceInvalidStateException($"Device not in scope: [{ex.StatusCode}: {ex.Message}].");
+                    return new DeviceInvalidStateException($"Device not in scope: [{ex.StatusCode}: {ex.Message}].", ex);
                 case HttpStatusCode.BadRequest:
                 case HttpStatusCode.NotFound:
-                    return new DeviceInvalidStateException($"Device not found: [{ex.StatusCode}: {ex.Message}].");
+                    return new DeviceInvalidStateException($"Device not found: [{ex.StatusCode}: {ex.Message}].", ex);
                 default:
                     return new TimeoutException($"Request failed: [{ex.StatusCode}: {ex.Message}].", ex);
             }
