@@ -31,7 +31,7 @@
                 "value": "true"
               },
               "ExperimentalFeatures__EnableUploadLogs": {
-                  "value": "true"
+                "value": "true"
               }
             },
             "settings": {
@@ -574,36 +574,6 @@
               "createOptions": ""
             }
           },
-          "cloudToDeviceMessageSender1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
           "cloudToDeviceMessageReceiver1": {
             "version": "1.0",
             "type": "docker",
@@ -626,39 +596,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
-            }
-          },
-          "cloudToDeviceMessageSender2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "C2DMESSAGE_TESTER_MODE": {
-                "value": "Sender"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "cloudToDeviceMessageReceiver2": {
@@ -758,7 +695,8 @@
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
           "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
-          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream",
+          "leaf1ToCloud": "FROM /messages/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
@@ -859,15 +797,15 @@
           "reportMetadata13": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageSender1.send",
-            "ActualSource": "cloudToDeviceMessageReceiver1.receive",
+            "ExpectedSource": "cloudToDeviceMessageReceiver1.send",
+            "ActualSource": "cloudToDeviceMessageReceiver1.eventHub",
             "TestDescription": "C2D | amqp"
           },
           "reportMetadata14": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageSender2.send",
-            "ActualSource": "cloudToDeviceMessageReceiver2.receive",
+            "ExpectedSource": "cloudToDeviceMessageReceiver2.send",
+            "ActualSource": "cloudToDeviceMessageReceiver2.eventHub",
             "TestDescription": "C2D | mqtt"
           },
           "reportMetadata15": {

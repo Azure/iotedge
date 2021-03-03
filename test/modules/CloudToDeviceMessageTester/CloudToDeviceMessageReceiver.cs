@@ -5,6 +5,7 @@ namespace CloudToDeviceMessageTester
     using System.Collections.Generic;
     using System.IO;
     using System.Security.Cryptography.X509Certificates;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -59,7 +60,7 @@ namespace CloudToDeviceMessageTester
             string trackingId = message.Properties[TestConstants.Message.TrackingIdPropertyName];
             string batchId = message.Properties[TestConstants.Message.BatchIdPropertyName];
             string sequenceNumber = message.Properties[TestConstants.Message.SequenceNumberPropertyName];
-            var testResultReceived = new MessageTestResult(this.moduleId + ".receive", DateTime.UtcNow)
+            var testResultReceived = new MessageTestResult(this.moduleId + ".send", DateTime.UtcNow)
             {
                 TrackingId = trackingId,
                 BatchId = batchId,
@@ -76,6 +77,11 @@ namespace CloudToDeviceMessageTester
             OsPlatform.Current.InstallCaCertificates(certs, transportSettings);
             Microsoft.Azure.Devices.RegistryManager registryManager = null;
 
+            Guid batchId = Guid.NewGuid();
+            this.logger.LogInformation($"Batch Id={batchId}");
+            Guid trackingId = Guid.NewGuid();
+            this.logger.LogInformation($"Tracking Id={trackingId}");
+
             try
             {
                 registryManager = Microsoft.Azure.Devices.RegistryManager.CreateFromConnectionString(this.iotHubConnectionString);
@@ -86,29 +92,18 @@ namespace CloudToDeviceMessageTester
                 string deviceConnectionString = $"HostName={this.iotHubHostName};DeviceId={this.deviceId};SharedAccessKey={device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.gatewayHostName}";
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
                 await this.deviceClient.OpenAsync();
-
+                int messageCount = 0;
                 while (!ct.IsCancellationRequested)
                 {
                     this.logger.LogInformation("Ready to receive message");
                     try
                     {
-                        Message message = await this.deviceClient.ReceiveAsync();
-
-                        if (message == null)
-                        {
-                            this.logger.LogWarning("Received message is null");
-                            continue;
-                        }
-
-                        if (!message.Properties.ContainsKey(TestConstants.Message.SequenceNumberPropertyName) ||
-                            !message.Properties.ContainsKey(TestConstants.Message.BatchIdPropertyName) ||
-                            !message.Properties.ContainsKey(TestConstants.Message.TrackingIdPropertyName))
-                        {
-                            string messageBody = new StreamReader(message.BodyStream).ReadToEnd();
-                            string propertyKeys = string.Join(",", message.Properties.Keys);
-                            this.logger.LogWarning($"Received message doesn't contain required key. property keys: {propertyKeys}, message body: {messageBody}, lock token: {message.LockToken}.");
-                            continue;
-                        }
+                        messageCount++;
+                        var message = new Message(Encoding.ASCII.GetBytes("Leaf message."));
+                        message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageCount.ToString());
+                        message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+                        message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId.ToString());
+                        await this.deviceClient.SendEventAsync(message);
 
                         this.logger.LogInformation($"Message received. " +
                             $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
