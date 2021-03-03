@@ -20,7 +20,7 @@ URL:            https://github.com/azure/iotedge
 Vendor:         Microsoft Corporation
 Distribution:   Mariner
 
-BuildRequires:  rust == 1.44.1
+BuildRequires:  rust == 1.47.0
 BuildRequires:  cmake
 BuildRequires:  curl
 BuildRequires:  git
@@ -66,6 +66,8 @@ make %{?_smp_mflags} release
 
 %install
 export PATH=$PATH:/root/.cargo/bin/
+IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
+export IOTEDGE_HOST
 make %{?_smp_mflags} install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/iotedge-%{version}
 
 %clean
