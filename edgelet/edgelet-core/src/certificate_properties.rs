@@ -19,7 +19,6 @@ pub enum CertificateIssuer {
 /// Globally supported properties of certificates in the Edge.
 #[derive(Debug, Clone)]
 pub struct CertificateProperties {
-    validity_in_secs: u64,
     common_name: String,
     certificate_type: CertificateType,
     alias: String,
@@ -29,14 +28,8 @@ pub struct CertificateProperties {
 }
 
 impl CertificateProperties {
-    pub fn new(
-        validity_in_secs: u64,
-        common_name: String,
-        certificate_type: CertificateType,
-        alias: String,
-    ) -> Self {
+    pub fn new(common_name: String, certificate_type: CertificateType, alias: String) -> Self {
         CertificateProperties {
-            validity_in_secs,
             common_name,
             certificate_type,
             alias,
@@ -44,15 +37,6 @@ impl CertificateProperties {
             dns_san_entries: None,
             ip_entries: None,
         }
-    }
-
-    pub fn validity_in_secs(&self) -> &u64 {
-        &self.validity_in_secs
-    }
-
-    pub fn with_validity_in_secs(mut self, validity_in_secs: u64) -> Self {
-        self.validity_in_secs = validity_in_secs;
-        self
     }
 
     pub fn common_name(&self) -> &str {
@@ -117,13 +101,11 @@ mod tests {
     #[test]
     fn test_default() {
         let c = CertificateProperties::new(
-            3600,
             "common_name".to_string(),
             CertificateType::Client,
             "alias".to_string(),
         );
 
-        assert_eq!(&3600, c.validity_in_secs());
         assert_eq!("common_name", c.common_name());
         assert_eq!(&CertificateType::Client, c.certificate_type());
         assert_eq!("alias", c.alias());
@@ -135,18 +117,15 @@ mod tests {
     fn test_default_with_settings() {
         let input_sans = vec![String::from("serif"), String::from("sar")];
         let c = CertificateProperties::new(
-            3600,
             "common_name".to_string(),
             CertificateType::Client,
             "alias".to_string(),
         )
         .with_certificate_type(CertificateType::Ca)
         .with_common_name("bafflegab".to_string())
-        .with_validity_in_secs(240)
         .with_alias("Andrew Johnson".to_string())
         .with_issuer(CertificateIssuer::DeviceCa)
         .with_dns_san_entries(input_sans.clone());
-        assert_eq!(&240, c.validity_in_secs());
         assert_eq!("bafflegab", c.common_name());
         assert_eq!(&CertificateType::Ca, c.certificate_type());
         assert_eq!("Andrew Johnson", c.alias());

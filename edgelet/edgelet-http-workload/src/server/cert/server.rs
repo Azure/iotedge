@@ -3,7 +3,7 @@ use std::net::IpAddr;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
-use super::{compute_validity, refresh_cert};
+use super::refresh_cert;
 use failure::ResultExt;
 use futures::{future, Future, IntoFuture, Stream};
 use hyper::{Body, Request, Response};
@@ -53,45 +53,32 @@ where
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
-            .and_then(|name| {
-                let genid = params
-                    .name("genid")
-                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))?;
-                Ok((name, genid))
-            })
-            .map(|(module_id, genid)| {
+            .map(|module_id| {
                 let module_id = module_id.to_string();
-                let alias = format!(
-                    "aziot-edged/module/{}:{}:server",
-                    module_id,
-                    genid.to_string()
-                );
-
+                params
+                    .name("genid")
+                    .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("genid")))
+                    .map(|gen_id| {
+                        let alias = format!(
+                            "aziot-edged/module/{}:{}:server",
+                            module_id,
+                            gen_id.to_string()
+                        );
+                        (module_id, alias)
+                    })
+            })
+            .into_future()
+            .flatten()
+            .and_then(|(module_id, alias)| {
                 req.into_body().concat2().then(move |body| {
                     let body =
                         body.context(ErrorKind::CertOperation(CertOperation::GetServerCert))?;
                     Ok((alias, body, module_id))
                 })
             })
-            .into_future()
-            .flatten()
             .and_then(move |(alias, body, module_id)| {
-                let max_duration = cfg.get_cert_max_duration(CertificateType::Server);
                 let cert_req: ServerCertificateRequest =
                     serde_json::from_slice(&body).context(ErrorKind::MalformedRequestBody)?;
-
-                let expiration = compute_validity(
-                    cert_req.expiration(),
-                    max_duration,
-                    ErrorKind::MalformedRequestBody,
-                )?;
-                #[allow(clippy::cast_sign_loss)]
-                let expiration = match expiration {
-                    expiration if expiration < 0 || expiration > max_duration => {
-                        return Err(Error::from(ErrorKind::MalformedRequestBody));
-                    }
-                    expiration => expiration as u64,
-                };
 
                 let common_name = cert_req.common_name();
                 ensure_not_empty_with_context(common_name, || ErrorKind::MalformedRequestBody)?;
@@ -113,7 +100,6 @@ where
 
                 #[allow(clippy::cast_sign_loss)]
                 let props = CertificateProperties::new(
-                    expiration,
                     common_name.to_string(),
                     CertificateType::Server,
                     alias.clone(),

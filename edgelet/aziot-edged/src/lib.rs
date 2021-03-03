@@ -60,7 +60,6 @@ use edgelet_core::{
     MakeModuleRuntime, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
     RuntimeSettings, WorkloadConfig,
 };
-use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, API_VERSION};
@@ -380,7 +379,6 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
-        0,
         AZIOT_EDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),
