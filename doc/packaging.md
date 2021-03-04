@@ -2,7 +2,7 @@
 
 ## What's New
 
-The version 1.2 of IoT Edge introduces significant changes to the underlying daemon which has been refactord and renamed (`iotedged` -> `aziot-edged`). Non-Edge specific functionality was separated into a stand-alone package, `aziot-identity-service`, on which the IoT Edge daemon now depends. The `aziot-identity-service` package replaces the `libiothsm-std` package previously used.
+The version 1.2 of IoT Edge introduces significant changes to the underlying daemon which has been refactored and renamed (`iotedged` -> `aziot-edged`). Non-Edge specific functionality was separated into a stand-alone package, `aziot-identity-service`, on which the IoT Edge daemon now depends. The `aziot-identity-service` package replaces the `libiothsm-std` package previously used.
 
 In anticipation of these large-scale changes we've made the current `iotedge` Linux package (v1.1) into a long-term servicing (LTS) release. The v1.2 of IoT Edge is now composed of two packages:
 
