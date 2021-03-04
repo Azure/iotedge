@@ -4,8 +4,6 @@ trigger:
     include:
       - master
       - release/*
-      - iiot
-      - preview/iiot
 pr: none
 
 variables:
@@ -35,7 +33,7 @@ jobs:
         displayName: Build
         inputs:
           filePath: scripts/linux/generic-rust/build.sh
-          arguments: --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker 
+          arguments: --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker
       - task: Bash@3
         displayName: Test
         inputs:
