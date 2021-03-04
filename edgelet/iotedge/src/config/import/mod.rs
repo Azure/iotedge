@@ -287,10 +287,10 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
         }
     };
 
-    let (edge_ca, trust_bundle_cert) = {
+    let (edge_ca, trust_bundle_cert, auto_generated_edge_ca_expiry_days) = {
         if let Some(old_config::Certificates {
             device_cert,
-            auto_generated_ca_lifetime_days: _,
+            auto_generated_ca_lifetime_days,
         }) = certificates
         {
             if let Some(old_config::DeviceCertificate {
@@ -305,12 +305,13 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         pk: device_ca_pk,
                     }),
                     Some(trusted_ca_certs),
+                    None,
                 )
             } else {
-                (None, None)
+                (None, None, Some(auto_generated_ca_lifetime_days.into()))
             }
         } else {
-            (None, None)
+            (None, None, None)
         }
     };
 
@@ -443,6 +444,8 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
         },
 
         edge_ca,
+
+        auto_generated_edge_ca_expiry_days,
 
         moby_runtime: {
             let old_config::MobyRuntime {

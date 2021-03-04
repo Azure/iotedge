@@ -168,6 +168,7 @@ fn execute_inner(
         listen,
         watchdog,
         edge_ca,
+        auto_generated_edge_ca_expiry_days,
         moby_runtime,
     } = toml::from_slice(&config).map_err(|err| format!("could not parse config file: {}", err))?;
 
@@ -228,7 +229,7 @@ fn execute_inner(
             aziot_certd_config::CertIssuanceOptions {
                 method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
                 common_name: Some(IOTEDGED_COMMONNAME.to_owned()),
-                expiry_days: Some(1),
+                expiry_days: auto_generated_edge_ca_expiry_days.or(Some(1)),
             },
         );
 

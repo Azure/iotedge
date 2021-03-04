@@ -26,6 +26,9 @@ pub(super) struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) edge_ca: Option<EdgeCa>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) auto_generated_edge_ca_expiry_days: Option<u32>,
+
     pub(super) moby_runtime: MobyRuntime,
 }
 
