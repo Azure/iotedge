@@ -7,10 +7,7 @@ case "$1" in
 
         if [ -d /etc/aziot ]; then
             rm -rf /etc/aziot/edged
-
-            if [ -z "$(ls -A /etc/aziot)" ]; then
-                rm -rf /etc/aziot
-            fi
+            rm -f /etc/aziot/config.toml
         fi
 
         rm -rf /var/log/aziot
