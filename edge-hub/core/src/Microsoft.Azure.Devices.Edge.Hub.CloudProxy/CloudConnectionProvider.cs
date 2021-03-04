@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             bool useServerHeartbeat,
             Option<IWebProxy> proxy,
             IMetadataStore metadataStore,
-            bool nestedEdgeEnabled = false)
+            bool nestedEdgeEnabled = true)
         {
             this.messageConverterProvider = Preconditions.CheckNotNull(messageConverterProvider, nameof(messageConverterProvider));
             this.clientProvider = Preconditions.CheckNotNull(clientProvider, nameof(clientProvider));
