@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     public class BrokeredCloudProxy : ICloudProxy
     {
         BrokeredCloudProxyDispatcher cloudProxyDispatcher;
-        IIdentity identity;
         Action<string, CloudConnectionStatus> connectionStatusChangedHandler;
 
         AtomicBoolean isActive = new AtomicBoolean(true);
@@ -22,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public BrokeredCloudProxy(IIdentity identity, BrokeredCloudProxyDispatcher cloudProxyDispatcher, Action<string, CloudConnectionStatus> connectionStatusChangedHandler)
         {
-            this.identity = Preconditions.CheckNotNull(identity);
+            this.Identity = Preconditions.CheckNotNull(identity);
             this.cloudProxyDispatcher = Preconditions.CheckNotNull(cloudProxyDispatcher);
 
             this.connectionStatusChangedHandler = connectionStatusChangedHandler;
@@ -30,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         public bool IsActive => this.isActive;
+        public IIdentity Identity { get; }
 
         public Task<bool> CloseAsync()
         {
@@ -40,35 +40,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         }
 
         public Task<bool> OpenAsync() => Task.FromResult(true);
-        public Task RemoveCallMethodAsync() => this.cloudProxyDispatcher.RemoveCallMethodAsync(this.identity);
-        public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.RemoveDesiredPropertyUpdatesAsync(this.identity);
-        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => this.cloudProxyDispatcher.SendFeedbackMessageAsync(this.identity, messageId, feedbackStatus);
-        public Task SendMessageAsync(IMessage message) => this.cloudProxyDispatcher.SendMessageAsync(this.identity, message);
-        public Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages) => this.cloudProxyDispatcher.SendMessageBatchAsync(this.identity, inputMessages);
-        public Task SetupCallMethodAsync() => this.cloudProxyDispatcher.SetupCallMethodAsync(this.identity);
-        public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.SetupDesiredPropertyUpdatesAsync(this.identity);
-        public Task StartListening() => this.cloudProxyDispatcher.StartListening(this.identity);
-        public Task StopListening() => this.cloudProxyDispatcher.StopListening(this.identity);
+        public Task RemoveCallMethodAsync() => this.cloudProxyDispatcher.RemoveCallMethodAsync(this.Identity);
+        public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.RemoveDesiredPropertyUpdatesAsync(this.Identity);
+        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => this.cloudProxyDispatcher.SendFeedbackMessageAsync(this.Identity, messageId, feedbackStatus);
+        public Task SendMessageAsync(IMessage message) => this.cloudProxyDispatcher.SendMessageAsync(this.Identity, message);
+        public Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages) => this.cloudProxyDispatcher.SendMessageBatchAsync(this.Identity, inputMessages);
+        public Task SetupCallMethodAsync() => this.cloudProxyDispatcher.SetupCallMethodAsync(this.Identity);
+        public Task SetupDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.SetupDesiredPropertyUpdatesAsync(this.Identity);
+        public Task StartListening() => this.cloudProxyDispatcher.StartListening(this.Identity);
+        public Task StopListening() => this.cloudProxyDispatcher.StopListening(this.Identity);
 
         public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage)
         {
-            return this.cloudProxyDispatcher.UpdateReportedPropertiesAsync(this.identity, reportedPropertiesMessage, this.twinNeedsSubscribe.GetAndSet(false));
+            return this.cloudProxyDispatcher.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage, this.twinNeedsSubscribe.GetAndSet(false));
         }
 
         public Task<IMessage> GetTwinAsync()
         {
-            return this.cloudProxyDispatcher.GetTwinAsync(this.identity, this.twinNeedsSubscribe.GetAndSet(false));
+            return this.cloudProxyDispatcher.GetTwinAsync(this.Identity, this.twinNeedsSubscribe.GetAndSet(false));
         }
 
         public Task RemoveTwinResponseAsync()
         {
             this.twinNeedsSubscribe.Set(true);
-            return this.cloudProxyDispatcher.RemoveTwinResponseAsync(this.identity);
+            return this.cloudProxyDispatcher.RemoveTwinResponseAsync(this.Identity);
         }
 
         void ConnectionChangedEventHandler(CloudConnectionStatus cloudConnectionStatus)
         {
-            this.connectionStatusChangedHandler(this.identity.Id, cloudConnectionStatus);
+            this.connectionStatusChangedHandler(this.Identity.Id, cloudConnectionStatus);
         }
     }
 }
