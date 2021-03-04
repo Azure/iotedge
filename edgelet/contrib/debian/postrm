@@ -6,18 +6,14 @@ case "$1" in
         systemctl daemon-reload
 
         if [ -d /etc/aziot ]; then
-            if [ -d /etc/aziot/edged ]; then
-                rm -rf /etc/aziot/edged
-            fi
+            rm -rf /etc/aziot/edged
 
             if [ -z "$(ls -A /etc/aziot)" ]; then
                 rm -rf /etc/aziot
             fi
         fi
 
-        if [ -d /var/log/aziot ]; then
-            rm -rf /var/log/aziot
-        fi
+        rm -rf /var/log/aziot
 
         /usr/sbin/userdel iotedge
 
