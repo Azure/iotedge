@@ -191,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var cloudConnection = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
+            var cloudConnection = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
             Assert.Throws<InvalidOperationException>(() => cloudConnection.Value);
         }
 
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var proxyTry = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
+            var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
             Assert.Throws<InvalidOperationException>(() => proxyTry.Value);
         }
 
@@ -292,7 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var proxyTry = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
+            var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
             Assert.True(proxyTry.Success);
         }
 
@@ -344,7 +344,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             IConnectionManager connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
 
-            var proxyTry = await connectionManager.GetCloudConnectionTry(deviceCredentials1Id);
+            var proxyTry = await connectionManager.TryGetCloudConnection(deviceCredentials1Id);
             Assert.Throws<DeviceInvalidStateException>(() => proxyTry.Value);
         }
 

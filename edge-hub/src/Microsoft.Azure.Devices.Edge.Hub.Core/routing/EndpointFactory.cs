@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     CloudEndpointName,
                     s => new CloudEndpoint(
                         "iothub",
-                        id => this.connectionManager.GetCloudConnectionTry(id),
+                        id => this.connectionManager.TryGetCloudConnection(id),
                         this.messageConverter,
                         this.trackDeviceState,
                         this.maxBatchSize,
