@@ -15,6 +15,11 @@ case "$1" in
 
         rm -rf /var/log/aziot
 
+        # Remove supplementary members from the iotedge group.
+        for u in $(getent group iotedge | sed -e "s/^.*://" -e "s/,/ /g"); do
+            gpasswd -d "$u" iotedge
+        done
+
         /usr/sbin/userdel iotedge
 
         if [ -d /var/lib/aziot ] && [ -z "$(ls -A /var/lib/aziot)" ]; then
