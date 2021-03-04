@@ -12,9 +12,6 @@ pub(super) struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) trust_bundle_cert: Option<Url>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) auto_generated_edge_ca_expiry_days: Option<u32>,
-
     #[serde(flatten)]
     pub(super) aziot: aziotctl_common::config::super_config::Config,
 
@@ -33,9 +30,15 @@ pub(super) struct Config {
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
-pub(super) struct EdgeCa {
-    pub(super) cert: Url,
-    pub(super) pk: Url,
+#[serde(untagged)]
+pub(super) enum EdgeCa {
+    Explicit {
+        cert: Url,
+        pk: Url,
+    },
+    Quickstart {
+        auto_generated_edge_ca_expiry_days: u16,
+    },
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
