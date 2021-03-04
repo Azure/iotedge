@@ -113,12 +113,12 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ ! -d ${BUILD_REPOSITORY_LOCALPATH}/kubernetes/charts/${CHART}]] then
+    if [[ ! -d ${BUILD_REPOSITORY_LOCALPATH}/kubernetes/charts/${CHART} ]]; then
         echo "Chart not found in ${BUILD_REPOSITORY_LOCALPATH}/kubernetes/charts/${CHART}"
         print_help_and_exit
     fi
 
-    if [[ -z "$CHART_IMAGENAME" ]] then
+    if [[ -z "$CHART_IMAGENAME" ]]; then
         echo "Chart image name not found"
         print_help_and_exit
     fi
@@ -180,7 +180,6 @@ helm_save_tag_and_push()
 ###############################################################################
 # Main Script Execution
 ###############################################################################
-check_arch
 process_args "$@"
 
 # log in to container registry

@@ -74,7 +74,7 @@ process_args()
 process_args "$@"
 
 CHARTSAVE=$(mktemp -d)
-if [[ -d "$CHARTSAVE" ]] then
+if [[ ! -d "$CHARTSAVE" ]]; then
     echo "Could not create tempdir $CHARTSAVE for moving chart"
     exit 1
 fi
@@ -89,7 +89,7 @@ helm chart export $FROM_IMAGE -d $CHARTSAVE
 
 # The helm chart export command puts the chart in a subdirectory of the target 
 CHARTDIR=$"${CHARTSAVE}/*"
-if [[ -d "$CHARTDIR" ]] then
+if [[ -d "$CHARTDIR" ]]; then
     echo "Helm export failed. [$CHARTDIR] expected to be a single directory"
     exit 1
 fi
