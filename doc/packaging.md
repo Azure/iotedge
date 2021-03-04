@@ -2,14 +2,13 @@
 
 ## What's New
 
-The version 1.2 of IoT Edge introduces significant changes to the underlying daemon which has been refactored and renamed (`iotedged` -> `aziot-edged`). Non-Edge specific functionality was separated into a stand-alone package, `aziot-identity-service`, on which the IoT Edge daemon now depends. The `aziot-identity-service` package replaces the `libiothsm-std` package previously used.
+The version 1.2 of IoT Edge introduces significant changes to the underlying daemon which has been refactored and renamed (`iotedged` -> `aziot-edged`). Non-Edge specific functionality was separated into a stand-alone package, `aziot-identity-service`, on which the IoT Edge daemon now depends. The term 'service' in the name is in the context of it being a Systemd service. The `aziot-identity-service` package replaces the `libiothsm-std` package previously used. The two new packages together maintain the same design principles and goals as the original IoT Edge security daemon.
 
 In anticipation of these large-scale changes we've made the current `iotedge` Linux package (v1.1) into a long-term servicing (LTS) release. The v1.2 of IoT Edge is now composed of two packages:
 
-- `aziot-edge`: This package contains what remained of the security daemon (`aziot-edged`) that acts as a module runtime needed to deploy and manage containerized Edge modules. It may simply be referred to as the IoT Edge daemon or the IoT Edge module runtime (MR). It has a dependency on the `aziot-identity-service` package, and on the Moby runtime package.
+- `aziot-edge`: This package contains what remained of the security daemon (`aziot-edged`). It acts as a module runtime needed to deploy and manage containerized Edge modules. It is simply referred to as the IoT Edge daemon or the IoT Edge module runtime (MR). It has a dependency on the `aziot-identity-service` package, and on the Moby runtime package.
 
-- `aziot-identity-service`: This package  installs daemon's that are responsible for provisioning the device, managing module identities, and managing cryptographic keys and certificates.
-
+- `aziot-identity-service`: This package installs daemon's that are responsible for provisioning the device, managing module identities, and managing cryptographic keys and certificates. 
 ## Comparing Packages
 
 A comparison of the contents of each package is below. For more in-depth discussion of the `aziot-identity-service` package, refer to its documentation on [Packaging](https://azure.github.io/iot-identity-service/packaging.html).
