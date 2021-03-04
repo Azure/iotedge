@@ -1,52 +1,36 @@
 use std::{
     num::{NonZeroU64, NonZeroUsize},
-    path::{Path, PathBuf},
+    path::PathBuf,
     time::Duration,
     vec::Vec,
 };
 
-use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 
 use mqtt_util::{CredentialProviderSettings, Credentials};
 
 use crate::persist::FlushOptions;
 
-pub const DEFAULTS: &str = include_str!("../config/default.json");
 const DEFAULT_UPSTREAM_PORT: &str = "8883";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct BridgeSettings {
     upstream: Option<ConnectionSettings>,
-
     remotes: Vec<ConnectionSettings>,
-
-    messages: MessagesSettings,
-
     storage: StorageSettings,
 }
 
 impl BridgeSettings {
-    pub fn new() -> Result<Self, ConfigError> {
-        let mut config = Config::new();
-
-        config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(Environment::new())?;
-
-        config.try_into()
-    }
-
-    pub fn from_file<P>(path: P) -> Result<Self, ConfigError>
-    where
-        P: AsRef<Path>,
-    {
-        let mut config = Config::new();
-
-        config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
-        config.merge(File::from(path.as_ref()))?;
-        config.merge(Environment::new())?;
-
-        config.try_into()
+    pub fn new(
+        upstream: Option<ConnectionSettings>,
+        remotes: Vec<ConnectionSettings>,
+        storage: StorageSettings,
+    ) -> Self {
+        BridgeSettings {
+            upstream,
+            remotes,
+            storage,
+        }
     }
 
     pub fn from_upstream_details(
@@ -55,9 +39,8 @@ impl BridgeSettings {
         subs: Vec<Direction>,
         clean_session: bool,
         keep_alive: Duration,
-        storage_dir_override: &PathBuf,
-    ) -> Result<Self, ConfigError> {
-        let mut this = Self::new()?;
+        storage_settings: StorageSettings,
+    ) -> Self {
         let upstream_connection_settings = ConnectionSettings {
             name: "$upstream".into(),
             address: addr,
@@ -66,13 +49,11 @@ impl BridgeSettings {
             clean_session,
             keep_alive,
         };
-        this.upstream = Some(upstream_connection_settings);
-        let mut storage = this.storage.clone();
-        if let StorageSettings::RingBuffer(ref mut ring_buffer_settings) = storage {
-            ring_buffer_settings.directory = storage_dir_override.clone();
-            this.storage = storage.clone();
-        }
-        Ok(this)
+        Self::new(
+            Some(upstream_connection_settings),
+            Vec::new(),
+            storage_settings,
+        )
     }
 
     pub fn upstream(&self) -> Option<&ConnectionSettings> {
@@ -81,10 +62,6 @@ impl BridgeSettings {
 
     pub fn remotes(&self) -> &Vec<ConnectionSettings> {
         &self.remotes
-    }
-
-    pub fn messages(&self) -> &MessagesSettings {
-        &self.messages
     }
 
     pub fn storage(&self) -> &StorageSettings {
@@ -101,13 +78,8 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
         struct Inner {
             #[serde(flatten)]
             nested_bridge: Option<CredentialProviderSettings>,
-
             upstream: UpstreamSettings,
-
             remotes: Vec<ConnectionSettings>,
-
-            messages: MessagesSettings,
-
             storage: StorageSettings,
         }
 
@@ -115,7 +87,6 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
             nested_bridge,
             upstream,
             remotes,
-            messages,
             storage,
         } = serde::Deserialize::deserialize(deserializer)?;
 
@@ -135,7 +106,6 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
         Ok(BridgeSettings {
             upstream: upstream_connection_settings,
             remotes,
-            messages,
             storage,
         })
     }
@@ -144,17 +114,14 @@ impl<'de> serde::Deserialize<'de> for BridgeSettings {
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct ConnectionSettings {
     name: String,
-
     address: String,
 
     #[serde(flatten)]
     credentials: Credentials,
-
     subscriptions: Vec<Direction>,
 
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
-
     clean_session: bool,
 }
 
@@ -260,15 +227,10 @@ pub enum Direction {
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct MessagesSettings {}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
 struct UpstreamSettings {
     #[serde(with = "humantime_serde")]
     keep_alive: Duration,
-
     clean_session: bool,
-
     subscriptions: Vec<Direction>,
 }
 

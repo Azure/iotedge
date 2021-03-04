@@ -7,6 +7,7 @@ use config::{Config, ConfigError, Environment, File, FileFormat, Source, Value};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 
+use mqtt_bridge::BridgeSettings;
 use mqtt_broker::{settings::Enable, BrokerConfig};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
@@ -89,6 +90,7 @@ pub struct Settings {
     listener: ListenerConfig,
     broker: BrokerConfig,
     auth: AuthConfig,
+    bridge: BridgeSettings,
 }
 
 impl Settings {
@@ -122,6 +124,10 @@ impl Settings {
 
     pub fn auth(&self) -> &AuthConfig {
         &self.auth
+    }
+
+    pub fn bridge(&self) -> &BridgeSettings {
+        &self.bridge
     }
 }
 
@@ -262,6 +268,10 @@ mod tests {
 
     use serial_test::serial;
 
+    use mqtt_bridge::{
+        settings::{MessagesSettings, RingBufferSettings},
+        BridgeSettings,
+    };
     use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
         SessionPersistenceConfig,
@@ -333,6 +343,15 @@ mod tests {
                         PathBuf::from("/tmp/mqttd/"),
                         Duration::from_secs(300)
                     )
+                ),
+                bridge: BridgeSettings::new(
+                    None,
+                    Vec::new(),
+                    StorageSettings::RingBuffer(RingBufferSettings::new(
+                        NonZeroU64::new(33_554_432).expect("33554432"), //32mb
+                        PathBuf::from("/tmp/mqttd/"),
+                        FlushOptions::AfterEachWrite
+                    ))
                 )
             }
         );
