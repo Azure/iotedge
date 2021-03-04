@@ -21,6 +21,7 @@ case "$1" in
         done
 
         /usr/sbin/userdel iotedge
+        rm -rf /var/lib/aziot/edged
 
         if [ -d /var/lib/aziot ] && [ -z "$(ls -A /var/lib/aziot)" ]; then
             rm -rf /var/lib/aziot
