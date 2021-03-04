@@ -1,7 +1,5 @@
-trust_bundle_cert = "file:///var/secrets/trusted-ca.pem"
-hostname = "my-device"
-
 auto_generated_edge_ca_expiry_days = 30
+hostname = "my-device"
 
 [provisioning]
 always_reprovision_on_startup = true

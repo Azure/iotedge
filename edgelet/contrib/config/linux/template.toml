@@ -29,6 +29,21 @@
 
 
 # ==============================================================================
+# Quickstart certificate expiration
+# ==============================================================================
+#
+# If you do not have your own Edge CA certificate that you want all 
+# module certificates to be issued by, you can uncomment this section and 
+# set the number of days for the lifetime of the auto-generated 
+# self-signed Edge CA certificate. Defaults to 1 day.
+#
+# SECURITY NOTE: this setting is NOT recommended for production usage. Please
+# configure your own Edge CA certificate in the Edge CA section below.
+#
+# auto_generated_edge_ca_expiry_days = 30
+
+
+# ==============================================================================
 # Provisioning
 # ==============================================================================
 #

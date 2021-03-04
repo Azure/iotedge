@@ -162,13 +162,13 @@ fn execute_inner(
     let super_config::Config {
         parent_hostname,
         trust_bundle_cert,
+        auto_generated_edge_ca_expiry_days,
         aziot,
         agent,
         connect,
         listen,
         watchdog,
         edge_ca,
-        auto_generated_edge_ca_expiry_days,
         moby_runtime,
     } = toml::from_slice(&config).map_err(|err| format!("could not parse config file: {}", err))?;
 

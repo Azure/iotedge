@@ -50,7 +50,7 @@ where
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
-            .map(|module_id| module_id.to_string())
+            .map(std::string::ToString::to_string)
             .into_future()
             .and_then(|module_id| {
                 let cn = module_id.clone();
