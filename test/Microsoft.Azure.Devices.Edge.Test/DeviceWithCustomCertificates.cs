@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
-    
+
         [Test]
         [Category("NestedEdgeOnly")]
         [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
