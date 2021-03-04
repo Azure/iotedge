@@ -93,6 +93,32 @@ namespace CloudToDeviceMessageTester
                 this.deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, new ITransportSettings[] { transportSettings });
                 await this.deviceClient.OpenAsync();
                 int messageCount = 0;
+
+                int delay = new Random().Next((int)TimeSpan.FromMinutes(5).TotalMilliseconds, (int)TimeSpan.FromMinutes(50).TotalMilliseconds);
+                this.logger.LogInformation($"Leaf device update after {delay}");
+                Task task = Task.Delay(delay).ContinueWith((state) =>
+                {
+                    if (this.moduleId.EndsWith("1") || this.moduleId.EndsWith("2"))
+                    {
+                        leafDevice.Status = Microsoft.Azure.Devices.DeviceStatus.Disabled;
+                        this.logger.LogInformation("Leaf device was disabled");
+                        return registryManager.UpdateDeviceAsync(leafDevice);
+                    }
+                    else if (this.moduleId.EndsWith("3") || this.moduleId.EndsWith("4"))
+                    {
+                        leafDevice.Scope = string.Empty;
+                        this.logger.LogInformation("Leaf device out of scope");
+                        return registryManager.UpdateDeviceAsync(leafDevice);
+                    }
+                    else if (this.moduleId.EndsWith("5") || this.moduleId.EndsWith("6"))
+                    {
+                        this.logger.LogInformation("Leaf device removed");
+                        return registryManager.RemoveDeviceAsync(leafDevice);
+                    }
+
+                    return Task.CompletedTask;
+                });
+
                 while (!ct.IsCancellationRequested)
                 {
                     this.logger.LogInformation("Ready to receive message");
