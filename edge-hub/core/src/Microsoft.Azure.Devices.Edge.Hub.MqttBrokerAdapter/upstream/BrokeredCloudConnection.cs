@@ -10,15 +10,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class BrokeredCloudConnection : ICloudConnection
     {
-        IIdentity identity;
+        readonly IIdentity identity;
 
-        public BrokeredCloudConnection(BrokeredCloudProxy cloudProxy)
+        public BrokeredCloudConnection(IIdentity identity, ICloudProxy cloudProxy)
         {
+            Preconditions.CheckNotNull(identity);
             Preconditions.CheckNotNull(cloudProxy);
 
             this.IsActive = true;
-            this.CloudProxy = Option.Some(cloudProxy as ICloudProxy);
-            this.identity = cloudProxy.Identity;
+            this.identity = identity;
+            this.CloudProxy = Option.Some(cloudProxy);
         }
 
         public Option<ICloudProxy> CloudProxy { get; }
@@ -32,9 +33,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             try
             {
-                result = await this.CloudProxy.Match(
-                                        cp => cp.CloseAsync(),
-                                        () => Task.FromResult(true));
+                result = await this.CloudProxy
+                                        .Map(cp => cp.CloseAsync())
+                                        .GetOrElse(Task.FromResult(true));
             }
             catch (Exception e)
             {
