@@ -16,90 +16,114 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual   - using an iothub connection string or an X.509 identity certificate
-#     dps      - using dps for provisioning
-#     external - the device has been provisioned externally.
+#     manual   - Using an IoT Hub connection string or
+#                an X.509 identity certificate
+#     dps      - Using DPS for provisioning
+#     external - The device has been provisioned externally.
 #                Uses an external provisioning endpoint to get device specific information.
 #
-# Manual settings when using IoT Hub connection string
-#     device_connection_string - Required. The Edge device connection string
-#                                when using SharedAccessKey authentication mode.
-#                                Ex. "HostName=<hub-name>.azure-devices.net;DeviceId=<device-id>;SharedAccessKey=<key>
+# Manual provisioning with an IoT Hub connection string (SharedAccessKey authentication only)
+#     device_connection_string - The Edge device connection string.
+#                                Eg "HostName=<hub-name>.azure-devices.net;DeviceId=<device-id>;SharedAccessKey=<key>
 #
-# Manual authentication settings when using an X.509 identity certificate
-#     iothub_hostname - Required. The Azure Iot Hub hostname.
-#                       Ex. <hub-name>.azure-devices.net
-#     device_id       - Required. The Edge device id.
-#     identity_cert   - Required. The Edge device identity X.509 certificate
-#                       entry should only be specified when provisioning
-#                       an Edge device configured for X.509 attestation.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded certificate file, the URI
-#                       should be specified as file:///path/identity_certificate.pem
-#     identity_pk     - Required. The Edge device identity private key
-#                       entry should only be specified when provisioning
-#                       an Edge device configured for X.509 attestation.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded private key file, the URI
-#                       should be specified as file:///path/identity_key.pem
+# Manual provisioning with X.509 identity certificate authentication
+#     iothub_hostname - The Azure Iot Hub hostname.
+#                       Eg <hub-name>.azure-devices.net
+#     device_id       - The Edge device ID.
+#     identity_cert   - Path of the file containing the Edge device identity certificate.
+#                       The value must be specified as a "file" URI.
+#                       Eg "file:///C:/secrets/device-id.pem"
+#     identity_pk     - Path of the file containing the private key of
+#                       the Edge device identity certificate.
+#                       The value must be specified as a "file" URI.
+#                       Eg "file:///C:/secrets/device-id.key.pem"
 #
-# DPS Settings
-#     scope_id        - Required. Value of a specific DPS instance's ID scope
-#     registration_id - Required for TPM and symmetric key provisioning flows.
-#                       Optional for X.509 provisioning. Registration ID of a
-#                       specific device in DPS.
-#                       For more information regarding DPS registration ids
+# DPS provisioning with TPM attestation
+#     scope_id        - The DPS instance's ID scope
+#     registration_id - The registration ID of this device in DPS.
+#                       For more information regarding DPS registration IDs,
 #                       please see https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#registration-id
-#     symmetric_key   - Optional. This entry should only be specified when
-#                       provisioning devices configured for symmetric key
-#                       attestation. Device specific symmetric key.
-#     identity_cert   - Optional. The Edge device identity X.509 certificate
-#                       entry should only be specified when an Edge device
-#                       is configured for X.509 authentication.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded certificate file, the URI
-#                       should be specified as file:///C:/identity_certificate.pem
-#     identity_pk     - Optional. The Edge device identity private key
-#                       entry should only be specified when an Edge device
-#                       is configured for X.509 authentication.
-#                       The value should be specified as a URI.
-#                       Ex. when specifying a PEM encoded private key file, the URI
-#                       should be specified as file:///C:/identity_key.pem
-#     always_reprovision_on_startup
-#                     - Optional. If set to false, The daemon will attempt to restore
-#                       the provisioning backup from a previous successful provisioning,
-#                       if any, and only attempt to provision with DPS if that fails.
-#                       Defaults to true, which means the daemon will always attempt to
-#                       provision with DPS, and only fall back to the provisioning backup
-#                       from a previous successful provisioning if the attempt fails.
 #
-#                       If setting this to false, it's recommended to also set
-#                       dynamic_reprovisioning (see below) to true, so that the device can
-#                       automatically reprovision itself if it needs to.
+# DPS provisioning with symmetric key attestation
+#     scope_id        - The DPS instance's ID scope
+#     registration_id - The registration ID of this device in DPS.
+#                       For more information regarding DPS registration IDs,
+#                       please see https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#registration-id
+#     symmetric_key   - The device-specific symmetric key.
 #
-# External Settings
+# DPS provisioning with X.509 identity certificate attestation
+#     scope_id        - The DPS instance's ID scope
+#     registration_id - The registration ID of this device in DPS.
+#                       This value is optional. If not specified,
+#                       the common name of the identity certificate will be used
+#                       as the registration ID.
+#                       For more information regarding DPS registration IDs,
+#                       please see https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#registration-id
+#     identity_cert   - Path of the file containing the Edge device identity certificate.
+#                       The value must be specified as a "file" URI.
+#                       Eg "file:///C:/secrets/device-id.pem"
+#     identity_pk     - Path of the file containing the private key of
+#                       the Edge device identity certificate.
+#                       The value must be specified as a "file" URI.
+#                       Eg "file:///C:/secrets/device-id.key.pem"
+#
+# External provisioning
 #     endpoint - Required. Value of the endpoint used to retrieve device specific
 #                information such as its IoT hub connection information.
 #
-# Dynamic Re-provisioning Settings
-#     dynamic_reprovisioning - Optional. A flag to opt-in to the dynamic re-provisioning 
-#                              feature. If enabled, IoT Edge on detecting a possible 
-#                              device re-provisioning event will shut down the daemon.
-#                              This is so that on the next daemon startup, the device is 
-#                              set up with the new provisioning information of the device in 
-#                              in IoT Hub.
-#                              For the external provisioning mode specifically, the daemon 
-#                              will notify the external provisioning endpoint about the
-#                              re-provisioning event before shutting down.
+# Miscellaenous settings
+#     always_reprovision_on_startup
+#                            - Optional, defaults to true.
+#
+#                              When true, the daemon attempts to reach out to Azure
+#                              on every startup to reprovision this device and
+#                              fetch its latest provisioning state.
+#                              If the daemon is unable to reach Azure, it will attempt to
+#                              restore the backup of a previous successful reprovisioning
+#                              and use that. If this backup is also not available,
+#                              the daemon will exit and restart this process when it's restarted.
+#
+#                              When set to false, the daemon prefers to use the provisioning backup
+#                              first, and only reaches out to Azure if the backup does not exist.
+#
+#                              Note that some provisioning methods like DPS with TPM attestation
+#                              are always considered to be "new" device registrations, and so will
+#                              trigger all existing modules to be stopped, removed and recreated.
+#                              If this is undesirable, consider setting this setting to true.
+#                              The downside is that if the device *is* reprovisioned in Azure,
+#                              the daemon will not notice it even if it's restarted.
+#                              Consider setting the `dynamic_reprovisioning` setting below to `true`
+#                              to resolve this.
+#
+#                              This setting is only meaningful for DPS provisioning methods.
+#                              For manual provisioning, the device registration is static,
+#                              so there is no reprovisioning that would be disruptive to modules
+#                              in the way described above.
+#
+#     dynamic_reprovisioning - Optional, defaults to false.
+#
+#                              Setting this flag to true opts in to
+#                              the dynamic re-provisioning feature.
+#                              IoT Edge will detect situations where the device
+#                              appears to have been reprovisioned in the cloud,
+#                              and respond by shutting itself and all Edge modules down.
+#                              The next time the daemon starts up, it will attempt
+#                              to reprovision this device with Azure to receive
+#                              the new IoT Hub provisioning information.
+#
+#                              When using external provisioning, the daemon
+#                              will also notify the external provisioning endpoint
+#                              about the re-provisioning event before shutting down.
+#
 ###############################################################################
 
-# Manual provisioning configuration using a connection string
+# Manual provisioning with an IoT Hub connection string (SharedAccessKey authentication only)
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
   dynamic_reprovisioning: false
 
-# Manual provisioning configuration using an X.509 identity certificate
+# Manual provisioning with X.509 identity certificate authentication
 # provisioning:
 #   source: "manual"
 #   authentication:
@@ -110,7 +134,7 @@ provisioning:
 #     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
 #   dynamic_reprovisioning: false
 
-# DPS TPM provisioning configuration
+# DPS provisioning with TPM attestation
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
@@ -121,7 +145,7 @@ provisioning:
 #   always_reprovision_on_startup: true
 #   dynamic_reprovisioning: false
 
-# DPS symmetric key provisioning configuration
+# DPS provisioning with symmetric key attestation
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
@@ -133,7 +157,7 @@ provisioning:
 #   always_reprovision_on_startup: true
 #   dynamic_reprovisioning: false
 
-# DPS X.509 provisioning configuration
+# DPS provisioning with X.509 identity certificate attestation
 # provisioning:
 #   source: "dps"
 #   global_endpoint: "https://global.azure-devices-provisioning.net"
@@ -146,7 +170,7 @@ provisioning:
 #   always_reprovision_on_startup: true
 #   dynamic_reprovisioning: false
 
-# External provisioning configuration
+# External provisioning
 # provisioning:
 #   source: "external"
 #   endpoint: "http://localhost:9999"
@@ -156,35 +180,42 @@ provisioning:
 # Certificate settings
 ###############################################################################
 #
-# Configures the certificates required to operate the IoT Edge
-# runtime as a gateway which enables external leaf devices to securely
-# communicate with the Edge Hub. If not specified, the required certificates
-# are auto generated for quick start scenarios which are not intended for
-# production environments.
+# Configures the certificates required to operate the IoT Edge runtime
+# as a gateway, which enables external leaf devices to securely
+# communicate with the Edge Hub.
+#
+# If these values are not specified, the certificates
+# will be auto generated by the daemon. This is useful for quickstart scenarios
+# but is not intended for production environments.
 #
 # Settings:
-#     device_ca_cert   - URI of the device ca certificate and its chain.
-#                        Optionally can be specified as a file path.
-#     device_ca_pk     - URI of the device ca private key file.
-#                        Optionally can be specified as a file path.
-#     trusted_ca_certs - URI containing all the trusted CA
-#                        certificates required for Edge module communication
-#                        Optionally can be specified as a file path.
-#     auto_generated_ca_lifetime_days - The lifetime of the auto-generated workload CA certificate.
-#                                       If device_ca_cert and device_ca_pk have not been set,
-#                                       then this also applies to the auto-generated device CA certificate.
-#                                       Defaults to 90 days.
+#     device_ca_cert   - Path of the file containing the device CA certificate and its chain.
+#                        The value must be specified as a "file" URI.
+#                        Eg "file:///C:/secrets/device-ca.pem"
+#     device_ca_pk     - Path of the file containing the private key of the device CA certificate.
+#                        The value must be specified as a "file" URI.
+#                        Eg "file:///C:/secrets/device-ca.key.pem"
+#     trusted_ca_certs - Path of the file containing the containing
+#                        all the trusted CA certificates required for Edge module communication.
+#                        Edge modules and leaf devices use the certificates in this file to trust
+#                        the server certificate of the Edge Hub, so this file must contain
+#                        at least the device CA certificate specified in `device_ca_cert` above.
+#                        The value must be specified as a "file" URI.
+#                        Eg "file:///C:/secrets/trusted-cas.pem"
+#     auto_generated_ca_lifetime_days -
+#                        The lifetime of the auto-generated workload CA certificate.
+#                        If device_ca_cert and device_ca_pk have not been set (quickstart mode),
+#                        then this is also used for the lifetime of
+#                        the auto-generated device CA certificate.
+#                        Defaults to 90 days.
 #
-# Note:
-# The values of all of these fields must be specified as a
-# "file" scheme URI such as "file:///path/cert_key.pem"
 ###############################################################################
 
 # certificates:
 #   device_ca_cert: "<ADD URI TO DEVICE CA CERTIFICATE HERE>"
 #   device_ca_pk: "<ADD URI TO DEVICE CA PRIVATE KEY HERE>"
 #   trusted_ca_certs: "<ADD URI TO TRUSTED CA CERTIFICATES HERE>"
-#   auto_generated_ca_lifetime_days: <value>
+#   auto_generated_ca_lifetime_days: 90
 
 ###############################################################################
 # Edge Agent module spec
