@@ -133,21 +133,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Delete test certs, keys, etc.
                     Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
-
-                    // Restore backed up config files.
-                    foreach ((string file, string _) in this.configFiles)
-                    {
-                        string backupFile = file + ".backup";
-
-                        if (File.Exists(backupFile))
-                        {
-                            File.Move(backupFile, file, true);
-                        }
-                        else
-                        {
-                            File.Delete(file);
-                        }
-                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>
