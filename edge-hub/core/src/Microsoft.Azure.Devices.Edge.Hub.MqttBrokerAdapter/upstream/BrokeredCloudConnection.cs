@@ -17,18 +17,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             Preconditions.CheckNotNull(identity);
             Preconditions.CheckNotNull(cloudProxy);
 
-            this.IsActive = true;
             this.identity = identity;
             this.CloudProxy = Option.Some(cloudProxy);
         }
 
         public Option<ICloudProxy> CloudProxy { get; }
 
-        public bool IsActive { get; private set; }
+        public bool IsActive => this.CloudProxy.Map(cp => cp.IsActive).GetOrElse(false);
 
         public async Task<bool> CloseAsync()
         {
-            this.IsActive = false;
             var result = default(bool);
 
             try
