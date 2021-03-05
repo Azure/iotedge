@@ -64,7 +64,31 @@ az deployment group create --resource-group "$resource_group_name" --name 'e2e-p
 )"
 ```
 
-Once the deployment has completed, SSH/RDP into each runner VM to install and configure the Azure Pipelines agent. To access the runner VMs, you must first download their private keys/passwords from Key Vault. Find the name of the key vault from your deployment, then list the secret URLs for the private keys/passwprds:
+## PowerShell deployment notes
+
+Variable assignments are the same, except that the variable names should be prefixed with '$', e.g.:
+
+```PowerShell
+# Name of Azure subscription
+$subscription_name='<>'
+# ...
+```
+
+The command to deploy the VMs is little different because it doesn't use jq, and bash syntax is replaced with PowerShell:
+
+```PowerShell
+az group create -l "$location" -n "$resource_group_name"
+az deployment group create --resource-group "$resource_group_name" --name 'e2e-proxy' --template-file ./proxy-deployment-template.json --parameters `
+    resource_prefix="$resource_prefix" `
+    linux_runner_count="$linux_runner_count" `
+    windows_runner_count="$windows_runner_count" `
+    key_vault_access_objectid="$key_vault_access_objectid" `
+    create_runner_public_ip='true'
+```
+
+## Post-deployment steps
+
+Once the deployment has completed, SSH/RDP into each runner VM to install and configure the Azure Pipelines agent. To access the runner VMs, first download their private keys/passwords from Key Vault. Find the name of the key vault from your deployment, then list the secret URLs for the private keys/passwords:
 
 ```sh
 az keyvault secret list --vault-name '<>' -o tsv --query "[].id|[?contains(@, 'runner')]"
@@ -92,7 +116,8 @@ To install and configure Azure Pipelines agent, see [Self-hosted Linux Agents](h
 > - The private IP address of the proxy VM, e.g. `http://10.0.0.4:3128`
 >
 > The end-to-end tests get the proxy URL from the agent (via the predefined variable `$(Agent.ProxyUrl)`). Therefore, when you configure the agent you must give it one of the two proxy URLs described above (using either the fully-qualified name or the IP address). For example, To pass the fully-qualifed name during agent installation on a runner VM:
-> ```
+
+> ```sh
 > proxy_hostname='<>'
 > proxy_fqdn="http://$proxy_hostname.$(grep -Po '^search \K.*' /etc/resolv.conf):3128"
 > ./config.sh --proxyurl $proxy_fqdn
