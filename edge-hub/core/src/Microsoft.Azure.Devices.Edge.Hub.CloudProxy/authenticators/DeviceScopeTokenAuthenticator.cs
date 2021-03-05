@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
             IAuthenticator underlyingAuthenticator,
             bool allowDeviceAuthForModule,
             bool syncServiceIdentityOnFailure,
-            bool nestedEdgeEnabled = false)
+            bool nestedEdgeEnabled = true)
             : base(deviceScopeIdentitiesCache, underlyingAuthenticator, allowDeviceAuthForModule, syncServiceIdentityOnFailure, nestedEdgeEnabled)
         {
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
