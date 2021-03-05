@@ -5,12 +5,10 @@ homedir_path = "/var/lib/aziot/certd"
 [cert_issuance.aziot-edged-ca]
 method = "self_signed"
 common_name = "iotedged workload ca"
-expiry_days = 90
+expiry_days = 30
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca"]
-"content-trust-contoso1.azurecr.io" = "file:///var/secrets/contoso1-ca.pem"
-"content-trust-contoso2.azurecr.io" = "file:///var/secrets/contoso2-ca.pem"
 
 [[principal]]
 uid = 5558

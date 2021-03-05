@@ -55,6 +55,9 @@ min_tls_version = "tls1.0"
 [watchdog]
 max_retries = "infinite"
 
+[edge_ca]
+auto_generated_edge_ca_expiry_days = 90
+
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"
 network = "azure-iot-edge"
