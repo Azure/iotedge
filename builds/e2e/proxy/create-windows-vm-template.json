@@ -129,9 +129,9 @@
 		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
-			"publisher": "Microsoft.Azure.Extensions",
-			"type": "CustomScript",
-			"typeHandlerVersion": "2.0",
+			"publisher": "Microsoft.Compute",
+			"type": "CustomScriptExtension",
+			"typeHandlerVersion": "1.10",
 			"autoUpgradeMinorVersion": true,
 			"settings": {},
 			"protectedSettings": {
