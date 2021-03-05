@@ -97,7 +97,6 @@ namespace CloudToDeviceMessageTester
                 int delay = new Random().Next((int)TimeSpan.FromMinutes(5).TotalMilliseconds, (int)TimeSpan.FromMinutes(50).TotalMilliseconds);
                 this.logger.LogInformation($"Leaf device update after {TimeSpan.FromMilliseconds(delay).TotalMinutes}");
 
-
                 while (!ct.IsCancellationRequested)
                 {
                     this.logger.LogInformation("Ready to receive message");
@@ -115,7 +114,6 @@ namespace CloudToDeviceMessageTester
                             $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
                             $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, ");
                         await this.ReportTestResult(message);
-                        //await this.deviceClient.CompleteAsync(message);
                     }
                     catch (Exception ex)
                     {
