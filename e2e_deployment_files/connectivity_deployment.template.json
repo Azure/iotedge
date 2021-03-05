@@ -51,9 +51,6 @@
               },
               "experimentalfeatures__enableMetrics": {
                 "value": "true"
-              },
-              "RuntimeLogLevel": {
-                "value": "debug"
               }
             },
             "status": "running",
@@ -424,7 +421,7 @@
               "createOptions": ""
             }
           },
-          "cloudToDeviceMessageReceiver1": {
+          "cloudToDeviceMessageReceiver3": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -448,7 +445,7 @@
               "createOptions": ""
             }
           },
-          "cloudToDeviceMessageReceiver2": {
+          "cloudToDeviceMessageReceiver4": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -627,15 +624,15 @@
           "reportMetadata13": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageReceiver1.send",
-            "ActualSource": "cloudToDeviceMessageReceiver1.evenHub",
+            "ExpectedSource": "cloudToDeviceMessageReceiver3.send",
+            "ActualSource": "cloudToDeviceMessageReceiver3.evenHub",
             "TestDescription": "C2D | amqp"
           },
           "reportMetadata14": {
             "TestReportType": "CountingReport",
             "TestOperationResultType": "Messages",
-            "ExpectedSource": "cloudToDeviceMessageReceiver2.send",
-            "ActualSource": "cloudToDeviceMessageReceiver2.evenHub",
+            "ExpectedSource": "cloudToDeviceMessageReceiver4.send",
+            "ActualSource": "cloudToDeviceMessageReceiver4.evenHub",
             "TestDescription": "C2D | amqp"
           },
           "reportMetadata15": {
