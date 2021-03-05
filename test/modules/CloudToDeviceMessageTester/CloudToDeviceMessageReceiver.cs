@@ -95,29 +95,8 @@ namespace CloudToDeviceMessageTester
                 int messageCount = 0;
 
                 int delay = new Random().Next((int)TimeSpan.FromMinutes(5).TotalMilliseconds, (int)TimeSpan.FromMinutes(50).TotalMilliseconds);
-                this.logger.LogInformation($"Leaf device update after {delay}");
-                Task task = Task.Delay(delay).ContinueWith((state) =>
-                {
-                    if (this.moduleId.EndsWith("1") || this.moduleId.EndsWith("2"))
-                    {
-                        leafDevice.Status = Microsoft.Azure.Devices.DeviceStatus.Disabled;
-                        this.logger.LogInformation("Leaf device was disabled");
-                        return registryManager.UpdateDeviceAsync(leafDevice);
-                    }
-                    else if (this.moduleId.EndsWith("3") || this.moduleId.EndsWith("4"))
-                    {
-                        leafDevice.Scope = string.Empty;
-                        this.logger.LogInformation("Leaf device out of scope");
-                        return registryManager.UpdateDeviceAsync(leafDevice);
-                    }
-                    else if (this.moduleId.EndsWith("5") || this.moduleId.EndsWith("6"))
-                    {
-                        this.logger.LogInformation("Leaf device removed");
-                        return registryManager.RemoveDeviceAsync(leafDevice);
-                    }
+                this.logger.LogInformation($"Leaf device update after {TimeSpan.FromMilliseconds(delay).TotalMinutes}");
 
-                    return Task.CompletedTask;
-                });
 
                 while (!ct.IsCancellationRequested)
                 {
@@ -131,13 +110,12 @@ namespace CloudToDeviceMessageTester
                         message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId.ToString());
                         await this.deviceClient.SendEventAsync(message);
 
-                        this.logger.LogInformation($"Message received. " +
+                        this.logger.LogInformation($"Message sent. " +
                             $"Sequence Number: {message.Properties[TestConstants.Message.SequenceNumberPropertyName]}, " +
                             $"batchId: {message.Properties[TestConstants.Message.BatchIdPropertyName]}, " +
-                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, " +
-                            $"LockToken: {message.LockToken}.");
+                            $"trackingId: {message.Properties[TestConstants.Message.TrackingIdPropertyName]}, ");
                         await this.ReportTestResult(message);
-                        await this.deviceClient.CompleteAsync(message);
+                        //await this.deviceClient.CompleteAsync(message);
                     }
                     catch (Exception ex)
                     {
