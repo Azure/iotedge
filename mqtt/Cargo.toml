@@ -6,6 +6,7 @@ members = [
     "mqtt-broker-tests-util",
     "mqtt-edgehub",
     "mqtt-generic",
+    "mqtt-otel",
     "mqtt-policy",
     "mqtt-util",
     "mqttd",
