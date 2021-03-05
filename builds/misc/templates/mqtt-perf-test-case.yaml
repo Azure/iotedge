@@ -78,22 +78,38 @@ jobs:
 
   # AMD64 Cleanup
   - task: SSH@0
+    displayName: Remove broker AMD64
+    inputs:
+      sshEndpoint: iotedge-mqtt-perf-amd64-conn
+      runOptions: commands
+      commands: |
+        docker rm -f mqtt-broker || true
+    continueOnError: true 
+    condition: eq(variables['arch'], 'amd64')
+  - task: SSH@0
     displayName: Restart broker AMD64
     inputs:
       sshEndpoint: iotedge-mqtt-perf-amd64-conn
       runOptions: commands
       commands: |
-        docker restart mqtt-broker
-    continueOnError: true 
+        docker run -d --network=host --security-opt apparmor=unconfined --name=mqtt-broker $(cat brokerImageName.txt)
     condition: eq(variables['arch'], 'amd64')
 
   # ARM32 Cleanup
+  - task: SSH@0
+    displayName: Remove broker ARM32
+    inputs:
+      sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
+      runOptions: commands
+      commands: |
+        docker rm -f mqtt-broker || true
+    continueOnError: true 
+    condition: eq(variables['arch'], 'arm32v7')
   - task: SSH@0
     displayName: Restart broker ARM32
     inputs:
       sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
       runOptions: commands
       commands: |
-        docker restart mqtt-broker
-    continueOnError: true 
+        docker run -d --network=host --security-opt apparmor=unconfined --name=mqtt-broker $(cat brokerImageName.txt)
     condition: eq(variables['arch'], 'arm32v7')

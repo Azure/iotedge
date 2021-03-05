@@ -127,14 +127,31 @@ steps:
       $rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
     }
 
-    echo "Edge agent image: $imagePrefix-agent:$imageTag"
+    if ('$(customEdgeAgent.image)')
+    {
+      $edgeAgentImage = "$(customEdgeAgent.image)"; 
+    }else
+    {
+      $edgeAgentImage = "$imagePrefix-agent:$imageTag";
+    }
+
+    if ('$(customEdgeHub.image)')
+    {
+      $edgeHubImage = "$(customEdgeHub.image)";
+    }else
+    {
+      $edgeHubImage = "$imagePrefix-hub:$imageTag";
+    }
+
+    echo "Edge agent image: $edgeAgentImage"
+    echo "Edge hub image: $edgeHubImage"
 
     $context = @{
       nestededge = "$nestededge";
       dpsIdScope = '$(dps.idScope)';
       isa95Tag = 'false';
-      edgeAgentImage = "$imagePrefix-agent:$imageTag";
-      edgeHubImage = "$imagePrefix-hub:$imageTag";
+      edgeAgentImage = "$edgeAgentImage";
+      edgeHubImage = "$edgeHubImage";
       diagnosticsImage = "$diagnosticImagePrefix-diagnostics:$imageTag";
       tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
       tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";

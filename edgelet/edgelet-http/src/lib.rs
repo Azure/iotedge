@@ -47,7 +47,6 @@ use edgelet_utils::log_failure;
 
 pub mod authentication;
 pub mod authorization;
-pub mod certificate_manager;
 pub mod client;
 pub mod error;
 pub mod logging;
@@ -57,7 +56,6 @@ mod unix;
 mod util;
 mod version;
 
-pub use certificate_manager::CertificateManager;
 pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
 pub use pid::Pid;
 pub use util::proxy::MaybeProxyClient;

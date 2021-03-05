@@ -29,15 +29,12 @@
               "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "DeviceScopeCacheRefreshDelaySecs": {
                 "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }                   
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -59,6 +56,30 @@
                 "value": "443"
               }
             }
+          },
+          "relayer1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "Amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "EnableTrcReporting": {
+                "value": false
+              }
+            },
+            "settings": {
+              "image": "$upstream:443/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
           }
         }
       }
@@ -67,6 +88,7 @@
       "properties.desired": {
         "schemaVersion": "1.2",
         "routes": {
+          "ToRelayer1": "FROM /messages/* WHERE $connectionDeviceId = \"L3LeafToRelayer1\" INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "ToUpstream": "FROM /messages/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
@@ -74,18 +96,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
-                  ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
                   ]
-              }
+                }
+              ]
+            }
           ]
         }
       }
