@@ -184,7 +184,7 @@
 					"resources": [
 						{
 							"type": "Microsoft.KeyVault/vaults/secrets",
-							"name": "[concat(variables('key_vault_name'), '/', variables('windows_runner_prefix'), copyIndex(), '-password')]",
+							"name": "[concat(variables('key_vault_name'), '/', variables('windows_runner_prefix'), add(copyIndex(), 1), '-password')]",
 							"apiVersion": "2019-09-01",
 							"properties": {
 								"value": "[reference(variables('secretgen_script_name')).outputs.passwords[copyIndex()]]"
