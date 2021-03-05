@@ -720,16 +720,58 @@
             "ActualSource": "deploymentTester2.receive",
             "TestDescription": "deployment"
           },
+          "reportMetadata13": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver1.send",
+            "ActualSource": "cloudToDeviceMessageReceiver1.evenHub",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata14": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver2.send",
+            "ActualSource": "cloudToDeviceMessageReceiver2.evenHub",
+            "TestDescription": "C2D | amqp"
+          },
           "reportMetadata15": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver3.send",
+            "ActualSource": "cloudToDeviceMessageReceiver3.evenHub",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata16": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver4.send",
+            "ActualSource": "cloudToDeviceMessageReceiver4.evenHub",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata17": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver5.send",
+            "ActualSource": "cloudToDeviceMessageReceiver5.evenHub",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata18": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver6.send",
+            "ActualSource": "cloudToDeviceMessageReceiver6.evenHub",
+            "TestDescription": "C2D | amqp"
+          },
+          "reportMetadata19": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
             "TestDescription": "network controller"
           },
-          "reportMetadata16": {
+          "reportMetadata20": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata17": {
+          "reportMetadata21": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }
