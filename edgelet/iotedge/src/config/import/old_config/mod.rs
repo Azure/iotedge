@@ -209,4 +209,7 @@ homedir: '/var/lib/iotedge'
 moby_runtime:
   uri: 'unix:///var/run/docker.sock'
   network: 'azure-iot-edge'
+
+certificates:
+  auto_generated_ca_lifetime_days: 90
 ";

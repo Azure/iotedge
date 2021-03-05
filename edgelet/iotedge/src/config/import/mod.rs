@@ -309,7 +309,7 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             } else {
                 (
                     Some(super_config::EdgeCa::Quickstart {
-                        auto_generated_edge_ca_expiry_days: auto_generated_ca_lifetime_days,
+                        auto_generated_edge_ca_expiry_days: auto_generated_ca_lifetime_days.into(),
                     }),
                     None,
                 )

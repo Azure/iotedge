@@ -37,7 +37,7 @@ pub(super) enum EdgeCa {
         pk: Url,
     },
     Quickstart {
-        auto_generated_edge_ca_expiry_days: u16,
+        auto_generated_edge_ca_expiry_days: u32,
     },
 }
 
