@@ -236,7 +236,7 @@ fn execute_inner(
                 aziot_certd_config::CertIssuanceOptions {
                     method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
                     common_name: Some(IOTEDGED_COMMONNAME.to_owned()),
-                    expiry_days: Some(auto_generated_edge_ca_expiry_days.into()),
+                    expiry_days: Some(auto_generated_edge_ca_expiry_days),
                 },
             );
 
