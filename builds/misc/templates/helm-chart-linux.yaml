@@ -1,0 +1,12 @@
+parameters:
+  chart: ''
+  imageName: ''
+  namespace: 'microsoft'
+  version: ''
+
+steps:
+  - task: Bash@3
+    displayName: Build Helm Chart - ${{ parameters.chart }}
+    inputs:
+      filePath: scripts/linux/buildHelmCharts.sh
+      arguments: -C "{{ parameters.chart }}" -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -v "${{ parameters.version }}"

@@ -380,6 +380,22 @@ jobs:
         displayName: Clean Machine
 
 ################################################################################
+  - job: linux_helm_charts
+################################################################################
+    displayName: Helm Charts
+    pool:
+      vmImage: ubuntu-18.04
+    steps:
+    - template: templates/helm-chart-linux.yaml
+      parameters:
+        chart: edge-kubernetes-crd
+        imageName: edge-kubernetes-crd
+    - template: templates/helm-chart-linux.yaml
+      parameters:
+        chart: edge-kubernetes
+        imageName: edge-kubernetes
+
+################################################################################
   - job: manifest
 ################################################################################
     displayName: Manifest
