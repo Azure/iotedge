@@ -28,9 +28,10 @@ async fn main() -> Result<()> {
 
     let app_fut = app.run();
 
-    let (_prom_server_res, _app_res) = futures::join!(prom_server_fut, app_fut);
-
-    Ok(())
+    tokio::select! {
+        _ = prom_server_fut => Ok(()),
+        _ = app_fut => Ok(())
+    }
 }
 
 fn create_app() -> App<'static, 'static> {

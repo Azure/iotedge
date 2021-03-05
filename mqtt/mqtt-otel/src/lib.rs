@@ -1,6 +1,3 @@
-use opentelemetry::global;
-use opentelemetry::metrics::Counter;
-
 use hyper::{
     header::CONTENT_TYPE,
     service::{make_service_fn, service_fn},
@@ -40,13 +37,6 @@ async fn serve_req(
 
 pub fn init_prometheus_metrics_exporter() -> Result<PrometheusExporter, MetricsError> {
     opentelemetry_prometheus::exporter().try_init()
-}
-
-pub fn init_u64_counter(meter_name: &'static str, name: &str, description: &str) -> Counter<u64> {
-    global::meter(meter_name)
-        .u64_counter(name)
-        .with_description(description)
-        .init()
 }
 
 pub fn create_prometheus_server(
