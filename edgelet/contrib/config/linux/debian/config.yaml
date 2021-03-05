@@ -71,7 +71,7 @@
 #     endpoint - Required. Value of the endpoint used to retrieve device specific
 #                information such as its IoT hub connection information.
 #
-# Miscellaenous settings
+# Miscellaneous settings
 #     always_reprovision_on_startup
 #                            - Optional, defaults to true.
 #
