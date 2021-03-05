@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher, connectionStatusChangedHandler);
-            return new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy));
+            return new Try<ICloudConnection>(new BrokeredCloudConnection(identity, cloudProxy));
         }
 
         // The purpose of this method is to make less noise in logs when the broker
