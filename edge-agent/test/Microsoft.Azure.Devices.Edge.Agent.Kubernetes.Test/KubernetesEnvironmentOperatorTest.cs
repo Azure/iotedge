@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var runtimeInfo = Mock.Of<IRuntimeInfoSource>();
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ListNamespacedPodWithHttpMessagesAsync(DeviceNamespace, null, null, null, null, null, null, null, true, null, null, It.IsAny<CancellationToken>()))
+            Mock.Get(client).Setup(c => c.ListNamespacedPodWithHttpMessagesAsync(DeviceNamespace, null, null, null, null, null, null, null, null, true, null, null, It.IsAny<CancellationToken>()))
                 .Throws(listingError);
 
             var edgeOperator = new KubernetesEnvironmentOperator(

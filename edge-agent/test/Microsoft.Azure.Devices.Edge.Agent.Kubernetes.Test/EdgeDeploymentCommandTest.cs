@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             EdgeDeploymentDefinition edgeDeploymentDefinition = null;
             client.SetupCreateEdgeDeploymentDefinition()
                 .Callback(
-                    (object body, string group, string version, string ns, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) => { edgeDeploymentDefinition = ((JObject)body).ToObject<EdgeDeploymentDefinition>(); })
+                    (object body, string group, string version, string ns, string plural, string dryRun, string fieldManager, string pretty, Dictionary<string, List<string>> customHeaders, CancellationToken cancellationToken) => { edgeDeploymentDefinition = ((JObject)body).ToObject<EdgeDeploymentDefinition>(); })
                 .ReturnsAsync(() => CreateResponse<object>(edgeDeploymentDefinition));
 
             var cmd = new EdgeDeploymentCommand(ResourceName, Selector, Namespace, client.Object, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
@@ -261,6 +261,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     It.IsAny<string>(),
                     KubernetesConstants.EdgeDeployment.Plural,
                     It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
                     null,
                     It.IsAny<CancellationToken>()));
 
@@ -272,6 +274,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     KubernetesConstants.EdgeDeployment.Version,
                     It.IsAny<string>(),
                     KubernetesConstants.EdgeDeployment.Plural,
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
                     It.IsAny<string>(),
                     null,
                     It.IsAny<CancellationToken>()));
@@ -288,6 +292,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<int?>(),
+                    It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<int?>(),
                     It.IsAny<bool?>(),

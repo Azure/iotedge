@@ -45,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 .ReturnsAsync(returnedStatus);
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, string dryRun, string fieldManager, Dictionary<string, List<string>> customHeaders, CancellationToken token) =>
                 {
                     Assert.True(o is JObject);
                     EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 .ReturnsAsync(returnedStatus);
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(response);
 
             var edgeOperator = new EdgeDeploymentOperator(
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Modified, edgeDefinition, Cts);
 
             Mock.Get(controller).Verify(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()), Times.Exactly(2));
-            Mock.Get(client).Verify(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Once);
+            Mock.Get(client).Verify(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Unit]
@@ -164,8 +164,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 .ThrowsAsync(controllerException);
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, string dryRun, string fieldManager, Dictionary<string, List<string>> customHeaders, CancellationToken token) =>
                 {
                     Assert.True(o is JObject);
                     EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
@@ -208,8 +208,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 .ThrowsAsync(controllerException);
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, string dryRun, string fieldManager, Dictionary<string, List<string>> customHeaders, CancellationToken token) =>
                 {
                     Assert.True(o is JObject);
                     EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
@@ -240,7 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
             var controller = Mock.Of<IEdgeDeploymentController>();
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, null, null, null, It.IsAny<int?>(), true, null, null, It.IsAny<CancellationToken>()))
+            Mock.Get(client).Setup(c => c.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, null, null, null, null, null, null, null, It.IsAny<int?>(), true, null, null, It.IsAny<CancellationToken>()))
                 .Throws(controllerException);
 
             var edgeOperator = new EdgeDeploymentOperator(
@@ -296,8 +296,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 .ThrowsAsync(controllerException);
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, string dryRun, string fieldManager, Dictionary<string, List<string>> customHeaders, CancellationToken token) =>
                 {
                     Assert.True(o is JObject);
                     EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
@@ -340,8 +340,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 .ThrowsAsync(controllerException);
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()))
-                .Callback((object o, string group, string version, string _namespace, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) =>
+            Mock.Get(client).Setup(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, null, null, It.IsAny<CancellationToken>()))
+                .Callback((object o, string group, string version, string _namespace, string plural, string name, string dryRun, string fieldManager, Dictionary<string, List<string>> customHeaders, CancellationToken token) =>
                 {
                     Assert.True(o is JObject);
                     EdgeDeploymentDefinition e = ((JObject)o).ToObject<EdgeDeploymentDefinition>();
