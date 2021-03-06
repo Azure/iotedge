@@ -127,6 +127,10 @@ impl RuntimeSettings for TestSettings {
     fn trust_bundle_cert(&self) -> Option<&str> {
         unimplemented!()
     }
+
+    fn dynamic_reprovisioning(&self) -> bool {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone, Debug)]

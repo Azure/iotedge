@@ -282,6 +282,9 @@ fn execute_inner(
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
 
+            //TODO: Read from super config
+            dynamic_reprovisioning: true,
+
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
             agent,

@@ -258,6 +258,7 @@ pub trait RuntimeSettings {
     fn edge_ca_cert(&self) -> Option<&str>;
     fn edge_ca_key(&self) -> Option<&str>;
     fn trust_bundle_cert(&self) -> Option<&str>;
+    fn dynamic_reprovisioning(&self) -> bool;
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -273,6 +274,9 @@ pub struct Settings<T> {
     pub edge_ca_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,
+
+    #[serde(default)]
+    pub dynamic_reprovisioning: bool,
 
     pub homedir: PathBuf,
 
@@ -344,6 +348,10 @@ where
 
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.trust_bundle_cert.as_deref()
+    }
+
+    fn dynamic_reprovisioning(&self) -> bool {
+        self.dynamic_reprovisioning
     }
 }
 

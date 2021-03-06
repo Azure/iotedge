@@ -311,6 +311,10 @@ where
                         &mut tokio_runtime,
                     )?;
 
+                    if should_reprovision {
+                        tokio_runtime.block_on(reprovision_device(&client))?;
+                    }
+
                     if code != StartApiReturnStatus::Restart {
                         break;
                     }
@@ -345,6 +349,15 @@ fn get_device_info(
                 InitializeErrorReason::InvalidIdentityType,
             ))),
         })
+}
+
+fn reprovision_device(
+    identity_client: &Arc<Mutex<IdentityClient>>,
+) -> impl Future<Item = (), Error = Error> {
+    let id_mgr = identity_client.lock().unwrap();
+    id_mgr
+        .reprovision_device()
+        .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -408,7 +421,7 @@ where
                 Err(((), _)) => Err(Error::from(ErrorKind::ManagementService)),
             });
 
-    let mgmt_stop_and_reprovision_signaled = if true {
+    let mgmt_stop_and_reprovision_signaled = if settings.dynamic_reprovisioning() {
         futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
     } else {
         futures::future::Either::A(future::empty())

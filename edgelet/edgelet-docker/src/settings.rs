@@ -148,6 +148,10 @@ impl RuntimeSettings for Settings {
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.base.trust_bundle_cert()
     }
+
+    fn dynamic_reprovisioning(&self) -> bool {
+        self.base.dynamic_reprovisioning()
+    }
 }
 
 fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {

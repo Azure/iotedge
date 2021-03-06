@@ -736,6 +736,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         // be emitted from Identity Service
         let provisioning = ProvisioningInfo {
             r#type: "ProvisioningType".into(),
+            //TODO: read from settings
             dynamic_reprovisioning: false,
             always_reprovision_on_startup: false,
         };
@@ -1526,6 +1527,10 @@ mod tests {
         }
 
         fn trust_bundle_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn dynamic_reprovisioning(&self) -> bool {
             unimplemented!()
         }
     }
