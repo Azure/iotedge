@@ -24,5 +24,6 @@ pub mod upstream;
 pub use crate::{
     config_update::BridgeControllerUpdate,
     controller::{BridgeController, BridgeControllerHandle, Error},
+    persist::FlushOptions,
     settings::BridgeSettings,
 };

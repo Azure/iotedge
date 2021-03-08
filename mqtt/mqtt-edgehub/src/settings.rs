@@ -38,7 +38,7 @@ impl Source for BrokerEnvironment {
         Box::new((*self).clone())
     }
 
-    // Currently, BrokerEnvironment allows only the env variables explicitly
+    // BrokerEnvironment allows only the env variables explicitly
     // defined in the method below.
     //
     // We use intermediate instance of `Config` to enumerate all env vars
@@ -49,7 +49,7 @@ impl Source for BrokerEnvironment {
     //   evn vars casing, prefixing, separators...
     //
     // NOTE: if adding new env vars - don't forget to use lowercase
-    // and update `check_env_var_name_override` test.
+    // and update `check_env_var_can_override_broker_settings` test.
     fn collect(&self) -> Result<HashMap<String, Value>, ConfigError> {
         let mut host_env = Config::new();
         // regular env vars
@@ -76,8 +76,83 @@ impl Source for BrokerEnvironment {
 
         // persistance
         if let Ok(val) = host_env.get::<Value>("storagefolder") {
-            result.insert("broker.persistence.folder_path".into(), val.clone());
-            result.insert("bridge.persistence.folder_path".into(), val);
+            result.insert("broker.persistence.folder_path".into(), val);
+        }
+
+        Ok(result)
+    }
+}
+
+/// `BridgeEnvironment` is our custom implementation of `config::Source`
+/// that can handle existing `EdgeHub` module env vars and convert them
+/// into bridge upstream config structure and other settings.
+#[derive(Debug, Clone)]
+pub struct BridgeEnvironment;
+
+impl Source for BridgeEnvironment {
+    fn clone_into_box(&self) -> Box<dyn Source + Send + Sync> {
+        Box::new((*self).clone())
+    }
+
+    // BridgeEnvironment allows only the env variables explicitly
+    // defined in the method below.
+    //
+    // We use intermediate instance of `Config` to enumerate all env vars
+    // and then manually map them to our internal config structure.
+    // This is done for two reasons:
+    // - our bridge config structure does not match legacy EdgeHub env vars,
+    // - `Config` does a bunch of useful things - takes care of
+    //   evn vars casing, prefixing, separators...
+    //
+    // NOTE: if adding new env vars - don't forget to use lowercase
+    // and update `check_env_var_can_override_bridge_settings` test.
+    fn collect(&self) -> Result<HashMap<String, Value>, ConfigError> {
+        let mut host_env = Config::new();
+        // regular env vars
+        host_env.merge(Environment::new())?;
+        // broker specific vars
+        host_env.merge(Environment::with_prefix("MqttBridge_").separator(":"))?;
+        host_env.merge(Environment::with_prefix("MqttBridge_").separator("__"))?;
+
+        let mut result: HashMap<String, config::Value> = HashMap::new();
+
+        // edgehub module upstream settings
+        if let Ok(val) = host_env.get::<Value>("iotedge_iothubhostname") {
+            result.insert("bridge.iothub_hostname".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("iotedge_gatewayhostname") {
+            result.insert("bridge.gateway_hostname".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("iotedge_deviceid") {
+            result.insert("bridge.device_id".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("iotedge_moduleid") {
+            result.insert("bridge.module_id".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("iotedge_modulegenerationid") {
+            result.insert("bridge.generation_id".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("iotedge_workloaduri") {
+            result.insert("bridge.workload_uri".into(), val);
+        }
+
+        // storage rign buffer
+        if let Ok(val) = host_env.get::<Value>("storagetype") {
+            result.insert("bridge.storage.type".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("storagemaxfilesize") {
+            result.insert("bridge.storage.max_file_size".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("storageflushoptions") {
+            result.insert("bridge.storage.flush_options".into(), val);
+        }
+        if let Ok(val) = host_env.get::<Value>("storagefolder") {
+            result.insert("bridge.storage.directory".into(), val);
+        }
+
+        // storage in memory
+        if let Ok(val) = host_env.get::<Value>("storagesize") {
+            result.insert("bridge.storage.max_size".into(), val);
         }
 
         Ok(result)
@@ -98,6 +173,7 @@ impl Settings {
         let mut config = Config::new();
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(BrokerEnvironment)?;
+        config.merge(BridgeEnvironment)?;
 
         config.try_into()
     }
@@ -110,6 +186,7 @@ impl Settings {
         config.merge(File::from_str(DEFAULTS, FileFormat::Json))?;
         config.merge(File::from(path.as_ref()))?;
         config.merge(BrokerEnvironment)?;
+        config.merge(BridgeEnvironment)?;
 
         config.try_into()
     }
@@ -264,19 +341,27 @@ impl AuthConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::{path::PathBuf, time::Duration};
+    use std::{
+        num::{NonZeroU64, NonZeroUsize},
+        path::PathBuf,
+        time::Duration,
+    };
 
     use serial_test::serial;
 
     use mqtt_bridge::{
-        settings::{MessagesSettings, RingBufferSettings},
-        BridgeSettings,
+        settings::{
+            ConnectionSettings, Direction, MemorySettings, RingBufferSettings, StorageSettings,
+            TopicRule,
+        },
+        BridgeSettings, FlushOptions,
     };
     use mqtt_broker::settings::{
         BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
         SessionPersistenceConfig,
     };
     use mqtt_broker_tests_util::env;
+    use mqtt_util::{AuthenticationSettings, CredentialProviderSettings, Credentials};
 
     use super::{AuthConfig, ListenerConfig, Settings, TcpTransportConfig, TlsTransportConfig};
 
@@ -285,12 +370,11 @@ mod tests {
 
     #[test]
     #[serial(env_settings)]
-    fn check_env_var_name_override() {
+    fn check_env_var_can_override_broker_settings() {
         let _max_inflight_messages = env::set_var("MqttBroker__MaxInflightMessages", "17");
         let _max_queued_messages = env::set_var("MqttBroker__MaxQueuedMessages", "1001");
         let _max_queued_bytes = env::set_var("MqttBroker__MaxQueuedBytes", "1");
         let _when_full = env::set_var("MqttBroker__WhenFull", "drop_old");
-        let _storage_folder = env::set_var("StorageFolder", "/iotedge/storage");
 
         let settings = Settings::new().unwrap();
 
@@ -306,6 +390,15 @@ mod tests {
                 QueueFullAction::DropOld,
             )
         );
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn check_env_var_can_override_persistence_settings() {
+        let _storage_folder = env::set_var("StorageFolder", "/iotedge/storage");
+
+        let settings = Settings::new().unwrap();
+
         assert_eq!(
             settings.broker().persistence(),
             &SessionPersistenceConfig::new(
@@ -316,7 +409,74 @@ mod tests {
     }
 
     #[test]
-    fn it_loads_defaults() {
+    #[serial(env_settings)]
+    fn check_env_var_can_override_bridge_settings() {
+        // edgehub module upstream
+        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "edge1");
+        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
+        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
+        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
+        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "my_iothub");
+        // storage
+        let _storage_type = env::set_var("MqttBridge__StorageType", "ring_buffer");
+        let _storage_max_size = env::set_var("MqttBridge__StorageMaxFileSize", "256");
+        let _storage_flush = env::set_var("MqttBridge__StorageFlushOptions", "off");
+        let _storage_folder = env::set_var("StorageFolder", "/iotedge/storage");
+
+        let settings = Settings::new().unwrap();
+        assert_eq!(
+            settings.bridge(),
+            &BridgeSettings::new(
+                Some(ConnectionSettings::new(
+                    "$upstream",
+                    "edge1:8883",
+                    Credentials::Provider(CredentialProviderSettings::new(
+                        "my_iothub",
+                        "edge1",
+                        "device1",
+                        "m1",
+                        "123",
+                        "workload"
+                    )),
+                    Vec::new(),
+                    Duration::from_secs(60),
+                    false
+                )),
+                Vec::new(),
+                StorageSettings::RingBuffer(RingBufferSettings::new(
+                    NonZeroU64::new(256).expect("256"),
+                    PathBuf::from("/iotedge/storage"),
+                    FlushOptions::Off
+                ))
+            )
+        );
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn check_env_var_can_override_bridge_memory_storage_settings() {
+        // edgehub module upstream
+        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "edge1");
+        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
+        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
+        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
+        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
+        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "my_iothub");
+        // storage
+        let _storage_type = env::set_var("MqttBridge__StorageType", "memory");
+        let _storage_max_size = env::set_var("MqttBridge__StorageSize", "256");
+
+        let settings = Settings::new().unwrap();
+        assert_eq!(
+            settings.bridge().storage(),
+            &StorageSettings::Memory(MemorySettings::new(NonZeroUsize::new(256).expect("256")))
+        );
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn it_loads_from_default_json() {
         let settings = Settings::default();
 
         assert_eq!(
@@ -358,7 +518,67 @@ mod tests {
     }
 
     #[test]
-    fn it_verifies_broker_config_defaults() {
+    #[serial(env_settings)]
+    fn it_loads_from_file() {
+        let settings = Settings::from_file("tests/settings/config.json").unwrap();
+
+        assert_eq!(
+            settings,
+            Settings {
+                listener: ListenerConfig::new(
+                    Some(TcpTransportConfig::new("0.0.0.0:1883")),
+                    Some(TlsTransportConfig::new("0.0.0.0:8883", None)),
+                    TcpTransportConfig::new("0.0.0.0:1882"),
+                ),
+                auth: AuthConfig::new(7120, "/authenticate_file/"),
+                broker: BrokerConfig::new(
+                    RetainedMessagesConfig::new(1000, Duration::from_secs(60 * DAYS)),
+                    SessionConfig::new(
+                        Duration::from_secs(60 * DAYS),
+                        Duration::from_secs(DAYS), // 1d
+                        Some(HumanSize::new_kilobytes(256).expect("256kb")),
+                        16,
+                        1000,
+                        Some(HumanSize::new_bytes(0)),
+                        QueueFullAction::DropNew,
+                    ),
+                    SessionPersistenceConfig::new(
+                        PathBuf::from("/tmp_file/mqttd/"),
+                        Duration::from_secs(300)
+                    )
+                ),
+                bridge: BridgeSettings::new(
+                    None,
+                    vec![ConnectionSettings::new(
+                        "r1",
+                        "remote:8883",
+                        Credentials::PlainText(AuthenticationSettings::new(
+                            "client", "mymodule", "pass", None
+                        )),
+                        vec![
+                            Direction::In(TopicRule::new(
+                                "temp/#",
+                                None,
+                                Some("floor/kitchen".into()),
+                            )),
+                            Direction::Out(TopicRule::new("some", None, Some("remote".into()),))
+                        ],
+                        Duration::from_secs(60),
+                        false
+                    )],
+                    StorageSettings::RingBuffer(RingBufferSettings::new(
+                        NonZeroU64::new(33_554_432).expect("33554432"), //32mb
+                        PathBuf::from("/tmp_file/mqttd/"),
+                        FlushOptions::AfterEachWrite
+                    ))
+                )
+            }
+        );
+    }
+
+    #[test]
+    #[serial(env_settings)]
+    fn it_verifies_broker_default_is_in_sync_with_default_json() {
         let settings = Settings::default();
         assert_eq!(settings.broker(), &BrokerConfig::default());
     }

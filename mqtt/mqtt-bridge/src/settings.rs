@@ -5,7 +5,7 @@ use std::{
     vec::Vec,
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 use mqtt_util::{CredentialProviderSettings, Credentials};
 
@@ -126,6 +126,24 @@ pub struct ConnectionSettings {
 }
 
 impl ConnectionSettings {
+    pub fn new(
+        name: impl Into<String>,
+        address: impl Into<String>,
+        credentials: Credentials,
+        subscriptions: Vec<Direction>,
+        keep_alive: Duration,
+        clean_session: bool,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            address: address.into(),
+            credentials,
+            subscriptions,
+            keep_alive,
+            clean_session,
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -179,9 +197,13 @@ pub struct TopicRule {
 }
 
 impl TopicRule {
-    pub fn new(topic: String, in_prefix: Option<String>, out_prefix: Option<String>) -> Self {
+    pub fn new(
+        topic: impl Into<String>,
+        in_prefix: Option<String>,
+        out_prefix: Option<String>,
+    ) -> Self {
         Self {
-            topic,
+            topic: topic.into(),
             out_prefix,
             in_prefix,
         }
@@ -246,6 +268,7 @@ pub enum StorageSettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct MemorySettings {
+    #[serde(deserialize_with = "deserialize_nonzerouusize")]
     max_size: NonZeroUsize,
 }
 
@@ -261,6 +284,7 @@ impl MemorySettings {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct RingBufferSettings {
+    #[serde(deserialize_with = "deserialize_nonzerou64")]
     max_file_size: NonZeroU64,
     directory: PathBuf,
     flush_options: FlushOptions,
@@ -288,181 +312,53 @@ impl RingBufferSettings {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use config::ConfigError;
-    use matches::assert_matches;
-    use serial_test::serial;
-
-    use mqtt_broker_tests_util::env;
-
-    use super::*;
-
-    #[test]
-    #[serial(env_settings)]
-    fn new_overrides_settings_from_env() {
-        it_overrides_settings_from_env(BridgeSettings::new);
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn new_no_upstream_settings() {
-        let settings = BridgeSettings::new().unwrap();
-
-        assert_eq!(settings.remotes().len(), 0);
-        assert_eq!(settings.upstream(), None);
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn new_reads_storage_settings() {
-        let settings = BridgeSettings::new().unwrap();
-        let storage_settings = settings.storage();
-        // Should exist from default.json.
-        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-        if let StorageSettings::RingBuffer(rb) = storage_settings {
-            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
-            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+fn deserialize_nonzerou64<'de, D>(deserializer: D) -> Result<NonZeroU64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = match serde_json::value::Value::deserialize(deserializer)? {
+        serde_json::value::Value::String(value) => value.parse::<u64>().map_err(|err| {
+            serde::de::Error::custom(format!("Cannot parse string value into u64: {}", err))
+        })?,
+        serde_json::value::Value::Number(value) => value.as_u64().ok_or_else(|| {
+            serde::de::Error::custom(format!("Cannot parse numeric value {}", value))
+        })?,
+        _ => {
+            return Err(serde::de::Error::custom(
+                "Cannot parse value: wrong type, expected String or Number",
+            ))
         }
-    }
+    };
+    Ok(NonZeroU64::new(value).ok_or_else(|| {
+        serde::de::Error::custom(format!(
+            "Cannot parse numeric value {} into NonZeroU64",
+            value
+        ))
+    })?)
+}
 
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_nested_bridge_settings() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-        let upstream = settings.upstream().unwrap();
-
-        assert_eq!(upstream.name(), "$upstream");
-        assert_eq!(upstream.address(), "edge1:8883");
-
-        match upstream.credentials() {
-            Credentials::Provider(provider) => {
-                assert_eq!(provider.iothub_hostname(), "iothub");
-                assert_eq!(provider.device_id(), "d1");
-                assert_eq!(provider.module_id(), "mymodule");
-                assert_eq!(provider.generation_id(), "321");
-                assert_eq!(provider.workload_uri(), "uri");
-            }
-            _ => panic!("Expected provider settings"),
-        };
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_remotes_settings() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-        let len = settings.remotes().len();
-
-        assert_eq!(len, 1);
-        let remote = settings.remotes().first().unwrap();
-        assert_eq!(remote.name(), "r1");
-        assert_eq!(remote.address(), "remote:8883");
-        assert_eq!(remote.keep_alive().as_secs(), 60);
-        assert_eq!(remote.clean_session(), false);
-
-        match remote.credentials() {
-            Credentials::PlainText(auth_settings) => {
-                assert_eq!(auth_settings.username(), "mymodule");
-                assert_eq!(auth_settings.password(), "pass");
-                assert_eq!(auth_settings.client_id(), "client");
-            }
-            _ => panic!("Expected plaintext settings"),
-        };
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_storage_settings_without_explicit_storage() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-        let storage_settings = settings.storage();
-        // Should exist from default.json.
-        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-        if let StorageSettings::RingBuffer(rb) = storage_settings {
-            assert_eq!(rb.max_file_size(), NonZeroU64::new(33_554_432).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/"));
-            assert_eq!(*rb.flush_options(), FlushOptions::AfterEachWrite);
+fn deserialize_nonzerouusize<'de, D>(deserializer: D) -> Result<NonZeroUsize, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[allow(clippy::cast_possible_truncation)]
+    let value = match serde_json::value::Value::deserialize(deserializer)? {
+        serde_json::value::Value::String(value) => value.parse::<usize>().map_err(|err| {
+            serde::de::Error::custom(format!("Cannot parse string value into usize: {}", err))
+        })?,
+        serde_json::value::Value::Number(value) => value.as_u64().ok_or_else(|| {
+            serde::de::Error::custom(format!("Cannot parse numeric value {}", value))
+        })? as usize,
+        _ => {
+            return Err(serde::de::Error::custom(
+                "Cannot parse value: wrong type, expected String or Number",
+            ))
         }
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_storage_settings_with_memory_override() {
-        let settings = BridgeSettings::from_file("tests/config.memory.json").unwrap();
-        let storage_settings = settings.storage();
-        assert_matches!(storage_settings, StorageSettings::Memory(_));
-        if let StorageSettings::Memory(mem) = storage_settings {
-            assert_eq!(mem.max_size(), NonZeroUsize::new(1024).unwrap());
-        }
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_reads_storage_settings_with_ring_buffer_override() {
-        let settings = BridgeSettings::from_file("tests/config.ring_buffer.json").unwrap();
-        let storage_settings = settings.storage();
-        assert_matches!(storage_settings, StorageSettings::RingBuffer(_));
-        if let StorageSettings::RingBuffer(rb) = storage_settings {
-            assert_eq!(rb.max_file_size(), NonZeroU64::new(2048).unwrap());
-            assert_eq!(*rb.directory(), PathBuf::from("/tmp/mqttd/tests/"));
-            assert_eq!(*rb.flush_options(), FlushOptions::Off);
-        }
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_default_sets_keepalive_settings() {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
-
-        assert_eq!(settings.upstream().unwrap().keep_alive().as_secs(), 60);
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_file_overrides_settings_from_env() {
-        it_overrides_settings_from_env(|| BridgeSettings::from_file("tests/config.json"));
-    }
-
-    #[test]
-    #[serial(env_settings)]
-    fn from_env_no_gateway_hostname() {
-        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
-        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
-        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
-        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
-        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-
-        let settings = BridgeSettings::new().unwrap();
-
-        assert_eq!(settings.upstream(), None);
-    }
-
-    fn it_overrides_settings_from_env<F>(make_settings: F)
-    where
-        F: FnOnce() -> Result<BridgeSettings, ConfigError>,
-    {
-        let _gateway_hostname = env::set_var("IOTEDGE_GATEWAYHOSTNAME", "upstream");
-        let _device_id = env::set_var("IOTEDGE_DEVICEID", "device1");
-        let _module_id = env::set_var("IOTEDGE_MODULEID", "m1");
-        let _generation_id = env::set_var("IOTEDGE_MODULEGENERATIONID", "123");
-        let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
-        let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "iothub");
-
-        let settings = make_settings().unwrap();
-        let upstream = settings.upstream().unwrap();
-
-        assert_eq!(upstream.name(), "$upstream");
-        assert_eq!(upstream.address(), "upstream:8883");
-
-        match upstream.credentials() {
-            Credentials::Provider(provider) => {
-                assert_eq!(provider.iothub_hostname(), "iothub");
-                assert_eq!(provider.device_id(), "device1");
-                assert_eq!(provider.module_id(), "m1");
-                assert_eq!(provider.generation_id(), "123");
-                assert_eq!(provider.workload_uri(), "workload");
-            }
-            _ => panic!("Expected provider settings"),
-        };
-    }
+    };
+    Ok(NonZeroUsize::new(value).ok_or_else(|| {
+        serde::de::Error::custom(format!(
+            "Cannot parse numeric value {} into NonZeroUsize",
+            value
+        ))
+    })?)
 }

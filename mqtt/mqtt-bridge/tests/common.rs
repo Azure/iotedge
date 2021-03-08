@@ -1,10 +1,10 @@
-use std::{path::PathBuf, time::Duration};
+use std::{num::NonZeroU64, path::PathBuf, time::Duration};
 
 use tokio::task::JoinHandle;
 
 use mqtt_bridge::{
-    settings::{BridgeSettings, Direction},
-    BridgeController, BridgeControllerHandle,
+    settings::{BridgeSettings, Direction, RingBufferSettings, StorageSettings},
+    BridgeController, BridgeControllerHandle, FlushOptions,
 };
 use mqtt_broker::{
     auth::Authorizer, sidecar::Sidecar, BrokerBuilder, BrokerHandle, ServerCertificate,
@@ -78,9 +78,9 @@ pub async fn setup_bridge_controller(
     storage_dir_override: &PathBuf,
 ) -> (BridgeControllerHandle, JoinHandle<()>) {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
-        "bridge".into(),
-        "pass".into(),
-        "bridge".into(),
+        "bridge",
+        "pass",
+        "bridge",
         Some(CERTIFICATE.into()),
     ));
 
@@ -90,9 +90,12 @@ pub async fn setup_bridge_controller(
         subs,
         true,
         Duration::from_secs(5),
-        storage_dir_override,
-    )
-    .unwrap();
+        StorageSettings::RingBuffer(RingBufferSettings::new(
+            NonZeroU64::new(33_554_432).expect("33554432"), //32mb
+            storage_dir_override.clone(),
+            FlushOptions::AfterEachWrite,
+        )),
+    );
 
     let controller = BridgeController::new(local_address, "bridge".into(), settings);
     let controller_handle = controller.handle();

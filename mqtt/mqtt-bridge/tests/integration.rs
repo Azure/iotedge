@@ -58,12 +58,12 @@ impl Authorizer for DummySubscribeAuthorizer {
 async fn send_message_upstream_downstream() {
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
+            "temp/#",
             Some("to".into()),
             Some("upstream".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
+            "filter/#",
             Some("to".into()),
             Some("downstream".into()),
         )),
@@ -148,7 +148,7 @@ async fn send_message_upstream_downstream() {
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
     let subs = vec![Direction::Out(TopicRule::new(
-        "temp/#".into(),
+        "temp/#",
         Some("to".into()),
         Some("upstream".into()),
     ))];
@@ -303,12 +303,12 @@ async fn bridge_settings_update() {
         .await;
 
     let subs = vec![TopicRule::new(
-        "filter/#".into(),
+        "filter/#",
         Some("to".into()),
         Some("downstream".into()),
     )];
     let forwards = vec![TopicRule::new(
-        "temp/#".into(),
+        "temp/#",
         Some("to".into()),
         Some("upstream".into()),
     )];
@@ -369,12 +369,12 @@ async fn subscribe_to_upstream_rejected_should_retry() {
 
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
+            "temp/#",
             Some("to".into()),
             Some("upstream".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
+            "filter/#",
             Some("to".into()),
             Some("downstream".into()),
         )),
@@ -457,12 +457,12 @@ async fn connect_to_upstream_failure_should_retry() {
 
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
+            "temp/#",
             Some("to".into()),
             Some("upstream".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
+            "filter/#",
             Some("to".into()),
             Some("downstream".into()),
         )),
@@ -542,12 +542,12 @@ async fn connect_to_upstream_failure_should_retry() {
 async fn bridge_forwards_messages_after_restart() {
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
+            "temp/#",
             Some("to".into()),
             Some("upstream".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
+            "filter/#",
             Some("to".into()),
             Some("downstream".into()),
         )),
@@ -673,12 +673,12 @@ async fn recreate_upstream_bridge_when_fails() {
 
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
+            "temp/#",
             Some("to".into()),
             Some("upstream".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
+            "filter/#",
             Some("to".into()),
             Some("downstream".into()),
         )),
