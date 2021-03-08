@@ -89,5 +89,5 @@ jobs:
         displayName: Publish Artifacts
         inputs:
           PathtoPublish: '$(build.artifactstagingdirectory)'
-          ArtifactName: 'iotedged-$(os)-$(arch)'
+          ArtifactName: 'aziotedge-$(os)-$(arch)'
         condition: succeededOrFailed()

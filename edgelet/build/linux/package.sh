@@ -292,5 +292,9 @@ docker run --rm \
         $MAKE_COMMAND
     "
 
+# Rename the RC output artifacts from '*~rc' to be '*-rc'
+find "$PROJECT_ROOT" -name '*.deb' -execdir sh -c 'x="{}"; y=$(echo $x | sed -e "s/~/-/g"); mv "$x" "$y" 2>/dev/null' \;
+find "$PROJECT_ROOT" -name '*.rpm' -execdir sh -c 'x="{}"; y=$(echo $x | sed -e "s/~/-/g"); mv "$x" "$y" 2>/dev/null' \;
+
 find "$PROJECT_ROOT" -name '*.deb'
 find "$PROJECT_ROOT" -name '*.rpm'
