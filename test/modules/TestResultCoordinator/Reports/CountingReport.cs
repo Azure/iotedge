@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports
 {
+    using System;
     using System.Collections.Generic;
     using System.Text.Json.Serialization;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -22,7 +23,8 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount,
             ulong totalDuplicateResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults,
-            Option<bool> stillReceivingFromEventHub)
+            Option<bool> stillReceivingFromEventHub,
+            DateTime lastActualResultTimestamp)
             : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -32,6 +34,7 @@ namespace TestResultCoordinator.Reports
             this.TotalDuplicateResultCount = totalDuplicateResultCount;
             this.UnmatchedResults = unmatchedResults ?? new List<TestOperationResult>();
             this.StillReceivingFromEventHub = stillReceivingFromEventHub;
+            this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
 
         public string ExpectedSource { get; }
@@ -52,6 +55,8 @@ namespace TestResultCoordinator.Reports
         // Option.None means that this counting report does not use EventHub at all.
         [JsonConverter(typeof(OptionConverter<bool>))]
         public Option<bool> StillReceivingFromEventHub { get; }
+
+        public DateTime LastActualResultTimestamp { get; }
 
         public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0 && this.StillReceivingFromEventHub.GetOrElse(true);
 

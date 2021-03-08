@@ -166,7 +166,8 @@ namespace TestResultCoordinator.Reports
                 totalMatchCount,
                 totalDuplicateResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
-                stillReceivingFromEventHub);
+                stillReceivingFromEventHub,
+                lastLoadedResult.CreatedAt);
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)
