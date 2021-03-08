@@ -78,7 +78,7 @@ jobs:
       - script: edgelet/build/linux/package.sh
         displayName: Create aziotedge packages
       - task: CopyFiles@2
-        displayName: Copy aziot-edge Files to Artifact Staging
+        displayName: Copy aziotedge Files to Artifact Staging
         inputs:
           SourceFolder: $(target.aziotedge)
           Contents: |
