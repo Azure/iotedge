@@ -181,9 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                             {
                                 Events.ServiceIdentityNotFound(identity);
                                 Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                                return await clientCredentials
-                                    .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                                    .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                                var clientCredential = clientCredentials.Expect(() => new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                                return await this.Connect(clientCredential, connectionStatusChangedHandler);
                             }
                             else
                             {
@@ -273,9 +272,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     // try with cached device credentials if auth mode is not Scope or identity is for edgeHub
                     Events.ServiceIdentityNotFound(identity);
                     Option<IClientCredentials> clientCredentials = await this.credentialsCache.Get(identity);
-                    return await clientCredentials
-                        .Map(cc => this.Connect(cc, connectionStatusChangedHandler))
-                        .GetOrElse(() => throw new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                    var clientCredential = clientCredentials.Expect(() => new InvalidOperationException($"Unable to find identity {identity.Id} in device scopes cache or credentials cache"));
+                    return await this.Connect(clientCredential, connectionStatusChangedHandler);
                 }
             }
             catch (Exception e)
