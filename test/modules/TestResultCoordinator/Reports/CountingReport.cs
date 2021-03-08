@@ -2,8 +2,10 @@
 namespace TestResultCoordinator.Reports
 {
     using System.Collections.Generic;
+    using System.Text.Json.Serialization;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
 
     /// <summary>
     /// This is a counting report to show test result counts, e.g. expect and match counts; and contains a list of unmatched test results.
@@ -44,6 +46,11 @@ namespace TestResultCoordinator.Reports
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
+        // StillReceivingFromEventHub is only for counting reports that use EventHub
+        // False means we haven't received a message from EventHub since the tolerance period
+        // True means we have received a message since the tolerance period
+        // Option.None means that this counting report does not use EventHub at all.
+        [JsonConverter(typeof(OptionConverter<bool>))]
         public Option<bool> StillReceivingFromEventHub { get; }
 
         public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0 && this.StillReceivingFromEventHub.GetOrElse(true);
