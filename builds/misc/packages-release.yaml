@@ -15,57 +15,57 @@ jobs:
         Centos75-amd64:
           arch: amd64
           os: centos7
-          target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
+          target.aziotedge: edgelet/target/rpmbuild/RPMS/x86_64
         Debian9-amd64:
           os: debian9
           arch: amd64
-          target.iotedged: edgelet/target/release
+          target.aziotedge: edgelet/target/release
         Debian9-arm32v7:
           os: debian9
           arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.aziotedge: edgelet/target/armv7-unknown-linux-gnueabihf/release
         Debian9-aarch64:
           os: debian9
           arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.aziotedge: edgelet/target/aarch64-unknown-linux-gnu/release
 
         Debian10-amd64:
           os: debian10
           arch: amd64
-          target.iotedged: edgelet/target/release
+          target.aziotedge: edgelet/target/release
         Debian10-arm32v7:
           os: debian10
           arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.aziotedge: edgelet/target/armv7-unknown-linux-gnueabihf/release
         Debian10-aarch64:
           os: debian10
           arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.aziotedge: edgelet/target/aarch64-unknown-linux-gnu/release
           
         Ubuntu1804-amd64:
           os: ubuntu18.04
           arch: amd64
-          target.iotedged: edgelet/target/release
+          target.aziotedge: edgelet/target/release
         Ubuntu1804-arm32v7:
           os: ubuntu18.04
           arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.aziotedge: edgelet/target/armv7-unknown-linux-gnueabihf/release
         Ubuntu1804-aarch64:
           os: ubuntu18.04
           arch: aarch64
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.aziotedge: edgelet/target/aarch64-unknown-linux-gnu/release
         Ubuntu2004-amd64:
           arch: amd64
           os: ubuntu20.04
-          target.iotedged: edgelet/target/release
+          target.aziotedge: edgelet/target/release
         Ubuntu2004-arm32v7:
           arch: arm32v7
           os: ubuntu20.04
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
+          target.aziotedge: edgelet/target/armv7-unknown-linux-gnueabihf/release
         Ubuntu2004-aarch64:
           arch: aarch64
           os: ubuntu20.04
-          target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
+          target.aziotedge: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
@@ -76,11 +76,11 @@ jobs:
           echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
         displayName: Set Version
       - script: edgelet/build/linux/package.sh
-        displayName: Create iotedged packages
+        displayName: Create aziotedge packages
       - task: CopyFiles@2
-        displayName: Copy iotedged Files to Artifact Staging
+        displayName: Copy aziot-edge Files to Artifact Staging
         inputs:
-          SourceFolder: $(target.iotedged)
+          SourceFolder: $(target.aziotedge)
           Contents: |
             *.deb
             *.rpm
