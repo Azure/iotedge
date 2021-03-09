@@ -56,13 +56,16 @@ function get_image_architecture_label() {
     esac
 }
 
-function is_system_using_eflow() {
-    local nodeName
-    nodeName="$(uname -n)"
-    if [[ $nodeName == *"-EFLOW-"* ]]; then
-        is_eflow="true"
+function is_system_using_mariner() {
+    
+    if [ -e "/etc/os-release" ]; then
+        if grep -q "ID=mariner" "/etc/os-release"; then
+            is_mariner="true"
+        else
+            is_mariner="false"
+        fi
     else
-        is_eflow="false"
+        is_mariner="false"
     fi
 }
 
@@ -82,7 +85,7 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        if [ "$is_eflow" = "true" ]; then
+        if [ "$is_mariner" = "true" ]; then
             path="$E2E_TEST_DIR/artifacts/iotedged-mariner-amd64"
         else
             path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
@@ -1150,7 +1153,7 @@ fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
-is_system_using_eflow
+is_system_using_mariner
 optimize_for_performance=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
