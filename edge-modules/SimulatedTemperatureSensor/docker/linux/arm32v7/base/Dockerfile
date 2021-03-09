@@ -1,4 +1,4 @@
-﻿ARG base_tag=3.1.12-bionic-arm32v7
+﻿ARG base_tag=3.1.13-bionic-arm32v7
 FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 # Add an unprivileged user account for running the module
