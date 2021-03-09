@@ -180,6 +180,13 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
+     # Azure Monitor
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Azure Monitor Module
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor          
+
 ################################################################################
 # linux - Rust amd64
 ################################################################################
@@ -375,6 +382,13 @@ jobs:
           name: Cloud To Device Message Tester
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
+
+     # Azure Monitor
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Azure Monitor Module
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor            
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

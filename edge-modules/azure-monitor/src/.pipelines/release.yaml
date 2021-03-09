@@ -1,0 +1,69 @@
+# This is a local copy of the azure release pipeline. It is for reference only (not actually referenced by the deployment pipeline)
+
+
+
+steps:
+- task: AzureCLI@2
+  displayName: 'Azure CLI '
+  inputs:
+    azureSubscription: 'ContainerInsights_Build_Subscription service principal connection'
+    scriptType: bash
+    scriptLocation: inlineScript
+    inlineScript: |
+     # TODO: remove this once the docker manifest command becomes non-experimental
+     export DOCKER_CLI_EXPERIMENTAL=enabled
+     
+     echo loading docker image tarballs from build pipeline
+     
+     IMAGE_NAME_RAW_amd64=$(docker load -i module-amd64.tar.gz)
+     echo IMAGE_NAME_RAW_amd64: $IMAGE_NAME_RAW_amd64
+     
+     IMAGE_NAME_RAW_arm32v7=$(docker load -i module-arm32v7.tar.gz)
+     echo IMAGE_NAME_RAW_arm32v7: $IMAGE_NAME_RAW_arm32v7
+     
+     IMAGE_NAME_RAW_arm64v8=$(docker load -i module-arm64v8.tar.gz)
+     echo IMAGE_NAME_RAW_arm64v8: $IMAGE_NAME_RAW_arm64v8
+     
+     
+     
+     IMAGE_NAME_amd64=$(echo $IMAGE_NAME_RAW_amd64 | awk '{ print $3 }' FS=":")
+     echo IMAGE_NAME_amd64: $IMAGE_NAME_amd64
+     
+     IMAGE_NAME_arm32v7=$(echo $IMAGE_NAME_RAW_arm32v7 | awk '{ print $3 }' FS=":")
+     echo IMAGE_NAME_arm32v7: $IMAGE_NAME_arm32v7
+     
+     IMAGE_NAME_arm64v8=$(echo $IMAGE_NAME_RAW_arm64v8 | awk '{ print $3 }' FS=":")
+     echo IMAGE_NAME_arm64v8: $IMAGE_NAME_arm64v8
+     
+     echo getting version number from images
+     
+     IMAGE_VERSION=$(docker run --entrypoint /app/get_vernum.sh ${IMAGE_NAME_amd64} )
+     echo IMAGE_VERSION: $IMAGE_VERSION
+     
+     echo tagging images
+     
+     docker tag $IMAGE_NAME_amd64 containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-amd64
+     docker tag $IMAGE_NAME_arm32v7 containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-arm32v7
+     docker tag $IMAGE_NAME_arm64v8 containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-arm64v8
+     
+     echo logging into ACR
+     
+     az acr login --name containerinsightsprod
+     
+     echo pushing arch-specific images to ACR
+     
+     docker push containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-amd64
+     docker push containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-arm32v7
+     docker push containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-arm64v8
+     
+     echo creating multi-arch manifest
+     
+     docker manifest create containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION} \
+     --amend containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-amd64 \
+     --amend containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-arm32v7 \
+     --amend containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}-arm64v8
+     
+     echo pushing multi-arch manifest
+     
+     docker manifest push containerinsightsprod.azurecr.io/public/azuremonitor/containerinsights/cidev:iot-${IMAGE_VERSION}
+    workingDirectory: '$(System.DefaultWorkingDirectory)/_azuremonitor-iotmetricsmodule-Linux-Buddy-release/drop/outputs/package/images'

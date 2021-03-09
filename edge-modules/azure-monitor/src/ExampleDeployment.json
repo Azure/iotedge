@@ -1,0 +1,85 @@
+{
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {}
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.0.10.1",
+              "createOptions": ""
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-hub:1.0.10.1",
+              "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}"
+            }
+          }
+        },
+        "modules": {
+          "AzureMonitorForIotEdgeModule": {
+            "settings": {
+                "image": "mcr.microsoft.com/azuremonitor/containerinsights/ciprod:iot-0.1.3.3",
+                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+            },
+            "type": "docker",
+              "env": {
+                "UploadTarget": {
+                  "value": "AzureMonitor"
+                },
+                "LogAnalyticsWorkspaceId": {
+                    "value": "<log analytics workspace id>"
+                },
+                "LogAnalyticsSharedKey": {
+                    "value": "<log analytics workspace shared key>"
+                },
+                "MetricsEndpointsCSV": {
+                    "value": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"
+                },
+                "HubResourceID": {
+                    "value": "<IoT hub resource id>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "300"
+                },
+                "AllowedMetrics": {
+                    "value": ""
+                },
+                "BlockedMetrics": {
+                    "value": ""
+                },
+                "CompressForUpload": {
+                    "value": "true"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always",
+            "version": "1.0"
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "routes": {},
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 7200
+        }
+      }
+    }
+  }
+}
