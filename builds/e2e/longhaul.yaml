@@ -623,7 +623,7 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
-          analyzer.consumerGroupId: 'longhaul_linux_amd64'
+          analyzer.consumerGroupId: 'longhaul_eflow_amd64'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
