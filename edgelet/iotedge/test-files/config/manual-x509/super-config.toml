@@ -1,3 +1,4 @@
+dynamic_reprovisioning = true
 hostname = "my-device"
 
 [provisioning]

@@ -141,14 +141,13 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
         moby_runtime,
     } = old_config;
 
-    let provisioning = {
+    let (provisioning, dynamic_reprovisioning) = {
         let old_config::Provisioning {
             provisioning,
-            // TODO: Migrate this to edged config when support for dynamic reprovisioning is reinstated in edged.
-            dynamic_reprovisioning: _,
+            dynamic_reprovisioning,
         } = provisioning;
 
-        match provisioning {
+        let provisioning = match provisioning {
             old_config::ProvisioningType::Manual(old_config::Manual {
                 authentication:
                     old_config::ManualAuthMethod::DeviceConnectionString(
@@ -284,7 +283,9 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             old_config::ProvisioningType::External(_) => {
                 return Err("external provisioning is not supported.".into())
             }
-        }
+        };
+
+        (provisioning, dynamic_reprovisioning)
     };
 
     let (edge_ca, trust_bundle_cert) = {
@@ -323,6 +324,8 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
         parent_hostname,
 
         trust_bundle_cert,
+
+        dynamic_reprovisioning,
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),

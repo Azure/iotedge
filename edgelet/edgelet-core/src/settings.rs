@@ -275,7 +275,7 @@ pub struct Settings<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,
 
-    #[serde(default)]
+    #[serde(default = "default_as_true")]
     pub dynamic_reprovisioning: bool,
 
     pub homedir: PathBuf,
@@ -294,6 +294,10 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
+}
+
+fn default_as_true() -> bool {
+    true
 }
 
 impl<T> RuntimeSettings for Settings<T>

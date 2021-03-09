@@ -31,9 +31,26 @@
 # ==============================================================================
 # Provisioning
 # ==============================================================================
-#
-# Uncomment one block and replace the stub values with yours.
 
+
+# Optional dynamic reprovisioning flag
+# ------------------------------------
+
+# If set to false, the Edge daemon will not invoke the Identity Service 
+# re-provisioning API before shutting down. This can result in the previous
+# successful IS device provisioning state being used and IS will only attempt 
+# to provision if previous provisioning attempt has failed.
+# Defaults to true, which means the Edge daemon will always attempt to
+# re-provision when signaled via the /reprovision Edge daemon management API.
+#
+# dynamic_reprovisioning = false
+#
+
+
+# Provisioning configuration
+# --------------------------
+
+# Uncomment one block and replace the stub values with yours.
 
 ## Manual provisioning with connection string
 #

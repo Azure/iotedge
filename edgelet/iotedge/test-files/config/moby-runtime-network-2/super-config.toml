@@ -1,4 +1,5 @@
 trust_bundle_cert = "file:///var/secrets/trusted-ca.pem"
+dynamic_reprovisioning = false
 hostname = "my-device"
 
 [provisioning]

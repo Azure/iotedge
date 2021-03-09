@@ -12,6 +12,9 @@ pub(super) struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) trust_bundle_cert: Option<Url>,
 
+    #[serde(default = "default_as_true")]
+    pub(super) dynamic_reprovisioning: bool,
+
     #[serde(flatten)]
     pub(super) aziot: aziotctl_common::config::super_config::Config,
 
@@ -27,6 +30,10 @@ pub(super) struct Config {
     pub(super) edge_ca: Option<EdgeCa>,
 
     pub(super) moby_runtime: MobyRuntime,
+}
+
+fn default_as_true() -> bool {
+    true
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
