@@ -24,7 +24,7 @@ namespace TestResultCoordinator.Reports
             ulong totalDuplicateResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults,
             Option<bool> stillReceivingFromEventHub,
-            DateTime lastActualResultTimestamp)
+            Option<DateTime> lastActualResultTimestamp)
             : base(testDescription, trackingId, resultType)
         {
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
@@ -56,7 +56,8 @@ namespace TestResultCoordinator.Reports
         [JsonConverter(typeof(OptionConverter<bool>))]
         public Option<bool> StillReceivingFromEventHub { get; }
 
-        public DateTime LastActualResultTimestamp { get; }
+        [JsonConverter(typeof(OptionConverter<DateTime>))]
+        public Option<DateTime> LastActualResultTimestamp { get; }
 
         public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0 && this.StillReceivingFromEventHub.GetOrElse(true);
 

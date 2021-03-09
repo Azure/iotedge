@@ -76,6 +76,7 @@ namespace TestResultCoordinator.Reports
             ulong totalDuplicateResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
             Option<bool> stillReceivingFromEventHub = Option.None<bool>();
+            Option<DateTime> lastLoadedResultCreatedAt = Option.None<DateTime>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
@@ -143,6 +144,10 @@ namespace TestResultCoordinator.Reports
                 {
                     stillReceivingFromEventHub = Option.Some(true);
                 }
+                else 
+                {
+                    stillReceivingFromEventHub = Option.Some(false);
+                }
             }
 
             while (hasActualResult)
@@ -156,6 +161,11 @@ namespace TestResultCoordinator.Reports
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
+            if (lastLoadedResult != null)
+            {
+                lastLoadedResultCreatedAt = Option.Some(lastLoadedResult.CreatedAt);
+            }
+
             return new CountingReport(
                 this.TestDescription,
                 this.trackingId,
@@ -167,7 +177,7 @@ namespace TestResultCoordinator.Reports
                 totalDuplicateResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
                 stillReceivingFromEventHub,
-                lastLoadedResult.CreatedAt);
+                lastLoadedResultCreatedAt);
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)
