@@ -72,5 +72,61 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await leaf.DeleteIdentityAsync(token);
                 });
         }
+
+        [Test]
+        [Category("NestedEdgeOnly")]
+        [Description("A test to verify a leaf device can be registered under grandparent device scope.")]
+        public async Task GrandparentScopeDevice(
+            [Values(
+                TestAuthenticationType.SasInScope,
+                TestAuthenticationType.SelfSignedPrimary,
+                TestAuthenticationType.SelfSignedSecondary)] TestAuthenticationType testAuth,
+            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
+        {
+            if (!Context.Current.NestedEdge)
+            {
+                Assert.Ignore("The test can only be run in the nested edge topology");
+            }
+
+            Option<string> parentId = Option.Some(this.runtime.DeviceId);
+            if (!parentId.HasValue)
+            {
+                Assert.Fail("ParentHostname parameter is required for GrandparentScopeDevice test");
+            }
+
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+
+            string leafDeviceId = DeviceId.Current.Generate();
+
+            LeafDevice leaf = await LeafDevice.CreateAsync(
+                    leafDeviceId,
+                    protocol,
+                    testAuth.ToAuthenticationType(),
+                    parentId,
+                    testAuth.UseSecondaryCertificate(),
+                    this.ca,
+                    this.IotHub,
+                    Context.Current.ParentHostname.Expect(() => new ArgumentException("ParentHostname parameter is required for GrandparentScopeDevice test")), 
+                    token,
+                    Option.None<string>(),
+                    Context.Current.NestedEdge);
+
+            Assert.NotNull(leaf);
+
+            await TryFinally.DoAsync(
+                async () =>
+                {
+                    DateTime seekTime = DateTime.Now;
+                    await leaf.SendEventAsync(token);
+                    await leaf.WaitForEventsReceivedAsync(seekTime, token);
+                    await leaf.InvokeDirectMethodAsync(token);
+                },
+                async () =>
+                {
+                    await leaf.DeleteIdentityAsync(token);
+                });
+        }
     }
 }
