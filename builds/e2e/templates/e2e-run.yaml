@@ -45,7 +45,7 @@ steps:
     #sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter 
 
     # BEARWASHERE -- DEBUG ONLY
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:'FullyQualifiedName~TransparentGateway'
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:'FullyQualifiedName~TransparentGateway|FullyQualifiedName~GrandparentScopeDevice'
 
   displayName: Run tests ${{ parameters.test_type }}
   continueOnError: true
