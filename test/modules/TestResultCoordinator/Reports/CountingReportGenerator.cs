@@ -140,11 +140,15 @@ namespace TestResultCoordinator.Reports
                         .Expect<ArgumentException>(
                             () => throw new ArgumentException("TRC must be in long haul mode to be generating an EventHubLongHaul CountingReport"))
                         .EventHubDelayTolerance;
-                if (lastLoadedResult.CreatedAt > DateTime.UtcNow - eventHubDelayTolerance)
+                if (lastLoadedResult == null)
+                {
+                    stillReceivingFromEventHub = Option.None<bool>();
+                }
+                else if (lastLoadedResult.CreatedAt > DateTime.UtcNow - eventHubDelayTolerance)
                 {
                     stillReceivingFromEventHub = Option.Some(true);
                 }
-                else 
+                else
                 {
                     stillReceivingFromEventHub = Option.Some(false);
                 }
