@@ -36,12 +36,11 @@
 # Optional dynamic reprovisioning flag
 # ------------------------------------
 
-# If set to false, the Edge daemon will not invoke the Identity Service 
-# re-provisioning API before shutting down. This can result in the previous
-# successful IS device provisioning state being used and IS will only attempt 
-# to provision if previous provisioning attempt has failed.
-# Defaults to true, which means the Edge daemon will always attempt to
-# re-provision when signaled via the /reprovision Edge daemon management API.
+# Enables dynamic provisioning feature. If set to true, IoT Edge 
+# runtime will attempt to detect a reprovisioning event and then automatically 
+# trigger reprovisioning. If set to false, it will not trigger reprovisioning 
+# automatically, which will require the user to manually fix provisioning state
+# and restart the IoT Edge runtime. Default is true.
 #
 # dynamic_reprovisioning = false
 #
