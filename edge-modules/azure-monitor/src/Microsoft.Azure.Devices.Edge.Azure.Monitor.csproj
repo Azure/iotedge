@@ -3,18 +3,16 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <TreatSpecificWarningsAsErrors />
   </PropertyGroup>
-  
+
   <ItemGroup>
-    <Compile Remove="Docker\**" />
-    <EmbeddedResource Remove="Docker\**" />
-    <None Remove="Docker\**" />
+    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <None Include=".pipelines\install_deps.sh" />
     <None Include=".pipelines\install_jq.sh" />
