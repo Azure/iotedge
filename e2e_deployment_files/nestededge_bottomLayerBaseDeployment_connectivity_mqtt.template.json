@@ -130,159 +130,6 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           },
-          "directMethodSender1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "DirectMethodResultType": {
-                "value": "DirectMethodTestResult"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "directMethodReceiver1"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              }
-            },
-            "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "directMethodReceiver1": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "ClientTransportType": {
-                "value": "Amqp"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              }
-            },
-            "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "directMethodSender2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "DirectMethodResultType": {
-                "value": "DirectMethodTestResult"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "directMethodReceiver2"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              }
-            },
-            "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
-          "directMethodReceiver2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "ClientTransportType": {
-                "value": "Mqtt"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              }
-            },
-            "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
-          "directMethodSender3": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "DirectMethodResultType": {
-                "value": "DirectMethodTestResult"
-              },
-              "DirectMethodName": {
-                "value": "ping"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "$edgeAgent"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://localhost:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              }
-            },
-            "settings": {
-              "image": "$upstream:443/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-            }
-          },
           "relayer1": {
             "version": "1.0",
             "type": "docker",
@@ -642,7 +489,55 @@
               "image": "$upstream:443/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
-          }
+          },
+          "cloudToDeviceMessageReceiver1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Amqp"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "$upstream:443/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "cloudToDeviceMessageReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "C2DMESSAGE_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "transportType": {
+                "value": "Mqtt"
+              },
+              "ReportingEndpointUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "$upstream:443/microsoft/azureiotedge-c2dmessage-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
         }
       }
     },
@@ -653,7 +548,8 @@
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
           "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
-          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream",
+          "leaf1ToCloud": "FROM /messages/* WHERE NOT IS_DEFINED ($connectionModuleId) INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
@@ -753,35 +649,29 @@
             "TestDescription": "deployment"
           },
           "reportMetadata10": {
-            "TestReportType": "DirectMethodConnectivityReport",
-            "SenderSource": "directMethodSender1.send",
-            "ReceiverSource": "directMethodReceiver1.receive",
-            "TolerancePeriod": "00:01:00",
-            "TestDescription": "direct method | cloud | amqp"
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver1.send",
+            "ActualSource": "cloudToDeviceMessageReceiver1.evenHub",
+            "TestDescription": "C2D | amqp"
           },
           "reportMetadata11": {
-            "TestReportType": "DirectMethodConnectivityReport",
-            "SenderSource": "directMethodSender2.send",
-            "ReceiverSource": "directMethodReceiver2.receive",
-            "TolerancePeriod": "00:01:00",
-            "TestDescription": "direct method | cloud | mqtt"
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "cloudToDeviceMessageReceiver2.send",
+            "ActualSource": "cloudToDeviceMessageReceiver2.evenHub",
+            "TestDescription": "C2D | amqp"
           },
           "reportMetadata12": {
-            "TestReportType": "DirectMethodConnectivityReport",
-            "SenderSource": "directMethodSender3.send",
-            "TolerancePeriod": "00:01:00",
-            "TestDescription": "edge agent ping"
-          },
-          "reportMetadata15": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
             "TestDescription": "network controller"
           },
-          "reportMetadata16": {
+          "reportMetadata13": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata17": {
+          "reportMetadata14": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }
