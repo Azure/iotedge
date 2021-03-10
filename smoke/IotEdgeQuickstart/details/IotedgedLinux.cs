@@ -151,26 +151,9 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Installing debian package '{PackageName}' from {this.archivePath ?? "apt"}");
 
-            string commandName;
-            string commandArgs;
-
-            // Use apt-get if a package name is given, or dpkg if a package file is given.
-            // We'd like to use apt-get for both cases, but older versions of apt-get (e.g.,
-            // in Raspbian) can't accept a package file.
-            if (string.IsNullOrEmpty(this.archivePath))
-            {
-                commandName = "apt-get";
-                commandArgs = $"--yes install {PackageName}";
-            }
-            else
-            {
-                commandName = "dpkg";
-                commandArgs = $"--force-confnew -i {this.archivePath}";
-            }
-
             return Process.RunAsync(
-                commandName,
-                commandArgs,
+                "apt-get",
+                $"--yes install {PackageName}",
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
