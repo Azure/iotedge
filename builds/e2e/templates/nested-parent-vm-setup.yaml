@@ -40,7 +40,7 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       parentName: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: 'nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json'
+      deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
     pool:
