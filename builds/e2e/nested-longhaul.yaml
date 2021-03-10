@@ -18,17 +18,17 @@ stages:
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
-      upstreamProtocol: amqp
+      upstream.protocol: amqp
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
-      upstreamProtocol: amqp
+      upstream.protocol: amqp
       testInfo.testName: 'longhaul (nested-non-broker)'
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
-      upstreamProtocol: mqtt
+      upstream.protocol: mqtt
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
-      upstreamProtocol: mqtt
+      upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
   - job:  Clean_up      
