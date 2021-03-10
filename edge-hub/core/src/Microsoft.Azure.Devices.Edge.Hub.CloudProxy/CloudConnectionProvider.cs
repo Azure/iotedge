@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetOrElse(
                         async () =>
                         {
-                            // allow to use credential cache when auth mode was set to Scope and identity is for edgeHub
+                            // allow to use credential cache when auth mode is not Scope only (could be CloudAndScope or Cloud) or identity is for edgeHub
                             if (!this.scopeAuthenticationOnly || this.edgeHubIdentity.Id.Equals(identity.Id))
                             {
                                 Events.ServiceIdentityNotFound(identity);
