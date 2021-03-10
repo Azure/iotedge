@@ -10,7 +10,7 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       level: 5
-      deploymentFile: nestededge_topLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json
+      deploymentFile: "nestededge_topLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       parentName: ''
       parentDeviceId: ''
       upstream.protocol: ${{ parameters['upstream.protocol'] }}
