@@ -126,7 +126,11 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    if [ "$is_mariner" = "true" ]; then
+        declare -a pkg_list=( $iotedged_artifact_folder/*.rpm )
+    else
+        declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    fi
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
 

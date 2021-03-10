@@ -162,6 +162,11 @@ namespace IotEdgeQuickstart.Details
                 commandName = "apt-get";
                 commandArgs = $"--yes install {PackageName}";
             }
+            else if(this.archivePath.EndsWith(".rpm"))
+            {
+                commandName = "sudo rpm";
+                commandArgs = $"--force -i {this.archivePath}";
+            }
             else
             {
                 commandName = "dpkg";
