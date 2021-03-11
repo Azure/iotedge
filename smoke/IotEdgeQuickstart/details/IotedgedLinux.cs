@@ -170,14 +170,13 @@ namespace IotEdgeQuickstart.Details
                 commandArgs = string.Empty;
                 foreach (string rpmPath in rpmPaths)
                 {
-                    if(rpmPath.Contains(PackageName))
+                    if (rpmPath.Contains(PackageName))
                     {
                         commandName = "sudo";
                         commandArgs = $"rpm --force -i {rpmPath}";
                         Console.WriteLine($"args: {commandArgs}");
                     }
                 }
-
             }
             else
             {
