@@ -10,14 +10,14 @@ Name:           aziot-edge
 Version:        @version@
 Release:        @release@%{?dist}
 
-License:        Proprietary
+License:        MIT
 Summary:        Azure IoT Edge Module Runtime
 URL:            https://github.com/azure/iotedge
 
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       aziot-identity-service >= @version@-@release@
+Requires:       aziot-identity-service >= 1.2.0~rc4-1
 Source0:        aziot-edge-%{version}.tar.gz
 
 %description
