@@ -45,6 +45,7 @@ pub struct Check {
 
     // These optional fields are populated by the checks
     iothub_hostname: Option<String>, // populated by `aziot check`
+    proxy_uri: Option<String>,       // populated by `aziot check`
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
@@ -92,6 +93,7 @@ impl Check {
         warnings_as_errors: bool,
         aziot_bin: std::ffi::OsString,
         iothub_hostname: Option<String>,
+        proxy_uri: Option<String>,
     ) -> Check {
         Check {
             container_engine_config_path,
@@ -107,6 +109,7 @@ impl Check {
             additional_info: AdditionalInfo::new(),
 
             iothub_hostname,
+            proxy_uri,
             settings: None,
             docker_host_arg: None,
             docker_server_version: None,
@@ -453,6 +456,17 @@ impl Check {
                 aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
             }
 
+            // Prioritize proxy address passed in as command line argument
+            // before searching aziot-edged settings for Edge Agent's
+            // environment variables.
+            if let Some(proxy_uri) = &self.proxy_uri {
+                aziot_check.arg("--proxy-uri").arg(proxy_uri.clone());
+            } else if let Ok(settings) = Settings::new() {
+                if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
+                    aziot_check.arg("--proxy-uri").arg(agent_proxy_uri.clone());
+                }
+            }
+
             if !self.dont_run.is_empty() {
                 aziot_check
                     .arg("--dont-run")
@@ -669,6 +683,7 @@ mod tests {
                 false,
                 "".into(), // unused for this test
                 None,
+                None,
             );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
@@ -734,20 +749,13 @@ mod tests {
                 false,
                 "".into(), // unused for this test
                 None,
+                None,
             );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
-
-            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            //     CheckResult::Ok => (),
-            //     check_result => panic!(
-            //         "checking connection string in {} returned {:?}",
-            //         filename, check_result
-            //     ),
-            // }
 
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
@@ -808,6 +816,7 @@ mod tests {
             false,
             "".into(), // unused for this test
             None,
+            None,
         );
 
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
@@ -844,6 +853,7 @@ mod tests {
             false,
             false,
             "".into(), // unused for this test
+            None,
             None,
         );
 
