@@ -164,19 +164,19 @@ namespace IotEdgeQuickstart.Details
             }
             else if (this.archivePath.EndsWith(".rpm"))
             {
-                commandName = "echo";
-                commandArgs = $"failed";
                 string[] rpmPaths = this.archivePath.Split(" ");
                 commandArgs = string.Empty;
-                foreach (string rpmPath in rpmPaths)
+
+                if (rpmPaths.Length == 0)
                 {
-                    if (rpmPath.Contains(PackageName))
-                    {
-                        commandName = "sudo";
-                        commandArgs = $"rpm --force -i {rpmPath}";
-                        Console.WriteLine($"args: {commandArgs}");
-                    }
+                    return Task.CompletedTask;
                 }
+
+                // assumes all rpm files are located in the same directory
+                string rpmdir = Path.GetDirectoryName(rpmPaths[0]) + "/*.rpm";
+                commandName = "sudo";
+                commandArgs = $"rpm --force -i {rpmdir}";
+                Console.WriteLine($"args: {commandArgs}");
             }
             else
             {
