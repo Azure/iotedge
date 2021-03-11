@@ -1,27 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\netcoreappVersion.props" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-    <TreatSpecificWarningsAsErrors />
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
   
   <ItemGroup>
-    <Compile Remove="Docker\**" />
-    <EmbeddedResource Remove="Docker\**" />
-    <None Remove="Docker\**" />
+    <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always" />
   </ItemGroup>
   
   <ItemGroup>
-    <None Include=".pipelines\install_deps.sh" />
-    <None Include=".pipelines\install_jq.sh" />
-    <None Include=".pipelines\pipeline.user.linux.yml" />
-    <None Include=".pipelines\pullandbuild.sh" />
-    <None Include=".pipelines\release.yaml" />
-    <None Include=".pipelines\write_vernum_script.sh" />
+    <None Include="src/.pipelines\install_deps.sh" />
+    <None Include="src/.pipelines\install_jq.sh" />
+    <None Include="src/.pipelines\pipeline.user.linux.yml" />
+    <None Include="src/.pipelines\pullandbuild.sh" />
+    <None Include="src/.pipelines\release.yaml" />
+    <None Include="src/.pipelines\write_vernum_script.sh" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,5 +49,13 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="[3.1.5,)" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.13.1" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>  
+  <Import Project="..\..\stylecop.props" />
 
 </Project>
