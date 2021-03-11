@@ -13,7 +13,7 @@ jobs:
       deploymentFile: "nestededge_topLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       parentName: ''
       parentDeviceId: ''
-      upstream.protocol: ${{ parameters['upstream.protocol'] }}
+      upstreamProtocol: ${{ parameters['upstream.protocol'] }}
     pool:
      name: $(pool.name)
      demands:
