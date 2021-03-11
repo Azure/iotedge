@@ -164,8 +164,16 @@ namespace IotEdgeQuickstart.Details
             }
             else if (this.archivePath.EndsWith(".rpm"))
             {
-                commandName = "rpm";
-                commandArgs = $"--force -i {this.archivePath}";
+                string[] rpmPaths = this.archivePath.Split(" ");
+                commandArgs = string.Empty;
+                foreach (string rpmPath in rpmPaths)
+                {
+                    commandArgs += $"sudo rpm --force -i {rpmPath};";
+                }
+
+                commandName = "sudo";
+                // remove first sudo_
+                commandArgs = commandArgs.Remove(0, 5);
                 Console.WriteLine($"args: {commandArgs}");
             }
             else
