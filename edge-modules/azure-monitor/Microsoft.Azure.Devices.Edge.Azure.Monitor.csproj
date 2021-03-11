@@ -1,16 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <Import Project="..\..\netcoreappVersion.props" />
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
   
   <ItemGroup>
-    <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always" />
+    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always" />
   </ItemGroup>
   
   <ItemGroup>
@@ -49,13 +50,5 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="[3.1.5,)" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.13.1" />
   </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\stylecop.json" Link="stylecop.json" />
-  </ItemGroup>
-  <PropertyGroup>
-    <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>  
-  <Import Project="..\..\stylecop.props" />
 
 </Project>
