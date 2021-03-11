@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
+    <TreatSpecificWarningsAsErrors />    
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Content Include="../docker*/**/*.*" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Include=".pipelines\install_deps.sh" />
+    <None Include=".pipelines\install_jq.sh" />
+    <None Include=".pipelines\pipeline.user.linux.yml" />
+    <None Include=".pipelines\pullandbuild.sh" />
+    <None Include=".pipelines\release.yaml" />
+    <None Include=".pipelines\write_vernum_script.sh" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectCapability Include="Microsoft.Azure.Devices.Azure.Monitor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="[1.27.0]" />
+
+    <PackageReference Include="Serilog.Extensions.Logging" Version="2.0.2" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="[3.1.5]" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="[3.1.5]" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="[3.1.5]" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="[3.1.5]" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="[3.1.5]" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="[3.1.5]" />
+    <PackageReference Include="System.Runtime.Loader" Version="[4.3.0]" />
+
+    <!-- BouncyCastle.NetCore hasn't been updated for a long time -->
+    <PackageReference Include="Portable.BouncyCastle" Version="1.8.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+
+    <PackageReference Include="SharpZipLib" Version="1.2.0" />
+
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="[3.1.5,)" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.13.1" />
+  </ItemGroup>
+
+</Project>
