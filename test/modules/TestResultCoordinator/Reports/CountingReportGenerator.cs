@@ -75,7 +75,8 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount = 0;
             ulong totalDuplicateResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
-            Option<bool> stillReceivingFromEventHub = Option.None<bool>();
+            bool allActualResultsMatch = false;
+            Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents = Option.None<EventHubSpecificReportComponents>();
             Option<DateTime> lastLoadedResultCreatedAt = Option.None<DateTime>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
@@ -118,20 +119,21 @@ namespace TestResultCoordinator.Reports
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
-            if (!this.EventHubLongHaulMode)
+            allActualResultsMatch = totalExpectCount == totalMatchCount;
+
+            while (hasExpectedResult)
             {
-                while (hasExpectedResult)
-                {
-                    totalExpectCount++;
-                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
-                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
-                }
+                totalExpectCount++;
+                TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
+                hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
-            else
+
+            if (this.EventHubLongHaulMode)
             {
+                bool stillReceivingFromEventHub = false;
                 // If we are are using EventHub to receive messages, we see an issue where EventHub can accrue large delays after
                 // running for a while. Therefore, if we are using EventHub with this counting report, we do two things.
-                // 1. We ignore extra expected results (skipping the last hasExpectedResults loop above)
+                // 1. Match only actual results. We still report all expected results, but matching actual results only.
                 // 2. We make sure that the last result we got from EventHub (i.e. the lastLoadedResult) is within our defined tolerance period.
                 //    'eventHubDelayTolerance' is an arbitrary tolerance period that we have defined, and can be tuned as needed.
                 // TODO: There is either something wrong with the EventHub service or something wrong with the way we are using it,
@@ -140,18 +142,20 @@ namespace TestResultCoordinator.Reports
                         .Expect<ArgumentException>(
                             () => throw new ArgumentException("TRC must be in long haul mode to be generating an EventHubLongHaul CountingReport"))
                         .EventHubDelayTolerance;
-                if (lastLoadedResult == null)
+                if (lastLoadedResult == null || lastLoadedResult.CreatedAt < DateTime.UtcNow - eventHubDelayTolerance)
                 {
-                    stillReceivingFromEventHub = Option.None<bool>();
-                }
-                else if (lastLoadedResult.CreatedAt > DateTime.UtcNow - eventHubDelayTolerance)
-                {
-                    stillReceivingFromEventHub = Option.Some(true);
+                    stillReceivingFromEventHub = false;
                 }
                 else
                 {
-                    stillReceivingFromEventHub = Option.Some(false);
+                    stillReceivingFromEventHub = true;
                 }
+
+                eventHubSpecificReportComponents = Option.Some(new EventHubSpecificReportComponents
+                {
+                    StillReceivingFromEventHub = stillReceivingFromEventHub,
+                    AllActualResultsMatch = allActualResultsMatch
+                });
             }
 
             while (hasActualResult)
@@ -180,7 +184,7 @@ namespace TestResultCoordinator.Reports
                 totalMatchCount,
                 totalDuplicateResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
-                stillReceivingFromEventHub,
+                eventHubSpecificReportComponents,
                 lastLoadedResultCreatedAt);
         }
 
