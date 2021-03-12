@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             if (errors.Count > 0)
             {
                 string message = string.Join(Environment.NewLine, errors);
-                Events.ErrorGettingEdgeHubConfig(message);
+                Events.InvalidBridgeConfig(message);
 
                 // even if there are some errors in the configuration make upstream bridge to start
                 return Option.None<BridgeConfig>();
@@ -267,13 +267,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             enum EventIds
             {
                 Initialized = IdStart,
-                ErrorPatchingDesiredProperties,
+                InvalidBridgeConfig,
 
             }
 
-            internal static void ErrorGettingEdgeHubConfig(string message)
+            internal static void InvalidBridgeConfig(string message)
             {
-                Log.LogWarning((int)EventIds.ErrorPatchingDesiredProperties, $"Error validating bridge configuration: {message}");
+                Log.LogWarning((int)EventIds.InvalidBridgeConfig, $"Error validating bridge configuration: {message}");
             }
         }
     }
