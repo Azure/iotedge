@@ -49,7 +49,7 @@ impl EdgeHubAuthenticator {
             .map_err(AuthenticateError::SendRequest)?;
 
         if http_res.status() != StatusCode::OK {
-            return Err(AuthenticateError::UnsuccessfullResponse(http_res.status()));
+            return Err(AuthenticateError::UnsuccessfulResponse(http_res.status()));
         }
 
         let body = body::aggregate(http_res)
@@ -77,8 +77,8 @@ impl Authenticator for EdgeHubAuthenticator {
         let authenticate = || async {
             info!("authenticate client");
             self.authenticate(&context).await.map_err(|e| match e {
-                error @ AuthenticateError::SendRequest(_) => Error::Transient(error),
-                error @ AuthenticateError::UnsuccessfullResponse(_) => Error::Transient(error),
+                error @ AuthenticateError::SendRequest(_)
+                | error @ AuthenticateError::UnsuccessfulResponse(_) => Error::Transient(error),
                 error => Error::Permanent(error),
             })
         };
@@ -161,7 +161,7 @@ pub enum AuthenticateError {
     SendRequest(#[source] hyper::Error),
 
     #[error("received unsuccessful status code: {0}")]
-    UnsuccessfullResponse(http::StatusCode),
+    UnsuccessfulResponse(http::StatusCode),
 
     #[error("failed to process response.")]
     ReadResponse(#[source] hyper::Error),

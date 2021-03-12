@@ -51,7 +51,7 @@ pub struct FlushState {
 impl FlushState {
     pub(crate) fn reset(&mut self, flush_option: &FlushOptions) {
         match flush_option {
-            FlushOptions::AfterEachWrite => {}
+            FlushOptions::AfterEachWrite | FlushOptions::Off => {}
             FlushOptions::AfterXWrites(_) => {
                 self.writes = u64::default();
             }
@@ -61,7 +61,6 @@ impl FlushState {
             FlushOptions::AfterXTime(_) => {
                 self.elapsed = Duration::default();
             }
-            FlushOptions::Off => {}
         }
     }
 
