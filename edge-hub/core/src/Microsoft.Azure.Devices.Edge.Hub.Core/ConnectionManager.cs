@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>
                 {
-                    hasChanged = true;
+                    hasChanged = true; // if there is no old value, that means no subscription, so this is a change
                     d.Subscriptions.AddOrUpdate(
                         deviceSubscription,
                         true,
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>
                 {
-                    hasChanged = true;
+                    hasChanged = false; // if there is no old value, that means no subscription, so this is not a change
                     d.Subscriptions.AddOrUpdate(
                         deviceSubscription,
                         false,
