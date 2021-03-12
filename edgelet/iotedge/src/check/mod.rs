@@ -116,12 +116,12 @@ impl Check {
         }
     }
 
-    pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
+    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
         {
-            let aziot_check_out = std::process::Command::new(&aziot_bin)
+            let aziot_check_out = std::process::Command::new(aziot_bin)
                 .arg("check-list")
                 .arg("--output=json")
                 .output();
@@ -149,7 +149,7 @@ impl Check {
                             id: "(aziotctl-error)".into(),
                             description: format!(
                                 "(aziotctl checks unavailable - could not communicate with '{}' binary)",
-                                aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                                aziot_bin
                             ),
                         }]
                     ));

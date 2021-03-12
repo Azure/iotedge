@@ -414,7 +414,7 @@ fn run() -> Result<(), Error> {
             );
             check.execute(&mut tokio_runtime)
         }
-        ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin),
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
                 let config_file = args
