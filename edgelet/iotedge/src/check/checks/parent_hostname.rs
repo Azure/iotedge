@@ -16,7 +16,7 @@ impl Checker for ParentHostname {
         "parent_hostname"
     }
     fn description(&self) -> &'static str {
-        "config.yaml has correct parent_hostname"
+        "config.toml has correct parent_hostname"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
@@ -54,7 +54,7 @@ impl ParentHostname {
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !hostname_checks_common::is_rfc_1035_valid(config_parent_hostname) {
             return Ok(CheckResult::Warning(Context::new(format!(
-            "config.yaml has parent_hostname {} which does not comply with RFC 1035.\n\
+            "config.toml has parent_hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
@@ -70,7 +70,7 @@ impl ParentHostname {
         if !hostname_checks_common::check_length_for_local_issuer(config_parent_hostname) {
             return Ok(CheckResult::Failed(
                 Context::new(format!(
-                    "config.yaml parent_hostname {} is too long to be used as a certificate issuer",
+                    "config.toml parent_hostname {} is too long to be used as a certificate issuer",
                     config_parent_hostname,
                 ))
                 .into(),

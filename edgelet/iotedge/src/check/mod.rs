@@ -696,7 +696,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
+                            .starts_with("config.toml has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
@@ -762,7 +762,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
+                            .starts_with("config.toml has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,

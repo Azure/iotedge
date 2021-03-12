@@ -73,13 +73,13 @@ pub enum ErrorKind {
     InvalidModuleType(String),
 
     #[fail(
-        display = "Error parsing URI {} specified for '{}'. Please check the config.yaml file.",
+        display = "Error parsing URI {} specified for '{}'. Please check the config.toml file.",
         _0, _1
     )]
     InvalidSettingsUri(String, &'static str),
 
     #[fail(
-        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
+        display = "Invalid file URI {} path specified for '{}'. Please check the config.toml file.",
         _0, _1
     )]
     InvalidSettingsUriFilePath(String, &'static str),
@@ -112,13 +112,13 @@ pub enum ErrorKind {
     SignInvalidKeyLength(usize),
 
     #[fail(
-        display = "URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        display = "URI {} is unsupported for '{}'. Please check the config.toml file.",
         _0, _1
     )]
     UnsupportedSettingsUri(String, &'static str),
 
     #[fail(
-        display = "File URI {} is unsupported for '{}'. Please check the config.yaml file.",
+        display = "File URI {} is unsupported for '{}'. Please check the config.toml file.",
         _0, _1
     )]
     UnsupportedSettingsFileUri(String, &'static str),

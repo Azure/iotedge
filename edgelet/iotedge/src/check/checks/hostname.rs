@@ -19,7 +19,7 @@ impl Checker for Hostname {
         "hostname"
     }
     fn description(&self) -> &'static str {
-        "config.yaml has correct hostname"
+        "config.toml has correct hostname"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
@@ -90,8 +90,8 @@ impl Hostname {
             && !config_hostname.starts_with(&format!("{}.", machine_hostname))
         {
             return Err(Context::new(format!(
-            "config.yaml has hostname {} but device reports hostname {}.\n\
-             Hostname in config.yaml must either be identical to the device hostname \
+            "config.toml has hostname {} but device reports hostname {}.\n\
+             Hostname in config.toml must either be identical to the device hostname \
              or be a fully-qualified domain name that has the device hostname as the first component.",
             config_hostname, machine_hostname,
         ))
@@ -102,7 +102,7 @@ impl Hostname {
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !hostname_checks_common::is_rfc_1035_valid(config_hostname) {
             return Ok(CheckResult::Warning(Context::new(format!(
-            "config.yaml has hostname {} which does not comply with RFC 1035.\n\
+            "config.toml has hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
@@ -118,7 +118,7 @@ impl Hostname {
         if !hostname_checks_common::check_length_for_local_issuer(config_hostname) {
             return Ok(CheckResult::Warning(
                 Context::new(format!(
-                    "config.yaml hostname {} is too long to be used as a certificate issuer",
+                    "config.toml hostname {} is too long to be used as a certificate issuer",
                     config_hostname,
                 ))
                 .into(),

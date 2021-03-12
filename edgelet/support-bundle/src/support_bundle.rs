@@ -363,7 +363,7 @@ where
         /***
          * Note: this assumes using windows containers on a windows machine.
          * This is the expected production scenario.
-         * Since the bundle command does not read the config.yaml, it cannot use the `moby.runtime_uri` from there.
+         * Since the bundle command does not read the config.toml, it cannot use the `moby.runtime_uri` from there.
          * This will not fail the bundle, only note the failure to the user and in the bundle.
          */
         #[cfg(windows)]
