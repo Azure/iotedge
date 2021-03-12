@@ -121,7 +121,7 @@ impl Check {
 
         // get all the aziot checks by shelling-out to aziot
         {
-            let aziot_check_out = std::process::Command::new(aziot_bin)
+            let aziot_check_out = std::process::Command::new(&aziot_bin)
                 .arg("check-list")
                 .arg("--output=json")
                 .output();
@@ -134,7 +134,7 @@ impl Check {
                     all_checks.extend(
                         aziot_checks
                             .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
+                            .map(|(section_name, checks)| (section_name + " (aziotctl)", checks)),
                     );
                 }
                 Err(_) => {
@@ -144,10 +144,13 @@ impl Check {
                     // to make sure the user knows that there should me more checks, we add
                     // this "dummy" entry instead.
                     all_checks.push((
-                        "(aziot)".into(),
+                        "(aziotctl)".into(),
                         vec![CheckerMetaSerializable {
-                            id: "(aziot-error)".into(),
-                            description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
+                            id: "(aziotctl-error)".into(),
+                            description: format!(
+                                "(aziotctl checks unavailable - could not communicate with '{}' binary)",
+                                aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                            ),
                         }]
                     ));
                 }
@@ -481,7 +484,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot)", name))
+                                self.output_section(&format!("{} (aziotctl)", name))
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -517,11 +520,14 @@ impl Check {
                     //
                     // nonetheless, we still need to notify the user that the aziot checks
                     // could not be run.
-                    self.output_section("(aziot)");
+                    self.output_section("(aziotctl)");
                     output_check(
                         CheckOutput {
-                            id: "(aziot-error)".into(),
-                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            id: "(aziotctl-error)".into(),
+                            description: format!(
+                                "aziotctl checks unavailable - could not communicate with '{}' binary.",
+                                &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                            ),
                             result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
                             additional_info: serde_json::Value::Null,
                         },
