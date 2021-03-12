@@ -261,14 +261,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
         static class Events
         {
-            const int IdStart = HubCoreEventIds.ConfigParser;
+            const int IdStart = HubCoreEventIds.EdgeHubConfigParser;
             static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConfigParser>();
 
             enum EventIds
             {
                 Initialized = IdStart,
                 InvalidBridgeConfig,
-
             }
 
             internal static void InvalidBridgeConfig(string message)
