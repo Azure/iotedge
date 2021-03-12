@@ -64,8 +64,11 @@ impl UpToDateConfig {
                 Ok(m) => m,
                 Err(err) => {
                     return Ok(CheckResult::Failed(
-                        err.context(format!("Failed to query metadata of {}", service_config.display()))
-                            .into(),
+                        err.context(format!(
+                            "Failed to query metadata of {}",
+                            service_config.display()
+                        ))
+                        .into(),
                     ))
                 }
             };
