@@ -37,12 +37,12 @@ stages:
           testrun.network.frequencies: "00:05:00 00:05:00 5"
           testrun.network.runProfile: "Offline"
           testrun.duration: "00:50:00"
-        Offline(10/10/3):
+        Offline(10/10/1):
           testrun.config: 3
-          testrun.network.description: "Offline(10/10/3)"
-          testrun.network.frequencies: "00:10:00 00:10:00 3"
+          testrun.network.description: "Offline(10/10/1)"
+          testrun.network.frequencies: "00:10:00 00:10:00 1"
           testrun.network.runProfile: "Offline"
-          testrun.duration: "01:00:00"
+          testrun.duration: "00:20:00"
         Offline(15/15/3):
           testrun.config: 4
           testrun.network.description: "Offline(15/15/3)"
@@ -121,7 +121,7 @@ stages:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
-          deploymentFileName: 'nestededge_bottomLayerBaseDeployment_connectivity_mqtt.template.json'
+          deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
