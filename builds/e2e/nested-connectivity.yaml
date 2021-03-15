@@ -160,6 +160,7 @@ stages:
     displayName: Clean up identities and unlock agents
     variables:    
       deviceLvl5AgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]         
+      deviceLvl5AgentAddress: $[ dependencies.SetupVM_level5_mqtt.outputs['deployIoTEdge.deviceName'] ]         
       deviceLvl4AgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]       
       amd64AgentName: $[ dependencies.Deploy_connectivity_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
     pool:
@@ -170,6 +171,18 @@ stages:
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked_$(Build.BuildId)  
     steps:
+      - task: SSH@0
+        displayName: Generate support bundle L5
+        inputs:
+          sshEndpoint: $(deviceLvl5AgentAddress)
+          runOptions: commands        
+          commands: |
+            iotedge support-bundle
+      - task: CopyFilesOverSSH@0
+        displayName: Download support bundle L5
+        inputs:
+          sshEndpoint: $(deviceLvl5AgentAddress)
+          contents: support-bundle.zip
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agent.yaml 
         parameters:
