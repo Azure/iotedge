@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports
 {
+    using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
 
@@ -32,6 +33,7 @@ namespace TestResultCoordinator.Reports
 
         public string[] ResultSources => new string[] { this.ExpectedSource, this.ActualSource };
 
+        [DefaultValue(false)]
         public bool LongHaulEventHubMode { get; }
 
         public override string ToString()

@@ -229,6 +229,35 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
             Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
             Assert.Equal("relayer1.receive", reportMetadata.ActualSource);
+            Assert.False(reportMetadata.LongHaulEventHubMode);
+        }
+
+        [Fact]
+        public void ParseReportMetadataList_ParseCountingReportEventHubMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestDescription"": ""messages | local | amqp"",
+                        ""TestReportType"": ""CountingReport"",
+                        ""LongHaulEventHubMode"": ""true"",
+                        ""TestOperationResultType"": ""Messages"",
+                        ""ExpectedSource"": ""loadGen1.send"",
+                        ""ActualSource"": ""relayer1.receive""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as CountingReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal("messages | local | amqp", reportMetadata.TestDescription);
+            Assert.Equal(TestOperationResultType.Messages, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
+            Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
+            Assert.Equal("relayer1.receive", reportMetadata.ActualSource);
+            Assert.True(reportMetadata.LongHaulEventHubMode);
         }
 
         [Fact]
@@ -512,7 +541,7 @@ namespace Modules.Test.TestResultCoordinator
         {
             if (!throwException)
             {
-                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>(), Option.None<bool>()));
+                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
             }
 
             return Task.FromException<ITestResultReport>(new ApplicationException("Inject exception for testing"));

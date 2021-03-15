@@ -515,7 +515,6 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen1.send",
             "ActualSource": "relayer1.receive",
-            "LongHaulEventHubMode": "false",
             "TestDescription": "messages | local | amqp"
           },
           "reportMetadata2": {
@@ -531,7 +530,6 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "loadGen2.send",
             "ActualSource": "relayer2.receive",
-            "LongHaulEventHubMode": "false",
             "TestDescription": "messages | local | mqtt"
           },
           "reportMetadata4": {
