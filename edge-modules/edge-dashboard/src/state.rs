@@ -80,9 +80,9 @@ pub fn parse_query(query: &str, pair_delim: char, kv_delim: char) -> HashMap<&st
         .collect()
 }
 
-// returns the contents of the config.toml file from the current device
+// returns the contents of the config.yaml file from the current device
 pub fn get_file() -> Result<String> {
-    fs::read_to_string("/etc/aziot/edged/config.toml")
+    fs::read_to_string("/etc/aziot/edged/config.yaml")
 }
 
 pub fn return_response(new_device: &Device) -> HttpResponse {
