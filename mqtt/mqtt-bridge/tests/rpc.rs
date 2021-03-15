@@ -91,6 +91,54 @@ async fn get_twin_update_via_rpc() {
     upstream.shutdown().await;
 }
 
+#[tokio::test]
+async fn handle_rpc_subscription_duplicates() {
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        Vec::new(),
+        &storage_dir_override,
+    )
+    .await;
+
+    // connect to the local broker with eh-core client
+    let mut edgehub = TestClientBuilder::new(local_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession("edgehub".into()))
+        .build();
+
+    // edgehub subscribes to any downstream topic command acknowledgement
+    edgehub.subscribe("$downstream/#", QoS::AtLeastOnce).await;
+    assert!(edgehub.subscriptions().next().await.is_some());
+
+    // edgehub subscribes to twin response #1
+    let payload = command("sub", "$iothub/device-1/twin/res/#", None);
+    edgehub
+        .publish_qos1("$upstream/rpc/1", payload, false)
+        .await;
+
+    // edgehub subscribes to twin response #2
+    let payload = command("sub", "$iothub/device-1/twin/res/#", None);
+    edgehub
+        .publish_qos1("$upstream/rpc/2", payload, false)
+        .await;
+
+    assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/rpc/ack/1");
+    assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/rpc/ack/2");
+
+    controller_handle.shutdown();
+    controller_task.await.expect("controller task");
+
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    edgehub.shutdown().await;
+}
+
 fn command(cmd: &str, topic: &str, payload: Option<Vec<u8>>) -> Bytes {
     let mut command = doc! {
         "version": "v1",
