@@ -11,8 +11,8 @@ jobs:
     pool: 
       vmImage: ubuntu-18.04
     variables:
-      registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease
+      registry.address: pezaracr.azurecr.io
+      registry.user: pezaracr
     steps: 
       - bash: |
             docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
