@@ -17,9 +17,7 @@ pub use remote::{RemoteRpcMqttEventHandler, RpcPumpHandle};
 
 use std::{
     collections::{HashMap, VecDeque},
-    fmt::Display,
-    fmt::Formatter,
-    fmt::Result as FmtResult,
+    fmt::{Display, Formatter, Result as FmtResult},
     sync::Arc,
 };
 
