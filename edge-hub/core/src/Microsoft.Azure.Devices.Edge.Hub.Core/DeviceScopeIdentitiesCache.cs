@@ -127,12 +127,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await this.RefreshServiceIdentityInternal(refreshTarget, onBehalfOfDevice, true);
         }
 
-        public async Task RefreshServiceIdentities(IEnumerable<string> ids)
+        public Task RefreshServiceIdentities(IEnumerable<string> ids) => this.RefreshServiceIdentities(ids, this.edgeDeviceId);
+
+        internal async Task RefreshServiceIdentities(IEnumerable<string> ids, string onBehalfOf)
         {
             List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
             foreach (string id in idList)
             {
-                await this.RefreshServiceIdentityInternal(id, this.edgeDeviceId, false);
+                await this.RefreshServiceIdentityInternal(id, onBehalfOf, false);
             }
 
             this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
@@ -185,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // Refresh each element in the auth-chain
             Events.RefreshingAuthChain(authChain);
             string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
-            await this.RefreshServiceIdentities(ids);
+            await this.RefreshServiceIdentities(ids, this.edgeDeviceId);
         }
 
         public async Task<Option<ServiceIdentity>> GetServiceIdentity(string id)
@@ -236,13 +238,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             if (refreshCachedIdentity)
             {
-                Events.RefreshingAuthChain(authChain);
+                Events.RefreshingServiceIdentity(id);
 
-                await this.RefreshServiceIdentities(ids);
+                var actorDeviceId = AuthChainHelpers.GetAuthParent(id, Option.Some(authChain));
+                await this.RefreshServiceIdentityOnBehalfOf(id, actorDeviceId.GetOrElse(this.edgeDeviceId));
                 authChain = (await this.serviceIdentityHierarchy.TryGetAuthChain(id)).Value;
+                ids = AuthChainHelpers.GetAuthChainIds(authChain);
             }
-
-            ids = AuthChainHelpers.GetAuthChainIds(authChain);
 
             foreach (var parentId in ids)
             {
