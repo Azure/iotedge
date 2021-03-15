@@ -1,5 +1,5 @@
 #!/bin/bash
-#https://github.com/Azure/iotedge/blob/iiot/scripts/linux/cross-platform-rust-build.sh
+#https://github.com/Azure/iotedge/blob/master/scripts/linux/cross-platform-rust-build.sh
 ###############################################################################
 # This script builds a static binary of the api-proxy-module
 ###############################################################################
@@ -110,7 +110,7 @@ process_args()
 
     case ${ARCH} in
         amd64) TARGET="x86_64-unknown-linux-musl";;
-        arm32v7) TARGET="armv7-unknown-linux-musleabihf";;
+        arm32v7) TARGET="armv7-unknown-linux-gnueabihf";;
         arm64v8) TARGET="aarch64-unknown-linux-gnu";;
     esac
 
@@ -153,15 +153,15 @@ build_project()
     if [[ "$ARCH" == "amd64" ]]; then
         execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "amd64" --build-path edge-modules/api-proxy-module
     elif [[ "$ARCH" == "arm32v7" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "arm32v7" --build-path edge-modules/api-proxy-module
+        execute scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch "arm32v7" --build-path edge-modules/api-proxy-module
     elif [[ "$ARCH" == "arm64v8" ]]; then
-        execute scripts/linux/cross-platform-rust-build.sh --os alpine --arch "aarch64" --build-path edge-modules/api-proxy-module
+        execute scripts/linux/cross-platform-rust-build.sh --os ubuntu18.04 --arch "aarch64" --build-path edge-modules/api-proxy-module
     else
         echo "Cannot run script Unsupported architecture $ARCH"
         exit 1
     fi
 
-    execute cd "$API_PROXY_DIR" 
+    execute cd "$API_PROXY_DIR"
     # prepare docker folder
     local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
     execute mkdir -p "$EXE_DOCKER_DIR"

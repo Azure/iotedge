@@ -115,6 +115,13 @@ fn run() -> Result<(), Error> {
                         .takes_value(true),
                 )
                 .arg(
+                    Arg::with_name("proxy-uri")
+                        .long("proxy-uri")
+                        .value_name("PROXY_URI")
+                        .help("Sets the proxy URI that this device would use to connect to Azure DPS and IoTHub endpoints.")
+                        .takes_value(true),
+                )
+                .arg(
                     Arg::with_name("ntp-server")
                         .long("ntp-server")
                         .value_name("NTP_SERVER")
@@ -151,6 +158,7 @@ fn run() -> Result<(), Error> {
         .subcommand(
             SubCommand::with_name("config")
                 .about("Manage Azure IoT Edge system configuration.")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("apply")
                     .about("Apply Azure IoT Edge system configuration values.")
@@ -247,7 +255,7 @@ fn run() -> Result<(), Error> {
         .subcommand(
             SubCommand::with_name("system")
                 .about("Manage system services for IoT Edge.")
-                .unset_setting(AppSettings::SubcommandRequiredElseHelp)
+                .setting(AppSettings::SubcommandRequiredElseHelp)
                 .subcommand(
                     SubCommand::with_name("logs")
                     .about("Provides a combined view of logs for IoT Edge system services. Precede arguments intended for journalctl with a double-hyphen -- . Example: iotedge system logs -- -f.")
@@ -374,6 +382,7 @@ fn run() -> Result<(), Error> {
                 args.is_present("warnings-as-errors"),
                 aziot_bin.into(),
                 args.value_of("iothub-hostname").map(ToOwned::to_owned),
+                args.value_of("proxy-uri").map(ToOwned::to_owned),
             );
             check.execute(&mut tokio_runtime)
         }

@@ -30,9 +30,15 @@ pub(super) struct Config {
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
-pub(super) struct EdgeCa {
-    pub(super) cert: Url,
-    pub(super) pk: Url,
+#[serde(untagged)]
+pub(super) enum EdgeCa {
+    Explicit {
+        cert: Url,
+        pk: Url,
+    },
+    Quickstart {
+        auto_generated_edge_ca_expiry_days: u32,
+    },
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]

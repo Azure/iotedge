@@ -41,7 +41,7 @@
               "experimentalfeatures__enabled": {
                 "value": "true"
               },
-              "experimentalFeatures__nestedEdgeEnabled": {
+              "NestedEdgeEnabled": {
                 "value": "false"
               }
             },

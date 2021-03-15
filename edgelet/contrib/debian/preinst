@@ -3,37 +3,38 @@ set -e
 
 add_groups()
 {
-    if ! getent passwd iotedge >/dev/null; then
-        adduser --system iotedge --home /var/lib/aziot/edged --shell /bin/false
+    if ! getent group iotedge >/dev/null; then
+        groupadd -r iotedge
     fi
 
-    if ! getent group iotedge >/dev/null; then
-        addgroup --system iotedge
+    if ! getent passwd iotedge >/dev/null; then
+        useradd -r -g iotedge -c 'iotedge user' -s /sbin/nologin -d /var/lib/aziot/edged iotedge
     fi
+    mkdir -p /var/lib/aziot/edged
 
     # add iotedge user to docker group so that it can talk to the docker socket
     if getent group docker >/dev/null; then
-        adduser iotedge docker
+        usermod -aG docker iotedge
     fi
 
     if getent group aziotcs >/dev/null; then
-        adduser iotedge aziotcs
+        usermod -aG aziotcs iotedge
     fi
     if getent group aziotks >/dev/null; then
-        adduser iotedge aziotks
+        usermod -aG aziotks iotedge
     fi
     if getent group aziotid >/dev/null; then
-        adduser iotedge aziotid
+        usermod -aG aziotid iotedge
     fi
 
     # Add each admin user to the iotedge group - for systems installed before precise
     for u in $(getent group admin | sed -e "s/^.*://" -e "s/,/ /g"); do
-        adduser "$u" iotedge >/dev/null || true
+        usermod -aG iotedge "$u" >/dev/null || true
     done
 
     # Add each sudo user to the iotedge group
     for u in $(getent group sudo | sed -e "s/^.*://" -e "s/,/ /g"); do
-        adduser "$u" iotedge >/dev/null || true
+        usermod -aG iotedge "$u" >/dev/null || true
     done
 }
 
