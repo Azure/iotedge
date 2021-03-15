@@ -127,9 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             await this.RefreshServiceIdentityInternal(refreshTarget, onBehalfOfDevice, true);
         }
 
-        public Task RefreshServiceIdentities(IEnumerable<string> ids) => this.RefreshServiceIdentities(ids, this.edgeDeviceId);
-
-        internal async Task RefreshServiceIdentities(IEnumerable<string> ids, string onBehalfOf)
+        public async Task RefreshServiceIdentities(IEnumerable<string> ids, string onBehalfOf)
         {
             List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
             foreach (string id in idList)
