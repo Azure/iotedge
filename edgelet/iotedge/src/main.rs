@@ -42,8 +42,8 @@ fn main() {
 fn run() -> Result<(), Error> {
     let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziotctl");
 
-    let default_mgmt_uri =
-        option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/run/iotedge/mgmt.sock");
+    let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
+        .unwrap_or("unix:///var/run/iotedge/mgmt.sock");
 
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
@@ -183,6 +183,34 @@ fn run() -> Result<(), Error> {
                             .help("The path of the pre-1.2 configuration file to import")
                             .takes_value(true)
                             .default_value("/etc/iotedge/config.yaml"),
+                    )
+                    .arg(
+                        Arg::with_name("out-config-file")
+                            .short("o")
+                            .long("out-config-file")
+                            .value_name("FILE")
+                            .help("The path of the Azure IoT Edge system configuration file to write to")
+                            .takes_value(true)
+                            .default_value("/etc/aziot/config.toml"),
+                    )
+                    .arg(
+                        Arg::with_name("force")
+                            .short("f")
+                            .long("force")
+                            .help("Overwrite the new configuration file if it already exists")
+                            .takes_value(false),
+                    )
+                )
+                .subcommand(
+                    SubCommand::with_name("mp")
+                    .about("Quick-create Azure IoT Edge system configuration for manual provisioning with a connection string.")
+                    .arg(
+                        Arg::with_name("connection-string")
+                            .short("c")
+                            .long("connection-string")
+                            .value_name("CONNECTION_STRING")
+                            .help("The Azure IoT Hub connection string")
+                            .takes_value(true),
                     )
                     .arg(
                         Arg::with_name("out-config-file")
@@ -411,6 +439,23 @@ fn run() -> Result<(), Error> {
                 let force = args.is_present("force");
 
                 let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
+                    .map_err(ErrorKind::Config)?;
+                Ok(())
+            }
+            ("mp", Some(args)) => {
+                let connection_string = args
+                    .value_of("connection-string")
+                    .expect("arg is required")
+                    .to_owned();
+
+                let out_config_file = args
+                    .value_of_os("out-config-file")
+                    .expect("arg has a default value");
+                let out_config_file = std::path::Path::new(out_config_file);
+
+                let force = args.is_present("force");
+
+                let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
                     .map_err(ErrorKind::Config)?;
                 Ok(())
             }

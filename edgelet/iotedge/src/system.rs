@@ -13,27 +13,30 @@ use crate::error::{Error, ErrorKind};
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
-        // Use the presence of IOTEDGE_HOST to infer whether this is being built for CentOS 7 or not.
-        // CentOS 7 doesn't use socket activation.
-        let sockets: &'static [&'static str] = option_env!("IOTEDGE_HOST").map_or(
-            &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"],
-            |_host| &[],
-        );
+        // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
+        //
+        // This doesn't matter for release builds since those always have IOTEDGE_LISTEN_MANAGEMENT_URI set.
+        // It's only useful for developers' builds.
+        let uses_socket_activation = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI").map_or(true, |value| value.starts_with("fd://"));
+
+        let sockets: &'static [&'static str] =
+            if uses_socket_activation {
+                &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"]
+            }
+            else {
+                &[]
+            };
 
         ServiceDefinition {
             service: "aziot-edged.service",
             sockets,
         }
     };
-    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> = {
-        let iotedged: &ServiceDefinition = &IOTEDGED;
 
-        let service_definitions: Vec<&ServiceDefinition> = std::iter::once(iotedged)
+    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
+        std::iter::once(&*IOTEDGED)
             .chain(IS_SERVICES.iter().copied())
             .collect();
-
-        service_definitions
-    };
 }
 
 pub struct System;
