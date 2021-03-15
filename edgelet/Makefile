@@ -62,6 +62,14 @@ all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
 release:
+	# These must be set by the caller:
+	# - `make deb` when building Debian packages,
+	# - `rpmbuild` via `make rpm` when building the CentOS package.
+	[ -n '$(CONNECT_MANAGEMENT_URI)' ]
+	[ -n '$(CONNECT_WORKLOAD_URI)' ]
+	[ -n '$(LISTEN_MANAGEMENT_URI)' ]
+	[ -n '$(LISTEN_WORKLOAD_URI)' ]
+
 	IOTEDGE_CONNECT_MANAGEMENT_URI=$(CONNECT_MANAGEMENT_URI) \
 		IOTEDGE_CONNECT_WORKLOAD_URI=$(CONNECT_WORKLOAD_URI) \
 		IOTEDGE_LISTEN_MANAGEMENT_URI=$(LISTEN_MANAGEMENT_URI) \
@@ -87,7 +95,7 @@ distclean:
 	rm -rf $(vendordir)
 
 deb: CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
-deb: CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/mgmt.sock
+deb: CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
 deb: LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
 deb: LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket
 deb: release
@@ -125,17 +133,9 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-rpm: CONNECT_MANAGEMENT_URI=unix:///var/lib/iotedge/mgmt.sock
-rpm: CONNECT_WORKLOAD_URI=unix:///var/lib/iotedge/workload.sock
-rpm: LISTEN_MANAGEMENT_URI=unix:///var/lib/iotedge/mgmt.sock
-rpm: LISTEN_WORKLOAD_URI=unix:///var/lib/iotedge/workload.sock
 rpm:
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
-	IOTEDGE_CONNECT_MANAGEMENT_URI=$(CONNECT_MANAGEMENT_URI) \
-		IOTEDGE_CONNECT_WORKLOAD_URI=$(CONNECT_WORKLOAD_URI) \
-		IOTEDGE_LISTEN_MANAGEMENT_URI=$(LISTEN_MANAGEMENT_URI) \
-		IOTEDGE_LISTEN_WORKLOAD_URI=$(LISTEN_WORKLOAD_URI) \
-		rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
+	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
 rpm-dist:
 	@echo Running git archive...

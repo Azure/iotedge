@@ -38,7 +38,7 @@ impl Default for Connect {
                 "unix:///var/run/iotedge/mgmt.sock"
             };
         const DEFAULT_WORKLOAD_URI: &str =
-            if let Some(value) = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI") {
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_WORKLOAD_URI") {
                 value
             } else {
                 "unix:///var/run/iotedge/workload.sock"
@@ -88,7 +88,7 @@ impl Default for Listen {
                 "fd://aziot-edged.mgmt.socket"
             };
         const DEFAULT_WORKLOAD_URI: &str =
-            if let Some(value) = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI") {
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_WORKLOAD_URI") {
                 value
             } else {
                 "fd://aziot-edged.workload.socket"
