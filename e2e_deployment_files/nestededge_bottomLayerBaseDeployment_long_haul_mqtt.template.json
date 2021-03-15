@@ -635,6 +635,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "genericMqttTester.send",
             "ActualSource": "genericMqttTester.receive",
+            "LongHaulEventHubMode": "false",
             "TestDescription": "messages | local | mqtt | generic"
           },
           "reportMetadata10": {

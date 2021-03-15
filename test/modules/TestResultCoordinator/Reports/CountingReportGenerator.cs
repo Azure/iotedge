@@ -140,7 +140,6 @@ namespace TestResultCoordinator.Reports
                     stillReceivingFromEventHub = Option.Some(true);
                 }
             }
-            
 
             while (hasActualResult)
             {
