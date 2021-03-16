@@ -54,7 +54,7 @@ impl ParentHostname {
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !hostname_checks_common::is_rfc_1035_valid(config_parent_hostname) {
             return Ok(CheckResult::Warning(Context::new(format!(
-            "config.toml has parent_hostname {} which does not comply with RFC 1035.\n\
+            "configuration has parent_hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
@@ -70,7 +70,7 @@ impl ParentHostname {
         if !hostname_checks_common::check_length_for_local_issuer(config_parent_hostname) {
             return Ok(CheckResult::Failed(
                 Context::new(format!(
-                    "config.toml parent_hostname {} is too long to be used as a certificate issuer",
+                    "configuration parent_hostname {} is too long to be used as a certificate issuer",
                     config_parent_hostname,
                 ))
                 .into(),

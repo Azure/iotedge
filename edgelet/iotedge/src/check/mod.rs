@@ -142,11 +142,11 @@ impl Check {
                     // to make sure the user knows that there should me more checks, we add
                     // this "dummy" entry instead.
                     all_checks.push((
-                        "(aziotctl)".into(),
+                        "(aziot-identity-service)".into(),
                         vec![CheckerMetaSerializable {
-                            id: "(aziotctl-error)".into(),
+                            id: "(aziot-identity-service-error)".into(),
                             description: format!(
-                                "(aziotctl checks unavailable - could not communicate with '{}' binary)",
+                                "(aziot-identity-service checks unavailable - could not communicate with '{}' binary)",
                                 aziot_bin
                             ),
                         }]
@@ -482,7 +482,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziotctl)", name))
+                                self.output_section(&format!("{} (aziot-identity-service)", name))
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -518,12 +518,12 @@ impl Check {
                     //
                     // nonetheless, we still need to notify the user that the aziot checks
                     // could not be run.
-                    self.output_section("(aziotctl)");
+                    self.output_section("(aziot-identity-service)");
                     output_check(
                         CheckOutput {
-                            id: "(aziotctl-error)".into(),
+                            id: "(aziot-identity-service-error)".into(),
                             description: format!(
-                                "aziotctl checks unavailable - could not communicate with '{}' binary.",
+                                "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
                                 &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
                             ),
                             result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
@@ -700,7 +700,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.toml has hostname localhost but device reports"),
+                            .starts_with("configuration has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
@@ -766,7 +766,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.toml has hostname localhost but device reports"),
+                            .starts_with("configuration has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
