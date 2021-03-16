@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool pullOnReconnect;
         readonly IDeviceManager deviceManager;
         readonly IDeploymentMetrics deploymentMetrics;
+        readonly IEnumerable<X509Certificate2> manifestTrustBundle;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -54,8 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
             IDeviceManager deviceManager,
-            IDeploymentMetrics deploymentMetrics)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            IEnumerable<X509Certificate2> manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
         {
         }
 
@@ -66,8 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan configRefreshFrequency,
-            IDeploymentMetrics deploymentMetrics)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            IEnumerable<X509Certificate2> manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
         {
         }
 
@@ -79,7 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy,
-            IDeploymentMetrics deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            IEnumerable<X509Certificate2> manifestTrustBundle)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -92,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Events.TwinRefreshInit(refreshConfigFrequency);
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
             this.initTask = this.ForceRefreshTwin();
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;

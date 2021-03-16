@@ -49,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.twinCollectionMessageConverter = twinCollectionMessageConverter;
             this.configParser = Preconditions.CheckNotNull(configParser, nameof(configParser));
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
-
             this.edgeHubConnection.SetDesiredPropertiesUpdateCallback((message) => this.HandleDesiredPropertiesUpdate(message));
         }
 

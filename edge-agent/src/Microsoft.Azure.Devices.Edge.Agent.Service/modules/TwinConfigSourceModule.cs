@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -35,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly IEnumerable<X509Certificate2> manifestTrustBundle;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -44,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan configRefreshFrequency,
             bool enableStreams,
             TimeSpan requestTimeout,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            IEnumerable<X509Certificate2> manifestTrustBundle)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -54,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;
             this.experimentalFeatures = experimentalFeatures;
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -155,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var deviceManager = c.Resolve<IDeviceManager>();
                     bool enableSubscriptions = !this.experimentalFeatures.DisableCloudSubscriptions;
                     var deploymentMetrics = c.Resolve<IDeploymentMetrics>();
-                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, enableSubscriptions, this.configRefreshFrequency, deploymentMetrics);
+                    IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, enableSubscriptions, this.configRefreshFrequency, deploymentMetrics, this.manifestTrustBundle);
                     return edgeAgentConnection;
                 })
                 .As<IEdgeAgentConnection>()
