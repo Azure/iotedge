@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesEnvironmentOperator : IKubernetesEnvironmentOperator
     {
+        const int TimeoutSeconds = 180;
         readonly IRuntimeInfoSource moduleStatusSource;
         readonly IKubernetes client;
         readonly string deviceNamespace;
@@ -39,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public void Dispose() => this.Stop();
 
         void StartListPods(CancellationTokenSource shutdownCts) =>
-            this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, watch: true)
+            this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, timeoutSeconds: TimeoutSeconds, watch: true)
                 .ContinueWith(this.OnListPodsCompleted, shutdownCts);
 
         async Task OnListPodsCompleted(Task<HttpOperationResponse<V1PodList>> task, object shutdownCtsObject)
