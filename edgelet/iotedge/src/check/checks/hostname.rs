@@ -86,8 +86,12 @@ impl Hostname {
         //
         // Instead, we punt on this check and assume that everything's fine if config_hostname is identical to the device hostname,
         // or starts with it.
-        if config_hostname != machine_hostname
-            && !config_hostname.starts_with(&format!("{}.", machine_hostname))
+        //
+        // Azure FQDN don't support capital letter so we lower case the hostname before doing the check.
+        if config_hostname.to_lowercase() != machine_hostname.to_lowercase()
+            && !config_hostname
+                .to_lowercase()
+                .starts_with(&format!("{}.", machine_hostname.to_lowercase()))
         {
             return Err(Context::new(format!(
             "config.yaml has hostname {} but device reports hostname {}.\n\
