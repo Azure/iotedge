@@ -82,13 +82,13 @@ impl Default for Listen {
     #[allow(clippy::option_if_let_else)]
     fn default() -> Self {
         const DEFAULT_MANAGEMENT_URI: &str =
-            if let Some(value) = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI") {
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI") {
                 value
             } else {
                 "fd://aziot-edged.mgmt.socket"
             };
         const DEFAULT_WORKLOAD_URI: &str =
-            if let Some(value) = option_env!("IOTEDGE_CONNECT_WORKLOAD_URI") {
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_WORKLOAD_URI") {
                 value
             } else {
                 "fd://aziot-edged.workload.socket"

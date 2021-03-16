@@ -63,8 +63,8 @@ all:
 
 release:
 	# These must be set by the caller:
-	# - `make deb` when building Debian packages,
-	# - `rpmbuild` via `make rpm` when building the CentOS package.
+	# - `make deb` when building Debian packages
+	# - `rpmbuild` via `make rpm` when building the CentOS package
 	[ -n '$(CONNECT_MANAGEMENT_URI)' ]
 	[ -n '$(CONNECT_WORKLOAD_URI)' ]
 	[ -n '$(LISTEN_MANAGEMENT_URI)' ]
