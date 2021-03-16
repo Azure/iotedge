@@ -24,10 +24,10 @@ namespace TestResultCoordinator
     ///    - having duplicate actual results is possible
     ///    - having trailing actual results with no matching expected results is possible
     ///
-    /// I think there are some logic issues with these assumptions (i.e. inconsistent views on when 
-    /// unexpected actual results are possible). But making these assumptions allows the iteration logic 
+    /// I think there are some logic issues with these assumptions (i.e. inconsistent views on when
+    /// unexpected actual results are possible). But making these assumptions allows the iteration logic
     /// to be a bit simpler because we can assume that the first actual result will have an expected result match.
-    /// So if the first expected and actual don't match, then we can keep over expected and the match will 
+    /// So if the first expected and actual don't match, then we can keep over expected and the match will
     /// eventually be found.
     /// </summary>
     internal class TestResultFilter
