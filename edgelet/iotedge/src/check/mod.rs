@@ -131,11 +131,9 @@ impl Check {
                     let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
                         serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
 
-                    all_checks.extend(
-                        aziot_checks
-                            .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziot-identity-service)", checks)),
-                    );
+                    all_checks.extend(aziot_checks.into_iter().map(|(section_name, checks)| {
+                        (section_name + " (aziot-identity-service)", checks)
+                    }));
                 }
                 Err(_) => {
                     // not being able to shell-out to aziot is bad... but we shouldn't fail here,
