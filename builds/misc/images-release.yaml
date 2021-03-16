@@ -387,7 +387,7 @@ jobs:
       registry.user: pezaracr
     steps: 
       - script: |
-            docker login pezaracr.azurecr.io --username 'pezaracr' --password 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF'
+            docker login 'pezaracr.azurecr.io' --username 'pezaracr' --password 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF'            
         displayName: 'docker login'
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
