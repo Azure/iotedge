@@ -10,10 +10,10 @@ pub(crate) struct UpToDateConfig {}
 
 impl Checker for UpToDateConfig {
     fn id(&self) -> &'static str {
-        "iotedge-config-up-to-date"
+        "config-up-to-date"
     }
     fn description(&self) -> &'static str {
-        "iotedge configuration up-to-date with config.toml"
+        "configuration up-to-date with config.toml"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)

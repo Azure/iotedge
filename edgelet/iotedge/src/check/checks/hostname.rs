@@ -19,7 +19,7 @@ impl Checker for Hostname {
         "hostname"
     }
     fn description(&self) -> &'static str {
-        "config.toml has correct hostname"
+        "configuration has correct hostname"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)

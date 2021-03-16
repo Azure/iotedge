@@ -134,7 +134,7 @@ impl Check {
                     all_checks.extend(
                         aziot_checks
                             .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziotctl)", checks)),
+                            .map(|(section_name, checks)| (section_name + " (aziot-identity-service)", checks)),
                     );
                 }
                 Err(_) => {

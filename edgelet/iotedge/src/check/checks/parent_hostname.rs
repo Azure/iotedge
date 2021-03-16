@@ -16,7 +16,7 @@ impl Checker for ParentHostname {
         "parent_hostname"
     }
     fn description(&self) -> &'static str {
-        "config.toml has correct parent_hostname"
+        "configuration has correct parent_hostname"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
