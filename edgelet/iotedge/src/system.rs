@@ -15,8 +15,8 @@ lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
         // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
         //
-        // This doesn't matter for release builds since those always have IOTEDGE_LISTEN_MANAGEMENT_URI set.
-        // It's only useful for developers' builds.
+        // This doesn't matter for released packages since those always have IOTEDGE_LISTEN_MANAGEMENT_URI set.
+        // It's only useful for non-package builds.
         let uses_socket_activation = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI").map_or(true, |value| value.starts_with("fd://"));
 
         let sockets: &'static [&'static str] =
