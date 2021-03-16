@@ -6,28 +6,11 @@ pr:
       - release/*
 jobs:
 
-################################################################################
-  - job: check_run_pipeline
-################################################################################
-    displayName: Check pipeline preconditions (changes ARE NOT in either edgelet, docs, or mqtt folder)
-    pool:
-      vmImage: "ubuntu-18.04"
-    steps:
-      - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc|mqtt)'
-          if [[ $? == 0 ]]; then
-            echo "Detected changes outside of edgelet, docs and mqtt folders"
-            echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"
-          fi
-        displayName: Check changes in sources
-        name: check_files
 
 ################################################################################
   - job: linux_amd64
 ################################################################################
     displayName: Linux amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
       vmImage: "ubuntu-18.04"
     steps:
@@ -53,45 +36,3 @@ jobs:
           testRunner: VSTest
           testResultsFiles: "**/TestResults/*.trx"
         condition: succeededOrFailed()
-
-################################################################################
-  - job: code_coverage
-################################################################################
-    displayName: Code coverage
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    variables:
-      coverage.goal: 60
-    pool:
-      vmImage: windows-2019
-    steps:
-      - task: DotNetCoreCLI@2
-        displayName: Build
-        inputs:
-          command: build
-          arguments: '-o target'
-      - task: VSTest@2
-        displayName: Run unit tests with code coverage
-        inputs:
-          testSelector: testAssemblies
-          testAssemblyVer2: |
-            target\*Test.dll
-          testFiltercriteria: Category=Unit
-          runInParallel: true
-          runTestsInIsolation: true
-          codeCoverageEnabled: true
-          runSettingsFile: CodeCoverage.runsettings
-          publishRunAttachments: true
-      - task: PublishTestResults@2
-        displayName: Publish code coverage
-        inputs:
-          testRunner: VSTest
-          testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
-        condition: succeededOrFailed()
-      - task: mspremier.BuildQualityChecks.QualityChecks-task.BuildQualityChecks@5
-        displayName: 'Check build quality'
-        inputs:
-          checkCoverage: true
-          coverageFailOption: fixed
-          coverageType: lines
-          coverageThreshold: $(coverage.goal)
