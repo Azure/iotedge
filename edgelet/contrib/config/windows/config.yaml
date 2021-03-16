@@ -81,7 +81,7 @@
 #                              If the daemon is unable to reach Azure, it will attempt to
 #                              restore the backup of a previous successful reprovisioning
 #                              and use that. If this backup is also not available,
-#                              the daemon will exit and restart this process when it's restarted.
+#                              the daemon will exit and retry provisioning when it's restarted.
 #
 #                              When set to false, the daemon prefers to use the provisioning backup
 #                              first, and only reaches out to Azure if the backup does not exist.
@@ -89,11 +89,11 @@
 #                              Note that some provisioning methods like DPS with TPM attestation
 #                              are always considered to be "new" device registrations, and so will
 #                              trigger all existing modules to be stopped, removed and recreated.
-#                              If this is undesirable, consider setting this setting to true.
+#                              If this is undesirable, consider setting this setting to false.
 #                              The downside is that if the device *is* reprovisioned in Azure,
 #                              the daemon will not notice it even if it's restarted.
-#                              Consider setting the `dynamic_reprovisioning` setting below to `true`
-#                              to resolve this.
+#                              Consider also setting the `dynamic_reprovisioning` setting below
+#                              to `true` to resolve this.
 #
 #                              This setting is only meaningful for DPS provisioning methods.
 #                              For manual provisioning, the device registration is static,
@@ -105,7 +105,8 @@
 #                              Setting this flag to true opts in to
 #                              the dynamic re-provisioning feature.
 #                              IoT Edge will detect situations where the device
-#                              appears to have been reprovisioned in the cloud,
+#                              appears to have been reprovisioned in the cloud
+#                              (by monitoring its own IoT Hub connection for certain errors),
 #                              and respond by shutting itself and all Edge modules down.
 #                              The next time the daemon starts up, it will attempt
 #                              to reprovision this device with Azure to receive
