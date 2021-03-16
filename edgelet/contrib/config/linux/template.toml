@@ -33,16 +33,23 @@
 # ==============================================================================
 
 
-# Optional dynamic reprovisioning flag
+# Optional auto reprovisioning mode
 # ------------------------------------
 
-# Enables dynamic provisioning feature. If set to true, IoT Edge 
-# runtime will attempt to detect a reprovisioning event and then automatically 
-# trigger reprovisioning. If set to false, it will not trigger reprovisioning 
-# automatically, which will require the user to manually fix provisioning state
-# and restart the IoT Edge runtime. Default is true.
+# This property specifies the conditions under which the device attempts to
+# automatically reprovision with the cloud. It is ignored if the device has
+# been provisioned manually. One of the following values can be set:
+# Dynamic:          Reprovision when the device detects that it may have
+#                   been moved from one IoT Hub to another. This is the default.
+# AlwaysOnStartup:  Reprovision when the device is rebooted or a crash causes
+#                   the daemon(s) to restart.
+# OnErrorOnly:      Never trigger device reprovisioning automatically.
+#                   Device reprovisioning only occurs as fallback, if the device
+#                   is unable to connect to IoT Hub during identity provisioning
+#                   due to connectivity errors. This fallback behavior is implicit
+#                   in Dynamic and AlwaysOnStartup modes as well.
 #
-# dynamic_reprovisioning = false
+# auto_reprovisioning_mode = Dynamic
 #
 
 
