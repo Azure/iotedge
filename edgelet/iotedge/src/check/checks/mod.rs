@@ -12,6 +12,7 @@ mod hostname;
 mod parent_hostname;
 mod pull_agent_from_upstream;
 mod storage_mounted_from_host;
+mod up_to_date_config;
 mod well_formed_config;
 
 pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
@@ -28,6 +29,7 @@ pub(crate) use self::hostname::Hostname;
 pub(crate) use self::parent_hostname::ParentHostname;
 pub(crate) use self::pull_agent_from_upstream::PullAgentFromUpstream;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
+pub(crate) use self::up_to_date_config::UpToDateConfig;
 pub(crate) use self::well_formed_config::WellFormedConfig;
 
 use std::ffi::OsStr;
@@ -79,6 +81,7 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
             "Configuration checks",
             vec![
                 Box::new(WellFormedConfig::default()),
+                Box::new(UpToDateConfig::default()),
                 Box::new(ContainerEngineInstalled::default()),
                 Box::new(Hostname::default()),
                 Box::new(ParentHostname::default()),
