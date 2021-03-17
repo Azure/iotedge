@@ -165,7 +165,7 @@ namespace IotEdgeQuickstart.Details
             else if (this.archivePath.Contains(".rpm") && !this.archivePath.Contains(".dep"))
             {
                 commandName = "sudo";
-                commandArgs = $"rpm --force -U {this.archivePath} ; systemctl restart iotedge";
+                commandArgs = $"rpm --force -U {this.archivePath}";
             }
             else
             {
@@ -257,6 +257,13 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
                 doc.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
                 doc.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
+            }
+            else if (hostname.Contains("-EFLOW-"))
+            {
+                doc.ReplaceOrAdd("connect.management_uri", "unix:///var/lib/iotedge/mgmt.sock");
+                doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/lib/iotedge/workload.sock");
+                doc.ReplaceOrAdd("listen.management_uri", "unix:///var/lib/iotedge/mgmt.sock");
+                doc.ReplaceOrAdd("listen.workload_uri", "unix:///var/lib/iotedge/workload.sock");
             }
             else
             {
