@@ -22,7 +22,7 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":true}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
             "https_proxy": {
               "value": "<proxyAddress>"
@@ -32,7 +32,7 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":true}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
               "DeviceScopeCacheRefreshDelaySecs": {
@@ -58,7 +58,7 @@
             "startupOrder": 2,
             "settings": {
               "image": "registry:latest",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":true}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
             },
             "env": {
               "REGISTRY_PROXY_REMOTEURL": {
@@ -83,7 +83,7 @@
             "startupOrder": 3,
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":true}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
               "NGINX_DEFAULT_PORT": {
