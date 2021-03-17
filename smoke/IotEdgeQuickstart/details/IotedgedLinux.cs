@@ -165,8 +165,7 @@ namespace IotEdgeQuickstart.Details
             else if (this.archivePath.Contains(".rpm") && !this.archivePath.Contains(".dep"))
             {
                 commandName = "sudo";
-                commandArgs = $"rpm --force -U {this.archivePath}";
-                Console.WriteLine($"args: {commandArgs}");
+                commandArgs = $"rpm --force -U {this.archivePath} ; systemctl restart iotedge";
             }
             else
             {
