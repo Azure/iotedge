@@ -3,6 +3,7 @@ parameters:
   test.buildNumber: ''
   test.buildId: ''
   test.startDelay: ''
+  test.deploymentFileName: ''
   build.source.branch: ''
   build.repo.path: ''
   edgelet.source.branch: ''
@@ -35,7 +36,8 @@ parameters:
   longHaul.parentEdgeDevice: ''
   testResultCoordinator.storageAccountConnectionString: ''
   quickstart.package.name: ''
-  test.deploymentFileName: ''
+  upstream.protocol: ''
+
 steps:
   - checkout: self
     clean: true
@@ -185,6 +187,7 @@ steps:
             -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
+            -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
             -waitForTestComplete \
             -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
