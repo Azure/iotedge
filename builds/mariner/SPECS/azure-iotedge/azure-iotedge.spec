@@ -103,7 +103,7 @@ fi
 exit 0
 
 %post
-sed -i "s/hostname: \"<ADD HOSTNAME sHERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
+sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
 echo "==============================================================================="
 echo ""
 echo "                              Azure IoT Edge"
