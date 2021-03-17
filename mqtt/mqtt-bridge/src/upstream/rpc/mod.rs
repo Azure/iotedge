@@ -16,7 +16,9 @@ use parking_lot::Mutex;
 pub use remote::{RemoteRpcMqttEventHandler, RpcPumpHandle};
 
 use std::{
-    collections::HashMap, fmt::Display, fmt::Formatter, fmt::Result as FmtResult, sync::Arc,
+    collections::{HashMap, VecDeque},
+    fmt::{Display, Formatter, Result as FmtResult},
+    sync::Arc,
 };
 
 use bson::doc;
@@ -110,17 +112,77 @@ impl Display for RpcCommand {
 /// response comes back as `mqtt3::Event` type which handled with the event
 /// handler.
 #[derive(Debug, Clone, Default)]
-pub struct RpcSubscriptions(Arc<Mutex<HashMap<String, CommandId>>>);
+pub struct RpcSubscriptions(Arc<Mutex<HashMap<String, VecDeque<CommandId>>>>);
 
 impl RpcSubscriptions {
     /// Stores topic filter to command identifier mapping.
-    pub fn insert(&self, topic_filter: &str, id: CommandId) -> Option<CommandId> {
-        self.0.lock().insert(topic_filter.into(), id)
+    pub fn insert(&self, topic_filter: &str, id: CommandId) -> Option<Vec<CommandId>> {
+        let mut inner = self.0.lock();
+
+        let existing = inner
+            .get(topic_filter)
+            .map(|ids| ids.iter().cloned().collect());
+
+        inner.entry(topic_filter.into()).or_default().push_back(id);
+
+        existing
     }
 
     /// Removes topic filter to command identifier mapping and returns
     /// `CommandId` if exists.
     pub fn remove(&self, topic_filter: &str) -> Option<CommandId> {
-        self.0.lock().remove(topic_filter)
+        let mut inner = self.0.lock();
+
+        inner
+            .remove_entry(topic_filter)
+            .and_then(|(topic, mut existing)| {
+                let id = existing.pop_front();
+
+                if !existing.is_empty() {
+                    inner.insert(topic, existing);
+                }
+
+                id
+            })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_handles_rpc_subscriptions() {
+        let subs = RpcSubscriptions::default();
+        assert!(subs.0.lock().is_empty());
+
+        assert_eq!(subs.insert("topic/1", "1".into()), None);
+        assert_eq!(commands(&subs, "topic/1"), Some(vec!["1".into()]));
+        assert_eq!(subs.insert("topic/2", "2".into()), None);
+        assert_eq!(commands(&subs, "topic/2"), Some(vec!["2".into()]));
+        assert_eq!(subs.insert("topic/1", "3".into()), Some(vec!["1".into()]));
+        assert_eq!(
+            commands(&subs, "topic/1"),
+            Some(vec!["1".into(), "3".into()])
+        );
+
+        assert_eq!(subs.remove("topic/1"), Some("1".into()));
+        assert_eq!(commands(&subs, "topic/1"), Some(vec!["3".into()]));
+        assert_eq!(subs.remove("topic/1"), Some("3".into()));
+        assert_eq!(commands(&subs, "topic/1"), None);
+        assert_eq!(subs.remove("topic/1"), None);
+        assert_eq!(commands(&subs, "topic/1"), None);
+        assert_eq!(subs.remove("topic/2"), Some("2".into()));
+        assert_eq!(commands(&subs, "topic/2"), None);
+
+        assert_eq!(subs.insert("topic/1", "4".into()), None);
+        assert_eq!(commands(&subs, "topic/1"), Some(vec!["4".into()]));
+    }
+
+    fn commands(subs: &RpcSubscriptions, topic_filter: &str) -> Option<Vec<CommandId>> {
+        subs.0
+            .lock()
+            .get(topic_filter)
+            .map(|ids| ids.iter().cloned().collect())
     }
 }
