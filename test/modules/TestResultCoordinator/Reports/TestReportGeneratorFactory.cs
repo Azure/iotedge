@@ -7,6 +7,7 @@ namespace TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using TestResultCoordinator.DirectMethod;
     using TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using TestResultCoordinator.Reports.DirectMethod.LongHaul;
@@ -62,7 +63,8 @@ namespace TestResultCoordinator.Reports
                             actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
-                            Settings.Current.UnmatchedResultsMaxSize);
+                            Settings.Current.UnmatchedResultsMaxSize,
+                            metadata.LongHaulEventHubMode);
                     }
 
                 case TestReportType.TwinCountingReport:
