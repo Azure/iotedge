@@ -263,7 +263,7 @@ where
                             Some(event) => {
                                 let event = event.expect("got error instead of event");
                                 match event {
-                                    Event::NewConnection { .. } => conn_sender
+                                    Event::NewConnection { .. } | Event::Disconnected(_) => conn_sender
                                         .send(event)
                                         .expect("can't send an event to a conn channel"),
                                     Event::Publication(publication) => pub_sender
@@ -272,9 +272,6 @@ where
                                     Event::SubscriptionUpdates(_) => sub_sender
                                         .send(event)
                                         .expect("can't send an event to a sub channel"),
-                                    Event::Disconnected(_) => conn_sender
-                                        .send(event)
-                                        .expect("can't send an event to a conn channel"),
                                 }
                             }
                             None => {
