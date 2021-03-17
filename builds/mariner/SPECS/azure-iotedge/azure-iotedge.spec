@@ -105,9 +105,9 @@ exit 0
 %post
 sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
 sed -i "s|unix:///var/run/iotedge/mgmt.sock|unix:///var/lib/iotedge/mgmt.sock|g" /etc/iotedge/config.yaml
-sed -i "s|unix:///var/run/iotedge/mgmt.sock|unix:///var/lib/iotedge/mgmt.sock|g" /etc/iotedge/config.yaml
+sed -i "s|unix:///var/run/iotedge/workload.sock|unix:///var/lib/iotedge/workload.sock|g" /etc/iotedge/config.yaml
 sed -i "s|fd://iotedge.mgmt.socket/mgmt.sock|unix:///var/lib/iotedge/mgmt.sock|g" /etc/iotedge/config.yaml
-sed -i "s|fd://iotedge.socket|unix:///var/lib/iotedge/mgmt.sock|g" /etc/iotedge/config.yaml
+sed -i "s|fd://iotedge.socket|unix:///var/lib/iotedge/workload.sock|g" /etc/iotedge/config.yaml
 echo "==============================================================================="
 echo ""
 echo "                              Azure IoT Edge"
