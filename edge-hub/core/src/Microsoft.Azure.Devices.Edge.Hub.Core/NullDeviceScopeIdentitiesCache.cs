@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshIfNotExists = false)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
-        public Task<string> VerifyServiceIdentityAuthChainState(string _, bool isNestedEdgeEnabled, bool __ = false) => throw new DeviceInvalidStateException("Device is out of scope.");
+        public Task<string> VerifyServiceIdentityAuthChainState(string id, bool isNestedEdgeEnabled, bool __ = false) => Task.FromResult(id);
 
         public Task<Option<string>> GetAuthChain(string _) => Task.FromResult(Option.None<string>());
 

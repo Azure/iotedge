@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var endpointExecutorConfig = new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
 
             var cloudProxyDispatcher = new BrokeredCloudProxyDispatcher();
-            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher);
+            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher, new NullDeviceScopeIdentitiesCache());
 
             var identityProvider = new IdentityProvider(iotHubName);
             var deviceConnectivityManager = new BrokeredDeviceConnectivityManager(cloudProxyDispatcher);

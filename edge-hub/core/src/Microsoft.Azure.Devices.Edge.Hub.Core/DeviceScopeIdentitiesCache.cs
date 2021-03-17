@@ -208,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.VerifyServiceIdentityState(id, refreshCachedIdentity);
                 return string.Empty;
             }
-}
+        }
 
         async Task VerifyServiceIdentityState(string id, bool refreshCachedIdentity = false)
         {
@@ -246,15 +246,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ids = AuthChainHelpers.GetAuthChainIds(authChain);
             }
 
-            foreach (var parentId in ids)
+            Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentity(id);
+            this.VerifyServiceIdentity(serviceIdentity.Expect(() =>
             {
-                Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentity(parentId);
-                this.VerifyServiceIdentity(serviceIdentity.Expect(() =>
-                {
-                    Events.VerifyServiceIdentityFailure(parentId, "Device is out of scope.");
-                    return new DeviceInvalidStateException("Device is out of scope.");
-                }));
-            }
+                Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
+                return new DeviceInvalidStateException("Device is out of scope.");
+            }));
 
             return authChain;
         }

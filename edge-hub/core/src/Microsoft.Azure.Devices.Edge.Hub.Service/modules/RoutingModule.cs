@@ -268,7 +268,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
             else
             {
-                // TODO: trackDeviceState
                 // IDeviceConnectivityManager
                 builder.Register(
                         c =>
@@ -282,9 +281,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
 
                 builder.Register(
-                    c =>
+                    async c =>
                     {
-                        return Task.FromResult(new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>()) as ICloudConnectionProvider);
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
+                        if (this.trackDeviceState)
+                        {
+                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                            deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                        }
+
+                        return new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>(), deviceScopeIdentitiesCache) as ICloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
