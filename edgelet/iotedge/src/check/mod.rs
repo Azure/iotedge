@@ -116,7 +116,7 @@ impl Check {
         }
     }
 
-    pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
+    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
@@ -131,11 +131,9 @@ impl Check {
                     let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
                         serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
 
-                    all_checks.extend(
-                        aziot_checks
-                            .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
-                    );
+                    all_checks.extend(aziot_checks.into_iter().map(|(section_name, checks)| {
+                        (section_name + " (aziot-identity-service)", checks)
+                    }));
                 }
                 Err(_) => {
                     // not being able to shell-out to aziot is bad... but we shouldn't fail here,
@@ -144,10 +142,13 @@ impl Check {
                     // to make sure the user knows that there should me more checks, we add
                     // this "dummy" entry instead.
                     all_checks.push((
-                        "(aziot)".into(),
+                        "(aziot-identity-service)".into(),
                         vec![CheckerMetaSerializable {
-                            id: "(aziot-error)".into(),
-                            description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
+                            id: "(aziot-identity-service-error)".into(),
+                            description: format!(
+                                "(aziot-identity-service checks unavailable - could not communicate with '{}' binary)",
+                                aziot_bin
+                            ),
                         }]
                     ));
                 }
@@ -481,7 +482,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot)", name))
+                                self.output_section(&format!("{} (aziot-identity-service)", name))
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -517,11 +518,14 @@ impl Check {
                     //
                     // nonetheless, we still need to notify the user that the aziot checks
                     // could not be run.
-                    self.output_section("(aziot)");
+                    self.output_section("(aziot-identity-service)");
                     output_check(
                         CheckOutput {
-                            id: "(aziot-error)".into(),
-                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            id: "(aziot-identity-service-error)".into(),
+                            description: format!(
+                                "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
+                                &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                            ),
                             result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
                             additional_info: serde_json::Value::Null,
                         },
@@ -696,7 +700,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
+                            .starts_with("configuration has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
@@ -762,7 +766,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
+                            .starts_with("configuration has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
