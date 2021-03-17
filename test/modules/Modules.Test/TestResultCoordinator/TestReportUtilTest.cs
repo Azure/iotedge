@@ -11,6 +11,7 @@ namespace Modules.Test.TestResultCoordinator
     using global::TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using global::TestResultCoordinator.Reports.EdgeHubRestartTest;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
     using Moq;
@@ -78,7 +79,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockTestReportGeneratorFactory = new Mock<ITestReportGeneratorFactory>();
 
             string trackingId = "fakeTrackingId";
-            var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport);
+            var countingReportMetadata = new CountingReportMetadata(TestDescription, "CountingExpectedSource", "CountingAcutalSource", TestOperationResultType.Messages, TestReportType.CountingReport, false);
             var twinCountingReportMetadata = new TwinCountingReportMetadata(TestDescription, "TwinExpectedSource", "TwinActualSource", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired);
             var deploymentReportMetadata = new DeploymentTestReportMetadata(TestDescription, "DeploymentExpectedSource", "DeploymentActualSource");
             var directMethodConnectivityReportMetadata = new DirectMethodConnectivityReportMetadata(TestDescription, "DirectMethodSenderSource", new TimeSpan(0, 0, 0, 0, 5), "DirectMethodReceiverSource");
@@ -228,6 +229,35 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
             Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
             Assert.Equal("relayer1.receive", reportMetadata.ActualSource);
+            Assert.False(reportMetadata.LongHaulEventHubMode);
+        }
+
+        [Fact]
+        public void ParseReportMetadataList_ParseCountingReportEventHubMetadata()
+        {
+            const string testDataJson =
+                @"{
+                    ""reportMetadata"": {
+                        ""TestDescription"": ""messages | local | amqp"",
+                        ""TestReportType"": ""CountingReport"",
+                        ""LongHaulEventHubMode"": ""true"",
+                        ""TestOperationResultType"": ""Messages"",
+                        ""ExpectedSource"": ""loadGen1.send"",
+                        ""ActualSource"": ""relayer1.receive""
+                    }
+                }";
+
+            List<ITestReportMetadata> results = TestReportUtil.ParseReportMetadataJson(testDataJson, new Mock<ILogger>().Object);
+
+            Assert.Single(results);
+            var reportMetadata = results[0] as CountingReportMetadata;
+            Assert.NotNull(reportMetadata);
+            Assert.Equal("messages | local | amqp", reportMetadata.TestDescription);
+            Assert.Equal(TestOperationResultType.Messages, reportMetadata.TestOperationResultType);
+            Assert.Equal(TestReportType.CountingReport, reportMetadata.TestReportType);
+            Assert.Equal("loadGen1.send", reportMetadata.ExpectedSource);
+            Assert.Equal("relayer1.receive", reportMetadata.ActualSource);
+            Assert.True(reportMetadata.LongHaulEventHubMode);
         }
 
         [Fact]
@@ -511,7 +541,7 @@ namespace Modules.Test.TestResultCoordinator
         {
             if (!throwException)
             {
-                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>()));
+                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
             }
 
             return Task.FromException<ITestResultReport>(new ApplicationException("Inject exception for testing"));
