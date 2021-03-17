@@ -210,6 +210,7 @@ fn run() -> Result<(), Error> {
                             .long("connection-string")
                             .value_name("CONNECTION_STRING")
                             .help("The Azure IoT Hub connection string")
+                            .required(true)
                             .takes_value(true),
                     )
                     .arg(
