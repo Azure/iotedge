@@ -18,7 +18,7 @@ impl Checker for ConnectManagementUri {
         "connect-management-uri"
     }
     fn description(&self) -> &'static str {
-        "config.yaml has correct URIs for daemon mgmt endpoint"
+        "configuration has correct URIs for daemon mgmt endpoint"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
@@ -90,7 +90,7 @@ impl ConnectManagementUri {
 
         (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
             format!(
-                "config.yaml has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
+                "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
                 scheme1, scheme2,
             ))
             .into()),
