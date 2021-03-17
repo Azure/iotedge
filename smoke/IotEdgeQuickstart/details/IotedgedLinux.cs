@@ -162,20 +162,10 @@ namespace IotEdgeQuickstart.Details
                 commandName = "apt-get";
                 commandArgs = $"--yes install {PackageName}";
             }
-            else if (this.archivePath.EndsWith(".rpm"))
-            {
-                string[] rpmPaths = this.archivePath.Split(" ");
-                commandArgs = string.Empty;
-
-                if (rpmPaths.Length == 0)
-                {
-                    return Task.CompletedTask;
-                }
-
-                // assumes all rpm files are located in the same directory
-                string rpmdir = Path.GetDirectoryName(rpmPaths[0]) + "/*.rpm";
+            else if (this.archivePath.Contains(".rpm") && !this.archivePath.Contains(".dep"))
+            { 
                 commandName = "sudo";
-                commandArgs = $"rpm --force -i {rpmdir}";
+                commandArgs = $"rpm --force -U {this.archivePath}";
                 Console.WriteLine($"args: {commandArgs}");
             }
             else
