@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public class EdgeDeploymentOperator : IEdgeDeploymentOperator
     {
-        const int TimeoutSeconds = 600;
+        const int TimeoutSeconds = 180;
         readonly IKubernetes client;
         readonly AsyncLock watchLock = new AsyncLock();
         readonly IEdgeDeploymentController controller;
