@@ -136,10 +136,13 @@ impl RpcSubscriptions {
         inner
             .remove_entry(topic_filter)
             .and_then(|(topic, mut existing)| {
-                existing.pop_front().map(|id| {
+                let id = existing.pop_front();
+
+                if !existing.is_empty() {
                     inner.insert(topic, existing);
-                    id
-                })
+                }
+
+                id
             })
     }
 }
@@ -154,14 +157,32 @@ mod tests {
         assert!(subs.0.lock().is_empty());
 
         assert_eq!(subs.insert("topic/1", "1".into()), None);
+        assert_eq!(commands(&subs, "topic/1"), Some(vec!["1".into()]));
         assert_eq!(subs.insert("topic/2", "2".into()), None);
+        assert_eq!(commands(&subs, "topic/2"), Some(vec!["2".into()]));
         assert_eq!(subs.insert("topic/1", "3".into()), Some(vec!["1".into()]));
+        assert_eq!(
+            commands(&subs, "topic/1"),
+            Some(vec!["1".into(), "3".into()])
+        );
 
         assert_eq!(subs.remove("topic/1"), Some("1".into()));
+        assert_eq!(commands(&subs, "topic/1"), Some(vec!["3".into()]));
         assert_eq!(subs.remove("topic/1"), Some("3".into()));
+        assert_eq!(commands(&subs, "topic/1"), None);
         assert_eq!(subs.remove("topic/1"), None);
+        assert_eq!(commands(&subs, "topic/1"), None);
         assert_eq!(subs.remove("topic/2"), Some("2".into()));
+        assert_eq!(commands(&subs, "topic/2"), None);
 
         assert_eq!(subs.insert("topic/1", "4".into()), None);
+        assert_eq!(commands(&subs, "topic/1"), Some(vec!["4".into()]));
+    }
+
+    fn commands(subs: &RpcSubscriptions, topic_filter: &str) -> Option<Vec<CommandId>> {
+        subs.0
+            .lock()
+            .get(topic_filter)
+            .map(|ids| ids.iter().cloned().collect())
     }
 }
