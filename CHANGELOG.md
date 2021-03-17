@@ -15,7 +15,7 @@
 * Make comments in the config.yaml for provisioning and certificates clearer [771be81](https://github.com/Azure/iotedge/commit/771be81fceaf0a585dd9d7158e422dc20a0227b9)
 * Upgrade sysinfo package to 0.14.10 [b53cc33](https://github.com/Azure/iotedge/commit/b53cc33a20690008a4f5d84dd448caf14718eefa)
 * Update default agent tag in config.yaml to 1.1 [e4c6eae](https://github.com/Azure/iotedge/commit/e4c6eae4120ac47b3fbecaf173e129520bffacda)
-* Fix typo in `always_reprovision_on_startup` config.yaml docs [8cb3c2b](https://github.com/Azure/iotedge/commit/8cb3c2b2864dd57e926f08b06a689475717868dc)
+* Make comments in the config.yaml for provisioning and certificates clearer [8cb3c2b](https://github.com/Azure/iotedge/commit/8cb3c2b2864dd57e926f08b06a689475717868dc)
 
 
 # 1.1.0 (2021-02-10)
