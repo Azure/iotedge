@@ -37,6 +37,11 @@
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
+            "env": {
+              "RuntimeLogLevel": {
+                "value": "Debug"
+              }
+            },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
@@ -514,6 +519,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer1.send",
             "ActualSource": "relayer1.eventHub",
+            "LongHaulEventHubMode": "true",
             "TestDescription": "messages | upstream | amqp"
           },
           "reportMetadata3": {
@@ -528,6 +534,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer2.send",
             "ActualSource": "relayer2.eventHub",
+            "LongHaulEventHubMode": "true",
             "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
