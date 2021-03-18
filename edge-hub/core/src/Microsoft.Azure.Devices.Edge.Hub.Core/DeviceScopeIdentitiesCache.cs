@@ -228,23 +228,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<string> VerifyServiceIdentityAuthChainState(string id, bool refreshCachedIdentity = false)
         {
-            var authChainTry = await this.serviceIdentityHierarchy.TryGetAuthChain(id);
-
-            // refresh all identities in chain if a chain was returned
-            // if device was not found in hierachy or its auth chain is not set use the id that passed in to refresh
-            string authChain = authChainTry.Ok().GetOrElse(id);
-
-            string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
-
             if (refreshCachedIdentity)
             {
                 Events.RefreshingServiceIdentity(id);
 
-                var actorDeviceId = AuthChainHelpers.GetAuthParent(id, Option.Some(authChain));
+                var authChainTry = await this.serviceIdentityHierarchy.TryGetAuthChain(id);
+                var actorDeviceId = AuthChainHelpers.GetAuthParent(id, authChainTry.Ok());
                 await this.RefreshServiceIdentityOnBehalfOf(id, actorDeviceId.GetOrElse(this.edgeDeviceId));
-                authChain = (await this.serviceIdentityHierarchy.TryGetAuthChain(id)).Value;
-                ids = AuthChainHelpers.GetAuthChainIds(authChain);
             }
+
+            string authChain = (await this.serviceIdentityHierarchy.TryGetAuthChain(id)).Value;
 
             Option<ServiceIdentity> serviceIdentity = await this.GetServiceIdentity(id);
             this.VerifyServiceIdentity(serviceIdentity.Expect(() =>
