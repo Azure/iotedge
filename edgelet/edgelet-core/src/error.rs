@@ -72,18 +72,6 @@ pub enum ErrorKind {
     #[fail(display = "Invalid module type {:?}", _0)]
     InvalidModuleType(String),
 
-    #[fail(
-        display = "Error parsing URI {} specified for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    InvalidSettingsUri(String, &'static str),
-
-    #[fail(
-        display = "Invalid file URI {} path specified for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    InvalidSettingsUriFilePath(String, &'static str),
-
     #[fail(display = "Invalid URL {:?}", _0)]
     InvalidUrl(String),
 
@@ -110,18 +98,6 @@ pub enum ErrorKind {
 
     #[fail(display = "Signing error occurred. Invalid key length: {}", _0)]
     SignInvalidKeyLength(usize),
-
-    #[fail(
-        display = "URI {} is unsupported for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    UnsupportedSettingsUri(String, &'static str),
-
-    #[fail(
-        display = "File URI {} is unsupported for '{}'. Please check the config.yaml file.",
-        _0, _1
-    )]
-    UnsupportedSettingsFileUri(String, &'static str),
 }
 
 impl Fail for Error {

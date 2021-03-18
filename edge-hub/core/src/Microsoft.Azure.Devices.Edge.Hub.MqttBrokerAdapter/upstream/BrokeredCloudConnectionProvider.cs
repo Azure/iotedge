@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -32,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             if (!await this.IsConnected())
             {
-                return new Try<ICloudConnection>(new Exception("Bridge is not connected upstream"));
+                return new Try<ICloudConnection>(new IotHubException("Bridge is not connected upstream"));
             }
 
             var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher, connectionStatusChangedHandler);

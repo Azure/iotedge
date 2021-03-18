@@ -33,11 +33,24 @@ This package contains the IoT Edge daemon and CLI tool.
 %setup -q
 
 %build
-make release
+make \
+    CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    LISTEN_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    release
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/%{name}
+make \
+    CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    LISTEN_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    DESTDIR=$RPM_BUILD_ROOT \
+    unitdir=%{_unitdir} \
+    docdir=%{_docdir}/%{name} \
+    install
 
 %clean
 rm -rf $RPM_BUILD_ROOT

@@ -19,7 +19,7 @@ impl Checker for Hostname {
         "hostname"
     }
     fn description(&self) -> &'static str {
-        "config.yaml has correct hostname"
+        "configuration has correct hostname"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
@@ -86,12 +86,16 @@ impl Hostname {
         //
         // Instead, we punt on this check and assume that everything's fine if config_hostname is identical to the device hostname,
         // or starts with it.
-        if config_hostname != machine_hostname
-            && !config_hostname.starts_with(&format!("{}.", machine_hostname))
+        //
+        // Azure FQDN don't support capital letter so we lower case the hostname before doing the check.
+        if config_hostname.to_lowercase() != machine_hostname.to_lowercase()
+            && !config_hostname
+                .to_lowercase()
+                .starts_with(&format!("{}.", machine_hostname.to_lowercase()))
         {
             return Err(Context::new(format!(
-            "config.yaml has hostname {} but device reports hostname {}.\n\
-             Hostname in config.yaml must either be identical to the device hostname \
+            "configuration has hostname {} but device reports hostname {}.\n\
+             Hostname in configuration must either be identical to the device hostname \
              or be a fully-qualified domain name that has the device hostname as the first component.",
             config_hostname, machine_hostname,
         ))
@@ -102,7 +106,7 @@ impl Hostname {
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !hostname_checks_common::is_rfc_1035_valid(config_hostname) {
             return Ok(CheckResult::Warning(Context::new(format!(
-            "config.yaml has hostname {} which does not comply with RFC 1035.\n\
+            "configuration has hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
@@ -118,7 +122,7 @@ impl Hostname {
         if !hostname_checks_common::check_length_for_local_issuer(config_hostname) {
             return Ok(CheckResult::Warning(
                 Context::new(format!(
-                    "config.yaml hostname {} is too long to be used as a certificate issuer",
+                    "configuration hostname {} is too long to be used as a certificate issuer",
                     config_hostname,
                 ))
                 .into(),
