@@ -34,10 +34,16 @@ pub fn start(
         .context(format!("Missing env var {}", "IOTEDGE_GATEWAYHOSTNAME"))?;
     let workload_url = env::var("IOTEDGE_WORKLOADURI")
         .context(format!("Missing env var {}", "IOTEDGE_WORKLOADURI"))?;
+
+    let hostname =  match env::var("EdgeDeviceHostName") {
+        Ok(hostname) => hostname,
+        Err(_e) => gateway_hostname
+    };
+
     let mut cert_monitor = CertificateMonitor::new(
         module_id,
         generation_id,
-        gateway_hostname,
+        hostname,
         &workload_url,
         Duration::days(PROXY_SERVER_VALIDITY_DAYS),
     )
