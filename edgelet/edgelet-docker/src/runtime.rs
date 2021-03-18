@@ -1288,7 +1288,8 @@ mod tests {
     use futures::stream::Empty;
 
     use edgelet_core::{
-        Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
+        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
+        RuntimeSettings, WatchdogSettings,
     };
 
     #[test]
@@ -1529,7 +1530,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn dynamic_reprovisioning(&self) -> bool {
+        fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
             unimplemented!()
         }
     }

@@ -5,8 +5,8 @@ use std::path::Path;
 
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
-    Connect, Endpoints, Listen, MobyNetwork, ModuleSpec, RuntimeSettings, Settings as BaseSettings,
-    UrlExt, WatchdogSettings,
+    settings::AutoReprovisioningMode, Connect, Endpoints, Listen, MobyNetwork, ModuleSpec,
+    RuntimeSettings, Settings as BaseSettings, UrlExt, WatchdogSettings,
 };
 use failure::{Context, Fail, ResultExt};
 
@@ -149,8 +149,8 @@ impl RuntimeSettings for Settings {
         self.base.trust_bundle_cert()
     }
 
-    fn dynamic_reprovisioning(&self) -> bool {
-        self.base.dynamic_reprovisioning()
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
+        self.base.auto_reprovisioning_mode()
     }
 }
 

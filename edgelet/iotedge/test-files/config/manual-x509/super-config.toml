@@ -1,4 +1,4 @@
-dynamic_reprovisioning = true
+auto_reprovisioning_mode = "Dynamic"
 hostname = "my-device"
 
 [provisioning]

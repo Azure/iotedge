@@ -258,7 +258,20 @@ pub trait RuntimeSettings {
     fn edge_ca_cert(&self) -> Option<&str>;
     fn edge_ca_key(&self) -> Option<&str>;
     fn trust_bundle_cert(&self) -> Option<&str>;
-    fn dynamic_reprovisioning(&self) -> bool;
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode;
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub enum AutoReprovisioningMode {
+    Dynamic,
+    AlwaysOnStartup,
+    OnErrorOnly,
+}
+
+impl Default for AutoReprovisioningMode {
+    fn default() -> Self {
+        AutoReprovisioningMode::Dynamic
+    }
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -275,8 +288,8 @@ pub struct Settings<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,
 
-    #[serde(default = "default_as_true")]
-    pub dynamic_reprovisioning: bool,
+    #[serde(default = "AutoReprovisioningMode::default")]
+    pub auto_reprovisioning_mode: AutoReprovisioningMode,
 
     pub homedir: PathBuf,
 
@@ -294,10 +307,6 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
-}
-
-fn default_as_true() -> bool {
-    true
 }
 
 impl<T> RuntimeSettings for Settings<T>
@@ -354,8 +363,8 @@ where
         self.trust_bundle_cert.as_deref()
     }
 
-    fn dynamic_reprovisioning(&self) -> bool {
-        self.dynamic_reprovisioning
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
+        &self.auto_reprovisioning_mode
     }
 }
 

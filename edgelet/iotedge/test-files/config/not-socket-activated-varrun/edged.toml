@@ -3,7 +3,7 @@
 
 hostname = "my-device"
 trust_bundle_cert = "aziot-edged-trust-bundle"
-dynamic_reprovisioning = false
+auto_reprovisioning_mode = "OnErrorOnly"
 homedir = "/var/lib/aziot/edged"
 
 [agent]
