@@ -404,7 +404,9 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
     let mut start = inner.write_index();
     let mut end = start + block_size;
     let mut read = 0;
+    let mut write = 0;
     let mut order = inner.order();
+    let mut should_update_write = true;
 
     // if we have more write_updates than read_updates and write == read
     // then we must be in wrap_around case.
@@ -417,13 +419,13 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
         if inner.hint() != BLOCK_HINT {
             return RingBufferMetadata {
                 file_pointers: FilePointers {
-                    write: start,
+                    write,
                     read_begin: read,
                     read_end: read,
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around: (start == read && write_updates > read_updates),
+                can_read_from_wrap_around: (write == read && write_updates > read_updates),
             };
         }
 
@@ -436,19 +438,15 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
             read = end + data_size;
         }
 
-        // Found the last write, take whatever we got for read and write
-        // and return the pointers.
+        // Found the last write, can stop updating write.
         if inner.order() < order {
-            return RingBufferMetadata {
-                file_pointers: FilePointers {
-                    write: start,
-                    read_begin: read,
-                    read_end: read,
-                },
-                order,
-                // Check to see if wrap around case.
-                can_read_from_wrap_around: (start == read && write_updates > read_updates),
-            };
+            should_update_write = false;
+            // Update write one last time to point at block
+            // where order is less. 
+            write = start;
+        }
+        if should_update_write {
+            write = start;
         }
 
         // Check next block
@@ -462,13 +460,13 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
             Err(_) => {
                 return RingBufferMetadata {
                     file_pointers: FilePointers {
-                        write: start,
+                        write,
                         read_begin: read,
                         read_end: read,
                     },
                     order,
                     // Check to see if wrap around case.
-                    can_read_from_wrap_around: (start == read && write_updates > read_updates),
+                    can_read_from_wrap_around: (write == read && write_updates > read_updates),
                 };
             }
         };
