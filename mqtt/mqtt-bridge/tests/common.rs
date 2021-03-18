@@ -72,15 +72,16 @@ where
 }
 
 pub async fn setup_bridge_controller(
+    device_id: &str,
     local_address: String,
     upstream_address: String,
     subs: Vec<Direction>,
     storage_dir_override: &PathBuf,
 ) -> (BridgeControllerHandle, JoinHandle<()>) {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
-        "bridge".into(),
+        device_id.into(),
+        format!("{}/edgehub", device_id),
         "pass".into(),
-        "bridge".into(),
         Some(CERTIFICATE.into()),
     ));
 
@@ -88,13 +89,13 @@ pub async fn setup_bridge_controller(
         upstream_address,
         credentials,
         subs,
-        true,
+        false,
         Duration::from_secs(5),
         storage_dir_override,
     )
     .unwrap();
 
-    let controller = BridgeController::new(local_address, "bridge".into(), settings);
+    let controller = BridgeController::new(local_address, device_id.into(), settings);
     let controller_handle = controller.handle();
     let controller: Box<dyn Sidecar + Send> = Box::new(controller);
 
