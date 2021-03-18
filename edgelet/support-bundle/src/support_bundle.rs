@@ -360,15 +360,6 @@ where
         self.print_verbose(&format!("Running docker inspect for {}", module_name));
         let mut inspect = ShellCommand::new("docker");
 
-        /***
-         * Note: this assumes using windows containers on a windows machine.
-         * This is the expected production scenario.
-         * Since the bundle command does not read the config.yaml, it cannot use the `moby.runtime_uri` from there.
-         * This will not fail the bundle, only note the failure to the user and in the bundle.
-         */
-        #[cfg(windows)]
-        inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
-
         inspect.arg("inspect").arg(&module_name);
         let inspect = inspect.output();
 

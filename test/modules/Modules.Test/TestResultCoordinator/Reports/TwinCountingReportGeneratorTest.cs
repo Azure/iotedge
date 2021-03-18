@@ -191,7 +191,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     resultType,
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.StartsWith("resultType", ex.Message);
         }
@@ -258,7 +259,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualResults.GetAsyncEnumerator(),
                 "resultType1",
                 new SimpleTestOperationResultComparer(),
-                UnmatchedResultsMaxSize);
+                UnmatchedResultsMaxSize,
+                false);
 
             var report = (CountingReport)await reportGenerator.CreateReportAsync();
 

@@ -5,6 +5,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using System.Collections.Generic;
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -29,7 +30,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 {
                     new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                     new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
-                });
+                },
+                Option.None<EventHubSpecificReportComponents>(),
+                Option.None<DateTime>());
 
             Assert.Equal(TestDescription, report.TestDescription);
             Assert.Equal("trackingId123", report.TrackingId);
@@ -70,7 +73,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
-                    }));
+                    },
+                    Option.None<EventHubSpecificReportComponents>(),
+                    Option.None<DateTime>()));
 
             Assert.StartsWith("testDescription", ex.Message);
         }
@@ -94,7 +99,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
-                    }));
+                    },
+                    Option.None<EventHubSpecificReportComponents>(),
+                    Option.None<DateTime>()));
 
             Assert.StartsWith("trackingId", ex.Message);
         }
@@ -118,7 +125,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
-                    }));
+                    },
+                    Option.None<EventHubSpecificReportComponents>(),
+                    Option.None<DateTime>()));
 
             Assert.StartsWith("expectedSource", ex.Message);
         }
@@ -142,7 +151,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
-                    }));
+                    },
+                    Option.None<EventHubSpecificReportComponents>(),
+                    Option.None<DateTime>()));
 
             Assert.StartsWith("actualSource", ex.Message);
         }
@@ -166,7 +177,9 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
-                    }));
+                    },
+                    Option.None<EventHubSpecificReportComponents>(),
+                    Option.None<DateTime>()));
 
             Assert.StartsWith("resultType", ex.Message);
         }
