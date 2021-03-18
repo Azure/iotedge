@@ -6,7 +6,7 @@ use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 use mqtt3::{
     proto::{Publication, SubscribeTo},
@@ -29,6 +29,8 @@ use crate::{
     settings::TopicRule,
 };
 
+const TOPIC_SEPARATOR: char = '/';
+
 #[derive(Default, Clone, Debug)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
@@ -46,7 +48,7 @@ impl TryFrom<TopicRule> for TopicMapper {
 
     fn try_from(topic: TopicRule) -> Result<Self, BridgeError> {
         let topic_filter = topic
-            .topic()
+            .subscribe_to()
             .parse()
             .map_err(BridgeError::TopicFilterParse)?;
 
@@ -81,20 +83,34 @@ impl<S> StoreMqttEventHandler<S> {
 
     fn transform(&self, topic_name: &str) -> Option<String> {
         self.topic_mappers.values().find_map(|mapper| {
-            mapper
-                .topic_settings
-                .in_prefix()
-                // maps if local does not have a value it uses the topic that was received,
-                // else it checks that the received topic starts with local prefix and removes the local prefix
-                .map_or(Some(topic_name), |local_prefix| {
-                    topic_name.strip_prefix(format!("{}/", local_prefix).as_str())
-                })
-                // match topic without local prefix with the topic filter pattern
-                .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
-                .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
-                    Some(remote_prefix) => format!("{}/{}", remote_prefix, stripped_topic),
-                    None => stripped_topic.to_string(),
-                })
+            if mapper.topic_filter.matches(topic_name) {
+                mapper
+                    .topic_settings
+                    .in_prefix()
+                    // maps if local does not have a value it uses the topic that was received,
+                    // else it checks that the received topic starts with local prefix and removes the local prefix
+                    .map_or(Some(topic_name), |local_prefix| {
+                        if mapper.topic_settings.out_prefix().is_none() {
+                            topic_name.strip_prefix::<&str>(
+                                format!("{}{}", local_prefix, TOPIC_SEPARATOR).as_ref(),
+                            )
+                        } else {
+                            topic_name.strip_prefix::<&str>(local_prefix)
+                        }
+                    })
+                    .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
+                        Some(remote_prefix) => {
+                            if mapper.topic_settings.in_prefix().is_none() {
+                                format!("{}{}{}", remote_prefix, TOPIC_SEPARATOR, stripped_topic)
+                            } else {
+                                format!("{}{}", remote_prefix, stripped_topic)
+                            }
+                        }
+                        None => stripped_topic.to_string(),
+                    })
+            } else {
+                None
+            }
         })
     }
 
@@ -147,7 +163,6 @@ where
 
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
-
                     return match self.store.push(&publication) {
                         Ok(_) |
                         // If we are full we are dropping the message on ground.
@@ -155,7 +170,6 @@ where
                         Err(err) => Err(BridgeError::Store(err)),
                     };
                 }
-                warn!("no topic matched");
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
@@ -169,7 +183,10 @@ where
                             self.handle_unsubscribed(&unsub);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(sub) => {
-                            debug!("received subscription rejected: {}", sub.topic_filter);
+                            warn!(
+                                "received subscription rejected by server, verify that you have permissions to subscribe to topic: {}",
+                                sub.topic_filter
+                            );
                             self.handle_rejected(sub.clone());
                         }
                     }
@@ -194,10 +211,13 @@ pub async fn retry_subscriptions(
 
     while let Some(subs) = retries.next().await {
         if !subs.is_empty() {
-            info!("try to re-subscribe to {} topics", subs.len());
+            debug!("try to re-subscribe to {} topics", subs.len());
             for sub in subs {
                 if topic_mappers_updates.contains_key(&sub.topic_filter) {
-                    debug!("re-subscribe to {} qos {:?}", sub.topic_filter, sub.qos);
+                    warn!(
+                        "subscription was rejected by server, re-subscribe to {} qos {:?}",
+                        sub.topic_filter, sub.qos
+                    );
                     if let Err(e) = subscription_handle.subscribe(sub).await {
                         error!("failed to send subscribe {}", e);
                     }
@@ -299,7 +319,7 @@ mod tests {
                     sub.subscribe_to(),
                     TopicMapper {
                         topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
                     },
                 )
             })
@@ -338,7 +358,7 @@ mod tests {
                     sub.subscribe_to(),
                     TopicMapper {
                         topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
                     },
                 )
             })
@@ -412,7 +432,7 @@ mod tests {
                     sub.subscribe_to(),
                     TopicMapper {
                         topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
                     },
                 )
             })
@@ -455,6 +475,161 @@ mod tests {
     #[test_case(MemoryPublicationStore::default())]
     #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
+    async fn message_handler_saves_message_with_local_and_multileveltopic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "local/telemetry".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected1 = Publication {
+            topic_name: "remote/messages".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let pub2 = ReceivedPublication {
+            topic_name: "local/floor4".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected2 = Publication {
+            topic_name: "floor4".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/telemetry/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/floor4/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub2)).await.unwrap();
+        let mut loader = handler.store.loader();
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted1.1, expected1);
+        assert_eq!(extracted2.1, expected2);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
+    async fn message_handler_saves_message_with_remote_and_multileveltopic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "floor3".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected = Publication {
+            topic_name: "remote/messages/floor3".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "floor3/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        let mut loader = handler.store.loader();
+        let extracted = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted.1, expected);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
+    async fn message_handler_saves_message_justmultileveltopic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "floor5".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected = Publication {
+            topic_name: "floor5".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "floor5/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        let mut loader = handler.store.loader();
+        let extracted = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted.1, expected);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
     async fn message_handler_saves_message_with_empty_local_and_forward_topic<T>(
         store: PublicationStore<T>,
     ) where
@@ -463,19 +638,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -522,19 +685,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -580,19 +731,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -639,19 +778,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -692,19 +819,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -738,19 +853,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -835,5 +938,67 @@ mod tests {
                 FlushOptions::AfterEachWrite,
             )),
         )
+    }
+
+    // "subscriptions": [
+    //         {
+    //             "direction": "both",
+    //             "topic": "temp/#",
+    //             "outPrefix": "floor/kitchen"
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "floor/#",
+    //             "inPrefix": "local",
+    //             "outPrefix": "remote"
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "pattern/#"
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "floor2/#",
+    //             "inPrefix": "",
+    //             "outPrefix": ""
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "#",
+    //             "inPrefix": "local/telemetry",
+    //             "outPrefix": "remote/messages"
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "floor3/#",
+    //             "outPrefix": "remote/messages"
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "floor4/#",
+    //             "inPrefix": "local"
+    //         },
+    //         {
+    //             "direction": "out",
+    //             "topic": "floor5/#"
+    //         }
+
+    fn forwards_topics_from_settings(
+        connection_settings: &crate::settings::ConnectionSettings,
+    ) -> HashMap<String, TopicMapper> {
+        let topics = connection_settings
+            .forwards()
+            .iter()
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
+                    },
+                )
+            })
+            .collect();
+        topics
     }
 }
