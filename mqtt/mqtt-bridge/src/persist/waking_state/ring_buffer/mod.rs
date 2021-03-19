@@ -438,22 +438,35 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
             read = end + data_size;
         }
 
+        // Check next block
+        write_updates += 1;
+        order += 1; // We want to start with the next order number.
+        start = end + data_size;
+        end = start + block_size;
+
         // Found the last write, can stop updating write.
         if inner.order() < order {
             should_update_write = false;
             // Update write one last time to point at block
-            // where order is less. 
-            write = start;
+            // where order is less.
+            write = start % max_file_size;
         }
         if should_update_write {
-            write = start;
+            write = start % max_file_size;
         }
 
-        // Check next block
-        write_updates += 1;
-        order += 1; // We want to start with the next order number.
-        start = (end + data_size) % max_file_size;
-        end = (start + block_size) % max_file_size;
+        if start >= max_file_size {
+            return RingBufferMetadata {
+                file_pointers: FilePointers {
+                    write,
+                    read_begin: read,
+                    read_end: read,
+                },
+                order,
+                // Check to see if wrap around case.
+                can_read_from_wrap_around: (write == read && write_updates > read_updates),
+            };
+        }
 
         block = match load_block_header(&mut reader, start, block_size, max_file_size) {
             Ok(block) => block,
@@ -775,6 +788,83 @@ mod tests {
             }
         });
         assert_matches!(result, Ok(_));
+    }
+
+    #[test]
+    fn it_inits_ok_with_previous_data_and_write_pointer_before_read_pointer() {
+        let result = tempfile::NamedTempFile::new();
+        assert_matches!(result, Ok(_));
+        let file = result.unwrap();
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let read;
+        let write;
+        {
+            let result = RingBuffer::new(
+                &file.path().to_path_buf(),
+                MAX_FILE_SIZE_NON_ZERO,
+                FLUSH_OPTIONS,
+            );
+            assert!(result.is_ok());
+            let mut rb = result.unwrap();
+
+            // write some
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+            }
+
+            let result = rb.batch(10);
+            assert_matches!(result, Ok(_));
+            let mut batch = result.unwrap();
+            assert!(!batch.is_empty());
+
+             for (key, _) in batch.drain(..) {
+                let result = rb.remove(key);
+                assert_matches!(result, Ok(_));
+            }
+
+            // write till wrap around
+            // this will put write ahead of read
+            loop {
+                let before_write_index = rb.metadata.file_pointers.write;
+
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+
+                let after_write_index = rb.metadata.file_pointers.write;
+                if after_write_index < before_write_index {
+                    break;
+                }
+            }
+
+            // Now we simulate a 'crash' and should be able to get
+            // correct pointers and read again.
+            read = rb.metadata.file_pointers.read_begin;
+            write = rb.metadata.file_pointers.write;
+        }
+        {
+            let result = RingBuffer::new(
+                &file.path().to_path_buf(),
+                MAX_FILE_SIZE_NON_ZERO,
+                FLUSH_OPTIONS,
+            );
+            assert!(result.is_ok());
+            let rb = result.unwrap();
+
+            let loaded_read = rb.metadata.file_pointers.read_begin;
+            let loaded_write = rb.metadata.file_pointers.write;
+            let loaded_can_read_from_wrap_around = rb.metadata.can_read_from_wrap_around;
+            assert_eq!(read, loaded_read);
+            assert_eq!(write, loaded_write);
+            assert!(!loaded_can_read_from_wrap_around);
+        }
     }
 
     #[test]
@@ -1185,6 +1275,94 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
+            }
+        }
+    }
+
+    #[test]
+    fn it_batches_ok_when_leftover_from_file_and_write_only_wrap_around() {
+        let result = tempfile::NamedTempFile::new();
+        assert_matches!(result, Ok(_));
+        let file = result.unwrap();
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let mut keys = vec![];
+        {
+            let result = RingBuffer::new(
+                &file.path().to_path_buf(),
+                MAX_FILE_SIZE_NON_ZERO,
+                FLUSH_OPTIONS,
+            );
+            assert!(result.is_ok());
+            let mut rb = result.unwrap();
+
+            // write some
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+                let key = result.unwrap();
+                keys.push(key);
+            }
+
+            let result = rb.batch(10);
+            assert_matches!(result, Ok(_));
+            let mut batch = result.unwrap();
+            assert!(!batch.is_empty());
+
+            for key in keys.drain(..10) {
+                let maybe_entry = batch.remove(0);
+                assert!(maybe_entry.is_some());
+                let entry = maybe_entry.unwrap();
+                assert_eq!(key, entry.0);
+                assert_eq!(publication, entry.1);
+                let result = rb.remove(key);
+                assert_matches!(result, Ok(_));
+            }
+
+            // write till wrap around
+            // this will put write ahead of read
+            loop {
+                let before_write_index = rb.metadata.file_pointers.write;
+
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+
+                let after_write_index = rb.metadata.file_pointers.write;
+
+                let key = result.unwrap();
+                keys.push(key);
+                if after_write_index < before_write_index {
+                    break;
+                }
+            }
+            // Now we simulate a 'crash' and should be able to get
+            // correct pointers and read again.
+        }
+        {
+            let result = RingBuffer::new(
+                &file.path().to_path_buf(),
+                MAX_FILE_SIZE_NON_ZERO,
+                FLUSH_OPTIONS,
+            );
+            assert!(result.is_ok());
+            let mut rb = result.unwrap();
+
+            let result = rb.batch(keys.len());
+            assert_matches!(result, Ok(_));
+            let mut batch = result.unwrap();
+            while !batch.is_empty() {
+                for key in keys.drain(..) {
+                    let maybe_entry = batch.remove(0);
+                    assert!(maybe_entry.is_some());
+                    let entry = maybe_entry.unwrap();
+                    assert_eq!(key, entry.0);
+                    assert_eq!(publication, entry.1);
+                }
             }
         }
     }
