@@ -39,7 +39,7 @@ pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::Docker
         type_: "docker".to_owned(),
         image_pull_policy: Default::default(),
         config: edgelet_docker::DockerConfig {
-            image: "mcr.microsoft.com/azureiotedge-agent:1.0".to_owned(),
+            image: "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
             image_id: None,
             create_options: docker::models::ContainerCreateBody::new(),
             digest: None,
