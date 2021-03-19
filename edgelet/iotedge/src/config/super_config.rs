@@ -29,6 +29,22 @@ pub(super) struct Config {
     pub(super) moby_runtime: MobyRuntime,
 }
 
+pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig> {
+    edgelet_core::ModuleSpec {
+        name: "edgeAgent".to_owned(),
+        type_: "docker".to_owned(),
+        image_pull_policy: Default::default(),
+        config: edgelet_docker::DockerConfig {
+            image: "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
+            image_id: None,
+            create_options: docker::models::ContainerCreateBody::new(),
+            digest: None,
+            auth: None,
+        },
+        env: Default::default(),
+    }
+}
+
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
 pub(super) enum EdgeCa {
