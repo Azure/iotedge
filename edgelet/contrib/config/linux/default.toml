@@ -11,7 +11,7 @@ name = "edgeAgent"
 type = "docker"
 
 [agent.config]
-image = "mcr.microsoft.com/azureiotedge-agent:1.0"
+image = "mcr.microsoft.com/azureiotedge-agent:1.2"
 
 [connect]
 workload_uri = "@connect_workload_uri@"
