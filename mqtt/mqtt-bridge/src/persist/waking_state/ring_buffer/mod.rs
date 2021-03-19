@@ -1285,13 +1285,9 @@ mod tests {
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-        let mut keys = vec![];
+        let mut counter = 0;
+
+        let mut entries = vec![];
         {
             let result = RingBuffer::new(
                 &file.path().to_path_buf(),
@@ -1303,10 +1299,17 @@ mod tests {
 
             // write some
             for _ in 0..10 {
+                let publication = Publication {
+                    topic_name: counter.to_string(),
+                    qos: QoS::AtMostOnce,
+                    retain: true,
+                    payload: Bytes::new(),
+                };
+                counter += 1;
                 let result = rb.insert(&publication);
                 assert_matches!(result, Ok(_));
                 let key = result.unwrap();
-                keys.push(key);
+                entries.push((key, publication));
             }
 
             let result = rb.batch(10);
@@ -1314,7 +1317,7 @@ mod tests {
             let mut batch = result.unwrap();
             assert!(!batch.is_empty());
 
-            for key in keys.drain(..10) {
+            for (key, publication) in entries.drain(..) {
                 let maybe_entry = batch.remove(0);
                 assert!(maybe_entry.is_some());
                 let entry = maybe_entry.unwrap();
@@ -1325,9 +1328,17 @@ mod tests {
             }
 
             // write till wrap around
-            // this will put write ahead of read
+            // this will put write before read
             loop {
                 let before_write_index = rb.metadata.file_pointers.write;
+
+                let publication = Publication {
+                    topic_name: counter.to_string(),
+                    qos: QoS::AtMostOnce,
+                    retain: true,
+                    payload: Bytes::new(),
+                };
+                counter += 1;
 
                 let result = rb.insert(&publication);
                 assert_matches!(result, Ok(_));
@@ -1335,7 +1346,7 @@ mod tests {
                 let after_write_index = rb.metadata.file_pointers.write;
 
                 let key = result.unwrap();
-                keys.push(key);
+                entries.push((key, publication));
                 if after_write_index < before_write_index {
                     break;
                 }
@@ -1352,11 +1363,11 @@ mod tests {
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
-            let result = rb.batch(keys.len());
+            let result = rb.batch(entries.len());
             assert_matches!(result, Ok(_));
             let mut batch = result.unwrap();
             while !batch.is_empty() {
-                for key in keys.drain(..) {
+                for (key , publication) in entries.drain(..) {
                     let maybe_entry = batch.remove(0);
                     assert!(maybe_entry.is_some());
                     let entry = maybe_entry.unwrap();
