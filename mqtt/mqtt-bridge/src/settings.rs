@@ -203,6 +203,8 @@ impl TopicRule {
             Some(local) => {
                 if local.is_empty() {
                     self.topic.clone()
+                } else if self.topic.is_empty() {
+                    local.to_owned()
                 } else {
                     format!("{}/{}", local, self.topic)
                 }

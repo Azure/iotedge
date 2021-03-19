@@ -47,6 +47,12 @@
             {
                 "direction": "out",
                 "topic": "floor5/#"
+            },
+            {
+                "direction": "out",
+                "topic": "",
+                "inPrefix": "foo/bar",
+                "outPrefix": "bar/foo"
             }
         ]
     },
