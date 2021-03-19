@@ -26,6 +26,11 @@
             },
             "https_proxy": {
               "value": "<proxyAddress>"
+            },
+            "env": {
+              "UpstreamProtocol": {
+                "value": "Mqtt"
+              }
             }
           },
           "edgeHub": {
@@ -49,6 +54,9 @@
               },
               "https_proxy": {
                 "value": "<proxyAddress>"
+              },
+              "UpstreamProtocol": {
+                "value": "Mqtt"
               }
             },
             "status": "running",
