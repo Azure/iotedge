@@ -91,6 +91,8 @@ impl<S> StoreMqttEventHandler<S> {
                     // else it checks that the received topic starts with local prefix and removes the local prefix
                     .map_or(Some(topic_name), |local_prefix| {
                         if mapper.topic_settings.out_prefix().is_none() {
+                            // inPrefix is not empty which means a topic separator was appended <inPrefix>/<topic>
+                            // so it needs to be removed if there is no out prefix
                             topic_name.strip_prefix::<&str>(
                                 format!("{}{}", local_prefix, TOPIC_SEPARATOR).as_ref(),
                             )
@@ -101,6 +103,8 @@ impl<S> StoreMqttEventHandler<S> {
                     .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
                         Some(remote_prefix) => {
                             if mapper.topic_settings.in_prefix().is_none() {
+                                // inPrefix is empty so it adds the topic separator between remote prefix
+                                // and topic
                                 format!("{}{}{}", remote_prefix, TOPIC_SEPARATOR, stripped_topic)
                             } else {
                                 format!("{}{}", remote_prefix, stripped_topic)
