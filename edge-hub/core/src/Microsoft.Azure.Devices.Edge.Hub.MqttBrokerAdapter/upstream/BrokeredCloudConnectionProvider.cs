@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher, connectionStatusChangedHandler);
+            await cloudProxy.OpenAsync();
             return new Try<ICloudConnection>(new BrokeredCloudConnection(identity, cloudProxy));
         }
 
