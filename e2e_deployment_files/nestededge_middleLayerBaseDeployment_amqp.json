@@ -15,7 +15,7 @@
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
             "env": {}
           },
@@ -23,13 +23,10 @@
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
               "experimentalFeatures__enabled": {
-                "value": "true"
-              },
-              "experimentalFeatures__nestedEdgeEnabled": {
                 "value": "true"
               },
               "DeviceScopeCacheRefreshDelaySecs": {
@@ -37,7 +34,7 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }                   
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -52,12 +49,36 @@
             "startupOrder": 3,
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
               "NGINX_DEFAULT_PORT": {
                 "value": "443"
               }
+            }
+          },
+          "relayer1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "Amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "EnableTrcReporting": {
+                "value": false
+              }
+            },
+            "settings": {
+              "image": "$upstream:443/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
             }
           }
         }
@@ -67,6 +88,7 @@
       "properties.desired": {
         "schemaVersion": "1.2",
         "routes": {
+          "ToRelayer1": "FROM /messages/* WHERE $connectionDeviceId = \"L3LeafToRelayer1\" INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "ToUpstream": "FROM /messages/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {
@@ -74,18 +96,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
-                  ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
                   ]
-              }
+                }
+              ]
+            }
           ]
         }
       }

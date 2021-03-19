@@ -22,9 +22,9 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "https_proxy": {	
+            "https_proxy": {
               "value": "<proxyAddress>"
             }
           },
@@ -38,9 +38,6 @@
               "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               },
@@ -50,9 +47,9 @@
               "RuntimeLogLevel": {
                 "value": "debug"
               },
-              "https_proxy": {	
+              "https_proxy": {
                 "value": "<proxyAddress>"
-              }                                 
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -67,7 +64,7 @@
             "startupOrder": 2,
             "settings": {
               "image": "registry:latest",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
             },
             "env": {
               "REGISTRY_PROXY_REMOTEURL": {
@@ -92,7 +89,7 @@
             "startupOrder": 3,
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
               "NGINX_DEFAULT_PORT": {
@@ -117,18 +114,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
-                  ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
                   ]
-              }
+                }
+              ]
+            }
           ]
         }
       }

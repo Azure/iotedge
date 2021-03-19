@@ -146,7 +146,7 @@ pub struct ModuleSpec<T> {
     #[serde(rename = "imagePullPolicy")]
     pub image_pull_policy: ImagePullPolicy,
     pub config: T,
-    #[serde(default = "BTreeMap::new")]
+    #[serde(default)]
     pub env: BTreeMap<String, String>,
 }
 

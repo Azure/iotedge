@@ -66,7 +66,7 @@ for($page = 1; ; $page++)
 
     $artifacts_link = $actions_runs.workflow_runs | `
     where {($_.head_sha -eq $aziot_commit) -and ($_.name -eq 'packages')} | `
-    Select-Object -ExpandProperty artifacts_url
+    Select-Object -First 1 -ExpandProperty artifacts_url
 
     if([string]::IsNullOrEmpty($artifacts_link))
     {

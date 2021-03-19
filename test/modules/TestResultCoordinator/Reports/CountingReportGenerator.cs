@@ -29,7 +29,8 @@ namespace TestResultCoordinator.Reports
             IAsyncEnumerator<TestOperationResult> actualTestResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer,
-            ushort unmatchedResultsMaxSize)
+            ushort unmatchedResultsMaxSize,
+            bool eventHubLongHaulMode)
         {
             this.TestDescription = Preconditions.CheckNonWhiteSpace(testDescription, nameof(testDescription));
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -40,6 +41,7 @@ namespace TestResultCoordinator.Reports
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
             this.unmatchedResultsMaxSize = Preconditions.CheckRange<ushort>(unmatchedResultsMaxSize, 1);
+            this.EventHubLongHaulMode = eventHubLongHaulMode;
         }
 
         internal string ActualSource { get; }
@@ -56,6 +58,8 @@ namespace TestResultCoordinator.Reports
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
+        public bool EventHubLongHaulMode { get; }
+
         /// <summary>
         /// Compare 2 data stores and counting expect, match, and duplicate results; and return a counting report.
         /// It will remove consecutive duplicate results when loading from actual store.
@@ -71,6 +75,9 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount = 0;
             ulong totalDuplicateResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
+            bool allActualResultsMatch = false;
+            Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents = Option.None<EventHubSpecificReportComponents>();
+            Option<DateTime> lastLoadedResultCreatedAt = Option.None<DateTime>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
@@ -112,11 +119,43 @@ namespace TestResultCoordinator.Reports
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
+            allActualResultsMatch = totalExpectCount == totalMatchCount;
+
             while (hasExpectedResult)
             {
                 totalExpectCount++;
                 TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+            }
+
+            if (this.EventHubLongHaulMode)
+            {
+                bool stillReceivingFromEventHub = false;
+                // If we are are using EventHub to receive messages, we see an issue where EventHub can accrue large delays after
+                // running for a while. Therefore, if we are using EventHub with this counting report, we do two things.
+                // 1. Match only actual results. We still report all expected results, but matching actual results only.
+                // 2. We make sure that the last result we got from EventHub (i.e. the lastLoadedResult) is within our defined tolerance period.
+                //    'eventHubDelayTolerance' is an arbitrary tolerance period that we have defined, and can be tuned as needed.
+                // TODO: There is either something wrong with the EventHub service or something wrong with the way we are using it,
+                // Because we should not be accruing such large delays. If we move off EventHub, we should fix this as well.
+                TimeSpan eventHubDelayTolerance = Settings.Current.LongHaulSpecificSettings
+                        .Expect<ArgumentException>(
+                            () => throw new ArgumentException("TRC must be in long haul mode to be generating an EventHubLongHaul CountingReport"))
+                        .EventHubDelayTolerance;
+                if (lastLoadedResult == null || lastLoadedResult.CreatedAt < DateTime.UtcNow - eventHubDelayTolerance)
+                {
+                    stillReceivingFromEventHub = false;
+                }
+                else
+                {
+                    stillReceivingFromEventHub = true;
+                }
+
+                eventHubSpecificReportComponents = Option.Some(new EventHubSpecificReportComponents
+                {
+                    StillReceivingFromEventHub = stillReceivingFromEventHub,
+                    AllActualResultsMatch = allActualResultsMatch
+                });
             }
 
             while (hasActualResult)
@@ -130,6 +169,11 @@ namespace TestResultCoordinator.Reports
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
+            if (lastLoadedResult != null)
+            {
+                lastLoadedResultCreatedAt = Option.Some(lastLoadedResult.CreatedAt);
+            }
+
             return new CountingReport(
                 this.TestDescription,
                 this.trackingId,
@@ -139,7 +183,9 @@ namespace TestResultCoordinator.Reports
                 totalExpectCount,
                 totalMatchCount,
                 totalDuplicateResultCount,
-                new List<TestOperationResult>(unmatchedResults).AsReadOnly());
+                new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
+                eventHubSpecificReportComponents,
+                lastLoadedResultCreatedAt);
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)

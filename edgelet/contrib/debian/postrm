@@ -3,22 +3,30 @@ set -e
 
 case "$1" in
     purge)
-        if [ -f /etc/aziot/edged/config.toml ]; then
-            rm /etc/aziot/edged/config.toml
+        systemctl daemon-reload
+        killall -SIGKILL -u iotedge || true
+
+        if [ -d /etc/aziot ]; then
+            rm -rf /etc/aziot/edged
+            rm -f /etc/aziot/config.toml
         fi
-        if [ -d /etc/aziot/edged/config.d ]; then
-            rm -r /etc/aziot/edged/config.d
-        fi
-        if [ -d /var/lib/aziot/edged ]; then
-            rm -rf /var/lib/aziot/edged
-        fi
-        if [ -d /var/log/aziot/edged ]; then
-            rm -rf /var/log/aziot/edged
+
+        rm -rf /var/log/aziot
+
+        # Remove supplementary members from the iotedge group.
+        for u in $(getent group iotedge | sed -e "s/^.*://" -e "s/,/ /g"); do
+            gpasswd -d "$u" iotedge
+        done
+
+        /usr/sbin/userdel iotedge
+        rm -rf /var/lib/aziot/edged
+
+        if [ -d /var/lib/aziot ] && [ -z "$(ls -A /var/lib/aziot)" ]; then
+            rm -rf /var/lib/aziot
         fi
     ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
-
     *)
         echo "postrm called with unknown argument \`$1'" >&2
         exit 1

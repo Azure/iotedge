@@ -30,7 +30,7 @@ jobs:
         sshEndpoint: iotedge-mqtt-perf-amd64-conn
         runOptions: commands        
         commands: |
-          docker stop mqtt-broker ; docker system prune -a -f
+          echo $(brokerImageName) > brokerImageName.txt ; docker stop mqtt-broker ; docker system prune -a -f
       # ignore cleanup errors if no containers running
       continueOnError: true 
       condition: eq(variables['arch'], 'amd64')
@@ -42,8 +42,8 @@ jobs:
         runOptions: commands
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
-          docker pull $(brokerImageName)
-          docker run -d --network=host --name=mqtt-broker $(brokerImageName)
+          docker pull $(cat brokerImageName.txt)
+          docker run -d --network=host --security-opt apparmor=unconfined --name=mqtt-broker $(cat brokerImageName.txt)
           docker logout
       condition: eq(variables['arch'], 'amd64')
 
@@ -54,7 +54,7 @@ jobs:
         sshEndpoint: iotedge-mqtt-perf-arm32v7-conn
         runOptions: commands        
         commands: |
-          docker stop mqtt-broker ; docker system prune -a -f
+          echo $(brokerImageName) > brokerImageName.txt ; docker stop mqtt-broker ; docker system prune -a -f
       # ignore cleanup errors if no containers running
       continueOnError: true 
       condition: eq(variables['arch'], 'arm32v7')
@@ -66,8 +66,8 @@ jobs:
         runOptions: commands
         commands: |
           echo "$(registry.password)" | docker login $(registry.address) --username $(registry.user) --password-stdin 2>/dev/null
-          docker pull $(brokerImageName)
-          docker run -d --network=host --name=mqtt-broker $(brokerImageName)
+          docker pull $(cat brokerImageName.txt)
+          docker run -d --network=host --security-opt apparmor=unconfined --name=mqtt-broker $(cat brokerImageName.txt)
           docker logout
       condition: eq(variables['arch'], 'arm32v7')
       

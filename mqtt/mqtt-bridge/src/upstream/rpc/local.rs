@@ -74,8 +74,8 @@ impl LocalRpcMqttEventHandler {
 
     fn handle_subscription_update(&mut self, subscription: &SubscriptionUpdateEvent) -> bool {
         let topic_filter = match subscription {
-            SubscriptionUpdateEvent::Subscribe(sub) => &sub.topic_filter,
-            SubscriptionUpdateEvent::RejectedByServer(sub) => &sub.topic_filter,
+            SubscriptionUpdateEvent::Subscribe(sub)
+            | SubscriptionUpdateEvent::RejectedByServer(sub) => &sub.topic_filter,
             SubscriptionUpdateEvent::Unsubscribe(topic_filter) => topic_filter,
         };
 
