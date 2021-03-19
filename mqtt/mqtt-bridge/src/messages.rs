@@ -211,7 +211,7 @@ pub async fn retry_subscriptions(
 
     while let Some(subs) = retries.next().await {
         if !subs.is_empty() {
-            debug!("try to re-subscribe to {} topics", subs.len());
+            warn!("try to re-subscribe to {} topics", subs.len());
             for sub in subs {
                 if topic_mappers_updates.contains_key(&sub.topic_filter) {
                     warn!(
