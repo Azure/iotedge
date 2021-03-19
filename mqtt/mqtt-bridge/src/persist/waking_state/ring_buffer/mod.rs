@@ -834,7 +834,7 @@ mod tests {
             }
 
             // write till wrap around
-            // this will put write ahead of read
+            // this will put write before read
             loop {
                 let before_write_index = rb.metadata.file_pointers.write;
 
