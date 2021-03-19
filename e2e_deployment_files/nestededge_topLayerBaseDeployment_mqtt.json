@@ -49,6 +49,9 @@
               },
               "https_proxy": {
                 "value": "<proxyAddress>"
+              },
+              "UpstreamProtocol": {
+                "value": "Mqtt"
               }
             },
             "status": "running",
