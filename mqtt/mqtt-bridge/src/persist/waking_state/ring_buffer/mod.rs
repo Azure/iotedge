@@ -51,7 +51,7 @@ pub(crate) struct RingBufferMetadata {
     // If write reaches read but we have data to read, this is set.
     // It allows us handle the edge case of read == write, but data
     // has not been read yet.
-    can_read_from_wrap_around: bool,
+    can_read_from_wrap_around_when_write_full: bool,
 
     // Pointers into the file (read/write).
     file_pointers: FilePointers,
@@ -243,7 +243,7 @@ impl StreamWakeableState for RingBuffer {
         // where write has filled whole buffer and is **exactly** on read ptr
         // again as if we just started.
         if self.metadata.file_pointers.write == self.metadata.file_pointers.read_begin {
-            self.metadata.can_read_from_wrap_around = true;
+            self.metadata.can_read_from_wrap_around_when_write_full = true;
         }
 
         self.wake_up_task();
@@ -263,13 +263,13 @@ impl StreamWakeableState for RingBuffer {
 
         // If read would go into where writes are happening then we don't have data to read.
         if self.metadata.file_pointers.read_end == write_index
-            && !self.metadata.can_read_from_wrap_around
+            && !self.metadata.can_read_from_wrap_around_when_write_full
         {
             return Ok(VecDeque::new());
         }
 
         // If we are reading then we can reset wrap around flag
-        self.metadata.can_read_from_wrap_around = false;
+        self.metadata.can_read_from_wrap_around_when_write_full = false;
 
         let mut start = read_index;
         let mut vdata = VecDeque::new();
@@ -425,7 +425,7 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around: (write == read && write_updates > read_updates),
+                can_read_from_wrap_around_when_write_full: (write == read && write_updates > read_updates),
             };
         }
 
@@ -464,7 +464,7 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around: (write == read && write_updates > read_updates),
+                can_read_from_wrap_around_when_write_full: (write == read && write_updates > read_updates),
             };
         }
 
@@ -479,7 +479,7 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
                     },
                     order,
                     // Check to see if wrap around case.
-                    can_read_from_wrap_around: (write == read && write_updates > read_updates),
+                    can_read_from_wrap_around_when_write_full: (write == read && write_updates > read_updates),
                 };
             }
         };
@@ -860,10 +860,10 @@ mod tests {
 
             let loaded_read = rb.metadata.file_pointers.read_begin;
             let loaded_write = rb.metadata.file_pointers.write;
-            let loaded_can_read_from_wrap_around = rb.metadata.can_read_from_wrap_around;
+            let loaded_can_read_from_wrap_around_when_write_full = rb.metadata.can_read_from_wrap_around_when_write_full;
             assert_eq!(read, loaded_read);
             assert_eq!(write, loaded_write);
-            assert!(!loaded_can_read_from_wrap_around);
+            assert!(!loaded_can_read_from_wrap_around_when_write_full);
         }
     }
 
@@ -1436,7 +1436,7 @@ mod tests {
         );
         assert!(result.is_ok());
         let mut rb = result.unwrap();
-        assert_eq!(rb.metadata.can_read_from_wrap_around, false);
+        assert_eq!(rb.metadata.can_read_from_wrap_around_when_write_full, false);
 
         let mut keys = vec![];
         for _ in 0..10 {
@@ -1444,7 +1444,7 @@ mod tests {
             assert_matches!(result, Ok(_));
             keys.push(result.unwrap());
         }
-        assert_eq!(rb.metadata.can_read_from_wrap_around, true);
+        assert_eq!(rb.metadata.can_read_from_wrap_around_when_write_full, true);
 
         let result = rb.batch(10);
         assert_matches!(result, Ok(_));
@@ -1486,13 +1486,13 @@ mod tests {
             );
             assert!(result.is_ok());
             let mut rb = result.unwrap();
-            assert_eq!(rb.metadata.can_read_from_wrap_around, false);
+            assert_eq!(rb.metadata.can_read_from_wrap_around_when_write_full, false);
             for _ in 0..10 {
                 let result = rb.insert(&publication);
                 assert_matches!(result, Ok(_));
                 keys.push(result.unwrap());
             }
-            assert_eq!(rb.metadata.can_read_from_wrap_around, true);
+            assert_eq!(rb.metadata.can_read_from_wrap_around_when_write_full, true);
         }
 
         let result = RingBuffer::new(
@@ -1502,7 +1502,7 @@ mod tests {
         );
         assert!(result.is_ok());
         let mut rb = result.unwrap();
-        assert_eq!(rb.metadata.can_read_from_wrap_around, true);
+        assert_eq!(rb.metadata.can_read_from_wrap_around_when_write_full, true);
 
         let result = rb.batch(10);
         assert_matches!(result, Ok(_));
