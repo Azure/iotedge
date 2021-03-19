@@ -825,7 +825,7 @@ mod tests {
             let mut batch = result.unwrap();
             assert!(!batch.is_empty());
 
-             for (key, _) in batch.drain(..) {
+            for (key, _) in batch.drain(..) {
                 let result = rb.remove(key);
                 assert_matches!(result, Ok(_));
             }
