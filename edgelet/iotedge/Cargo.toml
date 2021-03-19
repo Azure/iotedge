@@ -37,14 +37,14 @@ typed-headers = "0.1.1"
 url = "2"
 zip = "0.5.3"
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
