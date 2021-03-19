@@ -425,7 +425,8 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around_when_write_full: (write == read && write_updates > read_updates),
+                can_read_from_wrap_around_when_write_full: (write == read
+                    && write_updates > read_updates),
             };
         }
 
@@ -464,7 +465,8 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
                 },
                 order,
                 // Check to see if wrap around case.
-                can_read_from_wrap_around_when_write_full: (write == read && write_updates > read_updates),
+                can_read_from_wrap_around_when_write_full: (write == read
+                    && write_updates > read_updates),
             };
         }
 
@@ -479,7 +481,8 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
                     },
                     order,
                     // Check to see if wrap around case.
-                    can_read_from_wrap_around_when_write_full: (write == read && write_updates > read_updates),
+                    can_read_from_wrap_around_when_write_full: (write == read
+                        && write_updates > read_updates),
                 };
             }
         };
@@ -860,7 +863,8 @@ mod tests {
 
             let loaded_read = rb.metadata.file_pointers.read_begin;
             let loaded_write = rb.metadata.file_pointers.write;
-            let loaded_can_read_from_wrap_around_when_write_full = rb.metadata.can_read_from_wrap_around_when_write_full;
+            let loaded_can_read_from_wrap_around_when_write_full =
+                rb.metadata.can_read_from_wrap_around_when_write_full;
             assert_eq!(read, loaded_read);
             assert_eq!(write, loaded_write);
             assert!(!loaded_can_read_from_wrap_around_when_write_full);
@@ -1367,7 +1371,7 @@ mod tests {
             assert_matches!(result, Ok(_));
             let mut batch = result.unwrap();
             while !batch.is_empty() {
-                for (key , publication) in entries.drain(..) {
+                for (key, publication) in entries.drain(..) {
                     let maybe_entry = batch.remove(0);
                     assert!(maybe_entry.is_some());
                     let entry = maybe_entry.unwrap();
