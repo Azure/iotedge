@@ -54,7 +54,7 @@ namespace DirectMethodSender
             }
             catch (DeviceNotFoundException e)
             {
-                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
             }
             catch (Exception e)
