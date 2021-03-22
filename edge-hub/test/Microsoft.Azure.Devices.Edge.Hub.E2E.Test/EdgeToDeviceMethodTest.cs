@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                         200));
             }
 
-            string receiverModuleName = "method-module";
+            string receiverModuleName = "method-module" + Guid.NewGuid();
             try
             {
                 ServiceClient sender = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public async Task InvokeMethodOnDeviceTest(ITransportSettings[] transportSettings)
         {
             // Arrange
-            string deviceName = string.Format("deviceMethodTest-{0}", transportSettings.First().GetTransportType().ToString("g"));
+            string deviceName = string.Format("deviceMethodTest-{0}-{1}", Guid.NewGuid(), transportSettings.First().GetTransportType().ToString("g"));
             string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             DeviceClient receiver = null;
