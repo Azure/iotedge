@@ -202,15 +202,16 @@
 # Default Edge Agent
 # ==============================================================================
 #
-# Specify the parameters of the default Edge Agent module below.
+# If you need to override the parameters of the default Edge Agent module,
+# uncomment this section and replace the values in this section with your own.
 
-[agent]
-name = "edgeAgent"
-type = "docker"
+# [agent]
+# name = "edgeAgent"
+# type = "docker"
 # imagePullPolicy = "..."   # "on-create" or "never". Defaults to "on-create"
 
-[agent.config]
-image = "mcr.microsoft.com/azureiotedge-agent:1.0"
+# [agent.config]
+# image = "mcr.microsoft.com/azureiotedge-agent:1.2"
 # createOptions = { }       # Docker container create options, in TOML format.
 
 # [agent.config.auth]
@@ -218,7 +219,7 @@ image = "mcr.microsoft.com/azureiotedge-agent:1.0"
 # username = "username"
 # password = "password"
 
-[agent.env]
+# [agent.env]
 # "RuntimeLogLevel" = "debug"
 # "UpstreamProtocol" = "AmqpWs"
 
@@ -228,15 +229,15 @@ image = "mcr.microsoft.com/azureiotedge-agent:1.0"
 # ==============================================================================
 #
 # If you need to override the management and workload API endpoints,
-# replace the values in this section with your own.
+# uncomment this section and replace the values in this section with your own.
 
-[connect]
-workload_uri = "@connect_workload_uri@"
-management_uri = "@connect_management_uri@"
-
-[listen]
-workload_uri = "@listen_workload_uri@"
-management_uri = "@listen_management_uri@"
+# [connect]
+# workload_uri = "@connect_workload_uri@"
+# management_uri = "@connect_management_uri@"
+#
+# [listen]
+# workload_uri = "@listen_workload_uri@"
+# management_uri = "@listen_management_uri@"
 
 
 # ==============================================================================
@@ -286,8 +287,8 @@ management_uri = "@listen_management_uri@"
 # ==============================================================================
 #
 # If you need to override the default Moby runtime configuration,
-# replace the values in this section with your own.
+# uncomment this section and replace the values in this section with your own.
 
-[moby_runtime]
-uri = "unix:///var/run/docker.sock"
-network = "azure-iot-edge"
+# [moby_runtime]
+# uri = "unix:///var/run/docker.sock"
+# network = "azure-iot-edge"

@@ -156,8 +156,8 @@ fn execute_inner(
     aziotid_uid: nix::unistd::Uid,
     iotedge_uid: nix::unistd::Uid,
 ) -> Result<RunOutput, std::borrow::Cow<'static, str>> {
-    let config =
-        std::fs::read(config).map_err(|err| format!("could not read config file: {}", err))?;
+    let config = std::fs::read(config)
+        .map_err(|err| format!("could not read config file {}: {}", config.display(), err))?;
 
     let super_config::Config {
         parent_hostname,

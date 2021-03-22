@@ -116,6 +116,10 @@ impl ContainerConnectUpstream {
 
         self.upstream_hostname = Some(upstream_hostname.clone());
 
+        let workload_uri = settings.connect().workload_uri().to_string();
+        let workload_uri_path = settings.connect().workload_uri().path().to_string();
+        let map_volume = format!("{}:{}", workload_uri_path, workload_uri_path);
+
         let network_name = settings.moby_runtime().network().name();
         self.network_name = Some(network_name.to_owned());
 
@@ -125,6 +129,10 @@ impl ContainerConnectUpstream {
 
         if self.use_container_runtime_network {
             args.extend(&["--network", network_name]);
+        }
+
+        if settings.parent_hostname().is_some() {
+            args.extend(&["-v", &map_volume]);
         }
 
         self.diagnostics_image_name = Some(check.diagnostics_image_name.clone());
@@ -141,6 +149,7 @@ impl ContainerConnectUpstream {
 
         if settings.parent_hostname().is_some() {
             args.extend(&["--isNested", "true"]);
+            args.extend(&["--workload_uri", &workload_uri]);
         }
 
         if &port == "443" {

@@ -75,8 +75,6 @@ Finally, let's create an application and corresponding device on IoT Hub that sh
 
 On Azure IoT Hub, navigate to the "Device Explorer".  Add a new device (e.g. `mydevice`), and for its authentication type chose "X.509 CA Signed".  Devices can authenticate to IoT Hub using a certificate that is signed by the Root CA from Step 2.
 
-Note that if you're using this certificate as a DPS registration ID, the ID **must be lower case** or the server will reject it.
-
 ### **PowerShell**
 #### IoT Leaf Device Identity Certificate
 * Run `New-CACertsDevice mydevice` to create the new device identity certificate.

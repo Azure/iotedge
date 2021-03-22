@@ -15,7 +15,7 @@ namespace DevOpsLibTest
         {
             HashSet<BuildDefinitionId> ids = BuildExtension.BuildDefinitions;
 
-            Assert.AreEqual(17, ids.Count);
+            Assert.AreEqual(16, ids.Count);
             Assert.True(ids.Contains(BuildDefinitionId.CI));
             Assert.True(ids.Contains(BuildDefinitionId.EdgeletCI));
             Assert.True(ids.Contains(BuildDefinitionId.LibiohsmCI));
@@ -28,8 +28,7 @@ namespace DevOpsLibTest
             Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv1));
             Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv2));
             Assert.True(ids.Contains(BuildDefinitionId.LonghaulTestEnv3));
-            Assert.True(ids.Contains(BuildDefinitionId.NestedLonghaulNonBrokerTest));
-            Assert.True(ids.Contains(BuildDefinitionId.NestedLonghaulWithBrokerTest));
+            Assert.True(ids.Contains(BuildDefinitionId.NestedLonghaulTest));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv1));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv2));
             Assert.True(ids.Contains(BuildDefinitionId.StressTestEnv3));

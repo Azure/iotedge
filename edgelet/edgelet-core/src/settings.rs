@@ -27,6 +27,34 @@ impl Connect {
     }
 }
 
+impl Default for Connect {
+    // Clippy wants us to use `option_env!("...").unwrap_or("...")` but that can't be used in consts.
+    #[allow(clippy::option_if_let_else)]
+    fn default() -> Self {
+        const DEFAULT_MANAGEMENT_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI") {
+                value
+            } else {
+                "unix:///var/run/iotedge/mgmt.sock"
+            };
+        const DEFAULT_WORKLOAD_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_WORKLOAD_URI") {
+                value
+            } else {
+                "unix:///var/run/iotedge/workload.sock"
+            };
+
+        Connect {
+            workload_uri: DEFAULT_WORKLOAD_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            management_uri: DEFAULT_MANAGEMENT_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Listen {
     pub workload_uri: Url,
@@ -46,6 +74,35 @@ impl Listen {
 
     pub fn min_tls_version(&self) -> Protocol {
         self.min_tls_version
+    }
+}
+
+impl Default for Listen {
+    // Clippy wants us to use `option_env!("...").unwrap_or("...")` but that can't be used in consts.
+    #[allow(clippy::option_if_let_else)]
+    fn default() -> Self {
+        const DEFAULT_MANAGEMENT_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI") {
+                value
+            } else {
+                "fd://aziot-edged.mgmt.socket"
+            };
+        const DEFAULT_WORKLOAD_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_WORKLOAD_URI") {
+                value
+            } else {
+                "fd://aziot-edged.workload.socket"
+            };
+
+        Listen {
+            workload_uri: DEFAULT_WORKLOAD_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            management_uri: DEFAULT_MANAGEMENT_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            min_tls_version: Default::default(),
+        }
     }
 }
 
