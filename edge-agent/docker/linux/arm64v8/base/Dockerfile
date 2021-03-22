@@ -1,7 +1,7 @@
 ﻿ARG base_tag=3.1.12-bionic-arm64v8
 ARG num_procs=4
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 RUN mkdir -p ../publish
 

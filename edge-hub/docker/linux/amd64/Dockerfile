@@ -1,7 +1,7 @@
 ARG base_tag=3.1.12-alpine3.12
 FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 ADD ./watchdog/x86_64-unknown-linux-musl/release/watchdog /usr/local/bin/watchdog
 ADD ./mqtt/x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
