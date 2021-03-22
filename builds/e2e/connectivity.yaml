@@ -4,6 +4,7 @@ pr: none
 variables:
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
+  NugetSecurityAnalysisWarningLevel: warn
 
 jobs:
 ################################################################################
