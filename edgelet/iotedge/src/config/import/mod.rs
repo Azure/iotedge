@@ -159,7 +159,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                     ),
             }) => (
                 common_config::super_config::Provisioning {
-                    always_reprovision_on_startup: true, //TODO: Remove when this configuration is removed from identityd config
                     provisioning: common_config::super_config::ProvisioningType::Manual {
                         inner: common_config::super_config::ManualProvisioning::Explicit {
                             iothub_hostname: hostname,
@@ -187,7 +186,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                     }),
             }) => (
                 common_config::super_config::Provisioning {
-                    always_reprovision_on_startup: true, //TODO: Remove when this configuration is removed from identityd config
                     provisioning: common_config::super_config::ProvisioningType::Manual {
                         inner: common_config::super_config::ManualProvisioning::Explicit {
                             iothub_hostname,
@@ -223,7 +221,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                 always_reprovision_on_startup,
             }) => (
                 common_config::super_config::Provisioning {
-                    always_reprovision_on_startup: true, //TODO: Remove when this configuration is removed from identityd config
                     provisioning: common_config::super_config::ProvisioningType::Dps {
                         global_endpoint,
                         id_scope: scope_id,
@@ -251,7 +248,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                 always_reprovision_on_startup,
             }) => (
                 common_config::super_config::Provisioning {
-                    always_reprovision_on_startup: true, //TODO: Remove when this configuration is removed from identityd config
                     provisioning: common_config::super_config::ProvisioningType::Dps {
                         global_endpoint,
                         id_scope: scope_id,
@@ -285,7 +281,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                 always_reprovision_on_startup,
             }) => (
                 common_config::super_config::Provisioning {
-                    always_reprovision_on_startup: true, //TODO: Remove when this configuration is removed from identityd config
                     provisioning: common_config::super_config::ProvisioningType::Dps {
                         global_endpoint,
                         id_scope: scope_id,
