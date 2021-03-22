@@ -29,7 +29,7 @@ use crate::{
     settings::TopicRule,
 };
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
     topic_filter: TopicFilter,
@@ -316,7 +316,7 @@ mod tests {
             ]))
             .await
             .unwrap();
-
+        dbg!(&handler.topic_mappers);
         let _topic_mapper = handler.topic_mappers.get("local/floor/#").unwrap();
     }
 
@@ -803,7 +803,16 @@ mod tests {
                     "123",
                     "workload",
                 )),
-                Vec::new(),
+                vec![
+                    Direction::Both(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Out(TopicRule::new(
+                        "floor/#",
+                        Some("local".into()),
+                        Some("remote".into()),
+                    )),
+                    Direction::Out(TopicRule::new("pattern/#", None, None)),
+                    Direction::Out(TopicRule::new("floor2/#", Some("".into()), Some("".into()))),
+                ],
                 Duration::from_secs(60),
                 false,
             )),
