@@ -903,14 +903,12 @@ mod tests {
                 assert_matches!(result, Ok(_));
             }
 
-            let result = rb.batch(10);
-            assert_matches!(result, Ok(_));
-            let mut batch = result.unwrap();
+            let mut batch = rb.batch(10).unwrap();
             assert!(!batch.is_empty());
 
             for (key, _) in batch.drain(..) {
-                let result = rb.remove(key).expect(format!("unable to remove pub with key {}", key));
-                assert_matches!(result, Ok(_));
+                rb.remove(key)
+                    .expect(&format!("unable to remove pub with key {:?}", key).to_owned());
             }
 
             read = rb.metadata.file_pointers.read_begin;
@@ -941,6 +939,9 @@ mod tests {
             assert_eq!(write, loaded_write);
             assert_eq!(read, loaded_read);
             assert!(loaded_can_read_from_wrap_around_when_write_full);
+            // We would have written 10 + 20 entries, so the next one if there were a write
+            // should be 30. Order starts at 0.
+            assert_eq!(rb.metadata.order, 30);
         }
     }
 
