@@ -908,7 +908,7 @@ mod tests {
 
             for (key, _) in batch.drain(..) {
                 rb.remove(key)
-                    .expect(&format!("unable to remove pub with key {:?}", key).to_owned());
+                    .unwrap_or_else(|_| panic!(format!("unable to remove pub with key {:?}", key)));
             }
 
             read = rb.metadata.file_pointers.read_begin;
