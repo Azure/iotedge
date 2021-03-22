@@ -909,7 +909,7 @@ mod tests {
             assert!(!batch.is_empty());
 
             for (key, _) in batch.drain(..) {
-                let result = rb.remove(key);
+                let result = rb.remove(key).expect(format!("unable to remove pub with key {}", key));
                 assert_matches!(result, Ok(_));
             }
 
