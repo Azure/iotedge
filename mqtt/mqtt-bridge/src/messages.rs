@@ -90,15 +90,7 @@ impl<S> StoreMqttEventHandler<S> {
                     // maps if local does not have a value it uses the topic that was received,
                     // else it checks that the received topic starts with local prefix and removes the local prefix
                     .map_or(Some(topic_name), |local_prefix| {
-                        if mapper.topic_settings.out_prefix().is_none() {
-                            // inPrefix is not empty which means a topic separator was appended <inPrefix>/<topic>
-                            // so it needs to be removed if there is no out prefix
-                            topic_name.strip_prefix::<&str>(
-                                format!("{}{}", local_prefix, TOPIC_SEPARATOR).as_ref(),
-                            )
-                        } else {
-                            topic_name.strip_prefix::<&str>(local_prefix)
-                        }
+                        topic_name.strip_prefix::<&str>(local_prefix)
                     })
                     .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
                         Some(remote_prefix) => {
@@ -110,7 +102,30 @@ impl<S> StoreMqttEventHandler<S> {
                                 format!("{}{}", remote_prefix, stripped_topic)
                             }
                         }
-                        None => stripped_topic.to_string(),
+                        None => {
+                            if mapper.topic_settings.in_prefix().is_some() {
+                                stripped_topic
+                                    .strip_prefix(TOPIC_SEPARATOR)
+                                    .unwrap_or(stripped_topic)
+                                    .to_string()
+                            } else {
+                                // in case there was no separator because inPrefix is empty
+                                stripped_topic.to_string()
+                            }
+                        }
+                    })
+                    .and_then(|transformed_topic| {
+                        // transform_topic can be empty when topic is # and outPrefix is empty and it matches on inPrefix
+                        // example topic: #, inPrefix: local/messages, outPrefix: "" and message is sent with topic local/messages
+                        if transformed_topic.is_empty() {
+                            warn!(
+                                "topic {} was matched with {:#?}, but remote topic is not valid",
+                                topic_name, mapper.topic_settings
+                            );
+                            None
+                        } else {
+                            Some(transformed_topic)
+                        }
                     })
             } else {
                 None
@@ -188,7 +203,7 @@ where
                         }
                         SubscriptionUpdateEvent::RejectedByServer(sub) => {
                             warn!(
-                                "received subscription rejected by server, verify that you have permissions to subscribe to topic: {}",
+                                "received subscription rejected by broker, verify that you have permissions to subscribe to topic: {}",
                                 sub.topic_filter
                             );
                             self.handle_rejected(sub.clone());
@@ -215,11 +230,11 @@ pub async fn retry_subscriptions(
 
     while let Some(subs) = retries.next().await {
         if !subs.is_empty() {
-            warn!("try to re-subscribe to {} topics", subs.len());
+            warn!("trying to re-subscribe to {} topics", subs.len());
             for sub in subs {
                 if topic_mappers_updates.contains_key(&sub.topic_filter) {
                     warn!(
-                        "subscription was rejected by server, re-subscribe to {} qos {:?}",
+                        "re-subscribing to {} with qos {:?}",
                         sub.topic_filter, sub.qos
                     );
                     if let Err(e) = subscription_handle.subscribe(sub).await {
@@ -539,6 +554,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
         handler.handle(Event::Publication(pub2)).await.unwrap();
+
         let mut loader = handler.store.loader();
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         let extracted2 = loader.try_next().await.unwrap().unwrap();
@@ -696,8 +712,23 @@ mod tests {
             dup: false,
         };
 
-        let expected = Publication {
+        let expected1 = Publication {
             topic_name: "floor2/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let pub2 = ReceivedPublication {
+            topic_name: "/floor2-2".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
+        let expected2 = Publication {
+            topic_name: "/floor2-2".to_string(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: Bytes::new(),
@@ -713,12 +744,25 @@ mod tests {
             .await
             .unwrap();
 
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "/floor2-2".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
         handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub2)).await.unwrap();
 
         let mut loader = handler.store.loader();
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
-        assert_eq!(extracted1.1, expected);
+        assert_eq!(extracted1.1, expected1);
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted2.1, expected2);
     }
 
     #[test_case(MemoryPublicationStore::default())]
@@ -836,6 +880,14 @@ mod tests {
             dup: false,
         };
 
+        let pub2 = ReceivedPublication {
+            topic_name: "just/local".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
         handler
             .handle(Event::SubscriptionUpdates(vec![
                 SubscriptionUpdateEvent::Subscribe(SubscribeTo {
@@ -845,7 +897,17 @@ mod tests {
             ]))
             .await
             .unwrap();
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "just/local/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
         handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub2)).await.unwrap();
 
         let mut loader = handler.store.loader();
 

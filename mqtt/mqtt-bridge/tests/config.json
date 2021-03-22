@@ -30,9 +30,20 @@
             },
             {
                 "direction": "out",
+                "topic": "/floor2-2",
+                "inPrefix": "",
+                "outPrefix": ""
+            },
+            {
+                "direction": "out",
                 "topic": "#",
                 "inPrefix": "local/telemetry",
                 "outPrefix": "remote/messages"
+            },
+            {
+                "direction": "out",
+                "topic": "#",
+                "inPrefix": "just/local"
             },
             {
                 "direction": "out",
