@@ -33,29 +33,6 @@ impl BridgeSettings {
         }
     }
 
-    pub fn from_upstream_details(
-        addr: String,
-        credentials: Credentials,
-        subs: Vec<Direction>,
-        clean_session: bool,
-        keep_alive: Duration,
-        storage_settings: StorageSettings,
-    ) -> Self {
-        let upstream_connection_settings = ConnectionSettings {
-            name: "$upstream".into(),
-            address: addr,
-            subscriptions: subs,
-            credentials,
-            clean_session,
-            keep_alive,
-        };
-        Self::new(
-            Some(upstream_connection_settings),
-            Vec::new(),
-            storage_settings,
-        )
-    }
-
     pub fn upstream(&self) -> Option<&ConnectionSettings> {
         self.upstream.as_ref()
     }
