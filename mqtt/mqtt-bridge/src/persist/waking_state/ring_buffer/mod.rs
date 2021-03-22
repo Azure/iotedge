@@ -872,9 +872,7 @@ mod tests {
 
     #[test]
     fn it_inits_ok_with_previous_data_and_write_pointer_is_reaches_read_pointer_after_read() {
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let file = result.unwrap();
+        let file = tempfile::NamedTempFile::new().unwrap();
 
         let publication = Publication {
             topic_name: "test".to_owned(),
@@ -885,8 +883,7 @@ mod tests {
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let result = bincode::serialize(&publication);
-        let data = result.unwrap();
+        let data = bincode::serialize(&publication).unwrap();
 
         let data_size = data.len() as u64;
 
@@ -897,9 +894,8 @@ mod tests {
         let read;
         let mut write;
         {
-            let result = RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS);
-            assert!(result.is_ok());
-            let mut rb = result.unwrap();
+            let mut rb =
+                RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS).unwrap();
 
             // write some
             for _ in 0..10 {
@@ -935,9 +931,8 @@ mod tests {
             // correct pointers and read again.
         }
         {
-            let result = RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS);
-            assert!(result.is_ok());
-            let rb = result.unwrap();
+            let rb =
+                RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS).unwrap();
 
             let loaded_read = rb.metadata.file_pointers.read_begin;
             let loaded_write = rb.metadata.file_pointers.write;
