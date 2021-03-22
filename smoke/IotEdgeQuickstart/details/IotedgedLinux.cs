@@ -162,6 +162,11 @@ namespace IotEdgeQuickstart.Details
                 commandName = "apt-get";
                 commandArgs = $"--yes install {PackageName}";
             }
+            else if (this.archivePath.Contains(".rpm") && !this.archivePath.Contains(".dep"))
+            {
+                commandName = "rpm";
+                commandArgs = $"--force -U {this.archivePath}";
+            }
             else
             {
                 commandName = "dpkg";
@@ -244,6 +249,8 @@ namespace IotEdgeQuickstart.Details
             }
 
             doc.ReplaceOrAdd("agent.env.RuntimeLogLevel", runtimeLogLevel.ToString());
+            string[] releaseCheck = await Process.RunAsync("bash", "-c \"[ -f /etc/os-subrelease ] && cat /etc/os-subrelease | grep eflow || echo 'file not found'\"");
+            bool isEflow = releaseCheck.Contains("ID=eflow");
 
             if (this.httpUris.HasValue)
             {
@@ -252,6 +259,13 @@ namespace IotEdgeQuickstart.Details
                 doc.ReplaceOrAdd("connect.workload_uri", uris.ConnectWorkload);
                 doc.ReplaceOrAdd("listen.management_uri", uris.ListenManagement);
                 doc.ReplaceOrAdd("listen.workload_uri", uris.ListenWorkload);
+            }
+            else if (isEflow)
+            {
+                doc.ReplaceOrAdd("connect.management_uri", "unix:///var/lib/iotedge/mgmt.sock");
+                doc.ReplaceOrAdd("connect.workload_uri", "unix:///var/lib/iotedge/workload.sock");
+                doc.ReplaceOrAdd("listen.management_uri", "unix:///var/lib/iotedge/mgmt.sock");
+                doc.ReplaceOrAdd("listen.workload_uri", "unix:///var/lib/iotedge/workload.sock");
             }
             else
             {

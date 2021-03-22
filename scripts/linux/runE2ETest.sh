@@ -56,6 +56,19 @@ function get_image_architecture_label() {
     esac
 }
 
+function is_system_using_mariner() {
+    
+    if [ -e "/etc/os-release" ]; then
+        if grep -q "ID=mariner" "/etc/os-release"; then
+            is_mariner="true"
+        else
+            is_mariner="false"
+        fi
+    else
+        is_mariner="false"
+    fi
+}
+
 function get_iotedge_quickstart_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
@@ -72,7 +85,11 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
+        if [ "$is_mariner" = "true" ]; then
+            path="$E2E_TEST_DIR/artifacts/iotedged-mariner-amd64"
+        else
+            path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
+        fi
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -109,7 +126,11 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    if [ "$is_mariner" = "true" ]; then
+        declare -a pkg_list=( $iotedged_artifact_folder/*.rpm )
+    else
+        declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    fi
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
 
@@ -1136,6 +1157,7 @@ fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
+is_system_using_mariner
 optimize_for_performance=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
