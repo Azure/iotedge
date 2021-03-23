@@ -233,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Events.RefreshingServiceIdentity(id);
 
                 var authChainTry = await this.serviceIdentityHierarchy.TryGetAuthChain(id);
-                var onBehalfOfDeviceId = AuthChainHelpers.GetAuthParent(id, authChainTry.Ok());
+                var onBehalfOfDeviceId = AuthChainHelpers.GetAuthParent(authChainTry.Ok());
                 await this.RefreshServiceIdentityOnBehalfOf(id, onBehalfOfDeviceId.GetOrElse(this.edgeDeviceId));
             }
 
