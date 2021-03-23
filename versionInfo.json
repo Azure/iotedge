@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0-pre-rc4",
+  "version": "1.2.0~rc4~device-update-tutorial",
   "build": "BUILDNUMBER",
   "commit": "COMMITID"
 }
