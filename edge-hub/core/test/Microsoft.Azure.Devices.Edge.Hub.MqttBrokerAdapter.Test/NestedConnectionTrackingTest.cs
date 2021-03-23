@@ -393,7 +393,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var connectionManager = new ConnectionManager(new NullCloudConnectionProvider(), Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
             var routingMessageConverter = new RoutingMessageConverter();
-            var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10));
+            var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10, true));
             var routesList = new [] {routeFactory.Create("FROM /messages INTO $upstream") };
             var endpoints = routesList.Select(r => r.Endpoint);
             var routerConfig = new RouterConfig(endpoints, routesList);
