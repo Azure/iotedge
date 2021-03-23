@@ -297,6 +297,10 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             }
         };
 
+        // When both 'dynamic reprovisioning' and 'always reprovision on startup' settings
+        // are set in the old configuration, 'dynamic reprovisioning' is prioritized,
+        // since it also triggers a reprovisioning before restarting the daemon.
+
         let auto_reprovisioning_mode = if dynamic_reprovisioning {
             edgelet_core::settings::AutoReprovisioningMode::Dynamic
         } else if always_reprovision_on_startup {
