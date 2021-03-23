@@ -316,7 +316,7 @@ mod tests {
             ]))
             .await
             .unwrap();
-        dbg!(&handler.topic_mappers);
+
         let _topic_mapper = handler.topic_mappers.get("local/floor/#").unwrap();
     }
 
