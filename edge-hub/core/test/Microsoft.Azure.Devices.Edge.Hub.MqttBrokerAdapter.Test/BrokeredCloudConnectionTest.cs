@@ -116,6 +116,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
+        [Fact]
+        public async Task WhenDeviceNotInScopeConnectionThrows()
+        {
+            var deviceId = "some_device";
+            var deviceCredentials = new TokenCredentials(new DeviceIdentity(IotHubHostName, deviceId), "some_token", "some_product", Option.None<string>(), Option.None<string>(), false);
+
+            var (connectionManager, cloudProxyDispatcher) = SetupEnvironment(true);
+
+            await SignalConnected(cloudProxyDispatcher);
+
+            Try<ICloudProxy> cloudProxyTry = await connectionManager.CreateCloudConnectionAsync(deviceCredentials);
+            Assert.False(cloudProxyTry.Success);
+            Assert.Throws<DeviceInvalidStateException>(() => cloudProxyTry.Value);
+        }
+
         Task SignalConnected(BrokeredCloudProxyDispatcher brokeredCloudProxyDispatcher) => SignalConnectionEvent(brokeredCloudProxyDispatcher, "Connected");
         Task SignalDisconnected(BrokeredCloudProxyDispatcher brokeredCloudProxyDispatcher) => SignalConnectionEvent(brokeredCloudProxyDispatcher, "Disconnected");
 
@@ -125,12 +140,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             await brokeredCloudProxyDispatcher.HandleAsync(packet);
         }
 
-        (ConnectionManager, BrokeredCloudProxyDispatcher) SetupEnvironment()
+        (ConnectionManager, BrokeredCloudProxyDispatcher) SetupEnvironment(bool trackDeviceState = false)
         {
             var cloudProxyDispatcher = new BrokeredCloudProxyDispatcher();
             cloudProxyDispatcher.SetConnector(Mock.Of<IMqttBrokerConnector>());
 
-            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher);
+            IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
+
+            if (trackDeviceState)
+            {
+                var deviceScopeIdentitiesCacheMock = new Mock<IDeviceScopeIdentitiesCache>();
+                deviceScopeIdentitiesCacheMock.Setup(d => d.VerifyServiceIdentityAuthChainState(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>())).Throws(new DeviceInvalidStateException("Device is out of scope."));
+                deviceScopeIdentitiesCache = deviceScopeIdentitiesCacheMock.Object;
+            }
+
+            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher, deviceScopeIdentitiesCache);
             cloudConnectionProvider.BindEdgeHub(Mock.Of<IEdgeHub>());
 
             var deviceConnectivityManager = new BrokeredDeviceConnectivityManager(cloudProxyDispatcher);
