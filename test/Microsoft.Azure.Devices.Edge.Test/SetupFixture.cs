@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             ("/etc/aziot/certd/config.toml", "aziotcs"),
             ("/etc/aziot/identityd/config.toml", "aziotid"),
             ("/etc/aziot/tpmd/config.toml", "aziotts"),
-            ("/etc/aziot/edged/config.yaml", "iotedge")
+            ("/etc/aziot/edged/config.toml", "iotedge")
         };
 
         [OneTimeSetUp]
@@ -72,11 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             File.Move(file, file + ".backup", true);
                         }
 
-                        // The name of the default aziot-edged config file differs based on OS.
-                        string configDefault = file.Contains("edged") ? this.daemon.GetDefaultEdgedConfig() : file + ".default";
-
                         // Reset all config files to the default file.
-                        ResetConfigFile(file, configDefault, owner);
+                        ResetConfigFile(file, file + ".default", owner);
                     }
 
                     await this.daemon.ConfigureAsync(
@@ -136,21 +133,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Delete test certs, keys, etc.
                     Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
-
-                    // Restore backed up config files.
-                    foreach ((string file, string _) in this.configFiles)
-                    {
-                        string backupFile = file + ".backup";
-
-                        if (File.Exists(backupFile))
-                        {
-                            File.Move(backupFile, file, true);
-                        }
-                        else
-                        {
-                            File.Delete(file);
-                        }
-                    }
                 },
                 "Completed end-to-end test teardown"),
             () =>

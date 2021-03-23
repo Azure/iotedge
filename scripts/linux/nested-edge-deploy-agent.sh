@@ -36,7 +36,7 @@ function setup_iotedge() {
     >/tmp/principals.toml cat <<-EOF
 [[principal]]
 uid = $(id -u iotedge)
-certs = ["$edgeHub*server"]
+certs = ["aziot-edged/module/*"]
 EOF
     sudo mv /tmp/principals.toml /etc/aziot/certd/config.d/aziot-edged-principal.toml
     sudo chown aziotcs:aziotcs /etc/aziot/certd/config.d/aziot-edged-principal.toml
@@ -77,27 +77,24 @@ EOF
 
     echo "Setup edged"
     echo "    Updating edge Agent"
-    sudo cp /etc/aziot/edged/config.yaml.template /etc/aziot/edged/config.yaml
-    sudo sed -i "49s|.*|    image: \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/aziot/edged/config.yaml
+    sudo cp /etc/aziot/edged/config.toml.default /etc/aziot/edged/config.toml
+    sudo sed -i "14s|.*|image = \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/aziot/edged/config.toml
     if [ -z $PARENT_NAME ]; then
-        sudo sed -i "50s|.*|    auth:|" /etc/aziot/edged/config.yaml
-        sed -i "51i\      serveraddress: \"${CONTAINER_REGISTRY}\"" /etc/aziot/edged/config.yaml
-        sed -i "52i\      username: \"${CONTAINER_REGISTRY_USERNAME}\"" /etc/aziot/edged/config.yaml
-        sed -i "53i\      password: \"${CONTAINER_REGISTRY_PASSWORD}\"" /etc/aziot/edged/config.yaml
+        sudo sed -i "15s|.*|auth = { serveraddress = \"${CONTAINER_REGISTRY}\", username = \"${CONTAINER_REGISTRY_USERNAME}\", password = \"${CONTAINER_REGISTRY_PASSWORD}\" }|" /etc/aziot/edged/config.toml
     fi
 
     if [ ! -z $PARENT_NAME ]; then
         echo "    Updating the device and parent hostname"
-        sudo sed -i "66s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
+        sudo sed -i "1s/.*/hostname = \"$device_name\"/" /etc/aziot/edged/config.toml
         echo "    Updating the parent hostname"
-        sudo sed -i "79s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/aziot/edged/config.yaml
+        sudo sed -i "3s/.*/parent_hostname = \"$PARENT_NAME\"/" /etc/aziot/edged/config.toml
     else
         echo "    Updating the device hostname"
-        sudo sed -i "69s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
+        sudo sed -i "1s/.*/hostname = \"$device_name\"/" /etc/aziot/edged/config.toml
     fi
-    sudo chown iotedge:iotedge /etc/aziot/edged/config.yaml
-    sudo chmod 644 /etc/aziot/edged/config.yaml
-    sudo cat /etc/aziot/edged/config.yaml
+    sudo chown iotedge:iotedge /etc/aziot/edged/config.toml
+    sudo chmod 644 /etc/aziot/edged/config.toml
+    sudo cat /etc/aziot/edged/config.toml
 
     echo "Setup identityd"
     sudo touch /etc/aziot/identityd/config.toml
@@ -105,7 +102,7 @@ EOF
     echo "homedir = \"/var/lib/aziot/identityd\"" | sudo tee -a  /etc/aziot/identityd/config.toml
     echo "" | sudo tee -a  /etc/aziot/identityd/config.toml
     echo "[provisioning]" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "dynamic_reprovisioning = true" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "dynamic_reprovisioning = false" | sudo tee -a  /etc/aziot/identityd/config.toml
     echo "source = \"manual\"" | sudo tee -a  /etc/aziot/identityd/config.toml
     if [ ! -z $PARENT_NAME ]; then
         echo "iothub_hostname = \"$PARENT_NAME\"" | sudo tee -a  /etc/aziot/identityd/config.toml
@@ -143,23 +140,31 @@ EOF
 
     if [ ! -z $PROXY_ADDRESS ]; then
         echo "Configuring the bootstrapping edgeAgent to use http proxy"
-        sudo sed -i "47s|.*|  env:|" /etc/aziot/edged/config.yaml
-        sudo sed -i "48i\    https_proxy: \"${PROXY_ADDRESS}\"" /etc/aziot/edged/config.yaml
+        sudo sed -i "12s|.*|env = { \"https_proxy\" = \"${PROXY_ADDRESS}\" }|" /etc/aziot/edged/config.toml
 
         echo "Adding proxy configuration to docker"
         sudo mkdir -p /etc/systemd/system/docker.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
         sudo systemctl daemon-reload
         sudo systemctl restart docker
 
         echo "Adding proxy configuration to IoT Edge daemon"
-        sudo mkdir -p /etc/systemd/system/iotedge.service.d/
+        sudo mkdir -p /etc/systemd/system/aziot-identityd.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
-        } | sudo tee /etc/systemd/system/iotedge.service.d/proxy.conf
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/aziot-identityd.service.d/proxy.conf
+        sudo systemctl daemon-reload           
+
+        echo "Adding proxy configuration to IoT Edge daemon"
+        sudo mkdir -p /etc/systemd/system/aziot-edged.service.d/
+        { echo "[Service]";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/aziot-edged.service.d/proxy.conf
         sudo systemctl daemon-reload
+
+     
     fi
 
     echo "Start IoT edge"

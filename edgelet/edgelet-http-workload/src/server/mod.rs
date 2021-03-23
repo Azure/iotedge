@@ -47,7 +47,7 @@ impl WorkloadService {
         cert_client: Arc<Mutex<CertificateClient>>,
         key_client: Arc<aziot_key_client::Client>,
         config: W,
-    ) -> impl Future<Item = Self, Error = Error>
+    ) -> impl Future<Item = Self, Error = Error> + 'static
     where
         M: ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync + 'static,
         for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
@@ -56,6 +56,16 @@ impl WorkloadService {
         W: WorkloadConfig + Clone + Send + Sync + 'static,
         <M::AuthenticateFuture as Future>::Error: Fail,
     {
+        let edge_ca = cert::prepare_edge_ca(
+            key_client.clone(),
+            cert_client.clone(),
+            cert::EdgeCaCertificate {
+                cert_id: config.edge_ca_cert().to_string(),
+                key_id: config.edge_ca_key().to_string(),
+            },
+            ErrorKind::StartService,
+        );
+
         let router = router!(
             get   Version2018_06_28 runtime Policy::Anonymous => "/modules" => ListModules::new(runtime.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(key_client.clone(), identity_client.clone()),
@@ -68,9 +78,11 @@ impl WorkloadService {
             get   Version2018_06_28 runtime Policy::Anonymous => "/trust-bundle" => TrustBundleHandler::new(cert_client, config),
         );
 
-        router.new_service().then(|inner| {
-            let inner = inner.context(ErrorKind::StartService)?;
-            Ok(WorkloadService { inner })
+        edge_ca.and_then(move |_| {
+            router.new_service().then(|inner| {
+                let inner = inner.context(ErrorKind::StartService)?;
+                Ok(WorkloadService { inner })
+            })
         })
     }
 }

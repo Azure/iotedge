@@ -31,7 +31,6 @@ use checker::Checker;
 mod checks;
 
 pub struct Check {
-    config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
     dont_run: BTreeSet<String>,
@@ -46,6 +45,7 @@ pub struct Check {
 
     // These optional fields are populated by the checks
     iothub_hostname: Option<String>, // populated by `aziot check`
+    proxy_uri: Option<String>,       // populated by `aziot check`
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
@@ -83,7 +83,6 @@ pub enum CheckResult {
 
 impl Check {
     pub fn new(
-        config_file: PathBuf,
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
@@ -94,9 +93,9 @@ impl Check {
         warnings_as_errors: bool,
         aziot_bin: std::ffi::OsString,
         iothub_hostname: Option<String>,
+        proxy_uri: Option<String>,
     ) -> Check {
         Check {
-            config_file,
             container_engine_config_path,
             diagnostics_image_name,
             dont_run,
@@ -110,13 +109,14 @@ impl Check {
             additional_info: AdditionalInfo::new(),
 
             iothub_hostname,
+            proxy_uri,
             settings: None,
             docker_host_arg: None,
             docker_server_version: None,
         }
     }
 
-    pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
+    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
@@ -131,11 +131,9 @@ impl Check {
                     let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
                         serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
 
-                    all_checks.extend(
-                        aziot_checks
-                            .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
-                    );
+                    all_checks.extend(aziot_checks.into_iter().map(|(section_name, checks)| {
+                        (section_name + " (aziot-identity-service)", checks)
+                    }));
                 }
                 Err(_) => {
                     // not being able to shell-out to aziot is bad... but we shouldn't fail here,
@@ -144,10 +142,13 @@ impl Check {
                     // to make sure the user knows that there should me more checks, we add
                     // this "dummy" entry instead.
                     all_checks.push((
-                        "(aziot)".into(),
+                        "(aziot-identity-service)".into(),
                         vec![CheckerMetaSerializable {
-                            id: "(aziot-error)".into(),
-                            description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
+                            id: "(aziot-identity-service-error)".into(),
+                            description: format!(
+                                "(aziot-identity-service checks unavailable - could not communicate with '{}' binary)",
+                                aziot_bin
+                            ),
                         }]
                     ));
                 }
@@ -456,6 +457,17 @@ impl Check {
                 aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
             }
 
+            // Prioritize proxy address passed in as command line argument
+            // before searching aziot-edged settings for Edge Agent's
+            // environment variables.
+            if let Some(proxy_uri) = &self.proxy_uri {
+                aziot_check.arg("--proxy-uri").arg(proxy_uri.clone());
+            } else if let Ok(settings) = Settings::new() {
+                if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
+                    aziot_check.arg("--proxy-uri").arg(agent_proxy_uri.clone());
+                }
+            }
+
             if !self.dont_run.is_empty() {
                 aziot_check
                     .arg("--dont-run")
@@ -470,7 +482,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot)", name))
+                                self.output_section(&format!("{} (aziot-identity-service)", name))
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -506,11 +518,14 @@ impl Check {
                     //
                     // nonetheless, we still need to notify the user that the aziot checks
                     // could not be run.
-                    self.output_section("(aziot)");
+                    self.output_section("(aziot-identity-service)");
                     output_check(
                         CheckOutput {
-                            id: "(aziot-error)".into(),
-                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            id: "(aziot-identity-service-error)".into(),
+                            description: format!(
+                                "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
+                                &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                            ),
                             result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
                             additional_info: serde_json::Value::Null,
                         },
@@ -640,20 +655,28 @@ mod tests {
         Check, CheckResult, Checker,
     };
 
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
+    }
+
     #[test]
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
-            let config_file = format!(
-                "{}/../edgelet-docker/test/{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "linux",
-                filename,
+        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
+            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-docker/test/{}/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "linux",
+                    filename,
+                ),
             );
 
             let mut check = Check::new(
-                config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
@@ -663,6 +686,7 @@ mod tests {
                 false,
                 false,
                 "".into(), // unused for this test
+                None,
                 None,
             );
 
@@ -676,7 +700,7 @@ mod tests {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
+                            .starts_with("configuration has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
@@ -705,16 +729,20 @@ mod tests {
     fn config_file_checks_ok_old_moby() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
-            let config_file = format!(
-                "{}/../edgelet-docker/test/{}/{}",
-                env!("CARGO_MANIFEST_DIR"),
-                "linux",
-                filename,
+        for filename in &["sample_settings.toml", "sample_settings.tg.filepaths.toml"] {
+            let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+            std::env::set_var(
+                "AZIOT_EDGED_CONFIG",
+                format!(
+                    "{}/../edgelet-docker/test/{}/{}",
+                    env!("CARGO_MANIFEST_DIR"),
+                    "linux",
+                    filename,
+                ),
             );
 
             let mut check = Check::new(
-                config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
@@ -725,6 +753,7 @@ mod tests {
                 false,
                 "".into(), // unused for this test
                 None,
+                None,
             );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
@@ -732,20 +761,12 @@ mod tests {
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            //     CheckResult::Ok => (),
-            //     check_result => panic!(
-            //         "checking connection string in {} returned {:?}",
-            //         filename, check_result
-            //     ),
-            // }
-
             match Hostname::default().execute(&mut check, &mut runtime) {
                 CheckResult::Failed(err) => {
                     let message = err.to_string();
                     assert!(
                         message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
+                            .starts_with("configuration has hostname localhost but device reports"),
                         "checking hostname in {} produced unexpected error: {}",
                         filename,
                         message,
@@ -774,16 +795,21 @@ mod tests {
     fn parse_settings_err() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "bad_sample_settings.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
+        let filename = "bad_sample_settings.toml";
+
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                filename,
+            ),
         );
 
         let mut check = Check::new(
-            config_file.into(),
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
@@ -794,23 +820,11 @@ mod tests {
             false,
             "".into(), // unused for this test
             None,
+            None,
         );
 
         match WellFormedConfig::default().execute(&mut check, &mut runtime) {
-            CheckResult::Failed(err) => {
-                let err = err
-                    .iter_causes()
-                    .nth(1)
-                    .expect("expected to find cause-of-cause-of-error");
-                assert!(
-                    err.to_string()
-                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 7 column 5"),
-                    "parsing {} produced unexpected error: {}",
-                    filename,
-                    err,
-                );
-            }
-
+            CheckResult::Failed(_) => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
     }
@@ -819,16 +833,21 @@ mod tests {
     fn moby_runtime_uri_wants_moby_based_on_server_version() {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
 
-        let filename = "sample_settings.yaml";
-        let config_file = format!(
-            "{}/../edgelet-docker/test/{}/{}",
-            env!("CARGO_MANIFEST_DIR"),
-            "linux",
-            filename,
+        let filename = "sample_settings.toml";
+
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                filename,
+            ),
         );
 
         let mut check = super::Check::new(
-            config_file.into(),
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
@@ -838,6 +857,7 @@ mod tests {
             false,
             false,
             "".into(), // unused for this test
+            None,
             None,
         );
 

@@ -142,12 +142,12 @@ pub struct ModuleSpec<T> {
     pub name: String,
     #[serde(rename = "type")]
     pub type_: String,
-    pub config: T,
-    #[serde(default = "BTreeMap::new")]
-    pub env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
     pub image_pull_policy: ImagePullPolicy,
+    pub config: T,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
 }
 
 impl<T> Clone for ModuleSpec<T>

@@ -44,6 +44,7 @@ aziot-keyd-config = { git = "https://github.com/lfitchett/iot-identity-service",
 aziot-keys-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
 aziot-tpmd-config = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
 aziotctl-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+config-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }

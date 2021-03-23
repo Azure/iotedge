@@ -91,13 +91,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<ICloudProxy>> GetCloudConnection(string id)
         {
-            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnection(id);
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnectionInternal(id);
             return cloudProxyTry
                 .Ok()
-                .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnection(id), c));
+                .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnectionInternal(id), c));
         }
 
-        async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
+        public async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
+        {
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnectionInternal(id);
+            return cloudProxyTry.Success
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnectionInternal(id), cloudProxyTry.Value))
+                : cloudProxyTry;
+        }
+
+        async Task<Try<ICloudProxy>> TryGetCloudConnectionInternal(string id)
         {
             IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
@@ -122,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>
                 {
-                    hasChanged = true;
+                    hasChanged = true; // if there is no old value, that means no subscription, so this is a change
                     d.Subscriptions.AddOrUpdate(
                         deviceSubscription,
                         true,
@@ -148,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             device.DeviceConnection.Filter(d => d.IsActive)
                 .ForEach(d =>
                 {
-                    hasChanged = true;
+                    hasChanged = false; // if there is no old value, that means no subscription, so this is not a change
                     d.Subscriptions.AddOrUpdate(
                         deviceSubscription,
                         false,
@@ -213,7 +221,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnectionInternal(credentials.Identity.Id), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 
@@ -231,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Events.GetCloudConnection(credentials.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, credentials.Identity);
             return cloudProxyTry.Success
-                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnectionInternal(credentials.Identity.Id), cloudProxyTry.Value))
                 : cloudProxyTry;
         }
 

@@ -89,8 +89,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5));
 
             (NetworkControllerStatus status, bool inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 11, 10));
             Assert.Equal(NetworkControllerStatus.Disabled, status);
@@ -116,8 +116,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5));
             var ex = Assert.Throws<InvalidOperationException>(() => timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10)));
             Assert.Equal("Test result SettingRule found with no RuleSet found after.", ex.Message);
         }
@@ -129,8 +129,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5)));
             Assert.Equal("Network Controller Test Results must have an even number of results.", ex.Message);
         }
 
@@ -141,8 +141,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5));
             var ex = Assert.Throws<InvalidOperationException>(() => timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10)));
             Assert.Equal("Expected SettingRule.", ex.Message);
         }
@@ -154,8 +154,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5));
             var ex = Assert.Throws<InvalidOperationException>(() => timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10)));
             Assert.Equal("Test result SettingRule and following RuleSet do not match NetwokControllerStatuses", ex.Message);
         }
@@ -167,8 +167,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetInvalidStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetInvalidStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5)));
             Assert.Equal("Network Controller Test Results is empty.", ex.Message);
         }
 
@@ -179,8 +179,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> networkControllerResultDates,
             IEnumerable<string> networkControllerResultOperations)
         {
-            var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.CreateAsync(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
+            IAsyncEnumerable<TestOperationResult> resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.CreateAsync(resultCollection.GetAsyncEnumerator(), new TimeSpan(0, 0, 0, 0, 5)));
             Assert.Equal("Network Controller Test Results is empty.", ex.Message);
         }
 
@@ -256,7 +256,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                 var networkControllerStatus = (NetworkControllerStatus)Enum.Parse(typeof(NetworkControllerStatus), resultValues.ElementAt(i));
                 var networkControllerOperation = (NetworkControllerOperation)Enum.Parse(typeof(NetworkControllerOperation), resultOperations.ElementAt(i));
                 var networkControllerTestResult = new NetworkControllerTestResult(
-                    source, resultDates.ElementAt(i)) { NetworkControllerStatus = networkControllerStatus, NetworkControllerType = NetworkControllerType.Offline, Operation = networkControllerOperation };
+                    source, resultDates.ElementAt(i))
+                { NetworkControllerStatus = networkControllerStatus, NetworkControllerType = NetworkControllerType.Offline, Operation = networkControllerOperation };
                 storeData.Add((count, networkControllerTestResult.ToTestOperationResult()));
                 count++;
             }

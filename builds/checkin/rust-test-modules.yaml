@@ -16,7 +16,7 @@ jobs:
         submodules: false
         fetchDepth: 3
       - bash: |
-          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|test/modules/generic-mqtt-tester|test/rust-test-util)'
+          git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|test/modules/generic-mqtt-tester|test/rust-test-util|mqtt/mqtt-broker-tests-util)'
           if [[ $? == 0 ]]; then
             echo "Detected changes inside builds or rust test module folders"
             echo "##vso[task.setvariable variable=RUN_PIPELINE;isOutput=true]TRUE"

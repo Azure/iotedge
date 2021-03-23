@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cmp::Ordering;
+use std::convert::TryInto;
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
@@ -26,6 +27,34 @@ impl Connect {
     }
 }
 
+impl Default for Connect {
+    // Clippy wants us to use `option_env!("...").unwrap_or("...")` but that can't be used in consts.
+    #[allow(clippy::option_if_let_else)]
+    fn default() -> Self {
+        const DEFAULT_MANAGEMENT_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI") {
+                value
+            } else {
+                "unix:///var/run/iotedge/mgmt.sock"
+            };
+        const DEFAULT_WORKLOAD_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_WORKLOAD_URI") {
+                value
+            } else {
+                "unix:///var/run/iotedge/workload.sock"
+            };
+
+        Connect {
+            workload_uri: DEFAULT_WORKLOAD_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            management_uri: DEFAULT_MANAGEMENT_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Listen {
     pub workload_uri: Url,
@@ -45,6 +74,35 @@ impl Listen {
 
     pub fn min_tls_version(&self) -> Protocol {
         self.min_tls_version
+    }
+}
+
+impl Default for Listen {
+    // Clippy wants us to use `option_env!("...").unwrap_or("...")` but that can't be used in consts.
+    #[allow(clippy::option_if_let_else)]
+    fn default() -> Self {
+        const DEFAULT_MANAGEMENT_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI") {
+                value
+            } else {
+                "fd://aziot-edged.mgmt.socket"
+            };
+        const DEFAULT_WORKLOAD_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_WORKLOAD_URI") {
+                value
+            } else {
+                "fd://aziot-edged.workload.socket"
+            };
+
+        Listen {
+            workload_uri: DEFAULT_WORKLOAD_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            management_uri: DEFAULT_MANAGEMENT_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            min_tls_version: Default::default(),
+        }
     }
 }
 
@@ -125,8 +183,7 @@ impl Serialize for Protocol {
     }
 }
 
-#[derive(Clone, Copy, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
-#[serde(untagged)]
+#[derive(Clone, Copy, Debug)]
 pub enum RetryLimit {
     Infinite,
     Num(u32),
@@ -144,6 +201,90 @@ impl RetryLimit {
 impl Default for RetryLimit {
     fn default() -> Self {
         RetryLimit::Infinite
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for RetryLimit {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor;
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = RetryLimit;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(r#""infinite" or u32"#)
+            }
+
+            fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if s.eq_ignore_ascii_case("infinite") {
+                    Ok(RetryLimit::Infinite)
+                } else {
+                    Err(serde::de::Error::invalid_value(
+                        serde::de::Unexpected::Str(s),
+                        &self,
+                    ))
+                }
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RetryLimit::Num(
+                    v.try_into().map_err(serde::de::Error::custom)?,
+                ))
+            }
+
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RetryLimit::Num(v.into()))
+            }
+
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RetryLimit::Num(v.into()))
+            }
+
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RetryLimit::Num(v))
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(RetryLimit::Num(
+                    v.try_into().map_err(serde::de::Error::custom)?,
+                ))
+            }
+        }
+
+        deserializer.deserialize_any(Visitor)
+    }
+}
+
+impl serde::Serialize for RetryLimit {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match *self {
+            RetryLimit::Infinite => serializer.serialize_str("infinite"),
+            RetryLimit::Num(num) => serializer.serialize_u32(num),
+        }
     }
 }
 
@@ -178,18 +319,27 @@ pub trait RuntimeSettings {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings<T> {
-    pub agent: ModuleSpec<T>,
     pub hostname: String,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent_hostname: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_ca_cert: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_ca_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trust_bundle_cert: Option<String>,
+
+    pub homedir: PathBuf,
+
+    pub agent: ModuleSpec<T>,
+
     pub connect: Connect,
     pub listen: Listen,
-    pub homedir: PathBuf,
+
     #[serde(default)]
     pub watchdog: WatchdogSettings,
-    pub edge_ca_cert: Option<String>,
-    pub edge_ca_key: Option<String>,
-    pub trust_bundle_cert: Option<String>,
 
     /// Map of service names to endpoint URIs.
     ///

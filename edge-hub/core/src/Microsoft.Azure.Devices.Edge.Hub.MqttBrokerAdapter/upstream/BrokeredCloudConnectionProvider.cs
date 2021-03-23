@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -11,11 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
     public class BrokeredCloudConnectionProvider : ICloudConnectionProvider
     {
-        BrokeredCloudProxyDispatcher cloudProxyDispatcher;
+        readonly BrokeredCloudProxyDispatcher cloudProxyDispatcher;
+        readonly IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache;
 
-        public BrokeredCloudConnectionProvider(BrokeredCloudProxyDispatcher cloudProxyDispatcher)
+        public BrokeredCloudConnectionProvider(BrokeredCloudProxyDispatcher cloudProxyDispatcher, IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache)
         {
             this.cloudProxyDispatcher = cloudProxyDispatcher;
+            this.deviceScopeIdentitiesCache = deviceScopeIdentitiesCache;
         }
 
         public void BindEdgeHub(IEdgeHub edgeHub)
@@ -32,11 +35,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             if (!await this.IsConnected())
             {
-                return new Try<ICloudConnection>(new Exception("Bridge is not connected upstream"));
+                return Try<ICloudConnection>.Failure(new IotHubException("Bridge is not connected upstream"));
+            }
+
+            try
+            {
+                // TODO: Check disconnect reason and refresh identity when MQTT5 is supported
+                // The identity is not refreshed for now because there is no way to detect when the connection was dropped from upstream because unauthorized
+                await this.deviceScopeIdentitiesCache.VerifyServiceIdentityAuthChainState(identity.Id, isNestedEdgeEnabled: true, refreshCachedIdentity: false);
+            }
+            catch (DeviceInvalidStateException ex)
+            {
+                return Try<ICloudConnection>.Failure(ex);
             }
 
             var cloudProxy = new BrokeredCloudProxy(identity, this.cloudProxyDispatcher, connectionStatusChangedHandler);
-            return new Try<ICloudConnection>(new BrokeredCloudConnection(cloudProxy));
+            await cloudProxy.OpenAsync();
+            return new Try<ICloudConnection>(new BrokeredCloudConnection(identity, cloudProxy));
         }
 
         // The purpose of this method is to make less noise in logs when the broker

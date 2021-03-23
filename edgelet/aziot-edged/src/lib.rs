@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
@@ -59,7 +60,6 @@ use edgelet_core::{
     MakeModuleRuntime, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
     RuntimeSettings, WorkloadConfig,
 };
-use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, API_VERSION};
@@ -173,7 +173,6 @@ const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 /// This is used for both DPS attestation and manual authentication modes.
 const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
-const AZIOT_EDGED_COMMONNAME: &str = "iotedged workload ca";
 const AZIOT_EDGED_TLS_COMMONNAME: &str = "iotedged";
 // 2 hours
 const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
@@ -380,7 +379,6 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
-        0,
         AZIOT_EDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),
@@ -698,9 +696,7 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::{
-        KeyBytes, ModuleRuntimeState, PrivateKey, DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS,
-    };
+    use edgelet_core::{KeyBytes, ModuleRuntimeState, PrivateKey};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::module::{TestModule, TestRuntime};
@@ -713,8 +709,8 @@ mod tests {
     };
     use docker::models::ContainerCreateBody;
 
-    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.yaml";
-    static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.yaml";
+    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.toml";
+    static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
 
@@ -724,25 +720,23 @@ mod tests {
         }
     }
 
-    lazy_static! {
-        // Tests that call Main::new cannot run in parallel because they initialize hsm-sys
-        // (via hsm_client_crypto_init) which is not thread-safe.
-        static ref LOCK: Mutex<()> = Mutex::new(());
+    lazy_static::lazy_static! {
+        static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
     }
 
     #[test]
     fn settings_for_nested_edge() {
-        let _guard = LOCK.lock().unwrap();
-
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_NESTED_EDGE)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NESTED_EDGE);
+        let settings = Settings::new().unwrap();
         assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]
     fn settings_for_edge_ca_cert() {
-        let _guard = LOCK.lock().unwrap();
-
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_EDGE_CA_CERT_ID)).unwrap();
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_EDGE_CA_CERT_ID);
+        let settings = Settings::new().unwrap();
         assert_eq!(settings.edge_ca_cert(), Some("iotedge-test-ca"));
     }
 }

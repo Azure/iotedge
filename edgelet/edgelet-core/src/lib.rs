@@ -3,6 +3,7 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
@@ -52,9 +53,6 @@ pub use settings::{
 };
 pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
-
-/// This is the default auto generated certificate life
-pub const DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS: u16 = 90;
 
 lazy_static! {
     static ref VERSION: &'static str =

@@ -11,6 +11,8 @@ steps:
     inputs:
       targetType: inline
       script: |
+        set -e
+
         echo "Extracting hub name from connection string"
         #extract full hub name
         tmp=$(echo "$(IotHubStressConnString)" | sed -n 's/HostName=\(.*\);SharedAccessKeyName.*/\1/p')
@@ -19,7 +21,7 @@ steps:
         echo "Found Hub name: ${iotHubName}"
 
         az account set --subscription $(azure.subscription)
-        deviceId="level_$(level)_$(Build.BuildId)$(transportType)"
+        deviceId="level_$(level)_$(Build.BuildId)$(upstreamProtocol)"
 
         echo "Creating ${deviceId} iotedge in iothub: ${iotHubName}, in subscription $(azure.subscription)"
         if [ "$LEVEL" = "5" ]; then

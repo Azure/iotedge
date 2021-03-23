@@ -30,7 +30,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
             }
           },
           "edgeHub": {
@@ -47,7 +47,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             }
           }
         },
@@ -60,9 +60,6 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
@@ -82,7 +79,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "loadGen2": {
@@ -93,9 +90,6 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
@@ -115,7 +109,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "relayer1": {
@@ -139,7 +133,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "relayer2": {
@@ -163,7 +157,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "twinTester1": {
@@ -181,9 +175,6 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
               },
@@ -199,7 +190,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "twinTester2": {
@@ -216,9 +207,6 @@
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
@@ -238,7 +226,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodSender1": {
@@ -259,9 +247,6 @@
               "TargetModuleId": {
                 "value": "directMethodReceiver1"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -274,7 +259,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodReceiver1": {
@@ -295,7 +280,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodSender2": {
@@ -316,9 +301,6 @@
               "TargetModuleId": {
                 "value": "directMethodReceiver2"
               },
-              "testDuration": {
-                "value": "<TestDuration>"
-              },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
@@ -331,7 +313,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -352,7 +334,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "testResultCoordinator": {
@@ -369,9 +351,6 @@
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
-              },
-              "testDuration": {
-                "value": "<TestDuration>"
               },
               "verificationDelay": {
                 "value": "<TestResultCoordinator.VerificationDelay>"
@@ -418,7 +397,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
             }
           },
           "networkController": {
@@ -481,7 +460,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "moduleRestarter": {
@@ -502,7 +481,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           }
         }
@@ -543,6 +522,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer1.send",
             "ActualSource": "relayer1.eventHub",
+            "LongHaulEventHubMode": "true",
             "TestDescription": "messages | upstream | amqp"
           },
           "reportMetadata3": {
@@ -557,6 +537,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer2.send",
             "ActualSource": "relayer2.eventHub",
+            "LongHaulEventHubMode": "true",
             "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {

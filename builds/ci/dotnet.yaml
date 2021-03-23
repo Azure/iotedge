@@ -4,8 +4,6 @@ trigger:
     include:
       - master
       - release/*
-      - iiot
-      - preview/iiot
 pr: none
 variables:
   NugetSecurityAnalysisWarningLevel: warn
@@ -65,9 +63,9 @@ jobs:
 #          curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-$(uname)-amd64
 #          chmod +x ./kind
 #          # move it to $AGENT_TOOLSDIRECTORY\kind
-#          mkdir $AGENT_TOOLSDIRECTORY/kind 
+#          mkdir $AGENT_TOOLSDIRECTORY/kind
 #          mv ./kind $AGENT_TOOLSDIRECTORY/kind/kind
-#          # make kind to be available for integration tests 
+#          # make kind to be available for integration tests
 #          echo "##vso[task.setvariable variable=PATH;]$AGENT_TOOLSDIRECTORY/kind:$PATH"
 #        displayName: Install Kubernetes cluster manager (kind)
 #        condition: succeededOrFailed()

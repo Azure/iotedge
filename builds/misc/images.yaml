@@ -3,8 +3,6 @@ trigger:
   branches:
     include:
       - master
-      - iiot
-      - preview/iiot
 pr: none
 variables:
   NugetSecurityAnalysisWarningLevel: warn
@@ -221,7 +219,7 @@ jobs:
           name: API Proxy
           imageName: azureiotedge-api-proxy
           project: api-proxy-module
-          buildx_flag: true
+          buildx_flag: false
       # Check API proxy
       - task: ComponentGovernanceComponentDetection@0
         inputs:
