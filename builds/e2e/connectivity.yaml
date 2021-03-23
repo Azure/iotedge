@@ -328,7 +328,7 @@ jobs:
   - job: eflow_amd64
 ################################################################################
     displayName: EFLOW AMD64
-    condition: and(eq(variables['eflow'], 'true'), ne(variables['agent.group'], ''))
+    condition: and(eq(variables['run.eflow.amd64'], 'true'), ne(variables['agent.group'], ''))
     timeoutInMinutes: 180
     strategy:
       matrix:
@@ -383,7 +383,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - agent-group -equals $(agent.group)
+        - agent.group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - eflow -equals true
