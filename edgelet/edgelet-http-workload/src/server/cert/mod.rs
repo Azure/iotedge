@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::cmp;
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
@@ -16,7 +15,7 @@ use edgelet_core::{
     PrivateKey as CorePrivateKey,
 };
 use edgelet_http::Error as HttpError;
-use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use edgelet_utils::log_failure;
 use openssl::error::ErrorStack;
 use workload::models::{CertificateResponse, PrivateKey as PrivateKeyResponse};
 
@@ -33,9 +32,6 @@ pub use self::server::ServerCertHandler;
 
 // 5 mins
 const AZIOT_EDGE_CA_CERT_MIN_DURATION_SECS: i64 = 5 * 60;
-
-// 180 days
-const AZIOT_EDGE_CA_CERT_MAX_DURATION_SECS: u64 = 180 * 24 * 3600;
 
 // Workload CA CN
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
@@ -77,19 +73,6 @@ fn cert_to_response<T: CoreCertificate>(
         String::from_utf8_lossy(cert_buffer.as_ref()).to_string(),
         expiration.to_rfc3339(),
     ))
-}
-
-fn compute_validity(expiration: &str, max_duration_sec: i64, context: ErrorKind) -> Result<i64> {
-    ensure_not_empty_with_context(expiration, || context.clone())?;
-
-    let expiration = DateTime::parse_from_rfc3339(expiration).context(context)?;
-
-    let secs = expiration
-        .with_timezone(&Utc)
-        .signed_duration_since(Utc::now())
-        .num_seconds();
-
-    Ok(cmp::min(secs, max_duration_sec))
 }
 
 fn refresh_cert(
@@ -356,7 +339,6 @@ fn create_edge_ca_certificate(
     context: ErrorKind,
 ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
     let edgelet_ca_props = CertificateProperties::new(
-        AZIOT_EDGE_CA_CERT_MAX_DURATION_SECS,
         IOTEDGED_COMMONNAME.to_string(),
         CertificateType::Ca,
         ca.cert_id.to_string(),

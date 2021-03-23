@@ -15,9 +15,9 @@
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "https_proxy": {	
+            "https_proxy": {
               "value": "<proxyAddress>"
             }
           },
@@ -25,24 +25,18 @@
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "experimentalFeatures__enabled": {
-                "value": "true"
-              },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "DeviceScopeCacheRefreshDelaySecs": {
                 "value": 1
               },
               "RuntimeLogLevel": {
                 "value": "debug"
               },
-              "https_proxy": {	
+              "https_proxy": {
                 "value": "<proxyAddress>"
-              }                                 
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -57,14 +51,14 @@
             "startupOrder": 3,
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
             "env": {
               "MessageCount": {
                 "value": "-1"
               }
             }
-          }          
+          }
         }
       }
     },
@@ -79,18 +73,18 @@
         },
         "mqttBroker": {
           "authorizations": [
-              {
-                  "identities": [
-                      "{{iot:identity}}"
-                  ],
-                  "allow": [
-                      {
-                          "operations": [
-                              "mqtt:connect"
-                          ]
-                      }
+            {
+              "identities": [
+                "{{iot:identity}}"
+              ],
+              "allow": [
+                {
+                  "operations": [
+                    "mqtt:connect"
                   ]
-              }
+                }
+              ]
+            }
           ]
         }
       }

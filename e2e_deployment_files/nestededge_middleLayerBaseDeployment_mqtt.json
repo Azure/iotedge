@@ -22,7 +22,7 @@
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
             "env": {}
           },
@@ -36,9 +36,6 @@
               "experimentalFeatures__enabled": {
                 "value": "true"
               },
-              "experimentalFeatures__nestedEdgeEnabled": {
-                "value": "true"
-              },
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
               },
@@ -47,7 +44,7 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
-              }                   
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -62,7 +59,7 @@
             "startupOrder": 3,
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
               "NGINX_DEFAULT_PORT": {
@@ -88,7 +85,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             }
           }
         }

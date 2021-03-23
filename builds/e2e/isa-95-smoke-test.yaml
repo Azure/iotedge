@@ -27,6 +27,7 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       level: '5'
+      upstreamProtocol: 'amqp'
       deploymentFile: 'nestededge_topLayerBaseDeployment_amqp.json'
       parentName: ''
       parentDeviceId: ''
@@ -65,6 +66,7 @@ stages:
       parentDeviceId: $[ dependencies.SetupVM_level5.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_middleLayerBaseDeployment_amqp.json'
       level: '4'
+      upstreamProtocol: 'amqp'
     pool:
      name: $(pool.name)
      demands:
@@ -99,6 +101,7 @@ stages:
       parentDeviceId: $[ dependencies.SetupVM_level4.outputs['createIdentity.parentDeviceId'] ] 
       deploymentFile: 'nestededge_isa95_smoke_test_BaseDeployment.json'
       level: '3'
+      upstreamProtocol: 'amqp'
       proxyAddress: $(otProxy)    
     pool:
      name: $(pool.name)

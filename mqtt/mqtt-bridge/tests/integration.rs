@@ -76,6 +76,7 @@ async fn send_message_upstream_downstream() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-1",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -168,6 +169,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-2",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
@@ -218,6 +220,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
         .build();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-3",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
@@ -263,6 +266,7 @@ async fn bridge_settings_update() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (mut controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-4",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         vec![],
@@ -384,6 +388,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-5",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -474,6 +479,7 @@ async fn connect_to_upstream_failure_should_retry() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-6",
         local_server_handle.address(),
         upstream_tls_address.clone(),
         subs,
@@ -560,6 +566,7 @@ async fn bridge_forwards_messages_after_restart() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-7",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
@@ -621,6 +628,7 @@ async fn bridge_forwards_messages_after_restart() {
 
     // restart bridge
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-8",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -688,6 +696,7 @@ async fn recreate_upstream_bridge_when_fails() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (mut controller_handle, _) = common::setup_bridge_controller(
+        "edge-device-9",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,

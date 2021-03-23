@@ -257,7 +257,7 @@ mod tests {
         }
 
         #[test]
-        fn it_cannot_parse_input(input in r".*[0-9]{9}.*(k|K|m|M|g|G)?.*") {
+        fn it_cannot_parse_input(input in r"[^0-9]+[0-9]{9}[^0-9]+(k|K|m|M|g|G)?.*") {
             let size = input.parse::<HumanSize>();
             prop_assert!(size.is_err())
         }

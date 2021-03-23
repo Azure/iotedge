@@ -12,7 +12,7 @@ impl Checker for ContainerResolveParentHostname {
         "container-resolve-parent-hostname"
     }
     fn description(&self) -> &'static str {
-        "config.yaml parent hostname is resolvable from inside container"
+        "parent hostname is resolvable from inside container"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
