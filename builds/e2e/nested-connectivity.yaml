@@ -18,7 +18,7 @@ stages:
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters: 
-      transportType: mqtt
+      upstream.protocol: 'mqtt'
   - job:  Deploy_Connectivity_Linux_Amd64
     displayName: Set up and run connectivity tests on Linux Amd64
     dependsOn: SetupVM_level4_mqtt
@@ -82,6 +82,7 @@ stages:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
+      upstream.protocol: 'mqtt'
     steps:  
       - template: templates/set-run-flag.yaml
       - task: Bash@3
@@ -149,6 +150,7 @@ stages:
           aziotis.artifact.name: '$(aziotis.artifact.name)'
           aziotis.package.filter: '$(aziotis.package.filter)'
           connectivity.nested: 'true'
+          testInfo.testName: '$(testInfo.testName)'
   - job:  Clean_up      
     dependsOn:
       - SetupVM_level5_mqtt

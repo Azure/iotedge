@@ -16,14 +16,14 @@ openssl = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
 
 cert-client = { path = "../cert-client" }
 edgelet-core = { path = "../edgelet-core" }

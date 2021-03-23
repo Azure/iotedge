@@ -9,31 +9,37 @@ use aziotctl_common::{
     SERVICE_DEFINITIONS as IS_SERVICES,
 };
 
+use aziot_identity_common_http::ApiVersion;
+use identity_client::IdentityClient;
+
 use crate::error::{Error, ErrorKind};
 
 lazy_static! {
     static ref IOTEDGED: ServiceDefinition = {
-        // Use the presence of IOTEDGE_HOST to infer whether this is being built for CentOS 7 or not.
-        // CentOS 7 doesn't use socket activation.
-        let sockets: &'static [&'static str] = option_env!("IOTEDGE_HOST").map_or(
-            &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"],
-            |_host| &[],
-        );
+        // If IOTEDGE_LISTEN_MANAGEMENT_URI isn't set at compile-time, assume socket activation is being used.
+        //
+        // This doesn't matter for released packages since those always have IOTEDGE_LISTEN_MANAGEMENT_URI set.
+        // It's only useful for non-package builds.
+        let uses_socket_activation = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI").map_or(true, |value| value.starts_with("fd://"));
+
+        let sockets: &'static [&'static str] =
+            if uses_socket_activation {
+                &["aziot-edged.mgmt.socket", "aziot-edged.workload.socket"]
+            }
+            else {
+                &[]
+            };
 
         ServiceDefinition {
             service: "aziot-edged.service",
             sockets,
         }
     };
-    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> = {
-        let iotedged: &ServiceDefinition = &IOTEDGED;
 
-        let service_definitions: Vec<&ServiceDefinition> = std::iter::once(iotedged)
+    static ref SERVICE_DEFINITIONS: Vec<&'static ServiceDefinition> =
+        std::iter::once(&*IOTEDGED)
             .chain(IS_SERVICES.iter().copied())
             .collect();
-
-        service_definitions
-    };
 }
 
 pub struct System;
@@ -67,5 +73,27 @@ impl System {
             eprintln!("{:#?}", err);
             Error::from(ErrorKind::System)
         })
+    }
+
+    pub fn reprovision(runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+        let uri = url::Url::parse("unix:///run/aziot/identityd.sock")
+            .expect("hard-coded URI should parse");
+        let client = IdentityClient::new(ApiVersion::V2020_09_01, &uri);
+
+        runtime
+            .block_on(client.reprovision_device())
+            .map_err(|err| {
+                eprintln!("Failed to reprovision: {}", err);
+                Error::from(ErrorKind::System)
+            })?;
+
+        println!("Successfully reprovisioned with IoT Hub.");
+
+        restart(&[&IOTEDGED]).map_err(|err| {
+            eprintln!("{:#?}", err);
+            Error::from(ErrorKind::System)
+        })?;
+
+        Ok(())
     }
 }
