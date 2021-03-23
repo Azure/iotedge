@@ -159,7 +159,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         },
                     ),
             }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup: true,
                 provisioning: common_config::super_config::ProvisioningType::Manual {
                     inner: common_config::super_config::ManualProvisioning::Explicit {
                         iothub_hostname: hostname,
@@ -183,7 +182,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         identity_pk,
                     }),
             }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup: true,
                 provisioning: common_config::super_config::ProvisioningType::Manual {
                     inner: common_config::super_config::ManualProvisioning::Explicit {
                         iothub_hostname,
@@ -214,9 +212,8 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                             symmetric_key,
                         },
                     ),
-                always_reprovision_on_startup,
+                always_reprovision_on_startup: _,
             }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup,
                 provisioning: common_config::super_config::ProvisioningType::Dps {
                     global_endpoint,
                     id_scope: scope_id,
@@ -238,9 +235,8 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         identity_cert,
                         identity_pk,
                     }),
-                always_reprovision_on_startup,
+                always_reprovision_on_startup: _,
             }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup,
                 provisioning: common_config::super_config::ProvisioningType::Dps {
                     global_endpoint,
                     id_scope: scope_id,
@@ -269,9 +265,8 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                     old_config::AttestationMethod::Tpm(old_config::TpmAttestationInfo {
                         registration_id,
                     }),
-                always_reprovision_on_startup,
+                always_reprovision_on_startup: _,
             }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup,
                 provisioning: common_config::super_config::ProvisioningType::Dps {
                     global_endpoint,
                     id_scope: scope_id,
