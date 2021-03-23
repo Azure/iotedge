@@ -27,14 +27,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
     public class CloudEndpoint : Endpoint
     {
-        readonly Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc;
+        readonly Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc;
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly int maxBatchSize;
+        readonly bool trackDeviceState;
 
         public CloudEndpoint(
             string id,
-            Func<string, Task<Util.Option<ICloudProxy>>> cloudProxyGetterFunc,
+            Func<string, Task<Try<ICloudProxy>>> cloudProxyGetterFunc,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
+            bool trackDeviceState,
             int maxBatchSize = 10,
             int fanoutFactor = 10)
             : base(id)
@@ -42,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckArgument(maxBatchSize > 0, "MaxBatchSize should be greater than 0");
             this.cloudProxyGetterFunc = Preconditions.CheckNotNull(cloudProxyGetterFunc);
             this.messageConverter = Preconditions.CheckNotNull(messageConverter);
+            this.trackDeviceState = trackDeviceState;
             this.maxBatchSize = maxBatchSize;
             this.FanOutFactor = fanoutFactor;
             Events.Created(id, maxBatchSize, fanoutFactor);
@@ -51,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         public override int FanOutFactor { get; }
 
-        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this);
+        public override IProcessor CreateProcessor() => new CloudMessageProcessor(this, this.trackDeviceState);
 
         public override void LogUserMetrics(long messageCount, long latencyInMs)
         {
@@ -60,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
         internal class CloudMessageProcessor : IProcessor
         {
-            static readonly ISet<Type> RetryableExceptions = new HashSet<Type>
+            readonly ISet<Type> retryableExceptions = new HashSet<Type>
             {
                 typeof(TimeoutException),
                 typeof(IOException),
@@ -69,10 +72,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             };
 
             readonly CloudEndpoint cloudEndpoint;
+            readonly bool trackDeviceState;
 
-            public CloudMessageProcessor(CloudEndpoint endpoint)
+            public CloudMessageProcessor(CloudEndpoint endpoint, bool trackDeviceState)
             {
                 this.cloudEndpoint = Preconditions.CheckNotNull(endpoint);
+                this.trackDeviceState = trackDeviceState;
+
+                if (!trackDeviceState)
+                {
+                    this.retryableExceptions.Add(typeof(DeviceInvalidStateException));
+                }
             }
 
             public Endpoint Endpoint => this.cloudEndpoint;
@@ -102,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
-            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
+            bool IsRetryable(Exception ex) => ex != null && this.retryableExceptions.Any(re => re.IsInstanceOfType(ex));
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {
@@ -200,12 +210,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     return HandleCancelled(routingMessages);
                 }
 
-                Util.Option<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
-                ISinkResult result = await cloudProxy.Match(
-                    async cp =>
+                Try<ICloudProxy> cloudProxy = await this.cloudEndpoint.cloudProxyGetterFunc(id);
+                if (cloudProxy.Success)
+                {
+                    var cp = cloudProxy.Value;
+                    try
                     {
-                        try
-                        {
                             List<IMessage> messages = routingMessages
                                 .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
                                 .ToList();
@@ -225,15 +235,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         {
                             return this.HandleException(ex, id, routingMessages);
                         }
-                    },
-                    () => Task.FromResult(HandleNoConnection(id, routingMessages)));
-
-                return result;
+                }
+                else
+                {
+                    if (this.IsRetryable(cloudProxy.Exception) || !this.trackDeviceState)
+                    {
+                        return HandleNoConnection(id, routingMessages);
+                    }
+                    else
+                    {
+                        return this.HandleException(cloudProxy.Exception, id, routingMessages);
+                    }
+                }
             }
 
             ISinkResult HandleException(Exception ex, string id, List<IRoutingMessage> routingMessages)
             {
-                if (IsRetryable(ex))
+                if (this.IsRetryable(ex))
                 {
                     Events.RetryingMessage(id, ex);
                     return GetSyncResultForFailedMessages(new EdgeHubIOException($"Error sending messages to IotHub for device {this.cloudEndpoint.Id}"), routingMessages);
