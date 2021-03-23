@@ -136,7 +136,7 @@ impl Source for BridgeEnvironment {
             result.insert("bridge.workload_uri".into(), val);
         }
 
-        // storage rign buffer
+        // storage ring buffer
         if let Ok(val) = host_env.get::<Value>("storagetype") {
             result.insert("bridge.storage.type".into(), val);
         }
@@ -151,7 +151,7 @@ impl Source for BridgeEnvironment {
         }
 
         // storage in memory
-        if let Ok(val) = host_env.get::<Value>("storagesize") {
+        if let Ok(val) = host_env.get::<Value>("storagemaxmessages") {
             result.insert("bridge.storage.max_size".into(), val);
         }
 
@@ -569,7 +569,7 @@ mod tests {
                     StorageSettings::RingBuffer(RingBufferSettings::new(
                         NonZeroU64::new(33_554_432).expect("33554432"), //32mb
                         PathBuf::from("/tmp_file/mqttd/"),
-                        FlushOptions::AfterEachWrite
+                        FlushOptions::Off
                     ))
                 )
             }

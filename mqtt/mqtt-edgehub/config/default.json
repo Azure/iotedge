@@ -45,7 +45,8 @@
             "type": "ring_buffer",
             "max_file_size": 33554432,
             "directory": "/tmp/mqttd/",
-            "flush_options": "aftereachwrite"
+            "flush_options": "aftereachwrite",
+            "max_size": 1000
         },
         "messages": {}
     }
