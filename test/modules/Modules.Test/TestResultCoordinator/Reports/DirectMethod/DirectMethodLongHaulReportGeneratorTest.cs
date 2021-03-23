@@ -225,11 +225,6 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<ulong> senderStoreValues = (IEnumerable<ulong>)x[0];
             IEnumerable<ulong> receiverStoreValues = (IEnumerable<ulong>)x[1];
             IEnumerable<HttpStatusCode> statusCodes = (IEnumerable<HttpStatusCode>)x[2];
-            foreach (HttpStatusCode statusCode in statusCodes)
-            {
-                Console.WriteLine(statusCodes.ToString());
-            }
-
             IEnumerable<DateTime> timestamps = (IEnumerable<DateTime>)x[3];
             int batchSize = (int)x[4];
             bool expectedIsPassed = (bool)x[5];
