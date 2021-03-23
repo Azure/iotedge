@@ -2,15 +2,16 @@ auto_reprovisioning_mode = "OnErrorOnly"
 hostname = "my-device"
 
 [provisioning]
-source = "manual"
-iothub_hostname = "example.azure-devices.net"
-device_id = "my-device"
+source = "dps"
+global_endpoint = "https://global.azure-devices-provisioning.net/"
+id_scope = "0ab1234C5D6"
 
-[provisioning.authentication]
-method = "sas"
+[provisioning.attestation]
+method = "symmetric_key"
+registration_id = "my-device"
 
-[provisioning.authentication.device_id_pk]
-value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU="
+[provisioning.attestation.symmetric_key]
+value = "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGVudGl0eS1zZXJ2aWNlfGF6aW90LWlkZW50aXR5LXNlcg=="
 
 [aziot_keys]
 
@@ -47,7 +48,7 @@ min_tls_version = "tls1.0"
 max_retries = "infinite"
 
 [edge_ca]
-auto_generated_edge_ca_expiry_days = 30
+auto_generated_edge_ca_expiry_days = 90
 
 [moby_runtime]
 uri = "unix:///var/run/docker.sock"

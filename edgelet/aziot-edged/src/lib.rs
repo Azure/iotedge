@@ -51,9 +51,12 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use url::Url;
 
-use edgelet_core::crypto::{
-    CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature,
-    AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS,
+use edgelet_core::{
+    crypto::{
+        CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature,
+        AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS,
+    },
+    settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
     Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
@@ -246,6 +249,13 @@ where
                 &url,
             )));
 
+            match settings.auto_reprovisioning_mode() {
+                AutoReprovisioningMode::AlwaysOnStartup => {
+                    tokio_runtime.block_on(reprovision_device(&client))?
+                }
+                AutoReprovisioningMode::Dynamic | AutoReprovisioningMode::OnErrorOnly => {}
+            }
+
             let device_info = get_device_info(&client)
                 .map_err(|e| {
                     Error::from(
@@ -311,6 +321,10 @@ where
                         &mut tokio_runtime,
                     )?;
 
+                    if should_reprovision {
+                        tokio_runtime.block_on(reprovision_device(&client))?;
+                    }
+
                     if code != StartApiReturnStatus::Restart {
                         break;
                     }
@@ -345,6 +359,15 @@ fn get_device_info(
                 InitializeErrorReason::InvalidIdentityType,
             ))),
         })
+}
+
+fn reprovision_device(
+    identity_client: &Arc<Mutex<IdentityClient>>,
+) -> impl Future<Item = (), Error = Error> {
+    let id_mgr = identity_client.lock().unwrap();
+    id_mgr
+        .reprovision_device()
+        .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -408,10 +431,13 @@ where
                 Err(((), _)) => Err(Error::from(ErrorKind::ManagementService)),
             });
 
-    let mgmt_stop_and_reprovision_signaled = if true {
-        futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
-    } else {
-        futures::future::Either::A(future::empty())
+    let mgmt_stop_and_reprovision_signaled = match settings.auto_reprovisioning_mode() {
+        AutoReprovisioningMode::Dynamic => {
+            futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
+        }
+        AutoReprovisioningMode::AlwaysOnStartup | AutoReprovisioningMode::OnErrorOnly => {
+            futures::future::Either::A(future::empty())
+        }
     };
 
     let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
