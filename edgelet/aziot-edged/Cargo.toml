@@ -26,16 +26,16 @@ native-tls = "0.2"
 url = "2"
 url_serde = "0.2"
 
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
+openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "release/1.2" }
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }

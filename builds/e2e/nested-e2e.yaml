@@ -18,7 +18,7 @@ stages:
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
-      transportType: mqtt
+      upstream.protocol: mqtt
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
       - SetupVM_level5_mqtt

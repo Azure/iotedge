@@ -53,13 +53,29 @@ MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
 TAR=tar
-HOST_URI_OPTION=
+CONNECT_MANAGEMENT_URI=
+CONNECT_WORKLOAD_URI=
+LISTEN_MANAGEMENT_URI=
+LISTEN_WORKLOAD_URI=
 
 all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
 
 release:
-	$(HOST_URI_OPTION) VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS) --release -p aziot-edged -p iotedge
+	# These must be set by the caller:
+	# - `make deb` when building Debian packages
+	# - `rpmbuild` via `make rpm` when building the CentOS package
+	[ -n '$(CONNECT_MANAGEMENT_URI)' ]
+	[ -n '$(CONNECT_WORKLOAD_URI)' ]
+	[ -n '$(LISTEN_MANAGEMENT_URI)' ]
+	[ -n '$(LISTEN_WORKLOAD_URI)' ]
+
+	IOTEDGE_CONNECT_MANAGEMENT_URI=$(CONNECT_MANAGEMENT_URI) \
+		IOTEDGE_CONNECT_WORKLOAD_URI=$(CONNECT_WORKLOAD_URI) \
+		IOTEDGE_LISTEN_MANAGEMENT_URI=$(LISTEN_MANAGEMENT_URI) \
+		IOTEDGE_LISTEN_WORKLOAD_URI=$(LISTEN_WORKLOAD_URI) \
+		VERSION=${VERSION} \
+		$(CARGO) build $(CARGOFLAGS) --release -p aziot-edged -p iotedge
 
 dist:
 	$(MKDIR_P) $(TARGET)
@@ -78,6 +94,10 @@ distclean:
 	rm -rf .cargo
 	rm -rf $(vendordir)
 
+deb: CONNECT_MANAGEMENT_URI=unix:///var/run/iotedge/mgmt.sock
+deb: CONNECT_WORKLOAD_URI=unix:///var/run/iotedge/workload.sock
+deb: LISTEN_MANAGEMENT_URI=fd://aziot-edged.mgmt.socket
+deb: LISTEN_WORKLOAD_URI=fd://aziot-edged.workload.socket
 deb: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/aziot-edged $(TARGET)/$(PACKAGE)/aziot-edged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(TARGET)/$(PACKAGE)/iotedge
@@ -89,18 +109,18 @@ deb: release
 
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
 	sed -i \
-		-e 's|@connect_workload_uri@|unix:///var/run/iotedge/workload.sock|' \
-		-e 's|@connect_management_uri@|unix:///var/run/iotedge/mgmt.sock|' \
-		-e 's|@listen_workload_uri@|fd://aziot-edged.workload.socket|' \
-		-e 's|@listen_management_uri@|fd://aziot-edged.mgmt.socket|' \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
 		$(TARGET)/$(PACKAGE)/etc/aziot/config.toml.edge.template
 
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
 	sed -i \
-		-e 's|@connect_workload_uri@|unix:///var/run/iotedge/workload.sock|' \
-		-e 's|@connect_management_uri@|unix:///var/run/iotedge/mgmt.sock|' \
-		-e 's|@listen_workload_uri@|fd://aziot-edged.workload.socket|' \
-		-e 's|@listen_management_uri@|fd://aziot-edged.mgmt.socket|' \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
 		$(TARGET)/$(PACKAGE)/etc/aziot/edged/config.toml.default
 
 	$(INSTALL) -d $(TARGET)/$(PACKAGE)/etc/aziot/edged/config.d
@@ -113,10 +133,9 @@ deb: release
 	$(SED) "s/@version@/${DEB_VERSION}/g; s/@revision@/${DEB_REVISION}/g;" $(srcdir)/contrib/debian/control > $(TARGET)/$(PACKAGE)/debian/control
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
-rpm: HOST_URI_OPTION=IOTEDGE_HOST=unix:///var/lib/iotedge/mgmt.sock
 rpm:
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
-	$(HOST_URI_OPTION) rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
+	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
 rpm-dist:
 	@echo Running git archive...
@@ -139,18 +158,18 @@ install: release
 
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/template.toml $(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
 	sed -i \
-		-e 's|@connect_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
-		-e 's|@connect_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
-		-e 's|@listen_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
-		-e 's|@listen_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
 		$(DESTDIR)$(sysconfdir)/aziot/config.toml.edge.template
 
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/default.toml $(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
 	sed -i \
-		-e 's|@connect_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
-		-e 's|@connect_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
-		-e 's|@listen_workload_uri@|unix:///var/lib/iotedge/workload.sock|' \
-		-e 's|@listen_management_uri@|unix:///var/lib/iotedge/mgmt.sock|' \
+		-e 's|@connect_workload_uri@|$(CONNECT_WORKLOAD_URI)|' \
+		-e 's|@connect_management_uri@|$(CONNECT_MANAGEMENT_URI)|' \
+		-e 's|@listen_workload_uri@|$(LISTEN_WORKLOAD_URI)|' \
+		-e 's|@listen_management_uri@|$(LISTEN_MANAGEMENT_URI)|' \
 		$(DESTDIR)$(sysconfdir)/aziot/edged/config.toml.default
 
 	$(INSTALL) -d -m 0700 $(DESTDIR)$(sysconfdir)/aziot/edged/config.d
