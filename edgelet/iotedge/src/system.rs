@@ -9,6 +9,9 @@ use aziotctl_common::{
     SERVICE_DEFINITIONS as IS_SERVICES,
 };
 
+use aziot_identity_common_http::ApiVersion;
+use identity_client::IdentityClient;
+
 use crate::error::{Error, ErrorKind};
 
 lazy_static! {
@@ -70,5 +73,27 @@ impl System {
             eprintln!("{:#?}", err);
             Error::from(ErrorKind::System)
         })
+    }
+
+    pub fn reprovision(runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
+        let uri = url::Url::parse("unix:///run/aziot/identityd.sock")
+            .expect("hard-coded URI should parse");
+        let client = IdentityClient::new(ApiVersion::V2020_09_01, &uri);
+
+        runtime
+            .block_on(client.reprovision_device())
+            .map_err(|err| {
+                eprintln!("Failed to reprovision: {}", err);
+                Error::from(ErrorKind::System)
+            })?;
+
+        println!("Successfully reprovisioned with IoT Hub.");
+
+        restart(&[&IOTEDGED]).map_err(|err| {
+            eprintln!("{:#?}", err);
+            Error::from(ErrorKind::System)
+        })?;
+
+        Ok(())
     }
 }
