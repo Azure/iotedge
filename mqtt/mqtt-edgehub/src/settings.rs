@@ -137,8 +137,12 @@ impl Source for BridgeEnvironment {
         }
 
         // storage ring buffer
-        if let Ok(val) = host_env.get::<Value>("storagetype") {
-            result.insert("bridge.storage.type".into(), val);
+        if let Ok(val) = host_env.get::<Value>("usepersistentstorage") {
+            if val.to_string().to_lowercase() == "true" {
+                result.insert("bridge.storage.type".into(), "ring_buffer".into());
+            } else {
+                result.insert("bridge.storage.type".into(), "memory".into());
+            }
         }
         if let Ok(val) = host_env.get::<Value>("storagemaxfilesize") {
             result.insert("bridge.storage.max_file_size".into(), val);
@@ -419,7 +423,7 @@ mod tests {
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "my_iothub");
         // storage
-        let _storage_type = env::set_var("MqttBridge__StorageType", "ring_buffer");
+        let _storage_type = env::set_var("UsePersistentStorage", "true");
         let _storage_max_size = env::set_var("MqttBridge__StorageMaxFileSize", "256");
         let _storage_flush = env::set_var("MqttBridge__StorageFlushOptions", "off");
         let _storage_folder = env::set_var("StorageFolder", "/iotedge/storage");
@@ -464,8 +468,8 @@ mod tests {
         let _workload_uri = env::set_var("IOTEDGE_WORKLOADURI", "workload");
         let _iothub_hostname = env::set_var("IOTEDGE_IOTHUBHOSTNAME", "my_iothub");
         // storage
-        let _storage_type = env::set_var("MqttBridge__StorageType", "memory");
-        let _storage_max_size = env::set_var("MqttBridge__StorageSize", "256");
+        let _storage_type = env::set_var("UsePersistentStorage", "false");
+        let _storage_max_size = env::set_var("MqttBridge__StorageMaxMessages", "256");
 
         let settings = Settings::new().unwrap();
         assert_eq!(
