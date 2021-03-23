@@ -89,17 +89,17 @@ impl<S> StoreMqttEventHandler<S> {
                     .in_prefix()
                     // maps if local does not have a value it uses the topic that was received,
                     // else it checks that the received topic starts with local prefix and removes the local prefix
-                    .map_or(Some(topic_name), |local_prefix| {
-                        topic_name.strip_prefix::<&str>(local_prefix)
+                    .map_or(Some(topic_name), |in_prefix| {
+                        topic_name.strip_prefix::<&str>(in_prefix)
                     })
                     .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
-                        Some(remote_prefix) => {
+                        Some(out_prefix) => {
                             if mapper.topic_settings.in_prefix().is_none() {
                                 // inPrefix is empty so it adds the topic separator between remote prefix
                                 // and topic
-                                format!("{}{}{}", remote_prefix, TOPIC_SEPARATOR, stripped_topic)
+                                format!("{}{}{}", out_prefix, TOPIC_SEPARATOR, stripped_topic)
                             } else {
-                                format!("{}{}", remote_prefix, stripped_topic)
+                                format!("{}{}", out_prefix, stripped_topic)
                             }
                         }
                         None => {
