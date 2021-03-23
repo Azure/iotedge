@@ -998,7 +998,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var identitiesIterator = new Mock<IServiceIdentitiesIterator>();
             identitiesIterator.Setup(i => i.HasNext).Returns(false);
             var serviceProxy = new Mock<IServiceProxy>();
-            serviceProxy.Setup(s => s.GetServiceIdentitiesIterator()).Returns(identitiesIterator.Object);
 
             var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
 
