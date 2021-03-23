@@ -26,6 +26,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.SenderSuccesses = senderSuccesses;
             this.ReceiverSuccesses = receiverSuccesses;
             this.StatusCodeZero = statusCodeZero;
+            this.DeviceNotFound = deviceNotFound;
             this.Other = other;
         }
 
