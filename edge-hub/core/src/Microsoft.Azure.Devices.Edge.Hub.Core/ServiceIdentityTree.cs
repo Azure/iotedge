@@ -151,6 +151,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return Option.None<string>();
         }
 
+        public async Task<Try<string>> TryGetAuthChain(string targetId)
+        {
+            Preconditions.CheckNonWhiteSpace(targetId, nameof(targetId));
+
+            // Auth-chain for the acting device (when there aren't any nodes in the tree yet)
+            if (targetId == this.actorDeviceId)
+            {
+                return Try.Success(this.actorDeviceId);
+            }
+            else if (targetId == this.actorDeviceId + "/" + Constants.EdgeHubModuleId)
+            {
+                return Try.Success(this.actorDeviceId + "/" + Constants.EdgeHubModuleId + ";" + this.actorDeviceId);
+            }
+
+            using (await this.nodesLock.LockAsync())
+            {
+                // Auth-chain for a child somewhere in the tree
+                if (this.nodes.TryGetValue(targetId, out ServiceIdentityTreeNode treeNode))
+                {
+                    return treeNode.AuthChain.Match(
+                        chain => Try.Success(chain),
+                        () => Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
+                }
+                else
+                {
+                    return Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope."));
+                }
+            }
+        }
+
         public async Task<Option<string>> GetEdgeAuthChain(string id)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));

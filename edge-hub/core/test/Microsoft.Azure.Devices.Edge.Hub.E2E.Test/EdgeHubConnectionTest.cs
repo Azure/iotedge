@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -32,9 +33,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         const string EdgeHubModuleId = "$edgeHub";
 
-        [Fact(Skip = "Disabling to unblock CI while we investigate")]
-        public async Task TestEdgeHubConnection()
+        [Theory(Skip = "Disabling to unblock CI while we investigate")]
+        [InlineData(true, true)]
+        [InlineData(true, false)]
+        [InlineData(false, false)]
+        public async Task TestEdgeHubConnection(bool useScopeOnly, bool trackDeviceState)
         {
+            // Note: useScopeOnly = false and trackDeviceState = true should never happen because trackDeviceState can be enabled when scopeOnly is true
             const string EdgeDeviceId = "testHubEdgeDevice1";
             var twinMessageConverter = new TwinMessageConverter();
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
@@ -63,6 +68,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var signatureProvider = new SharedAccessKeySignatureProvider(sasKey);
             var credentialsCache = Mock.Of<ICredentialsCache>();
             var metadataStore = new Mock<IMetadataStore>();
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
+
+            if (!trackDeviceState)
+            {
+                deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.IsAny<string>())).ReturnsAsync(Option.None<ServiceIdentity>());
+            }
+            else
+            {
+                deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>())).ThrowsAsync(new DeviceInvalidStateException());
+            }
+
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -70,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 new ClientProvider(Option.None<string>()),
                 Option.None<UpstreamProtocol>(),
                 new ClientTokenProvider(signatureProvider, iothubHostName, edgeDeviceId, TimeSpan.FromMinutes(60)),
-                Mock.Of<IDeviceScopeIdentitiesCache>(),
+                deviceScopeIdentitiesCache.Object,
                 credentialsCache,
                 edgeHubCredentials.Identity,
                 TimeSpan.FromMinutes(60),
@@ -78,7 +94,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 TimeSpan.FromSeconds(20),
                 false,
                 Option.None<IWebProxy>(),
-                metadataStore.Object);
+                metadataStore.Object,
+                scopeAuthenticationOnly: useScopeOnly,
+                trackDeviceState: trackDeviceState);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), identityProvider, deviceConnectivityManager);
 
@@ -93,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // Set Edge hub desired properties
                 await this.SetDesiredProperties(registryManager, edgeDeviceId);
 
-                var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId, 10, 10);
+                var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId, 10, 10, true);
                 var routeFactory = new EdgeRouteFactory(endpointFactory);
                 var configParser = new EdgeHubConfigParser(routeFactory, new BrokerPropertiesValidator());
 
