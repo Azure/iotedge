@@ -209,7 +209,7 @@ fn execute_inner(
     let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
-        auto_generated_edge_ca_expiry_days: 1,
+        auto_generated_edge_ca_expiry_days: 90,
     });
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
