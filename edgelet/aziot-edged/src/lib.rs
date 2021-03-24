@@ -638,7 +638,6 @@ mod tests {
 
     use super::{Fail, RuntimeSettings};
 
-    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.toml";
     static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -651,14 +650,6 @@ mod tests {
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
-    }
-
-    #[test]
-    fn settings_for_nested_edge() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NESTED_EDGE);
-        let settings = Settings::new().unwrap();
-        assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]
