@@ -136,6 +136,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public async Task TryGetAuthChain_Test()
+        {
+            // Setup our tree
+            ServiceIdentityTree tree = this.SetupTree();
+
+            // Check for valid auth chains
+            this.CheckValidAuthChains(tree);
+
+            // Check non-existent auth chain
+            var authChainTry = await tree.TryGetAuthChain("nonexistent");
+            Assert.Throws<DeviceInvalidStateException>(() => authChainTry.Value);
+
+            // Insert an orphaned node and check for its invalid auth chain
+            ServiceIdentity orphan = CreateServiceIdentity("orphan", null, null, null, false);
+            tree.InsertOrUpdate(orphan).Wait();
+            authChainTry = await tree.TryGetAuthChain(orphan.Id);
+            Assert.Throws<DeviceInvalidStateException>(() => authChainTry.Value);
+        }
+
+        [Fact]
         public void GetAuthChain_DisabledDevice_Test()
         {
             ServiceIdentityTree tree = this.SetupTree();
@@ -152,6 +172,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Assert
             Assert.False(authChain.HasValue);
+        }
+
+        [Fact]
+        public async Task TryGetAuthChain_DisabledDevice_Test()
+        {
+            ServiceIdentityTree tree = this.SetupTree();
+
+            // Add another branch with a disabled Edge
+            ServiceIdentity edge_L2 = CreateServiceIdentity("edge_L2", null, "edge_L2_scope", "e1_L1_scope", true, false);
+            ServiceIdentity leaf = CreateServiceIdentity("leaf", null, null, "edge_L2_scope", false);
+            var expectedAuthChain = "leaf;edge_L2;e1_L1;root";
+
+            tree.InsertOrUpdate(edge_L2).Wait();
+            tree.InsertOrUpdate(leaf).Wait();
+
+            // Act
+            var authChain = await tree.TryGetAuthChain(leaf.Id);
+
+            // Assert
+            Assert.True(authChain.Success);
+            Assert.Equal(expectedAuthChain, authChain.Value);
         }
 
         [Fact]
