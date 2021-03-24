@@ -162,6 +162,7 @@ fn execute_inner(
     let super_config::Config {
         parent_hostname,
         trust_bundle_cert,
+        auto_reprovisioning_mode,
         aziot,
         agent,
         connect,
@@ -281,6 +282,8 @@ fn execute_inner(
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
+
+            auto_reprovisioning_mode,
 
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
