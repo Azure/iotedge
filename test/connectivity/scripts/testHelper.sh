@@ -51,12 +51,29 @@ function get_image_architecture_label() {
     esac
 }
 
+function is_system_using_mariner() {
+
+    if [ -e "/etc/os-release" ]; then
+        if grep -q "ID=mariner" "/etc/os-release"; then
+            is_mariner="true"
+        else
+            is_mariner="false"
+        fi
+    else
+        is_mariner="false"
+    fi
+}
+
 function get_iotedged_artifact_folder() {
     local testDir=$1
     
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$testDir/artifacts/iotedged-ubuntu18.04-amd64"
+        if [ "$is_mariner" = "true" ]; then
+            path="$testDir/artifacts/iotedged-mariner-amd64"
+        else
+            path="$testDir/artifacts/iotedged-ubuntu18.04-amd64"
+        fi
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$testDir/artifacts/iotedged-ubuntu18.04-aarch64"
     else

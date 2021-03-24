@@ -540,6 +540,7 @@ TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
 get_image_architecture_label
+is_system_using_mariner
 optimize_for_performance=true
 log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
