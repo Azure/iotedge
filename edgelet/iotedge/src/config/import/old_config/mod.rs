@@ -118,7 +118,7 @@ pub(crate) struct DeviceCertificate {
 }
 
 const fn default_auto_generated_ca_lifetime_days() -> u16 {
-    1
+    90
 }
 
 fn deserialize_file_uri_or_path<'de, D>(deserializer: D) -> Result<Url, D::Error>

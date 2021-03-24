@@ -4,7 +4,7 @@ use failure::{self, Context};
 
 use edgelet_core::{self, RuntimeSettings};
 
-use crate::check::{checker::Checker, hostname_checks_common, Check, CheckResult};
+use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ParentHostname {
@@ -52,7 +52,7 @@ impl ParentHostname {
 
         // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
-        if !hostname_checks_common::is_rfc_1035_valid(config_parent_hostname) {
+        if !aziotctl_common::is_rfc_1035_valid(config_parent_hostname) {
             return Ok(CheckResult::Warning(Context::new(format!(
             "configuration has parent_hostname {} which does not comply with RFC 1035.\n\
              \n\
@@ -67,7 +67,7 @@ impl ParentHostname {
         .into()));
         }
 
-        if !hostname_checks_common::check_length_for_local_issuer(config_parent_hostname) {
+        if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
             return Ok(CheckResult::Failed(
                 Context::new(format!(
                     "configuration parent_hostname {} is too long to be used as a certificate issuer",

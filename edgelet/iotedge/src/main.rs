@@ -313,6 +313,10 @@ fn run() -> Result<(), Error> {
                         .required(true),
                     )
                 )
+                .subcommand(
+                    SubCommand::with_name("reprovision")
+                    .about("Reprovision device with IoT Hub.")
+                )
         )
         .subcommand(
             SubCommand::with_name("support-bundle")
@@ -519,6 +523,7 @@ fn run() -> Result<(), Error> {
                 log::Level::from_str(args.value_of("log_level").expect("Value is required"))
                     .expect("Value is restricted to parsable fields"),
             ),
+            ("reprovision", Some(_args)) => System::reprovision(&mut tokio_runtime),
 
             (command, _) => {
                 eprintln!("Unknown system subcommand {:?}", command);

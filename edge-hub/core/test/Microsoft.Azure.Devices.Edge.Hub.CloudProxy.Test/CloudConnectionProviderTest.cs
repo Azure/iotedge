@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -148,6 +149,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                true,
+                true,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -199,6 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                true,
+                true,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -227,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
                 .ReturnsAsync(Option.Some(deviceServiceIdentity));
             deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
-                .ReturnsAsync(Option.Some(deviceIdentity.Id));
+                .ReturnsAsync(Option.Some(deviceServiceIdentity.Id));
             var metadataStore = new Mock<IMetadataStore>();
             metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
 
@@ -247,6 +252,237 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Act
+            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+
+            // Assert
+            Assert.True(cloudProxy.Success);
+            Assert.NotNull(cloudProxy.Value);
+            deviceScopeIdentitiesCache.VerifyAll();
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ConnectUsingIdentityInScope_DeviceInvalidStateException_ShouldThrow(bool isNested)
+        {
+            // Arrange
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
+
+            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.Is<string>(i => i == deviceIdentity.Id), isNested, false))
+            .ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.Is<string>(i => i == deviceIdentity.Id), isNested, true))
+                .ThrowsAsync(new DeviceInvalidStateException());
+
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
+            var edgeHub = Mock.Of<IEdgeHub>();
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                GetMockDeviceClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                deviceScopeIdentitiesCache.Object,
+                CredentialsCache,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                false,
+                Option.None<IWebProxy>(),
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: true,
+                nestedEdgeEnabled: isNested);
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Act
+            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+
+            // Assert
+            Assert.Throws<DeviceInvalidStateException>(() => cloudProxy.Value);
+            deviceScopeIdentitiesCache.VerifyAll();
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task ConnectUsingIdentityInScope_DeviceInvalidStateException_WithRecover(bool isNested)
+        {
+            // Arrange
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
+
+            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.Is<string>(i => i == deviceIdentity.Id), isNested, false))
+            .ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.Is<string>(i => i == deviceIdentity.Id), isNested, true))
+                .ReturnsAsync(deviceIdentity.Id);
+
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
+            var edgeHub = Mock.Of<IEdgeHub>();
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                GetMockDeviceClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                deviceScopeIdentitiesCache.Object,
+                CredentialsCache,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                false,
+                Option.None<IWebProxy>(),
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: true,
+                nestedEdgeEnabled: isNested);
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Act
+            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+
+            // Assert
+            Assert.True(cloudProxy.Success);
+            Assert.NotNull(cloudProxy.Value);
+            deviceScopeIdentitiesCache.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ConnectUsingIdentityInScope_NestedEdge_DeviceInvalidStateException_WithRecover()
+        {
+            // Arrange
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            var deviceServiceIdentity = new ServiceIdentity(deviceIdentity.Id, "1234", new string[0], new ServiceAuthentication(ServiceAuthenticationType.CertificateAuthority), ServiceIdentityStatus.Disabled);
+            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.Is<string>(i => i == deviceIdentity.Id), true, false))
+                .ThrowsAsync(new DeviceInvalidStateException());
+            deviceScopeIdentitiesCache.Setup(d => d.VerifyServiceIdentityAuthChainState(It.Is<string>(i => i == deviceIdentity.Id), true, true))
+                .ReturnsAsync(deviceIdentity.Id);
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
+            var edgeHub = Mock.Of<IEdgeHub>();
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                GetMockDeviceClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                deviceScopeIdentitiesCache.Object,
+                CredentialsCache,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                false,
+                Option.None<IWebProxy>(),
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: true,
+                nestedEdgeEnabled: true);
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Act
+            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+
+            // Assert
+            Assert.True(cloudProxy.Success);
+            Assert.NotNull(cloudProxy.Value);
+            deviceScopeIdentitiesCache.VerifyAll();
+        }
+
+        [Fact]
+        public async Task Connect_ScopeOnly_TokenCredentials()
+        {
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.None<ServiceIdentity>());
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.Some(deviceIdentity.Id));
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
+            string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
+            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), Option.None<string>(), false);
+            credentialsCache.Setup(cc => cc.Get(deviceIdentity)).ReturnsAsync(Option.Some<IClientCredentials>(tokenCreds));
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                GetMockDeviceClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                deviceScopeIdentitiesCache.Object,
+                credentialsCache.Object,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                false,
+                Option.None<IWebProxy>(),
+                metadataStore.Object,
+                scopeAuthenticationOnly: true,
+                trackDeviceState: false);
+            cloudConnectionProvider.BindEdgeHub(edgeHub);
+
+            // Act
+            Try<ICloudConnection> cloudProxy = await cloudConnectionProvider.Connect(deviceIdentity, null);
+
+            // Assert
+            Assert.Throws<InvalidOperationException>(() => cloudProxy.Value);
+            deviceScopeIdentitiesCache.VerifyAll();
+            credentialsCache.Verify(cc => cc.Get(It.IsAny<IIdentity>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Connect_Fallback_TokenCredentials()
+        {
+            var deviceIdentity = Mock.Of<IDeviceIdentity>(m => m.Id == "d1");
+
+            var deviceScopeIdentitiesCache = new Mock<IDeviceScopeIdentitiesCache>(MockBehavior.Strict);
+            deviceScopeIdentitiesCache.Setup(d => d.GetServiceIdentity(It.Is<string>(i => i == deviceIdentity.Id)))
+                .ReturnsAsync(Option.None<ServiceIdentity>());
+            deviceScopeIdentitiesCache.Setup(d => d.GetAuthChain(It.Is<string>(i => i == deviceIdentity.Id)))
+               .ReturnsAsync(Option.Some(deviceIdentity.Id));
+            var metadataStore = new Mock<IMetadataStore>();
+            metadataStore.Setup(m => m.GetMetadata(It.IsAny<string>())).ReturnsAsync(new ConnectionMetadata("dummyValue"));
+            var edgeHub = Mock.Of<IEdgeHub>();
+            var credentialsCache = new Mock<ICredentialsCache>(MockBehavior.Strict);
+            string token = TokenHelper.CreateSasToken(IotHubHostName, DateTime.UtcNow.AddMinutes(10));
+            var tokenCreds = new TokenCredentials(deviceIdentity, token, string.Empty, Option.None<string>(), Option.None<string>(), false);
+            credentialsCache.Setup(cc => cc.Get(deviceIdentity)).ReturnsAsync(Option.Some<IClientCredentials>(tokenCreds));
+            ICloudConnectionProvider cloudConnectionProvider = new CloudConnectionProvider(
+                MessageConverterProvider,
+                ConnectionPoolSize,
+                GetMockDeviceClientProvider(),
+                Option.None<UpstreamProtocol>(),
+                TokenProvider,
+                deviceScopeIdentitiesCache.Object,
+                credentialsCache.Object,
+                EdgeHubIdentity,
+                TimeSpan.FromMinutes(60),
+                true,
+                TimeSpan.FromSeconds(20),
+                false,
+                Option.None<IWebProxy>(),
+                metadataStore.Object,
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false,
                 true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
@@ -257,6 +493,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.True(cloudProxy.Success);
             Assert.NotNull(cloudProxy.Value);
             deviceScopeIdentitiesCache.VerifyAll();
+            credentialsCache.VerifyAll();
         }
 
         [Fact]
@@ -294,7 +531,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                true);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false,
+                nestedEdgeEnabled: true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -341,7 +580,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 false,
                 Option.None<IWebProxy>(),
                 metadataStore.Object,
-                true);
+                scopeAuthenticationOnly: false,
+                trackDeviceState: false,
+                nestedEdgeEnabled: true);
             cloudConnectionProvider.BindEdgeHub(edgeHub);
 
             // Act
@@ -420,22 +661,30 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
         }
 
-        static IClientProvider GetMockDeviceClientProvider()
+        static IClientProvider GetMockDeviceClientProvider(bool openAsyncThrows = false)
         {
             var deviceClientProvider = new Mock<IClientProvider>();
             deviceClientProvider.Setup(dc => dc.Create(It.IsAny<IIdentity>(), It.IsAny<ITokenProvider>(), It.IsAny<ITransportSettings[]>(), Option.None<string>()))
-                .Returns(() => GetMockDeviceClient());
+                .Returns(() => GetMockDeviceClient(openAsyncThrows));
             return deviceClientProvider.Object;
         }
 
-        static IClient GetMockDeviceClient()
+        static IClient GetMockDeviceClient(bool openAsyncThrows = false)
         {
             var deviceClient = new Mock<IClient>();
             deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
             deviceClient.Setup(dc => dc.CloseAsync())
                 .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
                 .Returns(Task.FromResult(true));
-            deviceClient.Setup(dc => dc.OpenAsync()).Returns(Task.CompletedTask);
+            if (openAsyncThrows)
+            {
+                deviceClient.Setup(dc => dc.OpenAsync()).ThrowsAsync(new UnauthorizedException());
+            }
+            else
+            {
+                deviceClient.Setup(dc => dc.OpenAsync()).Returns(Task.CompletedTask);
+            }
+
             return deviceClient.Object;
         }
     }

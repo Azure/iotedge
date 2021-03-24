@@ -1,6 +1,6 @@
 # Use the same base image as prod edgehub images
-ARG base_tag=3.1.12-alpine3.12
-FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
+ARG base_tag=3.1.13-alpine3.13
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 ADD ./x86_64-unknown-linux-musl/release/mqttd /usr/local/bin/mqttd
 
