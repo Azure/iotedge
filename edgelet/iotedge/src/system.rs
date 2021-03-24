@@ -61,6 +61,13 @@ impl System {
         })
     }
 
+    pub fn system_stop() -> Result<(), Error> {
+        restart(&SERVICE_DEFINITIONS).map_err(|err| {
+            eprintln!("{:#?}", err);
+            Error::from(ErrorKind::System)
+        })
+    }
+
     pub fn set_log_level(level: log::Level) -> Result<(), Error> {
         log_level(&SERVICE_DEFINITIONS, level).map_err(|err| {
             eprintln!("{:#?}", err);
