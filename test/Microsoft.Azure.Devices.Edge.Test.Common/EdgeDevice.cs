@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public class NestedEdgeConfig
         {
-            public readonly string DeviceHostname;
-            public readonly bool IsNestedEdge;
-            public readonly Option<string> ParentDeviceId;
-            public readonly string ParentHostname;
+            public string DeviceHostname { get; }
+            public bool IsNestedEdge { get; }
+            public Option<string> ParentDeviceId { get; }
+            public string ParentHostname { get; }
 
             public NestedEdgeConfig(IotHub iotHub, bool isNestedEdge, Option<string> parentDeviceId, Option<string> parentHostname, Option<string> deviceHostname)
             {
