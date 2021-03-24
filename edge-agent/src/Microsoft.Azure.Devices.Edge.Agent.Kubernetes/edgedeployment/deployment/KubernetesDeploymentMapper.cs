@@ -334,8 +334,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
             // collect volumes and volume mounts from HostConfig.Mounts section for binds to host path
-            var bindMounts = module.Config.CreateOptions.HostConfig
-                .FlatMap(config => Option.Maybe(config.Mounts))
+            var mountListOption = module.Config.CreateOptions.HostConfig
+                .FlatMap(config => Option.Maybe(config.Mounts));
+
+            mountListOption.ForEach(mounts =>
+                {
+                    foreach (var mount in mounts)
+                    {
+                        if (mount.Type is null || mount.Source is null || mount.Target is null)
+                        {
+                            throw new InvalidMountException($"Type, Source, and Target required for all mounts ({mount.Type}, {mount.Source}, {mount.Target})");
+                        }
+                    }
+                });
+
+            var bindMounts = mountListOption
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
             bindMounts.Map(mounts => mounts.Select(mount => new V1Volume(KubeUtils.SanitizeDNSLabel(mount.Source), hostPath: new V1HostPathVolumeSource(mount.Source, "DirectoryOrCreate"))))

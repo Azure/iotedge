@@ -40,6 +40,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         };
 
+        static readonly HostConfig NoTypeVolumeMountHostConfig = new HostConfig
+        {
+            Mounts = new List<Mount>
+            {
+                new Mount
+                {
+                    ReadOnly = true,
+                    Source = "a-volume",
+                    Target = "/tmp/volume"
+                }
+            }
+        };
+
+        static readonly HostConfig NoSourceVolumeMountHostConfig = new HostConfig
+        {
+            Mounts = new List<Mount>
+            {
+                new Mount
+                {
+                    Type = "volume",
+                    ReadOnly = true,
+                    Target = "/tmp/volume"
+                }
+            }
+        };
+
+        static readonly HostConfig NoTargetVolumeMountHostConfig = new HostConfig
+        {
+            Mounts = new List<Mount>
+            {
+                new Mount
+                {
+                    Type = "volume",
+                    ReadOnly = true,
+                    Source = "a-volume",
+                }
+            }
+        };
+
         static readonly HostConfig HostIpcModeHostConfig = new HostConfig
         {
             IpcMode = "host"
@@ -629,6 +668,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(2, deployment.Spec.Template.Spec.ImagePullSecrets.Count);
             Assert.Contains(deployment.Spec.Template.Spec.ImagePullSecrets, secret => secret.Name == "user-registry1");
             Assert.Contains(deployment.Spec.Template.Spec.ImagePullSecrets, secret => secret.Name == "user-registry2");
+        }
+
+        [Fact]
+        public void FailMapWhenMountWhenMountTypeIsMissing()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var hostConfig = NoTypeVolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: hostConfig), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, Core.RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper(proxyImagePullSecretName: "user-registry2");
+
+            Assert.Throws<InvalidMountException>(() => mapper.CreateDeployment(identity, module, labels));
+        }
+
+        [Fact]
+        public void FailMapWhenMountWhenMountSourceIsMissing()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var hostConfig = NoSourceVolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: hostConfig), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, Core.RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper(proxyImagePullSecretName: "user-registry2");
+
+            Assert.Throws<InvalidMountException>(() => mapper.CreateDeployment(identity, module, labels));
+        }
+
+        [Fact]
+        public void FailMapWhenMountWhenMountTargetIsMissing()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var hostConfig = NoTargetVolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: hostConfig), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, Core.RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper(proxyImagePullSecretName: "user-registry2");
+
+            Assert.Throws<InvalidMountException>(() => mapper.CreateDeployment(identity, module, labels));
         }
 
         [Fact]
