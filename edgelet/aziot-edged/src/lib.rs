@@ -13,10 +13,6 @@
     clippy::too_many_lines,
     clippy::type_complexity,
     clippy::use_self,
-    dead_code,
-    unused_imports,
-    unused_macros,
-    unused_variables,
 )]
 
 pub mod app;
@@ -31,38 +27,31 @@ pub mod unix;
 use futures::sync::mpsc;
 use identity_client::IdentityClient;
 use std::collections::BTreeMap;
-use std::env;
-use std::fs;
-use std::fs::{DirBuilder, File, OpenOptions};
-use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::fs::DirBuilder;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use failure::{Context, Fail, ResultExt};
+use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future, Stream};
 use hyper::server::conn::Http;
-use hyper::{Body, Request, Uri};
+use hyper::{Body, Request};
 use log::{debug, error, info, Level};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sha2::{Digest, Sha256};
-use url::Url;
 
-use edgelet_core::crypto::{
-    CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, Signature,
-    AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS,
+use edgelet_core::{
+    crypto::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS},
+    settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
-    Authenticator, Certificate, CertificateIssuer, CertificateProperties, CertificateType,
-    MakeModuleRuntime, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
+    Authenticator, MakeModuleRuntime, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
     RuntimeSettings, WorkloadConfig,
 };
-use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, API_VERSION};
+use edgelet_http::{HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
@@ -119,61 +108,12 @@ const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 /// This is the edge runtime mode - it should be iotedged, when aziot-edged starts edge runtime in single node mode.
 const EDGE_RUNTIME_MODE: &str = "iotedged";
 
-/// The HSM lib expects this variable to be set with home directory of the daemon.
-const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
-
-/// The HSM lib expects these environment variables to be set if the Edge has to be operated as a gateway
-const DEVICE_CA_CERT_KEY: &str = "IOTEDGE_DEVICE_CA_CERT";
-const DEVICE_CA_PK_KEY: &str = "IOTEDGE_DEVICE_CA_PK";
-const TRUSTED_CA_CERTS_KEY: &str = "IOTEDGE_TRUSTED_CA_CERTS";
-
-/// The HSM lib expects this variable to be set to the endpoint of the external provisioning environment in the 'external'
-/// provisioning mode.
-const EXTERNAL_PROVISIONING_ENDPOINT_KEY: &str = "IOTEDGE_EXTERNAL_PROVISIONING_ENDPOINT";
-
 /// This is the key for the largest API version that this edgelet supports
 const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
-
-const IOTHUB_API_VERSION: &str = "2019-10-01";
-
-/// This is the name of the provisioning backup file
-const EDGE_PROVISIONING_BACKUP_FILENAME: &str = "provisioning_backup.json";
-
-/// This is the name of the settings backup file
-const EDGE_SETTINGS_STATE_FILENAME: &str = "settings_state";
-
-/// This is the name of the hybrid id subdirectory that will
-/// contain the hybrid key and other related files
-const EDGE_HYBRID_IDENTITY_SUBDIR: &str = "hybrid_id";
-
-/// This is the name of the hybrid X509-SAS key file
-const EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME: &str = "iotedge_hybrid_key";
-/// This is the name of the hybrid X509-SAS initialization vector
-const EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME: &str = "iotedge_hybrid_iv";
-
-/// This is the name of the external provisioning subdirectory that will
-/// contain the device's identity certificate, private key and other related files
-const EDGE_EXTERNAL_PROVISIONING_SUBDIR: &str = "external_prov";
-
-/// This is the name of the identity X509 certificate file
-const EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME: &str = "id_cert";
-/// This is the name of the identity X509 private key file
-const EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME: &str = "id_key";
 
 /// This is the name of the cache subdirectory for settings state
 const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
-/// This is the DPS registration ID env variable key
-const DPS_REGISTRATION_ID_ENV_KEY: &str = "IOTEDGE_REGISTRATION_ID";
-
-/// This is the edge device identity certificate file path env variable key.
-/// This is used for both DPS attestation and manual authentication modes.
-const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
-/// This is the edge device identity private key file path env variable key.
-/// This is used for both DPS attestation and manual authentication modes.
-const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
-
-const AZIOT_EDGED_TLS_COMMONNAME: &str = "iotedged";
 // 2 hours
 const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 // 90 days
@@ -246,6 +186,13 @@ where
                 &url,
             )));
 
+            match settings.auto_reprovisioning_mode() {
+                AutoReprovisioningMode::AlwaysOnStartup => {
+                    tokio_runtime.block_on(reprovision_device(&client))?
+                }
+                AutoReprovisioningMode::Dynamic | AutoReprovisioningMode::OnErrorOnly => {}
+            }
+
             let device_info = get_device_info(&client)
                 .map_err(|e| {
                     Error::from(
@@ -311,6 +258,10 @@ where
                         &mut tokio_runtime,
                     )?;
 
+                    if should_reprovision {
+                        tokio_runtime.block_on(reprovision_device(&client))?;
+                    }
+
                     if code != StartApiReturnStatus::Restart {
                         break;
                     }
@@ -347,6 +298,15 @@ fn get_device_info(
         })
 }
 
+fn reprovision_device(
+    identity_client: &Arc<Mutex<IdentityClient>>,
+) -> impl Future<Item = (), Error = Error> {
+    let id_mgr = identity_client.lock().unwrap();
+    id_mgr
+        .reprovision_device()
+        .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn start_api<F, W, M>(
     settings: &M::Settings,
@@ -369,7 +329,9 @@ where
 {
     let iot_hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
-    let upstream_gateway = format!(
+
+    //TODO: Use when parent_hostname is returned by IS API
+    let _upstream_gateway = format!(
         "https://{}",
         workload_config.parent_hostname().unwrap_or(&iot_hub_name)
     );
@@ -377,13 +339,6 @@ where
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (mgmt_stop_and_reprovision_tx, mgmt_stop_and_reprovision_rx) = mpsc::unbounded();
     let (work_tx, work_rx) = oneshot::channel();
-
-    let edgelet_cert_props = CertificateProperties::new(
-        AZIOT_EDGED_TLS_COMMONNAME.to_string(),
-        CertificateType::Server,
-        "iotedge-tls".to_string(),
-    )
-    .with_issuer(CertificateIssuer::DeviceCa);
 
     let mgmt = start_management::<M>(settings, runtime, mgmt_rx, mgmt_stop_and_reprovision_tx);
 
@@ -408,10 +363,13 @@ where
                 Err(((), _)) => Err(Error::from(ErrorKind::ManagementService)),
             });
 
-    let mgmt_stop_and_reprovision_signaled = if true {
-        futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
-    } else {
-        futures::future::Either::A(future::empty())
+    let mgmt_stop_and_reprovision_signaled = match settings.auto_reprovisioning_mode() {
+        AutoReprovisioningMode::Dynamic => {
+            futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
+        }
+        AutoReprovisioningMode::AlwaysOnStartup | AutoReprovisioningMode::OnErrorOnly => {
+            futures::future::Either::A(future::empty())
+        }
     };
 
     let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
@@ -589,7 +547,6 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-    let min_protocol_version = settings.listen().min_tls_version();
 
     let identity_uri = settings.endpoints().aziot_identityd_url().clone();
     let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
@@ -640,7 +597,6 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
-    let min_protocol_version = settings.listen().min_tls_version();
 
     let keyd_url = settings.endpoints().aziot_keyd_url().clone();
     let certd_url = settings.endpoints().aziot_certd_url().clone();
@@ -686,28 +642,10 @@ where
 #[cfg(test)]
 mod tests {
     use std::fmt;
-    use std::io::Read;
-    use std::path::Path;
-    use std::sync::Mutex;
 
-    use chrono::{Duration, Utc};
-    use lazy_static::lazy_static;
-    use rand::RngCore;
-    use serde_json::json;
-    use tempdir::TempDir;
+    use edgelet_docker::Settings;
 
-    use edgelet_core::{KeyBytes, ModuleRuntimeState, PrivateKey};
-    use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
-    use edgelet_test_utils::cert::TestCert;
-    use edgelet_test_utils::module::{TestModule, TestRuntime};
-
-    use super::{
-        env, signal, CertificateIssuer, CertificateProperties, CreateCertificate, Digest,
-        ErrorKind, Fail, File, Future, GetIssuerAlias, InitializeErrorReason, Main,
-        MakeModuleRuntime, RuntimeSettings, Sha256, Uri, Write,
-        EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME, EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-    };
-    use docker::models::ContainerCreateBody;
+    use super::{Fail, RuntimeSettings};
 
     static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.toml";
     static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
