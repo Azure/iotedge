@@ -225,7 +225,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
             global_endpoint: value.global_endpoint,
             scope_id: value.scope_id,
             attestation,
-            always_reprovision_on_startup: value.always_reprovision_on_startup.unwrap_or(true),
+            always_reprovision_on_startup: value.always_reprovision_on_startup.unwrap_or(false),
         })
     }
 }

@@ -39,6 +39,7 @@ zip = "0.5.3"
 
 aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
@@ -51,6 +52,7 @@ edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-utils = { path = "../edgelet-utils" }
+identity-client = { path = "../identity-client" }
 management = { path = "../management" }
 support-bundle = { path = "../support-bundle" }
 

@@ -125,9 +125,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             MetricsConfig metricsConfig = new MetricsConfig(this.configuration.GetSection("metrics:listener"));
 
             bool nestedEdgeEnabled = this.configuration.GetValue<bool>(Constants.ConfigKey.NestedEdgeEnabled, true);
+            if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
+            {
+                authenticationMode = AuthenticationMode.Scope;
+            }
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled);
-            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled);
+            bool trackDeviceState = authenticationMode == AuthenticationMode.Scope
+                && this.configuration.GetValue("TrackDeviceState", true);
+
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled, authenticationMode);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule(this.iotHubHostname));
@@ -179,7 +186,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ContainerBuilder builder,
             StoreAndForward storeAndForward,
             ExperimentalFeatures experimentalFeatures,
-            bool nestedEdgeEnabled)
+            bool nestedEdgeEnabled,
+            bool scopeAuthenticationOnly,
+            bool trackDeviceState)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -251,7 +260,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     experimentalFeatures,
                     closeCloudConnectionOnDeviceDisconnect,
                     nestedEdgeEnabled,
-                    isLegacyUpstream));
+                    isLegacyUpstream,
+                    scopeAuthenticationOnly: scopeAuthenticationOnly,
+                    trackDeviceState: trackDeviceState));
         }
 
         void RegisterCommonModule(
@@ -259,18 +270,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool optimizeForPerformance,
             StoreAndForward storeAndForward,
             MetricsConfig metricsConfig,
-            bool nestedEdgeEnabled)
+            bool nestedEdgeEnabled,
+            AuthenticationMode authenticationMode)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
             Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
             bool hasParentEdge = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
-
-            if (!Enum.TryParse(this.configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode))
-            {
-                authenticationMode = AuthenticationMode.Scope;
-            }
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
