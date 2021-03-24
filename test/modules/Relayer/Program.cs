@@ -38,13 +38,15 @@ namespace Relayer
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
+                DuplicateMessageAuditor duplicateMessageAuditor = new DuplicateMessageAuditor(Settings.Current.MessageDuplicateTolerance);
+                MessageHandlerContext messageHandlerContext = new MessageHandlerContext(moduleClient, duplicateMessageAuditor);
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 await SetIsFinishedDirectMethodAsync(moduleClient);
 
                 // Receive a message and call ProcessAndSendMessageAsync to send it on its way
-                await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, moduleClient);
+                await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, messageHandlerContext);
 
                 await cts.Token.WhenCanceled();
                 completed.Set();
@@ -69,10 +71,13 @@ namespace Relayer
             Uri testResultCoordinatorUrl = builder.Uri;
             try
             {
-                if (!(userContext is ModuleClient moduleClient))
+                if (!(userContext is MessageHandlerContext messageHandlerContext))
                 {
                     throw new InvalidOperationException("UserContext doesn't contain expected value");
                 }
+
+                ModuleClient moduleClient = messageHandlerContext.ModuleClient;
+                DuplicateMessageAuditor duplicateMessageAuditor = messageHandlerContext.DuplicateMessageAuditor;
 
                 // Must make a new message instead of reusing the old message because of the way the SDK sends messages
                 string trackingId = string.Empty;
@@ -101,6 +106,11 @@ namespace Relayer
                 if (string.IsNullOrWhiteSpace(trackingId) || string.IsNullOrWhiteSpace(batchId) || string.IsNullOrWhiteSpace(sequenceNumber))
                 {
                     Logger.LogWarning($"Received message missing info: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                    return MessageResponse.Completed;
+                }
+
+                if (duplicateMessageAuditor.ShouldFilterMessage(sequenceNumber))
+                {
                     return MessageResponse.Completed;
                 }
 
