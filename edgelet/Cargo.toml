@@ -26,6 +26,7 @@ aziot-cert-client-async = { path = "../../iot-identity-service/cert/aziot-cert-c
 aziot-cert-common = { path = "../../iot-identity-service/cert/aziot-cert-common" }
 aziot-cert-common-http = { path = "../../iot-identity-service/cert/aziot-cert-common-http" }
 aziot-certd = { path = "../../iot-identity-service/cert/aziot-certd" }
+aziot-certd-config = { path = "../../iot-identity-service/cert/aziot-certd-config" }
 
 config-common = { path = "../../iot-identity-service/config-common" }
 
@@ -37,6 +38,7 @@ aziot-hub-client-async = { path = "../../iot-identity-service/identity/aziot-hub
 aziot-identity-common = { path = "../../iot-identity-service/identity/aziot-identity-common" }
 aziot-identity-common-http = { path = "../../iot-identity-service/identity/aziot-identity-common-http" }
 aziot-identityd = { path = "../../iot-identity-service/identity/aziot-identityd" }
+aziot-identityd-config = { path = "../../iot-identity-service/identity/aziot-identityd-config" }
 
 iotedged = { path = "../../iot-identity-service/iotedged" }
 
@@ -45,6 +47,7 @@ aziot-key-client-async = { path = "../../iot-identity-service/key/aziot-key-clie
 aziot-key-common = { path = "../../iot-identity-service/key/aziot-key-common" }
 aziot-key-common-http = { path = "../../iot-identity-service/key/aziot-key-common-http" }
 aziot-keyd = { path = "../../iot-identity-service/key/aziot-keyd" }
+aziot-keyd-config = { path = "../../iot-identity-service/key/aziot-keyd-config" }
 aziot-key-openssl-engine = { path = "../../iot-identity-service/key/aziot-key-openssl-engine" }
 aziot-key-openssl-engine-shared = { path = "../../iot-identity-service/key/aziot-key-openssl-engine-shared" }
 aziot-key-openssl-engine-shared-test = { path = "../../iot-identity-service/key/aziot-key-openssl-engine-shared-test" }

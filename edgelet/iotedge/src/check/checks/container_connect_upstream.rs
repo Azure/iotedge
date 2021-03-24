@@ -96,7 +96,7 @@ impl ContainerConnectUpstream {
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
         {
-            settings.parent_hostname().map_or_else(
+            check.parent_hostname.as_ref().map_or_else(
                 || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )
@@ -105,7 +105,7 @@ impl ContainerConnectUpstream {
         };
 
         let parent_hostname: String;
-        let upstream_hostname = if let Some(upstream_hostname) = settings.parent_hostname() {
+        let upstream_hostname = if let Some(upstream_hostname) = check.parent_hostname.as_ref() {
             parent_hostname = upstream_hostname.to_string();
             &parent_hostname
         } else if let Some(iothub_hostname) = &check.iothub_hostname {
@@ -131,7 +131,7 @@ impl ContainerConnectUpstream {
             args.extend(&["--network", network_name]);
         }
 
-        if settings.parent_hostname().is_some() {
+        if check.parent_hostname.is_some() {
             args.extend(&["-v", &map_volume]);
         }
 
@@ -147,7 +147,7 @@ impl ContainerConnectUpstream {
             &port,
         ]);
 
-        if settings.parent_hostname().is_some() {
+        if check.parent_hostname.is_some() {
             args.extend(&["--isNested", "true"]);
             args.extend(&["--workload_uri", &workload_uri]);
         }
