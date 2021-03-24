@@ -237,25 +237,20 @@ where
         .then(move |identity| -> Result<_, Error> {
             let identity = identity.with_context(|_| ErrorKind::ModuleRuntime)?;
 
-            let (module, genid, auth) = match identity {
-                AziotIdentity::Aziot(spec) => (
-                    spec.module_id
-                        .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
-                    spec.gen_id
-                        .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
-                    spec.auth
-                        .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
-                ),
+            let genid = match identity {
+                AziotIdentity::Aziot(spec) => spec
+                    .gen_id
+                    .ok_or_else(|| Error::from(ErrorKind::ModuleRuntime))?,
                 AziotIdentity::Local(_) => {
                     return Err(Error::from(ErrorKind::Initialize(
                         InitializeErrorReason::InvalidIdentityType,
                     )))
                 }
             };
-            Ok((module, genid, auth))
+            Ok(genid)
         })
         .into_future()
-        .and_then(move |(module_id, generation_id, auth)| {
+        .and_then(move |generation_id| {
             let mut env = spec.env().clone();
             env.insert(MODULE_GENERATIONID.to_string(), generation_id.0);
             let spec = spec.with_env(env);
@@ -266,7 +261,7 @@ where
                     runtime
                         .registry()
                         .pull(spec.config())
-                        .map_err(|e| Error::from(ErrorKind::ModuleRuntime)),
+                        .map_err(|_| Error::from(ErrorKind::ModuleRuntime)),
                 ),
             };
 
