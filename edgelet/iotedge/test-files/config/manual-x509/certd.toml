@@ -4,7 +4,7 @@
 homedir_path = "/var/lib/aziot/certd"
 [cert_issuance.aziot-edged-ca]
 method = "self_signed"
-common_name = "iotedged workload ca"
+common_name = "iotedged workload ca my-device"
 expiry_days = 90
 
 [preloaded_certs]
