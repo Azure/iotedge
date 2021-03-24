@@ -343,7 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     {
                         if (mount.Type is null || mount.Source is null || mount.Target is null)
                         {
-                            throw new InvalidMountException($"Type, Source, and Target required for all mounts ({mount.Type}, {mount.Source}, {mount.Target})");
+                            throw new InvalidMountException($"Type, Source, and Target required for all mounts [{identity.ModuleId}:{mount.Type}, {mount.Source}, {mount.Target}]");
                         }
                     }
                 });
