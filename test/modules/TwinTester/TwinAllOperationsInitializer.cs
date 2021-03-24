@@ -121,7 +121,7 @@ namespace TwinTester
                     cts.CancelAfter(stateUpdateTimeout);
                     await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, cts.Token);
                 }
-                catch (Exception e) when (e is IotHubCommunicationException || e is OperationCanceledException)
+                catch (Exception e) when (e is IotHubCommunicationException || e is OperationCanceledException || e.InnerException is TaskCanceledException)
                 {
                     this.twinTestState.LastNetworkOffline = DateTime.UtcNow;
                 }
