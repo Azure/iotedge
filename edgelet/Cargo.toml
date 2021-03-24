@@ -15,3 +15,54 @@ members = [
     "management",
     "systemd",
 ]
+
+[patch."https://github.com/Azure/iot-identity-service"]
+aziotctl = { path = "../../iot-identity-service/aziotctl" }
+aziotctl-common = { path = "../../iot-identity-service/aziotctl/aziotctl-common" }
+
+aziotd = { path = "../../iot-identity-service/aziotd" }
+
+aziot-cert-client-async = { path = "../../iot-identity-service/cert/aziot-cert-client-async" }
+aziot-cert-common = { path = "../../iot-identity-service/cert/aziot-cert-common" }
+aziot-cert-common-http = { path = "../../iot-identity-service/cert/aziot-cert-common-http" }
+aziot-certd = { path = "../../iot-identity-service/cert/aziot-certd" }
+
+config-common = { path = "../../iot-identity-service/config-common" }
+
+http-common = { path = "../../iot-identity-service/http-common" }
+
+aziot-cloud-client-async-common = { path = "../../iot-identity-service/identity/aziot-cloud-client-async-common" }
+aziot-dps-client-async = { path = "../../iot-identity-service/identity/aziot-dps-client-async" }
+aziot-hub-client-async = { path = "../../iot-identity-service/identity/aziot-hub-client-async" }
+aziot-identity-common = { path = "../../iot-identity-service/identity/aziot-identity-common" }
+aziot-identity-common-http = { path = "../../iot-identity-service/identity/aziot-identity-common-http" }
+aziot-identityd = { path = "../../iot-identity-service/identity/aziot-identityd" }
+
+iotedged = { path = "../../iot-identity-service/iotedged" }
+
+aziot-key-client = { path = "../../iot-identity-service/key/aziot-key-client" }
+aziot-key-client-async = { path = "../../iot-identity-service/key/aziot-key-client-async" }
+aziot-key-common = { path = "../../iot-identity-service/key/aziot-key-common" }
+aziot-key-common-http = { path = "../../iot-identity-service/key/aziot-key-common-http" }
+aziot-keyd = { path = "../../iot-identity-service/key/aziot-keyd" }
+aziot-key-openssl-engine = { path = "../../iot-identity-service/key/aziot-key-openssl-engine" }
+aziot-key-openssl-engine-shared = { path = "../../iot-identity-service/key/aziot-key-openssl-engine-shared" }
+aziot-key-openssl-engine-shared-test = { path = "../../iot-identity-service/key/aziot-key-openssl-engine-shared-test" }
+aziot-keys = { path = "../../iot-identity-service/key/aziot-keys" }
+aziot-keys-common = { path = "../../iot-identity-service/key/aziot-keys-common" }
+
+mini-sntp = { path = "../../iot-identity-service/mini-sntp" }
+
+openssl2 = { path = "../../iot-identity-service/openssl2" }
+openssl-build = { path = "../../iot-identity-service/openssl-build" }
+openssl-sys2 = { path = "../../iot-identity-service/openssl-sys2" }
+
+pkcs11 = { path = "../../iot-identity-service/pkcs11/pkcs11" }
+pkcs11-sys = { path = "../../iot-identity-service/pkcs11/pkcs11-sys" }
+
+aziot-tpm-client-async = { path = "../../iot-identity-service/tpm/aziot-tpm-client-async" }
+aziot-tpm-common-http = { path = "../../iot-identity-service/tpm/aziot-tpm-common-http" }
+aziot-tpm-common = { path = "../../iot-identity-service/tpm/aziot-tpm-common" }
+aziot-tpm = { path = "../../iot-identity-service/tpm/aziot-tpm-rs" }
+aziot-tpm-sys = { path = "../../iot-identity-service/tpm/aziot-tpm-sys" }
+aziot-tpmd = { path = "../../iot-identity-service/tpm/aziot-tpmd" }

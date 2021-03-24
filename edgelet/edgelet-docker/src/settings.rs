@@ -113,10 +113,6 @@ impl RuntimeSettings for Settings {
         self.base.hostname()
     }
 
-    fn parent_hostname(&self) -> Option<&str> {
-        self.base.parent_hostname()
-    }
-
     fn connect(&self) -> &Connect {
         self.base.connect()
     }
@@ -168,28 +164,33 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 
     // In nested scenario, Agent image can be pulled from its parent.
     // It is possible to specify the parent address using the keyword $upstream
-    agent_image_resolve(settings)?;
+    // agent_image_resolve(settings)?;
 
     Ok(())
 }
 
-fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
-    let image = settings.agent().config().image().to_string();
+// TODO: wiring this up will be tricky, since Settings is loaded before the
+// parent_hostname is fetched from aziot...
+//
+// temporarily commenting this out to make forwards progress.
 
-    if let Some(parent_hostname) = settings.parent_hostname() {
-        if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
-            let image_nested = format!(
-                "{}{}",
-                parent_hostname,
-                &image[UPSTREAM_PARENT_KEYWORD.len()..]
-            );
-            let config = settings.agent().config().clone().with_image(image_nested);
-            settings.agent_mut().set_config(config);
-        }
-    }
+// fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
+//     let image = settings.agent().config().image().to_string();
 
-    Ok(())
-}
+//     if let Some(parent_hostname) = settings.parent_hostname() {
+//         if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
+//             let image_nested = format!(
+//                 "{}{}",
+//                 parent_hostname,
+//                 &image[UPSTREAM_PARENT_KEYWORD.len()..]
+//             );
+//             let config = settings.agent().config().clone().with_image(image_nested);
+//             settings.agent_mut().set_config(config);
+//         }
+//     }
+
+//     Ok(())
+// }
 
 fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let create_options = settings.agent().config().clone_create_options()?;
