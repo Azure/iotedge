@@ -66,9 +66,11 @@ namespace TestResultCoordinator.Reports
         {
             Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.ExpectedSource}] and [{this.ActualSource}]");
 
+            var lastLoadedExpectedResult = default(TestOperationResult);
             var lastLoadedActualResult = default(TestOperationResult);
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
+            ulong totalDuplicateExpectedResultCount = 0;
             ulong totalDuplicateActualResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
 
@@ -79,6 +81,16 @@ namespace TestResultCoordinator.Reports
             {
                 this.ValidateResult(this.ExpectedTestResults.Current, this.ExpectedSource);
                 this.ValidateResult(this.ActualTestResults.Current, this.ActualSource);
+
+                // If we encounter a duplicate expected result, we have already
+                // accounted for corresponding actual results in prev iteration
+                if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
+                {
+                    totalDuplicateExpectedResultCount++;
+                    continue;
+                }
+
+                lastLoadedExpectedResult = this.ExpectedTestResults.Current;
 
                 // Skip any duplicate actual value
                 while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
@@ -138,6 +150,7 @@ namespace TestResultCoordinator.Reports
                 this.ResultType,
                 totalExpectCount,
                 totalMatchCount,
+                totalDuplicateExpectedResultCount,
                 totalDuplicateActualResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly());
         }

@@ -18,6 +18,7 @@ namespace TestResultCoordinator.Reports
             string resultType,
             ulong totalExpectCount,
             ulong totalMatchCount,
+            ulong totalDuplicateExpectedResultCount,
             ulong totalDuplicateActualResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults)
             : base(testDescription, trackingId, resultType)
@@ -26,6 +27,7 @@ namespace TestResultCoordinator.Reports
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
+            this.TotalDuplicateExpectedResultCount = totalDuplicateExpectedResultCount;
             this.TotalDuplicateActualResultCount = totalDuplicateActualResultCount;
             this.UnmatchedResults = unmatchedResults ?? new List<TestOperationResult>();
         }
@@ -38,11 +40,13 @@ namespace TestResultCoordinator.Reports
 
         public ulong TotalMatchCount { get; }
 
+        public ulong TotalDuplicateExpectedResultCount { get; }
+
         public ulong TotalDuplicateActualResultCount { get; }
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
-        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0;
+        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0;
 
         public override string Title => $"Counting Report between [{this.ExpectedSource}] and [{this.ActualSource}] ({this.ResultType})";
     }
