@@ -34,7 +34,7 @@ pub use self::server::ServerCertHandler;
 const AZIOT_EDGE_CA_CERT_MIN_DURATION_SECS: i64 = 5 * 60;
 
 // Workload CA CN
-const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
+const IOTEDGED_COMMONNAME_PREFIX: &str = "iotedged workload ca";
 
 #[derive(Clone)]
 pub(crate) struct EdgeCaCertificate {
@@ -339,7 +339,7 @@ fn create_edge_ca_certificate(
     context: ErrorKind,
 ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
     let edgelet_ca_props = CertificateProperties::new(
-        IOTEDGED_COMMONNAME.to_string(),
+        IOTEDGED_COMMONNAME_PREFIX.to_string(),
         CertificateType::Ca,
         ca.cert_id.to_string(),
     );
