@@ -61,6 +61,8 @@ To reconfigure IoT Edge, run:
             preloaded_certs: Default::default(),
 
             endpoints: Default::default(),
+
+            local_gateway_hostname: Default::default(),
         },
 
         agent: super_config::default_agent(),
