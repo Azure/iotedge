@@ -78,7 +78,6 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Insta
 //         .build()
 // }
 
-
 pub fn init_stdout_metrics_exporter() -> metrics::Result<PushController> {
     opentelemetry::sdk::export::metrics::stdout(tokio::spawn, delayed_interval)
         .with_pretty_print(true)
