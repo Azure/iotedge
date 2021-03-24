@@ -42,10 +42,7 @@ steps:
       $filter += '&Category!=NestedEdgeOnly' 
     } 
 
-    #sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter 
-
-    # BEARWASHERE -- DEBUG ONLY
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:'FullyQualifiedName~TransparentGateway|FullyQualifiedName~GrandparentScopeDevice'
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter 
 
   displayName: Run tests ${{ parameters.test_type }}
   continueOnError: true
