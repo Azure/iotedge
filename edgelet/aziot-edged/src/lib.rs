@@ -490,10 +490,12 @@ where
         settings.hostname().to_string().to_lowercase(),
     );
 
-    env.insert(
-        GATEWAY_HOSTNAME_KEY.to_string(),
-        parent_hostname.to_string(),
-    );
+    if parent_hostname != hostname {
+        env.insert(
+            GATEWAY_HOSTNAME_KEY.to_string(),
+            parent_hostname.to_string(),
+        );
+    }
 
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
