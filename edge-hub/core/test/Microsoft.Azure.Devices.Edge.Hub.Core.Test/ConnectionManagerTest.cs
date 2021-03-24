@@ -910,6 +910,73 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
         [Fact]
         [Unit]
+        public async Task SubscriptionChangeTest()
+        {
+            // Arrange
+            string deviceId = "d1";
+            var cloudConnectionProvider = Mock.Of<ICloudConnectionProvider>();
+            var credentialsCache = Mock.Of<ICredentialsCache>();
+            var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
+
+            var connectionManager = new ConnectionManager(cloudConnectionProvider, credentialsCache, GetIdentityProvider(), deviceConnectivityManager);
+            var identity = Mock.Of<IIdentity>(i => i.Id == deviceId);
+
+            // Act
+            await connectionManager.AddDeviceConnection(identity, Mock.Of<IDeviceProxy>(d => d.IsActive));
+            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            IReadOnlyDictionary<DeviceSubscription, bool> subscriptions = subscriptionsOption.OrDefault();
+            Assert.Empty(subscriptions);
+
+            // Act (starting from empty subscription data)
+            var addMethodChange = connectionManager.AddSubscription(deviceId, DeviceSubscription.Methods);
+            var removeC2DChange = connectionManager.RemoveSubscription(deviceId, DeviceSubscription.C2D);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(2, subscriptions.Count);
+            Assert.True(subscriptions[DeviceSubscription.Methods]);
+            Assert.False(subscriptions[DeviceSubscription.C2D]);
+            Assert.True(addMethodChange);
+            Assert.False(removeC2DChange);
+
+            // Act (flipping values)
+            var removeMethodChange = connectionManager.RemoveSubscription(deviceId, DeviceSubscription.Methods);
+            var addC2DChange = connectionManager.AddSubscription(deviceId, DeviceSubscription.C2D);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(2, subscriptions.Count);
+            Assert.False(subscriptions[DeviceSubscription.Methods]);
+            Assert.True(subscriptions[DeviceSubscription.C2D]);
+            Assert.True(removeMethodChange);
+            Assert.True(addC2DChange);
+
+            // Act (not changing)
+            addMethodChange = connectionManager.AddSubscription(deviceId, DeviceSubscription.Methods);
+            var removeFirstC2DChange = connectionManager.RemoveSubscription(deviceId, DeviceSubscription.C2D);
+            var removeSecondC2DChange = connectionManager.RemoveSubscription(deviceId, DeviceSubscription.C2D);
+            subscriptionsOption = connectionManager.GetSubscriptions(deviceId);
+
+            // Assert
+            Assert.True(subscriptionsOption.HasValue);
+            subscriptions = subscriptionsOption.OrDefault();
+            Assert.Equal(2, subscriptions.Count);
+            Assert.True(subscriptions[DeviceSubscription.Methods]);
+            Assert.False(subscriptions[DeviceSubscription.C2D]);
+            Assert.True(addMethodChange);
+            Assert.True(removeFirstC2DChange);
+            Assert.False(removeSecondC2DChange);
+        }
+
+        [Fact]
+        [Unit]
         public async Task KeepSubscriptionsOnDeviceRemoveTest()
         {
             // Arrange
