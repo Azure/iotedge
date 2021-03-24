@@ -62,7 +62,7 @@ impl System {
     }
 
     pub fn system_stop() -> Result<(), Error> {
-        restart(&SERVICE_DEFINITIONS).map_err(|err| {
+        stop(&SERVICE_DEFINITIONS).map_err(|err| {
             eprintln!("{:#?}", err);
             Error::from(ErrorKind::System)
         })
