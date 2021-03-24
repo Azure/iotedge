@@ -18,7 +18,7 @@ namespace TestResultCoordinator.Reports
             string resultType,
             ulong totalExpectCount,
             ulong totalMatchCount,
-            ulong totalDuplicateResultCount,
+            ulong totalDuplicateActualResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults)
             : base(testDescription, trackingId, resultType)
         {
@@ -26,7 +26,7 @@ namespace TestResultCoordinator.Reports
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
-            this.TotalDuplicateResultCount = totalDuplicateResultCount;
+            this.TotalDuplicateActualResultCount = totalDuplicateActualResultCount;
             this.UnmatchedResults = unmatchedResults ?? new List<TestOperationResult>();
         }
 
@@ -38,7 +38,7 @@ namespace TestResultCoordinator.Reports
 
         public ulong TotalMatchCount { get; }
 
-        public ulong TotalDuplicateResultCount { get; }
+        public ulong TotalDuplicateActualResultCount { get; }
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 

@@ -66,10 +66,10 @@ namespace TestResultCoordinator.Reports
         {
             Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.ExpectedSource}] and [{this.ActualSource}]");
 
-            var lastLoadedResult = default(TestOperationResult);
+            var lastLoadedActualResult = default(TestOperationResult);
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
-            ulong totalDuplicateResultCount = 0;
+            ulong totalDuplicateActualResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
 
             bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
@@ -81,10 +81,10 @@ namespace TestResultCoordinator.Reports
                 this.ValidateResult(this.ActualTestResults.Current, this.ActualSource);
 
                 // Skip any duplicate actual value
-                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
+                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
                 {
-                    totalDuplicateResultCount++;
-                    lastLoadedResult = this.ActualTestResults.Current;
+                    totalDuplicateActualResultCount++;
+                    lastLoadedActualResult = this.ActualTestResults.Current;
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 }
 
@@ -92,7 +92,7 @@ namespace TestResultCoordinator.Reports
 
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
-                    lastLoadedResult = this.ActualTestResults.Current;
+                    lastLoadedActualResult = this.ActualTestResults.Current;
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                     totalMatchCount++;
@@ -105,10 +105,10 @@ namespace TestResultCoordinator.Reports
             }
 
             // Check duplicates at the end of actual results
-            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
+            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
             {
-                totalDuplicateResultCount++;
-                lastLoadedResult = this.ActualTestResults.Current;
+                totalDuplicateActualResultCount++;
+                lastLoadedActualResult = this.ActualTestResults.Current;
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
@@ -138,7 +138,7 @@ namespace TestResultCoordinator.Reports
                 this.ResultType,
                 totalExpectCount,
                 totalMatchCount,
-                totalDuplicateResultCount,
+                totalDuplicateActualResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly());
         }
 
