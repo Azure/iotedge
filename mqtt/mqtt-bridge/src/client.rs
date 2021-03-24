@@ -457,8 +457,8 @@ mod tests {
         let repeat: usize = (u16::MAX).into();
         let connection_credentials = Credentials::PlainText(AuthenticationSettings::new(
             "c".repeat(repeat + 1),
-            "username".into(),
-            "pass".into(),
+            "username",
+            "pass",
             None,
         ));
 
@@ -482,9 +482,9 @@ mod tests {
         let clean_session = false;
         let repeat: usize = (u16::MAX).into();
         let connection_credentials = Credentials::PlainText(AuthenticationSettings::new(
-            "user".into(),
+            "user",
             "u".repeat(repeat + 1),
-            "pass".into(),
+            "pass",
             None,
         ));
 

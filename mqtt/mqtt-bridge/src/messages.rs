@@ -29,7 +29,7 @@ use crate::{
     settings::TopicRule,
 };
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
     topic_filter: TopicFilter,
@@ -215,7 +215,9 @@ mod tests {
     use std::{
         collections::HashMap,
         num::{NonZeroU64, NonZeroUsize},
+        path::PathBuf,
         str::FromStr,
+        time::Duration,
     };
 
     use bytes::Bytes;
@@ -229,6 +231,7 @@ mod tests {
         Event, ReceivedPublication, SubscriptionUpdateEvent,
     };
     use mqtt_broker::TopicFilter;
+    use mqtt_util::{AuthenticationSettings, CredentialProviderSettings, Credentials};
     use test_case::test_case;
 
     use crate::{
@@ -237,7 +240,10 @@ mod tests {
             FlushOptions, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore,
         },
         pump::TopicMapperUpdates,
-        settings::{BridgeSettings, MemorySettings, RingBufferSettings},
+        settings::{
+            BridgeSettings, ConnectionSettings, Direction, MemorySettings, RingBufferSettings,
+            StorageSettings, TopicRule,
+        },
     };
 
     use super::{StoreMqttEventHandler, TopicMapper};
@@ -282,7 +288,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics: HashMap<String, TopicMapper> = connection_settings
@@ -321,7 +327,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics: HashMap<String, TopicMapper> = connection_settings
@@ -395,7 +401,7 @@ mod tests {
     ) where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -454,7 +460,7 @@ mod tests {
     ) where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -513,7 +519,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -571,7 +577,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -630,7 +636,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -683,7 +689,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -729,7 +735,7 @@ mod tests {
     ) where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -782,5 +788,52 @@ mod tests {
         if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
             panic!("Should not reach here");
         }
+    }
+
+    fn test_bridge_settings() -> BridgeSettings {
+        BridgeSettings::new(
+            Some(ConnectionSettings::new(
+                "$upstream",
+                "edge1:8883",
+                Credentials::Provider(CredentialProviderSettings::new(
+                    "my_iothub",
+                    "edge1",
+                    "device1",
+                    "m1",
+                    "123",
+                    "workload",
+                )),
+                vec![
+                    Direction::Both(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Out(TopicRule::new(
+                        "floor/#",
+                        Some("local".into()),
+                        Some("remote".into()),
+                    )),
+                    Direction::Out(TopicRule::new("pattern/#", None, None)),
+                    Direction::Out(TopicRule::new("floor2/#", Some("".into()), Some("".into()))),
+                ],
+                Duration::from_secs(60),
+                false,
+            )),
+            vec![ConnectionSettings::new(
+                "r1",
+                "remote:8883",
+                Credentials::PlainText(AuthenticationSettings::new(
+                    "client", "mymodule", "pass", None,
+                )),
+                vec![
+                    Direction::In(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Out(TopicRule::new("some", None, Some("remote".into()))),
+                ],
+                Duration::from_secs(60),
+                false,
+            )],
+            StorageSettings::RingBuffer(RingBufferSettings::new(
+                NonZeroU64::new(33_554_432).expect("33554432"), //32mb
+                PathBuf::from("/tmp_file/mqttd/"),
+                FlushOptions::AfterEachWrite,
+            )),
+        )
     }
 }
