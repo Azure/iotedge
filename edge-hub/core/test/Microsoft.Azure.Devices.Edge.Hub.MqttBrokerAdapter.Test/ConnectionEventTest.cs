@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -121,6 +122,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             }
         }
 
+        [Fact]
+        public async Task WhenNoConnectionMessagesDontGetDropped()
+        {
+            // The motivation of this test was a bug, when throwing a bad exception type caused edgeHub to drop messages
+            // while edgeHubCore was disconnected from the MQTT broker. This test ensures that the message drop was
+            // due to the wrong exception type, and now that it is fixed, no message drop occures.
+            var (subscriptionChangeHandler, cloudProxyDispatcher, brokerConnector) = await SetupEnvironment();
+            var milestone = new SemaphoreSlim(0, 1);
+            var shouldReceiveNow = false;
+            var deviceId = "device_1";
+            var messageContent = "test message";
+
+            var edgeHub = cloudProxyDispatcher.AsPrivateAccessible().edgeHub as IEdgeHub;
+            brokerConnector.SetPacketSpy(Spy);
+
+            var identity = new DeviceIdentity(iotHubName, deviceId);
+            await edgeHub.ProcessDeviceMessage(identity, new EdgeMessage(Encoding.UTF8.GetBytes(messageContent), new Dictionary<string, string>(), new Dictionary<string, string>() { [Core.SystemProperties.ConnectionDeviceId] = deviceId } ));
+
+            // the bridge-connector keeps trying for 5 seconds, so let's wait a safe 10 seconds to be sure that the first attempt to send a message fails
+            await Task.Delay(TimeSpan.FromSeconds(10));
+
+            shouldReceiveNow = true;
+            await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
+
+            // the retry-config is to retry every 5 sec, so 10 should be enough
+            Assert.True(await milestone.WaitAsync(TimeSpan.FromSeconds(10)));
+
+            void Spy(RpcPacket packet)
+            {
+                Assert.True(shouldReceiveNow);
+                Assert.Equal("pub", packet.Cmd);
+                Assert.Equal(messageContent, Encoding.UTF8.GetString(packet.Payload));
+
+                milestone.Release();
+            }
+        }
+
         async Task SetupSpyAndGenerateEvents(Action<RpcPacket> spy, IMessageConsumer cloudProxyDispatcher, NullBrokerConnector brokerConnector)
         {
             await cloudProxyDispatcher.HandleAsync(new MqttPublishInfo("$internal/connectivity", Encoding.UTF8.GetBytes("{\"status\":\"Connected\"}")));
@@ -198,13 +236,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             Routing.PerfCounter = NullRoutingPerfCounter.Instance;
             Routing.UserAnalyticsLogger = NullUserAnalyticsLogger.Instance;
 
-            var defaultRetryStrategy = new FixedInterval(0, TimeSpan.FromSeconds(1));
+            var defaultRetryStrategy = new FixedInterval(5, TimeSpan.FromSeconds(5));
             var defaultRevivePeriod = TimeSpan.FromHours(1);
             var defaultTimeout = TimeSpan.FromSeconds(60);
             var endpointExecutorConfig = new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
 
             var cloudProxyDispatcher = new BrokeredCloudProxyDispatcher();
-            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher);
+            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher, new NullDeviceScopeIdentitiesCache());
 
             var identityProvider = new IdentityProvider(iotHubName);
             var deviceConnectivityManager = new BrokeredDeviceConnectivityManager(cloudProxyDispatcher);
@@ -212,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
 
             var routingMessageConverter = new RoutingMessageConverter();
-            var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10));
+            var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10, true));
             var routesList = new[] { routeFactory.Create("FROM /messages INTO $upstream") };
             var endpoints = routesList.Select(r => r.Endpoint);
             var routerConfig = new RouterConfig(endpoints, routesList);
