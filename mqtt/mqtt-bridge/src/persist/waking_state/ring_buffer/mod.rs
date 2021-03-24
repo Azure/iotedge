@@ -200,21 +200,15 @@ impl StreamWakeableState for RingBuffer {
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
         let total_size = block_size + data_size;
-        // Check to see if we might corrupt data if we write, if so, return err of full.
-        // There are two cases for this:
-        // 1. write has wrapped around and is now behind read
-        if write_index < read_index && write_index + total_size > read_index {
+
+        // Check that we have enough space to insert data.
+        // If we have set can_read_from_wrap_around_when_write_full
+        // then we must also be full.
+        let free_space = (read_index + self.max_file_size - write_index) % self.max_file_size;
+        if self.metadata.can_read_from_wrap_around_when_write_full {
             return Err(PersistError::RingBuffer(RingBufferError::Full));
         }
-        // 2. write has reached the end (or close enough) but read has not moved
-        if read_index == 0 && write_index + total_size > self.max_file_size {
-            return Err(PersistError::RingBuffer(RingBufferError::Full));
-        }
-        // 3. check if write would wrap around end and corrupt
-        if write_index > read_index
-            && write_index + total_size > self.max_file_size
-            && (write_index + total_size) % self.max_file_size > read_index
-        {
+        if read_index != write_index && free_space < total_size {
             return Err(PersistError::RingBuffer(RingBufferError::Full));
         }
 

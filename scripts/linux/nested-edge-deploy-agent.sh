@@ -102,7 +102,7 @@ EOF
     echo "homedir = \"/var/lib/aziot/identityd\"" | sudo tee -a  /etc/aziot/identityd/config.toml
     echo "" | sudo tee -a  /etc/aziot/identityd/config.toml
     echo "[provisioning]" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "dynamic_reprovisioning = true" | sudo tee -a  /etc/aziot/identityd/config.toml
+    echo "dynamic_reprovisioning = false" | sudo tee -a  /etc/aziot/identityd/config.toml
     echo "source = \"manual\"" | sudo tee -a  /etc/aziot/identityd/config.toml
     if [ ! -z $PARENT_NAME ]; then
         echo "iothub_hostname = \"$PARENT_NAME\"" | sudo tee -a  /etc/aziot/identityd/config.toml
