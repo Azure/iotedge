@@ -273,10 +273,7 @@ where
                 info!("broker received a PublishTo, ignoring");
                 self.instruments.client_msgs_sent_counter.add(
                     1,
-                    &[KeyValue::new(
-                        "client_id",
-                        client_id.as_str().to_owned(),
-                    )],
+                    &[KeyValue::new("client_id", client_id.as_str().to_owned())],
                 );
                 Ok(())
             }
