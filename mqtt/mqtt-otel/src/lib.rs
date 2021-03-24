@@ -64,29 +64,23 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Insta
     tokio::time::interval(duration).skip(1)
 }
 
-pub fn init_otlp_metrics_exporter() -> metrics::Result<PushController> {
-    // TODO 1: Uncomment and use once we move broker to tokio v1
-    // opentelemetry_otlp metrics exporter only available starting in opentelemetry v0.12.0,
-    // which depends on tokio 1.0
-    // let export_config = ExporterConfig {
-    //     endpoint: "http://localhost:4317".to_string(),
-    //     ..ExporterConfig::default()
-    // };
-    // opentelemetry_otlp::new_metrics_pipeline(tokio::spawn, delayed_interval)
-    //     .with_export_config(export_config)
-    //     .with_aggregator_selector(selectors::simple::Selector::Exact)
-    //     .build()
-    // end TODO 2
+// TODO: Uncomment and use once we move broker to tokio v1
+// pub fn init_otlp_metrics_exporter() -> metrics::Result<PushController> {
+//     opentelemetry_otlp metrics exporter only available starting in opentelemetry v0.12.0,
+//     which depends on tokio 1.0
+//     let export_config = ExporterConfig {
+//         endpoint: "http://localhost:4317".to_string(),
+//         ..ExporterConfig::default()
+//     };
+//     opentelemetry_otlp::new_metrics_pipeline(tokio::spawn, delayed_interval)
+//         .with_export_config(export_config)
+//         .with_aggregator_selector(selectors::simple::Selector::Exact)
+//         .build()
+// }
 
-    // TODO 2: Remove after moving to tokio v1, replacing with above TODO section
+
+pub fn init_stdout_metrics_exporter() -> metrics::Result<PushController> {
     opentelemetry::sdk::export::metrics::stdout(tokio::spawn, delayed_interval)
-        .with_quantiles(vec![0.5, 0.9, 0.99])
-        .with_formatter(|batch| {
-            serde_json::to_value(batch)
-                .map(|value| value.to_string())
-                .map_err(|err| MetricsError::Other(err.to_string()))
-        })
+        .with_pretty_print(true)
         .try_init()
-    // end TODO 2
 }
-// end TODO 1

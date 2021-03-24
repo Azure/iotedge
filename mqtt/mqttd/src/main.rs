@@ -12,9 +12,7 @@ use mqtt_otel;
 async fn main() -> Result<()> {
     tracing::init();
 
-    mqtt_otel::init_otlp_metrics_exporter()?;
-    let prom_exporter = mqtt_otel::init_prometheus_metrics_exporter()?;
-    let prom_server_fut = mqtt_otel::create_prometheus_server(&prom_exporter);
+    let _started = mqtt_otel::init_stdout_metrics_exporter()?;
 
     let config_path = create_app()
         .get_matches()
@@ -26,12 +24,8 @@ async fn main() -> Result<()> {
         app.setup(config_path)?;
     }
 
-    let app_fut = app.run();
-
-    tokio::select! {
-        _ = prom_server_fut => Ok(()),
-        _ = app_fut => Ok(())
-    }
+    app.run().await?;
+    Ok(())
 }
 
 fn create_app() -> App<'static, 'static> {
