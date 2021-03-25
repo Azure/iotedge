@@ -79,6 +79,60 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         };
 
+        static readonly HostConfig DuplicateVolumesHostConfig = new HostConfig
+        {
+            Binds = new List<string>
+            {
+                "/home/bind:/home/bind1",
+                "/home/bind:/home/bind2:ro"
+            },
+            Mounts = new List<Mount>
+            {
+                new Mount
+                {
+                    Type = "volume",
+                    ReadOnly = true,
+                    Source = "a-volume",
+                    Target = "/tmp/volume1"
+                },
+                new Mount
+                {
+                    Type = "volume",
+                    ReadOnly = false,
+                    Source = "a-volume",
+                    Target = "/tmp/volume2"
+                },
+                new Mount
+                {
+                    Type = "volume",
+                    ReadOnly = true,
+                    Source = "b-volume",
+                    Target = "/tmp/volume3"
+                },
+                new Mount
+                {
+                    Type = "volume",
+                    ReadOnly = true,
+                    Source = "b-volume",
+                    Target = "/tmp/volume4"
+                },
+                new Mount
+                {
+                    Type = "Bind",
+                    ReadOnly = true,
+                    Source = "/home/data/test",
+                    Target = "/home/test1"
+                },
+                new Mount
+                {
+                    Type = "Bind",
+                    ReadOnly = false,
+                    Source = "/home/data/test",
+                    Target = "/home/test2"
+                },
+            }
+        };
+
         static readonly HostConfig HostIpcModeHostConfig = new HostConfig
         {
             IpcMode = "host"
@@ -266,6 +320,66 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var podVolumeMount = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Single(vm => vm.Name == "a-volume");
             Assert.Equal("/tmp/volume", podVolumeMount.MountPath);
             Assert.True(podVolumeMount.ReadOnlyProperty);
+        }
+
+        [Fact]
+        public void VolumeMountEliminateDuplicates()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var labels = new Dictionary<string, string>();
+            var hostConfig = DuplicateVolumesHostConfig;
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var mapper = CreateMapper(true, null);
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            var pod = deployment.Spec.Template;
+
+            Assert.True(pod != null);
+            // There are 2 Mounts from same Volume source,
+            // translates to 1 Volume and 2 VolumeMounts
+            var volASourceVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
+            Assert.NotNull(volASourceVolume.PersistentVolumeClaim);
+            Assert.Equal("a-volume", volASourceVolume.PersistentVolumeClaim.ClaimName);
+            Assert.False(volASourceVolume.PersistentVolumeClaim.ReadOnlyProperty);
+            var volASourceVolumeMounts = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Where(vm => vm.Name == "a-volume");
+            var volASourceVM1 = volASourceVolumeMounts.Single(vm => vm.MountPath == "/tmp/volume1");
+            var volASourceVM2 = volASourceVolumeMounts.Single(vm => vm.MountPath == "/tmp/volume2");
+            Assert.True(volASourceVM1.ReadOnlyProperty);
+            Assert.False(volASourceVM2.ReadOnlyProperty);
+            // There are 2 Mounts from same Volume source,
+            // translates to 1 Volume and 2 VolumeMounts
+            var volBSourceVolume = pod.Spec.Volumes.Single(v => v.Name == "b-volume");
+            Assert.NotNull(volBSourceVolume.PersistentVolumeClaim);
+            Assert.Equal("b-volume", volBSourceVolume.PersistentVolumeClaim.ClaimName);
+            Assert.True(volBSourceVolume.PersistentVolumeClaim.ReadOnlyProperty);
+            var volBSourceVolumeMounts = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Where(vm => vm.Name == "b-volume");
+            var volBSourceVM1 = volBSourceVolumeMounts.Single(vm => vm.MountPath == "/tmp/volume3");
+            var volBSourceVM2 = volBSourceVolumeMounts.Single(vm => vm.MountPath == "/tmp/volume4");
+            Assert.True(volBSourceVM1.ReadOnlyProperty);
+            Assert.True(volBSourceVM2.ReadOnlyProperty);
+            // There are 2 Bind Mounts from same Bind Mount source,
+            // translates to 1 Volume and 2 VolumeMounts
+            var bindMountVolume = pod.Spec.Volumes.Single(v => v.Name == "homedatatest");
+            Assert.NotNull(bindMountVolume.HostPath);
+            Assert.Equal("/home/data/test", bindMountVolume.HostPath.Path);
+            var bindMountVolumeMounts = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Where(vm => vm.Name == "homedatatest");
+            var bindMountVM1 = bindMountVolumeMounts.Single(vm => vm.MountPath == "/home/test1");
+            var bindMountVM2 = bindMountVolumeMounts.Single(vm => vm.MountPath == "/home/test2");
+            Assert.True(bindMountVM1.ReadOnlyProperty);
+            Assert.False(bindMountVM2.ReadOnlyProperty);
+            // There are 2 Bind from same dir source,
+            // translates to 1 Volume and 2 VolumeMounts
+            var bindVolume = pod.Spec.Volumes.Single(v => v.Name == "homebind");
+            Assert.NotNull(bindVolume.HostPath);
+            Assert.Equal("/home/bind", bindVolume.HostPath.Path);
+            var bindVolumeMounts = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Where(vm => vm.Name == "homebind");
+            var bindVM1 = bindVolumeMounts.Single(vm => vm.MountPath == "/home/bind1");
+            var bindVM2 = bindVolumeMounts.Single(vm => vm.MountPath == "/home/bind2");
+            Assert.False(bindVM1.ReadOnlyProperty);
+            Assert.True(bindVM2.ReadOnlyProperty);
         }
 
         [Fact]
