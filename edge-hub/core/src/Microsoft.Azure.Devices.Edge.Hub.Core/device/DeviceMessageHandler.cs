@@ -72,9 +72,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public void BindDeviceProxy(IDeviceProxy deviceProxy)
         {
-            this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
-            this.connectionManager.AddDeviceConnection(this.Identity, this);
-            Events.BindDeviceProxy(this.Identity);
+            this.BindDeviceProxyAsync(deviceProxy, Option.None<Action>());
+        }
+
+        public void BindDeviceProxy(IDeviceProxy deviceProxy, Action initWhenBound)
+        {
+            this.BindDeviceProxyAsync(deviceProxy, Option.Some(initWhenBound));
         }
 
         public async Task CloseAsync()
@@ -251,6 +254,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
+        async void BindDeviceProxyAsync(IDeviceProxy deviceProxy, Option<Action> initWhenBound)
+        {
+            this.underlyingProxy = Preconditions.CheckNotNull(deviceProxy);
+
+            try
+            {
+                await this.connectionManager.AddDeviceConnection(this.Identity, this);
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorBindingDeviceProxy(this.Identity, ex);
+                return;
+            }
+
+            try
+            {
+                initWhenBound.ForEach(a => a?.Invoke());
+            }
+            catch (Exception ex)
+            {
+                Events.ErrorPostBindAction(this.Identity, ex);
+                return;
+            }
+
+            Events.BindDeviceProxy(this.Identity);
+        }
+
         async Task HandleTwinOperationException(string correlationId, Exception e)
         {
             if (!string.IsNullOrWhiteSpace(correlationId))
@@ -280,6 +310,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             enum EventIds
             {
                 BindDeviceProxy = IdStart,
+                ErrorBindingDeviceProxy,
+                ErrorPostBindAction,
                 RemoveDeviceConnection,
                 MethodSentToClient,
                 MethodResponseReceived,
@@ -303,6 +335,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void BindDeviceProxy(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.BindDeviceProxy, Invariant($"Bind device proxy for device {identity.Id}"));
+            }
+
+            public static void ErrorBindingDeviceProxy(IIdentity identity, Exception ex)
+            {
+                Log.LogError((int)EventIds.ErrorBindingDeviceProxy, ex, Invariant($"Error binding device proxy for device {identity.Id}"));
+            }
+
+            public static void ErrorPostBindAction(IIdentity identity, Exception ex)
+            {
+                Log.LogError((int)EventIds.ErrorPostBindAction, ex, Invariant($"Error executing post-bind action for device {identity.Id}"));
             }
 
             public static void Close(IIdentity identity)

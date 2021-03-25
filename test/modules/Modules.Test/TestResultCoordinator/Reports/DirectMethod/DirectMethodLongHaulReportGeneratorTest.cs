@@ -24,30 +24,29 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorSuccess()
         {
             string senderSource = "senderSource";
-            Option<string> receiverSource = Option.Some("receiverSource");
+            string receiverSource = "receiverSource";
             int batchSize = 10;
             string resultType = "resultType1";
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodLongHaulReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
+                senderResults.GetAsyncEnumerator(),
                 receiverSource,
-                receiverResults,
+                receiverResults.GetAsyncEnumerator(),
                 resultType);
 
             Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
-            Assert.Equal(senderResults, reportGenerator.SenderTestResults);
+            Assert.Equal(senderResults.GetAsyncEnumerator(), reportGenerator.SenderTestResults);
             Assert.Equal(senderSource, reportGenerator.SenderSource);
-            Assert.Equal(receiverResults, reportGenerator.ReceiverTestResults);
+            Assert.Equal(receiverResults.GetAsyncEnumerator(), reportGenerator.ReceiverTestResults);
             Assert.Equal(resultType, reportGenerator.ResultType);
         }
 
@@ -57,10 +56,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTestDescriptionIsNotProvided(string testDescription)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodLongHaulReportGenerator(
@@ -68,8 +66,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
+                    "receiverSource",
+                    receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
 
             Assert.StartsWith("testDescription", ex.Message);
@@ -81,10 +79,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenTrackingIdIsNotProvided(string trackingId)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodLongHaulReportGenerator(
@@ -92,8 +89,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     trackingId,
                     "senderSource",
                     mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
+                    "receiverSource",
+                    receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
 
             Assert.StartsWith("trackingId", ex.Message);
@@ -105,10 +102,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenSenderSourceIsNotProvided(string senderSource)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodLongHaulReportGenerator(
@@ -116,8 +112,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Guid.NewGuid().ToString(),
                     senderSource,
                     mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
+                    "receiverSource",
+                    receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
 
             Assert.StartsWith("senderSource", ex.Message);
@@ -128,8 +124,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         {
             int batchSize = 10;
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodLongHaulReportGenerator(
@@ -137,50 +132,11 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     null,
-                    Option.Some("receiverSource"),
-                    receiverResults,
+                    "receiverSource",
+                    receiverResults.GetAsyncEnumerator(),
                     "resultType1"));
 
             Assert.Equal("senderTestResults", ex.ParamName);
-        }
-
-        [Fact]
-        public void TestConstructorThrowsWhenReceiverResultsButNoReceiverSource()
-        {
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-
-            ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    mockSenderResults.Object,
-                    Option.None<string>(),
-                    Option.Some(mockReceiverResults.Object),
-                    "resultType1"));
-
-            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
-        }
-
-        [Fact]
-        public void TestConstructorThrowsWhenReceiverSourceButNoReceiverResults()
-        {
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-
-            ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new DirectMethodLongHaulReportGenerator(
-                    TestDescription,
-                    Guid.NewGuid().ToString(),
-                    "senderSource",
-                    mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    Option.None<ITestResultCollection<TestOperationResult>>(),
-                    "resultType1"));
-
-            Assert.Equal("Provide both receiverSource and receiverTestResults or neither.", ex.Message);
         }
 
         [Theory]
@@ -189,10 +145,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenResultTypeIsNotProvided(string resultType)
         {
             int batchSize = 10;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodLongHaulReportGenerator(
@@ -200,8 +155,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     Guid.NewGuid().ToString(),
                     "senderSource",
                     mockSenderResults.Object,
-                    Option.Some("receiverSource"),
-                    receiverResults,
+                    "receiverSource",
+                    receiverResults.GetAsyncEnumerator(),
                     resultType));
 
             Assert.StartsWith("resultType", ex.Message);
@@ -216,27 +171,27 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             IEnumerable<DateTime> timestamps,
             int batchSize,
             bool expectedIsPassed,
-            ulong expectedOk,
-            ulong expectedStatusCodeZero,
-            ulong expectedUnknown)
+            long expectedOk,
+            long expectedStatusCodeZero,
+            long expectedStatusCodeNotFound,
+            long expectedOther)
         {
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
             string resultType = TestOperationResultType.DirectMethod.ToString();
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodLongHaulReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
-                Option.Some(receiverSource),
-                receiverResults,
+                senderResults.GetAsyncEnumerator(),
+                receiverSource,
+                receiverResults.GetAsyncEnumerator(),
                 resultType);
 
             Guid guid = Guid.NewGuid();
@@ -259,51 +214,67 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedUnknown, report.Unknown);
+            Assert.Equal(expectedStatusCodeNotFound, report.DeviceNotFound);
+            Assert.Equal(expectedOther, report.Other.Sum(x => x.Value));
         }
 
-        [Theory]
-        [MemberData(nameof(DirectMethodLongHaulReportData.GetCreateReportData), MemberType = typeof(DirectMethodLongHaulReportData))]
-        public async Task TestCreateReportWithSenderResultsOnlyAsync(
-            IEnumerable<ulong> senderStoreValues,
-            IEnumerable<ulong> receiverStoreValues,
-            IEnumerable<HttpStatusCode> statusCodes,
-            IEnumerable<DateTime> timestamps,
-            int batchSize,
-            bool expectedIsPassed,
-            ulong expectedOk,
-            ulong expectedStatusCodeZero,
-            ulong expectedUnknown)
+        [Fact]
+        public async Task TestOtherStatusCodeCounts()
         {
+            var x = DirectMethodLongHaulReportData.GetStatusCodeTestData;
+            IEnumerable<ulong> senderStoreValues = (IEnumerable<ulong>)x[0];
+            IEnumerable<ulong> receiverStoreValues = (IEnumerable<ulong>)x[1];
+            IEnumerable<HttpStatusCode> statusCodes = (IEnumerable<HttpStatusCode>)x[2];
+            IEnumerable<DateTime> timestamps = (IEnumerable<DateTime>)x[3];
+            int batchSize = (int)x[4];
+            bool expectedIsPassed = (bool)x[5];
+            long expectedOk = (long)x[6];
+            long expectedStatusCodeZero = (long)x[7];
+            long expectedStatusCodeNotFound = (long)x[8];
+            Dictionary<HttpStatusCode, long> expectedOtherDict = (Dictionary<HttpStatusCode, long>)x[9];
+
             string senderSource = "senderSource";
-            var values = receiverStoreValues;
+            string receiverSource = "receiverSource";
             string resultType = TestOperationResultType.DirectMethod.ToString();
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
-            var receiverResults = Option.None<ITestResultCollection<TestOperationResult>>();
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodLongHaulReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
-                Option.None<string>(),
-                receiverResults,
+                senderResults.GetAsyncEnumerator(),
+                receiverSource,
+                receiverResults.GetAsyncEnumerator(),
                 resultType);
 
-            var senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, Guid.NewGuid());
+            Guid guid = Guid.NewGuid();
+
+            List<(long, TestOperationResult)> senderStoreData = GetSenderStoreData(senderSource, resultType, senderStoreValues, statusCodes, timestamps, guid);
             for (int i = 0; i < senderStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
                 mockSenderStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(senderStoreData.Skip(startingOffset).Take(batchSize));
             }
 
+            List<(long, TestOperationResult)> receiverStoreData = GetReceiverStoreData(receiverSource, resultType, receiverStoreValues, timestamps, guid);
+            for (int j = 0; j < receiverStoreData.Count; j += batchSize)
+            {
+                int startingOffset = j;
+                mockReceiverStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(receiverStoreData.Skip(startingOffset).Take(batchSize));
+            }
+
             var report = (DirectMethodLongHaulReport)await reportGenerator.CreateReportAsync();
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedUnknown, report.Unknown);
+            Assert.Equal(expectedStatusCodeNotFound, report.DeviceNotFound);
+            Assert.Equal(expectedOtherDict.Sum(x => x.Value), report.Other.Sum(x => x.Value));
+            Assert.Equal(expectedOtherDict[HttpStatusCode.ServiceUnavailable], report.Other[HttpStatusCode.ServiceUnavailable]);
+            Assert.Equal(expectedOtherDict[HttpStatusCode.InternalServerError], report.Other[HttpStatusCode.InternalServerError]);
         }
 
         [Fact]
@@ -314,26 +285,25 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             int batchSize = 10;
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
 
             var reportGenerator = new DirectMethodLongHaulReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
-                Option.Some(receiverSource),
-                receiverResults,
+                senderResults.GetAsyncEnumerator(),
+                receiverSource,
+                receiverResults.GetAsyncEnumerator(),
                 "resultType1");
 
             var report = (DirectMethodLongHaulReport)await reportGenerator.CreateReportAsync();
 
-            Assert.Equal(0UL, report.ReceiverSuccesses.Expect<ArgumentException>(() => throw new ArgumentException("impossible")));
-            Assert.Equal(0UL, report.SenderSuccesses);
-            Assert.Equal(0UL, report.StatusCodeZero);
-            Assert.Equal(0UL, report.Unknown);
+            Assert.Equal(0L, report.ReceiverSuccesses);
+            Assert.Equal(0L, report.SenderSuccesses);
+            Assert.Equal(0L, report.StatusCodeZero);
+            Assert.Equal(0L, report.Other.Sum(x => x.Value));
             Assert.True(report.IsPassed);
         }
 

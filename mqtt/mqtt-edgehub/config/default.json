@@ -29,8 +29,25 @@
             "when_full": "drop_new"
         },
         "persistence": {
-            "path": "/tmp/mqttd/",
+            "folder_path": "/tmp/mqttd/",
             "time_interval": "5m"
         }
+    },
+    "bridge": {
+        "upstream": {
+            "keep_alive": "1m",
+            "clean_session": false,
+            "subscriptions": [],
+            "forwards": []
+        },
+        "remotes": [],
+        "storage": {
+            "type": "ring_buffer",
+            "max_file_size": 33554432,
+            "directory": "/tmp/mqttd/",
+            "flush_options": "aftereachwrite",
+            "max_size": 1000
+        },
+        "messages": {}
     }
 }

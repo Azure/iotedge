@@ -35,27 +35,27 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
+                senderResults.GetAsyncEnumerator(),
                 receiverSource,
-                receiverResults,
+                receiverResultsEnumerator,
                 resultType,
                 NetworkStatusTimeline,
                 networkControllerType);
 
             Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(receiverSource, reportGenerator.ReceiverSource);
-            Assert.Equal(senderResults, reportGenerator.SenderTestResults);
+            Assert.Equal(senderResults.GetAsyncEnumerator(), reportGenerator.SenderTestResults);
             Assert.Equal(senderSource, reportGenerator.SenderSource);
-            Assert.Equal(receiverResults, reportGenerator.ReceiverTestResults);
+            Assert.Equal(receiverResultsEnumerator, reportGenerator.ReceiverTestResults);
             Assert.Equal(resultType, reportGenerator.ResultType);
         }
 
@@ -66,10 +66,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         {
             int batchSize = 10;
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -78,7 +78,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "senderSource",
                     mockSenderResults.Object,
                     Option.Some("receiverSource"),
-                    receiverResults,
+                    receiverResultsEnumerator,
                     "resultType1",
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -93,10 +93,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         {
             int batchSize = 10;
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -105,7 +105,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "senderSource",
                     mockSenderResults.Object,
                     Option.Some("receiverSource"),
-                    receiverResults,
+                    receiverResultsEnumerator,
                     "resultType1",
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -120,10 +120,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         {
             int batchSize = 10;
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -132,7 +132,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     senderSource,
                     mockSenderResults.Object,
                     Option.Some("receiverSource"),
-                    receiverResults,
+                    receiverResultsEnumerator,
                     "resultType1",
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -146,8 +146,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             int batchSize = 10;
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-               new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -156,7 +156,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "senderSource",
                     null,
                     Option.Some("receiverSource"),
-                    receiverResults,
+                    receiverResultsEnumerator,
                     "resultType1",
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -171,10 +171,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         {
             int batchSize = 10;
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -183,7 +183,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "senderSource",
                     mockSenderResults.Object,
                     Option.Some("receiverSource"),
-                    receiverResults,
+                    receiverResultsEnumerator,
                     resultType,
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -195,8 +195,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         public void TestConstructorThrowsWhenReceiverSourceButNoReceiverTestResults()
         {
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
-            var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -205,7 +204,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "senderSource",
                     mockSenderResults.Object,
                     Option.Some("receiverSource"),
-                    Option.None<ITestResultCollection<TestOperationResult>>(),
+                    Option.None<IAsyncEnumerator<TestOperationResult>>(),
                     "resultType1",
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -218,10 +217,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
         {
             int batchSize = 10;
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
-            var mockSenderResults = new Mock<ITestResultCollection<TestOperationResult>>();
+            var mockSenderResults = new Mock<IAsyncEnumerator<TestOperationResult>>();
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
                 () => new DirectMethodConnectivityReportGenerator(
@@ -230,7 +229,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     "senderSource",
                     mockSenderResults.Object,
                     Option.None<string>(),
-                    receiverResults,
+                    receiverResultsEnumerator,
                     "resultType1",
                     NetworkStatusTimeline,
                     networkControllerType));
@@ -247,18 +246,18 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             NetworkControllerType networkControllerType = NetworkControllerType.Offline;
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
+                senderResults.GetAsyncEnumerator(),
                 Option.Some(receiverSource),
-                receiverResults,
+                receiverResultsEnumerator,
                 "resultType1",
                 NetworkStatusTimeline,
                 networkControllerType);
@@ -299,18 +298,18 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             string resultType = TestOperationResultType.DirectMethod.ToString();
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.Some<ITestResultCollection<TestOperationResult>>(
-                new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize));
+            IAsyncEnumerable<TestOperationResult> receiverResults = new StoreTestResultCollection<TestOperationResult>(mockReceiverStore.Object, batchSize);
+            Option<IAsyncEnumerator<TestOperationResult>> receiverResultsEnumerator = Option.Some<IAsyncEnumerator<TestOperationResult>>(receiverResults.GetAsyncEnumerator());
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
+                senderResults.GetAsyncEnumerator(),
                 Option.Some(receiverSource),
-                receiverResults,
+                receiverResultsEnumerator,
                 resultType,
                 NetworkStatusTimeline,
                 networkControllerType);
@@ -365,17 +364,17 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             string resultType = TestOperationResultType.DirectMethod.ToString();
 
             var mockSenderStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
+            IAsyncEnumerable<TestOperationResult> senderResults = new StoreTestResultCollection<TestOperationResult>(mockSenderStore.Object, batchSize);
             var mockReceiverStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var receiverResults = Option.None<ITestResultCollection<TestOperationResult>>();
+            var receiverResultsEnumerator = Option.None<IAsyncEnumerator<TestOperationResult>>();
 
             var reportGenerator = new DirectMethodConnectivityReportGenerator(
                 TestDescription,
                 Guid.NewGuid().ToString(),
                 senderSource,
-                senderResults,
+                senderResults.GetAsyncEnumerator(),
                 Option.None<string>(),
-                receiverResults,
+                receiverResultsEnumerator,
                 resultType,
                 NetworkStatusTimeline,
                 networkControllerType);

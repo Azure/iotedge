@@ -75,5 +75,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             chmod.WaitForExit();
             chmod.Close();
         }
+
+        public uint GetUid(string user)
+        {
+            var id = new System.Diagnostics.Process();
+
+            id.StartInfo.FileName = "id";
+            id.StartInfo.Arguments = $"-u {user}";
+            id.StartInfo.RedirectStandardOutput = true;
+
+            id.Start();
+            StreamReader reader = id.StandardOutput;
+            string uid = reader.ReadToEnd().Trim();
+
+            id.WaitForExit();
+            id.Close();
+
+            return System.Convert.ToUInt32(uid, 10);
+        }
     }
 }

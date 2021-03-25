@@ -9,19 +9,18 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         public DirectMethodLongHaulReportMetadata(
             string testDescription,
             string senderSource,
-            string receiverSource = "")
+            string receiverSource)
             : base(testDescription)
         {
             this.SenderSource = senderSource;
-            this.ReceiverSource = string.IsNullOrEmpty(receiverSource) ? Option.None<string>() : Option.Some(receiverSource);
+            this.ReceiverSource = receiverSource;
         }
 
         public string SenderSource { get; }
 
-        public Option<string> ReceiverSource { get; }
+        public string ReceiverSource { get; }
 
-        public string[] ResultSources =>
-            this.ReceiverSource.HasValue ? new string[] { this.SenderSource, this.ReceiverSource.OrDefault() } : new string[] { this.SenderSource };
+        public string[] ResultSources => new string[] { this.SenderSource, this.ReceiverSource };
 
         public override TestReportType TestReportType => TestReportType.DirectMethodLongHaulReport;
 

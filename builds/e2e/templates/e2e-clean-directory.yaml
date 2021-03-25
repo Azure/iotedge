@@ -1,4 +1,5 @@
 steps:
+# This task might run before checkout, so we have to use filesystem commands instead of 'git clean`
 - task: CmdLine@2
   inputs:
     script: 'sudo find . -type f -group root -execdir rm {} + && sudo find . -type d -group root -print0 | sudo xargs -0 /bin/rm -rf' 

@@ -24,12 +24,12 @@ use crate::client::UpdateSubscriptionHandle;
 use crate::{
     bridge::BridgeError,
     client::{Handled, MqttEventHandler},
-    persist::{PublicationStore, StreamWakeableState},
+    persist::{PersistError, PublicationStore, RingBufferError, StreamWakeableState},
     pump::TopicMapperUpdates,
     settings::TopicRule,
 };
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
     topic_filter: TopicFilter,
@@ -147,12 +147,15 @@ where
 
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
-                    self.store.push(publication).map_err(BridgeError::Store)?;
 
-                    return Ok(Handled::Fully);
-                } else {
-                    warn!("no topic matched");
+                    return match self.store.push(&publication) {
+                        Ok(_) |
+                        // If we are full we are dropping the message on ground.
+                        Err(PersistError::RingBuffer(RingBufferError::Full)) => Ok(Handled::Fully),
+                        Err(err) => Err(BridgeError::Store(err)),
+                    };
                 }
+                warn!("no topic matched");
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
@@ -209,31 +212,83 @@ pub async fn retry_subscriptions(
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        collections::HashMap,
+        num::{NonZeroU64, NonZeroUsize},
+        path::PathBuf,
+        str::FromStr,
+        time::Duration,
+    };
+
     use bytes::Bytes;
     use futures_util::{
         future::{self, Either},
         stream::StreamExt,
         TryStreamExt,
     };
-    use std::{collections::HashMap, str::FromStr};
-
     use mqtt3::{
         proto::{Publication, QoS, SubscribeTo},
         Event, ReceivedPublication, SubscriptionUpdateEvent,
     };
     use mqtt_broker::TopicFilter;
+    use mqtt_util::{AuthenticationSettings, CredentialProviderSettings, Credentials};
+    use test_case::test_case;
+
+    use crate::{
+        client::MqttEventHandler,
+        persist::{
+            FlushOptions, PublicationStore, RingBuffer, StreamWakeableState, WakingMemoryStore,
+        },
+        pump::TopicMapperUpdates,
+        settings::{
+            BridgeSettings, ConnectionSettings, Direction, MemorySettings, RingBufferSettings,
+            StorageSettings, TopicRule,
+        },
+    };
 
     use super::{StoreMqttEventHandler, TopicMapper};
 
-    use crate::{
-        client::MqttEventHandler, persist::PublicationStore, pump::TopicMapperUpdates,
-        settings::BridgeSettings,
-    };
+    const FLUSH_OPTIONS: FlushOptions = FlushOptions::Off;
+    const MAX_FILE_SIZE: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(1024) };
+    const BATCH_SIZE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(100) };
+    const MAX_SIZE: NonZeroUsize = unsafe { NonZeroUsize::new_unchecked(1024) };
 
+    type MemoryPublicationStore = PublicationStore<WakingMemoryStore>;
+
+    impl Default for MemoryPublicationStore {
+        fn default() -> Self {
+            PublicationStore::new_memory(BATCH_SIZE, &MemorySettings::new(MAX_SIZE))
+        }
+    }
+
+    type RingBufferPublicationStore = PublicationStore<RingBuffer>;
+
+    impl Default for RingBufferPublicationStore {
+        fn default() -> Self {
+            let result = tempfile::tempdir();
+            assert!(result.is_ok());
+            let dir = result.unwrap();
+            let dir_path = dir.path().to_path_buf();
+
+            let result = PublicationStore::new_ring_buffer(
+                BATCH_SIZE,
+                &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
+                "test",
+                "local",
+            );
+            assert!(result.is_ok());
+            result.unwrap()
+        }
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_updates_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_updates_topic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics: HashMap<String, TopicMapper> = connection_settings
@@ -250,7 +305,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         handler
@@ -266,10 +320,14 @@ mod tests {
         let _topic_mapper = handler.topic_mappers.get("local/floor/#").unwrap();
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_retries_rejected_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_retries_rejected_topic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics: HashMap<String, TopicMapper> = connection_settings
@@ -288,7 +346,6 @@ mod tests {
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
         handler.set_retry_sub_sender(tx);
 
@@ -312,13 +369,15 @@ mod tests {
         );
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_updates_topic_without_pending_update() {
-        let batch_size: usize = 5;
-
+    async fn message_handler_updates_topic_without_pending_update<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
         let topics = HashMap::new();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         handler
@@ -334,10 +393,15 @@ mod tests {
         assert_eq!(handler.topic_mappers.get("local/floor/#").is_none(), true);
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_saves_message_with_local_and_forward_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_saves_message_with_local_and_forward_topic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -354,7 +418,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -389,10 +452,15 @@ mod tests {
         assert_eq!(extracted1.1, expected);
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_saves_message_with_empty_local_and_forward_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_saves_message_with_empty_local_and_forward_topic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -409,7 +477,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -445,10 +512,14 @@ mod tests {
         assert_eq!(extracted1.1, expected);
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_saves_message_with_forward_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_saves_message_with_forward_topic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -465,7 +536,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -500,10 +570,14 @@ mod tests {
         assert_eq!(extracted1.1, expected);
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_saves_message_with_no_forward_mapping() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_saves_message_with_no_forward_mapping<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -520,7 +594,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -556,10 +629,14 @@ mod tests {
         assert_eq!(extracted1.1, expected);
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_no_topic_match() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_no_topic_match<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -576,7 +653,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -606,10 +682,14 @@ mod tests {
         }
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_with_local_and_forward_not_ack_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_with_local_and_forward_not_ack_topic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -626,7 +706,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -648,10 +727,15 @@ mod tests {
         }
     }
 
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
     #[tokio::test]
-    async fn message_handler_with_local_and_forward_unsubscribed_topic() {
-        let batch_size: usize = 5;
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+    async fn message_handler_with_local_and_forward_unsubscribed_topic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
         let topics = connection_settings
@@ -668,7 +752,6 @@ mod tests {
             })
             .collect();
 
-        let store = PublicationStore::new_memory(batch_size);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
@@ -705,5 +788,52 @@ mod tests {
         if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
             panic!("Should not reach here");
         }
+    }
+
+    fn test_bridge_settings() -> BridgeSettings {
+        BridgeSettings::new(
+            Some(ConnectionSettings::new(
+                "$upstream",
+                "edge1:8883",
+                Credentials::Provider(CredentialProviderSettings::new(
+                    "my_iothub",
+                    "edge1",
+                    "device1",
+                    "m1",
+                    "123",
+                    "workload",
+                )),
+                vec![
+                    Direction::Both(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Out(TopicRule::new(
+                        "floor/#",
+                        Some("local".into()),
+                        Some("remote".into()),
+                    )),
+                    Direction::Out(TopicRule::new("pattern/#", None, None)),
+                    Direction::Out(TopicRule::new("floor2/#", Some("".into()), Some("".into()))),
+                ],
+                Duration::from_secs(60),
+                false,
+            )),
+            vec![ConnectionSettings::new(
+                "r1",
+                "remote:8883",
+                Credentials::PlainText(AuthenticationSettings::new(
+                    "client", "mymodule", "pass", None,
+                )),
+                vec![
+                    Direction::In(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Out(TopicRule::new("some", None, Some("remote".into()))),
+                ],
+                Duration::from_secs(60),
+                false,
+            )],
+            StorageSettings::RingBuffer(RingBufferSettings::new(
+                NonZeroU64::new(33_554_432).expect("33554432"), //32mb
+                PathBuf::from("/tmp_file/mqttd/"),
+                FlushOptions::AfterEachWrite,
+            )),
+        )
     }
 }

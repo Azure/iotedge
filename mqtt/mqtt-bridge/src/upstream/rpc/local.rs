@@ -74,8 +74,8 @@ impl LocalRpcMqttEventHandler {
 
     fn handle_subscription_update(&mut self, subscription: &SubscriptionUpdateEvent) -> bool {
         let topic_filter = match subscription {
-            SubscriptionUpdateEvent::Subscribe(sub) => &sub.topic_filter,
-            SubscriptionUpdateEvent::RejectedByServer(sub) => &sub.topic_filter,
+            SubscriptionUpdateEvent::Subscribe(sub)
+            | SubscriptionUpdateEvent::RejectedByServer(sub) => &sub.topic_filter,
             SubscriptionUpdateEvent::Unsubscribe(topic_filter) => topic_filter,
         };
 
@@ -195,14 +195,14 @@ mod tests {
         }
     }
 
-    #[test_case(r"$upstream/rpc/foo", Some("foo".into()); "when word")]
-    #[test_case(r"$upstream/rpc/CA761232-ED42-11CE-BACD-00AA0057B223", Some("CA761232-ED42-11CE-BACD-00AA0057B223".into()); "when uuid")]
-    #[test_case(r"$downstream/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", None; "when ack")]
-    #[test_case(r"$iothub/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", None; "when wrong topic")]
-    #[test_case(r"$iothub/rpc/ack/some id", None; "when spaces")]
+    #[test_case(r"$upstream/rpc/foo", &Some("foo".into()); "when word")]
+    #[test_case(r"$upstream/rpc/CA761232-ED42-11CE-BACD-00AA0057B223", &Some("CA761232-ED42-11CE-BACD-00AA0057B223".into()); "when uuid")]
+    #[test_case(r"$downstream/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", &None; "when ack")]
+    #[test_case(r"$iothub/rpc/ack/CA761232-ED42-11CE-BACD-00AA0057B223", &None; "when wrong topic")]
+    #[test_case(r"$iothub/rpc/ack/some id", &None; "when spaces")]
     #[allow(clippy::needless_pass_by_value)]
-    fn it_captures_command_id(topic: &str, expected: Option<CommandId>) {
-        assert_eq!(capture_command_id(topic), expected)
+    fn it_captures_command_id(topic: &str, expected: &Option<CommandId>) {
+        assert_eq!(capture_command_id(topic), *expected)
     }
 
     #[tokio::test]

@@ -81,7 +81,7 @@ yum install \
     libcurl-devel libuuid-devel openssl-devel
 ```
 
-#### Debian 8-10, Ubuntu 16.04, Ubuntu 18.04
+#### Debian 8-10, Ubuntu 18.04
 
 ```sh
 apt-get update

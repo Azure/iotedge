@@ -33,46 +33,38 @@ use serde::Deserialize;
 #[serde(rename_all = "lowercase")]
 pub enum FlushOptions {
     AfterEachWrite,
-    AfterXWrites(usize),
-    AfterXBytes(usize),
+    AfterXWrites(u64),
+    AfterXBytes(u64),
     AfterXTime(Duration),
     Off,
 }
 
 /// A stateful object for tracking progress of any of the `AfterX`... options
 /// from `FlushOptions`.
+#[derive(Debug, Default)]
 pub struct FlushState {
-    pub writes: usize,
-    pub bytes_written: usize,
+    pub writes: u64,
+    pub bytes_written: u64,
     pub elapsed: Duration,
 }
 
 impl FlushState {
-    pub(crate) fn new() -> Self {
-        Self {
-            writes: usize::default(),
-            bytes_written: usize::default(),
-            elapsed: Duration::default(),
-        }
-    }
-
     pub(crate) fn reset(&mut self, flush_option: &FlushOptions) {
         match flush_option {
-            FlushOptions::AfterEachWrite => {}
+            FlushOptions::AfterEachWrite | FlushOptions::Off => {}
             FlushOptions::AfterXWrites(_) => {
-                self.writes = usize::default();
+                self.writes = u64::default();
             }
             FlushOptions::AfterXBytes(_) => {
-                self.bytes_written = usize::default();
+                self.bytes_written = u64::default();
             }
             FlushOptions::AfterXTime(_) => {
                 self.elapsed = Duration::default();
             }
-            FlushOptions::Off => {}
         }
     }
 
-    pub(crate) fn update(&mut self, writes: usize, bytes_written: usize, elapsed: Duration) {
+    pub(crate) fn update(&mut self, writes: u64, bytes_written: u64, elapsed: Duration) {
         self.bytes_written += bytes_written;
         self.elapsed += elapsed;
         self.writes += writes;
@@ -85,7 +77,7 @@ mod tests {
 
     #[test]
     fn it_updates_flush_state_on_update() {
-        let mut fs = FlushState::new();
+        let mut fs = FlushState::default();
         fs.update(1, 0, Duration::default());
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 0);
@@ -106,7 +98,7 @@ mod tests {
 
     #[test]
     fn it_resets_flush_state_on_reset() {
-        let mut fs = FlushState::new();
+        let mut fs = FlushState::default();
         fs.update(1, 1, Duration::from_millis(1));
         assert_eq!(fs.writes, 1);
         assert_eq!(fs.bytes_written, 1);

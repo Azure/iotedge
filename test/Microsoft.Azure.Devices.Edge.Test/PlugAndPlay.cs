@@ -2,26 +2,17 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.Collections.Generic;
-    using System.Globalization;
     using System.Net;
-    using System.Net.Http;
-    using System.Net.Http.Headers;
-    using System.Security.Cryptography;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.VisualStudio.TestPlatform.ObjectModel;
-    using Newtonsoft.Json.Linq;
     using NUnit.Framework;
-    using Serilog;
 
     [EndToEnd]
     public class PlugAndPlay : SasManualProvisioningFixture
@@ -37,6 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
+
+            // If broker is on, MQTT will be used by default in nested environment. And new MQTT won't work for P&P
+            if (Context.Current.NestedEdge && brokerOn)
+            {
+                Assert.Ignore();
+            }
+
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
             if (brokerOn)
             {
@@ -55,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Option.Some(this.runtime.DeviceId),
                 false,
                 this.ca,
-                this.iotHub,
+                this.IotHub,
                 Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
                 token,
                 Option.Some(TestModelId),
@@ -83,6 +81,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
             CancellationToken token = this.TestToken;
+
+            // If broker is on, MQTT will be used by default in nested environment. And new MQTT won't work for P&P
+            if (Context.Current.NestedEdge && brokerOn)
+            {
+                Assert.Ignore();
+            }
+
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
             if (brokerOn)
@@ -102,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         async Task ValidateIdentity(string deviceId, Option<string> moduleId, string expectedModelId, CancellationToken token)
         {
-            Twin twin = await this.iotHub.GetTwinAsync(deviceId, moduleId, token);
+            Twin twin = await this.IotHub.GetTwinAsync(deviceId, moduleId, token);
             string actualModelId = twin.ModelId;
             Assert.AreEqual(expectedModelId, actualModelId);
         }
