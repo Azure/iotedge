@@ -307,7 +307,6 @@ mod tests {
     #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, RuntimeSettings, Settings, Url};
-    // use crate::settings::agent_image_resolve;
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
 
@@ -323,8 +322,6 @@ mod tests {
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.toml";
     #[cfg(unix)]
     static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.toml";
-    // #[cfg(unix)]
-    // static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.toml";
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
@@ -465,19 +462,6 @@ mod tests {
             Some(&"{}".to_string())
         );
     }
-
-    // #[test]
-    // fn agent_image_is_resolved() {
-    //     let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-    //     std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_IMAGE_RESOLVE);
-    //     let mut settings = Settings::new().unwrap();
-    //     agent_image_resolve(&mut settings).unwrap();
-
-    //     assert_eq!(
-    //         "parent_hostname:443/microsoft/azureiotedge-agent:1.0",
-    //         settings.agent().config().image()
-    //     );
-    // }
 
     #[cfg(unix)]
     #[test]
