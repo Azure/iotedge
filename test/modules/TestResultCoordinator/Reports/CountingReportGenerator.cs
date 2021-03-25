@@ -88,6 +88,7 @@ namespace TestResultCoordinator.Reports
 
                     // If we encounter a duplicate expected result, we have already
                     // accounted for corresponding actual results in prev iteration
+                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                     continue;
                 }
 
@@ -133,11 +134,11 @@ namespace TestResultCoordinator.Reports
                 }
                 else
                 {
+                    totalExpectCount++;
                     TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                 }
 
                 lastLoadedExpectedResult = this.ExpectedTestResults.Current;
-                totalExpectCount++;
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 

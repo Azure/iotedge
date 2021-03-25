@@ -40,7 +40,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(945UL, report.TotalExpectCount);
             Assert.Equal(923UL, report.TotalMatchCount);
             Assert.Equal(33UL, report.TotalDuplicateExpectedResultCount);
-            Assert.Equal(33UL, report.TotalDuplicateActualResultCount);
+            Assert.Equal(34UL, report.TotalDuplicateActualResultCount);
 
             Assert.Equal("expectedSource", report.UnmatchedResults[0].Source);
             Assert.Equal("resultType1", report.UnmatchedResults[0].Type);
