@@ -33,14 +33,13 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
-        parent_hostname: None,
-
         auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
 
         trust_bundle_cert: None,
 
         aziot: common_config::super_config::Config {
             hostname: None,
+            local_gateway_hostname: None,
 
             provisioning: common_config::super_config::Provisioning {
                 provisioning: common_config::super_config::ProvisioningType::Manual {
@@ -61,8 +60,6 @@ To reconfigure IoT Edge, run:
             preloaded_certs: Default::default(),
 
             endpoints: Default::default(),
-
-            local_gateway_hostname: Default::default(), // XXX: temporary until #4679 lands
         },
 
         agent: super_config::default_agent(),

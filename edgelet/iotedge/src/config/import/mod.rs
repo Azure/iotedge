@@ -345,14 +345,13 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
     };
 
     let config = super_config::Config {
-        parent_hostname,
-
         trust_bundle_cert,
 
         auto_reprovisioning_mode,
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
+            local_gateway_hostname: parent_hostname,
 
             provisioning,
 
@@ -367,8 +366,6 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             preloaded_certs: Default::default(),
 
             endpoints: Default::default(),
-
-            local_gateway_hostname: Default::default(), // XXX: temporary until #4679 lands
         },
 
         agent: {
