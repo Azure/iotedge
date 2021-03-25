@@ -1,3 +1,22 @@
+# 1.1.0 (2021-02-10)
+## Change to Supported Systems
+* **Remove support for Ubuntu 16.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match. Ubuntu 18.04 continues to be supported.
+## Edge Agent
+### Bug Fixes
+* Fix `since` parameter in `GetModuleLogs` direct method [8d9a8e0](https://github.com/Azure/iotedge/commit/8d9a8e0eff2b47b99a4bfb28af2d3501f901c8af)
+* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
+* Update config version even when plan is empty [97532d0](https://github.com/Azure/iotedge/commit/97532d05f8ec0777dc41290dc25b2cee0813b66e)
+* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6), [3c569ac](https://github.com/Azure/iotedge/commit/3c569ac868b584cbe048447c6783a5fc93985082)
+
+
+## Edge Hub
+### Changes
+* **Edge Hub allows only child devices to connect by default**. To connect a leaf device to the Edge Hub, users must [establish a parent/child relationship](https://docs.microsoft.com/en-us/azure/iot-edge/offline-capabilities?view=iotedge-2018-06#set-up-parent-and-child-devices) between the edge device and the leaf device. In previous versions, this was required only for offline scenarios or when using certificate-based authentication. For online scenarios Edge Hub could fall back to cloud-based authentication for leaf devices that were using SAS key-based authentication. With this change, leaf devices with SAS key-based authentication need to be a children of the edge device. You can configure Edge Hub to go back to the previous behavior by setting the environment variable "AuthenticationMode" to the value "CloudAndScope".
+### Bug Fixes
+* Continue message store cleanup after encountering db error [4a196f0](https://github.com/Azure/iotedge/commit/4a196f0b4a2f04f9bd8988fdea4c3f308fd67546)
+* Don't pass HTTPS proxy information to the cloud connection for protocols that don't use port 443 [ca2fa42](https://github.com/Azure/iotedge/commit/ca2fa428e3c61fc53ce4d9a58d4d6094e51c4e5c)
+* Fix vulnerability issues in docker images [4dbaa62](https://github.com/Azure/iotedge/commit/4dbaa6207e8e899fdd50dfd3a3b031713964bdb6), [3c569ac](https://github.com/Azure/iotedge/commit/3c569ac868b584cbe048447c6783a5fc93985082)
+
 # 1.0.10.4 (2020-12-18)
 ## Edge Agent
 ### Bug Fixes
