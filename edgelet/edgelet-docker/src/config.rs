@@ -3,6 +3,7 @@
 use failure::ResultExt;
 
 use docker::models::{AuthConfig, ContainerCreateBody};
+use edgelet_core::module::NestedEdgeBodge;
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
 
 use crate::error::{ErrorKind, Result};
@@ -87,6 +88,20 @@ impl DockerConfig {
     pub fn with_auth(mut self, auth: AuthConfig) -> Self {
         self.auth = Some(auth);
         self
+    }
+}
+
+pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
+
+impl NestedEdgeBodge for DockerConfig {
+    fn parent_hostname_resolve_image(&mut self, parent_hostname: &str) {
+        if self.image.starts_with(UPSTREAM_PARENT_KEYWORD) {
+            self.image = format!(
+                "{}{}",
+                parent_hostname,
+                &self.image[UPSTREAM_PARENT_KEYWORD.len()..]
+            );
+        }
     }
 }
 

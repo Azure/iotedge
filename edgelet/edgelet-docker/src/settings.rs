@@ -19,7 +19,6 @@ use crate::error::{Error, ErrorKind};
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
-pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
@@ -162,35 +161,8 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
 
     agent_labels(settings)?;
 
-    // In nested scenario, Agent image can be pulled from its parent.
-    // It is possible to specify the parent address using the keyword $upstream
-    // agent_image_resolve(settings)?;
-
     Ok(())
 }
-
-// TODO: wiring this up will be tricky, since Settings is loaded before the
-// parent_hostname is fetched from aziot...
-//
-// temporarily commenting this out to make forwards progress.
-
-// fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
-//     let image = settings.agent().config().image().to_string();
-
-//     if let Some(parent_hostname) = settings.parent_hostname() {
-//         if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
-//             let image_nested = format!(
-//                 "{}{}",
-//                 parent_hostname,
-//                 &image[UPSTREAM_PARENT_KEYWORD.len()..]
-//             );
-//             let config = settings.agent().config().clone().with_image(image_nested);
-//             settings.agent_mut().set_config(config);
-//         }
-//     }
-
-//     Ok(())
-// }
 
 fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     let create_options = settings.agent().config().clone_create_options()?;

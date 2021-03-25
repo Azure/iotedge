@@ -142,7 +142,7 @@ where
     M: MakeModuleRuntime + Send + 'static,
     M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
-        Clone + DeserializeOwned + Serialize,
+        Clone + DeserializeOwned + Serialize + edgelet_core::module::NestedEdgeBodge,
     M::Settings: 'static + Clone + Serialize,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
     <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
@@ -159,7 +159,7 @@ where
         F: Future<Item = (), Error = ()> + Send + 'static,
         G: Fn() -> F,
     {
-        let Main { settings } = self;
+        let Main { mut settings } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
@@ -239,6 +239,10 @@ where
                         .context(ErrorKind::Initialize(
                             InitializeErrorReason::RemoveExistingModules,
                         ))?;
+
+                    settings
+                        .agent_mut()
+                        .parent_hostname_resolve_image(&gateway_hostname);
 
                     let cfg = WorkloadData::new(
                         hub,
