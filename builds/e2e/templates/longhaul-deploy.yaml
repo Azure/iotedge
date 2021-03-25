@@ -60,7 +60,6 @@ steps:
         testInfo="$testInfo,EdgeletSourceBranch=${{ parameters['edgelet.source.branch'] }}"
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
-        testInfo="$testInfo,TestName=$testName"
         testInfo="$testInfo,UpstreamProtocol=amqp"
         testInfo="$testInfo,TestName=longhaul (single-node)"
         
