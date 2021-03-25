@@ -367,6 +367,8 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             preloaded_certs: Default::default(),
 
             endpoints: Default::default(),
+
+            local_gateway_hostname: Default::default(), // XXX: temporary until #4679 lands
         },
 
         agent: {
