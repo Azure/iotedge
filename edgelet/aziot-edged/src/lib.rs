@@ -494,7 +494,7 @@ where
         settings.hostname().to_string().to_lowercase(),
     );
 
-    if parent_hostname != hostname {
+    if parent_hostname.to_lowercase() != hostname.to_lowercase() {
         env.insert(
             GATEWAY_HOSTNAME_KEY.to_string(),
             parent_hostname.to_string(),
