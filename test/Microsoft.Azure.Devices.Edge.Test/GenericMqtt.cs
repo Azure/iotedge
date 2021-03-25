@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class GenericMqtt : SasManualProvisioningFixture
     {
         const string NetworkControllerModuleName = "networkController";
-        const string GenericMqttInitatorModuleName = "GenericMqttInitiator";
+        const string GenericMqttInitiatorModuleName = "GenericMqttInitiator";
         const string GenericMqttRelayerModuleName = "GenericMqttRelayer";
         const int GenericMqttTesterMaxMessages = 10;
         const string GenericMqttTesterTestStartDelay = "45s";
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             Action<EdgeConfigBuilder> addMqttBrokerConfig = MqttBrokerUtil.BuildAddBrokerToDeployment(false);
             Action<EdgeConfigBuilder> addNetworkControllerConfig = TestResultCoordinatorUtil.BuildAddNetworkControllerConfig(trackingId, networkControllerImage);
-            Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttInitatorModuleName, GenericMqttInitatorModuleName);
+            Action<EdgeConfigBuilder> addTestResultCoordinatorConfig = TestResultCoordinatorUtil.BuildAddTestResultCoordinatorConfig(trackingId, trcImage, GenericMqttInitiatorModuleName, GenericMqttInitiatorModuleName);
             Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, trcImage, genericMqttTesterImage);
             Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
-                    builder.AddModule(GenericMqttInitatorModuleName, genericMqttTesterImage)
+                    builder.AddModule(GenericMqttInitiatorModuleName, genericMqttTesterImage)
                         .WithEnvironment(new[]
                         {
                             ("TEST_SCENARIO", "Initiate"),
