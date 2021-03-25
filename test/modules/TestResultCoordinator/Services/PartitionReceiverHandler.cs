@@ -62,10 +62,8 @@ namespace TestResultCoordinator.Services
                         {
                             if (long.TryParse(sequenceNumberFromEvent.ToString(), out long sequenceNumber))
                             {
-                                DateTime enqueuedtime = GetEnqueuedTime(deviceIdFromEvent.ToString(), moduleIdFromEvent.ToString(), eventData);
-
                                 // TODO: remove hardcoded eventHub string in next line
-                                var testResult = new MessageTestResult((string)moduleIdFromEvent + ".eventHub", enqueuedtime)
+                                var testResult = new MessageTestResult((string)moduleIdFromEvent + ".eventHub", DateTime.UtcNow)
                                 {
                                     TrackingId = (string)trackingIdFromEvent,
                                     BatchId = (string)batchIdFromEvent,
@@ -93,29 +91,6 @@ namespace TestResultCoordinator.Services
         {
             Logger.LogError(error.ToString());
             return Task.CompletedTask;
-        }
-
-        static DateTime GetEnqueuedTime(string deviceId, string moduleId, EventData eventData)
-        {
-            DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
-
-            if (eventData.SystemProperties.TryGetValue(EnqueuedTimePropertyName, out object enqueued))
-            {
-                if (DateTime.TryParse(enqueued.ToString(), out enqueuedtime))
-                {
-                    enqueuedtime = DateTime.SpecifyKind(enqueuedtime, DateTimeKind.Utc);
-                }
-                else
-                {
-                    Logger.LogError($"Message for module [{moduleId}] and device [{deviceId}] enqueued time [{enqueued}] cannot be parsed.");
-                }
-            }
-            else
-            {
-                Logger.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} property.");
-            }
-
-            return enqueuedtime;
         }
     }
 }
