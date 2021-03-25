@@ -20,6 +20,9 @@ pub mod pump;
 pub mod settings;
 pub mod upstream;
 
-pub use crate::controller::{BridgeController, BridgeControllerHandle, Error};
-
-pub use crate::config_update::BridgeControllerUpdate;
+pub use crate::{
+    config_update::BridgeControllerUpdate,
+    controller::{BridgeController, BridgeControllerHandle, Error},
+    persist::FlushOptions,
+    settings::BridgeSettings,
+};
