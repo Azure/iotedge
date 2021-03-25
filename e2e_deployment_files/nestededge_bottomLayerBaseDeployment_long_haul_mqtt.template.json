@@ -585,6 +585,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer1.send",
             "ActualSource": "relayer1.eventHub",
+            "LongHaulEventHubMode": "true",
             "TestDescription": "messages | upstream | amqp"
           },
           "reportMetadata3": {
@@ -599,6 +600,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "relayer2.send",
             "ActualSource": "relayer2.eventHub",
+            "LongHaulEventHubMode": "true",
             "TestDescription": "messages | upstream | mqtt"
           },
           "reportMetadata5": {
@@ -628,6 +630,7 @@
             "TestOperationResultType": "Messages",
             "ExpectedSource": "genericMqttTester.send",
             "ActualSource": "genericMqttTester.receive",
+            "LongHaulEventHubMode": "false",
             "TestDescription": "messages | local | mqtt | generic"
           },
           "reportMetadata10": {
