@@ -107,7 +107,7 @@ impl Settings {
         self.messages_to_send
     }
 
-    pub fn iotedge_moduleid(&self) -> String {
+    pub fn module_name(&self) -> String {
         self.iotedge_moduleid.clone()
     }
 }
