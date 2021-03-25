@@ -82,11 +82,12 @@ namespace TestResultCoordinator.Reports
                 this.ValidateResult(this.ExpectedTestResults.Current, this.ExpectedSource);
                 this.ValidateResult(this.ActualTestResults.Current, this.ActualSource);
 
-                // If we encounter a duplicate expected result, we have already
-                // accounted for corresponding actual results in prev iteration
                 if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
                 {
                     totalDuplicateExpectedResultCount++;
+
+                    // If we encounter a duplicate expected result, we have already
+                    // accounted for corresponding actual results in prev iteration
                     continue;
                 }
 
@@ -126,8 +127,17 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult)
             {
+                if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
+                {
+                    totalDuplicateExpectedResultCount++;
+                }
+                else
+                {
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
+                }
+
+                lastLoadedExpectedResult = this.ExpectedTestResults.Current;
                 totalExpectCount++;
-                TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
