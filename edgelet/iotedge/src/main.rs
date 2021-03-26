@@ -210,6 +210,7 @@ fn run() -> Result<(), Error> {
                             .long("connection-string")
                             .value_name("CONNECTION_STRING")
                             .help("The Azure IoT Hub connection string")
+                            .required(true)
                             .takes_value(true),
                     )
                     .arg(
@@ -297,6 +298,10 @@ fn run() -> Result<(), Error> {
                 .subcommand(
                     SubCommand::with_name("restart")
                     .about("Restarts iotedged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("stop")
+                    .about("Stops iotedged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("status")
@@ -517,6 +522,7 @@ fn run() -> Result<(), Error> {
                 System::get_system_logs(&jctl_args)
             }
             ("restart", Some(_args)) => System::system_restart(),
+            ("stop", Some(_args)) => System::system_stop(),
             ("status", Some(_args)) => System::get_system_status(),
             ("set-log-level", Some(args)) => System::set_log_level(
                 log::Level::from_str(args.value_of("log_level").expect("Value is required"))
