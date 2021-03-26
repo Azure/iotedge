@@ -85,6 +85,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 errors.Add($"Bridge {order}: Endpoint must not be empty");
             }
 
+            if (bridge.Settings == null)
+            {
+                return;
+            }
+
             foreach (var setting in bridge.Settings)
             {
                 if (setting.Topic != null

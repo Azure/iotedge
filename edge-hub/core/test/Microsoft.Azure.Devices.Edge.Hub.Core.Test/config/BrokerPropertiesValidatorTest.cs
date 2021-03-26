@@ -156,9 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             IList<string> errors = validator.ValidateBridgeConfig(bridgeConfig);
 
-            Assert.Equal(2, errors.Count);
+            Assert.Equal(1, errors.Count);
             Assert.Equal("Bridge 0: Endpoint must not be empty", errors[0]);
-            Assert.Equal("Bridge 1: Settings must not be empty", errors[1]);
         }
 
         [Fact]

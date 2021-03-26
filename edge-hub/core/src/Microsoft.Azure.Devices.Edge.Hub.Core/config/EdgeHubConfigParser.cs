@@ -249,31 +249,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             IList<string> errors = this.validator.ValidateBridgeConfig(properties.Bridges);
             if (errors.Count > 0)
             {
-                string message = string.Join(Environment.NewLine, errors);
-                Events.InvalidBridgeConfig(message);
-
-                // even if there are some errors in the configuration make upstream bridge to start
-                return Option.None<BridgeConfig>();
+                string message = string.Join("; ", errors);
+                throw new InvalidOperationException($"Error validating bridge configuration: {message}");
             }
 
             return Option.Some(properties.Bridges);
-        }
-
-        static class Events
-        {
-            const int IdStart = HubCoreEventIds.EdgeHubConfigParser;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeHubConfigParser>();
-
-            enum EventIds
-            {
-                Initialized = IdStart,
-                InvalidBridgeConfig,
-            }
-
-            internal static void InvalidBridgeConfig(string message)
-            {
-                Log.LogWarning((int)EventIds.InvalidBridgeConfig, $"Error validating bridge configuration: {message}");
-            }
         }
     }
 }

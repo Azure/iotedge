@@ -324,7 +324,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             var bridgeConfig = new BridgeConfig
             {
-                new Bridge("floor2", new List<Settings> { })
+                new Bridge(string.Empty, new List<Settings>
+                {
+                    new Settings(Direction.In, string.Empty, string.Empty, string.Empty)
+                })
             };
 
             var brokerProperties = new BrokerProperties(bridgeConfig, new AuthorizationProperties());
