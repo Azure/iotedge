@@ -435,19 +435,24 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
 
         // Check next block
         write_updates += 1;
-        order += 1; // We want to start with the next order number.
         start = end + data_size;
         end = start + block_size;
 
         // Found the last write, can stop updating write.
-        if inner.order() < order {
+        if should_update_write && inner.order() < order {
             should_update_write = false;
-            // Update write one last time to point at block
-            // where order is less.
-            write = start % max_file_size;
+
+            // If we haven't found any reads but we have found an order
+            // less than the last one, then we must have read and removed
+            // previous data. So, read should start at write and we
+            // are full.
+            if read_updates == 0 {
+                read = write;
+            }
         }
         if should_update_write {
             write = start % max_file_size;
+            order += 1; // We want to start with the next order number.
         }
 
         if start >= max_file_size {
@@ -862,6 +867,81 @@ mod tests {
             assert_eq!(read, loaded_read);
             assert_eq!(write, loaded_write);
             assert!(!loaded_can_read_from_wrap_around_when_write_full);
+        }
+    }
+
+    #[test]
+    fn it_inits_ok_with_previous_data_and_write_pointer_is_reaches_read_pointer_after_read() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        let data = bincode::serialize(&publication).unwrap();
+
+        let data_size = data.len() as u64;
+
+        let total_size = block_size + data_size;
+
+        let max_file_size = NonZeroU64::new(total_size * 20).unwrap();
+
+        let read;
+        let mut write;
+        {
+            let mut rb =
+                RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS).unwrap();
+
+            // write some
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+            }
+
+            let mut batch = rb.batch(10).unwrap();
+            assert!(!batch.is_empty());
+
+            for (key, _) in batch.drain(..) {
+                rb.remove(key)
+                    .unwrap_or_else(|_| panic!(format!("unable to remove pub with key {:?}", key)));
+            }
+
+            read = rb.metadata.file_pointers.read_begin;
+
+            // write till wrap around
+            // this will put write at read
+            loop {
+                // ignore err if any here, we just want to be full
+                let _result = rb.insert(&publication);
+
+                write = rb.metadata.file_pointers.write;
+                if write == read {
+                    break;
+                }
+            }
+
+            // Now we simulate a 'crash' and should be able to get
+            // correct pointers and read again.
+        }
+        {
+            let rb =
+                RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS).unwrap();
+
+            let loaded_read = rb.metadata.file_pointers.read_begin;
+            let loaded_write = rb.metadata.file_pointers.write;
+            let loaded_can_read_from_wrap_around_when_write_full =
+                rb.metadata.can_read_from_wrap_around_when_write_full;
+            assert_eq!(write, loaded_write);
+            assert_eq!(read, loaded_read);
+            assert!(loaded_can_read_from_wrap_around_when_write_full);
+            // We would have written 10 + 20 entries, so the next one if there were a write
+            // should be 30. Order starts at 0.
+            assert_eq!(rb.metadata.order, 30);
         }
     }
 
