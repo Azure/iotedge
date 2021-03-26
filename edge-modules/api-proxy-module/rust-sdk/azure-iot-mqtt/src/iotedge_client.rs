@@ -21,7 +21,7 @@ impl Client {
 						let mut workload_url = workload_url.clone();
 						workload_url.set_scheme("file").expect(r#"changing the scheme of workload URI to "file" should not fail"#);
 						let base = workload_url.to_file_path().map_err(|()| Error::ParseWorkloadUrlUnixFilePath)?;
-						let base = base.to_str().ok_or_else(|| Error::ParseWorkloadUrlUnixFilePath)?;
+						let base = base.to_str().ok_or(Error::ParseWorkloadUrlUnixFilePath)?;
 						(Scheme::Unix, base.to_owned(), Connector::Unix(hyper_uds::UdsConnector::new()))
 					}
 					else {
