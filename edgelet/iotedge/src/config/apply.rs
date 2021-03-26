@@ -160,7 +160,6 @@ fn execute_inner(
         .map_err(|err| format!("could not read config file {}: {}", config.display(), err))?;
 
     let super_config::Config {
-        parent_hostname,
         trust_bundle_cert,
         auto_reprovisioning_mode,
         aziot,
@@ -264,20 +263,9 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
-    // TODO: Remove this when IS gains first-class support for parent_hostname
-    if let Some(parent_hostname) = &parent_hostname {
-        if let aziot_identityd_config::ProvisioningType::Manual {
-            iothub_hostname, ..
-        } = &mut identityd_config.provisioning.provisioning
-        {
-            *iothub_hostname = parent_hostname.clone();
-        }
-    }
-
     let edged_config = edgelet_docker::Settings {
         base: edgelet_core::Settings {
             hostname: identityd_config.hostname.clone(),
-            parent_hostname,
 
             edge_ca_cert,
             edge_ca_key,

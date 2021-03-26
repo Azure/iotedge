@@ -46,6 +46,7 @@ pub struct Check {
     // These optional fields are populated by the checks
     iothub_hostname: Option<String>, // populated by `aziot check`
     proxy_uri: Option<String>,       // populated by `aziot check`
+    parent_hostname: Option<String>, // populated by `aziot check`
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
@@ -110,6 +111,7 @@ impl Check {
 
             iothub_hostname,
             proxy_uri,
+            parent_hostname: None,
             settings: None,
             docker_host_arg: None,
             docker_server_version: None,
@@ -508,6 +510,12 @@ impl Check {
                                         .and_then(serde_json::Value::as_str)
                                         .map(Into::into)
                                 }
+
+                                self.parent_hostname = info
+                                    .as_object()
+                                    .and_then(|m| m.get("local_gateway_hostname"))
+                                    .and_then(serde_json::Value::as_str)
+                                    .map(Into::into)
                             }
                         }
                     }
