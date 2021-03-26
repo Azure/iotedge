@@ -499,7 +499,7 @@ mod tests {
     ) where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
         let topics = forwards_topics_from_settings(connection_settings);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
@@ -570,7 +570,7 @@ mod tests {
     ) where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
         let topics = forwards_topics_from_settings(connection_settings);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
@@ -612,7 +612,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
         let topics = forwards_topics_from_settings(connection_settings);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
@@ -654,7 +654,7 @@ mod tests {
     where
         T: StreamWakeableState + Send + Sync,
     {
-        let settings = BridgeSettings::from_file("tests/config.json").unwrap();
+        let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
         let topics = forwards_topics_from_settings(connection_settings);
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
@@ -1023,6 +1023,13 @@ mod tests {
                     )),
                     Direction::Out(TopicRule::new("pattern/#", None, None)),
                     Direction::Out(TopicRule::new("floor2/#", Some("".into()), Some("".into()))),
+                    Direction::Out(TopicRule::new("/floor2-2", Some("".into()), Some("".into()))),
+                    Direction::Out(TopicRule::new("#", Some("local/telemetry".into()), Some("remote/messages".into()))),
+                    Direction::Out(TopicRule::new("#", Some("just/local".into()), None)),
+                    Direction::Out(TopicRule::new("floor3/#", None, Some("remote/messages".into()))),
+                    Direction::Out(TopicRule::new("floor4/#", Some("local".into()), None)),
+                    Direction::Out(TopicRule::new("floor5/#", None, None)),
+                    Direction::Out(TopicRule::new("", Some("foo/bar".into()), Some("bar/foo".into()))),
                 ],
                 Duration::from_secs(60),
                 false,
@@ -1047,49 +1054,6 @@ mod tests {
             )),
         )
     }
-
-    // "subscriptions": [
-    //         {
-    //             "direction": "both",
-    //             "topic": "temp/#",
-    //             "outPrefix": "floor/kitchen"
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "floor/#",
-    //             "inPrefix": "local",
-    //             "outPrefix": "remote"
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "pattern/#"
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "floor2/#",
-    //             "inPrefix": "",
-    //             "outPrefix": ""
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "#",
-    //             "inPrefix": "local/telemetry",
-    //             "outPrefix": "remote/messages"
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "floor3/#",
-    //             "outPrefix": "remote/messages"
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "floor4/#",
-    //             "inPrefix": "local"
-    //         },
-    //         {
-    //             "direction": "out",
-    //             "topic": "floor5/#"
-    //         }
 
     fn forwards_topics_from_settings(
         connection_settings: &crate::settings::ConnectionSettings,
