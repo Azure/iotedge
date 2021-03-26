@@ -306,7 +306,6 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
-    fn parent_hostname(&self) -> Option<&str>;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -334,9 +333,6 @@ impl Default for AutoReprovisioningMode {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings<T> {
     pub hostname: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_hostname: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_ca_cert: Option<String>,
@@ -382,10 +378,6 @@ where
 
     fn hostname(&self) -> &str {
         &self.hostname
-    }
-
-    fn parent_hostname(&self) -> Option<&str> {
-        self.parent_hostname.as_deref()
     }
 
     fn connect(&self) -> &Connect {

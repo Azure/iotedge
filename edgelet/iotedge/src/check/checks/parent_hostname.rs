@@ -2,8 +2,6 @@ use std::{net::IpAddr, str::FromStr};
 
 use failure::{self, Context};
 
-use edgelet_core::{self, RuntimeSettings};
-
 use crate::check::{checker::Checker, hostname_checks_common, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
@@ -29,14 +27,8 @@ impl Checker for ParentHostname {
 
 impl ParentHostname {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
-            return Ok(CheckResult::Skipped);
-        };
-
         let config_parent_hostname =
-            if let Some(config_parent_hostname) = settings.parent_hostname() {
+            if let Some(config_parent_hostname) = check.parent_hostname.as_ref() {
                 config_parent_hostname
             } else {
                 // No parent hostname is a valid config.
