@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
@@ -131,8 +132,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     // Remove packages installed by this run.
                     await this.daemon.UninstallAsync(token);
 
-                    // Delete test certs, keys, etc.
-                    Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    try
+                    {
+                        // Delete test certs, keys, etc.
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Warning($"Error trying to delete {FixedPaths.E2E_TEST_DIR} {e}");
+                    }
 
                     // Restore backed up config files.
                     foreach ((string file, string _) in this.configFiles)
