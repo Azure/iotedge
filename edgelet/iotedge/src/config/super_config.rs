@@ -7,10 +7,10 @@ use url::Url;
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub(super) struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) parent_hostname: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) trust_bundle_cert: Option<Url>,
+
+    #[serde(default = "edgelet_core::settings::AutoReprovisioningMode::default")]
+    pub(super) auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
 
     #[serde(flatten)]
     pub(super) aziot: aziotctl_common::config::super_config::Config,
