@@ -22,7 +22,6 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
-mod hostname_checks_common;
 mod upstream_protocol_port;
 
 mod checker;
@@ -659,7 +658,7 @@ fn write_lines<'a>(
 #[cfg(test)]
 mod tests {
     use super::{
-        checks::{ContainerEngineIsMoby, Hostname, WellFormedConfig},
+        checks::{ContainerEngineIsMoby, WellFormedConfig},
         Check, CheckResult, Checker,
     };
 
@@ -701,23 +700,6 @@ mod tests {
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            match Hostname::default().execute(&mut check, &mut runtime) {
-                CheckResult::Failed(err) => {
-                    let message = err.to_string();
-                    assert!(
-                        message
-                            .starts_with("configuration has hostname localhost but device reports"),
-                        "checking hostname in {} produced unexpected error: {}",
-                        filename,
-                        message,
-                    );
-                }
-                check_result => panic!(
-                    "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
             }
 
             // Pretend it's Moby
@@ -767,23 +749,6 @@ mod tests {
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            match Hostname::default().execute(&mut check, &mut runtime) {
-                CheckResult::Failed(err) => {
-                    let message = err.to_string();
-                    assert!(
-                        message
-                            .starts_with("configuration has hostname localhost but device reports"),
-                        "checking hostname in {} produced unexpected error: {}",
-                        filename,
-                        message,
-                    );
-                }
-                check_result => panic!(
-                    "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
             }
 
             // Pretend it's Moby
