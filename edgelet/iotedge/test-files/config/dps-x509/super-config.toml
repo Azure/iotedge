@@ -1,7 +1,7 @@
+auto_reprovisioning_mode = "Dynamic"
 hostname = "my-device"
 
 [provisioning]
-always_reprovision_on_startup = true
 source = "dps"
 global_endpoint = "https://global.azure-devices-provisioning.net/"
 id_scope = "0ab1234C5D6"

@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::ffi::{OsStr, OsString};
-use std::path::PathBuf;
-
-use clap::{crate_authors, crate_description, crate_name, App, Arg};
+use clap::{crate_authors, crate_description, crate_name, App};
 use failure::ResultExt;
 use log::info;
 

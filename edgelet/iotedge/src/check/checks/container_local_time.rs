@@ -2,7 +2,6 @@ use failure::{self, Context, ResultExt};
 use std::time::Duration;
 
 use crate::check::{checker::Checker, Check, CheckResult};
-use edgelet_core::RuntimeSettings;
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct ContainerLocalTime {
@@ -35,17 +34,11 @@ impl ContainerLocalTime {
             return Ok(CheckResult::Skipped);
         };
 
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
-            return Ok(CheckResult::Skipped);
-        };
-
         let diagnostics_image_name = if check
             .diagnostics_image_name
             .starts_with("/azureiotedge-diagnostics:")
         {
-            settings.parent_hostname().map_or_else(
+            check.parent_hostname.as_ref().map_or_else(
                 || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
                 |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
             )

@@ -7,10 +7,10 @@ use url::Url;
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub(super) struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) parent_hostname: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) trust_bundle_cert: Option<Url>,
+
+    #[serde(default = "edgelet_core::settings::AutoReprovisioningMode::default")]
+    pub(super) auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
 
     #[serde(flatten)]
     pub(super) aziot: aziotctl_common::config::super_config::Config,
@@ -39,7 +39,7 @@ pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::Docker
         type_: "docker".to_owned(),
         image_pull_policy: Default::default(),
         config: edgelet_docker::DockerConfig {
-            image: "mcr.microsoft.com/azureiotedge-agent:1.2".to_owned(),
+            image: "mcr.microsoft.com/azureiotedge-agent:1.2.0-rc4".to_owned(),
             image_id: None,
             create_options: docker::models::ContainerCreateBody::new(),
             digest: None,

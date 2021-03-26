@@ -3,9 +3,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use edgelet_core::{
-    AuthId, Authenticator, Connect, DiskInfo, Endpoints, Listen, LogOptions, MakeModuleRuntime,
-    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
-    RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
+    settings::AutoReprovisioningMode, AuthId, Authenticator, Connect, DiskInfo, Endpoints, Listen,
+    LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, ProvisioningInfo, RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
@@ -92,10 +92,6 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
-    fn parent_hostname(&self) -> Option<&str> {
-        unimplemented!()
-    }
-
     fn connect(&self) -> &Connect {
         unimplemented!()
     }
@@ -125,6 +121,10 @@ impl RuntimeSettings for TestSettings {
     }
 
     fn trust_bundle_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
         unimplemented!()
     }
 }
