@@ -332,12 +332,12 @@ jobs:
     timeoutInMinutes: 180
     strategy:
       matrix:
-        Online:
-          testrun.config: 1
-          testrun.network.description: "Online"
-          testrun.network.frequencies: "00:00:00 00:00:00 0"
-          testrun.network.runProfile: "Online"
-          testrun.duration: "01:00:00"
+        Offline(5/5/5):
+          testrun.config: 2
+          testrun.network.description: "Offline(5/5/5)"
+          testrun.network.frequencies: "00:05:00 00:05:00 5"
+          testrun.network.runProfile: "Offline"
+          testrun.duration: "00:50:00"
     pool:
       name: $(pool.name)
       demands:
