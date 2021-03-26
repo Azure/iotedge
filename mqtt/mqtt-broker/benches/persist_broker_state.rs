@@ -1,13 +1,14 @@
-use std::{collections::HashMap, iter::FromIterator, net::SocketAddr};
+use std::{collections::HashMap, net::SocketAddr};
 
 use bytes::Bytes;
+use chrono::Utc;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 use tempfile::TempDir;
 use tokio::runtime::Runtime;
 
-use mqtt3::proto::{Publication, QoS};
+use mqtt3::proto::{PacketIdentifier, PacketIdentifierDupQoS, Publication, Publish, QoS};
 use mqtt_broker::{
     AuthId, BrokerSnapshot, ClientId, ClientInfo, FileFormat, FilePersistor, Persist, PersistError,
     SessionSnapshot, VersionedFileFormat,
@@ -101,22 +102,28 @@ fn make_fake_state(
     num_shared_messages: u32,
     num_retained: u32,
 ) -> BrokerSnapshot {
-    let retained = HashMap::from_iter((0..num_retained).map(|i| {
-        (
-            format!("Retained {}", i),
-            make_fake_publish(format!("Retained {}", i)),
-        )
-    }));
+    let retained = (0..num_retained)
+        .map(|i| {
+            (
+                format!("Retained {}", i),
+                make_fake_publication(format!("Retained {}", i)),
+            )
+        })
+        .collect();
 
     let shared_messages: Vec<Publication> = (0..num_shared_messages)
-        .map(|_| make_fake_publish("Shared Topic".to_owned()))
+        .map(|_| make_fake_publication("Shared Topic".to_owned()))
         .collect();
 
     let sessions = (0..num_clients)
         .map(|i| {
             let waiting_to_be_sent = (0..num_unique_messages)
-                .map(|_| make_fake_publish(format!("Topic {}", i)))
+                .map(|_| make_fake_publication(format!("Topic {}", i)))
                 .chain(shared_messages.clone())
+                .collect();
+
+            let waiting_to_be_acked = (0..num_unique_messages)
+                .map(|i| make_fake_publish(i + 1, format!("Topic {}", i)))
                 .collect();
 
             let id = format!("Session {}", i);
@@ -127,6 +134,8 @@ fn make_fake_state(
                 ClientInfo::new(client_id, peer_addr(), auth_id),
                 HashMap::new(),
                 waiting_to_be_sent,
+                waiting_to_be_acked,
+                Utc::now(),
             )
         })
         .collect();
@@ -138,7 +147,7 @@ fn peer_addr() -> SocketAddr {
     "127.0.0.1:12345".parse().unwrap()
 }
 
-fn make_fake_publish(topic_name: String) -> Publication {
+fn make_fake_publication(topic_name: String) -> Publication {
     Publication {
         topic_name,
         retain: false,
@@ -147,8 +156,20 @@ fn make_fake_publish(topic_name: String) -> Publication {
     }
 }
 
+fn make_fake_publish(id: u32, topic_name: String) -> Publish {
+    Publish {
+        topic_name,
+        retain: false,
+        payload: make_random_payload(10),
+        packet_identifier_dup_qos: PacketIdentifierDupQoS::AtLeastOnce(
+            PacketIdentifier::new(id as u16).unwrap(),
+            false,
+        ),
+    }
+}
+
 fn make_random_payload(size: u32) -> Bytes {
-    Bytes::from_iter((0..size).map(|_| rand::random::<u8>()))
+    (0..size).map(|_| rand::random::<u8>()).collect()
 }
 
 fn write_state(c: &mut Criterion) {
