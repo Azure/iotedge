@@ -33,12 +33,15 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
+        trust_bundle_cert: None,
+
         auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
 
-        trust_bundle_cert: None,
+        imported_master_encryption_key: None,
 
         aziot: common_config::super_config::Config {
             hostname: None,
+
             local_gateway_hostname: None,
 
             provisioning: common_config::super_config::Provisioning {
