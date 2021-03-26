@@ -12,10 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     public class HttpModule : Module
     {
         readonly string iothubHostName;
+        readonly string edgeDeviceId;
+        readonly string proxyModuleId;
 
-        public HttpModule(string iothubHostName)
+        public HttpModule(string iothubHostName, string edgeDeviceId, string proxyModuleId)
         {
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
+            this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
+            this.proxyModuleId = Preconditions.CheckNonWhiteSpace(proxyModuleId, nameof(proxyModuleId));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -30,13 +34,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IWebSocketListenerRegistry>()
                 .SingleInstance();
 
+            // IHttpProxiedCertificateExtractor
+            builder.Register(
+                async c =>
+                {
+                    var authenticator = await c.Resolve<Task<IAuthenticator>>();
+                    var credFactory = c.Resolve<IClientCredentialsFactory>();
+                    IHttpProxiedCertificateExtractor httpProxiedCertificateExtractor = new HttpProxiedCertificateExtractor(authenticator, credFactory, this.iothubHostName, this.edgeDeviceId, this.proxyModuleId);
+                    return httpProxiedCertificateExtractor;
+                })
+                .As<Task<IHttpProxiedCertificateExtractor>>()
+                .SingleInstance();
+
             // IHttpAuthenticator
             builder.Register(
                 async c =>
                 {
                     var authenticator = await c.Resolve<Task<IAuthenticator>>();
                     var credFactory = c.Resolve<IClientCredentialsFactory>();
-                    IHttpRequestAuthenticator httpAuthenticator = new HttpRequestAuthenticator(authenticator, credFactory, this.iothubHostName);
+                    var httpProxiedCertificateExtractor = await c.Resolve<Task<IHttpProxiedCertificateExtractor>>();
+                    IHttpRequestAuthenticator httpAuthenticator = new HttpRequestAuthenticator(authenticator, credFactory, this.iothubHostName, httpProxiedCertificateExtractor);
                     return httpAuthenticator;
                 })
                 .As<Task<IHttpRequestAuthenticator>>()
