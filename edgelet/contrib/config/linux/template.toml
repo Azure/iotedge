@@ -31,9 +31,32 @@
 # ==============================================================================
 # Provisioning
 # ==============================================================================
-#
-# Uncomment one block and replace the stub values with yours.
 
+
+# Optional auto reprovisioning mode
+# ------------------------------------
+
+# This property specifies the conditions under which the device attempts to
+# automatically reprovision with the cloud. It is ignored if the device has
+# been provisioned manually. One of the following values can be set:
+# Dynamic:          Reprovision when the device detects that it may have
+#                   been moved from one IoT Hub to another. This is the default.
+# AlwaysOnStartup:  Reprovision when the device is rebooted or a crash causes
+#                   the daemon(s) to restart.
+# OnErrorOnly:      Never trigger device reprovisioning automatically.
+#                   Device reprovisioning only occurs as fallback, if the device
+#                   is unable to connect to IoT Hub during identity provisioning
+#                   due to connectivity errors. This fallback behavior is implicit
+#                   in Dynamic and AlwaysOnStartup modes as well.
+#
+# auto_reprovisioning_mode = Dynamic
+#
+
+
+# Provisioning configuration
+# --------------------------
+
+# Uncomment one block and replace the stub values with yours.
 
 ## Manual provisioning with connection string
 #

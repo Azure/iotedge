@@ -1,9 +1,12 @@
 mod common;
 
+use std::time::Duration;
+
 use bson::{doc, spec::BinarySubtype};
 use bytes::Bytes;
 use futures_util::StreamExt;
 use matches::assert_matches;
+use tokio::time;
 
 use mqtt3::{
     proto::{ClientId, QoS},
@@ -21,6 +24,7 @@ async fn get_twin_update_via_rpc() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-1",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         Vec::new(),
@@ -28,9 +32,14 @@ async fn get_twin_update_via_rpc() {
     )
     .await;
 
+    // wait for bridge controller subscribed to all required topics
+    time::delay_for(Duration::from_millis(100)).await;
+
     // connect to the remote broker to emulate upstream interaction
     let mut upstream = TestClientBuilder::new(upstream_server_handle.address())
-        .with_client_id(ClientId::IdWithExistingSession("upstream".into()))
+        .with_client_id(ClientId::IdWithExistingSession(
+            "edge-device-1/upstream/$bridge".into(),
+        ))
         .build();
     upstream
         .subscribe("$iothub/+/twin/get/#", QoS::AtLeastOnce)
@@ -39,7 +48,9 @@ async fn get_twin_update_via_rpc() {
 
     // connect to the local broker with eh-core client
     let mut edgehub = TestClientBuilder::new(local_server_handle.address())
-        .with_client_id(ClientId::IdWithExistingSession("edgehub".into()))
+        .with_client_id(ClientId::IdWithExistingSession(
+            "edge-device-1/edgehub/$bridge".into(),
+        ))
         .build();
 
     // edgehub subscribes to any downstream topic command acknowledgement
@@ -89,6 +100,60 @@ async fn get_twin_update_via_rpc() {
     upstream_server_handle.shutdown().await;
     edgehub.shutdown().await;
     upstream.shutdown().await;
+}
+
+#[tokio::test]
+async fn handle_rpc_subscription_duplicates() {
+    let (mut local_server_handle, _, mut upstream_server_handle, _) =
+        common::setup_brokers(AllowAll, AllowAll);
+
+    let dir = tempfile::tempdir().expect("Failed to create temp dir");
+    let storage_dir_override = dir.path().to_path_buf();
+
+    let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-2",
+        local_server_handle.address(),
+        upstream_server_handle.tls_address().unwrap(),
+        Vec::new(),
+        &storage_dir_override,
+    )
+    .await;
+
+    // wait for bridge controller subscribed to all required topics
+    time::delay_for(Duration::from_millis(100)).await;
+
+    // connect to the local broker with eh-core client
+    let mut edgehub = TestClientBuilder::new(local_server_handle.address())
+        .with_client_id(ClientId::IdWithExistingSession(
+            "edge-device-2/edgehub/$bridge".into(),
+        ))
+        .build();
+
+    // edgehub subscribes to any downstream topic command acknowledgement
+    edgehub.subscribe("$downstream/#", QoS::AtLeastOnce).await;
+    assert!(edgehub.subscriptions().next().await.is_some());
+
+    // edgehub subscribes to twin response #1
+    let payload = command("sub", "$iothub/device-1/twin/res/#", None);
+    edgehub
+        .publish_qos1("$upstream/rpc/11", payload, false)
+        .await;
+
+    // edgehub subscribes to twin response #2
+    let payload = command("sub", "$iothub/device-1/twin/res/#", None);
+    edgehub
+        .publish_qos1("$upstream/rpc/12", payload, false)
+        .await;
+
+    assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/rpc/ack/11");
+    assert_matches!(edgehub.publications().next().await, Some(ReceivedPublication {topic_name, ..}) if topic_name == "$downstream/rpc/ack/12");
+
+    controller_handle.shutdown();
+    controller_task.await.expect("controller task");
+
+    local_server_handle.shutdown().await;
+    upstream_server_handle.shutdown().await;
+    edgehub.shutdown().await;
 }
 
 fn command(cmd: &str, topic: &str, payload: Option<Vec<u8>>) -> Bytes {

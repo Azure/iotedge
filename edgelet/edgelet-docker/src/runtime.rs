@@ -1288,7 +1288,8 @@ mod tests {
     use futures::stream::Empty;
 
     use edgelet_core::{
-        Connect, Endpoints, Listen, ModuleRegistry, ModuleTop, RuntimeSettings, WatchdogSettings,
+        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
+        RuntimeSettings, WatchdogSettings,
     };
 
     #[test]
@@ -1526,6 +1527,10 @@ mod tests {
         }
 
         fn trust_bundle_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
             unimplemented!()
         }
     }
