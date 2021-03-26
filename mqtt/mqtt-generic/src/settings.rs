@@ -156,8 +156,8 @@ mod tests {
     use matches::assert_matches;
 
     use mqtt_broker::settings::{
-        BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
-        SessionPersistenceConfig,
+        BrokerConfig, HumanSize, MetricsConfig, QueueFullAction, RetainedMessagesConfig,
+        SessionConfig, SessionPersistenceConfig,
     };
 
     use super::{ListenerConfig, Settings, TcpTransportConfig};
@@ -186,7 +186,8 @@ mod tests {
                     SessionPersistenceConfig::new(
                         PathBuf::from("/tmp/mqttd/"),
                         Duration::from_secs(300)
-                    )
+                    ),
+                    MetricsConfig::new(false,),
                 )
             }
         );

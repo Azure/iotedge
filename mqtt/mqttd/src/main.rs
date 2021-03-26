@@ -6,13 +6,9 @@ use clap::{crate_description, crate_name, crate_version, App, Arg};
 
 use mqttd::{app, tracing};
 
-use mqtt_otel;
-
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing::init();
-
-    let _started = mqtt_otel::init_stdout_metrics_exporter()?;
 
     let config_path = create_app()
         .get_matches()
@@ -23,6 +19,17 @@ async fn main() -> Result<()> {
     if let Some(config_path) = config_path {
         app.setup(config_path)?;
     }
+
+    // // TODO: Move this into app.setup()
+    // let metrics_enabled = false; // TODO: Pull this from config file
+    // let _push_controller;
+    // if metrics_enabled {
+    //     _push_controller = mqtt_otel::init_stdout_metrics_exporter()?;
+    // }
+    // else {
+    //     mqtt_otel::init_noop_config();
+    // }
+    // // end TODO
 
     app.run().await?;
     Ok(())

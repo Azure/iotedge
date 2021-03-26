@@ -21,7 +21,10 @@
         "persistence": {
             "folder_path": "/tmp/mqttd/",
             "time_interval": "5m"
-        }
+        },
+        "metrics": {
+            "enabled": "false"
+        }    
     },
     "bridge": {
         "upstream": {

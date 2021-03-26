@@ -6,6 +6,7 @@ use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
 use opentelemetry::metrics::Counter;
+use opentelemetry::sdk::metrics::controllers::PushController;
 use opentelemetry::{global, KeyValue};
 
 use mqtt3::proto;
@@ -13,6 +14,7 @@ use mqtt3::proto;
 use crate::{
     auth::{Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
     session::{ConnectedSession, Session, SessionState},
+    settings::MetricsConfig,
     state_change::StateChange,
     stream::{self, SelectOrdered},
     subscription::Subscription,
@@ -983,10 +985,24 @@ where
 struct BrokerOtelInstruments {
     client_msgs_received_counter: Counter<u64>,
     client_msgs_sent_counter: Counter<u64>,
+    _push_controller: Option<PushController>,
 }
 
 impl BrokerOtelInstruments {
-    fn new() -> BrokerOtelInstruments {
+    fn new(config: &MetricsConfig) -> BrokerOtelInstruments {
+        let mut pc = None;
+        if config.enabled() {
+            pc = match mqtt_otel::init_stdout_metrics_exporter() {
+                Err(e) => {
+                    warn!(message = "Initialization of stdout metrics exporter failed", error = %e);
+                    None
+                }
+                Ok(c) => Some(c),
+            };
+        } else {
+            mqtt_otel::init_noop_config();
+        }
+        // end TODO
         let meter = global::meter("azure/iotedge/mqttbroker");
         BrokerOtelInstruments {
             client_msgs_received_counter: meter
@@ -1001,6 +1017,7 @@ impl BrokerOtelInstruments {
                     "Total number of client messages sent by this MQTT Broker instance.",
                 )
                 .init(),
+            _push_controller: pc,
         }
     }
 }
@@ -1139,6 +1156,8 @@ where
             acks: ack_sender,
         };
 
+        let instruments = BrokerOtelInstruments::new(config.metrics());
+
         Broker {
             messages,
             handle,
@@ -1146,7 +1165,7 @@ where
             retained,
             authorizer: self.authorizer,
             config,
-            instruments: BrokerOtelInstruments::new(),
+            instruments,
 
             #[cfg(feature = "__internal_broker_callbacks")]
             on_publish: None,

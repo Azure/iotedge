@@ -9,7 +9,8 @@ use std::pin::Pin;
 
 use futures::stream::Stream;
 use futures::StreamExt;
-use opentelemetry::metrics::{self, MetricsError};
+use opentelemetry::global;
+use opentelemetry::metrics::{self, noop::NoopMeterProvider, MetricsError};
 use opentelemetry::sdk::metrics::PushController;
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::{Encoder, TextEncoder};
@@ -82,4 +83,9 @@ pub fn init_stdout_metrics_exporter() -> metrics::Result<PushController> {
     opentelemetry::sdk::export::metrics::stdout(tokio::spawn, delayed_interval)
         .with_pretty_print(true)
         .try_init()
+}
+
+pub fn init_noop_config() {
+    let provider = NoopMeterProvider::new();
+    global::set_meter_provider(provider);
 }

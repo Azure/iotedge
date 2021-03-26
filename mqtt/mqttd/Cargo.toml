@@ -23,7 +23,6 @@ mqtt-bridge = { path = "../mqtt-bridge", optional = true }
 mqtt-broker = { path = "../mqtt-broker" }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-generic = { path = "../mqtt-generic", optional = true }
-mqtt-otel = { path = "../mqtt-otel" }
 
 [dev-dependencies]
 mockito = "0.25"

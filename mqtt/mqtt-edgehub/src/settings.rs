@@ -361,8 +361,8 @@ mod tests {
         BridgeSettings, FlushOptions,
     };
     use mqtt_broker::settings::{
-        BrokerConfig, HumanSize, QueueFullAction, RetainedMessagesConfig, SessionConfig,
-        SessionPersistenceConfig,
+        BrokerConfig, HumanSize, MetricsConfig, QueueFullAction, RetainedMessagesConfig,
+        SessionConfig, SessionPersistenceConfig,
     };
     use mqtt_broker_tests_util::env;
     use mqtt_util::{AuthenticationSettings, CredentialProviderSettings, Credentials};
@@ -506,7 +506,8 @@ mod tests {
                     SessionPersistenceConfig::new(
                         PathBuf::from("/tmp/mqttd/"),
                         Duration::from_secs(300)
-                    )
+                    ),
+                    MetricsConfig::new(false,),
                 ),
                 bridge: BridgeSettings::new(
                     None,
@@ -549,7 +550,8 @@ mod tests {
                     SessionPersistenceConfig::new(
                         PathBuf::from("/tmp_file/mqttd/"),
                         Duration::from_secs(300)
-                    )
+                    ),
+                    MetricsConfig::new(false,),
                 ),
                 bridge: BridgeSettings::new(
                     None,
