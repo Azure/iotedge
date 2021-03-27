@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
         protected EdgeRuntime runtime;
+        protected EdgeDevice device;
 
         [OneTimeSetUp]
         public async Task X509ProvisionEdgeAsync()
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
-                            Context.Current.ParentDeviceId,
+                            this.GetNestedEdgeConfig(this.IotHub),
                             this.IotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
