@@ -263,16 +263,16 @@ mod tests {
                 {
                     "direction": "in",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 }
             ]
         }"#;
 
         let topic_rule = r#"{
              "topic": "test/#",
-             "inPrefix": "/local",
-             "outPrefix": "/remote"
+             "inPrefix": "/local/",
+             "outPrefix": "/remote/"
         }"#;
 
         let expected =
@@ -303,16 +303,16 @@ mod tests {
                 {
                     "direction": "out",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 }
             ]
         }"#;
 
         let topic_rule = r#"{
              "topic": "test/#",
-              "inPrefix": "/local",
-              "outPrefix": "/remote"
+              "inPrefix": "/local/",
+              "outPrefix": "/remote/"
         }"#;
 
         let expected_topic_rule: TopicRule = serde_json::from_str(topic_rule).unwrap();
@@ -343,33 +343,33 @@ mod tests {
                 {
                     "direction": "in",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "out",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "both",
                     "topic": "test2/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 }
             ]
         }"#;
 
         let topic_rule1 = r#"{
             "topic": "test/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#;
         let topic_rule2 = r#"{
            "topic": "test2/#",
-           "inPrefix": "/local",
-           "outPrefix": "/remote"
+           "inPrefix": "/local/",
+           "outPrefix": "/remote/"
         }"#;
 
         let expected = PumpDiff::default().with_added(vec![
@@ -397,8 +397,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "existing/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -417,28 +417,28 @@ mod tests {
                 {
                     "direction": "in",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "out",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "both",
                     "topic": "existing/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 }
             ]
         }"#;
 
         let topic_rule1 = r#"{
             "topic": "test/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#;
 
         let expected =
@@ -464,8 +464,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
                 "topic": "test/#",
-                "inPrefix": "/local",
-                "outPrefix": "/remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/remote/"
             }"#,
         )
         .unwrap();
@@ -481,16 +481,16 @@ mod tests {
                 {
                     "direction": "in",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/updated"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/updated/"
                 }
             ]
         }"#;
 
         let topic_rule1 = r#"{
             "topic": "test/#",
-            "inPrefix": "/local",
-            "outPrefix": "/updated"
+            "inPrefix": "/local/",
+            "outPrefix": "/updated/"
         }"#;
 
         let expected =
@@ -516,8 +516,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "existing/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -536,33 +536,33 @@ mod tests {
                 {
                     "direction": "in",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "out",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "both",
                     "topic": "test2/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 }
             ]
         }"#;
 
         let topic_rule1 = r#"{
             "topic": "test/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#;
         let topic_rule2 = r#"{
            "topic": "test2/#",
-           "inPrefix": "/local",
-           "outPrefix": "/remote"
+           "inPrefix": "/local/",
+           "outPrefix": "/remote/"
         }"#;
 
         let expected = PumpDiff::default()
@@ -592,8 +592,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "existing/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -607,14 +607,14 @@ mod tests {
 
         let topic_rule1 = r#"{
                 "topic": "forward/#",
-                "inPrefix": "/local",
-                "outPrefix": "/remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/remote/"
             }"#;
 
         let topic_rule2 = r#"{
                 "topic": "sub/#",
-                "inPrefix": "/local",
-                "outPrefix": "/remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/remote/"
             }"#;
 
         let forwards_diff =
@@ -686,8 +686,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "existing/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -701,14 +701,14 @@ mod tests {
 
         let topic_rule1 = r#"{
                 "topic": "existing/#",
-                "inPrefix": "/local",
-                "outPrefix": "/forward-remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/forward-remote/"
             }"#;
 
         let topic_rule2 = r#"{
                 "topic": "existing/#",
-                "inPrefix": "/local",
-                "outPrefix": "/sub-remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/sub-remote/"
             }"#;
 
         let forwards_diff =
@@ -766,8 +766,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "existing/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -781,8 +781,8 @@ mod tests {
 
         let topic_rule1 = r#"{
                 "topic": "existing/#",
-                "inPrefix": "/local",
-                "outPrefix": "/remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/remote/"
             }"#;
 
         let forwards_diff =
@@ -818,8 +818,8 @@ mod tests {
         let existing_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "existing/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -833,8 +833,8 @@ mod tests {
 
         let topic_rule1 = r#"{
                 "topic": "existing/#",
-                "inPrefix": "/local",
-                "outPrefix": "/remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/remote/"
             }"#;
 
         let forwards_diff =
@@ -870,8 +870,8 @@ mod tests {
 
         let topic_rule1 = r#"{
                 "topic": "existing/#",
-                "inPrefix": "/local",
-                "outPrefix": "/remote"
+                "inPrefix": "/local/",
+                "outPrefix": "/remote/"
             }"#;
 
         let forwards_diff =
@@ -904,14 +904,14 @@ mod tests {
                 {
                     "direction": "in",
                     "topic": "test/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 },
                 {
                     "direction": "out",
                     "topic": "test2/#",
-                    "inPrefix": "/local",
-                    "outPrefix": "/remote"
+                    "inPrefix": "/local/",
+                    "outPrefix": "/remote/"
                 }
             ]
         }]"#;
@@ -925,8 +925,8 @@ mod tests {
         let sub_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "test/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -934,8 +934,8 @@ mod tests {
         let forward_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "test2/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -951,8 +951,8 @@ mod tests {
         let sub_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "sub/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
@@ -960,8 +960,8 @@ mod tests {
         let forward_rule: TopicRule = serde_json::from_str(
             r#"{
             "topic": "forward/#",
-            "inPrefix": "/local",
-            "outPrefix": "/remote"
+            "inPrefix": "/local/",
+            "outPrefix": "/remote/"
         }"#,
         )
         .unwrap();
