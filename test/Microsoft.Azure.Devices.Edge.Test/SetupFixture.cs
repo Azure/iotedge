@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
@@ -131,10 +132,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     // Remove packages installed by this run.
                     await this.daemon.UninstallAsync(token);
 
-                    // Delete test certs, keys, etc.
-                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                    try
                     {
-                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                        // Delete test certs, keys, etc.
+                        if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
+                        {
+                            Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
+                        }
+                    }
+                    catch (DirectoryNotFoundException)
+                    {
+                        Log.Information($"{FixedPaths.E2E_TEST_DIR} doesn't exist. Skipping the directory clean up.");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
                     }
                 },
                 "Completed end-to-end test teardown"),
