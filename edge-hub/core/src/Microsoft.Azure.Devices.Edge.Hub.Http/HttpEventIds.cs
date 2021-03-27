@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         public const int HttpsExtensionConnectionAdapter = EventIdStart + 600;
         public const int DeviceScopeController = EventIdStart + 700;
         public const int RegistryController = EventIdStart + 800;
+        public const int HttpProxiedCertificateExtractor = EventIdStart + 900;
         const int EventIdStart = 6000;
     }
 }
