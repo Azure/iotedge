@@ -201,11 +201,7 @@ impl TopicRule {
     pub fn subscribe_to(&self) -> String {
         match &self.in_prefix {
             Some(local) => {
-                if local.is_empty() {
-                    self.topic.clone()
-                } else {
-                    format!("{}/{}", local, self.topic)
-                }
+                format!("{}{}", local, self.topic)
             }
             None => self.topic.clone(),
         }
