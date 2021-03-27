@@ -351,7 +351,7 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
-            local_gateway_hostname: parent_hostname,
+            parent_hostname,
 
             provisioning,
 
@@ -578,6 +578,11 @@ mod tests {
             println!(".\n.\n=========\n.\nRunning test {}", test_name);
 
             let old_config_file = case_directory.join("old-config.yaml");
+            if !old_config_file.exists() {
+                // apply-specific test
+                continue;
+            }
+
             let expected_config = std::fs::read(case_directory.join("super-config.toml")).unwrap();
 
             let actual_config = super::execute_inner(&old_config_file).unwrap();
