@@ -30,13 +30,11 @@
 use std::{
     collections::HashSet,
     fmt::{Display, Formatter, Result as FmtResult},
-    iter::FromIterator,
     net::SocketAddr,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use bytes::Bytes;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, Criterion,
 };
@@ -120,7 +118,7 @@ fn scenarios() -> (Vec<(proto::QoS, Size)>, Vec<usize>) {
     let qoses = vec![proto::QoS::AtMostOnce, proto::QoS::AtLeastOnce];
     let clients = vec![1, 10, 50, 100];
 
-    (Vec::from_iter(iproduct!(qoses, sizes)), clients)
+    (iproduct!(qoses, sizes).collect(), clients)
 }
 
 fn dispatch_messages(
@@ -137,7 +135,7 @@ fn dispatch_messages(
     let (on_publish_tx, mut on_publish_rx) = mpsc::unbounded_channel();
     broker.on_publish = Some(on_publish_tx);
 
-    let mut broker_handle = broker.handle();
+    let broker_handle = broker.handle();
 
     let broker_task = runtime.spawn(broker.run());
 
@@ -224,7 +222,7 @@ impl Client {
     async fn connect(client_id: Id, broker_handle: BrokerHandle) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
 
-        let mut client = Self {
+        let client = Self {
             id: client_id,
             broker_handle,
             rx,
@@ -369,7 +367,9 @@ impl PublishHandle {
             packet_identifier_dup_qos: packet_id,
             retain: false,
             topic_name,
-            payload: Bytes::from_iter((0..payload_size.into()).map(|_| rand::random::<u8>())),
+            payload: (0..payload_size.into())
+                .map(|_| rand::random::<u8>())
+                .collect(),
         }
     }
 }

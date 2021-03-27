@@ -39,7 +39,7 @@ impl CheckAgentImage {
 
         let agent_image = settings.agent().config().image();
 
-        if settings.parent_hostname().is_some() {
+        if check.parent_hostname.is_some() {
             match check_agent_image_version(&agent_image) {
                 Ok(CheckResult::Ok) => (),
                 error => return error,

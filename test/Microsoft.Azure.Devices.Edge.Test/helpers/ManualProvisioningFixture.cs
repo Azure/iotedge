@@ -79,9 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime, string deviceId)
         {
             (string, string, string) rootCa =
-                Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+                Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
             string caCertScriptPath =
-                Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
+                Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
             string certId = Context.Current.Hostname.GetOrElse(deviceId);
 
             try

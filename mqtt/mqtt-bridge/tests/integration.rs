@@ -58,14 +58,14 @@ impl Authorizer for DummySubscribeAuthorizer {
 async fn send_message_upstream_downstream() {
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
-            Some("to".into()),
-            Some("upstream".into()),
+            "temp/#",
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
-            Some("to".into()),
-            Some("downstream".into()),
+            "filter/#",
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -76,6 +76,7 @@ async fn send_message_upstream_downstream() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-1",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -148,9 +149,9 @@ async fn send_message_upstream_downstream() {
 #[tokio::test]
 async fn send_message_upstream_with_crash_is_lossless() {
     let subs = vec![Direction::Out(TopicRule::new(
-        "temp/#".into(),
-        Some("to".into()),
-        Some("upstream".into()),
+        "temp/#",
+        Some("to/".into()),
+        Some("upstream/".into()),
     ))];
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
@@ -168,6 +169,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-2",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
@@ -218,6 +220,7 @@ async fn send_message_upstream_with_crash_is_lossless() {
         .build();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-3",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
@@ -263,6 +266,7 @@ async fn bridge_settings_update() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (mut controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-4",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         vec![],
@@ -303,14 +307,14 @@ async fn bridge_settings_update() {
         .await;
 
     let subs = vec![TopicRule::new(
-        "filter/#".into(),
-        Some("to".into()),
-        Some("downstream".into()),
+        "filter/#",
+        Some("to/".into()),
+        Some("downstream/".into()),
     )];
     let forwards = vec![TopicRule::new(
-        "temp/#".into(),
-        Some("to".into()),
-        Some("upstream".into()),
+        "temp/#",
+        Some("to/".into()),
+        Some("upstream/".into()),
     )];
 
     controller_handle
@@ -369,14 +373,14 @@ async fn subscribe_to_upstream_rejected_should_retry() {
 
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
-            Some("to".into()),
-            Some("upstream".into()),
+            "temp/#",
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
-            Some("to".into()),
-            Some("downstream".into()),
+            "filter/#",
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -384,6 +388,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-5",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -457,14 +462,14 @@ async fn connect_to_upstream_failure_should_retry() {
 
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
-            Some("to".into()),
-            Some("upstream".into()),
+            "temp/#",
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
-            Some("to".into()),
-            Some("downstream".into()),
+            "filter/#",
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
     let upstream_tcp_address = "localhost:8801".to_string();
@@ -474,6 +479,7 @@ async fn connect_to_upstream_failure_should_retry() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-6",
         local_server_handle.address(),
         upstream_tls_address.clone(),
         subs,
@@ -542,14 +548,14 @@ async fn connect_to_upstream_failure_should_retry() {
 async fn bridge_forwards_messages_after_restart() {
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
-            Some("to".into()),
-            Some("upstream".into()),
+            "temp/#",
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
-            Some("to".into()),
-            Some("downstream".into()),
+            "filter/#",
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -560,6 +566,7 @@ async fn bridge_forwards_messages_after_restart() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-7",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs.clone(),
@@ -621,6 +628,7 @@ async fn bridge_forwards_messages_after_restart() {
 
     // restart bridge
     let (controller_handle, controller_task) = common::setup_bridge_controller(
+        "edge-device-8",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,
@@ -673,14 +681,14 @@ async fn recreate_upstream_bridge_when_fails() {
 
     let subs = vec![
         Direction::Out(TopicRule::new(
-            "temp/#".into(),
-            Some("to".into()),
-            Some("upstream".into()),
+            "temp/#",
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
-            "filter/#".into(),
-            Some("to".into()),
-            Some("downstream".into()),
+            "filter/#",
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -688,6 +696,7 @@ async fn recreate_upstream_bridge_when_fails() {
     let storage_dir_override = dir.path().to_path_buf();
 
     let (mut controller_handle, _) = common::setup_bridge_controller(
+        "edge-device-9",
         local_server_handle.address(),
         upstream_server_handle.tls_address().unwrap(),
         subs,

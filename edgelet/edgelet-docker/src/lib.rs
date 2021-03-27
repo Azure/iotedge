@@ -19,11 +19,8 @@ mod notary;
 mod runtime;
 mod settings;
 
-pub use crate::config::DockerConfig;
+pub use config::{DockerConfig, UPSTREAM_PARENT_KEYWORD};
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
 pub use runtime::DockerModuleRuntime;
-pub use settings::{
-    ContentTrust, LoadSettingsError, MobyRuntime, Settings, CONFIG_FILE_DEFAULT,
-    UPSTREAM_PARENT_KEYWORD,
-};
+pub use settings::{ContentTrust, LoadSettingsError, MobyRuntime, Settings, CONFIG_FILE_DEFAULT};

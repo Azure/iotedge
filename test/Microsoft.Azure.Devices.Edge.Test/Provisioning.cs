@@ -39,8 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("CentOsSafe")]
         public async Task DpsSymmetricKey()
         {
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
-            string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key"));
+            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
+            string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key (check DPS_GROUP_KEY env var)"));
             string registrationId = DeviceId.Current.Generate();
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
@@ -83,10 +83,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task DpsX509()
         {
             (string, string, string) rootCa =
-                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
             string caCertScriptPath =
-                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
-            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
+                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
+            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
             string registrationId = DeviceId.Current.Generate();
 
             CancellationToken token = this.TestToken;
