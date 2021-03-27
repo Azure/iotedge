@@ -29,8 +29,6 @@ use crate::{
     settings::TopicRule,
 };
 
-const TOPIC_SEPARATOR: char = '/';
-
 #[derive(Default, Clone, Debug)]
 pub struct TopicMapper {
     topic_settings: TopicRule,
@@ -94,25 +92,9 @@ impl<S> StoreMqttEventHandler<S> {
                     })
                     .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
                         Some(out_prefix) => {
-                            if mapper.topic_settings.in_prefix().is_none() {
-                                // inPrefix is empty so it adds the topic separator between remote prefix
-                                // and topic
-                                format!("{}{}{}", out_prefix, TOPIC_SEPARATOR, stripped_topic)
-                            } else {
-                                format!("{}{}", out_prefix, stripped_topic)
-                            }
+                            format!("{}{}", out_prefix, stripped_topic)
                         }
-                        None => {
-                            if mapper.topic_settings.in_prefix().is_some() {
-                                stripped_topic
-                                    .strip_prefix(TOPIC_SEPARATOR)
-                                    .unwrap_or(stripped_topic)
-                                    .to_string()
-                            } else {
-                                // in case there was no separator because inPrefix is empty
-                                stripped_topic.to_string()
-                            }
-                        }
+                        None => stripped_topic.to_string(),
                     })
                     .and_then(|transformed_topic| {
                         // transform_topic can be empty when topic is # and outPrefix is empty and it matches on inPrefix
@@ -505,14 +487,14 @@ mod tests {
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
-            topic_name: "local/telemetry".to_string(),
+            topic_name: "local/telemetry/".to_string(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: Bytes::new(),
             dup: false,
         };
         let expected1 = Publication {
-            topic_name: "remote/messages".to_string(),
+            topic_name: "remote/messages/".to_string(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: Bytes::new(),
@@ -1015,11 +997,15 @@ mod tests {
                     "workload",
                 )),
                 vec![
-                    Direction::Both(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Both(TopicRule::new(
+                        "temp/#",
+                        None,
+                        Some("floor/kitchen/".into()),
+                    )),
                     Direction::Out(TopicRule::new(
                         "floor/#",
-                        Some("local".into()),
-                        Some("remote".into()),
+                        Some("local/".into()),
+                        Some("remote/".into()),
                     )),
                     Direction::Out(TopicRule::new("pattern/#", None, None)),
                     Direction::Out(TopicRule::new("floor2/#", Some("".into()), Some("".into()))),
@@ -1030,16 +1016,16 @@ mod tests {
                     )),
                     Direction::Out(TopicRule::new(
                         "#",
-                        Some("local/telemetry".into()),
-                        Some("remote/messages".into()),
+                        Some("local/telemetry/".into()),
+                        Some("remote/messages/".into()),
                     )),
-                    Direction::Out(TopicRule::new("#", Some("just/local".into()), None)),
+                    Direction::Out(TopicRule::new("#", Some("just/local/".into()), None)),
                     Direction::Out(TopicRule::new(
                         "floor3/#",
                         None,
-                        Some("remote/messages".into()),
+                        Some("remote/messages/".into()),
                     )),
-                    Direction::Out(TopicRule::new("floor4/#", Some("local".into()), None)),
+                    Direction::Out(TopicRule::new("floor4/#", Some("local/".into()), None)),
                     Direction::Out(TopicRule::new("floor5/#", None, None)),
                     Direction::Out(TopicRule::new(
                         "",
@@ -1057,8 +1043,12 @@ mod tests {
                     "client", "mymodule", "pass", None,
                 )),
                 vec![
-                    Direction::In(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
-                    Direction::Out(TopicRule::new("some", None, Some("remote".into()))),
+                    Direction::In(TopicRule::new(
+                        "temp/#",
+                        None,
+                        Some("floor/kitchen/".into()),
+                    )),
+                    Direction::Out(TopicRule::new("some", None, Some("remote/".into()))),
                 ],
                 Duration::from_secs(60),
                 false,
