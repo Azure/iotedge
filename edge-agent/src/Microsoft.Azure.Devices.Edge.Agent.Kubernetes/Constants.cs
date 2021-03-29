@@ -86,5 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string HostIPC = "host";
         public const string HostNetwork = "host";
         public const string HostNetworkDnsPolicy = "ClusterFirstWithHostNet";
+        public const string HostPid = "host";
     }
 }
