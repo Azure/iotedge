@@ -190,7 +190,9 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not stop existing modules")
             }
 
-            InitializeErrorReason::SaveProvisioning => write!(f, "Could not save provisioning state file"),
+            InitializeErrorReason::SaveProvisioning => {
+                write!(f, "Could not save provisioning state file")
+            }
 
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 

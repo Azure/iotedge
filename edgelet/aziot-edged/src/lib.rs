@@ -423,12 +423,16 @@ where
     let path = subdir.join(filename);
 
     // store provisioning result
-    let mut file =
-        File::create(path).context(ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning))?;
-    let digest = compute_provisioning_result_digest(provisioning_result)
-        .context(ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning))?;
+    let mut file = File::create(path).context(ErrorKind::Initialize(
+        InitializeErrorReason::SaveProvisioning,
+    ))?;
+    let digest = compute_provisioning_result_digest(provisioning_result).context(
+        ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning),
+    )?;
     file.write_all(digest.as_bytes())
-        .context(ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning))?;
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::SaveProvisioning,
+        ))?;
 
     Ok(())
 }
