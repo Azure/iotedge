@@ -287,6 +287,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             }
             else
             {
+                envList.Add(new V1EnvVar(CoreConstants.EdgeDeviceHostNameKey, this.edgeHostname));
                 envList.Add(new V1EnvVar(CoreConstants.GatewayHostnameVariableName, EdgeHubHostname));
             }
 
@@ -307,6 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         (List<V1Volume>, List<V1VolumeMount>) CollectModuleVolumes(KubernetesModule module, IModuleIdentity identity)
         {
             var volumeList = new List<V1Volume>();
+            var extVolumeList = new List<V1Volume>();
             var volumeMountList = new List<V1VolumeMount>();
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName))
@@ -355,9 +357,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(module, mount))
-                                            .GroupBy(x => x.Name)
-                                            .Select(x => x.FirstOrDefault()))
+            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(module, mount)))
                 .ForEach(volumes => volumeList.AddRange(volumes));
 
             volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolumeMount(mount)))
@@ -366,13 +366,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // collect volume and volume mounts from CreateOption.Volumes section @kubernetes extended feature
             module.Config.CreateOptions.Volumes
                 .Map(volumes => volumes.Select(volume => volume.Volume).FilterMap())
-                .ForEach(volumes => volumeList.AddRange(volumes));
+                .ForEach(volumes => extVolumeList.AddRange(volumes));
 
             module.Config.CreateOptions.Volumes
                 .Map(volumes => volumes.Select(volume => volume.VolumeMounts).FilterMap())
                 .ForEach(mounts => volumeMountList.AddRange(mounts.SelectMany(x => x)));
 
-            return (volumeList, volumeMountList);
+            // Use Volumes from k8s extension as-is, but eliminate duplicate volumes from createOptions.
+            // If the user mixes createOptions and k8s settings, and have a naming collision, they
+            // may cause an API failure at runtime, and deployment will be in a failed state.
+            var finalVolumeList = extVolumeList.Concat(
+                                    volumeList
+                                        .GroupBy(v => v.Name)
+                                        .Select(volumes =>
+                                        {
+                                            // If we have a mix of rw and ro mounts, choose rw.
+                                            if (volumes.Any(v => v.PersistentVolumeClaim?.ReadOnlyProperty == false))
+                                            {
+                                                return volumes.First(v => v.PersistentVolumeClaim?.ReadOnlyProperty == false);
+                                            }
+                                            else
+                                            {
+                                                return volumes.FirstOrDefault();
+                                            }
+                                        })).ToList();
+            return (finalVolumeList, volumeMountList);
         }
 
         Option<V1ResourceRequirements> PrepareModuleResourceRequirements(KubernetesModule module, IModuleIdentity identity)
