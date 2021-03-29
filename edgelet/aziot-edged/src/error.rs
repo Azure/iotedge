@@ -137,6 +137,7 @@ pub enum InitializeErrorReason {
     ManagementService,
     ModuleRuntime,
     RemoveExistingModules,
+    SaveProvisioning,
     StopExistingModules,
     Tokio,
     WorkloadService,
@@ -188,6 +189,8 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::StopExistingModules => {
                 write!(f, "Could not stop existing modules")
             }
+
+            InitializeErrorReason::SaveProvisioning => write!(f, "Could not save provisioning state file"),
 
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 
