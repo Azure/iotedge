@@ -132,21 +132,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
 
                     // Delete test certs, keys, etc.
-                    Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
-
-                    // Restore backed up config files.
-                    foreach ((string file, string _) in this.configFiles)
+                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
                     {
-                        string backupFile = file + ".backup";
-
-                        if (File.Exists(backupFile))
-                        {
-                            File.Move(backupFile, file, true);
-                        }
-                        else
-                        {
-                            File.Delete(file);
-                        }
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
                     }
                 },
                 "Completed end-to-end test teardown"),
@@ -194,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public static async Task<(TestCertificates, CertificateAuthority ca)> GenerateCertsAsync(string deviceId, CancellationToken token)
         {
             string scriptPath = Context.Current.CaCertScriptPath.Expect(
-                () => new System.InvalidOperationException("Missing CA cert script path"));
+                () => new System.InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
             (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
                 () => new System.InvalidOperationException("Missing root CA"));
 

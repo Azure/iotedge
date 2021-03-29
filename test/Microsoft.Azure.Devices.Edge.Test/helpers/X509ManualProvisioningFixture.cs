@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
         protected EdgeRuntime runtime;
+        protected EdgeDevice device;
 
         [OneTimeSetUp]
         public async Task X509ProvisionEdgeAsync()
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             deviceId,
-                            Context.Current.ParentDeviceId,
+                            this.GetNestedEdgeConfig(this.IotHub),
                             this.IotHub,
                             AuthenticationType.SelfSigned,
                             thumbprint,
@@ -76,11 +77,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         async Task<(X509Thumbprint, string, string)> CreateIdentityCertAsync(string deviceId, CancellationToken token)
         {
             (string, string, string) rootCa =
-            Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+            Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing DPS ID scope (check rootCaPrivateKeyPath in context.json)"));
             string caCertScriptPath = Context.Current.CaCertScriptPath.Expect(
-                () => new InvalidOperationException("Missing CA cert script path"));
+                () => new InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
             string idScope = Context.Current.DpsIdScope.Expect(
-                () => new InvalidOperationException("Missing DPS ID scope"));
+                () => new InvalidOperationException("Missing DPS ID scope(check dpsIdScope in context.json)"));
 
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 deviceId,

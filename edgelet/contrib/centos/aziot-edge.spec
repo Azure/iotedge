@@ -10,7 +10,7 @@ Name:           aziot-edge
 Version:        @version@
 Release:        @release@%{?dist}
 
-License:        Proprietary
+License:        MIT
 Summary:        Azure IoT Edge Module Runtime
 URL:            https://github.com/azure/iotedge
 
