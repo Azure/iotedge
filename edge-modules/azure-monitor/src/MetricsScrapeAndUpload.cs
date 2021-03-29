@@ -58,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             catch (Exception e)
             {
                 Logger.Writer.LogError(e, "Error scraping and uploading metrics");
-                TelemClient.TrackTaggedException(e);
             }
         }
 

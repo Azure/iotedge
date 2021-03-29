@@ -108,7 +108,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             catch (Exception e)
             {
                 Logger.Writer.LogError($"Error scraping endpoint {endpoint} - {e}");
-                TelemClient.TrackTaggedException(e);
             }
 
             return string.Empty;

@@ -41,12 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             Logger.Writer.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            TelemClient.TrackTaggedTrace("Module starting, Arch:\"" + System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture + "\", OS: \"" + System.Runtime.InteropServices.RuntimeInformation.OSDescription + "\"");
-
-            TelemClient.TrackTaggedMetric("number of prometheus endpoints", Settings.Current.Endpoints.Count());
-            TelemClient.TrackTaggedMetric("scrape frequency", Settings.Current.ScrapeFrequencySecs);
-            TelemClient.TrackTaggedMetric("Compress before upload", Settings.Current.CompressForUpload ? 1 : 0);
-
             // start periodic telemetry reporting
             ResourceUsageTelemetryReporter telemReporter = new ResourceUsageTelemetryReporter(Logger.Writer);
 
@@ -79,7 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             catch (Exception e)
             {
                 Logger.Writer.LogError(e, "Error occurred during metrics collection setup.");
-                TelemClient.TrackTaggedException(e);
             }
             finally
             {

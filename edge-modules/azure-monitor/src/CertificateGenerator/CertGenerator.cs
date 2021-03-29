@@ -275,7 +275,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
                 Console.WriteLine("Registering agent with OMS failed (are the Log Analytics Workspace ID and Key correct?) : {0}", ex.Message);
 
                 Logger.Writer.LogCritical(ex.ToString());
-                TelemClient.TrackTaggedException(ex);
                 // throw e;
                 Environment.Exit(1);
 

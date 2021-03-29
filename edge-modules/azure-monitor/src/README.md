@@ -20,6 +20,7 @@ Required config items:
     - Can be `AzureMonitor` or `IotMessage`
 - `HubResourceID`
     - ARM resource ID of the IoT Hub this node communicates too.
+    
 
 Optional config items:
 - `LogAnalyticsWorkspaceId`
@@ -52,10 +53,6 @@ Optional config items:
     - This should really only be turned off in extremely CPU-bound applications, if at all.
     - ex: `true`
     - Defaults to true.
-- `DISABLE_TELEMETRY`
-    - Set this to any non-empy value to disable telemetry. We recommend doing so in extremely bandwidth-limited applications
-    - Defaults to sending telemetry.
-
 
 
 ## Upload Target:

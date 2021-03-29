@@ -100,7 +100,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 
                         if (contentLength > 1024 * 1024 )
                         {
-                            TelemClient.TrackTaggedEvent("HTTP post content greater than 1mb", new Dictionary<string, string> {["contentsize"] = contentLength.ToString()});
+                            Logger.Writer.LogDebug( 
+                                "HTTP post content greater than 1mb" + " " +
+                                "Length - " + contentLength.ToString());
                         }
 
                         contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
@@ -120,12 +122,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                             failurecount += 1;
 
                             if (DateTime.Now - lastFailureReportedTime > TimeSpan.FromMinutes(1)) {
-                                TelemClient.TrackTaggedEvent("abnormal HTTP response code", new Dictionary<string, string> {["responsecode"] = ((int)response.StatusCode).ToString(),
-                                                                                                                            ["reasonphrase"] = response.ReasonPhrase,
-                                                                                                                            ["responsemsg"] = responseMsg,
-                                                                                                                            ["requestheaders"] = client.DefaultRequestHeaders.ToString() + contentMsg.Headers,
-                                                                                                                            ["requestcontent"] = contentMsg.ReadAsStringAsync().Result,
-                                                                                                                            ["count"] = "" + failurecount });
+                                Logger.Writer.LogDebug(                                
+                                    "abnormal HTTP response code - " +
+                                    "responsecode: " + ((int)response.StatusCode).ToString() + " " +
+                                    "reasonphrase: " + response.ReasonPhrase + " " +
+                                    "responsemsg: " + responseMsg + " " +
+                                    "requestheaders: " + client.DefaultRequestHeaders.ToString() + contentMsg.Headers  + " " +
+                                    "requestcontent: " + contentMsg.ReadAsStringAsync().Result + " " +
+                                    "count: " + failurecount);
                                 failurecount = 0;
                                 lastFailureReportedTime = DateTime.Now;
                             }
@@ -141,7 +145,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             catch (Exception e)
             {
                 Logger.Writer.LogError(e.Message);
-                TelemClient.TrackTaggedException(e);
             }
 
             return false;
@@ -204,8 +207,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             catch (Exception e) {
                 // log an error and exit. Modules are restarted automatically so it makes more sense to crash and restart than recover from this.
                 Logger.Writer.LogCritical(e.ToString());
-                TelemClient.TrackTaggedException(e);
-                // throw e;
                 Environment.Exit(1);
 
                 // to make the code analyzer happy, otherwise not all codepaths return a value
