@@ -20,17 +20,6 @@ async fn main() -> Result<()> {
         app.setup(config_path)?;
     }
 
-    // // TODO: Move this into app.setup()
-    // let metrics_enabled = false; // TODO: Pull this from config file
-    // let _push_controller;
-    // if metrics_enabled {
-    //     _push_controller = mqtt_otel::init_stdout_metrics_exporter()?;
-    // }
-    // else {
-    //     mqtt_otel::init_noop_config();
-    // }
-    // // end TODO
-
     app.run().await?;
     Ok(())
 }
