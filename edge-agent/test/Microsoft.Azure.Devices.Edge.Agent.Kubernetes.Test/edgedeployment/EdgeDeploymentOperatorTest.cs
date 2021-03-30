@@ -58,7 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
 
@@ -94,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Modified, edgeDefinition, Cts);
@@ -116,7 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Error, edgeDefinition, Cts);
 
@@ -137,7 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
 
@@ -177,7 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             Assert.True(reportedStatus.HasValue);
@@ -221,7 +226,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             Assert.True(reportedStatus.HasValue);
@@ -247,7 +253,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             Assert.Throws<Exception>(() => edgeOperator.RestartWatch(cts));
             Assert.True(cts.OrDefault().IsCancellationRequested);
@@ -269,7 +276,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             Assert.Throws<Exception>(() => edgeOperator.HandleError(controllerException, cts));
             Assert.True(cts.OrDefault().IsCancellationRequested);
@@ -309,7 +317,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             EdgeDeploymentStatusCommand commandResult = new EdgeDeploymentStatusCommand(reportedStatus);
@@ -353,7 +362,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                 ResourceName,
                 DeviceNamespace,
                 client,
-                controller);
+                controller,
+                180);
 
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition, Cts);
             EdgeDeploymentStatusCommand commandResult = new EdgeDeploymentStatusCommand(reportedStatus);

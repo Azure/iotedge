@@ -200,6 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool useMountSourceForVolumeName = k8sConfiguration.GetValue<bool>(K8sConstants.UseMountSourceForVolumeNameKey, false);
                         string storageClassName = k8sConfiguration.GetValue<string>(K8sConstants.StorageClassNameKey);
                         Option<uint> persistentVolumeClaimDefaultSizeMb = Option.Maybe(k8sConfiguration.GetValue<uint?>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey));
+                        int operatorTimeout = Option.Maybe(k8sConfiguration.GetValue<int?>(K8sConstants.AgentOperatorTimeoutSecondsKey)).GetOrElse(K8sConstants.DefaultOperatorTimeoutSeconds);
                         string deviceNamespace = k8sConfiguration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(k8sConfiguration.GetSection("experimentalFeatures"), logger);
                         var moduleOwner = new KubernetesModuleOwner(
@@ -235,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 useServerHeartbeat,
                                 kubernetesExperimentalFeatures,
                                 moduleOwner,
-                                runAsNonRoot));
+                                runAsNonRoot,
+                                operatorTimeout));
 
                         trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);

@@ -17,12 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public class EdgeDeploymentOperator : IEdgeDeploymentOperator
     {
-        const int TimeoutSeconds = 180;
         readonly IKubernetes client;
         readonly AsyncLock watchLock = new AsyncLock();
         readonly IEdgeDeploymentController controller;
         readonly ResourceName resourceName;
         readonly string deviceNamespace;
+        readonly int timeoutSeconds;
         readonly JsonSerializerSettings serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
         Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
         ModuleSet currentModules = ModuleSet.Empty;
@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             ResourceName resourceName,
             string deviceNamespace,
             IKubernetes client,
-            IEdgeDeploymentController controller)
+            IEdgeDeploymentController controller,
+            int timeoutSeconds)
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
@@ -40,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
             this.controller = Preconditions.CheckNotNull(controller, nameof(controller));
+            this.timeoutSeconds = timeoutSeconds;
         }
 
         public void Start(CancellationTokenSource shutdownCts) => this.StartListEdgeDeployments(shutdownCts);
@@ -53,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public void Dispose() => this.Stop();
 
         void StartListEdgeDeployments(CancellationTokenSource shutdownCts) =>
-            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, timeoutSeconds: TimeoutSeconds, watch: true)
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, timeoutSeconds: this.timeoutSeconds, watch: true)
                 .ContinueWith(this.OnListEdgeDeploymentsCompleted, shutdownCts);
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task, object shutdownCtsObject)

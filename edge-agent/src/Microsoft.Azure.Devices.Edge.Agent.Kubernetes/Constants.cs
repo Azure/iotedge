@@ -71,6 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string PersistentVolumeClaimDefaultSizeInMbKey = "PersistentVolumeClaimDefaultSizeInMb";
 
+        public const string AgentOperatorTimeoutSecondsKey = "AgentOperatorTimeoutSeconds";
+        public const int DefaultOperatorTimeoutSeconds = 180;
+
         public const string EdgeK8sObjectOwnerApiVersionKey = "EdgeK8sObjectOwnerApiVersion";
 
         public const string EdgeK8sObjectOwnerKindKey = "EdgeK8sObjectOwnerKind";

@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             this.client = new KubernetesClient(deviceNamespace, fixture.Client);
 
             this.runtimeInfoProvider = new KubernetesRuntimeInfoProvider(deviceNamespace, fixture.Client, new DummyModuleManager());
-            this.environmentOperator = new KubernetesEnvironmentOperator(deviceNamespace, this.runtimeInfoProvider, fixture.Client);
+            this.environmentOperator = new KubernetesEnvironmentOperator(deviceNamespace, this.runtimeInfoProvider, fixture.Client, 180);
         }
 
         public async Task InitializeAsync()
