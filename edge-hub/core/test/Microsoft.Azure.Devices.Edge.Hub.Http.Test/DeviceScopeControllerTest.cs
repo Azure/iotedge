@@ -99,7 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
-            controller.Request.Headers.Add(Constants.OriginEdgeHeaderKey, $"{childEdgeId}");
             var request = new IdentityOnBehalfOfRequest(childEdgeId, moduleId, $"{childEdgeId};{parentEdgeId}");
             await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
@@ -137,7 +136,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var controller = MakeController(childEdgeId, resultIdentities, authChainMapping);
 
             // Act
-            controller.Request.Headers.Add(Constants.OriginEdgeHeaderKey, $"{childEdgeId}");
             var request = new IdentityOnBehalfOfRequest(deviceId, null, $"{deviceId};{childEdgeId};{parentEdgeId}");
             await controller.GetDeviceAndModuleOnBehalfOfAsync(parentEdgeId, "$edgeHub", request);
 
