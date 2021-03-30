@@ -14,7 +14,7 @@ const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
 // TODO: Dedupe this with edgelet-http-workload
-const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
+const IOTEDGED_COMMONNAME_PREFIX: &str = "iotedged workload ca";
 
 pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
@@ -160,7 +160,6 @@ fn execute_inner(
         .map_err(|err| format!("could not read config file {}: {}", config.display(), err))?;
 
     let super_config::Config {
-        parent_hostname,
         trust_bundle_cert,
         auto_reprovisioning_mode,
         aziot,
@@ -209,7 +208,7 @@ fn execute_inner(
     let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
-        auto_generated_edge_ca_expiry_days: 1,
+        auto_generated_edge_ca_expiry_days: 90,
     });
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
@@ -236,7 +235,10 @@ fn execute_inner(
                 edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 aziot_certd_config::CertIssuanceOptions {
                     method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
-                    common_name: Some(IOTEDGED_COMMONNAME.to_owned()),
+                    common_name: Some(format!(
+                        "{} {}",
+                        IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
+                    )),
                     expiry_days: Some(auto_generated_edge_ca_expiry_days),
                 },
             );
@@ -264,20 +266,9 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
-    // TODO: Remove this when IS gains first-class support for parent_hostname
-    if let Some(parent_hostname) = &parent_hostname {
-        if let aziot_identityd_config::ProvisioningType::Manual {
-            iothub_hostname, ..
-        } = &mut identityd_config.provisioning.provisioning
-        {
-            *iothub_hostname = parent_hostname.clone();
-        }
-    }
-
     let edged_config = edgelet_docker::Settings {
         base: edgelet_core::Settings {
             hostname: identityd_config.hostname.clone(),
-            parent_hostname,
 
             edge_ca_cert,
             edge_ca_key,
