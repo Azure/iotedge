@@ -695,6 +695,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
@@ -743,6 +744,7 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
+                Some("1.0.0".to_owned()),  // unused for this test
                 Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
@@ -794,6 +796,7 @@ mod tests {
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
             Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
@@ -831,6 +834,7 @@ mod tests {
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
+            Some("1.0.0".to_owned()),  // unused for this test
             Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
