@@ -18,10 +18,10 @@ pub(crate) struct AziotEdgedVersion {
 
 impl Checker for AziotEdgedVersion {
     fn id(&self) -> &'static str {
-        "aziot-edged-version"
+        "aziot-edge-version"
     }
     fn description(&self) -> &'static str {
-        "aziot-edged package is up-to-date"
+        "aziot-edge package is up-to-date"
     }
 
     fn execute(
