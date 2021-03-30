@@ -116,19 +116,16 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     catch (Exception e)
                     {
                         this.logger.LogWarning(e, $"Error in periodic operation {this.operationName}");
-                        TelemClient.TrackTaggedException(e);
                     }
 
                     await Task.Delay(this.period, cancellationToken);
                 }
 
                 this.logger.LogWarning($"Periodic operation {this.operationName} cancelled");
-                TelemClient.TrackTaggedEvent($"Periodic operation {this.operationName} cancelled");
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, $"Unexpected error in periodic operation {this.operationName}");
-                TelemClient.TrackTaggedException(ex);
             }
         }
     }

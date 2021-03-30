@@ -81,8 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             catch (ArgumentException e) {
                 Logger.Writer.LogCritical("Error reading arguments from environment variables. Make sure all required parameter are present");
                 Logger.Writer.LogCritical(e.ToString());
-                TelemClient.TrackTaggedException(e);
-                TelemClient.Instance.Flush();
                 Environment.Exit(2);
                 throw new Exception();  // to make code analyzers happy (this line will never run)
             }

@@ -18,8 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         private readonly string workspaceKey;
         private readonly string DNSName;
 
-        private readonly Microsoft.ApplicationInsights.Metric numMetricsMetric = TelemClient.Instance.GetMetric("egressed metrics", "instance id");
-
         public FixedSetTableUpload(string workspaceId, string workspaceKey)
         {
             this.workspaceId = Preconditions.CheckNonWhiteSpace(workspaceId, nameof(workspaceId));
@@ -52,13 +50,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                     Logger.Writer.LogInformation($"Successfully sent {metricList.DataItems.Count()} metrics to fixed set table");
                 else
                     Logger.Writer.LogError($"Failed to send {metricList.DataItems.Count()} metrics to fixed set table after {Constants.UploadMaxRetries} retries");
-                numMetricsMetric.TrackTaggedValue(metricList.DataItems.Count());
                 return success;
             }
             catch (Exception e)
             {
                 Logger.Writer.LogError(e, "Error uploading metrics to fixed set table");
-                TelemClient.TrackTaggedException(e);
                 return false;
             }
         }
