@@ -94,9 +94,11 @@ where
 
                 if IpAddr::from_str(common_name).is_ok() {
                     ip.push(common_name.clone());
-                } else {
-                    dns.push(common_name.clone());
-                };
+                }
+
+                // add as dNSName even if it has been added as iPAddress. It is a workaround
+                // for OpenSSL, which does not check iPAddress entries when dNSName is present.
+                dns.push(common_name.clone());
 
                 #[allow(clippy::cast_sign_loss)]
                 let props = CertificateProperties::new(
