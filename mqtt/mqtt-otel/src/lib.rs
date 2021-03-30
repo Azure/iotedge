@@ -9,9 +9,9 @@ use std::pin::Pin;
 
 use futures::stream::Stream;
 use futures::StreamExt;
-use opentelemetry::global;
 use opentelemetry::metrics::{self, noop::NoopMeterProvider, MetricsError};
 use opentelemetry::sdk::metrics::PushController;
+use opentelemetry::{global, KeyValue};
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::{Encoder, TextEncoder};
 use std::convert::Infallible;
@@ -88,4 +88,22 @@ pub fn init_stdout_metrics_exporter() -> metrics::Result<PushController> {
 pub fn init_noop_config() {
     let provider = NoopMeterProvider::new();
     global::set_meter_provider(provider);
+}
+
+pub fn inc_client_msgs_received(client_id: String) {
+    let meter = global::meter("azure/iotedge/mqttbroker");
+    let client_msgs_received_counter = meter
+        .u64_counter("mqtt.broker.client.messages.received")
+        .with_description("Total number of client messages received by this MQTT Broker instance.")
+        .init();
+    client_msgs_received_counter.add(1, &[KeyValue::new("client_id", client_id)]);
+}
+
+pub fn inc_client_msgs_sent(client_id: String) {
+    let meter = global::meter("azure/iotedge/mqttbroker");
+    let client_msgs_sent_counter = meter
+        .u64_counter("mqtt.broker.client.messages.sent")
+        .with_description("Total number of client messages sent by this MQTT Broker instance.")
+        .init();
+    client_msgs_sent_counter.add(1, &[KeyValue::new("client_id", client_id)]);
 }

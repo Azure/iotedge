@@ -5,9 +5,9 @@ use futures_util::StreamExt;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
+use opentelemetry::global;
 use opentelemetry::metrics::Counter;
 use opentelemetry::sdk::metrics::controllers::PushController;
-use opentelemetry::{global, KeyValue};
 
 use mqtt3::proto;
 
@@ -40,7 +40,7 @@ pub struct Broker<Z> {
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
     config: BrokerConfig,
-    instruments: BrokerOtelInstruments,
+    _instruments: BrokerOtelInstruments,
 
     #[cfg(feature = "__internal_broker_callbacks")]
     pub on_publish: Option<tokio::sync::mpsc::UnboundedSender<std::time::Duration>>,
@@ -265,18 +265,11 @@ where
                 Ok(())
             }
             ClientEvent::PublishFrom(publish, _) => {
-                self.instruments.client_msgs_received_counter.add(
-                    1,
-                    &[KeyValue::new("client_id", client_id.as_str().to_owned())],
-                );
+                mqtt_otel::inc_client_msgs_received(client_id.as_str().to_owned());
                 self.process_publish(&client_id, publish)
             }
             ClientEvent::PublishTo(_publish) => {
                 info!("broker received a PublishTo, ignoring");
-                self.instruments.client_msgs_sent_counter.add(
-                    1,
-                    &[KeyValue::new("client_id", client_id.as_str().to_owned())],
-                );
                 Ok(())
             }
             ClientEvent::PubAck0(id) => self.process_puback0(&client_id, id),
@@ -983,8 +976,7 @@ where
 }
 
 struct BrokerOtelInstruments {
-    client_msgs_received_counter: Counter<u64>,
-    client_msgs_sent_counter: Counter<u64>,
+    _client_msgs_received_counter: Counter<u64>,
     _push_controller: Option<PushController>,
 }
 
@@ -1002,19 +994,12 @@ impl BrokerOtelInstruments {
         } else {
             mqtt_otel::init_noop_config();
         }
-        // end TODO
         let meter = global::meter("azure/iotedge/mqttbroker");
         BrokerOtelInstruments {
-            client_msgs_received_counter: meter
+            _client_msgs_received_counter: meter
                 .u64_counter("mqtt.broker.client.messages.received")
                 .with_description(
                     "Total number of client messages received by this MQTT Broker instance.",
-                )
-                .init(),
-            client_msgs_sent_counter: meter
-                .u64_counter("mqtt.broker.client.messages.sent")
-                .with_description(
-                    "Total number of client messages sent by this MQTT Broker instance.",
                 )
                 .init(),
             _push_controller: pc,
@@ -1156,7 +1141,7 @@ where
             acks: ack_sender,
         };
 
-        let instruments = BrokerOtelInstruments::new(config.metrics());
+        let _instruments = BrokerOtelInstruments::new(config.metrics());
 
         Broker {
             messages,
@@ -1165,7 +1150,7 @@ where
             retained,
             authorizer: self.authorizer,
             config,
-            instruments,
+            _instruments,
 
             #[cfg(feature = "__internal_broker_callbacks")]
             on_publish: None,
