@@ -41,8 +41,7 @@ To reconfigure IoT Edge, run:
 
         aziot: common_config::super_config::Config {
             hostname: None,
-
-            local_gateway_hostname: None,
+            parent_hostname: None,
 
             provisioning: common_config::super_config::Provisioning {
                 provisioning: common_config::super_config::ProvisioningType::Manual {
