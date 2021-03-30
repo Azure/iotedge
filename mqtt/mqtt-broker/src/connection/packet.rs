@@ -6,7 +6,7 @@ use tracing::{debug, warn};
 
 use mqtt3::proto::Packet;
 
-use mqtt_otel;
+use mqtt_otel::{self, metrics};
 
 use crate::{ClientEvent, ClientId, Error, Message, Publish};
 
@@ -175,12 +175,12 @@ impl OutgoingPacketProcessor for MqttOutgoingPacketProcessor {
                     PacketAction::Continue(Some((Packet::UnsubAck(unsuback), None)))
                 }
                 ClientEvent::PublishTo(Publish::QoS12(_id, publish)) => {
-                    mqtt_otel::inc_client_msgs_sent(self.client_id.as_str().to_owned());
+                    metrics::inc_client_msgs_sent(self.client_id.as_str().to_owned());
 
                     PacketAction::Continue(Some((Packet::Publish(publish), None)))
                 }
                 ClientEvent::PublishTo(Publish::QoS0(id, publish)) => {
-                    mqtt_otel::inc_client_msgs_sent(self.client_id.as_str().to_owned());
+                    metrics::inc_client_msgs_sent(self.client_id.as_str().to_owned());
                     let message = Message::Client(self.client_id.clone(), ClientEvent::PubAck0(id));
                     PacketAction::Continue(Some((Packet::Publish(publish), Some(message))))
                 }

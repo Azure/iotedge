@@ -9,6 +9,7 @@ use mqttd::{app, tracing};
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing::init();
+    let _metrics_pc = mqtt_otel::init_stdout_metrics_exporter();
 
     let config_path = create_app()
         .get_matches()

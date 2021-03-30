@@ -9,14 +9,17 @@ use std::pin::Pin;
 
 use futures::stream::Stream;
 use futures::StreamExt;
-use opentelemetry::metrics::{self, noop::NoopMeterProvider, MetricsError};
+use opentelemetry::global;
+use opentelemetry::metrics as otel_metrics;
+use opentelemetry::metrics::{noop::NoopMeterProvider, MetricsError};
 use opentelemetry::sdk::metrics::PushController;
-use opentelemetry::{global, KeyValue};
 use opentelemetry_prometheus::PrometheusExporter;
 use prometheus::{Encoder, TextEncoder};
 use std::convert::Infallible;
 use std::result::Result;
 use std::time::Duration;
+
+pub mod metrics;
 
 async fn serve_req(
     _req: Request<Body>,
@@ -66,7 +69,7 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Insta
 }
 
 // TODO: Uncomment and use once we move broker to tokio v1
-// pub fn init_otlp_metrics_exporter() -> metrics::Result<PushController> {
+// pub fn init_otlp_metrics_exporter() -> otel_metrics::Result<PushController> {
 //     opentelemetry_otlp metrics exporter only available starting in opentelemetry v0.12.0,
 //     which depends on tokio 1.0
 //     let export_config = ExporterConfig {
@@ -79,31 +82,13 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Insta
 //         .build()
 // }
 
-pub fn init_stdout_metrics_exporter() -> metrics::Result<PushController> {
+pub fn init_stdout_metrics_exporter() -> otel_metrics::Result<PushController> {
     opentelemetry::sdk::export::metrics::stdout(tokio::spawn, delayed_interval)
         .with_pretty_print(true)
         .try_init()
 }
 
-pub fn init_noop_config() {
+pub fn set_noop_meter_provider() {
     let provider = NoopMeterProvider::new();
     global::set_meter_provider(provider);
-}
-
-pub fn inc_client_msgs_received(client_id: String) {
-    let meter = global::meter("azure/iotedge/mqttbroker");
-    let client_msgs_received_counter = meter
-        .u64_counter("mqtt.broker.client.messages.received")
-        .with_description("Total number of client messages received by this MQTT Broker instance.")
-        .init();
-    client_msgs_received_counter.add(1, &[KeyValue::new("client_id", client_id)]);
-}
-
-pub fn inc_client_msgs_sent(client_id: String) {
-    let meter = global::meter("azure/iotedge/mqttbroker");
-    let client_msgs_sent_counter = meter
-        .u64_counter("mqtt.broker.client.messages.sent")
-        .with_description("Total number of client messages sent by this MQTT Broker instance.")
-        .init();
-    client_msgs_sent_counter.add(1, &[KeyValue::new("client_id", client_id)]);
 }
