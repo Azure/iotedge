@@ -5,16 +5,13 @@ use futures_util::StreamExt;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 use tracing::{debug, error, info, info_span, warn};
 
-use opentelemetry::global;
-use opentelemetry::metrics::Counter;
-use opentelemetry::sdk::metrics::controllers::PushController;
+use mqtt_otel::metrics;
 
 use mqtt3::proto;
 
 use crate::{
     auth::{Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
     session::{ConnectedSession, Session, SessionState},
-    settings::MetricsConfig,
     state_change::StateChange,
     stream::{self, SelectOrdered},
     subscription::Subscription,
@@ -40,7 +37,6 @@ pub struct Broker<Z> {
     retained: HashMap<String, proto::Publication>,
     authorizer: Z,
     config: BrokerConfig,
-    _instruments: BrokerOtelInstruments,
 
     #[cfg(feature = "__internal_broker_callbacks")]
     pub on_publish: Option<tokio::sync::mpsc::UnboundedSender<std::time::Duration>>,
@@ -265,7 +261,7 @@ where
                 Ok(())
             }
             ClientEvent::PublishFrom(publish, _) => {
-                mqtt_otel::inc_client_msgs_received(client_id.as_str().to_owned());
+                metrics::inc_client_msgs_received(client_id.as_str().to_owned());
                 self.process_publish(&client_id, publish)
             }
             ClientEvent::PublishTo(_publish) => {
@@ -975,38 +971,6 @@ where
     }
 }
 
-struct BrokerOtelInstruments {
-    _client_msgs_received_counter: Counter<u64>,
-    _push_controller: Option<PushController>,
-}
-
-impl BrokerOtelInstruments {
-    fn new(config: &MetricsConfig) -> BrokerOtelInstruments {
-        let mut pc = None;
-        if config.enabled() {
-            pc = match mqtt_otel::init_stdout_metrics_exporter() {
-                Err(e) => {
-                    warn!(message = "Initialization of stdout metrics exporter failed", error = %e);
-                    None
-                }
-                Ok(c) => Some(c),
-            };
-        } else {
-            mqtt_otel::init_noop_config();
-        }
-        let meter = global::meter("azure/iotedge/mqttbroker");
-        BrokerOtelInstruments {
-            _client_msgs_received_counter: meter
-                .u64_counter("mqtt.broker.client.messages.received")
-                .with_description(
-                    "Total number of client messages received by this MQTT Broker instance.",
-                )
-                .init(),
-            _push_controller: pc,
-        }
-    }
-}
-
 fn subscribe<Z>(
     authorizer: &Z,
     session: &mut Session,
@@ -1141,7 +1105,9 @@ where
             acks: ack_sender,
         };
 
-        let _instruments = BrokerOtelInstruments::new(config.metrics());
+        if !(config.metrics().enabled()) {
+            mqtt_otel::set_noop_meter_provider();
+        }
 
         Broker {
             messages,
@@ -1150,7 +1116,6 @@ where
             retained,
             authorizer: self.authorizer,
             config,
-            _instruments,
 
             #[cfg(feature = "__internal_broker_callbacks")]
             on_publish: None,
