@@ -222,7 +222,7 @@ fn execute_inner(
         ],
     });
 
-    let preloaded_master_encryption_key_bytes =
+    let preloaded_master_encryption_key_bytes = {
         if let Some(imported_master_encryption_key) = imported_master_encryption_key {
             let preloaded_master_encryption_key_bytes =
                 std::fs::read(&imported_master_encryption_key).map_err(|err| {
@@ -242,7 +242,8 @@ fn execute_inner(
             Some(preloaded_master_encryption_key_bytes)
         } else {
             None
-        };
+        }
+    };
 
     let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
@@ -459,7 +460,7 @@ mod tests {
                     Err(err) => panic!("could not read device-id file: {}", err),
                 };
 
-            let expected_preloaded_master_encryption_key_bytes =
+            let expected_preloaded_master_encryption_key_bytes = {
                 match std::fs::read(case_directory.join("master-encryption-key")) {
                     Ok(contents) => {
                         match std::fs::write("/tmp/master-encryption-key", &contents) {
@@ -482,7 +483,8 @@ mod tests {
                         None
                     }
                     Err(err) => panic!("could not read master-encryption-key file: {}", err),
-                };
+                }
+            };
 
             let super::RunOutput {
                 keyd_config: actual_keyd_config,
