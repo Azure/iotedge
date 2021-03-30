@@ -63,6 +63,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             Mounts = null
         };
 
+        static readonly HostConfig IncompleteMount = new HostConfig
+        {
+            Mounts = new List<Mount>
+            {
+                new Mount
+                {
+                    Source = "a-volume",
+                    Target = "/tmp/volumea"
+                }
+            }
+        };
+        static readonly HostConfig IncompleteMountSource = new HostConfig
+        {
+            Mounts = new List<Mount>
+            {
+                new Mount
+                {
+                    Type = "volume",
+                    Target = "/tmp/volumea"
+                }
+            }
+        };
+
         static readonly Dictionary<string, string> DefaultLabels = new Dictionary<string, string>
         {
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
@@ -96,6 +119,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Pvc
             var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
 
             Assert.False(pvcs.HasValue);
+        }
+
+        [Fact]
+        public void IncompleteMountNoClaims()
+        {
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: IncompleteMount), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var mapper = new KubernetesPvcMapper(false, "storage", 1);
+
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+
+            Assert.False(pvcs.HasValue);
+        }
+
+        [Fact]
+        public void IncompleteMountSourceNoThrows()
+        {
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: IncompleteMountSource), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var mapper = new KubernetesPvcMapper(false, "storage", 1);
+
+            Assert.Throws<InvalidKubernetesNameException>(() => mapper.CreatePersistentVolumeClaims(module, DefaultLabels));
         }
 
         [Fact]

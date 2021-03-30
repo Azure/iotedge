@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
         bool ShouldCreatePvc(Mount mount)
         {
-            if (!mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase))
+            if (mount?.Type == null || !mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase))
             {
                 return false;
             }
