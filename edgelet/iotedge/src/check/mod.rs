@@ -479,9 +479,7 @@ impl Check {
             }
 
             if let Some(version) = &self.expected_aziot_version {
-                aziot_check
-                    .arg("--expected-aziot-version")
-                    .arg(version);
+                aziot_check.arg("--expected-aziot-version").arg(version);
             }
 
             match aziot_check.spawn() {
