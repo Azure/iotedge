@@ -21,18 +21,14 @@ impl Checker for AziotEdgedVersion {
         "aziot-edged-version"
     }
     fn description(&self) -> &'static str {
-        "latest security daemon"
+        "aziot-edged package is up-to-date"
     }
-    #[allow(unreachable_code)] // TODO: remove once check is re-enabled
+
     fn execute(
         &mut self,
         check: &mut Check,
         tokio_runtime: &mut tokio::runtime::Runtime,
     ) -> CheckResult {
-        // TODO: re-enable after sorting out which URL 1.2 version info will be pulled from
-        let _ = (check, tokio_runtime);
-        return CheckResult::Ignored;
-
         let latest_versions = if let Some(expected_aziot_edged_version) =
             &check.expected_aziot_edged_version
         {
