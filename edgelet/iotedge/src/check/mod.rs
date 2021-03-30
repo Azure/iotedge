@@ -35,6 +35,7 @@ pub struct Check {
     dont_run: BTreeSet<String>,
     aziot_edged: PathBuf,
     expected_aziot_edged_version: Option<String>,
+    expected_aziot_version: Option<String>,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
@@ -87,6 +88,7 @@ impl Check {
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
         expected_aziot_edged_version: Option<String>,
+        expected_aziot_version: Option<String>,
         aziot_edged: PathBuf,
         output_format: OutputFormat,
         verbose: bool,
@@ -101,6 +103,7 @@ impl Check {
             dont_run,
             aziot_edged,
             expected_aziot_edged_version,
+            expected_aziot_version,
             output_format,
             verbose,
             warnings_as_errors,
@@ -473,6 +476,12 @@ impl Check {
                 aziot_check
                     .arg("--dont-run")
                     .arg(self.dont_run.iter().cloned().collect::<Vec<_>>().join(" "));
+            }
+
+            if let Some(version) = &self.expected_aziot_version {
+                aziot_check
+                    .arg("--expected-aziot-version")
+                    .arg(version);
             }
 
             match aziot_check.spawn() {

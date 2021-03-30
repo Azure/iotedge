@@ -96,8 +96,15 @@ fn run() -> Result<(), Error> {
                     Arg::with_name("expected-aziot-edged-version")
                         .long("expected-aziot-edged-version")
                         .value_name("VERSION")
-                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <http://aka.ms/latest-iotedge-stable>")
+                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/latest-aziot-stable-non-lts>")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("expected-aziot-version")
+                        .long("expected-aziot-version")
+                        .value_name("AZIOT_VERSION")
+                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/latest-aziot-stable-non-lts>")
+                        .takes_value(true)
                 )
                 .arg(
                     Arg::with_name("aziot-edged")
@@ -403,6 +410,8 @@ fn run() -> Result<(), Error> {
                     .map(ToOwned::to_owned)
                     .collect(),
                 args.value_of("expected-aziot-edged-version")
+                    .map(ToOwned::to_owned),
+                args.value_of("expected-aziot-version")
                     .map(ToOwned::to_owned),
                 args.value_of_os("aziot-edged")
                     .expect("arg has a default value")
