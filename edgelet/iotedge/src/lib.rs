@@ -48,5 +48,6 @@ pub trait Command {
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
-    pub iotedged: String,
+    #[serde(rename = "aziot-edged")]
+    pub aziot_edged: String,
 }
