@@ -143,6 +143,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IpcMode = "private"
         };
 
+        static readonly HostConfig HostPidModeHostConfig = new HostConfig
+        {
+            PidMode = "host"
+        };
+
+        static readonly HostConfig ContainerPidModeHostConfig = new HostConfig
+        {
+            PidMode = "container:module-a"
+        };
+
         static readonly HostConfig HostNetworkModeHostConfig = new HostConfig
         {
             NetworkMode = "host"
@@ -1067,7 +1077,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void NoIpcModeDeploymentCreation()
+        public void NoIpcNetworkPidDeploymentCreation()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
@@ -1080,6 +1090,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.NotNull(deployment);
             Assert.Null(deployment.Spec.Template.Spec.HostIPC);
+            Assert.Null(deployment.Spec.Template.Spec.HostNetwork);
+            Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
+            Assert.Null(deployment.Spec.Template.Spec.HostPID);
         }
 
         [Fact]
@@ -1115,23 +1128,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void NoNetworkModeDeploymentCreation()
-        {
-            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
-            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
-            var labels = new Dictionary<string, string>();
-            var mapper = CreateMapper();
-
-            var deployment = mapper.CreateDeployment(identity, module, labels);
-
-            Assert.NotNull(deployment);
-            Assert.Null(deployment.Spec.Template.Spec.HostNetwork);
-            Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
-        }
-
-        [Fact]
         public void HostNetworkModeDeploymentCreation()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
@@ -1163,6 +1159,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.NotNull(deployment);
             Assert.Equal(false, deployment.Spec.Template.Spec.HostNetwork);
             Assert.Null(deployment.Spec.Template.Spec.DnsPolicy);
+        }
+
+        [Fact]
+        public void HostPidModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: HostPidModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(true, deployment.Spec.Template.Spec.HostPID);
+        }
+
+        [Fact]
+        public void ContainerPidModeDeploymentCreation()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: ContainerPidModeHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Core.Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.NotNull(deployment);
+            Assert.Equal(false, deployment.Spec.Template.Spec.HostPID);
         }
 
         static Dictionary<string, ResourceQuantity> proxyLimits = new Dictionary<string, ResourceQuantity>
