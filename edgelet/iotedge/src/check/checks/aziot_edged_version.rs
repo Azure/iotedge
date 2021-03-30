@@ -33,7 +33,7 @@ impl Checker for AziotEdgedVersion {
             &check.expected_aziot_edged_version
         {
             future::Either::A(future::ok::<_, Error>(crate::LatestVersions {
-                aziot_edged: expected_aziot_edged_version.clone(),
+                aziot_edge: expected_aziot_edged_version.clone(),
             }))
         } else {
             if check.parent_hostname.is_some() {
@@ -148,7 +148,7 @@ impl AziotEdgedVersion {
                 None => return Ok(CheckResult::Skipped),
             },
         };
-        self.expected_version = Some(latest_versions.aziot_edged.to_owned());
+        self.expected_version = Some(latest_versions.aziot_edge.to_owned());
 
         let mut process = Command::new(&check.aziot_edged);
         process.arg("--version");
@@ -188,12 +188,12 @@ impl AziotEdgedVersion {
 
         check.additional_info.aziot_edged_version = Some(version.to_owned());
 
-        if version != latest_versions.aziot_edged {
+        if version != latest_versions.aziot_edge {
             return Ok(CheckResult::Warning(
             Context::new(format!(
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                version, latest_versions.aziot_edged,
+                version, latest_versions.aziot_edge,
             ))
             .into(),
         ));
