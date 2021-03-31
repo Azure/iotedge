@@ -106,10 +106,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 await NUnitLogs.CollectAsync(startTime, token);
             }
         }
-
-        [OneTimeTearDown]
-        public async Task RemoveCertificatesAsync()
-        {
-        }
     }
 }
