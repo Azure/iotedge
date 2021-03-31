@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         {
                             testCerts.AddCertsToConfig(config);
 
-                            config.SetManualSasProvisioning(Context.Current.ParentHostname.GetOrElse(this.device.HubHostname), this.device.Id, this.device.SharedAccessKey);
+                            config.SetManualSasProvisioning(this.IotHub.Hostname, Context.Current.ParentHostname, this.device.Id, this.device.SharedAccessKey);
 
                             config.Update();
                             return Task.FromResult((
