@@ -6,7 +6,8 @@
         "runtime": {
           "type": "docker",
           "settings": {
-            "minDockerVersion": "v1.25"
+            "minDockerVersion": "v1.25",
+            "loggingOptions": ""
           }
         },
         "systemModules": {
@@ -29,7 +30,7 @@
                 "value": "true"
               },
               "DeviceScopeCacheRefreshDelaySecs": {
-                "value": "0"
+                "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
