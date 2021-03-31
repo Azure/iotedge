@@ -163,7 +163,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta14ß
+    tag: 0.1.0-beta14
     pullPolicy: Always
   hostname: "localhost"
   resources:
