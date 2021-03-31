@@ -204,6 +204,10 @@
 #
 # If you need to override the parameters of the default Edge Agent module,
 # uncomment this section and replace the values in this section with your own.
+#
+# Note that the agent.config.createOptions field is specified as
+# a TOML inline table. This format looks similar to JSON but it is not JSON.
+# See https://toml.io/en/v1.0.0#inline-table for documentation.
 
 # [agent]
 # name = "edgeAgent"
@@ -212,7 +216,7 @@
 
 # [agent.config]
 # image = "mcr.microsoft.com/azureiotedge-agent:1.2.0-rc4"
-# createOptions = { }       # Docker container create options, in TOML format.
+# createOptions = { HostConfig = { Binds = ["/iotedge/storage:/iotedge/storage"] } }
 
 # [agent.config.auth]
 # serveraddress = "example.azurecr.io"
@@ -222,6 +226,7 @@
 # [agent.env]
 # "RuntimeLogLevel" = "debug"
 # "UpstreamProtocol" = "AmqpWs"
+# "storageFolder" = "/iotedge/storage"
 
 
 # ==============================================================================
