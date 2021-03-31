@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Service.Certd,
                 "aziot-edged",
                 this.config[Service.Edged].Uid,
-                new string[] { "aziot-edged/module/*" });
+                new string[] { "aziot-edged-ca", "aziot-edged/module/*" });
         }
 
         public void SetManualSasProvisioning(string hubHostname, Option<string> parentHostname, string deviceId, string key)
