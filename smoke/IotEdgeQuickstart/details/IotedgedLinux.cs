@@ -295,6 +295,9 @@ namespace IotEdgeQuickstart.Details
             // Need to always reprovision so previous test runs don't affect this one.
             config[IDENTITYD].Document.RemoveIfExists("provisioning");
             config[IDENTITYD].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            parentHostname.ForEach(
+                parent_hostame =>
+                config[IDENTITYD].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
 
             method.ManualConnectionString.Match(
                 cs =>
