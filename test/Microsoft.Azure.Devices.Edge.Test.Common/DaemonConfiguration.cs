@@ -105,12 +105,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 new string[] { "aziot-edged/module/*" });
         }
 
-        public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)
+        public void SetManualSasProvisioning(string hubHostname, Option<string> parentHostname, string deviceId, string key)
         {
             string keyName = DaemonConfiguration.SanitizeName(deviceId);
             this.CreatePreloadedKey(keyName, key);
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
+            parentHostname.ForEach(
+                parent_hostame =>
+                this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
@@ -121,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.SetAuth(keyName);
         }
 
-        public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
+        public void SetDeviceManualX509(string hubhostname, Option<string> parentHostname, string deviceId, string identityCertPath, string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
             {
@@ -134,6 +137,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
+            parentHostname.ForEach(
+                parent_hostame =>
+                this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
