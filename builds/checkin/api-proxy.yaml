@@ -3,7 +3,14 @@ pr:
   branches:
     include:
       - master
-      - iiot
+      - release/*
+  paths:
+    include:
+      - "builds/edge-modules/api-proxy-module/*"
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+      
 jobs:
 
 ################################################################################

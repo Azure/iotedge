@@ -4,8 +4,10 @@ pr:
     include:
       - master
       - release/*
-      - iiot
-      - preview/iiot
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 
 ################################################################################

@@ -3,8 +3,11 @@ pr:
   branches:
     include:
       - master
-      - iiot
       - release/*
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
   ################################################################################
   - job: check_run_pipeline
