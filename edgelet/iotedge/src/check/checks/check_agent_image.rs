@@ -8,7 +8,7 @@ pub(crate) struct CheckAgentImage {}
 
 impl Checker for CheckAgentImage {
     fn id(&self) -> &'static str {
-        "Check-Agent-image"
+        "check-agent-image"
     }
     fn description(&self) -> &'static str {
         "Agent image is valid and can be pulled from upstream"
@@ -40,10 +40,10 @@ impl CheckAgentImage {
         let agent_image = settings.agent().config().image();
 
         if check.parent_hostname.is_some() {
-            match check_agent_image_version(&agent_image) {
-                Ok(CheckResult::Ok) => (),
-                error => return error,
-            };
+            // We don't want to pull the image in nested Edge because it requires
+            // resolving the meaning of `$upstream`, which we can't do from this iotedge CLI.
+            // So we just check that the image spec has the right version.
+            return check_agent_image_version_nested(&agent_image);
         }
 
         if let (Some(username), Some(password), Some(server_address)) = (
@@ -86,35 +86,30 @@ impl CheckAgentImage {
     }
 }
 
-fn check_agent_image_version(agent_image: &str) -> Result<CheckResult, failure::Error> {
-    // We don't match the repo mcr.microsoft.com because in nested edge we expect the repo to be parent_hostname:443
-    let re = Regex::new(r".*?/azureiotedge-agent:(?P<Major>\d+).(?P<Minor>\d+).*")
+fn check_agent_image_version_nested(agent_image: &str) -> Result<CheckResult, failure::Error> {
+    // We don't match the repo mcr.microsoft.com because in nested edge we expect the repo to be $upstream:443
+    //
+    // If the image spec doesn't match what we expected, it's a custom image, and we can't make
+    // any determination of whether it's the right version or not. In that case we assume it is right.
+
+    let re = Regex::new(r".*?/azureiotedge-agent:(?P<Major>\d+)\.(?P<Minor>\d+).*")
         .context("Failed to create regex")?;
 
     if let Some(caps) = re.captures(&agent_image) {
-        let minor_version: i32 = caps
-            .name("Minor")
-            .expect("output does not match expected format")
-            .as_str()
-            .parse()
-            .expect("output does not match expected format");
-        let major_version: i32 = caps
+        let major = caps
             .name("Major")
-            .expect("output does not match expected format")
-            .as_str()
-            .parse()
-            .expect("output does not match expected format");
+            .and_then(|version| version.as_str().parse::<u32>().ok());
+        let minor = caps
+            .name("Minor")
+            .and_then(|version| version.as_str().parse::<u32>().ok());
 
-        if major_version < 1 {
-            return Ok(CheckResult::Failed(
-                Context::new("In nested edge, edgeAgent version need to be 1.2 or above").into(),
-            ));
-        }
-
-        if (major_version == 1) && (minor_version < 2) {
-            return Ok(CheckResult::Failed(
-                Context::new("In nested edge, edgeAgent version need to be 1.2 or above").into(),
-            ));
+        if let (Some(major), Some(minor)) = (major, minor) {
+            if major < 1 || (major == 1) && (minor < 2) {
+                return Ok(CheckResult::Failed(
+                    Context::new("In nested Edge, edgeAgent version need to be 1.2 or above")
+                        .into(),
+                ));
+            }
         }
     }
 
@@ -123,11 +118,11 @@ fn check_agent_image_version(agent_image: &str) -> Result<CheckResult, failure::
 
 #[cfg(test)]
 mod tests {
-    use super::check_agent_image_version;
+    use super::check_agent_image_version_nested;
     use crate::check::CheckResult;
 
     #[test]
-    fn test_check_agent_image_version() {
+    fn test_check_agent_image_version_nested() {
         let test_cases = &[
             (
                 "mcr.microsoft.com/azureiotedge-agent:1.0.9.5-linux-amd64",
@@ -223,8 +218,10 @@ mod tests {
         ];
 
         for (agent_image, expected_is_valid) in test_cases {
-            let actual_is_valid =
-                matches!(check_agent_image_version(agent_image), Ok(CheckResult::Ok));
+            let actual_is_valid = matches!(
+                check_agent_image_version_nested(agent_image),
+                Ok(CheckResult::Ok)
+            );
             assert_eq!(*expected_is_valid, actual_is_valid);
         }
     }
