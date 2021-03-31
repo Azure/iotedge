@@ -57,7 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             {
                                 testCerts.AddCertsToConfig(config);
                                 config.SetDeviceManualX509(
-                                    device.HubHostname,
+                                    this.IotHub.Hostname,
+                                    Context.Current.ParentHostname,
                                     device.Id,
                                     certPath,
                                     keyPath);

@@ -65,9 +65,17 @@ namespace Relayer
 
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
-            var builder = new UriBuilder(Settings.Current.TestResultCoordinatorUrl);
-            builder.Host = Dns.GetHostEntry(Settings.Current.TestResultCoordinatorUrl.Host).AddressList[0].ToString();
-            Uri testResultCoordinatorUrl = builder.Uri;
+            Logger.LogInformation($"Received message from device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+
+            var testResultCoordinatorUrl = Option.None<Uri>();
+
+            if (Settings.Current.EnableTrcReporting)
+            {
+                var builder = new UriBuilder(Settings.Current.TestResultCoordinatorUrl);
+                builder.Host = Dns.GetHostEntry(Settings.Current.TestResultCoordinatorUrl.Host).AddressList[0].ToString();
+                testResultCoordinatorUrl = Option.Some(builder.Uri);
+            }
+
             try
             {
                 if (!(userContext is ModuleClient moduleClient))
@@ -80,43 +88,47 @@ namespace Relayer
                 string batchId = string.Empty;
                 string sequenceNumber = string.Empty;
                 var messageProperties = new List<KeyValuePair<string, string>>();
+                var testResultReportingClient = Option.None<TestResultReportingClient>();
 
-                foreach (KeyValuePair<string, string> prop in message.Properties)
+                if (Settings.Current.EnableTrcReporting)
                 {
-                    switch (prop.Key)
+                    foreach (KeyValuePair<string, string> prop in message.Properties)
                     {
-                        case TestConstants.Message.TrackingIdPropertyName:
-                            trackingId = prop.Value ?? string.Empty;
-                            break;
-                        case TestConstants.Message.BatchIdPropertyName:
-                            batchId = prop.Value ?? string.Empty;
-                            break;
-                        case TestConstants.Message.SequenceNumberPropertyName:
-                            sequenceNumber = prop.Value ?? string.Empty;
-                            break;
+                        switch (prop.Key)
+                        {
+                            case TestConstants.Message.TrackingIdPropertyName:
+                                trackingId = prop.Value ?? string.Empty;
+                                break;
+                            case TestConstants.Message.BatchIdPropertyName:
+                                batchId = prop.Value ?? string.Empty;
+                                break;
+                            case TestConstants.Message.SequenceNumberPropertyName:
+                                sequenceNumber = prop.Value ?? string.Empty;
+                                break;
+                        }
+
+                        messageProperties.Add(new KeyValuePair<string, string>(prop.Key, prop.Value));
                     }
 
-                    messageProperties.Add(new KeyValuePair<string, string>(prop.Key, prop.Value));
+                    if (string.IsNullOrWhiteSpace(trackingId) || string.IsNullOrWhiteSpace(batchId) || string.IsNullOrWhiteSpace(sequenceNumber))
+                    {
+                        Logger.LogWarning($"Received message missing info: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                        return MessageResponse.Completed;
+                    }
+
+                    // Report receiving message successfully to Test Result Coordinator
+                    testResultReportingClient = Option.Some(new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.OrDefault().AbsoluteUri });
+                    var testResultReceived = new MessageTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
+                    {
+                        TrackingId = trackingId,
+                        BatchId = batchId,
+                        SequenceNumber = sequenceNumber
+                    };
+
+                    await ModuleUtil.ReportTestResultAsync(testResultReportingClient.OrDefault(), Logger, testResultReceived);
+
+                    Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
                 }
-
-                if (string.IsNullOrWhiteSpace(trackingId) || string.IsNullOrWhiteSpace(batchId) || string.IsNullOrWhiteSpace(sequenceNumber))
-                {
-                    Logger.LogWarning($"Received message missing info: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
-                    return MessageResponse.Completed;
-                }
-
-                // Report receiving message successfully to Test Result Coordinator
-                var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
-                var testResultReceived = new MessageTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
-                {
-                    TrackingId = trackingId,
-                    BatchId = batchId,
-                    SequenceNumber = sequenceNumber
-                };
-
-                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultReceived);
-
-                Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
 
                 if (!Settings.Current.ReceiveOnly)
                 {
@@ -124,15 +136,21 @@ namespace Relayer
                     var messageCopy = new Message(messageBytes);
                     messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
                     await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
-                    // Report sending message successfully to Test Result Coordinator
-                    var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                    Logger.LogInformation($"Message relayed upstream for device: {message.ConnectionDeviceId}, module: {message.ConnectionModuleId}");
+
+                    if (Settings.Current.EnableTrcReporting)
                     {
-                        TrackingId = trackingId,
-                        BatchId = batchId,
-                        SequenceNumber = sequenceNumber
-                    };
-                    await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultSent);
-                    Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                        // Report sending message successfully to Test Result Coordinator
+                        var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                        {
+                            TrackingId = trackingId,
+                            BatchId = batchId,
+                            SequenceNumber = sequenceNumber
+                        };
+
+                        await ModuleUtil.ReportTestResultAsync(testResultReportingClient.OrDefault(), Logger, testResultSent);
+                        Logger.LogInformation($"Successfully reported message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
+                    }
                 }
                 else
                 {
