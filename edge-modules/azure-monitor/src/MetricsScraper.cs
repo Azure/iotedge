@@ -64,33 +64,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             this.httpClient.Dispose();
         }
 
-        string GetUriWithIpAddress(string endpoint)
-        {
-            Logger.Writer.LogDebug($"Getting uri with Ip for {endpoint}");
-            Match match = UrlRegex.Match(endpoint);
-            if (!match.Success)
-            {
-                throw new InvalidOperationException($"Endpoint {endpoint} is not a valid URL in the format <protocol>://<host>:<port>/<parameters>");
-            }
-
-            var hostGroup = match.Groups["host"];
-            string host = hostGroup.Value;
-            var ipHostEntry = Dns.GetHostEntry(host);
-            var ipAddr = ipHostEntry.AddressList.Length > 0 ? ipHostEntry.AddressList[0].ToString() : string.Empty;
-            var builder = new UriBuilder(endpoint);
-            builder.Host = ipAddr;
-            string endpointWithIp = builder.Uri.ToString();
-            Logger.Writer.LogDebug($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
-            return endpointWithIp;
-        }
-
         async Task<string> ScrapeEndpoint(string endpoint, CancellationToken cancellationToken)
         {
             try
             {
-                // Temporary. Only needed until edgeHub starts using asp.net to expose endpoints
-                endpoint = this.GetUriWithIpAddress(endpoint);
-
                 HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
                 if (result.IsSuccessStatusCode)
                 {
