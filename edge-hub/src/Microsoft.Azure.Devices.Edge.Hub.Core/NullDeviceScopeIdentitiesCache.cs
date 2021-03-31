@@ -21,20 +21,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             remove { }
         }
 
-        public Task<Option<ServiceIdentity>> GetServiceIdentity(string id, bool refreshIfNotExists = false)
+        public Task<Option<ServiceIdentity>> GetServiceIdentity(string _, bool __ = false)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
-        public Task<Option<ServiceIdentity>> GetServiceIdentity(string deviceId, string moduleId, bool refreshIfNotExists = false)
+        public Task<Option<ServiceIdentity>> GetServiceIdentity(string _, string __, bool ___ = false)
             => Task.FromResult(Option.None<ServiceIdentity>());
 
         public void InitiateCacheRefresh()
         {
         }
 
-        public Task RefreshServiceIdentities(IEnumerable<string> deviceIds) => Task.CompletedTask;
+        public Task RefreshServiceIdentities(IEnumerable<string> _) => Task.CompletedTask;
 
-        public Task RefreshServiceIdentity(string deviceId) => Task.CompletedTask;
+        public Task RefreshServiceIdentity(string _) => Task.CompletedTask;
 
-        public Task RefreshServiceIdentity(string deviceId, string moduleId) => Task.CompletedTask;
+        public Task RefreshServiceIdentity(string _, string __) => Task.CompletedTask;
+
+        public Task VerifyServiceIdentityState(string _, bool __ = false) => throw new DeviceInvalidStateException("Device identity not found in cache.");
     }
 }

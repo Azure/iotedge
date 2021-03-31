@@ -6,6 +6,7 @@ trigger:
   branches:
     include:
       - master
+      - release/*
 pr: none
 variables:
   REVISION: '1'

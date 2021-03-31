@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -30,9 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(deviceId);
             }
-            catch (DeviceScopeApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+            catch (DeviceScopeApiException ex)
             {
-                Events.BadRequestResult(deviceId, ex.StatusCode);
+                Events.ErrorRequestResult(deviceId, ex.StatusCode);
+                throw this.MapException(ex);
             }
 
             Option<ServiceIdentity> serviceIdentityResult =
@@ -80,9 +82,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 scopeResult = Option.Maybe(res);
                 Events.IdentityScopeResultReceived(id);
             }
-            catch (DeviceScopeApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+            catch (DeviceScopeApiException ex)
             {
-                Events.BadRequestResult(id, ex.StatusCode);
+                Events.ErrorRequestResult(id, ex.StatusCode);
+                throw this.MapException(ex);
             }
 
             Option<ServiceIdentity> serviceIdentityResult =
@@ -118,6 +121,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                         });
 
             return serviceIdentityResult;
+        }
+
+        Exception MapException(DeviceScopeApiException ex)
+        {
+            switch (ex.StatusCode)
+            {
+                case HttpStatusCode.Unauthorized:
+                case HttpStatusCode.Forbidden:
+                    return new DeviceInvalidStateException($"Device not in scope: [{ex.StatusCode}: {ex.Message}].", ex);
+                case HttpStatusCode.BadRequest:
+                case HttpStatusCode.NotFound:
+                    return new DeviceInvalidStateException($"Device not found: [{ex.StatusCode}: {ex.Message}].", ex);
+                default:
+                    return new TimeoutException($"Request failed: [{ex.StatusCode}: {ex.Message}].", ex);
+            }
         }
 
         static class Events
@@ -169,9 +187,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.NoScopeFound, $"Device scope not found for {id}. Parent-child relationship is not set.");
             }
 
-            public static void BadRequestResult(string id, HttpStatusCode statusCode)
+            public static void ErrorRequestResult(string id, HttpStatusCode statusCode)
             {
-                Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result for {id} with status code {statusCode} indicating that {id} has been removed from the scope");
+                Log.LogDebug((int)EventIds.ScopeResultReceived, $"Received scope result for {id} with status code {statusCode}");
             }
         }
 

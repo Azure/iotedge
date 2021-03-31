@@ -200,6 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     TimeSpan.FromHours(1),
                     checkEntireQueueOnCleanup,
                     experimentalFeatures,
+                    true,
+                    true,
                     true));
 
             builder.RegisterModule(new HttpModule());
