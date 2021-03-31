@@ -25,13 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var runtimeInfo = Mock.Of<IRuntimeInfoSource>();
 
             var client = Mock.Of<IKubernetes>();
-            Mock.Get(client).Setup(c => c.ListNamespacedPodWithHttpMessagesAsync(DeviceNamespace, null, null, null, null, null, null, null, true, null, null, It.IsAny<CancellationToken>()))
+            Mock.Get(client).Setup(c => c.ListNamespacedPodWithHttpMessagesAsync(DeviceNamespace, null, null, null, null, null, null, It.IsAny<int?>(), true, null, null, It.IsAny<CancellationToken>()))
                 .Throws(listingError);
 
             var edgeOperator = new KubernetesEnvironmentOperator(
                 DeviceNamespace,
                 runtimeInfo,
-                client);
+                client,
+                180);
 
             Assert.Throws<Exception>(() => edgeOperator.RestartWatch(cts));
             Assert.True(cts.OrDefault().IsCancellationRequested);
@@ -53,7 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var edgeOperator = new KubernetesEnvironmentOperator(
                 DeviceNamespace,
                 runtimeInfo,
-                client);
+                client,
+                180);
 
             Assert.Throws<Exception>(() => edgeOperator.HandleError(controllerException, cts));
             Assert.True(cts.OrDefault().IsCancellationRequested);
