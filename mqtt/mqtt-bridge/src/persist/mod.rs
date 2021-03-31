@@ -2,6 +2,8 @@ mod loader;
 mod publication_store;
 mod waking_state;
 
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use bincode::Error as BincodeError;
 use serde::{Deserialize, Serialize};
 
@@ -19,6 +21,12 @@ pub use waking_state::{
 #[derive(Hash, Eq, Ord, PartialOrd, PartialEq, Clone, Debug, Deserialize, Serialize, Copy)]
 pub struct Key {
     offset: u64,
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.offset)
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

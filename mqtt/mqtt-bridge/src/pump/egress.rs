@@ -78,7 +78,8 @@ where
                     }
                 }
             })
-            .buffer_unordered(MAX_IN_FLIGHT);
+            .buffered(MAX_IN_FLIGHT)
+            .fuse();
         pin_mut!(publications);
 
         loop {
@@ -101,9 +102,9 @@ where
 }
 
 async fn try_publish(key: Key, publication: Publication, mut publish_handle: PublishHandle) -> Key {
-    debug!("publishing {:?}", key);
+    debug!("forwarding publication {:?}", key);
     if let Err(e) = publish_handle.publish(publication).await {
-        error!(error = %e, "failed publish");
+        error!(error = %e, "failed forwarding publication");
     }
 
     key

@@ -316,7 +316,10 @@ impl StreamWakeableState for RingBuffer {
         let read_index = self.metadata.file_pointers.read_begin;
         let key = key.offset;
         if key != read_index {
-            return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex));
+            return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex {
+                current: key,
+                expected: read_index,
+            }));
         }
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
@@ -327,7 +330,10 @@ impl StreamWakeableState for RingBuffer {
 
         let BlockVersion::Version1(inner_block) = block.inner_mut();
         if inner_block.hint() != BLOCK_HINT {
-            return Err(PersistError::RingBuffer(RingBufferError::NonExistantKey));
+            return Err(PersistError::RingBuffer(RingBufferError::UnknownBlock {
+                current: inner_block.hint(),
+                expected: BLOCK_HINT,
+            }));
         }
 
         inner_block.set_should_not_overwrite(false);
@@ -908,7 +914,7 @@ mod tests {
 
             for (key, _) in batch.drain(..) {
                 rb.remove(key)
-                    .unwrap_or_else(|_| panic!(format!("unable to remove pub with key {:?}", key)));
+                    .unwrap_or_else(|_| panic!(format!("unable to remove pub with key {}", key)));
             }
 
             read = rb.metadata.file_pointers.read_begin;
@@ -1625,7 +1631,7 @@ mod tests {
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemovalIndex)
+            PersistError::RingBuffer(RingBufferError::RemovalIndex { current, expected }) if current == 1 && expected == 0
         );
     }
 

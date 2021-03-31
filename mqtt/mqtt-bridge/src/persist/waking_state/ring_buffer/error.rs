@@ -1,15 +1,15 @@
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
-    #[error("Unexpected block crc {found:?} expected {expected:?}")]
+    #[error("Unexpected block crc {found} expected {expected}")]
     BlockCrc { found: u32, expected: u32 },
 
     #[error("Failed to create block. Caused by {0}")]
     BlockCreation(#[from] bincode::Error),
 
-    #[error("Unexpected data crc {found:?} expected {expected:?}")]
+    #[error("Unexpected data crc {found} expected {expected}")]
     DataCrc { found: u32, expected: u32 },
 
-    #[error("Unexpected data size {found:?} expected {expected:?}")]
+    #[error("Unexpected data size {found} expected {expected}")]
     DataSize { found: u64, expected: u64 },
 
     #[error("Bad hint")]
@@ -41,11 +41,11 @@ pub enum RingBufferError {
     )]
     FileTruncation { current: u64, new: u64 },
 
-    #[error("Key does not exist")]
-    NonExistantKey,
+    #[error("Read unknown block with {current} but {expected} hit expected")]
+    UnknownBlock { current: u32, expected: u32 },
 
-    #[error("Key is at invalid index for removal")]
-    RemovalIndex,
+    #[error("Key is at invalid index for removal {current} but {expected} was expected")]
+    RemovalIndex { current: u64, expected: u64 },
 
     #[error("Cannot remove before reading")]
     RemoveBeforeRead,

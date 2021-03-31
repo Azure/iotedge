@@ -76,7 +76,7 @@ where
         let key = borrowed_store.insert(message)?;
 
         debug!(
-            "persisted publication on topic {} with key {:?}",
+            "persisted publication on topic {} with key {}",
             message.topic_name, key
         );
 
@@ -84,7 +84,7 @@ where
     }
 
     pub fn remove(&self, key: Key) -> PersistResult<()> {
-        debug!("removing publication with key {:?}", key);
+        debug!("removing publication with key {}", key);
         let lock = self.0.lock();
         let mut state = lock.state.lock();
         state.remove(key)
