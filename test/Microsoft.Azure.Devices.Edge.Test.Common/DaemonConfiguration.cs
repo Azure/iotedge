@@ -79,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         void SetBasicDpsParam(string idScope)
         {
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "dps");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
@@ -114,7 +113,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             parentHostname.ForEach(
                 parent_hostame =>
                 this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
@@ -140,7 +138,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             parentHostname.ForEach(
                 parent_hostame =>
                 this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
