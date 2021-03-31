@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta13
+    tag: 0.1.0-beta14
     pullPolicy: Always
   nodeSelector: {}
   # Volumes which support ownership management are modified to be owned and 
@@ -139,7 +139,7 @@ iotedged:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta13
+    tag: 0.1.0-beta14
     pullPolicy: Always
   resources:
     requests:
@@ -163,7 +163,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta13
+    tag: 0.1.0-beta14
     pullPolicy: Always
   hostname: "localhost"
   resources:
