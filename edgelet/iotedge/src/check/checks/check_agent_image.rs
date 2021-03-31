@@ -1,9 +1,13 @@
 use std::borrow::Cow;
 
-use crate::check::{checker::Checker, Check, CheckResult};
-use edgelet_core::RuntimeSettings;
 use failure::{Context, ResultExt};
 use regex::Regex;
+
+use edgelet_core::module::NestedEdgeBodge;
+use edgelet_core::RuntimeSettings;
+use edgelet_docker::UPSTREAM_PARENT_KEYWORD;
+
+use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct CheckAgentImage {}
@@ -39,16 +43,11 @@ impl CheckAgentImage {
             return Ok(CheckResult::Skipped);
         };
 
-        let agent_image = settings.agent().config().image();
-        let agent_image = if let Some(parent_hostname) = &check.parent_hostname {
-            if let Some(rest) = agent_image.strip_prefix("$upstream") {
-                Cow::Owned(format!("{}{}", parent_hostname, rest))
-            } else {
-                Cow::Borrowed(agent_image)
-            }
-        } else {
-            Cow::Borrowed(agent_image)
-        };
+        let mut agent_config = settings.agent().config().clone();
+        if let Some(parent_hostname) = &check.parent_hostname {
+            agent_config.parent_hostname_resolve_image(parent_hostname);
+        }
+        let agent_image = agent_config.image();
 
         if check.parent_hostname.is_some() {
             match check_agent_image_version_nested(&agent_image) {
@@ -64,7 +63,7 @@ impl CheckAgentImage {
             .and_then(docker::models::AuthConfig::serveraddress);
         let server_address = server_address.map(|server_address| {
             if let Some(parent_hostname) = &check.parent_hostname {
-                if let Some(rest) = server_address.strip_prefix("$upstream") {
+                if let Some(rest) = server_address.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
                     return Cow::Owned(format!("{}{}", parent_hostname, rest));
                 }
             }
