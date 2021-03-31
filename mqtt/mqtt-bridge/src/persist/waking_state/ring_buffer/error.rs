@@ -41,7 +41,7 @@ pub enum RingBufferError {
     )]
     FileTruncation { current: u64, new: u64 },
 
-    #[error("Read unknown block with {current} but {expected} hit expected")]
+    #[error("Read unknown block with {current} but {expected} hint expected")]
     UnknownBlock { current: u32, expected: u32 },
 
     #[error("Key is at invalid index for removal {current} but {expected} was expected")]
