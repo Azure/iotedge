@@ -121,8 +121,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             await this.daemon.ConfigureAsync(
                                 config =>
                                 {
-                                    config.RemoveCertificates();
-                                    config.Update();
+                                    /*config.RemoveCertificates();
+                                    config.Update();*/
                                     return Task.FromResult(("without edge certificates", Array.Empty<object>()));
                                 },
                                 cts.Token);
