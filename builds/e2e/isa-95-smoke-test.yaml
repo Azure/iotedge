@@ -11,12 +11,14 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branches:
+    trigger:
+      branches:
       - master
       - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branches:
+    trigger:
+      branches:
       - master
       - release/*
 
