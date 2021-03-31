@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::check::{checker::Checker, Check, CheckResult};
 use edgelet_core::RuntimeSettings;
 use failure::{Context, ResultExt};
@@ -38,13 +40,37 @@ impl CheckAgentImage {
         };
 
         let agent_image = settings.agent().config().image();
+        let agent_image = if let Some(parent_hostname) = &check.parent_hostname {
+            if let Some(rest) = agent_image.strip_prefix("$upstream") {
+                Cow::Owned(format!("{}{}", parent_hostname, rest))
+            } else {
+                Cow::Borrowed(agent_image)
+            }
+        } else {
+            Cow::Borrowed(agent_image)
+        };
 
         if check.parent_hostname.is_some() {
-            // We don't want to pull the image in nested Edge because it requires
-            // resolving the meaning of `$upstream`, which we can't do from this iotedge CLI.
-            // So we just check that the image spec has the right version.
-            return check_agent_image_version_nested(&agent_image);
+            match check_agent_image_version_nested(&agent_image) {
+                CheckResult::Ok => (),
+                other => return Ok(other),
+            }
         }
+
+        let server_address = settings
+            .agent()
+            .config()
+            .auth()
+            .and_then(docker::models::AuthConfig::serveraddress);
+        let server_address = server_address.map(|server_address| {
+            if let Some(parent_hostname) = &check.parent_hostname {
+                if let Some(rest) = server_address.strip_prefix("$upstream") {
+                    return Cow::Owned(format!("{}{}", parent_hostname, rest));
+                }
+            }
+
+            Cow::Borrowed(server_address)
+        });
 
         if let (Some(username), Some(password), Some(server_address)) = (
             &settings
@@ -57,11 +83,7 @@ impl CheckAgentImage {
                 .config()
                 .auth()
                 .and_then(docker::models::AuthConfig::password),
-            &settings
-                .agent()
-                .config()
-                .auth()
-                .and_then(docker::models::AuthConfig::serveraddress),
+            &server_address,
         ) {
             super::docker(
                 docker_host_arg,
@@ -86,14 +108,14 @@ impl CheckAgentImage {
     }
 }
 
-fn check_agent_image_version_nested(agent_image: &str) -> Result<CheckResult, failure::Error> {
+fn check_agent_image_version_nested(agent_image: &str) -> CheckResult {
     // We don't match the repo mcr.microsoft.com because in nested edge we expect the repo to be $upstream:443
     //
     // If the image spec doesn't match what we expected, it's a custom image, and we can't make
     // any determination of whether it's the right version or not. In that case we assume it is right.
 
     let re = Regex::new(r".*?/azureiotedge-agent:(?P<Major>\d+)\.(?P<Minor>\d+).*")
-        .context("Failed to create regex")?;
+        .expect("hard-coded regex cannot fail to parse");
 
     if let Some(caps) = re.captures(&agent_image) {
         let major = caps
@@ -105,15 +127,15 @@ fn check_agent_image_version_nested(agent_image: &str) -> Result<CheckResult, fa
 
         if let (Some(major), Some(minor)) = (major, minor) {
             if major < 1 || (major == 1) && (minor < 2) {
-                return Ok(CheckResult::Failed(
+                return CheckResult::Failed(
                     Context::new("In nested Edge, edgeAgent version need to be 1.2 or above")
                         .into(),
-                ));
+                );
             }
         }
     }
 
-    Ok(CheckResult::Ok)
+    CheckResult::Ok
 }
 
 #[cfg(test)]
@@ -220,7 +242,7 @@ mod tests {
         for (agent_image, expected_is_valid) in test_cases {
             let actual_is_valid = matches!(
                 check_agent_image_version_nested(agent_image),
-                Ok(CheckResult::Ok)
+                CheckResult::Ok
             );
             assert_eq!(*expected_is_valid, actual_is_valid);
         }
