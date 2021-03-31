@@ -21,11 +21,11 @@ File {} already exists. Azure IoT Edge has already been configured.
 
 To have the configuration take effect, run:
 
-    iotedge config apply
+    sudo iotedge config apply
 
 To reconfigure IoT Edge, run:
 
-    iotedge config mp --force
+    sudo iotedge config mp --force
 ",
             out_config_file.display()
         )
@@ -93,7 +93,7 @@ To reconfigure IoT Edge, run:
     println!("To apply the new configuration to services, run:");
     println!();
     println!(
-        "    iotedge config apply -c '{}'",
+        "    sudo iotedge config apply -c '{}'",
         out_config_file.display()
     );
     println!();
