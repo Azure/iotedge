@@ -430,6 +430,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                     return;
                 }
 
+                string targetAuthChainVal = targetAuthChain.OrDefault();
+                if(!AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetDeviceId, targetAuthChainVal))
+                {
+                    Events.AuthorizationFail_NoAuthChain(targetDeviceId);
+                    await this.SendResponseAsync(HttpStatusCode.Unauthorized);
+                    return;
+                }
+
                 string edgeDeviceId = edgeHub.GetEdgeDeviceId();
                 RegistryApiHttpResult result = await this.apiClient.ListModulesAsync(
                     edgeDeviceId,
