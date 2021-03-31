@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly KubernetesExperimentalFeatures experimentalFeatures;
         readonly KubernetesModuleOwner moduleOwner;
         readonly bool runAsNonRoot;
+        readonly int operatorTimeout;
 
         public KubernetesModule(
             string iotHubHostname,
@@ -83,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool useServerHeartbeat,
             KubernetesExperimentalFeatures experimentalFeatures,
             KubernetesModuleOwner moduleOwner,
-            bool runAsNonRoot)
+            bool runAsNonRoot,
+            int operatorTimeout)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
@@ -116,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.experimentalFeatures = experimentalFeatures;
             this.moduleOwner = moduleOwner;
             this.runAsNonRoot = runAsNonRoot;
+            this.operatorTimeout = operatorTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -308,7 +311,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.resourceName,
                             this.deviceNamespace,
                             c.Resolve<IKubernetes>(),
-                            c.Resolve<IEdgeDeploymentController>());
+                            c.Resolve<IEdgeDeploymentController>(),
+                            this.operatorTimeout);
 
                         return watchOperator;
                     })
@@ -322,7 +326,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         IKubernetesEnvironmentOperator watchOperator = new KubernetesEnvironmentOperator(
                             this.deviceNamespace,
                             c.Resolve<IRuntimeInfoSource>(),
-                            c.Resolve<IKubernetes>());
+                            c.Resolve<IKubernetes>(),
+                            this.operatorTimeout);
 
                         return watchOperator;
                     })

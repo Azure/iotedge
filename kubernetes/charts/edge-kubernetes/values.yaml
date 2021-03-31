@@ -219,6 +219,10 @@ edgeAgent:
     # Enables RQT data for IoT Edge Agent (disabled until metadata is finalized)
     sendRuntimeQualityTelemetry: false
 
+    # Sets timeout for operators running in Agent. Currently set to 3 minutes to guarantee correct
+    # operation in all clusters.
+    # AgentOperatorTimeoutSeconds: 180
+
     # Configure default pod security context rule. If set true, it will allow kubernetes to run only non-root containers
     # under the user with uid(1000).
     # false dy default.
