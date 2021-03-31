@@ -107,10 +107,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         Log.Information("Deleted old provisioning data.");
                     }
 
-                    string device_info = "/var/lib/aziot/identityd/prev_state";
-                    if (File.Exists(device_info))
+                    string prev_state = "/var/lib/aziot/identityd/prev_state";
+                    if (File.Exists(prev_state))
                     {
-                        File.Delete(device_info);
+                        File.Delete(prev_state);
                         Log.Information("Deleted previous Identity state.");
                     }
 
