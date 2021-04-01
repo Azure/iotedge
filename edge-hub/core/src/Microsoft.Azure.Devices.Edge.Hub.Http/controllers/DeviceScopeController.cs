@@ -14,9 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Primitives;
     using Newtonsoft.Json;
-    using Org.BouncyCastle.Asn1.Cmp;
 
     public class DeviceScopeController : Controller
     {
