@@ -54,6 +54,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
+
+                    // Delete directories used by previous installs.
+                    string[] directories = { "/run/aziot", "/var/lib/aziot" };
+
+                    foreach (string directory in directories)
+                    {
+                        if (Directory.Exists(directory))
+                        {
+                            Directory.Delete(directory, true);
+                            Log.Information($"Deleted {directory}");
+                        }
+                    }
+
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
                     // Clean the directory for test certs, keys, etc.
