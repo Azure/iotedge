@@ -50,12 +50,14 @@ function setup_iotedge() {
     echo "createOptions = { }" | sudo tee -a /etc/aziot/config.toml
     echo "" | sudo tee -a  /etc/aziot/config.toml
     
-    echo "[agent.config.auth]" | sudo tee -a /etc/aziot/config.toml
-    echo "serveraddress = \"${CONTAINER_REGISTRY}\"" | sudo tee -a /etc/aziot/config.toml
-    echo "username = \"${CONTAINER_REGISTRY_USERNAME}\"" | sudo tee -a /etc/aziot/config.toml
-    echo "password = \"${CONTAINER_REGISTRY_PASSWORD}\"" | sudo tee -a /etc/aziot/config.toml
-    echo "" | sudo tee -a  /etc/aziot/config.toml
-    
+    if [ -z $PARENT_NAME ]; then
+        echo "[agent.config.auth]" | sudo tee -a /etc/aziot/config.toml
+        echo "serveraddress = \"${CONTAINER_REGISTRY}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "username = \"${CONTAINER_REGISTRY_USERNAME}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "password = \"${CONTAINER_REGISTRY_PASSWORD}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "" | sudo tee -a  /etc/aziot/config.toml
+    fi
+
     if [ ! -z $PROXY_ADDRESS ]; then
         echo "Configuring the bootstrapping edgeAgent to use http proxy"
         echo "[agent.env]" | sudo tee -a /etc/aziot/config.toml
