@@ -75,9 +75,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             EndPoint remoteEndPoint,
             string correlationId,
             X509Certificate2 clientCert,
-            IList<X509Certificate2> clientCertChain)
+            IList<X509Certificate2> clientCertChain,
+            IAuthenticator proxyAuthenticator = null)
         {
-            var identityProvider = new DeviceIdentityProvider(this.authenticator, this.usernameParser, this.clientCredentialsFactory, this.metadataStore, this.clientCertAuthAllowed);
+            var identityProvider = new DeviceIdentityProvider(proxyAuthenticator?? this.authenticator, this.usernameParser, this.clientCredentialsFactory, this.metadataStore, this.clientCertAuthAllowed);
             identityProvider.RegisterConnectionCertificate(clientCert, clientCertChain);
             return this.ProcessWebSocketRequestAsyncInternal(identityProvider, webSocket, localEndPoint, remoteEndPoint, correlationId);
         }
