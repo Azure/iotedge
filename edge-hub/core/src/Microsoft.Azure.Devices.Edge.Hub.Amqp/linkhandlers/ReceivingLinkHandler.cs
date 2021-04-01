@@ -85,12 +85,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             try
             {
                 await this.OnMessageReceived(amqpMessage);
-                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.AcceptedOutcome, true, true);
+                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.AcceptedOutcome, true, false);
             }
             catch (Exception e) when (!e.IsFatal())
             {
                 Events.ErrorProcessingMessage(e, this);
-                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.RejectedOutcome, true, true);
+                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.RejectedOutcome, true, false);
             }
             finally
             {
