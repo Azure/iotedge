@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         correlationId,
                         clientCert,
                         clientCertChain,
-                        proxyAuthenticator?? this.authenticator,
+                        proxyAuthenticator ?? this.authenticator,
                         this.clientCredentialsFactory);
                 }
                 else
