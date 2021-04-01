@@ -26,8 +26,7 @@ pub mod unix;
 
 use futures::sync::mpsc;
 use identity_client::IdentityClient;
-use std::fs::{DirBuilder, File};
-use std::io::Write;
+use std::fs::DirBuilder;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -423,16 +422,13 @@ where
     let path = subdir.join(filename);
 
     // store provisioning result
-    let mut file = File::create(path).context(ErrorKind::Initialize(
-        InitializeErrorReason::SaveProvisioning,
-    ))?;
     let digest = compute_provisioning_result_digest(provisioning_result).context(
         ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning),
     )?;
-    file.write_all(digest.as_bytes())
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::SaveProvisioning,
-        ))?;
+
+    std::fs::write(path, digest.into_bytes()).context(ErrorKind::Initialize(
+        InitializeErrorReason::SaveProvisioning,
+    ))?;
 
     Ok(())
 }
