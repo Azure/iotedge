@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate for incoming connection: {connectionIp}, Exception: {ex.Message}"));
 
             public static void AuthenticationApiProxy(string remoteAddress) =>
-                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+                Log.LogDebug((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
 
             public static void AuthenticationApiProxyFailed(string remoteAddress, Exception ex) =>
                 Log.LogError((int)EventIds.AuthenticationApiProxy, $"Failed authentication attempt through ApiProxy for {remoteAddress}", ex);
