@@ -99,6 +99,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     await this.InternalStopAsync(token);
 
+                    // Delete any existing Identity state.
+                    string device_info = "/var/lib/aziot/identityd/device_info";
+                    if (File.Exists(device_info))
+                    {
+                        File.Delete(device_info);
+                        Log.Information("Deleted old provisioning data.");
+                    }
+
+                    string prev_state = "/var/lib/aziot/identityd/prev_state";
+                    if (File.Exists(prev_state))
+                    {
+                        File.Delete(prev_state);
+                        Log.Information("Deleted previous Identity state.");
+                    }
+
                     ConfigFilePaths paths = new ConfigFilePaths
                     {
                         Keyd = "/etc/aziot/keyd/config.toml",
