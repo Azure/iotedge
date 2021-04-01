@@ -309,41 +309,30 @@ pub enum Credentials {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
-    #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
-
-    #[serde(rename = "iotedge_gatewayhostname")]
     gateway_hostname: String,
-
-    #[serde(rename = "iotedge_deviceid")]
     device_id: String,
-
-    #[serde(rename = "iotedge_moduleid")]
     module_id: String,
-
-    #[serde(rename = "iotedge_modulegenerationid")]
     generation_id: String,
-
-    #[serde(rename = "iotedge_workloaduri")]
     workload_uri: String,
 }
 
 impl CredentialProviderSettings {
     pub fn new(
-        iothub_hostname: String,
-        gateway_hostname: String,
-        device_id: String,
-        module_id: String,
-        generation_id: String,
-        workload_uri: String,
+        iothub_hostname: impl Into<String>,
+        gateway_hostname: impl Into<String>,
+        device_id: impl Into<String>,
+        module_id: impl Into<String>,
+        generation_id: impl Into<String>,
+        workload_uri: impl Into<String>,
     ) -> Self {
         CredentialProviderSettings {
-            iothub_hostname,
-            gateway_hostname,
-            device_id,
-            module_id,
-            generation_id,
-            workload_uri,
+            iothub_hostname: iothub_hostname.into(),
+            gateway_hostname: gateway_hostname.into(),
+            device_id: device_id.into(),
+            module_id: module_id.into(),
+            generation_id: generation_id.into(),
+            workload_uri: workload_uri.into(),
         }
     }
 
@@ -375,25 +364,22 @@ impl CredentialProviderSettings {
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct AuthenticationSettings {
     client_id: String,
-
     username: String,
-
     password: String,
-
     trust_bundle: Option<String>,
 }
 
 impl AuthenticationSettings {
     pub fn new(
-        client_id: String,
-        username: String,
-        password: String,
+        client_id: impl Into<String>,
+        username: impl Into<String>,
+        password: impl Into<String>,
         trust_bundle: Option<String>,
     ) -> Self {
         Self {
-            client_id,
-            username,
-            password,
+            client_id: client_id.into(),
+            username: username.into(),
+            password: password.into(),
             trust_bundle,
         }
     }

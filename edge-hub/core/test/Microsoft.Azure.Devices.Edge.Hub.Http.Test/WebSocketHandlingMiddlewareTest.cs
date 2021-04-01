@@ -24,14 +24,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         public void CtorThrowsWhenRequestDelegateIsNull()
         {
             Assert.Throws<ArgumentNullException>(
-                () => new WebSocketHandlingMiddleware(null, Mock.Of<IWebSocketListenerRegistry>()));
+                () => new WebSocketHandlingMiddleware(null, Mock.Of<IWebSocketListenerRegistry>(), Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>())));
         }
 
         [Fact]
         public void CtorThrowsWhenWebSocketListenerRegistryIsNull()
         {
             Assert.Throws<ArgumentNullException>(
-                () => new WebSocketHandlingMiddleware(Mock.Of<RequestDelegate>(), null));
+                () => new WebSocketHandlingMiddleware(Mock.Of<RequestDelegate>(), null, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>())));
+        }
+
+        [Fact]
+        public void CtorThrowsWhenHttpProxiedCertificateExtractorIsNull()
+        {
+            Assert.Throws<ArgumentNullException>(
+                () => new WebSocketHandlingMiddleware(Mock.Of<RequestDelegate>(), Mock.Of<IWebSocketListenerRegistry>(), null));
         }
 
         [Fact]
@@ -39,7 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         {
             var middleware = new WebSocketHandlingMiddleware(
                 (ctx) => Task.CompletedTask,
-                Mock.Of<IWebSocketListenerRegistry>());
+                Mock.Of<IWebSocketListenerRegistry>(),
+                Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
 
             await Assert.ThrowsAnyAsync<Exception>(() => middleware.Invoke(null));
         }
@@ -54,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(listener);
 
-            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry);
+            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
 
             Mock.Get(listener).Verify(r => r.ProcessWebSocketRequestAsync(It.IsAny<WebSocket>(), It.IsAny<Option<EndPoint>>(), It.IsAny<EndPoint>(), It.IsAny<string>()));
@@ -67,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             IWebSocketListenerRegistry registry = ObservingWebSocketListenerRegistry(correlationIds);
             HttpContext httpContext = this.WebSocketRequestContext();
 
-            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry);
+            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
             await middleware.Invoke(httpContext);
 
@@ -81,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var next = Mock.Of<RequestDelegate>();
             HttpContext httpContext = this.NonWebSocketRequestContext();
 
-            var middleware = new WebSocketHandlingMiddleware(next, this.ThrowingWebSocketListenerRegistry());
+            var middleware = new WebSocketHandlingMiddleware(next, this.ThrowingWebSocketListenerRegistry(), Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
 
             Mock.Get(next).Verify(n => n(httpContext));
@@ -95,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             registry.TryRegister(listener);
             HttpContext httpContext = this.ContextWithRequestedSubprotocols("xyz");
 
-            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry);
+            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
 
             Assert.Equal((int)HttpStatusCode.BadRequest, httpContext.Response.StatusCode);
@@ -107,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var registry = new WebSocketListenerRegistry();
             HttpContext httpContext = this.ContextWithRequestedSubprotocols("xyz");
 
-            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry);
+            var middleware = new WebSocketHandlingMiddleware(this.ThrowingNextDelegate(), registry, Task.FromResult(Mock.Of<IHttpProxiedCertificateExtractor>()));
             await middleware.Invoke(httpContext);
 
             Assert.Equal((int)HttpStatusCode.BadRequest, httpContext.Response.StatusCode);

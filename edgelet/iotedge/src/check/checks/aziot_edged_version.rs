@@ -4,7 +4,6 @@ use failure::{self, Context, Fail, ResultExt};
 use futures::{future, Future, Stream};
 use regex::Regex;
 
-use edgelet_core::RuntimeSettings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
@@ -41,13 +40,7 @@ impl Checker for AziotEdgedVersion {
                 iotedged: expected_aziot_edged_version.clone(),
             }))
         } else {
-            let settings = if let Some(settings) = &check.settings {
-                settings
-            } else {
-                return CheckResult::Skipped;
-            };
-
-            if settings.parent_hostname().is_some() {
+            if check.parent_hostname.is_some() {
                 // This is a nested Edge device so it may not be able to access aka.ms or github.com.
                 // In the best case the request would be blocked immediately, but in the worst case it may take a long time to time out.
                 // The user didn't provide the `expected_aziot_edged_version` param on the CLI, so we just ignore this check.

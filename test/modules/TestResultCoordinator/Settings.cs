@@ -52,7 +52,8 @@ namespace TestResultCoordinator
             ushort unmatchedResultsMaxSize,
             string testInfo,
             TestMode testMode,
-            TimeSpan unmatchedResultTolerance)
+            TimeSpan unmatchedResultTolerance,
+            TimeSpan eventHubDelayTolerance)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -96,7 +97,8 @@ namespace TestResultCoordinator
                         this.LongHaulSpecificSettings = Option.Some(new LongHaulSpecificSettings()
                         {
                             SendReportFrequency = sendReportFrequency,
-                            UnmatchedResultTolerance = unmatchedResultTolerance
+                            UnmatchedResultTolerance = unmatchedResultTolerance,
+                            EventHubDelayTolerance = eventHubDelayTolerance
                         });
                         break;
                     }
@@ -164,7 +166,8 @@ namespace TestResultCoordinator
                 configuration.GetValue<ushort>("UNMATCHED_RESULTS_MAX_SIZE", DefaultUnmatchedResultsMaxSize),
                 configuration.GetValue<string>("TEST_INFO"),
                 configuration.GetValue("testMode", TestMode.Connectivity),
-                configuration.GetValue("unmatchedResultTolerance", TimeSpan.FromMinutes(1)));
+                configuration.GetValue("unmatchedResultTolerance", TimeSpan.FromMinutes(1)),
+                configuration.GetValue("eventHubDelayTolerance", TimeSpan.FromHours(1)));
         }
 
         public string IoTHubConnectionString { get; }
@@ -223,6 +226,7 @@ namespace TestResultCoordinator
             {
                 fields.Add(nameof(settings.SendReportFrequency), settings.SendReportFrequency.ToString());
                 fields.Add(nameof(settings.UnmatchedResultTolerance), settings.UnmatchedResultTolerance.ToString());
+                fields.Add(nameof(settings.EventHubDelayTolerance), settings.EventHubDelayTolerance.ToString());
             });
             this.ConnectivitySpecificSettings.ForEach(settings =>
             {
@@ -284,5 +288,6 @@ namespace TestResultCoordinator
     {
         public TimeSpan SendReportFrequency;
         public TimeSpan UnmatchedResultTolerance;
+        public TimeSpan EventHubDelayTolerance;
     }
 }

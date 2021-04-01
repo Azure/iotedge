@@ -12,7 +12,7 @@ use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
 use workload::models::{EncryptRequest, EncryptResponse};
 
-use super::get_derived_enc_key_handle;
+use super::get_master_encryption_key;
 
 use crate::error::{EncryptionOperation, Error, ErrorKind};
 use crate::IntoResponse;
@@ -61,7 +61,7 @@ impl Handler<Parameters> for EncryptHandler {
                     base64::decode(request.plaintext()).context(ErrorKind::MalformedRequestBody)?;
                 let initialization_vector = base64::decode(request.initialization_vector())
                     .context(ErrorKind::MalformedRequestBody)?;
-                let ciphertext = get_derived_enc_key_handle(key_client.clone(), id.clone())
+                let ciphertext = get_master_encryption_key(&key_client)
                     .and_then(|k| {
                         get_ciphertext(
                             key_client,

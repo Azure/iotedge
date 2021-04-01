@@ -193,7 +193,7 @@ impl std::str::FromStr for Status {
 			204 => Status::NoContent,
 			400 => Status::BadRequest,
 			429 => Status::TooManyRequests,
-			raw if raw >= 500 && raw < 600 => Status::Error(raw),
+			raw if (500..600).contains(&raw) => Status::Error(raw),
 			raw => Status::Other(raw),
 		})
 	}
