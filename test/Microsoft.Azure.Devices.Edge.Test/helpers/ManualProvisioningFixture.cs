@@ -2,13 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using NestedEdgeConfig = Microsoft.Azure.Devices.Edge.Test.Common.EdgeDevice.NestedEdgeConfig;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
     // and even if it were, it doesn't run the teardown method when
@@ -67,6 +66,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
         }
 
+        protected NestedEdgeConfig GetNestedEdgeConfig(IotHub iotHub)
+        {
+            return new NestedEdgeConfig(
+                iotHub,
+                Context.Current.NestedEdge,
+                Context.Current.ParentDeviceId,
+                Context.Current.ParentHostname,
+                Context.Current.Hostname);
+        }
+
         public async Task SetUpCertificatesAsync(CancellationToken token, DateTime startTime, string deviceId)
         {
             (string, string, string) rootCa =
@@ -95,31 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             finally
             {
                 await NUnitLogs.CollectAsync(startTime, token);
-            }
-        }
-
-        [OneTimeTearDown]
-        public async Task RemoveCertificatesAsync()
-        {
-            // This is a temporary solution see ticket: 9288683
-            if (!Context.Current.ISA95Tag)
-            {
-                await Profiler.Run(
-                    async () =>
-                    {
-                        using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                        {
-                            await this.daemon.ConfigureAsync(
-                                config =>
-                                {
-                                    config.RemoveCertificates();
-                                    config.Update();
-                                    return Task.FromResult(("without edge certificates", Array.Empty<object>()));
-                                },
-                                cts.Token);
-                        }
-                    },
-                    "Completed custom certificate teardown");
             }
         }
     }
