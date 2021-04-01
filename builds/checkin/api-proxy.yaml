@@ -4,9 +4,6 @@ pr:
     include:
       - master
       - release/*
-  paths:
-    include:
-      - "edge-modules/api-proxy-module/*"
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn

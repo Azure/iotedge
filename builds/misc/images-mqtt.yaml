@@ -3,7 +3,6 @@ trigger:
   branches:
     include:
       - master
-      - release/*
   paths:
     include:
       - "mqtt/*"
