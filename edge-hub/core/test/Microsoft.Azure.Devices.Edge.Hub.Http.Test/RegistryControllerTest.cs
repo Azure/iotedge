@@ -316,7 +316,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var httpRequestAuthenticator = Mock.Of<IHttpRequestAuthenticator>(a => a.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId), Option.Some(authChain), httpContext) == Task.FromResult(new HttpAuthResult(authResult, string.Empty)));
 
             // Act
-            Try<string> authChainResult = await RegistryController.ValidateOnBehalfOfCall(actorDeviceId, authChain, "test", httpContext, edgeHub, httpRequestAuthenticator);
+            Try<string> authChainResult = await RegistryController.AuthorizeOnBehalfOf(actorDeviceId, authChain, "test", httpContext, edgeHub, httpRequestAuthenticator);
 
             // Verify
             if (expectedResult == HttpStatusCode.OK)

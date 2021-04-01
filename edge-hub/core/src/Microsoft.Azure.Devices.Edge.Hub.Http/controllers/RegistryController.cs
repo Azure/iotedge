@@ -281,7 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 actorDeviceId = WebUtility.UrlDecode(actorDeviceId);
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-                Try<string> targetAuthChainTry = await ValidateOnBehalfOfCall(actorDeviceId, requestData.AuthChain, nameof(this.CreateOrUpdateModuleAsync), this.HttpContext, edgeHub, authenticator);
+                Try<string> targetAuthChainTry = await AuthorizeOnBehalfOf(actorDeviceId, requestData.AuthChain, nameof(this.CreateOrUpdateModuleOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
                 if (targetAuthChainTry.Success)
                 {
                     string targetAuthChain = targetAuthChainTry.Value;
@@ -332,7 +332,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 actorDeviceId = WebUtility.UrlDecode(actorDeviceId);
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-                Try<string> targetAuthChainTry = await ValidateOnBehalfOfCall(actorDeviceId, requestData.AuthChain, nameof(this.GetModuleOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
+                Try<string> targetAuthChainTry = await AuthorizeOnBehalfOf(actorDeviceId, requestData.AuthChain, nameof(this.GetModuleOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
                 if (targetAuthChainTry.Success)
                 {
                     string targetAuthChain = targetAuthChainTry.Value;
@@ -381,7 +381,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 actorDeviceId = WebUtility.UrlDecode(actorDeviceId);
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-                Try<string> targetAuthChainTry = await ValidateOnBehalfOfCall(actorDeviceId, requestData.AuthChain, nameof(this.ListModulesOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
+                Try<string> targetAuthChainTry = await AuthorizeOnBehalfOf(actorDeviceId, requestData.AuthChain, nameof(this.ListModulesOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
                 if (targetAuthChainTry.Success)
                 {
                     string targetAuthChain = targetAuthChainTry.Value;
@@ -432,7 +432,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 IEdgeHub edgeHub = await this.edgeHubGetter;
                 IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
 
-                Try<string> targetAuthChainTry = await ValidateOnBehalfOfCall(actorDeviceId, requestData.AuthChain, nameof(this.DeleteModuleOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
+                Try<string> targetAuthChainTry = await AuthorizeOnBehalfOf(actorDeviceId, requestData.AuthChain, nameof(this.DeleteModuleOnBehalfOfAsync), this.HttpContext, edgeHub, authenticator);
                 if (targetAuthChainTry.Success)
                 {
                     string targetAuthChain = targetAuthChainTry.Value;
@@ -455,7 +455,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
         }
 
-        internal static async Task<Try<string>> ValidateOnBehalfOfCall(
+        internal static async Task<Try<string>> AuthorizeOnBehalfOf(
             string actorDeviceId,
             string authChain,
             string source,
