@@ -86,6 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 try
                 {
                     var certExtractor = await this.httpProxiedCertificateExtractorProvider;
+                    // if not certificate in header it returns null, no api proxy authentication needed in this case
+                    // if certificate was set in header it means it was forwarded by api proxy and authenticates api proxy by sas token
+                    // and throws AuthenticationException if api proxy was not authenticated or returns the certificate if api proxy authentication succeeded
                     cert = (await certExtractor.GetClientCertificate(context)).OrDefault();
                 }
                 catch (AuthenticationException ex)
