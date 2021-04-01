@@ -17,7 +17,11 @@
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "env": {}
+            "env": {
+              "UpstreamProtocol": {
+                "value": "amqp"
+              }
+            }
           },
           "edgeHub": {
             "type": "docker",
@@ -41,7 +45,7 @@
           }
         },
         "modules": {
-          "iotedgeApiProxy": {
+          "IoTEdgeAPIProxy": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
