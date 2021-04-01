@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                         It.IsAny<IList<X509Certificate2>>(),
                         It.Is<IAuthenticator>(auth => auth != null && auth.GetType() == typeof(NullAuthenticator))))
                 .Returns(Task.CompletedTask);
-            
+
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(listener.Object);
             var certContentBytes = Util.Test.Common.CertificateHelper.GenerateSelfSignedCert($"test_cert").Export(X509ContentType.Cert);
@@ -209,20 +209,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var registry = new WebSocketListenerRegistry();
             registry.TryRegister(listener.Object);
-            
+
             HttpContext httpContext = this.ContextWithRequestedSubprotocols("abc");
             var authenticator = new Mock<IAuthenticator>();
             authenticator.Setup(p => p.AuthenticateAsync(It.IsAny<IClientCredentials>())).ReturnsAsync(false);
 
             IHttpProxiedCertificateExtractor certExtractor = new HttpProxiedCertificateExtractor(authenticator.Object, Mock.Of<IClientCredentialsFactory>(), "hub", "edge", "proxy");
-            
+
             var middleware = new WebSocketHandlingMiddleware(next, registry, Task.FromResult(certExtractor));
             await middleware.Invoke(httpContext);
 
             authenticator.Verify(auth => auth.AuthenticateAsync(It.IsAny<IClientCredentials>()), Times.Never);
             listener.VerifyAll();
         }
-
 
         static IWebSocketListenerRegistry ObservingWebSocketListenerRegistry(List<string> correlationIds)
         {
