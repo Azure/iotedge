@@ -297,19 +297,19 @@ fn run() -> Result<(), Error> {
                 )
                 .subcommand(
                     SubCommand::with_name("restart")
-                    .about("Restarts iotedged and all of its dependencies.")
+                    .about("Restarts aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("stop")
-                    .about("Stops iotedged and all of its dependencies.")
+                    .about("Stops aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("status")
-                    .about("Report the status of iotedged and all of its dependencies.")
+                    .about("Report the status of aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("set-log-level")
-                    .about("Set the log level of iotedged and all of its dependencies.")
+                    .about("Set the log level of aziot-edged and all of its dependencies.")
                     .arg(
                         Arg::with_name("log_level")
                         .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
