@@ -9,7 +9,7 @@ function usage() {
     echo "trcE2ETest.sh [options]"
     echo ''
     echo 'options'
-    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaults to current directory.'
     echo ' -releaseLabel                            Release label is used as part of Edge device id to make it unique.'
     echo ' -artifactImageBuildNumber                Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
     echo " -containerRegistry                       Host address of container registry."
