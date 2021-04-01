@@ -305,6 +305,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [InlineData("l3", "l4", "l4", "l4;l5", true, HttpStatusCode.Unauthorized)]
         [InlineData("l4", "l3;l4", "l3", null, true, HttpStatusCode.Unauthorized)]
         [InlineData("l4", "l3;l4", "l3", "l3;l4;l5", false, HttpStatusCode.Unauthorized)]
+        [InlineData("l4", "l3;l3", "l3", "l3;l4;l5", false, HttpStatusCode.Unauthorized)]
+        [InlineData("l4", "l5;l4;l3", "l3", "l3;l4;l5", false, HttpStatusCode.Unauthorized)]
         public async Task ValidateOnBehalfOfCallTest(string actorDeviceId, string authChain, string targetDeviceId, string targetAuthChain, bool authResult, HttpStatusCode expectedResult)
         {
             // Setup
