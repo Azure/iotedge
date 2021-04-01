@@ -182,7 +182,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             // Verify
             Assert.Equal(expectedResult, result);
-
         }
 
         [Theory]
@@ -191,11 +190,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [InlineData("l3", "$edgeHub", "l2;l3", "l2", "l2;l3;l4;l5", HttpStatusCode.OK)]
         [InlineData("l3", "$edgeHub", "l4", "l4", "l4;l5", HttpStatusCode.Unauthorized)]
         [InlineData("l3", "$edgeHub", "l4", "l4", "l5", HttpStatusCode.Unauthorized)]
-        public async Task HandleDevicesAndModulesInTargetDeviceScopeAsyncTest(string actorDeviceId, string actorModuleId, string authChain,
-            string targetDeviceId, string authChainToTarget, HttpStatusCode expectedStatus)
+        public async Task HandleDevicesAndModulesInTargetDeviceScopeAsyncTest(
+            string actorDeviceId,
+            string actorModuleId,
+            string authChain,
+            string targetDeviceId,
+            string authChainToTarget,
+            HttpStatusCode expectedStatus)
         {
             // Setup
-            var request = new NestedScopeRequest(1, "", authChain);
+            var request = new NestedScopeRequest(1, string.Empty, authChain);
             var identitiesCache = new Mock<IDeviceScopeIdentitiesCache>();
             identitiesCache.Setup(i => i.GetAuthChain(targetDeviceId)).Returns(Task.FromResult(Option.Some(authChainToTarget)));
             identitiesCache.Setup(i => i.GetServiceIdentity(targetDeviceId)).Returns(Task.FromResult(Option.None<ServiceIdentity>()));
@@ -217,9 +221,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         [InlineData("l3", "$edgeHub", "l4child", null, "l3;l4", "l3", "l4child;l4", HttpStatusCode.Unauthorized)]
         [InlineData("l3", "$edgeHub", "l4child", null, "l3;l4l;5", "l3", "l4child;l4;l5", HttpStatusCode.Unauthorized)]
         [InlineData("l3", "$edgeHub", "l4", null, "l3;l4", "l3", "l4", HttpStatusCode.Unauthorized)]
-        public async Task HandleGetDeviceAndModuleOnBehalfOfAsync(string actorDeviceId, string actorModuleId,
-            string targetDeviceId, string targetModuleId, string authChain,
-            string originatorDeviceId, string authChainToTarget, HttpStatusCode expectedStatus)
+        public async Task HandleGetDeviceAndModuleOnBehalfOfAsync(
+            string actorDeviceId,
+            string actorModuleId,
+            string targetDeviceId,
+            string targetModuleId,
+            string authChain,
+            string originatorDeviceId,
+            string authChainToTarget,
+            HttpStatusCode expectedStatus)
         {
             // Setup
             var request = new IdentityOnBehalfOfRequest(targetDeviceId, targetModuleId, authChain);
