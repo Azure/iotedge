@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -22,11 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     {
         readonly RequestDelegate next;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
+        readonly Task<IHttpProxiedCertificateExtractor> httpProxiedCertificateExtractorProvider;
 
-        public WebSocketHandlingMiddleware(RequestDelegate next, IWebSocketListenerRegistry webSocketListenerRegistry)
+        public WebSocketHandlingMiddleware(RequestDelegate next, IWebSocketListenerRegistry webSocketListenerRegistry, Task<IHttpProxiedCertificateExtractor> httpProxiedCertificateExtractorProvider)
         {
             this.next = Preconditions.CheckNotNull(next, nameof(next));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
+            this.httpProxiedCertificateExtractorProvider = Preconditions.CheckNotNull(httpProxiedCertificateExtractorProvider, nameof(httpProxiedCertificateExtractorProvider));
         }
 
         public Task Invoke(HttpContext context)
@@ -78,31 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
             if (cert == null)
             {
-                // If the connection came through the API proxy, the client cert
-                // would have been forwarded in a custom header. But since TLS
-                // termination occurs at the proxy, we can only trust this custom
-                // header if the request came through port 8080, which an internal
-                // port only accessible within the local Docker vNet.
-                if (context.Connection.LocalPort == Constants.ApiProxyPort)
-                {
-                    if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
-                    {
-                        Events.AuthenticationApiProxy(context.Connection.RemoteIpAddress.ToString());
-
-                        string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
-
-                        try
-                        {
-                            var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
-                            cert = new X509Certificate2(clientCertificateBytes);
-                        }
-                        catch (Exception ex)
-                        {
-                            Events.InvalidCertificate(ex, remoteEndPoint.ToString());
-                            throw;
-                        }
-                    }
-                }
+                var certExtractor = await this.httpProxiedCertificateExtractorProvider;
+                cert = (await certExtractor.GetClientCertificate(context)).OrDefault();
             }
 
             if (cert != null)
@@ -155,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
 
     public static class WebSocketHandlingMiddlewareExtensions
     {
-        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry) =>
-            builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry);
+        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry, Task<IHttpProxiedCertificateExtractor> httpProxiedCertificateExtractor) =>
+            builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry, httpProxiedCertificateExtractor);
     }
 }

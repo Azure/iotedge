@@ -283,14 +283,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 builder.Register(
                     async c =>
                     {
+                        var brokeredCloudProxyDispatcher = c.Resolve<BrokeredCloudProxyDispatcher>();
                         IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
                         if (this.trackDeviceState)
                         {
-                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
-                            deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                            deviceScopeIdentitiesCache = await c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
                         }
 
-                        return new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>(), deviceScopeIdentitiesCache) as ICloudConnectionProvider;
+                        return new BrokeredCloudConnectionProvider(brokeredCloudProxyDispatcher, deviceScopeIdentitiesCache) as ICloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();

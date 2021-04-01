@@ -99,6 +99,24 @@ When the API Proxy module parses a proxy configuration, it goes through the foll
 
 The parsed configuration is then provided to the nginx reverse proxy.
 
+#### Using the dereferencing feature
+It is possible to set 1 level of indirection in the proxy
+```
+For example:
+The environment variable DOCKER_REQUEST_ROUTE_ADDRESS = "${PARENT_HOSTNAME}"
+With PARENT_HOSTNAME="127.0.0.1"
+
+If the config is 
+{
+    "${DOCKER_REQUEST_ROUTE_ADDRESS}"
+}
+It will be resolved as
+{
+    "127.0.0.1"
+}
+
+```
+
 ### Use pre-defined environment variables to turn settings on or off
 
 For easiness of use, the API proxy module comes with a default configuration that meets most frequent scenarios out-of-the-box and that is modular. That configuration is controlled through environment variables of the module.
