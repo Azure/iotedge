@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
-    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Routing;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
@@ -509,35 +508,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
             }
-
-            // IClientCredentials "EdgeHubCredentials"
-            builder.Register(
-                    c =>
-                    {
-                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
-                        return edgeHubCredentials;
-                    })
-                .Named<IClientCredentials>("EdgeHubCredentials")
-                .SingleInstance();
-
-            // ServiceIdentity "EdgeHubIdentity"
-            builder.Register(
-                    c =>
-                    {
-                        return new ServiceIdentity(
-                            this.edgeDeviceId,
-                            this.edgeModuleId,
-                            deviceScope: null,
-                            parentScopes: new List<string>(),
-                            generationId: null,
-                            capabilities: new List<string>(),
-                            new ServiceAuthentication(ServiceAuthenticationType.None),
-                            ServiceIdentityStatus.Enabled);
-                    })
-                .Named<ServiceIdentity>("EdgeHubIdentity")
-                .SingleInstance();
 
             // Task<IInvokeMethodHandler>
             builder.Register(

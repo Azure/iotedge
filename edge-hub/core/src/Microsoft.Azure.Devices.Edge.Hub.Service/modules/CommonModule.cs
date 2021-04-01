@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string edgeDeviceId;
         readonly string edgeHubModuleId;
         readonly string edgeDeviceHostName;
-        readonly Option<string> edgeHubGenerationId;
+        readonly string edgeHubGenerationId;
         readonly AuthenticationMode authenticationMode;
         readonly Option<string> edgeHubConnectionString;
         readonly bool optimizeForPerformance;
@@ -59,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string edgeDeviceId,
             string edgeHubModuleId,
             string edgeDeviceHostName,
-            Option<string> edgeHubGenerationId,
+            string edgeHubGenerationId,
             AuthenticationMode authenticationMode,
             Option<string> edgeHubConnectionString,
             bool optimizeForPerformance,
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeHubModuleId = Preconditions.CheckNonWhiteSpace(edgeHubModuleId, nameof(edgeHubModuleId));
             this.edgeDeviceHostName = Preconditions.CheckNotNull(edgeDeviceHostName, nameof(edgeDeviceHostName));
-            this.edgeHubGenerationId = edgeHubGenerationId;
+            this.edgeHubGenerationId = Preconditions.CheckNotNull(edgeHubGenerationId, nameof(edgeHubGenerationId));
             this.authenticationMode = authenticationMode;
             this.edgeHubConnectionString = edgeHubConnectionString;
             this.optimizeForPerformance = optimizeForPerformance;
@@ -141,10 +142,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             .GetOrElse(
                                 () =>
                                 {
-                                    string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
                                     string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
                                     string workloadApiVersion = this.workloadApiVersion.Expect(() => new InvalidOperationException("workloadUri version is missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
+                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, this.edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                         this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
                                         Constants.WorkloadApiVersion,
                                         this.edgeHubModuleId,
-                                        this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                                        this.edgeHubGenerationId,
                                         Constants.InitializationVectorFileName) as IEncryptionProvider;
                                     return Option.Some(encryptionProvider);
                                 })
@@ -406,6 +406,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // IClientCredentialsFactory
             builder.Register(c => new ClientCredentialsFactory(c.Resolve<IIdentityProvider>(), this.productInfo))
                 .As<IClientCredentialsFactory>()
+                .SingleInstance();
+
+            // IClientCredentials "EdgeHubCredentials"
+            builder.Register(
+                    c =>
+                    {
+                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                        IClientCredentials edgeHubCredentials = this.edgeHubConnectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
+                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeHubModuleId));
+                        return edgeHubCredentials;
+                    })
+                .Named<IClientCredentials>("EdgeHubCredentials")
+                .SingleInstance();
+
+            // ServiceIdentity "EdgeHubIdentity"
+            builder.Register(
+                    c =>
+                    {
+                        return new ServiceIdentity(
+                            this.edgeDeviceId,
+                            this.edgeHubModuleId,
+                            deviceScope: null,
+                            parentScopes: new List<string>(),
+                            this.edgeHubGenerationId,
+                            capabilities: new List<string>(),
+                            new ServiceAuthentication(ServiceAuthenticationType.None),
+                            ServiceIdentityStatus.Enabled);
+                    })
+                .Named<ServiceIdentity>("EdgeHubIdentity")
                 .SingleInstance();
 
             // ConnectionReauthenticator
