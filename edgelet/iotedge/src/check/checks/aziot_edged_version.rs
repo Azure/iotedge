@@ -61,7 +61,7 @@ impl Checker for AziotEdgedVersion {
                 Err(err) => return CheckResult::Failed(err.into()),
             };
 
-            let request = hyper::Request::get("https://aka.ms/latest-aziot-stable-non-lts")
+            let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")
                 .body(hyper::Body::default())
                 .expect("can't fail to create request");
 
