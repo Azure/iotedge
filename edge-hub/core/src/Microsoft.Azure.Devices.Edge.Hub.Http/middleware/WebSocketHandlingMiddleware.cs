@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using System.Linq;
     using System.Net;
     using System.Net.WebSockets;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
@@ -78,17 +79,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
 
             X509Certificate2 cert = await context.Connection.GetClientCertificateAsync();
+            IAuthenticator proxyAuthenticator = null;
 
             if (cert == null)
             {
-                var certExtractor = await this.httpProxiedCertificateExtractorProvider;
-                cert = (await certExtractor.GetClientCertificate(context)).OrDefault();
+                try
+                {
+                    var certExtractor = await this.httpProxiedCertificateExtractorProvider;
+                    // if not certificate in header it returns null, no api proxy authentication needed in this case
+                    // if certificate was set in header it means it was forwarded by api proxy and authenticates api proxy by sas token
+                    // and throws AuthenticationException if api proxy was not authenticated or returns the certificate if api proxy authentication succeeded
+                    cert = (await certExtractor.GetClientCertificate(context)).OrDefault();
+                }
+                catch (AuthenticationException ex)
+                {
+                    Events.AuthenticationApiProxyFailed(remoteEndPoint.ToString(), ex);
+                    // Set authenticator to unauthorize the call from subprotocol level (Mqtt or Amqp)
+                    proxyAuthenticator = new NullAuthenticator();
+                    cert = context.GetForwardedCertificate();
+                }
             }
 
             if (cert != null)
             {
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
-                await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, cert, certChain);
+                await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, cert, certChain, proxyAuthenticator);
             }
             else
             {
@@ -129,7 +144,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate for incoming connection: {connectionIp}, Exception: {ex.Message}"));
 
             public static void AuthenticationApiProxy(string remoteAddress) =>
-                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+                Log.LogDebug((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+
+            public static void AuthenticationApiProxyFailed(string remoteAddress, Exception ex) =>
+                Log.LogError((int)EventIds.AuthenticationApiProxy, $"Failed authentication attempt through ApiProxy for {remoteAddress}", ex);
         }
     }
 
