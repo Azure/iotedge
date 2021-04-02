@@ -4,7 +4,7 @@ use std::ffi::OsStr;
 
 use lazy_static::lazy_static;
 
-use aziotctl_common::{
+use aziotctl_common::system::{
     get_status, get_system_logs as logs, restart, set_log_level as log_level, stop,
     ServiceDefinition, SERVICE_DEFINITIONS as IS_SERVICES,
 };
