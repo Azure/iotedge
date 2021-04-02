@@ -32,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly Option<string> gatewayHostname;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
-        readonly Option<string> edgeModuleGenerationId;
         readonly string edgeDeviceHostName;
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
@@ -100,7 +99,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.connectionString = Option.None<string>();
             }
 
-            this.edgeModuleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
             this.versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
 
@@ -280,6 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
+            Option<string> moduleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
             bool hasParentEdge = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.GatewayHostname).HasValue;
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
@@ -300,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.edgeDeviceId,
                     this.edgeModuleId,
                     this.edgeDeviceHostName,
-                    this.edgeModuleGenerationId,
+                    moduleGenerationId,
                     authenticationMode,
                     this.connectionString,
                     optimizeForPerformance,
