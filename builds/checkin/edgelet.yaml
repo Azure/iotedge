@@ -4,6 +4,10 @@ pr:
     include:
       - master
       - release/*
+<<<<<<< HEAD
+=======
+
+>>>>>>> f8c98c0aa... Update test pipelines to be triggered by release/1.2 (#4736)
 jobs:
 
 ################################################################################
