@@ -20,7 +20,8 @@ const CERTIFICATE_POLL_INTERVAL: tokio::time::Duration = tokio::time::Duration::
 
 //Check for expiry of certificates. If certificates are expired: rotate.
 pub fn start(
-    notify_certs_rotated: Arc<Notify>,
+    notify_server_cert_reload_api_proxy: Arc<Notify>,
+    notify_trust_bundle_reload_api_proxy: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
     info!("Initializing certs monitoring loop");
 
@@ -79,7 +80,7 @@ pub fn start(
         }
 
         //Trust bundle just received. Request for a reset of the API proxy.
-        notify_certs_rotated.notify();
+        notify_trust_bundle_reload_api_proxy.notify();
 
         info!("Starting certs monitoring loop");
 
@@ -120,7 +121,7 @@ pub fn start(
             };
 
             if new_server_cert {
-                notify_certs_rotated.notify();
+                notify_server_cert_reload_api_proxy.notify();
             }
         }
     });
