@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly Option<string> gatewayHostname;
         readonly string edgeDeviceId;
         readonly string edgeModuleId;
-        readonly string edgeModuleGenerationId;
+        readonly Option<string> edgeModuleGenerationId;
         readonly string edgeDeviceHostName;
         readonly Option<string> connectionString;
         readonly VersionInfo versionInfo;
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 this.connectionString = Option.None<string>();
             }
 
-            this.edgeModuleGenerationId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
+            this.edgeModuleGenerationId = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.ModuleGenerationId);
             this.versionInfo = VersionInfo.Get(Constants.VersionInfoFileName);
         }
 

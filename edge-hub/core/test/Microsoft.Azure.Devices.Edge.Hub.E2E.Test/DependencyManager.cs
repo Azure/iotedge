@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     iotHubConnectionStringBuilder.DeviceId,
                     iotHubConnectionStringBuilder.ModuleId,
                     string.Empty,
-                    "testgenerationid",
+                    Option.None<string>(),
                     AuthenticationMode.Scope,
                     Option.Some(edgeHubConnectionString),
                     false,

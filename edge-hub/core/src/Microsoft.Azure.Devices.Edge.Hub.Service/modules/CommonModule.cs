@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string edgeDeviceId;
         readonly string edgeHubModuleId;
         readonly string edgeDeviceHostName;
-        readonly string edgeHubGenerationId;
+        readonly Option<string> edgeHubGenerationId;
         readonly AuthenticationMode authenticationMode;
         readonly Option<string> edgeHubConnectionString;
         readonly bool optimizeForPerformance;
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string edgeDeviceId,
             string edgeHubModuleId,
             string edgeDeviceHostName,
-            string edgeHubGenerationId,
+            Option<string> edgeHubGenerationId,
             AuthenticationMode authenticationMode,
             Option<string> edgeHubConnectionString,
             bool optimizeForPerformance,
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.edgeHubModuleId = Preconditions.CheckNonWhiteSpace(edgeHubModuleId, nameof(edgeHubModuleId));
             this.edgeDeviceHostName = Preconditions.CheckNotNull(edgeDeviceHostName, nameof(edgeDeviceHostName));
-            this.edgeHubGenerationId = Preconditions.CheckNotNull(edgeHubGenerationId, nameof(edgeHubGenerationId));
+            this.edgeHubGenerationId = edgeHubGenerationId;
             this.authenticationMode = authenticationMode;
             this.edgeHubConnectionString = edgeHubConnectionString;
             this.optimizeForPerformance = optimizeForPerformance;
@@ -142,9 +142,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             .GetOrElse(
                                 () =>
                                 {
+                                    string edgeHubGenerationId = this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Generation ID missing"));
                                     string workloadUri = this.workloadUri.Expect(() => new InvalidOperationException("workloadUri is missing"));
                                     string workloadApiVersion = this.workloadApiVersion.Expect(() => new InvalidOperationException("workloadUri version is missing"));
-                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, this.edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
+                                    return new HttpHsmSignatureProvider(this.edgeHubModuleId, edgeHubGenerationId, workloadUri, workloadApiVersion, Constants.WorkloadApiVersion) as ISignatureProvider;
                                 });
                         return signatureProvider;
                     })
@@ -232,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                         this.workloadApiVersion.Expect(() => new InvalidOperationException("Missing workload API version")),
                                         Constants.WorkloadApiVersion,
                                         this.edgeHubModuleId,
-                                        this.edgeHubGenerationId,
+                                        this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                                         Constants.InitializationVectorFileName) as IEncryptionProvider;
                                     return Option.Some(encryptionProvider);
                                 })
@@ -290,6 +291,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Option<IWebProxy>>()
                 .SingleInstance();
 
+            // IServiceIdentityHierarchy
+            builder.Register<IServiceIdentityHierarchy>(
+                    c =>
+                    {
+                        if (this.nestedEdgeEnabled)
+                        {
+                            return new ServiceIdentityTree(this.edgeDeviceId);
+                        }
+                        else
+                        {
+                            return new ServiceIdentityDictionary(this.edgeDeviceId);
+                        }
+                    })
+                .As<IServiceIdentityHierarchy>()
+                .SingleInstance();
+
             // Task<IDeviceScopeIdentitiesCache>
             builder.Register(
                     async c =>
@@ -300,15 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
 
-                            IServiceIdentityHierarchy serviceIdentityHierarchy;
-                            if (this.nestedEdgeEnabled)
-                            {
-                                serviceIdentityHierarchy = new ServiceIdentityTree(this.edgeDeviceId);
-                            }
-                            else
-                            {
-                                serviceIdentityHierarchy = new ServiceIdentityDictionary(this.edgeDeviceId);
-                            }
+                            IServiceIdentityHierarchy serviceIdentityHierarchy = c.Resolve<IServiceIdentityHierarchy>();
 
                             string hostName = this.gatewayHostName.GetOrElse(this.iothubHostName);
                             IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(hostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityHierarchy, proxy);
@@ -429,7 +438,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.edgeHubModuleId,
                             deviceScope: null,
                             parentScopes: new List<string>(),
-                            this.edgeHubGenerationId,
+                            this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
                             capabilities: new List<string>(),
                             new ServiceAuthentication(ServiceAuthenticationType.None),
                             ServiceIdentityStatus.Enabled);
