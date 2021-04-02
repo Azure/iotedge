@@ -4,8 +4,6 @@ trigger:
     include:
       - master
       - release/*
-      - iiot
-      - preview/iiot
 pr: none
 
 variables:
