@@ -31,7 +31,8 @@ async fn main() -> Result<()> {
     env_logger::builder().filter_level(LevelFilter::Info).init();
 
     let notify_config_reload_api_proxy = Arc::new(Notify::new());
-    let notify_cert_reload_api_proxy = Arc::new(Notify::new());
+    let notify_server_cert_reload_api_proxy = Arc::new(Notify::new());
+    let notify_trust_bundle_reload_api_proxy = Arc::new(Notify::new());
 
     let client = config_monitor::get_sdk_client()?;
     let mut shutdown_sdk = client
@@ -42,12 +43,17 @@ async fn main() -> Result<()> {
     let (config_monitor_handle, config_monitor_shutdown_handle) =
         config_monitor::start(client, notify_config_reload_api_proxy.clone())
             .context("Failed running config monitor")?;
-    let (cert_monitor_handle, cert_monitor_shutdown_handle) =
-        certs_monitor::start(notify_cert_reload_api_proxy.clone())
-            .context("Failed running certificates monitor")?;
-    let (nginx_controller_handle, nginx_controller_shutdown_handle) =
-        nginx_controller_start(notify_config_reload_api_proxy, notify_cert_reload_api_proxy)
-            .context("Failed running nginx controller")?;
+    let (cert_monitor_handle, cert_monitor_shutdown_handle) = certs_monitor::start(
+        notify_server_cert_reload_api_proxy.clone(),
+        notify_trust_bundle_reload_api_proxy.clone(),
+    )
+    .context("Failed running certificates monitor")?;
+    let (nginx_controller_handle, nginx_controller_shutdown_handle) = nginx_controller_start(
+        notify_config_reload_api_proxy,
+        notify_server_cert_reload_api_proxy,
+        notify_trust_bundle_reload_api_proxy.clone(),
+    )
+    .context("Failed running nginx controller")?;
 
     //If one task closes, clean up everything
     if let Err(e) = nginx_controller_handle.await {
@@ -83,7 +89,8 @@ enum NginxCommands {
 
 pub fn nginx_controller_start(
     notify_config_reload_api_proxy: Arc<Notify>,
-    notify_cert_reload_api_proxy: Arc<Notify>,
+    notify_server_cert_reload_api_proxy: Arc<Notify>,
+    notify_trust_bundle_reload_api_proxy: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
     let program_path = "/usr/sbin/nginx";
     let proxy_name = "nginx";
@@ -107,10 +114,10 @@ pub fn nginx_controller_start(
         notify_config_reload_api_proxy.notified().await;
 
         //Wait for the trust bundle.
-        notify_cert_reload_api_proxy.notified().await;
+        notify_trust_bundle_reload_api_proxy.notified().await;
 
         //Wait for the server cert and private key.
-        notify_cert_reload_api_proxy.notified().await;
+        notify_server_cert_reload_api_proxy.notified().await;
 
         //Start nginx
         loop {
@@ -125,7 +132,7 @@ pub fn nginx_controller_start(
                 let wait_shutdown_signal = shutdown_signal.notified().fuse();
 
                 // Restart nginx on new config, new cert or crash.
-                let cert_reload = notify_cert_reload_api_proxy.notified().fuse();
+                let cert_reload = notify_server_cert_reload_api_proxy.notified().fuse();
                 let config_reload = notify_config_reload_api_proxy.notified().fuse();
 
                 futures::pin_mut!(
