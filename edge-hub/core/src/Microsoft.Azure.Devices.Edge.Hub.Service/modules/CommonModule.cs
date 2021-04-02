@@ -438,7 +438,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             this.edgeHubModuleId,
                             deviceScope: null,
                             parentScopes: new List<string>(),
-                            this.edgeHubGenerationId.Expect(() => new InvalidOperationException("Missing generation ID")),
+                            this.edgeHubGenerationId.GetOrElse("0"),
                             capabilities: new List<string>(),
                             new ServiceAuthentication(ServiceAuthenticationType.None),
                             ServiceIdentityStatus.Enabled);
