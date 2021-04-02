@@ -18,26 +18,22 @@ pub(crate) struct AziotEdgedVersion {
 
 impl Checker for AziotEdgedVersion {
     fn id(&self) -> &'static str {
-        "aziot-edged-version"
+        "aziot-edge-version"
     }
     fn description(&self) -> &'static str {
-        "latest security daemon"
+        "aziot-edge package is up-to-date"
     }
-    #[allow(unreachable_code)] // TODO: remove once check is re-enabled
+
     fn execute(
         &mut self,
         check: &mut Check,
         tokio_runtime: &mut tokio::runtime::Runtime,
     ) -> CheckResult {
-        // TODO: re-enable after sorting out which URL 1.2 version info will be pulled from
-        let _ = (check, tokio_runtime);
-        return CheckResult::Ignored;
-
         let latest_versions = if let Some(expected_aziot_edged_version) =
             &check.expected_aziot_edged_version
         {
             future::Either::A(future::ok::<_, Error>(crate::LatestVersions {
-                iotedged: expected_aziot_edged_version.clone(),
+                aziot_edge: expected_aziot_edged_version.clone(),
             }))
         } else {
             if check.parent_hostname.is_some() {
@@ -65,7 +61,7 @@ impl Checker for AziotEdgedVersion {
                 Err(err) => return CheckResult::Failed(err.into()),
             };
 
-            let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
+            let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")
                 .body(hyper::Body::default())
                 .expect("can't fail to create request");
 
@@ -152,7 +148,7 @@ impl AziotEdgedVersion {
                 None => return Ok(CheckResult::Skipped),
             },
         };
-        self.expected_version = Some(latest_versions.iotedged.to_owned());
+        self.expected_version = Some(latest_versions.aziot_edge.to_owned());
 
         let mut process = Command::new(&check.aziot_edged);
         process.arg("--version");
@@ -192,12 +188,12 @@ impl AziotEdgedVersion {
 
         check.additional_info.aziot_edged_version = Some(version.to_owned());
 
-        if version != latest_versions.iotedged {
+        if version != latest_versions.aziot_edge {
             return Ok(CheckResult::Warning(
             Context::new(format!(
                 "Installed IoT Edge daemon has version {} but {} is the latest stable version available.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                version, latest_versions.iotedged,
+                version, latest_versions.aziot_edge,
             ))
             .into(),
         ));
