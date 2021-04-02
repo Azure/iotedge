@@ -96,8 +96,15 @@ fn run() -> Result<(), Error> {
                     Arg::with_name("expected-aziot-edged-version")
                         .long("expected-aziot-edged-version")
                         .value_name("VERSION")
-                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <http://aka.ms/latest-iotedge-stable>")
+                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/latest-aziot-stable-non-lts>")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("expected-aziot-version")
+                        .long("expected-aziot-version")
+                        .value_name("AZIOT_VERSION")
+                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/latest-aziot-stable-non-lts>")
+                        .takes_value(true)
                 )
                 .arg(
                     Arg::with_name("aziot-edged")
@@ -297,19 +304,19 @@ fn run() -> Result<(), Error> {
                 )
                 .subcommand(
                     SubCommand::with_name("restart")
-                    .about("Restarts iotedged and all of its dependencies.")
+                    .about("Restarts aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("stop")
-                    .about("Stops iotedged and all of its dependencies.")
+                    .about("Stops aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("status")
-                    .about("Report the status of iotedged and all of its dependencies.")
+                    .about("Report the status of aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("set-log-level")
-                    .about("Set the log level of iotedged and all of its dependencies.")
+                    .about("Set the log level of aziot-edged and all of its dependencies.")
                     .arg(
                         Arg::with_name("log_level")
                         .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
@@ -403,6 +410,8 @@ fn run() -> Result<(), Error> {
                     .map(ToOwned::to_owned)
                     .collect(),
                 args.value_of("expected-aziot-edged-version")
+                    .map(ToOwned::to_owned),
+                args.value_of("expected-aziot-version")
                     .map(ToOwned::to_owned),
                 args.value_of_os("aziot-edged")
                     .expect("arg has a default value")
