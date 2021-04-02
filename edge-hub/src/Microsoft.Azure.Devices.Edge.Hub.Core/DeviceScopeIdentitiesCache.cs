@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection.Metadata.Ecma335;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
@@ -17,12 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        static readonly TimeSpan DefaultRefreshDelay = TimeSpan.FromMinutes(2);
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
         readonly AsyncLock cacheLock = new AsyncLock();
         readonly IDictionary<string, StoredServiceIdentity> serviceIdentityCache;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan refreshRate;
+        readonly TimeSpan refreshDelay;
         readonly AsyncAutoResetEvent refreshCacheSignal = new AsyncAutoResetEvent();
         readonly object refreshCacheLock = new object();
 
@@ -32,12 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             IDictionary<string, StoredServiceIdentity> initialCache,
-            TimeSpan refreshRate)
+            TimeSpan refreshRate,
+            TimeSpan refreshDelay)
         {
             this.serviceProxy = serviceProxy;
             this.encryptedStore = encryptedStorage;
             this.serviceIdentityCache = initialCache;
             this.refreshRate = refreshRate;
+            this.refreshDelay = refreshDelay;
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, refreshRate);
         }
 
@@ -45,15 +50,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<ServiceIdentity> ServiceIdentityUpdated;
 
-        public static async Task<DeviceScopeIdentitiesCache> Create(
+        public static Task<DeviceScopeIdentitiesCache> Create(
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate)
         {
+            return Create(serviceProxy, encryptedStorage, refreshRate, DefaultRefreshDelay);
+        }
+
+        internal static async Task<DeviceScopeIdentitiesCache> Create(
+            IServiceProxy serviceProxy,
+            IKeyValueStore<string, string> encryptedStorage,
+            TimeSpan refreshRate,
+            TimeSpan refreshDelay)
+        {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
             Events.Created();
             return deviceScopeIdentitiesCache;
         }
@@ -74,10 +88,63 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     .Map(s => this.HandleNewServiceIdentity(s))
                     .GetOrElse(() => this.HandleNoServiceIdentity(id));
             }
+            catch (DeviceInvalidStateException)
+            {
+                await this.HandleNoServiceIdentity(id);
+            }
             catch (Exception e)
             {
                 Events.ErrorRefreshingCache(e, id);
             }
+        }
+
+        bool ShouldRefresh(StoredServiceIdentity storedServiceIdentity, bool refreshCachedIdentity) => refreshCachedIdentity && storedServiceIdentity.Timestamp + this.refreshDelay <= DateTime.UtcNow;
+
+        void VerifyServiceIdentity(string id, Option<ServiceIdentity> serviceIdentity) => serviceIdentity.ForEach(
+                si =>
+                {
+                    if (si.Status != ServiceIdentityStatus.Enabled)
+                    {
+                        Events.VerifyServiceIdentityFailure(id, "Device is disabled.");
+                        throw new DeviceInvalidStateException("Device is disabled.");
+                    }
+                },
+                () =>
+                {
+                    Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
+                    throw new DeviceInvalidStateException("Device is out of scope.");
+                });
+
+        public async Task VerifyServiceIdentityState(string id, bool refreshCachedIdentity = false)
+        {
+            Option<StoredServiceIdentity> storedServiceIdentity = await this.GetStoredServiceIdentity(id);
+
+            var ssi = await storedServiceIdentity.Match(
+                async (ssi) =>
+                {
+                    if (this.ShouldRefresh(ssi, refreshCachedIdentity))
+                    {
+                        await this.RefreshServiceIdentity(id);
+                        return await this.GetStoredServiceIdentity(id);
+                    }
+                    else
+                    {
+                        return storedServiceIdentity;
+                    }
+                },
+                async () =>
+               {
+                   await this.RefreshServiceIdentity(id);
+                   return await this.GetStoredServiceIdentity(id);
+               });
+
+            var si = ssi.Expect(() =>
+            {
+                Events.VerifyServiceIdentityFailure(id, "Device is out of scope.");
+                return new DeviceInvalidStateException("Device is out of scope.");
+            }).ServiceIdentity;
+
+            this.VerifyServiceIdentity(id, si);
         }
 
         public async Task RefreshServiceIdentities(IEnumerable<string> ids)
@@ -216,6 +283,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        async Task<Option<StoredServiceIdentity>> GetStoredServiceIdentity(string id)
+        {
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+            using (await this.cacheLock.LockAsync())
+            {
+                return this.serviceIdentityCache.TryGetValue(id, out StoredServiceIdentity storedServiceIdentity)
+                    ? Option.Some(storedServiceIdentity)
+                    : Option.None<StoredServiceIdentity>();
+            }
+        }
+
         async Task HandleNoServiceIdentity(string id)
         {
             using (await this.cacheLock.LockAsync())
@@ -291,77 +369,81 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             [JsonProperty("timestamp")]
             public DateTime Timestamp { get; }
         }
+    }
 
-        static class Events
+    static class Events
+    {
+        const int IdStart = HubCoreEventIds.DeviceScopeIdentitiesCache;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
+
+        enum EventIds
         {
-            const int IdStart = HubCoreEventIds.DeviceScopeIdentitiesCache;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<IDeviceScopeIdentitiesCache>();
-
-            enum EventIds
-            {
-                InitializingRefreshTask = IdStart,
-                Created,
-                ErrorInRefresh,
-                StartingCycle,
-                DoneCycle,
-                ReceivedRequestToRefreshCache,
-                RefreshSleepCompleted,
-                RefreshSignalled,
-                NotInScope,
-                AddInScope,
-                RefreshingServiceIdentity,
-                GettingServiceIdentity
-            }
-
-            public static void Created() =>
-                Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
-
-            public static void ErrorInRefreshCycle(Exception exception)
-            {
-                Log.LogWarning((int)EventIds.ErrorInRefresh, "Encountered an error while refreshing the device scope identities cache. Will retry the operation in some time...");
-                Log.LogDebug((int)EventIds.ErrorInRefresh, exception, "Error details while refreshing the device scope identities cache");
-            }
-
-            public static void StartingRefreshCycle() =>
-                Log.LogInformation((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
-
-            public static void DoneRefreshCycle(TimeSpan refreshRate) =>
-                Log.LogDebug((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
-
-            public static void ErrorRefreshingCache(Exception exception, string deviceId)
-            {
-                Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while refreshing the service identity for {deviceId}");
-            }
-
-            public static void ErrorProcessing(ServiceIdentity serviceIdentity, Exception exception)
-            {
-                string id = serviceIdentity?.Id ?? "unknown";
-                Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while processing the service identity for {id}");
-            }
-
-            public static void ReceivedRequestToRefreshCache() =>
-                Log.LogDebug((int)EventIds.ReceivedRequestToRefreshCache, "Received request to refresh cache.");
-
-            public static void RefreshSignalled() =>
-                Log.LogDebug((int)EventIds.RefreshSignalled, "Device scope identities refresh is ready because a refresh was signalled.");
-
-            public static void RefreshSleepCompleted() =>
-                Log.LogDebug((int)EventIds.RefreshSleepCompleted, "Device scope identities refresh is ready because the wait period is over.");
-
-            public static void NotInScope(string id) =>
-                Log.LogDebug((int)EventIds.NotInScope, $"{id} is not in device scope, removing from cache.");
-
-            public static void AddInScope(string id) =>
-                Log.LogDebug((int)EventIds.AddInScope, $"{id} is in device scope, adding to cache.");
-
-            public static void GettingServiceIdentity(string id) =>
-                Log.LogDebug((int)EventIds.GettingServiceIdentity, $"Getting service identity for {id}");
-
-            public static void RefreshingServiceIdentity(string id) =>
-                Log.LogDebug((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
-
-            internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
-                Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
+            InitializingRefreshTask = IdStart,
+            Created,
+            ErrorInRefresh,
+            StartingCycle,
+            DoneCycle,
+            ReceivedRequestToRefreshCache,
+            RefreshSleepCompleted,
+            RefreshSignalled,
+            NotInScope,
+            AddInScope,
+            RefreshingServiceIdentity,
+            GettingServiceIdentity,
+            VerifyServiceIdentity
         }
+
+        public static void Created() =>
+            Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
+
+        public static void ErrorInRefreshCycle(Exception exception)
+        {
+            Log.LogWarning((int)EventIds.ErrorInRefresh, "Encountered an error while refreshing the device scope identities cache. Will retry the operation in some time...");
+            Log.LogDebug((int)EventIds.ErrorInRefresh, exception, "Error details while refreshing the device scope identities cache");
+        }
+
+        public static void StartingRefreshCycle() =>
+            Log.LogInformation((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
+
+        public static void DoneRefreshCycle(TimeSpan refreshRate) =>
+            Log.LogDebug((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
+
+        public static void ErrorRefreshingCache(Exception exception, string deviceId)
+        {
+            Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while refreshing the service identity for {deviceId}");
+        }
+
+        public static void ErrorProcessing(ServiceIdentity serviceIdentity, Exception exception)
+        {
+            string id = serviceIdentity?.Id ?? "unknown";
+            Log.LogWarning((int)EventIds.ErrorInRefresh, exception, $"Error while processing the service identity for {id}");
+        }
+
+        public static void ReceivedRequestToRefreshCache() =>
+            Log.LogDebug((int)EventIds.ReceivedRequestToRefreshCache, "Received request to refresh cache.");
+
+        public static void RefreshSignalled() =>
+            Log.LogDebug((int)EventIds.RefreshSignalled, "Device scope identities refresh is ready because a refresh was signalled.");
+
+        public static void RefreshSleepCompleted() =>
+            Log.LogDebug((int)EventIds.RefreshSleepCompleted, "Device scope identities refresh is ready because the wait period is over.");
+
+        public static void NotInScope(string id) =>
+            Log.LogDebug((int)EventIds.NotInScope, $"{id} is not in device scope, removing from cache.");
+
+        public static void AddInScope(string id) =>
+            Log.LogDebug((int)EventIds.AddInScope, $"{id} is in device scope, adding to cache.");
+
+        public static void GettingServiceIdentity(string id) =>
+            Log.LogDebug((int)EventIds.GettingServiceIdentity, $"Getting service identity for {id}");
+
+        public static void RefreshingServiceIdentity(string id) =>
+            Log.LogDebug((int)EventIds.RefreshingServiceIdentity, $"Refreshing service identity for {id}");
+
+        internal static void InitializingRefreshTask(TimeSpan refreshRate) =>
+            Log.LogDebug((int)EventIds.InitializingRefreshTask, $"Initializing device scope identities cache refresh task to run every {refreshRate.TotalMinutes} minutes.");
+
+        internal static void VerifyServiceIdentityFailure(string id, string reason) =>
+            Log.LogDebug((int)EventIds.VerifyServiceIdentity, $"Service identity {id} is not valid because: {reason}.");
     }
 }
