@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public string SubProtocol => Constants.WebSocketSubProtocol;
 
-        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId, X509Certificate2 clientCert, IList<X509Certificate2> clientCertChain)
+        public async Task ProcessWebSocketRequestAsync(WebSocket webSocket, Option<EndPoint> localEndPoint, EndPoint remoteEndPoint, string correlationId, X509Certificate2 clientCert, IList<X509Certificate2> clientCertChain, IAuthenticator proxyAuthenticator = null)
         {
             try
             {
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                         correlationId,
                         clientCert,
                         clientCertChain,
-                        this.authenticator,
+                        proxyAuthenticator ?? this.authenticator,
                         this.clientCredentialsFactory);
                 }
                 else
