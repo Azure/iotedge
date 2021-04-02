@@ -28,7 +28,7 @@ impl BrokerOtelInstruments {
 }
 
 lazy_static! {
-    static ref BROKER_OTEL_INSTRUMENTS: BrokerOtelInstruments = { BrokerOtelInstruments::new() };
+    static ref BROKER_OTEL_INSTRUMENTS: BrokerOtelInstruments = BrokerOtelInstruments::new();
 }
 
 pub fn inc_client_msgs_received(client_id: String) {
