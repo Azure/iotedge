@@ -10,6 +10,8 @@ use mqttd::{app, tracing};
 async fn main() -> Result<()> {
     tracing::init();
     let _metrics_pc = mqtt_otel::init_stdout_metrics_exporter();
+    let prom_exporter = mqtt_otel::init_prometheus_metrics_exporter()?;
+    let prom_server_fut = mqtt_otel::create_prometheus_server(&prom_exporter);
 
     let config_path = create_app()
         .get_matches()
@@ -21,8 +23,12 @@ async fn main() -> Result<()> {
         app.setup(config_path)?;
     }
 
-    app.run().await?;
-    Ok(())
+    let app_fut = app.run();
+
+    tokio::select! {
+        _ = prom_server_fut => Ok(()),
+        _ = app_fut => Ok(())
+    }
 }
 
 fn create_app() -> App<'static, 'static> {

@@ -57,7 +57,7 @@ pub fn create_prometheus_server(
     });
 
     // TODO: Make this configurable
-    let addr = ([127, 0, 0, 1], 3000).into();
+    let addr = ([127, 0, 0, 1], 9601).into();
 
     let server_fut = Server::bind(&addr).serve(make_svc);
 
