@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
     public abstract class ReceivingLinkHandler : LinkHandler, IReceivingLinkHandler
     {
         readonly ActionBlock<AmqpMessage> sendMessageProcessor;
+        readonly bool delayedBatchingEnabled;
 
         protected ReceivingLinkHandler(
             IIdentity identity,
@@ -26,12 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
             IMessageConverter<AmqpMessage> messageConverter,
-            IMetadataStore metadataStore)
+            IMetadataStore metadataStore,
+            bool delayedBatchingEnabled)
             : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore)
         {
             Preconditions.CheckArgument(link.IsReceiver, $"Link {requestUri} cannot receive");
             this.ReceivingLink = link;
             this.sendMessageProcessor = new ActionBlock<AmqpMessage>(this.ProcessMessageAsync);
+            this.delayedBatchingEnabled = delayedBatchingEnabled;
         }
 
         protected IReceivingAmqpLink ReceivingLink { get; }
@@ -85,12 +88,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             try
             {
                 await this.OnMessageReceived(amqpMessage);
-                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.AcceptedOutcome, true, false);
+                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.AcceptedOutcome, true, this.delayedBatchingEnabled);
             }
             catch (Exception e) when (!e.IsFatal())
             {
                 Events.ErrorProcessingMessage(e, this);
-                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.RejectedOutcome, true, false);
+                ((IReceivingAmqpLink)this.Link).DisposeMessage(amqpMessage, AmqpConstants.RejectedOutcome, true, this.delayedBatchingEnabled);
             }
             finally
             {
