@@ -96,14 +96,14 @@ fn run() -> Result<(), Error> {
                     Arg::with_name("expected-aziot-edged-version")
                         .long("expected-aziot-edged-version")
                         .value_name("VERSION")
-                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/latest-aziot-stable-non-lts>")
+                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
                         .takes_value(true),
                 )
                 .arg(
                     Arg::with_name("expected-aziot-version")
                         .long("expected-aziot-version")
                         .value_name("AZIOT_VERSION")
-                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/latest-aziot-stable-non-lts>")
+                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/latest-aziot-identity-service>")
                         .takes_value(true)
                 )
                 .arg(

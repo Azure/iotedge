@@ -509,18 +509,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
             }
 
-            // IClientCredentials "EdgeHubCredentials"
-            builder.Register(
-                    c =>
-                    {
-                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
-                        return edgeHubCredentials;
-                    })
-                .Named<IClientCredentials>("EdgeHubCredentials")
-                .SingleInstance();
-
             // Task<IInvokeMethodHandler>
             builder.Register(
                     async c =>
