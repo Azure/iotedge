@@ -5,9 +5,6 @@ pr:
       - master
       - release/*
 
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
-
 jobs:
   ################################################################################
   - job: check_run_pipeline
