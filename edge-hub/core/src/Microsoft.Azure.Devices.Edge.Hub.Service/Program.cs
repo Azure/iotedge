@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // to force add edgeHub in the cache so it is able to connect upstream.
             // Once we get the scopes from the upstream, this record is replaced.
             ServiceIdentity edgeHubIdentity = container.ResolveNamed<ServiceIdentity>("EdgeHubIdentity");
-            IServiceIdentityHierarchy identityScopes = await container.Resolve<Task<IServiceIdentityHierarchy>>();
+            IServiceIdentityHierarchy identityScopes = container.Resolve<IServiceIdentityHierarchy>();
             await identityScopes.InsertOrUpdate(edgeHubIdentity);
 
             // Initializing configuration
