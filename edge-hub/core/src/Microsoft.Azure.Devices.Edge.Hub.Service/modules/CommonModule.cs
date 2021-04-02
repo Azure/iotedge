@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
@@ -290,6 +291,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Option<IWebProxy>>()
                 .SingleInstance();
 
+            // IServiceIdentityHierarchy
+            builder.Register<IServiceIdentityHierarchy>(
+                    c =>
+                    {
+                        if (this.nestedEdgeEnabled)
+                        {
+                            return new ServiceIdentityTree(this.edgeDeviceId);
+                        }
+                        else
+                        {
+                            return new ServiceIdentityDictionary(this.edgeDeviceId);
+                        }
+                    })
+                .As<IServiceIdentityHierarchy>()
+                .SingleInstance();
+
             // Task<IDeviceScopeIdentitiesCache>
             builder.Register(
                     async c =>
@@ -300,15 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var edgeHubTokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubServiceAuthTokenProvider");
                             var proxy = c.Resolve<Option<IWebProxy>>();
 
-                            IServiceIdentityHierarchy serviceIdentityHierarchy;
-                            if (this.nestedEdgeEnabled)
-                            {
-                                serviceIdentityHierarchy = new ServiceIdentityTree(this.edgeDeviceId);
-                            }
-                            else
-                            {
-                                serviceIdentityHierarchy = new ServiceIdentityDictionary(this.edgeDeviceId);
-                            }
+                            IServiceIdentityHierarchy serviceIdentityHierarchy = c.Resolve<IServiceIdentityHierarchy>();
 
                             string hostName = this.gatewayHostName.GetOrElse(this.iothubHostName);
                             IDeviceScopeApiClientProvider securityScopesApiClientProvider = new DeviceScopeApiClientProvider(hostName, this.edgeDeviceId, this.edgeHubModuleId, 10, edgeHubTokenProvider, serviceIdentityHierarchy, proxy);
@@ -406,6 +415,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // IClientCredentialsFactory
             builder.Register(c => new ClientCredentialsFactory(c.Resolve<IIdentityProvider>(), this.productInfo))
                 .As<IClientCredentialsFactory>()
+                .SingleInstance();
+
+            // IClientCredentials "EdgeHubCredentials"
+            builder.Register(
+                    c =>
+                    {
+                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
+                        IClientCredentials edgeHubCredentials = this.edgeHubConnectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
+                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeHubModuleId));
+                        return edgeHubCredentials;
+                    })
+                .Named<IClientCredentials>("EdgeHubCredentials")
+                .SingleInstance();
+
+            // ServiceIdentity "EdgeHubIdentity"
+            builder.Register(
+                    c =>
+                    {
+                        return new ServiceIdentity(
+                            this.edgeDeviceId,
+                            this.edgeHubModuleId,
+                            deviceScope: null,
+                            parentScopes: new List<string>(),
+                            this.edgeHubGenerationId.GetOrElse("0"),
+                            capabilities: new List<string>(),
+                            new ServiceAuthentication(ServiceAuthenticationType.None),
+                            ServiceIdentityStatus.Enabled);
+                    })
+                .Named<ServiceIdentity>("EdgeHubIdentity")
                 .SingleInstance();
 
             // ConnectionReauthenticator
