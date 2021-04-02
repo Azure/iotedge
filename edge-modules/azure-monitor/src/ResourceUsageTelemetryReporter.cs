@@ -17,10 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor {
         private DateTime lastProcessorMeasurementTime = DateTime.UnixEpoch;
         private TimeSpan lastProcessorTime = TimeSpan.FromSeconds(0);
 
-        public ResourceUsageTelemetryReporter(ILogger logger) {
-            this.periodicMeasureAndSend = new PeriodicTask(this.DoTask, System.TimeSpan.FromSeconds(60), System.TimeSpan.FromSeconds(20), logger, "Capture performance telemetry data");
-        }
-
         private async Task DoTask(CancellationToken cancellationToken) {
             var nextProcessorTime = myProcess.Value.TotalProcessorTime;
             var nextTime = DateTime.Now;

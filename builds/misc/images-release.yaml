@@ -11,11 +11,14 @@ jobs:
     pool: 
       vmImage: ubuntu-18.04
     variables:
-      registry.address: pezaracr.azurecr.io
-      registry.user: pezaracr
+      build.registry.address: edgebuilds.azurecr.io
+      build.registry.user: EdgeBuilds
+      registry.address: edgerelease.azurecr.io
+      registry.user: EdgeRelease      
     steps: 
       - bash: |
-            docker login 'pezaracr.azurecr.io' --username 'pezaracr' --password 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF'
+            docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
+            docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
         displayName: 'Docker Login'
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -383,11 +386,14 @@ jobs:
         - win-rs5
         - DotNetFramework
     variables:
-      registry.address: pezaracr.azurecr.io
-      registry.user: pezaracr
+      build.registry.address: edgebuilds.azurecr.io
+      build.registry.user: EdgeBuilds
+      registry.address: edgerelease.azurecr.io
+      registry.user: EdgeRelease
     steps: 
       - script: |
-            docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'           
+            docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
+            docker login $(registry.address) -u $(registry.user) -p $(registry.password)          
         displayName: 'docker login'
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -672,31 +678,31 @@ jobs:
       - task: PowerShell@2
         displayName: "Build Image - Edge Agent - amd64"
         inputs: 
-          arguments: "-Name 'azureiotedge-agent' -Project 'Microsoft.Azure.Devices.Edge.Agent.Service' -Version '$(version)' -Registry 'pezaracr.azurecr.io' -Namespace '$(namespace)' -Push"
+          arguments: "-Name 'azureiotedge-agent' -Project 'Microsoft.Azure.Devices.Edge.Agent.Service' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PowerShell@2
         displayName: "Build Image - Edge Hub - amd64"
         inputs: 
-          arguments: "-Name 'azureiotedge-hub' -Project 'Microsoft.Azure.Devices.Edge.Hub.Service' -Version '$(version)' -Registry 'pezaracr.azurecr.io' -Namespace '$(namespace)' -Push"
+          arguments: "-Name 'azureiotedge-hub' -Project 'Microsoft.Azure.Devices.Edge.Hub.Service' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PowerShell@2
         displayName: "Build Image - Temp Sensor - amd64"
         inputs: 
-          arguments: "-Name 'azureiotedge-simulated-temperature-sensor' -Project 'SimulatedTemperatureSensor' -Version '$(version)' -Registry 'pezaracr.azurecr.io' -Namespace '$(namespace)' -Push"
+          arguments: "-Name 'azureiotedge-simulated-temperature-sensor' -Project 'SimulatedTemperatureSensor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PowerShell@2
         displayName: "Build Image - Diagnostics Module- amd64"
         inputs:
-          arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry 'pezaracr.azurecr.io' -Namespace '$(namespace)' -Push"
+          arguments: "-Name 'azureiotedge-diagnostics' -Project 'IotedgeDiagnosticsDotnet' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PowerShell@2
         displayName: "Build Image - Azure Metrics Collector - amd64"
         inputs:
-          arguments: "-Name 'azureiotedge-metrics-collector' -Project 'Microsoft.Azure.Devices.Edge.Azure.Monitor' -Version '$(version)' -Registry 'pezaracr.azurecr.io' -Namespace '$(namespace)' -Push"
+          arguments: "-Name 'azureiotedge-metrics-collector' -Project 'Microsoft.Azure.Devices.Edge.Azure.Monitor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath          
       - task: PublishBuildArtifacts@1
@@ -714,13 +720,13 @@ jobs:
       - linux_dotnet_projects
       - windows
     steps:
-    - script: scripts/linux/buildManifest.sh -r 'pezaracr.azurecr.io' -u 'pezaracr' -p 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish azureiotedge-diagnostics Manifest'
-    - script: scripts/linux/buildManifest.sh -r 'pezaracr.azurecr.io' -u 'pezaracr' -p 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Edge Agent Manifest'
-    - script: scripts/linux/buildManifest.sh -r 'pezaracr.azurecr.io' -u 'pezaracr' -p 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Edge Hub Manifest'
-    - script: scripts/linux/buildManifest.sh -r 'pezaracr.azurecr.io' -u 'pezaracr' -p 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Temperature Sensor Manifest'
-    - script: scripts/linux/buildManifest.sh -r 'pezaracr.azurecr.io' -u 'pezaracr' -p 'nFVS1k0JSUBykcU1GMlHG=dRYCcHAHgF' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
+    - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Azure Metrics Collector Manifest'      

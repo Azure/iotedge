@@ -420,3 +420,5 @@ jobs:
       displayName: 'Publish azureiotedge-diagnostics Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template' -n microsoft --tags "$(tags)"
+      displayName: 'Publish Azure Metrics Collector Manifest'         
