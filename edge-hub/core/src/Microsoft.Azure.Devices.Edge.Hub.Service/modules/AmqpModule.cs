@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string iotHubHostName;
         readonly bool clientCertAuthAllowed;
         readonly SslProtocols sslProtocols;
+        readonly bool delayedBatchingEnabled;
 
         public AmqpModule(
             string scheme,
@@ -34,7 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             X509Certificate2 tlsCertificate,
             string iotHubHostName,
             bool clientCertAuthAllowed,
-            SslProtocols sslProtocols)
+            SslProtocols sslProtocols,
+            bool delayedBatchingEnabled)
         {
             this.scheme = Preconditions.CheckNonWhiteSpace(scheme, nameof(scheme));
             this.port = Preconditions.CheckRange(port, 0, ushort.MaxValue, nameof(port));
@@ -42,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.sslProtocols = sslProtocols;
+            this.delayedBatchingEnabled = delayedBatchingEnabled;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -72,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         IMessageConverter<AmqpMessage> directMethodMessageConverter = new AmqpDirectMethodMessageConverter();
                         var identityProvider = c.Resolve<IIdentityProvider>();
                         var metadataStore = await c.Resolve<Task<IMetadataStore>>();
-                        ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider, metadataStore);
+                        ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider, metadataStore, this.delayedBatchingEnabled);
                         return linkHandlerProvider;
                     })
                 .As<Task<ILinkHandlerProvider>>()
