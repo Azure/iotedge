@@ -84,6 +84,11 @@ if /usr/bin/getent group docker >/dev/null; then
     %{_sbindir}/usermod -a -G docker %{iotedge_user}
 fi
 
+# Add iotedge user to systemd-journal group
+if /usr/bin/getent group systemd-journal >/dev/null; then
+    %{_sbindir}/usermod -a -G systemd-journal %{iotedge_user}
+fi
+
 # Add iotedge user to aziot-identity-service groups
 if /usr/bin/getent group aziotcs >/dev/null; then
     %{_sbindir}/usermod -aG aziotcs %{iotedge_user}
