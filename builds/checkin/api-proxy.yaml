@@ -3,9 +3,6 @@ pr:
   branches:
     include:
       - master
-
-variables:
-  NugetSecurityAnalysisWarningLevel: warn
       
 jobs:
 
