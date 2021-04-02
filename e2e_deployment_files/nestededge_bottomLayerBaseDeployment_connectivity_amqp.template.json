@@ -22,7 +22,7 @@
             "type": "docker",
             "env": {
               "UpstreamProtocol": {
-                "value": "<UpstreamProtocol>"
+                "value": "amqp"
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
@@ -43,13 +43,13 @@
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"100m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"300m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
-              "experimentalFeatures__enabled": {
-                "value": "true"
+              "UpstreamProtocol": {
+                "value": "amqp"
               },
-              "experimentalFeatures__mqttBrokerEnabled": {
+              "experimentalFeatures__enabled": {
                 "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
@@ -657,27 +657,6 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
-        },
-        "mqttBroker": {
-          "authorizations": [
-            {
-              "identities": [
-                "{{iot:identity}}"
-              ],
-              "allow": [
-                {
-                  "operations": [
-                    "mqtt:connect",
-                    "mqtt:publish",
-                    "mqtt:subscribe"
-                  ],
-                  "resources": [
-                    "#"
-                  ]
-                }
-              ]
-            }
-          ]
         }
       }
     },
