@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::VecDeque, num::NonZeroUsize, task::Waker};
+use std::{collections::VecDeque, num::NonZeroUsize, task::Waker};
 
 use mqtt3::proto::Publication;
 use tracing::debug;
@@ -12,19 +12,19 @@ pub mod test;
 /// When elements are retrieved they are moved to the loaded collection.
 /// This loaded collection is necessary so it behaves the same as other `StreamWakeableState` implementations
 pub struct WakingMemoryStore {
-    queue: VecDeque<(Key, Publication)>,
-    loaded: VecDeque<Key>,
+    queue: VecDeque<Item>,
     waker: Option<Waker>,
     max_size: usize,
+    offset: u64,
 }
 
 impl WakingMemoryStore {
     pub fn new(max_size: NonZeroUsize) -> Self {
         Self {
             queue: VecDeque::new(),
-            loaded: VecDeque::new(),
             waker: None,
             max_size: max_size.get(),
+            offset: 0,
         }
     }
 }
@@ -32,52 +32,76 @@ impl WakingMemoryStore {
 impl StreamWakeableState for WakingMemoryStore {
     fn insert(&mut self, value: &Publication) -> PersistResult<Key> {
         let key = Key {
-            offset: self.queue.len() as u64,
+            offset: self.offset,
         };
-
-        debug!("inserting publication with key {:?}", key);
+        debug!("inserting publication with key {}", key);
 
         if self.max_size <= self.queue.len() {
             return Err(MemoryError::Full.into());
         }
 
-        self.queue.push_back((key, value.clone()));
+        let item = Item {
+            key,
+            publication: value.clone(),
+            has_read: false,
+        };
+
+        self.queue.push_back(item);
 
         if let Some(waker) = self.waker.take() {
             waker.wake();
         }
 
+        self.offset += 1;
+
         Ok(key)
     }
 
     fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
-        let count = min(count, self.queue.len());
-        let output: VecDeque<_> = self.queue.drain(..count).collect();
-
-        for (key, _) in &output {
-            self.loaded.push_back(*key);
+        let mut batch = VecDeque::with_capacity(count);
+        for item in self.queue.iter_mut().take(count) {
+            batch.push_back((item.key, item.publication.clone()));
+            item.has_read = true;
         }
 
-        Ok(output)
+        Ok(batch)
     }
 
     fn remove(&mut self, key: Key) -> PersistResult<()> {
-        debug!(
-            "Removing publication with key {:?}. Current state of loaded messages: {:?}",
-            key, self.loaded
-        );
+        debug!("removing publication with key {} ", key);
 
-        if self.loaded.is_empty() {
-            Err(MemoryError::RemoveOnEmpty.into())
-        } else if self.loaded[0] == key {
-            self.loaded.pop_front();
-            Ok(())
-        } else {
-            Err(MemoryError::BadKeyOrdering.into())
+        match self.queue.pop_front() {
+            Some(item) if !item.has_read => {
+                self.queue.push_front(item);
+                Err(MemoryError::RemoveBeforeRead(key).into())
+            }
+            Some(item) if item.key == key => {
+                if let Some(waker) = self.waker.take() {
+                    waker.wake();
+                }
+                Ok(())
+            }
+            Some(item) => {
+                let front_key = item.key;
+                self.queue.push_front(item);
+
+                Err(MemoryError::BadKeyOrdering {
+                    current: key,
+                    expected: front_key,
+                }
+                .into())
+            }
+            None => Err(MemoryError::RemoveOnEmpty.into()),
         }
     }
 
     fn set_waker(&mut self, waker: &Waker) {
         self.waker = Some(waker.clone());
     }
+}
+
+struct Item {
+    key: Key,
+    publication: Publication,
+    has_read: bool,
 }

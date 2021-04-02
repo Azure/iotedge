@@ -310,7 +310,9 @@ impl StreamWakeableState for RingBuffer {
 
     fn remove(&mut self, key: Key) -> PersistResult<()> {
         if !self.has_read {
-            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead));
+            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(
+                key,
+            )));
         }
         let timer = Instant::now();
         let read_index = self.metadata.file_pointers.read_begin;
@@ -357,6 +359,8 @@ impl StreamWakeableState for RingBuffer {
         if self.metadata.file_pointers.read_end == self.metadata.file_pointers.read_begin {
             self.has_read = false;
         }
+
+        self.wake_up_task();
 
         Ok(())
     }
@@ -1606,7 +1610,7 @@ mod tests {
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead)
+            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(_))
         );
     }
 

@@ -1,3 +1,5 @@
+use crate::persist::Key;
+
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
     #[error("Unexpected block crc {found} expected {expected}")]
@@ -47,8 +49,8 @@ pub enum RingBufferError {
     #[error("Key is at invalid index for removal {current} but {expected} was expected")]
     RemovalIndex { current: u64, expected: u64 },
 
-    #[error("Cannot remove before reading")]
-    RemoveBeforeRead,
+    #[error("Cannot remove before reading a publication with key {0}")]
+    RemoveBeforeRead(Key),
 
     #[error("Serialization error occurred. Caused by {0}")]
     Serialization(#[from] bincode::Error),
