@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public IIdentity Identity { get; }
 
-        public bool IsDirectClient => this.underlyingProxy.IsDirectClient;
+        public INestingInfo NestingInfo => this.underlyingProxy.NestingInfo;
 
         public Task ProcessMethodResponseAsync(IMessage message)
         {
