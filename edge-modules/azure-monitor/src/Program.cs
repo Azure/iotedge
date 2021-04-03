@@ -41,9 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             Logger.Writer.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            // start periodic telemetry reporting
-            ResourceUsageTelemetryReporter telemReporter = new ResourceUsageTelemetryReporter(Logger.Writer);
-
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             ITransportSettings[] transportSettings = { mqttSetting };
             ModuleClient moduleClient = null;
