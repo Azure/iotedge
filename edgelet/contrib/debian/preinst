@@ -17,6 +17,11 @@ add_groups()
         usermod -aG docker iotedge
     fi
 
+     # add iotedge user to systemd-journal group so it can get system logs
+    if getent group systemd-journal >/dev/null; then
+        usermod -aG systemd-journal iotedge
+    fi
+
     if getent group aziotcs >/dev/null; then
         usermod -aG aziotcs iotedge
     fi

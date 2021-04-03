@@ -107,12 +107,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
         public static void AuthenticationApiProxy(string remoteAddress)
         {
-            Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+            Log.LogDebug((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
         }
 
         public static void AuthenticateApiProxySuccess()
         {
-            Log.LogInformation((int)EventIds.AuthenticationSuccess, $"Authentication attempt through ApiProxy success");
+            Log.LogDebug((int)EventIds.AuthenticationSuccess, $"Authentication attempt through ApiProxy success");
         }
 
         public static void AuthenticateApiProxyFailed(Exception ex)
