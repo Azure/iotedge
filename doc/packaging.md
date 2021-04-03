@@ -315,7 +315,7 @@ Notes on behavior:
 
 - The imported device CA will now be referred to as the "Edge CA".
 
-- The workload API exposes an encrypt and decrypt API for modules which uses module-specific keys derived from the module ID and a master encryption key. The master encryption key will be imported into the new services via an `imported_master_encryption_key` property.
+- The workload API exposes an encrypt and decrypt API for modules which uses module-specific keys derived from the module ID and a master encryption key. The master encryption key will be imported into the new services.
 
 - The format of encrypted secrets is changing between v1.1 and v1.2. Using the imported master encryption key, modules that use the workload API and persist across the upgrade from v1.1 -> v1.2 can read secrets encrypted in v1.1. However, upon re-encrypting a secret it is saved in the new format. This means that on a downgrade from v1.2 to v1.1 those modules must be re-deployed. They will be unable to decrypt secrets in the new format. Be aware that in all versions of IoT Edge a module cannot decrypt data previously encrypted by a module of the same name in a previous deployment (i.e. secrets cannot be shared across module generations).
 
@@ -327,7 +327,8 @@ Notes on behavior:
 
 ### Downgrading
 
-The old configuration from `iotedge` is not removed from its location by any of the above actions; therefore, downgrading from the new package to the old one involves uninstalling the `aziot-edge` and `aziot-identity-service` packages, then reinstalling the `iotedge` package.
+The old configuration from `iotedge` is not removed from its location by any of the above actions; therefore, downgrading from the new package to the old one involves uninstalling the `aziot-edge` and `aziot-identity-service` packages, then reinstalling the `iotedge` package. Deployed modules that use the workload API to encrypt/decrypt secrets will need to be re-deployed.
+
 
 ```sh
 sudo apt remove aziot-edge aziot-identity-service
