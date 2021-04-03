@@ -46,9 +46,6 @@ pub enum RingBufferError {
     #[error("Read unknown block with {current} but {expected} hint expected")]
     UnknownBlock { current: u32, expected: u32 },
 
-    #[error("Key is at invalid index for removal {current} but {expected} was expected")]
-    RemovalIndex { current: u64, expected: u64 },
-
     #[error("Cannot remove before reading a publication with key {0}")]
     RemoveBeforeRead(Key),
 

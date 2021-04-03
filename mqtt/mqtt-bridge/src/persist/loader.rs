@@ -325,7 +325,8 @@ mod tests {
         let key1 = keys[0];
         tokio::spawn(async move {
             time::delay_for(Duration::from_millis(10)).await;
-            state.lock().remove(key1).unwrap();
+            let key = state.lock().pop().unwrap();
+            assert_eq!(key, key1);
         });
 
         // await the last item to be available only after the very first item is removed
@@ -377,11 +378,11 @@ mod tests {
         loader.try_next().await.unwrap().unwrap();
 
         // remove inserted elements
-        {
-            let mut borrowed_state = state.lock();
-            borrowed_state.remove(key1).unwrap();
-            borrowed_state.remove(key2).unwrap();
-        }
+        let key = state.lock().pop().unwrap();
+        assert_eq!(key, key1);
+
+        let key = state.lock().pop().unwrap();
+        assert_eq!(key, key2);
 
         // insert new elements
         let pub3 = Publication {

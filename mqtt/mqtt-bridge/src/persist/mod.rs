@@ -42,6 +42,9 @@ pub enum PersistError {
 
     #[error("Serialization error occurred. Caused by: {0}")]
     Serialization(#[from] BincodeError),
+
+    #[error("Cannot remove key {current} that is not in order, but {expected} expected")]
+    BadKeyOrdering { current: Key, expected: Key },
 }
 
 pub type PersistResult<T> = Result<T, PersistError>;

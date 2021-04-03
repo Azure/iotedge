@@ -67,29 +67,20 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(batch)
     }
 
-    fn remove(&mut self, key: Key) -> PersistResult<()> {
-        debug!("removing publication with key {} ", key);
-
+    fn pop(&mut self) -> PersistResult<Key> {
         match self.queue.pop_front() {
             Some(item) if !item.has_read => {
+                let key = item.key;
                 self.queue.push_front(item);
                 Err(MemoryError::RemoveBeforeRead(key).into())
             }
-            Some(item) if item.key == key => {
+            Some(item) => {
+                debug!("removing publication with key {} ", item.key);
+
                 if let Some(waker) = self.waker.take() {
                     waker.wake();
                 }
-                Ok(())
-            }
-            Some(item) => {
-                let front_key = item.key;
-                self.queue.push_front(item);
-
-                Err(MemoryError::BadKeyOrdering {
-                    current: key,
-                    expected: front_key,
-                }
-                .into())
+                Ok(item.key)
             }
             None => Err(MemoryError::RemoveOnEmpty.into()),
         }

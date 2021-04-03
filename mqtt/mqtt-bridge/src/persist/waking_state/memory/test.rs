@@ -25,8 +25,8 @@ impl StreamWakeableState for TestWakingMemoryStore {
         self.0.batch(count)
     }
 
-    fn remove(&mut self, key: Key) -> PersistResult<()> {
-        self.0.remove(key)
+    fn pop(&mut self) -> PersistResult<Key> {
+        self.0.pop()
     }
 
     fn set_waker(&mut self, waker: &Waker) {

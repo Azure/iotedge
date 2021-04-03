@@ -90,9 +90,7 @@ where
                     break;
                 }
                 key = publications.select_next_some() => {
-                    if let Err(e) = store.remove(key) {
-                        error!(error = %e, "failed removing publication from store");
-                    }
+                    store.remove(key).map_err(|e| EgressError::RemovePublication(key, e))?;
                 }
             }
         }
@@ -126,5 +124,7 @@ impl EgressShutdownHandle {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("ingress error")]
-pub(crate) struct EgressError;
+pub(crate) enum EgressError {
+    #[error("Failed to remove publication from a store with key {0}. Caused by: {1}")]
+    RemovePublication(Key, #[source] crate::persist::PersistError),
+}

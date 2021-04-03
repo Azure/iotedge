@@ -15,13 +15,16 @@ pub mod ring_buffer;
 /// All implementations of this trait should have the same behavior with respect to errors.
 /// Thus all implementations will share the below test suite.
 pub trait StreamWakeableState {
+    /// Inserts a publication to the queue.
+    /// Returns the key of the inserted publication.
     fn insert(&mut self, value: &Publication) -> PersistResult<Key>;
 
-    /// Get count elements of store, excluding those that have already been loaded
+    /// Returns a batch of elements in order of insertion.
     fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>>;
 
-    // This remove should error if the given element has not yet been returned by batch.
-    fn remove(&mut self, key: Key) -> PersistResult<()>;
+    /// Removes the oldest publication from the queue.
+    /// This remove should error if the given element has not yet been returned by batch.
+    fn pop(&mut self) -> PersistResult<Key>;
 
     fn set_waker(&mut self, waker: &Waker);
 }
@@ -47,7 +50,6 @@ mod tests {
             memory::test::TestWakingMemoryStore, ring_buffer::test::TestRingBuffer,
             StreamWakeableState,
         },
-        Key,
     };
 
     #[test_case(TestRingBuffer::default())]
@@ -122,11 +124,12 @@ mod tests {
         assert_eq!(key2, keys[1]);
 
         // remove some
-        {
-            let mut borrowed_state = state.lock();
-            borrowed_state.remove(key1).unwrap();
-            borrowed_state.remove(key2).unwrap();
-        }
+        let key = state.lock().pop().unwrap();
+        assert_eq!(key, key1);
+
+        let key = state.lock().pop().unwrap();
+        assert_eq!(key, key2);
+
         // check that the ordering is maintained
         for key in &keys[2..] {
             let extracted_offset = loader.try_next().await.unwrap().unwrap().0.offset;
@@ -194,7 +197,7 @@ mod tests {
 
         let key1 = state.insert(&pub1).unwrap();
         state.batch(1).unwrap();
-        assert_matches!(state.remove(key1), Ok(_));
+        assert_matches!(state.pop(), Ok(key) if key == key1);
 
         let result = state.batch(1);
         assert_matches!(result, Ok(_));
@@ -203,8 +206,7 @@ mod tests {
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
     fn remove_loaded_dne(mut state: impl StreamWakeableState) {
-        let key1 = Key { offset: 0 };
-        let bad_removal = state.remove(key1);
+        let bad_removal = state.pop();
         assert_matches!(bad_removal, Err(_));
     }
 
@@ -218,35 +220,9 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let key1 = state.insert(&pub1).unwrap();
-        let bad_removal = state.remove(key1);
+        let _ = state.insert(&pub1).unwrap();
+        let bad_removal = state.pop();
         assert_matches!(bad_removal, Err(_));
-    }
-
-    #[test_case(TestRingBuffer::default())]
-    #[test_case(TestWakingMemoryStore::default())]
-    fn remove_loaded_out_of_order(mut state: impl StreamWakeableState) {
-        // setup data
-        let pub1 = Publication {
-            topic_name: "1".to_string(),
-            qos: QoS::ExactlyOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-        let pub2 = Publication {
-            topic_name: "2".to_string(),
-            qos: QoS::ExactlyOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        // insert elements and extract
-        let _key1 = state.insert(&pub1).unwrap();
-        let key2 = state.insert(&pub2).unwrap();
-        state.batch(2).unwrap();
-
-        // remove out of order and verify
-        assert_matches!(state.remove(key2), Err(_))
     }
 
     #[test_case(TestRingBuffer::default())]

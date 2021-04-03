@@ -308,25 +308,21 @@ impl StreamWakeableState for RingBuffer {
         Ok(vdata)
     }
 
-    fn remove(&mut self, key: Key) -> PersistResult<()> {
+    fn pop(&mut self) -> PersistResult<Key> {
+        let read_index = self.metadata.file_pointers.read_begin;
+        let key = Key { offset: read_index };
+
         if !self.has_read {
             return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(
                 key,
             )));
         }
+
         let timer = Instant::now();
-        let read_index = self.metadata.file_pointers.read_begin;
-        let key = key.offset;
-        if key != read_index {
-            return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex {
-                current: key,
-                expected: read_index,
-            }));
-        }
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let start = key;
+        let start = key.offset;
         let mut block = load_block_header(&mut self.file, start, block_size, self.max_file_size)
             .map_err(PersistError::Serialization)?;
 
@@ -362,7 +358,7 @@ impl StreamWakeableState for RingBuffer {
 
         self.wake_up_task();
 
-        Ok(())
+        Ok(key)
     }
 
     fn set_waker(&mut self, waker: &Waker) {
@@ -768,7 +764,7 @@ mod tests {
                 }
 
                 for key in &keys[..39] {
-                    assert_matches!(rb.remove(*key), Ok(_));
+                    assert_matches!(rb.pop(), Ok(removed) if &removed == key);
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
@@ -794,7 +790,7 @@ mod tests {
                 assert_eq!(batch.len(), 61);
                 for key in &keys[39..] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
-                    assert_matches!(rb.remove(*key), Ok(_));
+                    assert_matches!(rb.pop(), Ok(removed) if &removed == key);
                 }
                 assert_eq!(rb.metadata.order, 100);
             }
@@ -838,8 +834,8 @@ mod tests {
             assert!(!batch.is_empty());
 
             for (key, _) in batch.drain(..) {
-                let result = rb.remove(key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if removed == key);
             }
 
             // write till wrap around
@@ -917,8 +913,13 @@ mod tests {
             assert!(!batch.is_empty());
 
             for (key, _) in batch.drain(..) {
-                rb.remove(key)
-                    .unwrap_or_else(|_| panic!(format!("unable to remove pub with key {}", key)));
+                let removed = rb.pop().expect("unable to pop publication");
+                if removed != key {
+                    panic!(
+                        "invalid publication removed {} but expected {}",
+                        removed, key
+                    );
+                }
             }
 
             read = rb.metadata.file_pointers.read_begin;
@@ -991,20 +992,9 @@ mod tests {
                 assert_eq!(batch.pop_front().unwrap().0, *key);
             }
 
-            {
-                let key = keys[0];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
-
-            {
-                let key = keys[1];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
-
-            {
-                let key = keys[2];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[0]);
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[1]);
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[2]);
 
             assert_eq!(rb.metadata.order, 10);
         }
@@ -1078,8 +1068,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(*key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if &removed == key);
             }
             assert_eq!(rb.metadata.order, 5);
         }
@@ -1144,9 +1134,9 @@ mod tests {
 
         let result = rb.0.batch(2);
         let batch = result.unwrap();
-        for entry in batch {
-            rb.0.remove(entry.0)
-                .expect("Failed to remove from RingBuffer");
+        for (key, _) in batch {
+            let removed = rb.0.pop().expect("Failed to remove from RingBuffer");
+            assert_eq!(removed, key);
         }
 
         let smaller_publication = Publication {
@@ -1230,8 +1220,8 @@ mod tests {
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
 
-        let result = rb.0.remove(batch[0].0);
-        assert_matches!(result, Ok(_));
+        let result = rb.0.pop();
+        assert_matches!(result, Ok(removed) if removed == batch[0].0);
 
         // need bigger pub
         let big_publication = Publication {
@@ -1339,8 +1329,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(*key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if &removed == key);
             }
         }
         {
@@ -1411,8 +1401,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if removed == key);
             }
 
             // write till wrap around
@@ -1606,71 +1596,12 @@ mod tests {
     #[test]
     fn it_errs_on_remove_when_no_read() {
         let mut rb = TestRingBuffer::default();
-        let result = rb.0.remove(Key { offset: 1 });
+        let result = rb.0.pop();
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
             PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(_))
         );
-    }
-
-    #[test]
-    fn it_errs_on_remove_with_key_not_equal_to_read() {
-        let mut rb = TestRingBuffer::default();
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        let result = rb.0.insert(&publication);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.0.batch(1);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.0.remove(Key { offset: 1 });
-        assert_matches!(result, Err(_));
-        assert_matches!(
-            result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemovalIndex { current, expected }) if current == 1 && expected == 0
-        );
-    }
-
-    #[test]
-    fn it_errs_on_remove_with_key_that_does_not_exist() {
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let file = result.unwrap();
-
-        let result = RingBuffer::new(
-            &file.path().to_path_buf(),
-            MAX_FILE_SIZE_NON_ZERO,
-            FLUSH_OPTIONS,
-        );
-        assert!(result.is_ok());
-        let mut rb = result.unwrap();
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        let result = rb.insert(&publication);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.batch(1);
-        assert_matches!(result, Ok(_));
-
-        let result = write(file.path(), "garbage");
-        assert_matches!(result, Ok(_));
-
-        let result = rb.remove(Key { offset: 0 });
-        assert_matches!(result, Err(_));
     }
 
     #[test]
@@ -1699,8 +1630,8 @@ mod tests {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
 
-            let result = rb.0.remove(key);
-            assert_matches!(result, Ok(_));
+            let result = rb.0.pop();
+            assert_matches!(result, Ok(removed) if removed == key);
         }
     }
 }

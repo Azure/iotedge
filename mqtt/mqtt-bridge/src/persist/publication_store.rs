@@ -8,7 +8,7 @@ use crate::{
     persist::{
         loader::MessageLoader,
         waking_state::{memory::WakingMemoryStore, ring_buffer::RingBuffer, StreamWakeableState},
-        Key, PersistResult,
+        Key, PersistError, PersistResult,
     },
     settings::{MemorySettings, RingBufferSettings},
 };
@@ -87,7 +87,16 @@ where
         debug!("removing publication with key {}", key);
         let lock = self.0.lock();
         let mut state = lock.state.lock();
-        state.remove(key)
+        let removed = state.pop()?;
+
+        if removed != key {
+            return Err(PersistError::BadKeyOrdering {
+                current: key,
+                expected: removed,
+            });
+        }
+
+        Ok(())
     }
 
     pub fn loader(&self) -> MessageLoader<S> {

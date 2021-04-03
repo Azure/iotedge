@@ -4,9 +4,6 @@ use crate::persist::Key;
 
 #[derive(Debug, Error)]
 pub enum MemoryError {
-    #[error("Cannot remove key {current} that is not in order, but {expected} expected")]
-    BadKeyOrdering { current: Key, expected: Key },
-
     #[error("In memory buffer is full")]
     Full,
 
