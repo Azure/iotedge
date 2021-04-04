@@ -5,12 +5,12 @@ use std::collections::BTreeMap;
 use url::Url;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub(super) struct Config {
+pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) trust_bundle_cert: Option<Url>,
+    pub trust_bundle_cert: Option<Url>,
 
     #[serde(default = "edgelet_core::settings::AutoReprovisioningMode::default")]
-    pub(super) auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
+    pub auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
 
     /// This property only exists to be able to import IoT Edge 1.1 and earlier's master encryption key
     /// so that Edge modules that used the workload encrypt/decrypt API can continue to decrypt secrets
@@ -25,27 +25,27 @@ pub(super) struct Config {
     pub(super) imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(flatten)]
-    pub(super) aziot: aziotctl_common::config::super_config::Config,
+    pub aziot: aziotctl_common::config::super_config::Config,
 
     #[serde(default = "default_agent")]
-    pub(super) agent: edgelet_core::ModuleSpec<edgelet_docker::DockerConfig>,
+    pub agent: edgelet_core::ModuleSpec<edgelet_docker::DockerConfig>,
 
     #[serde(default)]
-    pub(super) connect: edgelet_core::Connect,
+    pub connect: edgelet_core::Connect,
     #[serde(default)]
-    pub(super) listen: edgelet_core::Listen,
+    pub listen: edgelet_core::Listen,
 
     #[serde(default)]
-    pub(super) watchdog: edgelet_core::WatchdogSettings,
+    pub watchdog: edgelet_core::WatchdogSettings,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) edge_ca: Option<EdgeCa>,
+    pub edge_ca: Option<EdgeCa>,
 
     #[serde(default)]
-    pub(super) moby_runtime: MobyRuntime,
+    pub moby_runtime: MobyRuntime,
 }
 
-pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig> {
+pub fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig> {
     edgelet_core::ModuleSpec {
         name: "edgeAgent".to_owned(),
         type_: "docker".to_owned(),
@@ -63,7 +63,7 @@ pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::Docker
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
-pub(super) enum EdgeCa {
+pub enum EdgeCa {
     Explicit {
         cert: Url,
         pk: Url,
@@ -74,11 +74,11 @@ pub(super) enum EdgeCa {
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
-pub(super) struct MobyRuntime {
-    pub(super) uri: Url,
-    pub(super) network: edgelet_core::MobyNetwork,
+pub struct MobyRuntime {
+    pub uri: Url,
+    pub network: edgelet_core::MobyNetwork,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) content_trust: Option<ContentTrust>,
+    pub content_trust: Option<ContentTrust>,
 }
 
 impl Default for MobyRuntime {
