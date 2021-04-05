@@ -57,9 +57,9 @@ impl StreamWakeableState for WakingMemoryStore {
         Ok(key)
     }
 
-    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
-        let mut batch = VecDeque::with_capacity(count);
-        for item in self.queue.iter_mut().take(count) {
+    fn batch(&mut self, size: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
+        let mut batch = VecDeque::with_capacity(size);
+        for item in self.queue.iter_mut().take(size) {
             batch.push_back((item.key, item.publication.clone()));
             item.has_read = true;
         }

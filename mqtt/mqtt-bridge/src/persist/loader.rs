@@ -12,15 +12,6 @@ use parking_lot::Mutex;
 
 use crate::persist::{waking_state::StreamWakeableState, Key, PersistResult};
 
-/// Pattern allows for the wrapping `MessageLoader` to be cloned and have non mutable methods
-/// This facilitates sharing between multiple futures in a single threaded environment
-pub struct MessageLoaderInner<S> {
-    state: Arc<Mutex<S>>,
-    batch: VecDeque<(Key, Publication)>,
-    batch_size: usize,
-    loaded: VecDeque<Key>,
-}
-
 /// Message loader used to extract elements from bridge persistence
 ///
 /// This component is responsible for message extraction from the persistence
@@ -28,35 +19,30 @@ pub struct MessageLoaderInner<S> {
 /// Then, will return these elements in order
 ///
 /// When the batch is exhausted it will grab a new batch
-pub struct MessageLoader<S>(Arc<Mutex<MessageLoaderInner<S>>>);
+pub struct MessageLoader<S> {
+    state: Arc<Mutex<S>>,
+    batch: VecDeque<(Key, Publication)>,
+    batch_size: usize,
+    loaded: VecDeque<Key>,
+}
 
 impl<S> MessageLoader<S>
 where
     S: StreamWakeableState,
 {
     pub fn new(state: Arc<Mutex<S>>, batch_size: NonZeroUsize) -> Self {
-        let inner = MessageLoaderInner {
+        Self {
             state,
             batch: VecDeque::new(),
             batch_size: batch_size.get(),
             loaded: VecDeque::new(),
-        };
-        let inner = Arc::new(Mutex::new(inner));
-
-        Self(inner)
+        }
     }
 
     fn next_batch(&mut self) -> PersistResult<VecDeque<(Key, Publication)>> {
-        let inner = self.0.lock();
-        let batch = inner.state.lock().batch(inner.batch_size)?;
+        let batch = self.state.lock().batch(self.batch_size)?;
 
         Ok(batch)
-    }
-}
-
-impl<S: StreamWakeableState> Clone for MessageLoader<S> {
-    fn clone(&self) -> Self {
-        Self(self.0.clone())
     }
 }
 
@@ -67,29 +53,24 @@ where
     type Item = PersistResult<(Key, Publication)>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut inner = self.0.lock();
-
         // return element if available
-        if let Some(item) = inner.batch.pop_front() {
+        if let Some(item) = self.batch.pop_front() {
             Poll::Ready(Some(Ok(item)))
         } else {
-            drop(inner);
-
             // refresh next batch
             // if error, either someone forged the database or we have a database schema change
             let mut new_batch = self.next_batch()?;
 
             // drop those loaded keys which do not exist in the new batch
-            let mut inner = self.0.lock();
             if let Some((new_key, _)) = new_batch.front() {
-                while inner.loaded.front().map_or(false, |key| new_key != key) {
-                    inner.loaded.pop_front();
+                while self.loaded.front().map_or(false, |key| new_key != key) {
+                    self.loaded.pop_front();
                 }
             }
 
             // drop those items from a new batch that were loaded but not removed from storage
             if !new_batch.is_empty() {
-                for key in &inner.loaded {
+                for key in &self.loaded {
                     match new_batch.front() {
                         Some((new_key, _)) if new_key == key => {
                             new_batch.pop_front();
@@ -103,12 +84,12 @@ where
             }
 
             // add the tail of a new batch to items to loaded items
-            inner.loaded.extend(new_batch.iter().map(|(key, _)| *key));
-            inner.batch = new_batch;
+            self.loaded.extend(new_batch.iter().map(|(key, _)| *key));
+            self.batch = new_batch;
 
             // get next element and return it
-            let maybe_extracted = inner.batch.pop_front();
-            let mut state_lock = inner.state.lock();
+            let maybe_extracted = self.batch.pop_front();
+            let mut state_lock = self.state.lock();
             maybe_extracted.map_or_else(
                 || {
                     state_lock.set_waker(cx.waker());

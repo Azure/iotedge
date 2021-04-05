@@ -249,7 +249,7 @@ impl StreamWakeableState for RingBuffer {
         Ok(Key { offset: key })
     }
 
-    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
+    fn batch(&mut self, size: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
         let write_index = self.metadata.file_pointers.write;
         let read_index = self.metadata.file_pointers.read_begin;
 
@@ -268,7 +268,7 @@ impl StreamWakeableState for RingBuffer {
         let mut start = read_index;
         let mut vdata = VecDeque::new();
         let mut reader = BufReader::with_capacity(page_size::get(), &mut self.file);
-        for _ in 0..count {
+        for _ in 0..size {
             let block = load_block_header(&mut reader, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is

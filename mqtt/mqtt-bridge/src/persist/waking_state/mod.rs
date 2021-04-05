@@ -20,7 +20,7 @@ pub trait StreamWakeableState {
     fn insert(&mut self, value: &Publication) -> PersistResult<Key>;
 
     /// Returns a batch of elements in order of insertion.
-    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>>;
+    fn batch(&mut self, size: usize) -> PersistResult<VecDeque<(Key, Publication)>>;
 
     /// Removes the oldest publication from the queue.
     /// This remove should error if the given element has not yet been returned by batch.
