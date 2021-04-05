@@ -43,7 +43,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use edgelet_core::{
-    crypto::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS},
+    crypto::{AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS},
     settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
