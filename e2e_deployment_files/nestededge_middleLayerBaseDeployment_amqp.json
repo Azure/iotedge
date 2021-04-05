@@ -17,7 +17,11 @@
               "image": "$upstream:443/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "env": {}
+            "env": {
+              "UpstreamProtocol": {
+                "value": "amqp"
+              }
+            }
           },
           "edgeHub": {
             "type": "docker",
@@ -41,7 +45,7 @@
           }
         },
         "modules": {
-          "iotedgeApiProxy": {
+          "IoTEdgeAPIProxy": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -56,6 +60,30 @@
                 "value": "443"
               }
             }
+          },
+          "relayer1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "Amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              },
+              "outputName": {
+                "value": "output1"
+              },
+              "EnableTrcReporting": {
+                "value": false
+              }
+            },
+            "settings": {
+              "image": "$upstream:443/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
           }
         }
       }
@@ -64,6 +92,7 @@
       "properties.desired": {
         "schemaVersion": "1.2",
         "routes": {
+          "ToRelayer1": "FROM /messages/* WHERE $connectionDeviceId = \"L3LeafToRelayer1\" INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "ToUpstream": "FROM /messages/* INTO $upstream"
         },
         "storeAndForwardConfiguration": {

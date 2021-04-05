@@ -3,8 +3,8 @@ pr:
   branches:
     include:
       - master
-      - iiot
       - release/*
+
 jobs:
   ################################################################################
   - job: check_run_pipeline

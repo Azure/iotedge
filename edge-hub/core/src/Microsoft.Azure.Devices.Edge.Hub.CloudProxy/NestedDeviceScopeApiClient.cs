@@ -165,10 +165,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Option<string> maybeAuthChain = await this.serviceIdentityHierarchy.GetAuthChain(onBehalfOfDevice);
                 string authChain = maybeAuthChain.Expect(() => new InvalidOperationException($"No valid authentication chain for {onBehalfOfDevice}"));
 
-                // We must pass the origin Edge ID along upstream, so the root
-                // can know which Edge to act OnBehalfOf when calling IoT Hub
-                msg.Headers.Add(Constants.OriginEdgeHeaderKey, onBehalfOfDevice);
-
                 var payload = new IdentityOnBehalfOfRequest(deviceId, moduleId.OrDefault(), authChain);
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
                 msg.Headers.Add(HttpRequestHeader.Authorization.ToString(), token);
