@@ -293,6 +293,7 @@ namespace IotEdgeQuickstart.Details
             SetOwner(keyDir, config[KEYD].Owner, "700");
 
             // Need to always reprovision so previous test runs don't affect this one.
+            config[EDGED].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
             config[IDENTITYD].Document.RemoveIfExists("provisioning");
             parentHostname.ForEach(
                 parent_hostame =>
