@@ -13,13 +13,10 @@ use crate::{
     settings::{MemorySettings, RingBufferSettings},
 };
 
-/// Pattern allows for the wrapping `PublicationStore` to be cloned and have non mutable methods
-/// This facilitates sharing between multiple futures in a single threaded environment
-struct PublicationStoreInner<S> {
+/// Persistence implementation used for the bridge
+pub struct PublicationStore<S> {
     state: Arc<Mutex<S>>,
 }
-/// Persistence implementation used for the bridge
-pub struct PublicationStore<S>(Arc<Mutex<PublicationStoreInner<S>>>);
 
 impl PublicationStore<WakingMemoryStore> {
     pub fn new_memory(memory_settings: &MemorySettings) -> PublicationStore<WakingMemoryStore> {
@@ -55,19 +52,13 @@ where
     S: StreamWakeableState,
 {
     pub fn new(state: S) -> Self {
-        let state = Arc::new(Mutex::new(state));
-
-        let inner = PublicationStoreInner { state };
-        let inner = Arc::new(Mutex::new(inner));
-
-        Self(inner)
+        Self {
+            state: Arc::new(Mutex::new(state)),
+        }
     }
 
     pub fn push(&self, message: &Publication) -> PersistResult<Key> {
-        let inner_borrow = self.0.lock();
-
-        let mut borrowed_store = inner_borrow.state.lock();
-        let key = borrowed_store.insert(message)?;
+        let key = self.state.lock().insert(message)?;
 
         debug!(
             "persisted publication on topic {} with key {}",
@@ -79,9 +70,7 @@ where
 
     pub fn remove(&self, key: Key) -> PersistResult<()> {
         debug!("removing publication with key {}", key);
-        let lock = self.0.lock();
-        let mut state = lock.state.lock();
-        let removed = state.pop()?;
+        let removed = self.state.lock().pop()?;
 
         if removed != key {
             return Err(PersistError::BadKeyOrdering {
@@ -94,14 +83,15 @@ where
     }
 
     pub fn loader(&self, batch_size: NonZeroUsize) -> MessageLoader<S> {
-        let inner = self.0.lock();
-        MessageLoader::new(inner.state.clone(), batch_size)
+        MessageLoader::new(self.state.clone(), batch_size)
     }
 }
 
 impl<S: StreamWakeableState> Clone for PublicationStore<S> {
     fn clone(&self) -> Self {
-        Self(self.0.clone())
+        Self {
+            state: self.state.clone(),
+        }
     }
 }
 
