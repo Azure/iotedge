@@ -47,7 +47,7 @@ impl WorkloadService {
         cert_client: Arc<Mutex<CertificateClient>>,
         key_client: Arc<aziot_key_client::Client>,
         config: W,
-    ) -> impl Future<Item = Self, Error = Error>
+    ) -> impl Future<Item = Self, Error = Error> + 'static
     where
         M: ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync + 'static,
         for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
@@ -56,6 +56,16 @@ impl WorkloadService {
         W: WorkloadConfig + Clone + Send + Sync + 'static,
         <M::AuthenticateFuture as Future>::Error: Fail,
     {
+        let edge_ca = cert::prepare_edge_ca(
+            key_client.clone(),
+            cert_client.clone(),
+            cert::EdgeCaCertificate {
+                cert_id: config.edge_ca_cert().to_string(),
+                key_id: config.edge_ca_key().to_string(),
+            },
+            ErrorKind::StartService,
+        );
+
         let router = router!(
             get   Version2018_06_28 runtime Policy::Anonymous => "/modules" => ListModules::new(runtime.clone()),
             post  Version2018_06_28 runtime Policy::Caller =>    "/modules/(?P<name>[^/]+)/genid/(?P<genid>[^/]+)/sign"     => SignHandler::new(key_client.clone(), identity_client),
@@ -67,9 +77,11 @@ impl WorkloadService {
             get   Version2018_06_28 runtime Policy::Anonymous => "/manifest-trust-bundle" => ManifestTrustBundleHandler::new(cert_client, config),
         );
 
-        router.new_service().then(|inner| {
-            let inner = inner.context(ErrorKind::StartService)?;
-            Ok(WorkloadService { inner })
+        edge_ca.and_then(move |_| {
+            router.new_service().then(|inner| {
+                let inner = inner.context(ErrorKind::StartService)?;
+                Ok(WorkloadService { inner })
+            })
         })
     }
 }
@@ -118,25 +130,14 @@ fn get_derived_identity_key_handle(
 }
 
 fn get_master_encryption_key(
-    key_client: &Arc<KeyClient>,
+    key_client: &KeyClient,
 ) -> impl Future<Item = KeyHandle, Error = Error> {
     key_client
         .create_key_if_not_exists(
             "iotedge_master_encryption_id",
             aziot_key_common::CreateKeyValue::Generate,
-            &[aziot_key_common::KeyUsage::Derive],
+            &[aziot_key_common::KeyUsage::Encrypt],
         )
         .map_err(|_| Error::from(ErrorKind::LoadMasterEncKey))
         .into_future()
-}
-
-fn get_derived_enc_key_handle(
-    key_client: Arc<KeyClient>,
-    name: String,
-) -> impl Future<Item = KeyHandle, Error = Error> {
-    get_master_encryption_key(&key_client).and_then(move |key_handle| {
-        key_client
-            .create_derived_key(&key_handle, name.as_bytes())
-            .map_err(|_| Error::from(ErrorKind::GetIdentity))
-    })
 }

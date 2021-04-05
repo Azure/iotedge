@@ -62,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool closeCloudConnectionOnDeviceDisconnect;
         readonly bool nestedEdgeEnabled;
         readonly bool isLegacyUpstream;
+        readonly bool scopeAuthenticationOnly;
+        readonly bool trackDeviceState;
         readonly Option<X509Certificate2> manifestTrustBundle;
 
         public RoutingModule(
@@ -97,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool closeCloudConnectionOnDeviceDisconnect,
             bool nestedEdgeEnabled,
             bool isLegacyUpstream,
+            bool scopeAuthenticationOnly,
+            bool trackDeviceState,
             Option<X509Certificate2> manifestTrustBundle)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
@@ -131,7 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.closeCloudConnectionOnDeviceDisconnect = closeCloudConnectionOnDeviceDisconnect;
             this.nestedEdgeEnabled = nestedEdgeEnabled;
             this.isLegacyUpstream = isLegacyUpstream;
-            this.manifestTrustBundle = manifestTrustBundle;
+            this.scopeAuthenticationOnly = scopeAuthenticationOnly;
+            this.trackDeviceState = trackDeviceState;
+            this.manifestTrustBundle = manifestTrustBundle
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -256,7 +262,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 this.useServerHeartbeat,
                                 proxy,
                                 metadataStore,
-                                this.nestedEdgeEnabled);
+                                scopeAuthenticationOnly: this.scopeAuthenticationOnly,
+                                trackDeviceState: this.trackDeviceState,
+                                nestedEdgeEnabled: this.nestedEdgeEnabled);
                             return cloudConnectionProvider;
                         })
                     .As<Task<ICloudConnectionProvider>>()
@@ -277,9 +285,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
 
                 builder.Register(
-                    c =>
+                    async c =>
                     {
-                        return Task.FromResult(new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>()) as ICloudConnectionProvider);
+                        IDeviceScopeIdentitiesCache deviceScopeIdentitiesCache = new NullDeviceScopeIdentitiesCache();
+                        if (this.trackDeviceState)
+                        {
+                            var deviceScopeIdentitiesCacheTask = c.Resolve<Task<IDeviceScopeIdentitiesCache>>();
+                            deviceScopeIdentitiesCache = await deviceScopeIdentitiesCacheTask;
+                        }
+
+                        return new BrokeredCloudConnectionProvider(c.Resolve<BrokeredCloudProxyDispatcher>(), deviceScopeIdentitiesCache) as ICloudConnectionProvider;
                     })
                 .As<Task<ICloudConnectionProvider>>()
                 .SingleInstance();
@@ -318,7 +333,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor, this.trackDeviceState) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();
@@ -497,18 +512,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<Task<ITwinManager>>()
                     .SingleInstance();
             }
-
-            // IClientCredentials "EdgeHubCredentials"
-            builder.Register(
-                    c =>
-                    {
-                        var identityFactory = c.Resolve<IClientCredentialsFactory>();
-                        IClientCredentials edgeHubCredentials = this.connectionString.Map(cs => identityFactory.GetWithConnectionString(cs)).GetOrElse(
-                            () => identityFactory.GetWithIotEdged(this.edgeDeviceId, this.edgeModuleId));
-                        return edgeHubCredentials;
-                    })
-                .Named<IClientCredentials>("EdgeHubCredentials")
-                .SingleInstance();
 
             // Task<IInvokeMethodHandler>
             builder.Register(

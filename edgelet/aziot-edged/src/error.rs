@@ -5,8 +5,6 @@ use std::fmt::Display;
 
 use edgelet_core::Error as CoreError;
 use edgelet_core::ErrorKind as CoreErrorKind;
-use edgelet_http::Error as HttpError;
-use edgelet_http::ErrorKind as HttpErrorKind;
 
 use failure::{Backtrace, Context, Fail};
 
@@ -86,7 +84,6 @@ impl From<ErrorKind> for Error {
 
 impl From<CoreError> for Error {
     fn from(error: CoreError) -> Self {
-        let fail: &dyn Fail = &error;
         let error_kind = ErrorKind::Watchdog;
 
         let error_kind_result = match error.kind() {
@@ -140,6 +137,7 @@ pub enum InitializeErrorReason {
     ManagementService,
     ModuleRuntime,
     RemoveExistingModules,
+    SaveProvisioning,
     StopExistingModules,
     Tokio,
     WorkloadService,
@@ -190,6 +188,10 @@ impl fmt::Display for InitializeErrorReason {
 
             InitializeErrorReason::StopExistingModules => {
                 write!(f, "Could not stop existing modules")
+            }
+
+            InitializeErrorReason::SaveProvisioning => {
+                write!(f, "Could not save provisioning state file")
             }
 
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),

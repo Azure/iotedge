@@ -23,6 +23,7 @@ steps:
     if ($test_type -eq 'nestededge_mqtt')
     {
       $filter += '&Category!=SingleNodeOnly'
+      $filter += '&Category!=NestedEdgeAmqpOnly'
     
       #We are disabling some additional tests. See  PBI #9171870. Once this is fixed we should run what's directly below.
       #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
@@ -42,7 +43,8 @@ steps:
       $filter += '&Category!=NestedEdgeOnly' 
     } 
 
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter  
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
+
   displayName: Run tests ${{ parameters.test_type }}
   continueOnError: true
   env:

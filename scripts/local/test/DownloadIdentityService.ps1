@@ -29,6 +29,13 @@ $aziot_commit = if($env:IDENTITY_SERVICE_COMMIT)
 }
 else
 {
+    if(!(Test-Path ./edgelet/Cargo.lock))
+    {
+        Write-Output "Cargo.lock for determining aziot-identity-service commit not found."
+        Write-Output "Either check out the iotedge repo, or set the aziotis.commit pipeline variable."
+        exit 1
+    }
+
     # Any package in the iot-identity-service repo will have the same Git commit hash.
     # So, this script selects the first package in that repo.
     $matches = Select-String -Path ./edgelet/Cargo.lock -Pattern `
@@ -37,13 +44,6 @@ else
     $commit = $matches.Matches.Groups | Where-Object -Property Name -EQ 'commit'
 
     $commit.Value
-}
-
-if([string]::IsNullOrEmpty($aziot_commit))
-{
-    Write-Output "Couldn't determine iot-identity-service commit"
-    Write-Output "Set env var IDENTITY_SERVICE_COMMIT and try again"
-    exit 1
 }
 
 Write-Output "Downloading aziot-identity-service $aziot_commit"
@@ -66,7 +66,7 @@ for($page = 1; ; $page++)
 
     $artifacts_link = $actions_runs.workflow_runs | `
     where {($_.head_sha -eq $aziot_commit) -and ($_.name -eq 'packages')} | `
-    Select-Object -ExpandProperty artifacts_url
+    Select-Object -First 1 -ExpandProperty artifacts_url
 
     if([string]::IsNullOrEmpty($artifacts_link))
     {

@@ -45,9 +45,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 
         static string[] NetworkControllerOperationArray => new[] { "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet" };
 
-        static async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(StoreTestResultCollection<TestOperationResult> results, TimeSpan tolerancePeriod)
+        static async Task<NetworkStatusTimeline> GetNetworkStatusTimelineAsync(IAsyncEnumerable<TestOperationResult> results, TimeSpan tolerancePeriod)
         {
-            return await NetworkStatusTimeline.CreateAsync(results, tolerancePeriod);
+            return await NetworkStatusTimeline.CreateAsync(results.GetAsyncEnumerator(), tolerancePeriod);
         }
 
         static StoreTestResultCollection<TestOperationResult> GetNetworkControllerStoreTestResultCollection(

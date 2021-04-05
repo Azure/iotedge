@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             public string PrincipalsPath;
             public string Owner;
             public uint Uid;
-            public IConfigDocument Document;
+            public TomlDocument Document;
         }
 
         const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
@@ -43,10 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             this.config = new Dictionary<Service, Config>();
 
-            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, true, "aziotks");
-            this.InitServiceConfig(Service.Certd, configFiles.Certd, true, "aziotcs");
-            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, true, "aziotid");
-            this.InitServiceConfig(Service.Edged, configFiles.Edged, false, "iotedge");
+            this.InitServiceConfig(Service.Keyd, configFiles.Keyd, "aziotks");
+            this.InitServiceConfig(Service.Certd, configFiles.Certd, "aziotcs");
+            this.InitServiceConfig(Service.Identityd, configFiles.Identityd, "aziotid");
+            this.InitServiceConfig(Service.Edged, configFiles.Edged, "iotedge");
         }
 
         public void AddHttpsProxy(Uri proxy)
@@ -59,19 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
-        void InitServiceConfig(Service service, string path, bool toml, string owner)
+        void InitServiceConfig(Service service, string path, string owner)
         {
             Config config;
             string contents = File.ReadAllText(path);
 
-            if (toml)
-            {
-                config.Document = new TomlDocument(contents);
-            }
-            else
-            {
-                config.Document = new YamlDocument(contents);
-            }
+            config.Document = new TomlDocument(contents);
 
             config.ConfigPath = path;
             config.PrincipalsPath = Path.Combine(
@@ -85,8 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         void SetBasicDpsParam(string idScope)
         {
+            this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
+
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "dps");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
@@ -109,26 +103,30 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 Service.Certd,
                 "aziot-edged",
                 this.config[Service.Edged].Uid,
-                new string[] { "$edgeHub*server" });
+                new string[] { "aziot-edged/module/*" });
         }
 
-        public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)
+        public void SetManualSasProvisioning(string hubHostname, Option<string> parentHostname, string deviceId, string key)
         {
             string keyName = DaemonConfiguration.SanitizeName(deviceId);
             this.CreatePreloadedKey(keyName, key);
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            parentHostname.ForEach(
+                parent_hostame =>
+                this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", keyName);
 
+            this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
+
             this.SetAuth(keyName);
         }
 
-        public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
+        public void SetDeviceManualX509(string hubhostname, Option<string> parentHostname, string deviceId, string identityCertPath, string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
             {
@@ -141,7 +139,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            parentHostname.ForEach(
+                parent_hostame =>
+                this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
@@ -157,6 +157,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
+
+            this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
 
             this.SetAuth(keyName);
         }

@@ -142,12 +142,12 @@ pub struct ModuleSpec<T> {
     pub name: String,
     #[serde(rename = "type")]
     pub type_: String,
-    pub config: T,
-    #[serde(default = "BTreeMap::new")]
-    pub env: BTreeMap<String, String>,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
     pub image_pull_policy: ImagePullPolicy,
+    pub config: T,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -162,6 +162,33 @@ where
             env: self.env.clone(),
             image_pull_policy: self.image_pull_policy,
         }
+    }
+}
+
+/// In nested scenario, Agent image can be pulled from its parent.
+/// It is possible to specify the parent address using the keyword $upstream
+///
+/// Unfortunately, due to the particularly runtime-independent and generic
+/// nature of configurations, it's very difficult to do "late binding" of
+/// runtime specific configuration values, such as the the $upstream
+/// `parent_hostname` resolution, which can only be done _after_ fetching the
+/// `parent_hostname` value from the underlying aziot identity service.
+///
+/// As the name implies, this trait is a bodge that enables this functionality,
+/// and was added in the lead-up to 1.2 GA.
+///
+/// A proper rework of settings loading should be undertaken when there is more
+/// time, but for now, this will have to do...
+pub trait NestedEdgeBodge {
+    fn parent_hostname_resolve_image(&mut self, parent_hostname: &str);
+}
+
+impl<T> ModuleSpec<T>
+where
+    T: NestedEdgeBodge,
+{
+    pub fn parent_hostname_resolve_image(&mut self, parent_hostname: &str) {
+        self.config.parent_hostname_resolve_image(parent_hostname)
     }
 }
 

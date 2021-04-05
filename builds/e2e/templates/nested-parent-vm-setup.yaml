@@ -1,19 +1,19 @@
 parameters:
-  transportType: 'amqp'
+  upstream.protocol: 'amqp'
 
 jobs:
-  - job: SetupVM_level5_${{ parameters.transportType }}
-    displayName: SettingUp level 5 for ${{ parameters.transportType }} 
+  - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     variables:
       artifactName: iotedged-ubuntu18.04-amd64
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       level: 5
-      deploymentFile: 'nestededge_topLayerBaseDeployment_${{ parameters.transportType }}.json'
+      deploymentFile: "nestededge_topLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       parentName: ''
       parentDeviceId: ''
-      transportType: ${{ parameters.transportType }}
+      upstreamProtocol: ${{ parameters['upstream.protocol'] }}
     pool:
      name: $(pool.name)
      demands:
@@ -29,20 +29,20 @@ jobs:
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
 
-  - job: SetupVM_level4_${{ parameters.transportType }}
-    dependsOn: SetupVM_level5_${{ parameters.transportType }}
-    displayName: SettingUp level 4 for ${{ parameters.transportType }}
+  - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
+    dependsOn: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
     condition: succeeded()
     timeoutInMinutes: 180
     variables:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
-      parentName: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
-      deploymentFile: 'nestededge_middleLayerBaseDeployment_${{ parameters.transportType }}.json'
+      parentName: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
+      deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       level: 4
-      transportType: ${{ parameters.transportType }}
+      upstreamProtocol: ${{ parameters['upstream.protocol'] }}
     pool:
      name: $(pool.name)
      demands:

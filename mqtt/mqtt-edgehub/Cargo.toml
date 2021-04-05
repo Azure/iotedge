@@ -29,6 +29,7 @@ mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-bridge = { path = "../mqtt-bridge" }
 mqtt-broker = { path = "../mqtt-broker" }
 mqtt-policy = { path = "../mqtt-policy" }
+mqtt-util = { path = "../mqtt-util" }
 policy = { path = "../policy" }
 
 [dev-dependencies]

@@ -3,16 +3,26 @@ pr: none
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  images.artifact.name.linux: 'core-linux'
-  vsts.project: $(System.TeamProjectId)
+  
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
 
-jobs:
-################################################################################
-  - job: linux_amd64_moby
-################################################################################
-    displayName: Linux AMD64 Moby
-    condition: ne(variables['agent.group'], '')
-    timeoutInMinutes: 180
+stages:
+- stage: SetupVMs
+  jobs:
+  - template: templates/nested-parent-vm-setup.yaml
+    parameters: 
+      upstream.protocol: 'mqtt'
+  - job:  Deploy_Connectivity_Linux_Amd64
+    displayName: Set up and run connectivity tests on Linux Amd64
+    dependsOn: SetupVM_level4_mqtt
+    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     strategy:
       matrix:
         Online:
@@ -51,29 +61,30 @@ jobs:
           testrun.network.frequencies: "00:05:00 00:20:00 3"
           testrun.network.runProfile: "Offline"
           testrun.duration: "01:15:00"
-        SatelliteGood(60/0/1):
-          testrun.config: 7
-          testrun.network.description: "SatelliteGood(60/0/1)"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "SatelliteGood"
-          testrun.duration: "01:00:00"
-        Cellular3G(60/0/1):
-          testrun.config: 8
-          testrun.network.description: "Cellular3G(60/0/1)"
-          testrun.network.frequencies: "01:00:00 00:00:00 1"
-          testrun.network.runProfile: "Cellular3G"
-          testrun.duration: "01:00:00"
+    timeoutInMinutes: 180
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-connectivity -equals true
-        - nested-edge -equals L3
+        - status -equals unlocked  
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
-    steps:
+      parentName: $[ dependencies.SetupVM_level4_mqtt.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
+      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
+      hostPlatform: 'linux_amd64_moby'
+      quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
+      nestededge: true
+      vsts.project: $(System.TeamProjectId)
+      identityServiceArtifactName: packages_ubuntu-18.04_amd64
+      identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
+      artifactName: iotedged-ubuntu18.04-amd64
+      upstream.protocol: 'mqtt'
+    steps:  
+      - template: templates/set-run-flag.yaml
       - task: Bash@3
         name: Print_test_parameters
         displayName: 'Print test parameters'
@@ -87,70 +98,30 @@ jobs:
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
             echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
-      - template: templates/set-run-flag.yaml
-      - checkout: none
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'EdgeBuild Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: edgebuildkv
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
-      - task: AzureKeyVault@1
-        condition: eq(variables['run.flag'], 1)
-        displayName: 'Nested Edge Azure Key Vault'
-        inputs:
-          azureSubscription: $(azure.subscription)
-          KeyVaultName: edgebuildkv
-          SecretsFilter: 'IotHubStressConnString,EventHubStressConnStr'
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Edgelet Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(edgelet.package.build)
-          branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(edgelet.artifact.name)
-          allowPartiallySucceededBuilds: true
-      - task: DownloadBuildArtifacts@0
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Download Images Artifacts'
-        inputs:
-          buildType: specific
-          project: $(vsts.project)
-          pipeline: $(images.build)
-          branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
-          downloadPath: '$(Build.StagingDirectory)'
-          artifactName: $(images.artifact.name.linux)
-          allowPartiallySucceededBuilds: true
-          itemPattern: |
-            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
-            $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
-            $(images.artifact.name.linux)/artifactInfo.txt
-      # Deploy connectivity test
+            echo "run.flag=$(run.flag)"
+      - template: templates/nested-get-secrets.yaml
+      - template: templates/nested-get-root-ca.yaml
+      - template: templates/nested-agent-deploy.yaml
+        parameters:
+          skipInstall: true
       - template: templates/connectivity-deploy.yaml
         parameters:
           release.label: 'ct$(agent.group)'
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
+          test.startDelay: '$(test.startDelay)'
           build.source.branch: '$(Build.SourceBranchName)'
-          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          images.artifact.name: '$(images.artifact.name.linux)'
-          container.registry: '$(container.registry)'
+          images.artifact.name: '$(az.pipeline.images.artifacts)'
+          container.registry: '$(cr.address)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(IotHubStressConnString)'
           eventHub.connectionString: '$(EventHubStressConnStr)'
-          deploymentFileName: '$(deploymentFileName)'
+          deploymentFileName: 'nestededge_bottomLayerBaseDeployment_connectivity_mqtt.template.json'
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
@@ -168,8 +139,43 @@ jobs:
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
-          metricsCollector.hostPlatform: 'linux_amd64_moby'
+          metricsCollector.hostPlatform: '$(hostPlatform)'
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          connectivity.parentHostname: '$(parentName)'
+          connectivity.parentEdgeDevice: '$(parentDeviceId)'
+          quickstart.package.name: '$(quickstart.package.name)'
+          aziotis.artifact.name: '$(aziotis.artifact.name)'
+          aziotis.package.filter: '$(aziotis.package.filter)'
+          connectivity.nested: 'true'
+          testInfo.testName: '$(testInfo.testName)'
+  - job:  Clean_up      
+    dependsOn:
+      - SetupVM_level5_mqtt
+      - SetupVM_level4_mqtt
+      - Deploy_connectivity_Linux_Amd64
+    condition: always()
+    displayName: Clean up identities and unlock agents
+    variables:    
+      deviceLvl5AgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]         
+      deviceLvl4AgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]       
+      amd64AgentName: $[ dependencies.Deploy_connectivity_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - status -equals unlocked_$(Build.BuildId)  
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl5AgentName)
+          lvl: 5  
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl4AgentName)
+          lvl: 4

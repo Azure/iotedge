@@ -131,7 +131,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
-          longHaul.testDuration: '$(longHaul.testDuration)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
@@ -147,6 +146,7 @@ jobs:
           metricsCollector.hostPlatform: 'linux_amd64_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
@@ -176,7 +176,8 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,GitHubAccessToken'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+      - template: templates/e2e-clean-directory.yaml
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -243,7 +244,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
-          longHaul.testDuration: '$(longHaul.testDuration)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
@@ -259,6 +259,7 @@ jobs:
           metricsCollector.hostPlatform: 'linux_arm32v7_moby'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
 
 ################################################################################
@@ -288,7 +289,8 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,GitHubAccessToken'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+      - template: templates/e2e-clean-directory.yaml
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -355,7 +357,6 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           longHaul.sendReportFrequency: '$(longHaul.sendReportFrequency)'
-          longHaul.testDuration: '$(longHaul.testDuration)'
           test.runtimeLogLevel: '$(test.runtimeLogLevel)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
@@ -371,4 +372,5 @@ jobs:
           metricsCollector.hostPlatform: 'linux_arm64v8_docker'
           test.testMode: 'LongHaul'
           test.useTRC: '$(useTRC)'
+          test.deploymentFileName: '$(test.deploymentFileName)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'

@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter;
@@ -89,6 +90,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var edgeHubCredentials = container.ResolveNamed<IClientCredentials>("EdgeHubCredentials");
             ICredentialsCache credentialsCache = await container.Resolve<Task<ICredentialsCache>>();
             await credentialsCache.Add(edgeHubCredentials);
+
+            // Register EdgeHub indentity in device scopes cache.
+            // When we connect upstream, we verify that identity is in scope.
+            // On a fresh start, we may not yet received the scopes from the upstream, so we need
+            // to force add edgeHub in the cache so it is able to connect upstream.
+            // Once we get the scopes from the upstream, this record is replaced.
+            ServiceIdentity edgeHubIdentity = container.ResolveNamed<ServiceIdentity>("EdgeHubIdentity");
+            IServiceIdentityHierarchy identityScopes = container.Resolve<IServiceIdentityHierarchy>();
+            await identityScopes.InsertOrUpdate(edgeHubIdentity);
 
             // Initializing configuration
             logger.LogInformation("Initializing configuration");

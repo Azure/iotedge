@@ -14,156 +14,83 @@ function create_certificates() {
 }
 #@TODO this might not be compatible for CENTOS
 function setup_iotedge() {
-    echo "Setup certd"
+    sudo touch /etc/aziot/config.toml
 
-    echo "  Updating IoT Edge configuration file to use the newly installed certificcates"
     device_ca_cert_path="file:///certs/certs/iot-edge-device-${device_name}-full-chain.cert.pem"
     trusted_ca_certs_path="file:///certs/certs/azure-iot-test-only.root.ca.cert.pem"
+    device_key_cert_path="file:///certs/private/iot-edge-device-${device_name}.key.pem"
 
-    sudo touch /etc/aziot/certd/config.toml
-    echo "homedir_path = \"/var/lib/aziot/certd\"" | sudo tee  /etc/aziot/certd/config.toml
-    echo "" | sudo tee -a  /etc/aziot/certd/config.toml
-    echo "[cert_issuance]" | sudo tee -a  /etc/aziot/certd/config.toml
-    echo "" | sudo tee -a  /etc/aziot/certd/config.toml
-    echo "[preloaded_certs]" | sudo tee -a  /etc/aziot/certd/config.toml
-    echo "aziot-edged-ca = \"$device_ca_cert_path\"" | sudo tee -a  /etc/aziot/certd/config.toml
-    echo "aziot-edged-trust-bundle = \"$trusted_ca_certs_path\"" | sudo tee -a  /etc/aziot/certd/config.toml
-    sudo chown aziotcs:aziotcs /etc/aziot/certd/config.toml
-    sudo chmod 644 /etc/aziot/certd/config.toml
-    sudo cat /etc/aziot/certd/config.toml
+    echo "hostname = \"$device_name\"" | sudo tee -a /etc/aziot/config.toml
+    if [ ! -z $PARENT_NAME ]; then
+         echo "parent_hostname = \"$PARENT_NAME\"" | sudo tee -a /etc/aziot/config.toml
+    fi
+    echo "trust_bundle_cert = \"$trusted_ca_certs_path\"" | sudo tee -a  /etc/aziot/config.toml
+    echo "" | sudo tee -a  /etc/aziot/config.toml
 
-    # Grant aziot-edged access to edgeHub server certs.
-    >/tmp/principals.toml cat <<-EOF
-[[principal]]
-uid = $(id -u iotedge)
-certs = ["$edgeHub*server"]
-EOF
-    sudo mv /tmp/principals.toml /etc/aziot/certd/config.d/aziot-edged-principal.toml
-    sudo chown aziotcs:aziotcs /etc/aziot/certd/config.d/aziot-edged-principal.toml
-    sudo chmod 0600 /etc/aziot/certd/config.d/aziot-edged-principal.toml
+    echo "[provisioning]" | sudo tee -a  /etc/aziot/config.toml
+    echo "source = \"manual\"" | sudo tee -a /etc/aziot/config.toml
+    echo "connection_string = \"${CONNECTION_STRING}\"" | sudo tee -a /etc/aziot/config.toml
+    echo "" | sudo tee -a  /etc/aziot/config.toml
 
-    echo "Setup keyd"
-    sudo touch /etc/aziot/keyd/config.toml
-    echo "[aziot_keys]" | sudo tee  /etc/aziot/keyd/config.toml
-    echo "homedir_path = \"/var/lib/aziot/keyd\"" | sudo tee -a  /etc/aziot/keyd/config.toml
-    echo "" | sudo tee -a  /etc/aziot/keyd/config.toml
-    echo "[preloaded_keys]" | sudo tee -a  /etc/aziot/keyd/config.toml
-    echo "device-id = \"file:///var/secrets/aziot/keyd/device-id\"" | sudo tee -a  /etc/aziot/keyd/config.toml
-    device_ca_pk_path="file:///certs/private/iot-edge-device-${device_name}.key.pem"
-    echo "aziot-edged-ca = \"$device_ca_pk_path\"" | sudo tee -a  /etc/aziot/keyd/config.toml
-    sudo chown aziotks:aziotks /etc/aziot/keyd/config.toml
-    sudo chmod 644 /etc/aziot/keyd/config.toml
-    sudo cat /etc/aziot/keyd/config.toml
+    echo "[edge_ca]" | sudo tee -a  /etc/aziot/config.toml
+    echo "cert = \"$device_ca_cert_path\"" | sudo tee -a  /etc/aziot/config.toml
+    echo "pk = \"$device_key_cert_path\"" | sudo tee -a  /etc/aziot/config.toml
+    echo "" | sudo tee -a /etc/aziot/config.toml
 
-    # Grant aziot-identityd access to device ID and master encryption key.
-    >/tmp/principals.toml cat <<-EOF
-[[principal]]
-uid = $(id -u aziotid)
-keys = ["device-id", "aziot_identityd_master_id"]
-EOF
-    sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
-    sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
-    sudo chmod 0600 /etc/aziot/keyd/config.d/aziot-identityd-principal.toml
+    echo "[agent]" | sudo tee -a  /etc/aziot/config.toml
+    echo "name = \"edgeAgent\"" | sudo tee -a  /etc/aziot/config.toml
+    echo "type = \"docker\"" | sudo tee -a /etc/aziot/config.toml
 
-    # Grant aziot-edged access to device CA cert and master encryption key.
-    >/tmp/principals.toml cat <<-EOF
-[[principal]]
-uid = $(id -u iotedge)
-keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
-EOF
-    sudo mv /tmp/principals.toml /etc/aziot/keyd/config.d/aziot-edged-principal.toml
-    sudo chown aziotks:aziotks /etc/aziot/keyd/config.d/aziot-edged-principal.toml
-    sudo chmod 0600 /etc/aziot/keyd/config.d/aziot-edged-principal.toml
-
-    echo "Setup edged"
-    echo "    Updating edge Agent"
-    sudo cp /etc/aziot/edged/config.yaml.template /etc/aziot/edged/config.yaml
-    sudo sed -i "49s|.*|    image: \"${CUSTOM_EDGE_AGENT_IMAGE}\"|" /etc/aziot/edged/config.yaml
+    echo "[agent.config]" | sudo tee -a /etc/aziot/config.toml
+    if [ ! -z $PARENT_NAME ]; then
+        echo "image = \"\$upstream:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
+    else
+        echo "image = \"${CONTAINER_REGISTRY}:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label\"" | sudo tee -a /etc/aziot/config.toml
+    fi    
+    echo "createOptions = { }" | sudo tee -a /etc/aziot/config.toml
+    echo "" | sudo tee -a  /etc/aziot/config.toml
+    
     if [ -z $PARENT_NAME ]; then
-        sudo sed -i "50s|.*|    auth:|" /etc/aziot/edged/config.yaml
-        sed -i "51i\      serveraddress: \"${CONTAINER_REGISTRY}\"" /etc/aziot/edged/config.yaml
-        sed -i "52i\      username: \"${CONTAINER_REGISTRY_USERNAME}\"" /etc/aziot/edged/config.yaml
-        sed -i "53i\      password: \"${CONTAINER_REGISTRY_PASSWORD}\"" /etc/aziot/edged/config.yaml
+        echo "[agent.config.auth]" | sudo tee -a /etc/aziot/config.toml
+        echo "serveraddress = \"${CONTAINER_REGISTRY}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "username = \"${CONTAINER_REGISTRY_USERNAME}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "password = \"${CONTAINER_REGISTRY_PASSWORD}\"" | sudo tee -a /etc/aziot/config.toml
+        echo "" | sudo tee -a  /etc/aziot/config.toml
     fi
-
-    if [ ! -z $PARENT_NAME ]; then
-        echo "    Updating the device and parent hostname"
-        sudo sed -i "66s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
-        echo "    Updating the parent hostname"
-        sudo sed -i "79s/.*/parent_hostname: \"$PARENT_NAME\"/" /etc/aziot/edged/config.yaml
-    else
-        echo "    Updating the device hostname"
-        sudo sed -i "69s/.*/hostname: \"$device_name\"/" /etc/aziot/edged/config.yaml
-    fi
-    sudo chown iotedge:iotedge /etc/aziot/edged/config.yaml
-    sudo chmod 644 /etc/aziot/edged/config.yaml
-    sudo cat /etc/aziot/edged/config.yaml
-
-    echo "Setup identityd"
-    sudo touch /etc/aziot/identityd/config.toml
-    echo "hostname = \"$device_name\"" | sudo tee  /etc/aziot/identityd/config.toml
-    echo "homedir = \"/var/lib/aziot/identityd\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "[provisioning]" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "dynamic_reprovisioning = true" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "source = \"manual\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    if [ ! -z $PARENT_NAME ]; then
-        echo "iothub_hostname = \"$PARENT_NAME\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    else
-        echo "iothub_hostname = \"${IOT_HUB_NAME}.azure-devices.net\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    fi
-    echo "device_id = \"${DEVICE_ID}\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "[provisioning.authentication]" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "method = \"sas\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    echo "device_id_pk = \"device-id\"" | sudo tee -a  /etc/aziot/identityd/config.toml
-    sudo chown aziotid:aziotid /etc/aziot/identityd/config.toml
-    sudo chmod 644 /etc/aziot/identityd/config.toml
-    sudo cat /etc/aziot/identityd/config.toml
-
-    echo "Setup aziot-edged-principal.toml"
-    id_aziot=$(id -u iotedge)
-    sudo touch /etc/aziot/identityd/config.d/aziot-edged-principal.toml
-    echo "[[principal]]" | sudo tee  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
-    echo "uid = ${id_aziot}" | sudo tee -a  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
-    echo "name = \"aziot-edge\"" | sudo tee -a  /etc/aziot/identityd/config.d/aziot-edged-principal.toml
-    sudo chown "$(id -u aziotid):$(id -g aziotid)" /etc/aziot/identityd/config.d/aziot-edged-principal.toml
-
-    echo "Setup /var/secrets/aziot/keyd/device-id"
-    sudo mkdir -p /var/secrets
-    sudo mkdir -p /var/secrets/aziot
-    sudo mkdir -p /var/secrets/aziot/keyd
-    sudo touch /var/secrets/aziot/keyd/device-id
-    deviceSASKey=$(echo "${CONNECTION_STRING}" | sed -n 's/.*SharedAccessKey=\(.*\)/\1/p')
-    echo "SAS key: $deviceSASKey"
-    echo $deviceSASKey | base64 -d > device-id
-    sudo mv device-id  /var/secrets/aziot/keyd/device-id
-    sudo chmod 600 /var/secrets/aziot/keyd/device-id
-    sudo chown aziotks:aziotks /var/secrets/aziot/keyd/device-id
 
     if [ ! -z $PROXY_ADDRESS ]; then
         echo "Configuring the bootstrapping edgeAgent to use http proxy"
-        sudo sed -i "47s|.*|  env:|" /etc/aziot/edged/config.yaml
-        sudo sed -i "48i\    https_proxy: \"${PROXY_ADDRESS}\"" /etc/aziot/edged/config.yaml
+        echo "[agent.env]" | sudo tee -a /etc/aziot/config.toml
+        echo "https_proxy = \"${PROXY_ADDRESS}\"" | sudo tee -a /etc/aziot/config.toml        
+        echo "" | sudo tee -a /etc/aziot/config.toml
 
         echo "Adding proxy configuration to docker"
         sudo mkdir -p /etc/systemd/system/docker.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
         } | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf
         sudo systemctl daemon-reload
         sudo systemctl restart docker
 
         echo "Adding proxy configuration to IoT Edge daemon"
-        sudo mkdir -p /etc/systemd/system/iotedge.service.d/
+        sudo mkdir -p /etc/systemd/system/aziot-identityd.service.d/
         { echo "[Service]";
-        echo "Environment=${PROXY_ADDRESS}";
-        } | sudo tee /etc/systemd/system/iotedge.service.d/proxy.conf
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/aziot-identityd.service.d/proxy.conf
+        sudo systemctl daemon-reload           
+
+        echo "Adding proxy configuration to IoT Edge daemon"
+        sudo mkdir -p /etc/systemd/system/aziot-edged.service.d/
+        { echo "[Service]";
+        echo "Environment=HTTPS_PROXY=${PROXY_ADDRESS}";
+        } | sudo tee /etc/systemd/system/aziot-edged.service.d/proxy.conf
         sudo systemctl daemon-reload
     fi
 
+    sudo cat /etc/aziot/config.toml
+
     echo "Start IoT edge"
-    sudo systemctl start aziot-keyd aziot-certd aziot-identityd aziot-edged
+    sudo iotedge config apply
 }
 
 function prepare_test_from_artifacts() {
@@ -192,6 +119,8 @@ function prepare_test_from_artifacts() {
     if [[ ! -z "$CUSTOM_EDGE_HUB_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-hub:.*\"@\"image\": \"$CUSTOM_EDGE_HUB_IMAGE\"@g" "$deployment_working_file"
     fi
+
+    sudo cat ${deployment_working_file}
 
     #deploy the config in azure portal
     az iot edge set-modules --device-id ${DEVICE_ID} --hub-name ${IOT_HUB_NAME} --content ${deployment_working_file} --output none
@@ -326,20 +255,6 @@ process_args "$@"
 
 get_image_architecture_label
 
-if [ -z $CUSTOM_EDGE_AGENT_IMAGE ]; then
-    if [ ! -z $PARENT_NAME ]; then
-        CUSTOM_EDGE_AGENT_IMAGE="${PARENT_NAME}:443/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
-    else
-        CUSTOM_EDGE_AGENT_IMAGE="${CONTAINER_REGISTRY}/microsoft/azureiotedge-agent:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
-    fi
-fi
-if [ -z $CUSTOM_EDGE_HUB_IMAGE ]; then
-    if [ ! -z $PARENT_NAME ]; then
-        CUSTOM_EDGE_HUB_IMAGE="${PARENT_NAME}:443/microsoft/azureiotedge-hub:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
-    else
-        CUSTOM_EDGE_HUB_IMAGE="${CONTAINER_REGISTRY}/microsoft/azureiotedge-hub:$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label"
-    fi
-fi
 working_folder="$E2E_TEST_DIR/working"
 
 #@TODO remove hardcoding

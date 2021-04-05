@@ -39,7 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return Task.FromResult(true);
         }
 
-        public Task<bool> OpenAsync() => Task.FromResult(true);
+        public Task<bool> OpenAsync()
+        {
+            this.connectionStatusChangedHandler?.Invoke(this.identity.Id, CloudConnectionStatus.ConnectionEstablished);
+            return Task.FromResult(true);
+        }
+
         public Task RemoveCallMethodAsync() => this.cloudProxyDispatcher.RemoveCallMethodAsync(this.identity);
         public Task RemoveDesiredPropertyUpdatesAsync() => this.cloudProxyDispatcher.RemoveDesiredPropertyUpdatesAsync(this.identity);
         public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => this.cloudProxyDispatcher.SendFeedbackMessageAsync(this.identity, messageId, feedbackStatus);

@@ -216,11 +216,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static void InstallCertificates(IEnumerable<X509Certificate2> certificateChain, ILogger logger)
         {
             X509Certificate2[] certs = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain)).ToArray();
-            Preconditions.CheckNotNull(logger, nameof(logger));
 
             StoreName storeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root;
 
-            logger.LogInformation($"Installing certificates {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))} to {storeName}");
+            logger?.LogInformation($"Installing certificates {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))} to {storeName}");
             using (var store = new X509Store(storeName, StoreLocation.CurrentUser))
             {
                 store.Open(OpenFlags.ReadWrite);
