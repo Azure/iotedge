@@ -128,10 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             {
                 foreach (var children in childDevices)
                 {
-                    var listener = default(IDeviceListener);
                     var maybeListener = default(Option<IDeviceListener>);
-
-                    if (!this.knownConnections.TryGetValue(children, out listener))
+                    if (!this.knownConnections.TryGetValue(children, out var listener))
                     {
                         maybeListener = await this.CreateDeviceListenerAsync(children, false);
                     }
@@ -157,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             using (await this.guard.LockAsync())
             {
                 return this.knownConnections.Values.OfType<IDeviceProxy>()
-                                                    .Where(p => !p.NestingInfo.IsDirectClient && p.NestingInfo.KnownParent.Map(i => i.Id).GetOrElse(string.Empty) == parentIdentity.Id)
+                                                    .Where(p => !p.NestingInfo.IsDirectClient && p.NestingInfo.KnownParent.Filter(i => i.Id == parentIdentity.Id).HasValue)
                                                     .Select(p => p.Identity).ToArray();
             }
         }

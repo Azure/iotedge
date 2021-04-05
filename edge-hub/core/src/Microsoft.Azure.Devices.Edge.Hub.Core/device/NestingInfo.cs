@@ -7,19 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class NotNested : INestingInfo
-    {
-        public static INestingInfo Instance { get; } = new NotNested();
-
-        public Option<IIdentity> KnownParent => Option.None<IIdentity>();
-        public bool IsDirectClient => true;
-
-        public void BindToParent(IIdentity parent) => throw new InvalidOperationException("Nesting info is not supported");
-    }
-
     public class NestingInfo : INestingInfo
     {
-        // Using null because BindToParent is implement with interlocked operations and that does not work with value types (like Option)
+        // Using null because BindToParent is implemented with interlocked operations and that does not work with value types (like Option)
         IIdentity knownParent = null;
 
         public Option<IIdentity> KnownParent
@@ -34,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public NestingInfo(bool isDirectClient)
         {
             this.IsDirectClient = isDirectClient;
-            this.knownParent = null;
         }
 
         public bool IsDirectClient { get; }
