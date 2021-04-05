@@ -12,14 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         // Using null because BindToParent is implemented with interlocked operations and that does not work with value types (like Option)
         IIdentity knownParent = null;
 
-        public Option<IIdentity> KnownParent
-        {
-            get
-            {
-                var result = this.knownParent;
-                return result == null ? Option.None<IIdentity>() : Option.Some(result);
-            }
-        }
+        public Option<IIdentity> KnownParent => Option.Maybe(this.knownParent);
 
         public ConnectionInfo(bool isDirectClient)
         {
