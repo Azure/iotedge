@@ -1,5 +1,3 @@
-use std::num::NonZeroUsize;
-
 use futures_util::{
     future::{self, Either},
     pin_mut,
@@ -83,8 +81,6 @@ impl Bridge<WakingMemoryStore> {
         settings: &ConnectionSettings,
         memory_settings: MemorySettings,
     ) -> Result<Self, BridgeError> {
-        const BATCH_SIZE: usize = 10;
-
         debug!("creating bridge {}...", settings.name());
 
         let (local_pump, remote_pump) = Builder::<WakingMemoryStore>::default()
@@ -106,12 +102,7 @@ impl Bridge<WakingMemoryStore> {
                 ))
                 .with_rules(settings.subscriptions());
             })
-            .with_store(move |_| {
-                Ok(PublicationStore::new_memory(
-                    NonZeroUsize::new(BATCH_SIZE).unwrap(),
-                    &memory_settings,
-                ))
-            })
+            .with_store(move |_| Ok(PublicationStore::new_memory(&memory_settings)))
             .build()?;
 
         debug!("created bridge {}...", settings.name());
@@ -130,8 +121,6 @@ impl Bridge<RingBuffer> {
         settings: &ConnectionSettings,
         ring_buffer_settings: RingBufferSettings,
     ) -> Result<Self, BridgeError> {
-        const BATCH_SIZE: usize = 10;
-
         debug!("creating bridge {}...", settings.name());
         let bridge_name = String::from(settings.name());
 
@@ -155,12 +144,7 @@ impl Bridge<RingBuffer> {
                 .with_rules(settings.subscriptions());
             })
             .with_store(move |suffix| {
-                PublicationStore::new_ring_buffer(
-                    NonZeroUsize::new(BATCH_SIZE).unwrap(),
-                    &ring_buffer_settings,
-                    &bridge_name,
-                    suffix,
-                )
+                PublicationStore::new_ring_buffer(&ring_buffer_settings, &bridge_name, suffix)
             })
             .build()?;
 

@@ -1,4 +1,7 @@
+use std::num::NonZeroUsize;
+
 use futures_util::{pin_mut, stream::StreamExt};
+use lazy_static::lazy_static;
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
@@ -14,6 +17,10 @@ use crate::client::PublishHandle;
 use mqtt3::proto::Publication;
 
 const MAX_IN_FLIGHT: usize = 16;
+
+lazy_static! {
+    static ref BATCH_SIZE: NonZeroUsize = NonZeroUsize::new(100).unwrap();
+}
 
 /// Handles the egress of received publications.
 ///
@@ -63,7 +70,7 @@ where
         // which publish. Then convert to buffered stream so that we can have
         // multiple in-flight and also limit number of publications.
         let publications = store
-            .loader()
+            .loader(*BATCH_SIZE)
             .filter_map(|loaded| {
                 let publish_handle = publish_handle.clone();
                 async {
