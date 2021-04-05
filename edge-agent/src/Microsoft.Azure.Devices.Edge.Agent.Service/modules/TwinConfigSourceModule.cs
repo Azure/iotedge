@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
         readonly ExperimentalFeatures experimentalFeatures;
-        readonly IEnumerable<X509Certificate2> manifestTrustBundle;
+        readonly Option<X509Certificate2> manifestTrustBundle;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool enableStreams,
             TimeSpan requestTimeout,
             ExperimentalFeatures experimentalFeatures,
-            IEnumerable<X509Certificate2> manifestTrustBundle)
+            Option<X509Certificate2> manifestTrustBundle)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));

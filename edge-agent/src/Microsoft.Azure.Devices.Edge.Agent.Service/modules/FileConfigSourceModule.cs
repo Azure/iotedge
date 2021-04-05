@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     var requestManager = c.Resolve<IRequestManager>();
                     var deviceManager = c.Resolve<IDeviceManager>();
                     var deploymentMetrics = c.Resolve<IDeploymentMetrics>();
-                    IEnumerable<X509Certificate2> manifestTrustBundle = Enumerable.Empty<X509Certificate2>();
+                    Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
                     IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(deviceClientprovider, serde, requestManager, deviceManager, deploymentMetrics, manifestTrustBundle);
                     return edgeAgentConnection;
                 })

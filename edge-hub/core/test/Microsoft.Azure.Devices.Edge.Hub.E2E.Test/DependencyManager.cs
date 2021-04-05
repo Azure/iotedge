@@ -212,7 +212,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     experimentalFeatures,
                     true,
                     false,
-                    true));
+                    true,
+                    Option.None<X509Certificate2>()));
 
             builder.RegisterModule(new HttpModule("Edge1"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));

@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly VersionInfo versionInfo;
         readonly EdgeHubConnection edgeHubConnection;
         Option<TwinCollection> lastDesiredProperties;
+        Option<X509Certificate2> manifestTrustBundle;
 
         public TwinConfigSource(
             EdgeHubConnection edgeHubConnection,
@@ -40,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             ITwinManager twinManager,
             Core.IMessageConverter<Twin> messageConverter,
             Core.IMessageConverter<TwinCollection> twinCollectionMessageConverter,
-            EdgeHubConfigParser configParser)
+            EdgeHubConfigParser configParser,
+            Option<X509Certificate2> manifestTrustBundle)
         {
             this.edgeHubConnection = Preconditions.CheckNotNull(edgeHubConnection, nameof(edgeHubConnection));
             this.id = Preconditions.CheckNotNull(id, nameof(id));
@@ -50,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.configParser = Preconditions.CheckNotNull(configParser, nameof(configParser));
             this.versionInfo = versionInfo ?? VersionInfo.Empty;
             this.edgeHubConnection.SetDesiredPropertiesUpdateCallback((message) => this.HandleDesiredPropertiesUpdate(message));
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         public event EventHandler<EdgeHubConfig> ConfigUpdated;
@@ -102,14 +105,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Twin twin = this.twinMessageConverter.FromMessage(message);
                 TwinCollection desiredProperties = twin.Properties.Desired;
                 Events.LogDesiredPropertiesAfterFullTwin(desiredProperties);
-                if (!CheckIfTwinPropertiesAreSigned(desiredProperties))
+                if (!this.CheckIfManifestSigningIsEnabled(desiredProperties))
                 {
-                    Events.TwinPropertiesAreNotSigned();
+                    Events.ManifestSigningIsEnabled();
                 }
                 else
                 {
-                    Events.TwinPropertiesAreSigned();
-                    if (ExtractHubTwinAndVerify(desiredProperties))
+                    Events.ManifestSigningIsNotEnabled();
+                    if (this.ExtractHubTwinAndVerify(desiredProperties))
                     {
                         Events.VerifyTwinSignatureSuceeded();
                     }
@@ -176,14 +179,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 string desiredPropertiesJson = JsonEx.Merge(baseline, patch, true);
                 var desiredProperties = new TwinCollection(desiredPropertiesJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
-                if (!CheckIfTwinPropertiesAreSigned(desiredProperties))
+                if (!this.CheckIfManifestSigningIsEnabled(desiredProperties))
                 {
-                    Events.TwinPropertiesAreNotSigned();
+                    Events.ManifestSigningIsNotEnabled();
                 }
                 else
                 {
-                    Events.TwinPropertiesAreSigned();
-                    if (ExtractHubTwinAndVerify(desiredProperties))
+                    Events.ManifestSigningIsEnabled();
+                    if (this.ExtractHubTwinAndVerify(desiredProperties))
                     {
                         Events.VerifyTwinSignatureSuceeded();
                     }
@@ -227,13 +230,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
         }
 
-        internal static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
+        internal bool CheckIfManifestSigningIsEnabled(TwinCollection twinDesiredProperties)
         {
+            // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
+            // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
-            return integrity != null && integrity.HasValues != false;
+            return this.manifestTrustBundle.HasValue != false || (integrity != null && integrity.HasValues != false);
         }
 
-        internal static bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
+        internal bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
         {
             try
             {
@@ -243,16 +248,56 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 desiredProperties["routes"] = twinJobject["routes"];
                 desiredProperties["schemaVersion"] = twinJobject["schemaVersion"];
                 desiredProperties["storeAndForwardConfiguration"] = twinJobject["storeAndForwardConfiguration"];
+                if (desiredProperties["mqttBroker"] != null)
+                {
+                    desiredProperties["mqttBroker"] = twinJobject["mqttBroker"];
+                }
 
-                // Extract Integrity section
+                Console.WriteLine(twinJobject);
+                Console.WriteLine(twinJobject["integrity"]);
+
+                // Check if Manifest Trust Bundle is configured
+                X509Certificate2 manifestTrustBundleRootCertificate;
+                if (this.manifestTrustBundle.HasValue != true && twinJobject["integrity"] == null)
+                {
+                    throw new ManifestTrustBundleIsNotConfiguredException("Manifest Signing is Disabled.");
+                }
+                else if (this.manifestTrustBundle.HasValue != true && twinJobject["integrity"] != null)
+                {
+                    throw new ManifestTrustBundleIsNotConfiguredException("Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+                }
+                else if (this.manifestTrustBundle.HasValue != false && twinJobject["integrity"] == null)
+                {
+                    throw new ManifestTrustBundleIsNotConfiguredException(" Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+                }
+                else
+                {
+                    // deployment manifest is signed and also the manifest trust bundle is configured
+                    manifestTrustBundleRootCertificate = this.manifestTrustBundle.OrDefault();
+                }
+
+                // Extract Integrity header section
                 JToken integrity = twinJobject["integrity"];
                 JToken header = integrity["header"];
-                JToken signerCertJtoken = integrity["header"]["signercert"];
-                string combinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
-                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
-                JToken signature = integrity["signature"]["bytes"];
 
-                // Extract Signature and algorithm
+                // Extract Signer Cert section
+                JToken signerCertJtoken = integrity["header"]["signercert"];
+                string signerCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(signerCombinedCert));
+
+                // Extract Intermediate CA Cert section
+                JToken intermediatecacertJtoken = integrity["header"]["intermediatecacert"];
+                string intermediatecacertCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
+
+                // Extract the manifest trust bundle certificate and verify chaining
+                if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                {
+                    throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                }
+
+                // Extract Signature bytes and algorithm section
+                JToken signature = integrity["signature"]["bytes"];
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
                 KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
@@ -288,8 +333,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 VerifyTwinSignatureFailed,
                 VerifyTwinSignatureSuceeded,
                 VerifyTwinSignatureException,
-                TwinPropertiesAreSigned,
-                TwinPropertiesAreNotSigned
+                ManifestSigningIsEnabled,
+                ManifestSigningIsNotEnabled
             }
 
             internal static void ErrorGettingEdgeHubConfig(Exception ex)
@@ -377,14 +422,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 Log.LogInformation((int)EventIds.VerifyTwinSignatureSuceeded, "Twin Signature is verified");
             }
 
-            internal static void TwinPropertiesAreSigned()
+            internal static void ManifestSigningIsEnabled()
             {
-                Log.LogDebug((int)EventIds.TwinPropertiesAreSigned, $"Twin Properties are signed");
+                Log.LogDebug((int)EventIds.ManifestSigningIsEnabled, $"Manifest Signing is enabled");
             }
 
-            internal static void TwinPropertiesAreNotSigned()
+            internal static void ManifestSigningIsNotEnabled()
             {
-                Log.LogDebug((int)EventIds.TwinPropertiesAreNotSigned, $"Twin Properties are not signed");
+                Log.LogDebug((int)EventIds.ManifestSigningIsNotEnabled, $"Manifest Signing is not enabled. To enable, sign the deployment manifest and also enable manifest trust bundle in certificate client");
             }
         }
     }
