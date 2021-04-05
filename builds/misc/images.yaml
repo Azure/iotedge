@@ -137,7 +137,7 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
-          
+
     # Network Controller
       - template: templates/image-linux.yaml
         parameters:
@@ -185,7 +185,7 @@ jobs:
         parameters:
           name: Azure Monitor Module
           imageName: azureiotedge-metrics-collector
-          project: Microsoft.Azure.Devices.Edge.Azure.Monitor          
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
 ################################################################################
 # linux - Rust amd64
@@ -291,7 +291,7 @@ jobs:
           name: Test Analyzer
           imageName: azureiotedge-analyzer
           project: TestAnalyzer
-          
+
       # Functions Sample
       - template: templates/image-windows.yaml
         parameters:
@@ -312,7 +312,7 @@ jobs:
           name: Direct Method Receiver
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
-          
+
       # Metrics Validator
       - template: templates/image-windows.yaml
         parameters:
@@ -388,7 +388,7 @@ jobs:
         parameters:
           name: Azure Monitor Module
           imageName: azureiotedge-metrics-collector
-          project: Microsoft.Azure.Devices.Edge.Azure.Monitor            
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine
@@ -420,5 +420,5 @@ jobs:
       displayName: 'Publish azureiotedge-diagnostics Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edgelet/iotedge-proxy/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-proxy Manifest'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template' -n microsoft --tags "$(tags)"
-      displayName: 'Publish Azure Metrics Collector Manifest'         
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish Azure Metrics Collector Manifest'
