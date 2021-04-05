@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public bool IsActive => this.isActive.Get();
 
-        public INestingInfo NestingInfo => NotNested.Instance;
+        public IConnectionInfo ConnectionInfo => NullConnectionInfo.Instance;
 
         public Task CloseAsync(Exception ex)
         {

@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public interface INestingInfo
+    public interface IConnectionInfo
     {
         void BindToParent(IIdentity parent);
 

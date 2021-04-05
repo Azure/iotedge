@@ -5,9 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class NotNested : INestingInfo
+    public class NullConnectionInfo : IConnectionInfo
     {
-        public static INestingInfo Instance { get; } = new NotNested();
+        public static IConnectionInfo Instance { get; } = new NullConnectionInfo();
 
         public Option<IIdentity> KnownParent => Option.None<IIdentity>();
         public bool IsDirectClient => true;

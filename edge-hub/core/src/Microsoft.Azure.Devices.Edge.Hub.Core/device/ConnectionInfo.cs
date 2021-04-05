@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class NestingInfo : INestingInfo
+    public class ConnectionInfo : IConnectionInfo
     {
         // Using null because BindToParent is implemented with interlocked operations and that does not work with value types (like Option)
         IIdentity knownParent = null;
@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             }
         }
 
-        public NestingInfo(bool isDirectClient)
+        public ConnectionInfo(bool isDirectClient)
         {
             this.IsDirectClient = isDirectClient;
         }
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         static class Events
         {
             const int IdStart = HubCoreEventIds.NestingInfo;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<NestingInfo>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<ConnectionInfo>();
 
             enum EventIds
             {

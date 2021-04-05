@@ -143,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         {
                             if (l is IDeviceProxy proxy)
                             {
-                                proxy.NestingInfo.BindToParent(parentIdentity);
+                                proxy.ConnectionInfo.BindToParent(parentIdentity);
                             }
                         });
                 }
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             using (await this.guard.LockAsync())
             {
                 return this.knownConnections.Values.OfType<IDeviceProxy>()
-                                                    .Where(p => !p.NestingInfo.IsDirectClient && p.NestingInfo.KnownParent.Filter(i => i.Id == parentIdentity.Id).HasValue)
+                                                    .Where(p => !p.ConnectionInfo.IsDirectClient && p.ConnectionInfo.KnownParent.Filter(i => i.Id == parentIdentity.Id).HasValue)
                                                     .Select(p => p.Identity).ToArray();
             }
         }
@@ -196,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         // Clients connected indirectly (through a child edge device) will not be reported
                         // by broker events and appear in the 'identitiesRemoved' list as missing identities.
                         // Ignore those:
-                        if (!proxy.NestingInfo.IsDirectClient)
+                        if (!proxy.ConnectionInfo.IsDirectClient)
                         {
                             continue;
                         }

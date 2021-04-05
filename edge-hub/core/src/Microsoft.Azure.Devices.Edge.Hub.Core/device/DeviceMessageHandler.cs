@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         public IIdentity Identity { get; }
 
-        public INestingInfo NestingInfo => this.underlyingProxy.NestingInfo;
+        public IConnectionInfo ConnectionInfo => this.underlyingProxy.ConnectionInfo;
 
         public Task ProcessMethodResponseAsync(IMessage message)
         {
