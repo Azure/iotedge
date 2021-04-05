@@ -136,7 +136,6 @@ impl BridgeUpdate {
         }
     }
 
-    // TODO update should have name
     pub fn name(&self) -> &str {
         &self.endpoint
     }
