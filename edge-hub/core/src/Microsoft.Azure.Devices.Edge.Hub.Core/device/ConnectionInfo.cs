@@ -9,10 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
     public class ConnectionInfo : IConnectionInfo
     {
-        // Using null because BindToParent is implemented with interlocked operations and that does not work with value types (like Option)
-        IIdentity knownParent = null;
-
-        public Option<IIdentity> KnownParent => Option.Maybe(this.knownParent);
+        public Option<IIdentity> KnownParent { get; private set; }
 
         public ConnectionInfo(bool isDirectClient)
         {
@@ -25,12 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         {
             Preconditions.CheckNotNull(parent);
 
-            var previousParent = Interlocked.Exchange(ref this.knownParent, parent);
-            if (previousParent != null && !string.Equals(previousParent.Id, parent.Id))
+            if (this.KnownParent.Exists(prev => !string.Equals(prev.Id, parent.Id)))
             {
                 // this should not happen
-                Events.ParentChanged(previousParent.Id, parent.Id);
+                Events.ParentChanged(this.KnownParent.Map(prev => prev.Id).GetOrElse(string.Empty), parent.Id);
             }
+
+            this.KnownParent = Option.Some(parent);
         }
 
         static class Events
