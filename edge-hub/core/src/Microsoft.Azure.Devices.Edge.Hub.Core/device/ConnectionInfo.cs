@@ -24,7 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
             if (this.KnownParent.Exists(prev => !string.Equals(prev.Id, parent.Id)))
             {
-                // this should not happen
                 Events.ParentChanged(this.KnownParent.Map(prev => prev.Id).GetOrElse(string.Empty), parent.Id);
             }
 
