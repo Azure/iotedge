@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.isLegacyUpstream = isLegacyUpstream;
             this.scopeAuthenticationOnly = scopeAuthenticationOnly;
             this.trackDeviceState = trackDeviceState;
-            this.manifestTrustBundle = manifestTrustBundle
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         protected override void Load(ContainerBuilder builder)

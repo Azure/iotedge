@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         public static TwinConfigSource GetTwinConfigSource(Option<X509Certificate2> manifestTrustBundle)
         {
             var connectionManager = new ConnectionManager(Mock.Of<ICloudConnectionProvider>(), Mock.Of<ICredentialsCache>(), Mock.Of<IIdentityProvider>(), Mock.Of<IDeviceConnectivityManager>());
-            var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), "testHubEdgeDevice1", 10, 10);
+            var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), "testHubEdgeDevice1", 10, 10, false);
             var routeFactory = new EdgeRouteFactory(endpointFactory);
             var configParser = new EdgeHubConfigParser(routeFactory, new BrokerPropertiesValidator());
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         public static async Task<EdgeHubConnection> GetEdgeHubConnection()
         {
             var connectionManager = new ConnectionManager(Mock.Of<ICloudConnectionProvider>(), Mock.Of<ICredentialsCache>(), Mock.Of<IIdentityProvider>(), Mock.Of<IDeviceConnectivityManager>());
-            var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), "testHubEdgeDevice1", 10, 10);
+            var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), "testHubEdgeDevice1", 10, 10, false);
             var routeFactory = new EdgeRouteFactory(endpointFactory);
             var twinCollectionMessageConverter = new TwinCollectionMessageConverter();
             var twinMessageConverter = new TwinMessageConverter();
