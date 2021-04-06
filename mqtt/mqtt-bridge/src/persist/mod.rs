@@ -7,8 +7,6 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use bincode::Error as BincodeError;
 use serde::{Deserialize, Serialize};
 
-use mqtt3::proto::Publication;
-
 pub use loader::MessageLoader;
 pub use publication_store::PublicationStore;
 use waking_state::memory::error::MemoryError;
