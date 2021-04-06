@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
         {
             if (isExceptionExpected)
             {
-                Assert.Throws<ManifestTrustBundleIsNotConfiguredException>(() => twinConfigSource.ExtractHubTwinAndVerify(twinDesiredProperties));
+                Assert.Throws<ManifestSigningIsNotEnabledProperly>(() => twinConfigSource.ExtractHubTwinAndVerify(twinDesiredProperties));
             }
             else
             {
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             TwinCollection badTwinDataRsa = GetTwinDesiredProperties(badSchemaVersion, integrityWithRsaCerts);
 
             // case 1 : Unsigned twin & Empty Manifest Trust bundle - Expect Expection
-            yield return new object[] { true, false, GetTwinConfigSource(GetEmptyManifestTrustBundle()), unsignedTwinData };
+            // yield return new object[] { true, false, GetTwinConfigSource(GetEmptyManifestTrustBundle()), unsignedTwinData };
             // case 2 : Signed Twin (good & bad twin) Ecdsa and Rsa certs & Non-Empty Manifest Trust Bundle
             yield return new object[] { false, true, GetTwinConfigSource(GetEcdsaManifestTrustBundle()), goodTwinDataEcdsa };
             yield return new object[] { false, false, GetTwinConfigSource(GetEcdsaManifestTrustBundle()), badTwinDataEcdsa };

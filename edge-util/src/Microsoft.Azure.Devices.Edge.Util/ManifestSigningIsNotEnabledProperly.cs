@@ -4,14 +4,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System;
 
     [Serializable]
-    public class DeploymentManifestIsNotSignedException : Exception
+    public class ManifestSigningIsNotEnabledProperly : Exception
     {
-        public DeploymentManifestIsNotSignedException(string message)
+        public ManifestSigningIsNotEnabledProperly(string message)
             : base(message)
         {
         }
 
-        public DeploymentManifestIsNotSignedException(string message, Exception inner)
+        public ManifestSigningIsNotEnabledProperly(string message, Exception inner)
             : base(message, inner)
         {
         }

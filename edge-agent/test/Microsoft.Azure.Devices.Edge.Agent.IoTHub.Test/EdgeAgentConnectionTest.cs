@@ -1675,7 +1675,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             if (isExceptionExpected)
             {
-                Assert.Throws<ManifestTrustBundleIsNotConfiguredException>(() => edgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
+                Assert.Throws<ManifestSigningIsNotEnabledProperly>(() => edgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
             }
             else
             {
@@ -1690,7 +1690,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         {
             if (isExceptionExpected)
             {
-                Assert.Throws<ManifestTrustBundleIsNotConfiguredException>(() => edgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
+                Assert.Throws<ManifestSigningIsNotEnabledProperly>(() => edgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
             }
             else
             {

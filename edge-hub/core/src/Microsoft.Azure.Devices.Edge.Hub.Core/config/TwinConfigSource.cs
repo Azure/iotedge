@@ -253,25 +253,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     desiredProperties["mqttBroker"] = twinJobject["mqttBroker"];
                 }
 
-                Console.WriteLine(twinJobject);
-                Console.WriteLine(twinJobject["integrity"]);
-
                 // Check if Manifest Trust Bundle is configured
                 X509Certificate2 manifestTrustBundleRootCertificate;
                 if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
                 {
+                    // Actual code path would never get here as we check enablement before this. Added for Unit test purpose only.
                     Events.ManifestSigningIsNotEnabled();
-                    throw new ManifestTrustBundleIsNotConfiguredException("Manifest Signing is Disabled.");
+                    throw new ManifestSigningIsNotEnabledProperly("Manifest Signing is Disabled.");
                 }
-                else if (this.manifestTrustBundle.HasValue && twinJobject["integrity"] != null)
+                else if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] != null)
                 {
                     Events.ManifestTrustBundleIsNotConfigured();
-                    throw new ManifestTrustBundleIsNotConfiguredException("Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+                    throw new ManifestSigningIsNotEnabledProperly("Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
                 }
-                else if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
+                else if (this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
                 {
                     Events.DeploymentManifestIsNotSigned();
-                    throw new DeploymentManifestIsNotSignedException("Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+                    throw new ManifestSigningIsNotEnabledProperly("Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
                 }
                 else
                 {
