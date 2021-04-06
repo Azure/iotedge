@@ -22,17 +22,19 @@ steps:
     
     if ($test_type -eq 'nestededge_mqtt')
     {
-      $filter += '&Category!=SingleNodeOnly'
-      $filter += '&Category!=NestedEdgeAmqpOnly'
-    
+      #$filter += '&Category!=SingleNodeOnly'
+      #$filter += '&Category!=NestedEdgeAmqpOnly'
+      $filter='FullyQualifiedName~Test0'
       #We are disabling some additional tests. See  PBI #9171870. Once this is fixed we should run what's directly below.
       #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope'
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+      #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_amqp')
     {
-      $filter += '&Category!=SingleNodeOnly'
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+      
+      $filter = 'Category=testloop'
+      #$filter += '&Category!=SingleNodeOnly'
+      #$filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_isa95')
     {
@@ -42,6 +44,7 @@ steps:
     {
       $filter += '&Category!=NestedEdgeOnly' 
     } 
+
 
     sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
 

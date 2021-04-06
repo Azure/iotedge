@@ -55,6 +55,144 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop0()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        public async Task Test0()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop1()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop2()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop3()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop4()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop5()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop6()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop7()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop8()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop9()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop10()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop11()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
+        [Category("testloop")]
+        [Repeat(10000)]
+        public async Task TestLoop12()
+        {
+            CancellationToken token = this.TestToken;
+
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
+        }
+
+        [Test]
         [Category("CentOsSafe")]
         [Category("NestedEdgeOnly")]
         public async Task QuickstartChangeSasKey()
