@@ -32,19 +32,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{collections::BTreeMap, fs::OpenOptions, io::Read};
 
-use failure::{Context, Fail, ResultExt};
-use futures::future::Either;
-use futures::sync::oneshot::{self, Receiver};
-use futures::{future, Future, Stream};
-use hyper::server::conn::Http;
-use hyper::{Body, Request};
-use log::{debug, error, info, Level};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-use sha2::{Digest, Sha256};
-
 use edgelet_core::{
-    crypto::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS},
+    crypto::{AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS},
     settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
@@ -57,6 +46,16 @@ use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
+use failure::{Context, Fail, ResultExt};
+use futures::future::Either;
+use futures::sync::oneshot::{self, Receiver};
+use futures::{future, Future, Stream};
+use hyper::server::conn::Http;
+use hyper::{Body, Request};
+use log::{debug, error, info, Level};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 use crate::watchdog::Watchdog;
 use crate::workload::WorkloadData;
@@ -276,6 +275,10 @@ where
                         settings
                             .trust_bundle_cert()
                             .unwrap_or(TRUST_BUNDLE_ALIAS)
+                            .to_string(),
+                        settings
+                            .trust_bundle_cert()
+                            .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
                             .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
                         AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,

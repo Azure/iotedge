@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using System.Runtime.InteropServices;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading.Tasks;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
@@ -27,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         readonly IConfigurationRoot configuration;
         readonly X509Certificate2 serverCertificate;
         readonly IList<X509Certificate2> trustBundle;
+        readonly Option<X509Certificate2> manifestTrustBundle;
 
         readonly string iotHubHostname;
         readonly Option<string> gatewayHostname;
@@ -72,11 +74,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
         }
 
-        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle, SslProtocols sslProtocols)
+        public DependencyManager(IConfigurationRoot configuration, X509Certificate2 serverCertificate, IList<X509Certificate2> trustBundle, Option<X509Certificate2> manifestTrustBundle, SslProtocols sslProtocols)
         {
             this.configuration = Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.serverCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
+            this.manifestTrustBundle = manifestTrustBundle;
             this.sslProtocols = sslProtocols;
 
             this.gatewayHostname = Option.Maybe(this.configuration.GetValue<string>(Constants.ConfigKey.GatewayHostname));
@@ -264,7 +267,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     nestedEdgeEnabled,
                     isLegacyUpstream,
                     scopeAuthenticationOnly: scopeAuthenticationOnly,
-                    trackDeviceState: trackDeviceState));
+                    trackDeviceState: trackDeviceState,
+                    this.manifestTrustBundle));
         }
 
         void RegisterCommonModule(
