@@ -732,12 +732,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
             internal static void ManifestTrustBundleIsNotConfigured()
             {
-                Log.LogDebug((int)EventIds.ManifestTrustBundleIsNotConfigured, $"Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+                Log.LogWarning((int)EventIds.ManifestTrustBundleIsNotConfigured, $"Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
             }
 
             internal static void DeploymentManifestIsNotSigned()
             {
-                Log.LogDebug((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+                Log.LogWarning((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
             }
         }
     }
