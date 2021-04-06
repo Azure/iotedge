@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // The cts object is coming from an external source, check it and put it into an Option for safe handling.
             Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
-            HttpOperationResponse<V1PodList> podListResp = await task;
+            HttpOperationResponse<V1PodList> podListResp;
             try
             {
                 podListResp = await task;
