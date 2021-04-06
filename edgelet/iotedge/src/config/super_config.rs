@@ -22,7 +22,7 @@ pub struct Config {
     /// for clean installs; the only thing that sets it is `iotedge config import` and it's not documented
     /// in the super-config template.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) imported_master_encryption_key: Option<std::path::PathBuf>,
+    pub imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
