@@ -1,5 +1,5 @@
 # 1.2.0 (2020-04-9)
-## HIGHLIGHTS
+## AWARENESS
 * Enable nested edge by default
 * Move `NestedEdgeEnabled` settings out of `experimentalFeatures` section
 * MQTT Broker and MQTT Bridge settings are merged
