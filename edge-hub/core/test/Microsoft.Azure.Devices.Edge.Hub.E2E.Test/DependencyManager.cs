@@ -214,7 +214,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     true,
                     scopeAuthenticationOnly: true,
-                    trackDeviceState: true));
+                    trackDeviceState: true,
+                    Option.None<X509Certificate2>()));
 
             builder.RegisterModule(new HttpModule("Edge1", iotHubConnectionStringBuilder.DeviceId, "iotedgeApiProxy"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));

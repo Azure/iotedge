@@ -12,6 +12,7 @@ pub enum Version {
     Version2019_10_22,
     Version2019_11_05,
     Version2020_07_07,
+    Version2020_10_10,
 }
 
 impl FromStr for Version {
@@ -24,6 +25,7 @@ impl FromStr for Version {
             "2019-10-22" => Ok(Version::Version2019_10_22),
             "2019-11-05" => Ok(Version::Version2019_11_05),
             "2020-07-07" => Ok(Version::Version2020_07_07),
+            "2020-10-10" => Ok(Version::Version2020_10_10),
             _ => Err(()),
         }
     }
@@ -37,6 +39,7 @@ impl fmt::Display for Version {
             Version::Version2019_10_22 => write!(f, "2019-10-22"),
             Version::Version2019_11_05 => write!(f, "2019-11-05"),
             Version::Version2020_07_07 => write!(f, "2020-07-07"),
+            Version::Version2020_10_10 => write!(f, "2020-10-10"),
         }
     }
 }
