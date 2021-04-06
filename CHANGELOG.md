@@ -1,9 +1,12 @@
-# 1.2.0 (2020-04-9)
+# 1.2.0 (2021-04-9)
 ## AWARENESS
-* Enable nested edge by default
-* Move `NestedEdgeEnabled` settings out of `experimentalFeatures` section
-* MQTT Broker and MQTT Bridge settings are merged
-* A lot of new commands in iotedge CLI (See aziot-edge section)
+This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
+
+### Impact to Edge modules
+Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
+
+### Impact to installing / configuring IoT Edge
+The refactoring does affect the packaging and installation of IoT Edge. While we've attempted to minimize the impact of these there are expected differences. For more details on these changes please refer to the discussion of [Packaging](https://github.com/Azure/iotedge/blob/master/doc/packaging.md).
 
 
 ## Edge Agent
@@ -33,15 +36,6 @@
 ### Features
 * Move NestedEdgeEnabled out of experimental features ( [ee703c4](https://github.com/Azure/iotedge/commit/ee703c47782d058e1f69a4081673f37b9b563215) )
 * Update `iotedge check` for version 1.2.0 ( [db18594](https://github.com/Azure/iotedge/commit/db18594197c1fd0eeacb474f31c95828f689b882), [ee73e76](https://github.com/Azure/iotedge/commit/ee73e76d18874ddfce416098df9096c0d484c63b) )
-
-
-## API Proxy
-### Bug Fixes
-* Fix API proxy race condition ( [3dfc030](https://github.com/Azure/iotedge/commit/3dfc030e6900bdad6e5696f9076445bbe785058a) )
-
-### Features
-* Enable API proxy indirection ( [0745818](https://github.com/Azure/iotedge/commit/074581861386fd5db0d73019feb1c5432877d58a) )
-* Enforce SaS Authentication on requests forwarded by API proxy to edgeHub ( [739e608](https://github.com/Azure/iotedge/commit/739e608cdf9d5ef73b680cd4cf561c8e40781e01) )
 
 
 ## MQTT Broker
@@ -82,7 +76,7 @@
 * Introduce optional proxy argument to iotedge ( [a0a883d](https://github.com/Azure/iotedge/commit/a0a883da44499a9f09a4de8794fbac83f752c214) )
 
 
-# 1.2.0-rc4 (2020-03-1)
+# 1.2.0-rc4 (2021-03-1)
 ## AWARENESS
 This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
 
