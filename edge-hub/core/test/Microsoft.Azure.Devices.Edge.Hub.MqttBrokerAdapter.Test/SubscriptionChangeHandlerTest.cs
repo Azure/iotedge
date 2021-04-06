@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
     [Unit]
     public class SubscriptionChangeHandlerTest
     {
+        const string iotHubName = "testIotHub";
+
         [Theory]
         [MemberData(nameof(NonSubscriptionTopics))]
         public async Task DoesNotHandleNonSubscriptionTopics(string topic)
@@ -80,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id) =>
                 {
                     passedDeviceId = device_id;
-                    return new DeviceIdentity("host", device_id);
+                    return new DeviceIdentity(iotHubName, device_id);
                 });
 
             var sut = new SubscriptionChangeHandler(
@@ -119,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 {
                     passedDeviceId = device_id;
                     passedModuleId = module_id;
-                    return new DeviceIdentity("host", device_id);
+                    return new DeviceIdentity(iotHubName, device_id);
                 });
 
             var sut = new SubscriptionChangeHandler(
@@ -145,8 +147,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identityProvider = Mock.Of<IIdentityProvider>();
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetNestedConnectionsAsync())
-                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new DeviceIdentity("host", "captured_device_id") }));
+                .Setup(cr => cr.GetNestedConnectionsAsync(new ModuleIdentity(iotHubName, "somedevice", "$edgeHub")))
+                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new DeviceIdentity(iotHubName, "captured_device_id") }));
 
             var directMethodHandler = Mock.Of<IDirectMethodHandler>();
 
@@ -161,7 +163,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 .Returns((string device_id) =>
                 {
                     passedDeviceId = device_id;
-                    return new DeviceIdentity("host", device_id);
+                    return new DeviceIdentity(iotHubName, device_id);
+                });
+
+            Mock.Get(identityProvider)
+                .Setup(ip => ip.Create(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string device_id, string module_id) =>
+                {
+                    return new ModuleIdentity(iotHubName, device_id, module_id);
                 });
 
             var sut = new SubscriptionChangeHandler(
@@ -186,8 +195,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identityProvider = Mock.Of<IIdentityProvider>();
 
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetNestedConnectionsAsync())
-                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new ModuleIdentity("host", "captured_device_id", "captured_module_id") }));
+                .Setup(cr => cr.GetNestedConnectionsAsync(new ModuleIdentity(iotHubName, "somedevice", "$edgeHub")))
+                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new ModuleIdentity(iotHubName, "captured_device_id", "captured_module_id") }));
 
             var directMethodHandler = Mock.Of<IDirectMethodHandler>();
 
@@ -204,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 {
                     passedDeviceId = device_id;
                     passedModuleId = module_id;
-                    return new DeviceIdentity("host", device_id);
+                    return new ModuleIdentity(iotHubName, device_id, module_id);
                 });
 
             var sut = new SubscriptionChangeHandler(
@@ -250,8 +259,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             _ = await sut.HandleAsync(publishInfo);
 
-            Assert.Equal(DeviceSubscription.C2D, listenerCapture.Captured.AddedSubscription);
-            Assert.Equal(DeviceSubscription.Methods, listenerCapture.Captured.RemovedSubscription);
+            var capturedIdentity = new ModuleIdentity(iotHubName, "device_id", "module_id");
+            Assert.Equal(DeviceSubscription.C2D, listenerCapture[capturedIdentity].AddedSubscription);
+            Assert.Equal(DeviceSubscription.Methods, listenerCapture[capturedIdentity].RemovedSubscription);
         }
 
         [Fact]
@@ -273,9 +283,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             var (connectionRegistry, identityProvider) = GetHandlerDependencies(listenerCapture: listenerCapture);
 
+            var moduleIdentity = new ModuleIdentity(iotHubName, "device_id", "module_id");
             Mock.Get(connectionRegistry)
-                .Setup(cr => cr.GetNestedConnectionsAsync())
-                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { (IIdentity)new ModuleIdentity("host", "device_id", "module_id") }));
+                .Setup(cr => cr.GetNestedConnectionsAsync(new ModuleIdentity(iotHubName, "somedevice", "$edgeHub")))
+                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { moduleIdentity }));
 
             var sut = new SubscriptionChangeHandler(
                             cloud2DeviceMessageHandler,
@@ -287,8 +298,105 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             _ = await sut.HandleAsync(publishInfo);
 
-            Assert.Equal(DeviceSubscription.C2D, listenerCapture.Captured.AddedSubscription);
-            Assert.Equal(DeviceSubscription.Methods, listenerCapture.Captured.RemovedSubscription);
+            Assert.Equal(DeviceSubscription.C2D, listenerCapture[moduleIdentity].AddedSubscription);
+            Assert.Equal(DeviceSubscription.Methods, listenerCapture[moduleIdentity].RemovedSubscription);
+        }
+
+        [Fact]
+        public async Task DoesNotSetNonChildSubscriptionsForIndirectClients()
+        {
+            var listenerCapture = new DeviceListenerCapture();
+
+            var publishInfoIgnore = new MqttPublishInfo("$edgehub/ignoredevice/$edgeHub/subscriptions", Encoding.UTF8.GetBytes("[\"ignore_id/patternA\"]"));
+            var publishInfoTarget = new MqttPublishInfo("$edgehub/targetdevice/$edgeHub/subscriptions", Encoding.UTF8.GetBytes("[\"target_id/patternB\"]"));
+            
+            var (_, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
+
+            var cloud2DeviceMessageHandler = Mock.Of<ICloud2DeviceMessageHandler>();
+            Mock.Get(cloud2DeviceMessageHandler)
+                .Setup(sw => sw.WatchedSubscriptions)
+                .Returns(() => new List<SubscriptionPattern>()
+                    {
+                        new SubscriptionPattern(@"(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/patternA", DeviceSubscription.Methods),
+                        new SubscriptionPattern(@"(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/patternB", DeviceSubscription.C2D)                        
+                    });
+
+            var (connectionRegistry, identityProvider) = GetHandlerDependencies(listenerCapture: listenerCapture);
+
+            var targetIdentity = new DeviceIdentity(iotHubName, "target_id");
+            var ignoreIdentity = new DeviceIdentity(iotHubName, "ignore_id");
+
+            Mock.Get(connectionRegistry)
+                .Setup(cr => cr.GetNestedConnectionsAsync(new ModuleIdentity(iotHubName, "targetdevice", "$edgeHub")))
+                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { targetIdentity }));
+            Mock.Get(connectionRegistry)
+                .Setup(cr => cr.GetNestedConnectionsAsync(new ModuleIdentity(iotHubName, "ignoredevice", "$edgeHub")))
+                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { ignoreIdentity }));
+
+            var sut = new SubscriptionChangeHandler(
+                            cloud2DeviceMessageHandler,
+                            moduleToModuleMessageHandler,
+                            directMethodHandler,
+                            twinHandler,
+                            connectionRegistry,
+                            identityProvider);
+
+            _ = await sut.HandleAsync(publishInfoIgnore);
+            _ = await sut.HandleAsync(publishInfoTarget);
+
+            Assert.Equal(DeviceSubscription.Methods, listenerCapture[ignoreIdentity].AddedSubscription);
+            Assert.Equal(DeviceSubscription.C2D, listenerCapture[ignoreIdentity].RemovedSubscription);
+            Assert.Equal(DeviceSubscription.C2D, listenerCapture[targetIdentity].AddedSubscription);
+            Assert.Equal(DeviceSubscription.Methods, listenerCapture[targetIdentity].RemovedSubscription);
+        }
+
+        [Fact]
+        public async Task UpdatesNestedParentInfo()
+        {
+            var publishInfo = new MqttPublishInfo("$edgehub/somedevice/$edgeHub/subscriptions", Encoding.UTF8.GetBytes("[\"device_id1/MatchingPattern\", \"device_id2/MatchingPattern\"]"));
+
+            var (_, moduleToModuleMessageHandler, directMethodHandler, twinHandler) = GetSubscriptionWatchers();
+
+            var cloud2DeviceMessageHandler = Mock.Of<ICloud2DeviceMessageHandler>();
+            Mock.Get(cloud2DeviceMessageHandler)
+                .Setup(sw => sw.WatchedSubscriptions)
+                .Returns(() => new List<SubscriptionPattern>()
+                    {
+                        new SubscriptionPattern(@"(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/patternX", DeviceSubscription.Methods),
+                        new SubscriptionPattern(@"(?<id1>[^/\+\#]+)(/(?<id2>[^/\+\#]+))?/MatchingPattern", DeviceSubscription.C2D),
+                    });
+
+            var (connectionRegistry, identityProvider) = GetHandlerDependencies();
+
+            var capturedAffectedChildren = default(IEnumerable<IIdentity>);
+            var capturedNewParent = default(IIdentity);
+            Mock.Get(connectionRegistry)
+                .Setup(cr => cr.UpdateNestedParentInfoAsync(It.IsAny<IEnumerable<IIdentity>>(), It.IsAny<IIdentity>()))
+                .Returns((IEnumerable<IIdentity> affectedChildred, IIdentity newParent) =>
+                    {
+                        capturedAffectedChildren = affectedChildred;
+                        capturedNewParent = newParent;
+                        return Task.CompletedTask;
+                    });
+
+            var device1Identity = new DeviceIdentity(iotHubName, "device_id1");
+            var device2Identity = new DeviceIdentity(iotHubName, "device_id2");
+            Mock.Get(connectionRegistry)
+                .Setup(cr => cr.GetNestedConnectionsAsync(new ModuleIdentity(iotHubName, "somedevice", "$edgeHub")))
+                .Returns(() => Task.FromResult<IReadOnlyList<IIdentity>>(new List<IIdentity>() { device1Identity, device2Identity }));
+
+            var sut = new SubscriptionChangeHandler(
+                            cloud2DeviceMessageHandler,
+                            moduleToModuleMessageHandler,
+                            directMethodHandler,
+                            twinHandler,
+                            connectionRegistry,
+                            identityProvider);
+
+            _ = await sut.HandleAsync(publishInfo);
+
+            Assert.Equal(new List<IIdentity>() { device1Identity, device2Identity}.OrderBy(i => i.Id), capturedAffectedChildren.OrderBy(i => i.Id));
+            Assert.Equal(new ModuleIdentity(iotHubName, "somedevice", "$edgeHub"), capturedNewParent);
         }
 
         public static IEnumerable<object[]> NonSubscriptionTopics()
@@ -346,11 +454,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             Mock.Get(identityProvider)
                 .Setup(ip => ip.Create(It.IsAny<string>()))
-                .Returns((string id) => new DeviceIdentity("host", id));
+                .Returns((string id) => new DeviceIdentity(iotHubName, id));
 
             Mock.Get(identityProvider)
                 .Setup(ip => ip.Create(It.IsAny<string>(), It.IsAny<string>()))
-                .Returns((string device_id, string module_id) => new ModuleIdentity("host", device_id, module_id));
+                .Returns((string device_id, string module_id) => new ModuleIdentity(iotHubName, device_id, module_id));
 
             Mock.Get(connectionRegistry)
                 .Setup(cr => cr.GetOrCreateDeviceListenerAsync(It.IsAny<IIdentity>(), It.IsAny<bool>()))
@@ -384,8 +492,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
         class DeviceListenerCapture
         {
-            public TestDeviceListener Captured { get; private set; }
-            public void Capture(TestDeviceListener testListener) => this.Captured = testListener;
+            Dictionary<IIdentity, TestDeviceListener> capturedListeners = new Dictionary<IIdentity, TestDeviceListener>();
+
+            public TestDeviceListener this[IIdentity id] => this.capturedListeners[id];
+            public void Capture(TestDeviceListener testListener) => this.capturedListeners[testListener.Identity] = testListener;
         }
 
         class TestDeviceListener : IDeviceListener

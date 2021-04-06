@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
             public bool IsActive => this.isActive;
 
-            public bool IsDirectClient => true;
+            public IConnectionInfo ConnectionInfo => NullConnectionInfo.Instance;
 
             public IIdentity Identity { get; }
 
