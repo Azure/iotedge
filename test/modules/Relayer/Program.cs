@@ -120,6 +120,11 @@ namespace Relayer
                         return MessageResponse.Completed;
                     }
 
+                    if (duplicateMessageAuditor.ShouldFilterMessage(sequenceNumber))
+                    {
+                        return MessageResponse.Completed;
+                    }
+
                     // Report receiving message successfully to Test Result Coordinator
                     testResultReportingClient = Option.Some(new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.OrDefault().AbsoluteUri });
                     var testResultReceived = new MessageTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
