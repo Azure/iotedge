@@ -78,7 +78,7 @@ where
                             return Poll::Ready(Some(Err(PersistError::Loader {
                                 key: *key,
                                 loaded: self.loaded.iter().copied().collect(),
-                                new_batch: new_batch.into_iter().collect(),
+                                new_batch: new_batch.iter().map(|(key, _)| *key).collect(),
                             })));
                         }
                     }

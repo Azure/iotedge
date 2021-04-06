@@ -52,7 +52,7 @@ pub enum PersistError {
     Loader {
         key: Key,
         loaded: Vec<Key>,
-        new_batch: Vec<(Key, Publication)>,
+        new_batch: Vec<Key>,
     },
 }
 
