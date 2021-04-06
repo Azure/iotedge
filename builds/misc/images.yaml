@@ -214,6 +214,7 @@ jobs:
       demands:
         - Build-Image -equals true
         - win-rs5
+        - onboarding-only
     workspace:
       clean: all
     steps:
