@@ -1,3 +1,55 @@
+# 1.2.0 (2020-04-9)
+
+## Edge Agent
+### Bug Fixes
+
+### Features
+
+
+## Edge Hub
+### Bug Fixes
+* Improve registry controller error message ( [0b0a40e](https://github.com/Azure/iotedge/commit/0b0a40e93ad2eca395b17706157fd6e06a510cce) )
+* Add edgeHub identity to the scopes cache at the startup ( [621a2ad](https://github.com/Azure/iotedge/commit/621a2ad873feba1114177c13a7d934edceed5b71) )
+* Update `iotedge check` for version 1.2.0 ( [db18594](https://github.com/Azure/iotedge/commit/db18594197c1fd0eeacb474f31c95828f689b882), [ee73e76](https://github.com/Azure/iotedge/commit/ee73e76d18874ddfce416098df9096c0d484c63b) )
+* Improve AMQP messages `Batchable` deplay ( [e88c2b9](https://github.com/Azure/iotedge/commit/e88c2b9a661df29f184fb4c2956b61d7c6d9b169) )
+* Fix websocket authentication with certificates over ApiProxy ( [6c48961](https://github.com/Azure/iotedge/commit/6c48961f6c12c46cdd6c1e1e5f83d7139e9eeaf8) )
+* Fix EdgeHub dropping routing RP upon info forwarding ( [fa60e52](https://github.com/Azure/iotedge/commit/fa60e528706371c2bff0c7a7c3f795b737678646) )
+* Fix registry API On-behalf-of calls authentication ( [64fb35b](https://github.com/Azure/iotedge/commit/64fb35b7a3ebe1537784ac0912a106e5115b0a9b) )
+* Fix getDeviceAndModuleOnBehalfOf to check if target device is in scope ( [5e1028e](https://github.com/Azure/iotedge/commit/5e1028ec8db3b79c61969abeffe1b2a3701adf8a) )
+* Fix resolving BrokeredCloudProxyDispatcher ( [5fc8dfb](https://github.com/Azure/iotedge/commit/5fc8dfb9220a0275373873def88c56a0ddc035c8) )
+
+
+### Features
+
+
+## API Proxy
+### Bug Fixes
+* Fix API proxy race condition ( [3dfc030](https://github.com/Azure/iotedge/commit/3dfc030e6900bdad6e5696f9076445bbe785058a) )
+
+### Features
+* Enable API proxy indirection ( [0745818](https://github.com/Azure/iotedge/commit/074581861386fd5db0d73019feb1c5432877d58a) )
+* Enforce SaS Authentication on requests forwarded by API proxy to edgeHub ( [739e608](https://github.com/Azure/iotedge/commit/739e608cdf9d5ef73b680cd4cf561c8e40781e01) )
+
+## MQTT Broker
+### Bug Fixes
+* Fix topic mapping ( [a799291](https://github.com/Azure/iotedge/commit/a799291d06ab412cd1c85045faa3b2b5ba97e684) )
+* Fix rare RingBuffer initialization issue ( [b96b513](https://github.com/Azure/iotedge/commit/b96b513f6af7798bf2958982eb7be905d335760d) )
+
+## aziot-edge
+### Bug Fixes
+* Cache device provisioning state ( [9301f13](https://github.com/Azure/iotedge/commit/9301f13455da30c7ee28bff01f94e3579681ab30) )
+* Fix check-agent-image-version check for nested Edge scenarios ( [36d859e](https://github.com/Azure/iotedge/commit/36d859e0f3f05d73493e104afc800c8289c4343d) )
+* Import master encryption key in `iotedge config import` ( [01ef049](https://github.com/Azure/iotedge/commit/01ef049d5a26271f122dd28165b62aa7c9877277) )
+* Fix `iotedge config apply` not picking up parent hostname because of serde bug ( [b4c600a](https://github.com/Azure/iotedge/commit/b4c600a944b643e3d8c2b10838a0f91df4c89b5a) )
+
+### Features
+* Allow aziot-edge to collect system logs when calling remote support-bundle ( [a0f3725](https://github.com/Azure/iotedge/commit/a0f372505bb2a6482e3462dcae4ddb689fc26b81) )
+* `aziotctl system` improvements ( [d62b22f](https://github.com/Azure/iotedge/commit/d62b22f308e016c8ae057931c06353fdc2b0f5bc) )
+* Update `iotedge check` & `iotedge config` for version 1.2.0 ( [ee73e76](https://github.com/Azure/iotedge/commit/ee73e76d18874ddfce416098df9096c0d484c63b), [33661f5](https://github.com/Azure/iotedge/commit/33661f5f9ff2c7d8a00cd65cb5429292b0f47461) )
+* Document the super-config's agent.config.createOptions value format more clearly ( [76c4b70](https://github.com/Azure/iotedge/commit/76c4b70d2cfadef5f61a723ff4e34d833e58cb48) )
+* Introduce `iotedge system stop` ( [ca77919](https://github.com/Azure/iotedge/commit/ca77919172d0b55650d57ecc9a8a88ce3991dbb4) )
+
+
 # 1.2.0-rc4 (2020-03-1)
 ## AWARENESS
 This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
