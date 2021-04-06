@@ -271,7 +271,7 @@ The provided `config.toml.template` is a template for configuration values that 
 
 ## Installation
 
-For full documentation refer to the official documentation to [Install or uninstall Azure IoT Edge for Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11). What follows is a brief summary with accompanying notes.
+For full documentation refer to the official documentation to [Install or uninstall Azure IoT Edge for Linux](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-install-iot-edge?view=iotedge-2020-11). What follows is a brief summary with accompanying notes. It assumes you have already installed a compatible container engine.
 
 ```sh
 apt install aziot-edge
@@ -293,13 +293,13 @@ apt install aziot-edge
 sudo iotedge config import
 ```
 
-The `iotedge config import` can be used to generate the `/etc/aziot/config.toml` based on the old `/etc/iotedge/config.yaml` left behind after uninstalling versions 1.1 or earlier of IoT Edge.
+The `iotedge config import` can be used to generate the `/etc/aziot/config.toml` based on the old `/etc/iotedge/config.yaml` left behind after uninstalling versions 1.1 or earlier of IoT Edge. This assumes the `--purge` option is **not** used to remove IoT Edge version 1.1. or earlier.
 
 We do not support simultaneously running the services from both the old and new packages. They would step over each other trying to provision the device and manage Docker modules. We enforce mutual exclusivity between the packages by having them conflict with each other. This causes the distribution's package manager (e.g `apt` or `apt-get`) to not allow them both to be installed at the same time. This does not work if `dpkg` is used directly. Instead, the existing `iotedge` and `libiothsm-std` packages must be removed before installing the `aziot-edge` package (or even the `aziot-identity-service` package).
 
 ### Importing Configuration
 
-This is provided as a convenience to ease the transition from v1.1 to v1.2.
+This command helps ease the transition from v1.1 to v1.2.
 
 ```sh
 iotedge config import
@@ -309,15 +309,13 @@ Notes on behavior:
 
 - The device provisioning method is parsed from `/etc/iotedge/config.yaml` and translated into the provisioning information in `/etc/aziot/config.toml`.
 
-- User-provided certificates like device ID, device CA and trust bundle, and their corresponding private key files, will be added as preloaded keys and certs in `config.toml`. The files themselves will not be moved, because they are managed by the user rather than belonging in our services' directories.
+- User-provided certificates like device ID, device CA and trust bundle, and their corresponding private key files, will be added as preloaded keys and certs in `config.toml`. The files themselves will not be moved because they are managed by the user rather than belonging in our services' directories.
 
-  This assumes that Microsoft's implementation of `libiothsm-std` is being used where the certs and keys are stored as files on disk. This is a reasonable assumption since we are not aware of any external Edge customers that have written their own `libiothsm-std` implementations which store keys and certs differently.
+    > **Note** This assumes that Microsoft's implementation of `libiothsm-std` is being used where the certs and keys are stored as files on disk. This is a reasonable assumption since we are not aware of any external Edge customers that have written their own `libiothsm-std` implementations which store keys and certs differently.
 
 - The imported device CA will now be referred to as the "Edge CA".
 
-- The workload API exposes an encrypt and decrypt API for modules which uses module-specific keys derived from the module ID and a master encryption key. The master encryption key will be imported into the new services.
-
-- The format of encrypted secrets is changing between v1.1 and v1.2. Using the imported master encryption key, modules that use the workload API and persist across the upgrade from v1.1 -> v1.2 can read secrets encrypted in v1.1. However, upon re-encrypting a secret it is saved in the new format. This means that on a downgrade from v1.2 to v1.1 those modules must be re-deployed. They will be unable to decrypt secrets in the new format. Be aware that in all versions of IoT Edge a module cannot decrypt data previously encrypted by a module of the same name in a previous deployment (i.e. secrets cannot be shared across module generations).
+- The master encryption key that IoT Edge internally creates and uses (e.g. by the workload API's encrypt/decrypt methods) will be imported into the new services.
 
 - The workload CA cert is no longer used with `aziot-edged` and will not be imported.
 
@@ -325,13 +323,24 @@ Notes on behavior:
 
 - The `import` command does not detect and modify the access rules to the TPM. The `/etc/udev/rules.d/tpmaccess.rules` would still need to be manually updated to allow the `aziottpm` access to `tpm0` instead of `iotedge`.
 
-### Downgrading
+### Encrypting / Decrypting Secrets via Workload API
 
-The old configuration from `iotedge` is not removed from its location by any of the above actions; therefore, downgrading from the new package to the old one involves uninstalling the `aziot-edge` and `aziot-identity-service` packages, then reinstalling the `iotedge` package. Deployed modules that use the workload API to encrypt/decrypt secrets will need to be re-deployed.
+Secrets encrypted using the [workload API](../edgelet/workload/docs/WorkloadAPI.md) in IoT Edge v1.2 are saved in a new format.
 
+The workload API in v1.2 supports _reading_ secrets saved in the prior format using the imported master encryption key. However, it does not support _writing_ encrypted secrets in the old format. Once a secret is re-encrypted by a module, it is saved in the new format.
+
+**Warning:** Secrets encrypted in v1.2 are unreadable by the same module in v1.1. If you are persisting encrypted data to a host mounted folder / volume, then be sure to create a backup copy of the data _before_ upgrading to retain the ability to easily downgrade.
+
+## Downgrading
+
+You can downgrade from v1.2 to the v1.1 by uninstalling the `aziot-edge` and `aziot-identity-service` packages, then reinstalling the `iotedge` package. Unless the `iotedge` package was previously purged (i.e. using apt or apt-get's `--purge` option) then the old configuration will still be available and used by a downgraded IoT Edge.
 
 ```sh
 sudo apt remove aziot-edge aziot-identity-service
 
 sudo apt install iotedge
 ```
+
+   > **Note**
+   >
+   > Per the previous discussion on the workload API, if a module cannot recover when it fails to decrypt a secret then you may need to remove and re-add the module as part of a new deployment to put it into a clean state.
