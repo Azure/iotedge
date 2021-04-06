@@ -7,6 +7,8 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use bincode::Error as BincodeError;
 use serde::{Deserialize, Serialize};
 
+use mqtt3::proto::Publication;
+
 pub use loader::MessageLoader;
 pub use publication_store::PublicationStore;
 use waking_state::memory::error::MemoryError;
@@ -45,6 +47,13 @@ pub enum PersistError {
 
     #[error("Cannot remove key {current} that is not in order, but {expected} expected")]
     BadKeyOrdering { current: Key, expected: Key },
+
+    #[error("Unexpected loader state. key={key}, loaded={loaded:?}, new_batch={new_batch:?}")]
+    Loader {
+        key: Key,
+        loaded: Vec<Key>,
+        new_batch: Vec<(Key, Publication)>,
+    },
 }
 
 pub type PersistResult<T> = Result<T, PersistError>;

@@ -10,7 +10,7 @@ use futures_util::stream::Stream;
 use mqtt3::proto::Publication;
 use parking_lot::Mutex;
 
-use crate::persist::{waking_state::StreamWakeableState, Key, PersistResult};
+use crate::persist::{waking_state::StreamWakeableState, Key, PersistError, PersistResult};
 
 /// Message loader used to extract elements from bridge persistence
 ///
@@ -41,7 +41,6 @@ where
 
     fn next_batch(&mut self) -> PersistResult<VecDeque<(Key, Publication)>> {
         let batch = self.state.lock().batch(self.batch_size)?;
-
         Ok(batch)
     }
 }
@@ -75,10 +74,13 @@ where
                         Some((new_key, _)) if new_key == key => {
                             new_batch.pop_front();
                         }
-                        _ => panic!(
-                            "Invalid MessageLoader state: new_batch is corrupted {:?} for a key {}",
-                            new_batch, key
-                        ),
+                        _ => {
+                            return Poll::Ready(Some(Err(PersistError::Loader {
+                                key: *key,
+                                loaded: self.loaded.iter().copied().collect(),
+                                new_batch: new_batch.into_iter().collect(),
+                            })));
+                        }
                     }
                 }
             }
@@ -88,11 +90,9 @@ where
             self.batch = new_batch;
 
             // get next element and return it
-            let maybe_extracted = self.batch.pop_front();
-            let mut state_lock = self.state.lock();
-            maybe_extracted.map_or_else(
+            self.batch.pop_front().map_or_else(
                 || {
-                    state_lock.set_waker(cx.waker());
+                    self.state.lock().set_waker(cx.waker());
                     Poll::Pending
                 },
                 |extracted| Poll::Ready(Some(Ok(extracted))),
