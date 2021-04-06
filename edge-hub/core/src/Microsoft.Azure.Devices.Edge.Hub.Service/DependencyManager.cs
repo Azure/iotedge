@@ -406,14 +406,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             long value = this.configuration.GetValue(key, long.MinValue);
             return value == long.MinValue ? Option.None<long>() : Option.Some(value);
         }
-
-        X509Certificate2 GetManifestTrustBundle()
-        {
-            Uri workloadUri = new Uri(this.configuration.GetValue<string>(Constants.ConfigKey.WorkloadUri));
-            string moduleId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleId);
-            string generationId = this.configuration.GetValue<string>(Constants.ConfigKey.ModuleGenerationId);
-            string edgeletApiVersion = this.configuration.GetValue<string>(Constants.ConfigKey.WorkloadAPiVersion);
-            return CertificateHelper.GetManifestTrustBundleFromEdgelet(new Uri(workloadUri.ToString()), edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId).Result;
-        }
     }
 }

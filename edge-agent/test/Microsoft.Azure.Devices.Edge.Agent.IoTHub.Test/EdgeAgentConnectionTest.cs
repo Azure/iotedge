@@ -2241,7 +2241,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ManifestIntegrity integrityWithRsaCerts = GetRsaManifestIntegrity();
             string edgeAgentRightImageName = GetEdgeAgentRightImageName();
             TwinCollection unsignedTwinData = GetTwinDesiredProperties(edgeAgentRightImageName, null);
-            /*
             string edgeAgentWrongImageName = GetEdgeAgentWrongImageName();
             TwinCollection goodTwinDataEcdsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithEcdsaCerts);
             TwinCollection goodTwinDataRsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithRsaCerts);
@@ -2257,7 +2256,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             yield return new object[] { false, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithRsaCerts, GetRsaManifestTrustBundle()), badTwinDataRsa };
             // case 3: Signed Twin and Empty Manifest Trust Bundle - Expect Exception
             yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithEcdsaCerts, GetEmptyManifestTrustBundle()), goodTwinDataEcdsa };
-            */
             // case 4: Unsigned twin & Non-Empty Manifest Trust bundle - Expect Exception
             yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEcdsaManifestTrustBundle()), unsignedTwinData };
         }

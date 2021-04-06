@@ -235,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
             // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
-            return this.manifestTrustBundle.HasValue != false || (integrity != null && integrity.HasValues != false);
+            return this.manifestTrustBundle.HasValue || (integrity != null && integrity.HasValues);
         }
 
         internal bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
@@ -258,17 +258,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
                 // Check if Manifest Trust Bundle is configured
                 X509Certificate2 manifestTrustBundleRootCertificate;
-                if (this.manifestTrustBundle.HasValue != true && twinJobject["integrity"] == null)
+                if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
                 {
+                    Events.ManifestSigningIsNotEnabled();
                     throw new ManifestTrustBundleIsNotConfiguredException("Manifest Signing is Disabled.");
                 }
-                else if (this.manifestTrustBundle.HasValue != true && twinJobject["integrity"] != null)
+                else if (this.manifestTrustBundle.HasValue && twinJobject["integrity"] != null)
                 {
+                    Events.ManifestTrustBundleIsNotConfigured();
                     throw new ManifestTrustBundleIsNotConfiguredException("Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
                 }
-                else if (this.manifestTrustBundle.HasValue != false && twinJobject["integrity"] == null)
+                else if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
                 {
-                    throw new ManifestTrustBundleIsNotConfiguredException(" Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+                    Events.DeploymentManifestIsNotSigned();
+                    throw new DeploymentManifestIsNotSignedException("Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
                 }
                 else
                 {
@@ -334,7 +337,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 VerifyTwinSignatureSuceeded,
                 VerifyTwinSignatureException,
                 ManifestSigningIsEnabled,
-                ManifestSigningIsNotEnabled
+                ManifestSigningIsNotEnabled,
+                ManifestTrustBundleIsNotConfigured,
+                DeploymentManifestIsNotSigned
             }
 
             internal static void ErrorGettingEdgeHubConfig(Exception ex)
@@ -430,6 +435,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             internal static void ManifestSigningIsNotEnabled()
             {
                 Log.LogDebug((int)EventIds.ManifestSigningIsNotEnabled, $"Manifest Signing is not enabled. To enable, sign the deployment manifest and also enable manifest trust bundle in certificate client");
+            }
+
+            internal static void ManifestTrustBundleIsNotConfigured()
+            {
+                Log.LogDebug((int)EventIds.ManifestTrustBundleIsNotConfigured, $"Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+            }
+
+            internal static void DeploymentManifestIsNotSigned()
+            {
+                Log.LogDebug((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
             }
         }
     }
