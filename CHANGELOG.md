@@ -1,8 +1,8 @@
 # 1.2.0 (2020-04-9)
 ## HIGHLIGHTS
 * Enable nested edge by default
-* Move `NestedEdgeEnabled` settings out of `experimentalFeatures` section.
-* Merge MQTT Broker and MQTT Bridge settings
+* Move `NestedEdgeEnabled` settings out of `experimentalFeatures` section
+* MQTT Broker and MQTT Bridge settings are merged
 * A lot of new commands in iotedge CLI (See aziot-edge section)
 
 
@@ -14,6 +14,7 @@
 
 ## Edge Hub
 ### Bug Fixes
+* Fix edgeHub children mismatched leaf device subscriptions ( [39c600f](https://github.com/Azure/iotedge/commit/39c600f40c0e2c8a8ae03bb7777231f55beba03d) )
 * Improve registry controller error message ( [0b0a40e](https://github.com/Azure/iotedge/commit/0b0a40e93ad2eca395b17706157fd6e06a510cce) )
 * Add edgeHub identity to the scopes cache at the startup ( [621a2ad](https://github.com/Azure/iotedge/commit/621a2ad873feba1114177c13a7d934edceed5b71) )
 * Improve AMQP messages `Batchable` deplay ( [e88c2b9](https://github.com/Azure/iotedge/commit/e88c2b9a661df29f184fb4c2956b61d7c6d9b169) )
@@ -45,6 +46,7 @@
 
 ## MQTT Broker
 ### Bug Fixes
+* Filter out publication duplicates in MessageLoader ( [0c0536a](https://github.com/Azure/iotedge/commit/0c0536a72cb5d53acf7d4be27bfc2fd38de21730) )
 * Fix topic mapping ( [a799291](https://github.com/Azure/iotedge/commit/a799291d06ab412cd1c85045faa3b2b5ba97e684) )
 * Fix RingBuffer initialization issue ( [b96b513](https://github.com/Azure/iotedge/commit/b96b513f6af7798bf2958982eb7be905d335760d), [c69ac53](https://github.com/Azure/iotedge/commit/c69ac53148c6fdf049d5d7f6346a470d8c5c407c) )
 * Fix flaky proptest ( [484f395](https://github.com/Azure/iotedge/commit/484f395d76514f95f1f08d9efefcdc5a5769d08e) )
