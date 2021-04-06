@@ -55,19 +55,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         const int PlaybookLength = 10000;
         const int PlaybookSectionMinLen = 10;
         const int PlaybookSectionMaxLen = 100;
+        const int ClientsCount = 300;
 
         static readonly string iotHubName = "testHub";
         static readonly string edgeModuleName = "$edgeHub";
+
+        static string[] edgeDeviceNames = { "edgeDev1", "edgeDev2", "edgeDev3" };
 
         // A TestClient contains two important states:
         // - whether edgeHub should have noticed it according to the client activity
         // - a 'playbook' which describes when to subscribe/unsubscribe/send messages
         class TestClient
         {
-            public TestClient(bool isDirect, IIdentity identity)
+            public TestClient(bool isDirect, IIdentity identity, string parentEdgeHub)
             {
                 this.IsDirect = isDirect;
                 this.Identity = identity;
+                this.ParentEdgeHub = parentEdgeHub;
                 this.Playbook = new Playbook(PlaybookLength, PlaybookSectionMinLen, PlaybookSectionMaxLen, identity is ModuleIdentity);
 
                 this.IsNoticed = false;
@@ -75,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
             public bool IsDirect { get; }
             public IIdentity Identity { get; }
+            public string ParentEdgeHub { get; }
             public Playbook Playbook { get; }
 
             public bool IsNoticed { get; private set; }
@@ -191,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
         {
             // Generating the necessary edgeHub components and the test clients
             var (connectionManager, connectionHandler, subscriptionChangeHandler, telemetryHandler) = await SetupEdgeHub("something");
-            var clients = GenerateClients(100, 0.5, 0.5);
+            var clients = GenerateClients(ClientsCount, 0.5, 0.5);
 
             var rnd = new Random(548196703);
             var subscriptionTypes = new[] { SubscriptionOrMessage.C2D, SubscriptionOrMessage.DesiredPropertyUpdates, SubscriptionOrMessage.DirectMethod, SubscriptionOrMessage.TwinResponse };
@@ -205,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
 
                 // Direct clients can send their subscriptions immediately, however for nested clients we collect them and send a single
                 // update, as in this case edgeHub sends a single event describing all the nested clients. 
-                var edgeHubSubscriptions = new List<string>();
+                var edgeHubSubscriptions = new Dictionary<string, List<string>>();
 
                 foreach (var client in clients)
                 {
@@ -252,7 +257,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                             if (client.Playbook.IsActive(sub, phase))
                             {
                                 client.SetNoticed();
-                                edgeHubSubscriptions.Add(SubscriptionGenerator[sub](false, client.Identity));
+
+                                var subscription = SubscriptionGenerator[sub](false, client.Identity);
+
+                                if (edgeHubSubscriptions.TryGetValue(client.ParentEdgeHub, out var subscriptionListForEdgeHub))
+                                {
+                                    subscriptionListForEdgeHub.Add(subscription);
+                                }
+                                else
+                                {
+                                    edgeHubSubscriptions.Add(client.ParentEdgeHub, subscriptionListForEdgeHub = new List<string>() { subscription });
+                                }
                             }
                         }
 
@@ -264,8 +279,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                     }
                 }
 
-                var edgeHubsubscriptionEvent = $"[{edgeHubSubscriptions.Select(s => $"\"{s}\"").Join(", ")}]";
-                await subscriptionChangeHandler.HandleAsync(new MqttPublishInfo("$edgehub/nested_dev/$edgeHub/subscriptions", Encoding.UTF8.GetBytes(edgeHubsubscriptionEvent)));
+                edgeDeviceNames.Shuffle(rnd);
+                foreach (var edgeDevice in edgeDeviceNames)
+                {
+                    if (edgeHubSubscriptions.ContainsKey(edgeDevice))
+                    {
+                        var edgeHubsubscriptionEvent = $"[{edgeHubSubscriptions[edgeDevice].Select(s => $"\"{s}\"").Join(", ")}]";
+                        await subscriptionChangeHandler.HandleAsync(new MqttPublishInfo($"$edgehub/{edgeDevice}/$edgeHub/subscriptions", Encoding.UTF8.GetBytes(edgeHubsubscriptionEvent)));
+                    }
+                }
 
                 // we do a phase check at around %20 of the steps
                 if (rnd.NextDouble() < 0.2 || phase+1 == PlaybookLength)
@@ -349,7 +371,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
                 var identity = isModule ? new ModuleIdentity(iotHubName, "device_" + i.ToString(), "module_" + i.ToString()) as IIdentity
                                         : new DeviceIdentity(iotHubName, "device_" + i.ToString()) as IIdentity;
 
-                var newClient = new TestClient(isDirect, identity);
+                var newClient = new TestClient(isDirect, identity, edgeDeviceNames[rnd.Next(edgeDeviceNames.Length)]);
 
                 result.Add(newClient);
             }
@@ -389,7 +411,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var identityProvider = new IdentityProvider(iotHubName);
             var deviceConnectivityManager = Mock.Of<IDeviceConnectivityManager>();
 
-            var connectionManager = new ConnectionManager(new NullCloudConnectionProvider(), Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
+            var connectionManager = new ConnectionManager(new NullCloudConnectionProvider(), Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager, ClientsCount + 1);
             var routingMessageConverter = new RoutingMessageConverter();
             var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10, true));
             var routesList = new [] {routeFactory.Create("FROM /messages INTO $upstream") };

@@ -122,11 +122,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
         }
 
-        public async Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync()
+        public async Task UpdateNestedParentInfoAsync(IEnumerable<IIdentity> childDevices, IIdentity parentIdentity)
         {
             using (await this.guard.LockAsync())
             {
-                return this.knownConnections.Values.OfType<IDeviceProxy>().Where(p => !p.IsDirectClient).Select(p => p.Identity).ToArray();
+                foreach (var children in childDevices)
+                {
+                    var maybeListener = default(Option<IDeviceListener>);
+                    if (!this.knownConnections.TryGetValue(children, out var listener))
+                    {
+                        maybeListener = await this.CreateDeviceListenerAsync(children, false);
+                    }
+                    else
+                    {
+                        maybeListener = Option.Some(listener);
+                    }
+
+                    maybeListener.ForEach(
+                        l =>
+                        {
+                            if (l is IDeviceProxy proxy)
+                            {
+                                proxy.ConnectionInfo.BindToParent(parentIdentity);
+                            }
+                        });
+                }
+            }
+        }
+
+        public async Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync(IIdentity parentIdentity)
+        {
+            using (await this.guard.LockAsync())
+            {
+                return this.knownConnections.Values.OfType<IDeviceProxy>()
+                                                    .Where(p => !p.ConnectionInfo.IsDirectClient && p.ConnectionInfo.KnownParent.Filter(i => i.Id == parentIdentity.Id).HasValue)
+                                                    .Select(p => p.Identity).ToArray();
             }
         }
 
@@ -166,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         // Clients connected indirectly (through a child edge device) will not be reported
                         // by broker events and appear in the 'identitiesRemoved' list as missing identities.
                         // Ignore those:
-                        if (!proxy.IsDirectClient)
+                        if (!proxy.ConnectionInfo.IsDirectClient)
                         {
                             continue;
                         }

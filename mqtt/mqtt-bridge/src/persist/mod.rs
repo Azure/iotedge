@@ -2,6 +2,8 @@ mod loader;
 mod publication_store;
 mod waking_state;
 
+use std::fmt::{Display, Formatter, Result as FmtResult};
+
 use bincode::Error as BincodeError;
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +23,12 @@ pub struct Key {
     offset: u64,
 }
 
+impl Display for Key {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{}", self.offset)
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum PersistError {
     #[error("RingBuffer error occurred. Caused by: {0}")]
@@ -34,6 +42,9 @@ pub enum PersistError {
 
     #[error("Serialization error occurred. Caused by: {0}")]
     Serialization(#[from] BincodeError),
+
+    #[error("Cannot remove key {current} that is not in order, but {expected} expected")]
+    BadKeyOrdering { current: Key, expected: Key },
 }
 
 pub type PersistResult<T> = Result<T, PersistError>;
