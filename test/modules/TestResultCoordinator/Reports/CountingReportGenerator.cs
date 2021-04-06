@@ -70,10 +70,12 @@ namespace TestResultCoordinator.Reports
         {
             Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.ExpectedSource}] and [{this.ActualSource}]");
 
-            var lastLoadedResult = default(TestOperationResult);
+            var lastLoadedExpectedResult = default(TestOperationResult);
+            var lastLoadedActualResult = default(TestOperationResult);
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
-            ulong totalDuplicateResultCount = 0;
+            ulong totalDuplicateExpectedResultCount = 0;
+            ulong totalDuplicateActualResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
             bool allActualResultsMatch = false;
             Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents = Option.None<EventHubSpecificReportComponents>();
@@ -87,11 +89,23 @@ namespace TestResultCoordinator.Reports
                 this.ValidateResult(this.ExpectedTestResults.Current, this.ExpectedSource);
                 this.ValidateResult(this.ActualTestResults.Current, this.ActualSource);
 
-                // Skip any duplicate actual value
-                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
+                if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
                 {
-                    totalDuplicateResultCount++;
-                    lastLoadedResult = this.ActualTestResults.Current;
+                    totalDuplicateExpectedResultCount++;
+
+                    // If we encounter a duplicate expected result, we have already
+                    // accounted for corresponding actual results in prev iteration
+                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+                    continue;
+                }
+
+                lastLoadedExpectedResult = this.ExpectedTestResults.Current;
+
+                // Skip any duplicate actual value
+                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
+                {
+                    totalDuplicateActualResultCount++;
+                    lastLoadedActualResult = this.ActualTestResults.Current;
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 }
 
@@ -99,7 +113,7 @@ namespace TestResultCoordinator.Reports
 
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
-                    lastLoadedResult = this.ActualTestResults.Current;
+                    lastLoadedActualResult = this.ActualTestResults.Current;
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                     totalMatchCount++;
@@ -112,10 +126,10 @@ namespace TestResultCoordinator.Reports
             }
 
             // Check duplicates at the end of actual results
-            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
+            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
             {
-                totalDuplicateResultCount++;
-                lastLoadedResult = this.ActualTestResults.Current;
+                totalDuplicateActualResultCount++;
+                lastLoadedActualResult = this.ActualTestResults.Current;
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
@@ -123,8 +137,17 @@ namespace TestResultCoordinator.Reports
 
             while (hasExpectedResult)
             {
-                totalExpectCount++;
-                TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
+                if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
+                {
+                    totalDuplicateExpectedResultCount++;
+                }
+                else
+                {
+                    totalExpectCount++;
+                    TestReportUtil.EnqueueAndEnforceMaxSize(unmatchedResults, this.ExpectedTestResults.Current, this.unmatchedResultsMaxSize);
+                }
+
+                lastLoadedExpectedResult = this.ExpectedTestResults.Current;
                 hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
@@ -142,7 +165,7 @@ namespace TestResultCoordinator.Reports
                         .Expect<ArgumentException>(
                             () => throw new ArgumentException("TRC must be in long haul mode to be generating an EventHubLongHaul CountingReport"))
                         .EventHubDelayTolerance;
-                if (lastLoadedResult == null || lastLoadedResult.CreatedAt < DateTime.UtcNow - eventHubDelayTolerance)
+                if (lastLoadedActualResult == null || lastLoadedActualResult.CreatedAt < DateTime.UtcNow - eventHubDelayTolerance)
                 {
                     stillReceivingFromEventHub = false;
                 }
@@ -169,9 +192,9 @@ namespace TestResultCoordinator.Reports
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
-            if (lastLoadedResult != null)
+            if (lastLoadedActualResult != null)
             {
-                lastLoadedResultCreatedAt = Option.Some(lastLoadedResult.CreatedAt);
+                lastLoadedResultCreatedAt = Option.Some(lastLoadedActualResult.CreatedAt);
             }
 
             return new CountingReport(
@@ -182,7 +205,8 @@ namespace TestResultCoordinator.Reports
                 this.ResultType,
                 totalExpectCount,
                 totalMatchCount,
-                totalDuplicateResultCount,
+                totalDuplicateExpectedResultCount,
+                totalDuplicateActualResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
                 eventHubSpecificReportComponents,
                 lastLoadedResultCreatedAt);
