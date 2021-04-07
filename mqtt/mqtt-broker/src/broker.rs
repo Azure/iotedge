@@ -307,7 +307,7 @@ where
                 let message = Message::Client(client_id, ClientEvent::DropConnection);
                 try_send!(connreq.handle_mut(), message);
             };
-        };
+        }
 
         // [MQTT-3.1.2-1] - If the protocol name is incorrect the Server MAY
         // disconnect the Client, or it MAY continue processing the CONNECT

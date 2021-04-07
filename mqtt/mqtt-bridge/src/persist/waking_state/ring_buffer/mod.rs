@@ -10,7 +10,7 @@ use std::{
     fs::{create_dir_all, File, OpenOptions},
     io::{BufReader, Read, Result as IOResult, Seek, SeekFrom, Write},
     num::NonZeroU64,
-    path::PathBuf,
+    path::Path,
     task::Waker,
     time::{Duration, Instant},
 };
@@ -107,7 +107,7 @@ pub struct RingBuffer {
 
 impl RingBuffer {
     pub(crate) fn new(
-        file_path: &PathBuf,
+        file_path: &Path,
         max_file_size: NonZeroU64,
         flush_options: FlushOptions,
     ) -> PersistResult<Self> {
@@ -366,7 +366,7 @@ impl StreamWakeableState for RingBuffer {
     }
 }
 
-fn create_file(file_path: &PathBuf) -> IOResult<File> {
+fn create_file(file_path: &Path) -> IOResult<File> {
     if let Some(parent) = file_path.parent() {
         create_dir_all(parent)?;
     }
@@ -660,26 +660,26 @@ where
         let first_half = &bytes[..bytes_split];
         writable
             .seek(SeekFrom::Start(start))
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
         writable
             .write(first_half)
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
 
         let second_half = &bytes[bytes_split..];
         writable
             .seek(SeekFrom::Start(0))
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
         writable
             .write(second_half)
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
     } else {
         writable
             .seek(SeekFrom::Start(start))
-            .map_err(RingBufferError::FileIO)?;
-        writable.write(bytes).map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
+        writable.write(bytes).map_err(RingBufferError::FileIo)?;
     }
     if should_flush {
-        writable.flush().map_err(RingBufferError::FileIO)?;
+        writable.flush().map_err(RingBufferError::FileIo)?;
     }
     Ok(())
 }
@@ -1263,8 +1263,7 @@ mod tests {
         assert_eq!(key, batch[0].0);
 
         // now with 9 more
-        let mut keys = vec![];
-        keys.push(key);
+        let mut keys = vec![key];
         for _ in 0..9 {
             let result = rb.0.insert(&publication);
             assert_matches!(result, Ok(_));

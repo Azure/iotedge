@@ -19,7 +19,7 @@ impl SignRequest {
     pub fn new(data: String) -> Self {
         SignRequest {
             key_id: DEFAULT_KEY_ID.into(),
-            algorithm: Algorithm::HMACSHA256,
+            algorithm: Algorithm::HmacSha256,
             data,
         }
     }
@@ -66,7 +66,7 @@ impl SignRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Algorithm {
-    HMACSHA256,
+    HmacSha256,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
