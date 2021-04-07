@@ -99,6 +99,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
+
+                            string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
+
                             Log.Information("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
@@ -107,9 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
 
-                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
-                                config.SetEdgeAgentImage(edgeAgent);
+                                edgeAgent = Regex.Replace(edgeAgent, @"\$upstream", parentHostname);
                             });
+
+                            config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries);
 
                             Context.Current.EdgeProxy.ForEach(proxy =>
                             {
