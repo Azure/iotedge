@@ -136,10 +136,6 @@ impl BridgeUpdate {
         }
     }
 
-    pub fn name(&self) -> &str {
-        &self.endpoint
-    }
-
     pub fn endpoint(&self) -> &str {
         &self.endpoint
     }
