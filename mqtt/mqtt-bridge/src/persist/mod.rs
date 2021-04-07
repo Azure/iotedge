@@ -45,6 +45,13 @@ pub enum PersistError {
 
     #[error("Cannot remove key {current} that is not in order, but {expected} expected")]
     BadKeyOrdering { current: Key, expected: Key },
+
+    #[error("Unexpected loader state. key={key}, loaded={loaded:?}, new_batch={new_batch:?}")]
+    Loader {
+        key: Key,
+        loaded: Vec<Key>,
+        new_batch: Vec<Key>,
+    },
 }
 
 pub type PersistResult<T> = Result<T, PersistError>;
