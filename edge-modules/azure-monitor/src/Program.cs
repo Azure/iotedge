@@ -40,9 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             #endif
 
             Logger.Writer.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
-
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            ITransportSettings[] transportSettings = { mqttSetting };
+            var transportSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+            
+            ITransportSettings[] transportSettings = { transportSetting };
             ModuleClient moduleClient = null;
             try
             {
