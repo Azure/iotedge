@@ -21,7 +21,9 @@ namespace TestResultCoordinator.Reports
             string resultType,
             ulong totalExpectCount,
             ulong totalMatchCount,
-            ulong totalDuplicateResultCount,
+            ulong totalDuplicateExpectedResultCount,
+            ulong totalDuplicateActualResultCount,
+            ulong totalMisorderedActualResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults,
             Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents,
             Option<DateTime> lastActualResultTimestamp)
@@ -31,8 +33,11 @@ namespace TestResultCoordinator.Reports
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
-            this.TotalDuplicateResultCount = totalDuplicateResultCount;
-            this.UnmatchedResults = unmatchedResults ?? new List<TestOperationResult>();
+            this.TotalUnmatchedCount = Convert.ToUInt64(unmatchedResults.Count);
+            this.TotalDuplicateExpectedResultCount = totalDuplicateExpectedResultCount;
+            this.TotalDuplicateActualResultCount = totalDuplicateActualResultCount;
+            this.TotalMisorderedActualResultCount = totalMisorderedActualResultCount;
+            this.UnmatchedResults = unmatchedResults;
             this.EventHubSpecificReportComponents = eventHubSpecificReportComponents;
             this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
@@ -45,7 +50,13 @@ namespace TestResultCoordinator.Reports
 
         public ulong TotalMatchCount { get; }
 
-        public ulong TotalDuplicateResultCount { get; }
+        public ulong TotalUnmatchedCount { get; }
+
+        public ulong TotalDuplicateExpectedResultCount { get; }
+
+        public ulong TotalDuplicateActualResultCount { get; }
+
+        public ulong TotalMisorderedActualResultCount { get; }
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
@@ -64,14 +75,14 @@ namespace TestResultCoordinator.Reports
 
         public bool IsPassedHelper()
         {
-            return this.EventHubSpecificReportComponents.Match(
+            return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
                 eh =>
                 {
                     return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
                 },
                 () =>
                 {
-                    return this.TotalExpectCount == this.TotalMatchCount && this.TotalExpectCount > 0;
+                    return this.TotalExpectCount == this.TotalMatchCount;
                 });
         }
 
