@@ -1,6 +1,9 @@
 use std::num::NonZeroUsize;
 
-use futures_util::{pin_mut, stream::StreamExt};
+use futures_util::{
+    pin_mut,
+    stream::{StreamExt, TryStreamExt},
+};
 use lazy_static::lazy_static;
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
@@ -71,21 +74,12 @@ where
         // multiple in-flight and also limit number of publications.
         let publications = store
             .loader(*BATCH_SIZE)
-            .filter_map(|loaded| {
+            .map_err(EgressError::LoadPublication)
+            .try_filter_map(|(key, publication)| {
                 let publish_handle = publish_handle.clone();
-                async {
-                    match loaded {
-                        Ok((key, publication)) => {
-                            Some(try_publish(key, publication, publish_handle))
-                        }
-                        Err(e) => {
-                            error!(error = %e, "failed loading publication from store");
-                            None
-                        }
-                    }
-                }
+                async move { Ok(Some(try_publish(key, publication, publish_handle))) }
             })
-            .buffered(MAX_IN_FLIGHT)
+            .try_buffered(MAX_IN_FLIGHT)
             .fuse();
 
         pin_mut!(publications);
@@ -96,7 +90,8 @@ where
                     debug!("received shutdown signal for egress messages");
                     break;
                 }
-                key = publications.select_next_some() => {
+                maybe_key = publications.select_next_some() => {
+                    let key = maybe_key?;
                     store.remove(key).map_err(|e| EgressError::RemovePublication(key, e))?;
                 }
             }
@@ -107,13 +102,17 @@ where
     }
 }
 
-async fn try_publish(key: Key, publication: Publication, mut publish_handle: PublishHandle) -> Key {
+async fn try_publish(
+    key: Key,
+    publication: Publication,
+    mut publish_handle: PublishHandle,
+) -> Result<Key, EgressError> {
     debug!("forwarding publication with key {}", key);
-    if let Err(e) = publish_handle.publish(publication).await {
-        error!(error = %e, "failed forwarding publication");
-    }
-
-    key
+    publish_handle
+        .publish(publication)
+        .await
+        .map_err(|e| EgressError::Publish(key, e))?;
+    Ok(key)
 }
 
 /// Egress shutdown handle.
@@ -132,6 +131,12 @@ impl EgressShutdownHandle {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum EgressError {
+    #[error("Failed to load publication from a store. Caused by: {0}")]
+    LoadPublication(#[source] crate::persist::PersistError),
+
     #[error("Failed to remove publication from a store with key {0}. Caused by: {1}")]
     RemovePublication(Key, #[source] crate::persist::PersistError),
+
+    #[error("Failed forwarding publication with key {0}. Caused by: {1}")]
+    Publish(Key, #[source] crate::client::ClientError),
 }
