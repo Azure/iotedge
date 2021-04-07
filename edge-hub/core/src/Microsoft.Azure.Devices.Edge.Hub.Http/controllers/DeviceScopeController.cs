@@ -14,7 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Primitives;
     using Newtonsoft.Json;
 
     public class DeviceScopeController : Controller
@@ -45,25 +44,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 await this.SendResponse(result.Status, JsonConvert.SerializeObject(result));
             }
 
-            string authChain = request.AuthChain;
-            string[] ids = AuthChainHelpers.GetAuthChainIds(authChain);
-            if (ids.Length == 1)
-            {
-                // A child EdgeHub can use its module credentials to calls upstream
-                // OnBehalfOf its device identity, so the auth-chain would just have
-                // one element denoting the target device scope but no actor.
-                // However, the auth stack requires an actor to be specified for OnBehalfOf
-                // connections, so we manually add the actor to the auth-chain for this
-                // special case.
-                authChain = $"{ids[0]}/{Constants.EdgeHubModuleId};{ids[0]}";
-            }
-
             IHttpRequestAuthenticator authenticator = await this.authenticatorGetter;
-            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), Option.Some(authChain), this.HttpContext);
+            HttpAuthResult authResult = await authenticator.AuthenticateAsync(actorDeviceId, Option.Some(actorModuleId), Option.Some(request.AuthChain), this.HttpContext);
 
             if (authResult.Authenticated)
             {
-                EdgeHubScopeResult reqResult = await this.HandleDevicesAndModulesInTargetDeviceScopeAsync(actorDeviceId, actorModuleId, request);
+                IEdgeHub edgeHub = await this.edgeHubGetter;
+                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                EdgeHubScopeResult reqResult = await HandleDevicesAndModulesInTargetDeviceScopeAsync(actorDeviceId, actorModuleId, request, identitiesCache);
                 await this.SendResponse(reqResult.Status, JsonConvert.SerializeObject(reqResult));
             }
             else
@@ -84,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             if (actorModuleId != Constants.EdgeHubModuleId)
             {
                 // Only child EdgeHubs are allowed to act OnBehalfOf of devices/modules.
-                var result = new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, Events.UnauthorizedActor(actorDeviceId, actorModuleId));
+                var result = new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, Events.UnauthorizedActor(actorDeviceId, actorModuleId, string.IsNullOrWhiteSpace(request.TargetModuleId) ? request.TargetDeviceId : $"{request.TargetDeviceId}/{request.TargetModuleId}"));
                 await this.SendResponse(result.Status, JsonConvert.SerializeObject(result));
             }
 
@@ -93,7 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             if (authResult.Authenticated)
             {
-                EdgeHubScopeResult reqResult = await this.HandleGetDeviceAndModuleOnBehalfOfAsync(actorDeviceId, actorModuleId, request);
+                IEdgeHub edgeHub = await this.edgeHubGetter;
+                IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+                EdgeHubScopeResult reqResult = await HandleGetDeviceAndModuleOnBehalfOfAsync(actorDeviceId, actorModuleId, request, identitiesCache);
                 await this.SendResponse(reqResult.Status, JsonConvert.SerializeObject(reqResult));
             }
             else
@@ -103,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
         }
 
-        async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScopeAsync(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
+        internal static async Task<EdgeHubScopeResult> HandleDevicesAndModulesInTargetDeviceScopeAsync(string actorDeviceId, string actorModuleId, NestedScopeRequest request, IDeviceScopeIdentitiesCache identitiesCache)
         {
             Events.ReceivedScopeRequest(actorDeviceId, actorModuleId, request);
 
@@ -113,8 +103,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
 
             // Get the children of the target device and the target device itself;
-            IEdgeHub edgeHub = await this.edgeHubGetter;
-            IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
+            Option<string> authChainToTarget = await identitiesCache.GetAuthChain(targetDeviceId);
+            (bool validationResult, string errorMsg) = ValidateAuthChainForRequestor(actorDeviceId, targetDeviceId, authChainToTarget);
+            if (!validationResult)
+            {
+                return new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, errorMsg);
+            }
+
             IList<ServiceIdentity> identities = await identitiesCache.GetDevicesAndModulesInTargetScopeAsync(targetDeviceId);
             Option<ServiceIdentity> targetDevice = await identitiesCache.GetServiceIdentity(targetDeviceId);
             targetDevice.ForEach(d => identities.Add(d));
@@ -124,7 +119,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return MakeResultFromIdentities(identities);
         }
 
-        async Task<EdgeHubScopeResult> HandleGetDeviceAndModuleOnBehalfOfAsync(string actorDeviceId, string actorModuleId, IdentityOnBehalfOfRequest request)
+        internal static (bool result, string errorMsg) ValidateAuthChainForRequestor(string actorDeviceId, string targetDeviceId, Option<string> authChain) =>
+            authChain.Match(
+                ac =>
+                {
+                    if (!AuthChainHelpers.ValidateAuthChain(actorDeviceId, targetDeviceId, ac))
+                    {
+                        return (false, $"Invalid request as auth chain ({ac}) to {targetDeviceId} does not contain {actorDeviceId}");
+                    }
+
+                    return (true, string.Empty);
+                },
+                () =>
+                {
+                    Events.AuthChainToTargetNotFound(actorDeviceId, targetDeviceId);
+                    return (false, $"Auth chain to target device {targetDeviceId} not found");
+                });
+
+        internal static async Task<EdgeHubScopeResult> HandleGetDeviceAndModuleOnBehalfOfAsync(string actorDeviceId, string actorModuleId, IdentityOnBehalfOfRequest request, IDeviceScopeIdentitiesCache identitiesCache)
         {
             Events.ReceivedIdentityOnBehalfOfRequest(actorDeviceId, actorModuleId, request);
             Preconditions.CheckNonWhiteSpace(request.TargetDeviceId, nameof(request.TargetDeviceId));
@@ -137,21 +149,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 targetId += "/" + request.TargetModuleId;
             }
 
-            IEdgeHub edgeHub = await this.edgeHubGetter;
-
-            // Check if the actor has provided the originating EdgeHub ID,
-            // if not, then we must be by definition by the origin.
-            string originatingEdge = edgeHub.GetEdgeDeviceId();
-            if (this.Request.Headers.TryGetValue(Constants.OriginEdgeHeaderKey, out StringValues originHeader) && originHeader.Count > 0)
+            if (!AuthChainHelpers.TryGetTargetDeviceId(request.AuthChain, out string originatingEdgeDevice))
             {
-                originatingEdge = originHeader.First();
+                originatingEdgeDevice = actorDeviceId;
             }
 
             // We must always forward the call further upstream first,
             // as this is invoked for refreshing an identity on-demand,
             // and we don't know whether our cache is out-of-date.
-            IDeviceScopeIdentitiesCache identitiesCache = edgeHub.GetDeviceScopeIdentitiesCache();
-            await identitiesCache.RefreshServiceIdentityOnBehalfOf(targetId, originatingEdge);
+            await identitiesCache.RefreshServiceIdentityOnBehalfOf(targetId, originatingEdgeDevice);
             Option<ServiceIdentity> targetIdentity = await identitiesCache.GetServiceIdentity(targetId);
 
             if (!targetIdentity.HasValue)
@@ -167,37 +173,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             }
 
             // Add the identity to the result
-            var identityList = new List<ServiceIdentity>();
-            targetIdentity.ForEach(i => identityList.Add(i));
+            EdgeHubScopeResult result = await targetIdentity.Match(
+                async ti =>
+                {
+                    Option<string> authChainToTarget = await identitiesCache.GetAuthChain(targetId);
 
-            // If the target is a module, we also need to
-            // include the parent device as well to match
-            // IoT Hub API behavior
-            if (isModule)
-            {
-                Option<ServiceIdentity> device = await identitiesCache.GetServiceIdentity(request.TargetDeviceId);
-                device.ForEach(i => identityList.Add(i));
-            }
+                    return await authChainToTarget.Match(
+                        async ac =>
+                        {
+                            if (AuthChainHelpers.ValidateAuthChain(originatingEdgeDevice, targetId, ac))
+                            {
+                                var identityList = new List<ServiceIdentity>();
+                                identityList.Add(ti);
+                                // If the target is a module, we also need to
+                                // include the parent device as well to match
+                                // IoT Hub API behavior
+                                if (isModule)
+                                {
+                                    Option<ServiceIdentity> device = await identitiesCache.GetServiceIdentity(request.TargetDeviceId);
+                                    device.ForEach(i => identityList.Add(i));
+                                }
 
-            Events.SendingScopeResult(targetId, identityList);
-            return MakeResultFromIdentities(identityList);
-        }
-
-        bool IsRefreshIdentityNeeded(Option<ServiceIdentity> identityOption)
-        {
-            // Default refresh to true if we don't have the identity yet.
-            bool needToRefresh = true;
-
-            identityOption.ForEach(id =>
-            {
-                // Identities can initially be created with no auth, and
-                // have their auth type updated later. In this case we
-                // must refresh the identity or we won't be able to auth
-                // incoming OnBehalfOf connections for those identities.
-                needToRefresh = id.Authentication.Type == ServiceAuthenticationType.None;
-            });
-
-            return needToRefresh;
+                                Events.SendingScopeResult(targetId, identityList);
+                                return MakeResultFromIdentities(identityList);
+                            }
+                            else
+                            {
+                                Events.TargetNotChild(originatingEdgeDevice, targetId);
+                                return new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetId));
+                            }
+                        },
+                        () =>
+                        {
+                            Events.AuthChainToTargetNotFound(originatingEdgeDevice, targetId);
+                            return Task.FromResult(new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetId)) as EdgeHubScopeResult);
+                        });
+                },
+                () =>
+                {
+                    Events.TargetIdentityNotFound(originatingEdgeDevice, targetId);
+                    return Task.FromResult(new EdgeHubScopeResultError(HttpStatusCode.Unauthorized, Events.UnauthorizedActor(actorDeviceId, actorModuleId, targetId)) as EdgeHubScopeResult);
+                });
+            return result;
         }
 
         async Task SendResponse(HttpStatusCode status, string responseJson)
@@ -245,7 +262,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 AuthFail_NoHeader,
                 AuthFail_BadHeader,
                 AuthFail_ActorMismatch,
-                AuthFail_InvalidAuthChain
+                AuthFail_InvalidAuthChain,
+                AuthFail_InvalidRequest
             }
 
             public static void ReceivedScopeRequest(string actorDeviceId, string actorModuleId, NestedScopeRequest request)
@@ -263,9 +281,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
                 Log.LogInformation((int)EventIds.SendingScopeResult, $"Sending ScopeResult for {targetId}: [{string.Join(", ", identities.Select(identity => identity.Id))}]");
             }
 
-            public static string UnauthorizedActor(string actorDeviceId, string actorModuleId)
+            public static string UnauthorizedActor(string actorDeviceId, string actorModuleId, string targetId)
             {
-                string msg = $"{actorDeviceId}/{actorModuleId} not authorized to establish OnBehalfOf connection";
+                string msg = $"{actorDeviceId}/{actorModuleId} not authorized to get information for {targetId}";
+                Log.LogError((int)EventIds.UnauthorizedActor, msg);
+                return msg;
+            }
+
+            internal static string UnauthorizedActor(string actorDeviceId, string actorModuleId)
+            {
+                string msg = $"{actorDeviceId}/{actorModuleId} not authorized to perform on-behalf-of oprations";
                 Log.LogError((int)EventIds.UnauthorizedActor, msg);
                 return msg;
             }
@@ -280,6 +305,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             public static void AuthFail_InvalidAuthChain(string actorId, string targetId, string authChain)
             {
                 Log.LogError((int)EventIds.AuthFail_InvalidAuthChain, $"Invalid auth chain, actor: {actorId}, target: {targetId}, auth chain: {authChain}");
+            }
+
+            internal static void TargetNotChild(string originatingEdgeDevice, string targetId)
+            {
+                Log.LogError((int)EventIds.AuthFail_InvalidRequest, $"Request to get device is invalid as {targetId} is not a child of {originatingEdgeDevice}.");
+            }
+
+            internal static void AuthChainToTargetNotFound(string originatingEdgeDevice, string targetId)
+            {
+                Log.LogError((int)EventIds.AuthFail_InvalidRequest, $"Request to get device {targetId} by {originatingEdgeDevice} as auth chain to {targetId} was not found.");
+            }
+
+            internal static void TargetIdentityNotFound(string originatingEdgeDevice, string targetId)
+            {
+                Log.LogError((int)EventIds.AuthFail_InvalidRequest, $"Device {targetId} requested by {originatingEdgeDevice} was not found in the identities cache.");
             }
         }
     }

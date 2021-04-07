@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string SecurityMessageIoTHubInterfaceId = "urn:azureiot:Security:SecurityAgent:1";
 
         public const string ServiceApiIdHeaderKey = "x-ms-edge-moduleId";
-        public const string OriginEdgeHeaderKey = "x-ms-edge-origin";
         public const string ClientCertificateHeaderKey = "x-ms-edge-clientcert";
         public const string DefaultApiProxyId = "IoTEdgeAPIProxy";
 
