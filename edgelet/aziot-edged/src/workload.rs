@@ -10,6 +10,7 @@ struct WorkloadConfigData {
     edge_ca_cert: String,
     edge_ca_key: String,
     trust_bundle_cert: String,
+    manifest_trust_bundle_cert: String,
     id_cert_max_duration: i64,
     srv_cert_max_duration: i64,
 }
@@ -21,6 +22,7 @@ impl WorkloadConfigData {
         edge_ca_cert: String,
         edge_ca_key: String,
         trust_bundle_cert: String,
+        manifest_trust_bundle_cert: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
@@ -30,6 +32,7 @@ impl WorkloadConfigData {
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert,
+            manifest_trust_bundle_cert,
             id_cert_max_duration,
             srv_cert_max_duration,
         }
@@ -55,6 +58,10 @@ impl WorkloadConfigData {
         &self.trust_bundle_cert
     }
 
+    pub fn manifest_trust_bundle_cert(&self) -> &str {
+        &self.manifest_trust_bundle_cert
+    }
+
     pub fn id_cert_max(&self) -> i64 {
         self.id_cert_max_duration
     }
@@ -76,6 +83,7 @@ impl WorkloadData {
         edge_ca_cert: String,
         edge_ca_key: String,
         trust_bundle_cert: String,
+        manifest_trust_bundle_cert: String,
         id_cert_max_duration: i64,
         srv_cert_max_duration: i64,
     ) -> Self {
@@ -85,6 +93,7 @@ impl WorkloadData {
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert,
+            manifest_trust_bundle_cert,
             id_cert_max_duration,
             srv_cert_max_duration,
         );
@@ -111,6 +120,10 @@ impl WorkloadConfig for WorkloadData {
 
     fn trust_bundle_cert(&self) -> &str {
         self.data.trust_bundle_cert()
+    }
+
+    fn manifest_trust_bundle_cert(&self) -> &str {
+        self.data.manifest_trust_bundle_cert()
     }
 
     fn get_cert_max_duration(&self, cert_type: CertificateType) -> i64 {

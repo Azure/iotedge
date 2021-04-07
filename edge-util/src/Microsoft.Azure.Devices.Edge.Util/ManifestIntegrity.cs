@@ -14,7 +14,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             this.Signature = signature;
         }
 
+        [JsonProperty("header")]
         public TwinHeader Header { get; }
+        [JsonProperty("signature")]
         public TwinSignature Signature { get; }
 
         public override bool Equals(object obj)

@@ -162,7 +162,7 @@ async fn process_update(update: BridgeControllerUpdate, bridges: &mut Bridges) {
     let mut bridge_updates = update
         .into_inner()
         .into_iter()
-        .map(|update| (update.name().to_owned(), update))
+        .map(|update| (update.endpoint().to_owned(), update))
         .collect::<HashMap<_, _>>();
 
     // for now only supports upstream bridge.

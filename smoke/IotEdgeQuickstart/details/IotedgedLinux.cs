@@ -293,8 +293,11 @@ namespace IotEdgeQuickstart.Details
             SetOwner(keyDir, config[KEYD].Owner, "700");
 
             // Need to always reprovision so previous test runs don't affect this one.
+            config[EDGED].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
             config[IDENTITYD].Document.RemoveIfExists("provisioning");
-            config[IDENTITYD].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            parentHostname.ForEach(
+                parent_hostame =>
+                config[IDENTITYD].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
 
             method.ManualConnectionString.Match(
                 cs =>
@@ -315,7 +318,7 @@ namespace IotEdgeQuickstart.Details
                         {
                             case "HostName":
                                 // replace IoTHub hostname with parent hostname for nested edge
-                                config[IDENTITYD].Document.ReplaceOrAdd("provisioning.iothub_hostname", parentHostname.GetOrElse(param[1]));
+                                config[IDENTITYD].Document.ReplaceOrAdd("provisioning.iothub_hostname", param[1]);
                                 break;
                             case "SharedAccessKey":
                                 File.WriteAllBytes(keyPath, Convert.FromBase64String(param[1]));

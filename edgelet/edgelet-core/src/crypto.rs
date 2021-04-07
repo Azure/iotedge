@@ -13,6 +13,9 @@ pub const AZIOT_EDGED_CA_ALIAS: &str = "aziot-edged-ca";
 /// ID of the trust bundle cert in certd.
 pub const TRUST_BUNDLE_ALIAS: &str = "aziot-edged-trust-bundle";
 
+/// ID of the trust bundle cert in certd.
+pub const MANIFEST_TRUST_BUNDLE_ALIAS: &str = "aziot-edged-manifest-trust-bundle";
+
 pub trait Signature {
     fn as_bytes(&self) -> &[u8];
 }

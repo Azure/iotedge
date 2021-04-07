@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 3,
-  "iteration": 1582769005247,
+  "id": 6,
+  "iteration": 1617126403932,
   "links": [],
   "panels": [
     {
@@ -115,7 +115,7 @@
         {
           "alias": "",
           "format": "table",
-          "rawSql": "DECLARE @BuildStatus TABLE (SourceBranch VARCHAR(50), BuildNumber FLOAT, Status VARCHAR(50), Result VARCHAR(50), StartTime DATETIME, FinishTime DATETIME, WebUri VARCHAR(100))\n\nINSERT INTO @BuildStatus\nSELECT SourceBranch, CAST(BuildNumber as FLOAT), Status, Result, StartTime, FinishTime, WebUri\nFROM VstsBuild\nWHERE VstsBuild.DefinitionName='$BuildType' AND VstsBuild.SourceBranch='$BranchName'\n\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'Succeeded', '1')\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'Canceled', '0.5')\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'Failed', '0')\n\nSELECT BuildNumber, Status, Result, StartTime, FinishTime, WebUri FROM @BuildStatus\nORDER BY BuildNumber ASC",
+          "rawSql": "DECLARE @BuildStatus TABLE (SourceBranch VARCHAR(50), BuildNumber FLOAT, Status VARCHAR(50), Result VARCHAR(50), StartTime DATETIME, FinishTime DATETIME, WebUri VARCHAR(100))\n\nINSERT INTO @BuildStatus\nSELECT SourceBranch, CAST(BuildNumber as FLOAT), Status, Result, StartTime, FinishTime, WebUri\nFROM VstsBuild\nWHERE VstsBuild.DefinitionName='$BuildType' AND VstsBuild.SourceBranch='$BranchName'\n\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'PartiallySucceeded', '0.5')\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'Succeeded', '1')\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'Canceled', '0.5')\nUPDATE @BuildStatus SET Result = REPLACE(Result, 'Failed', '0')\n\nSELECT BuildNumber, Status, Result, StartTime, FinishTime, WebUri FROM @BuildStatus\nORDER BY BuildNumber ASC",
           "refId": "A"
         }
       ],
@@ -139,31 +139,15 @@
           "value": "refs/heads/master"
         },
         "datasource": "MSSQL Server",
-        "definition": "SELECT SourceBranch FROM VstsBuild\nGROUP BY SourceBranch",
+        "definition": "SELECT SourceBranch FROM VstsBuild\nGROUP BY SourceBranch\nORDER BY SourceBranch ASC",
         "hide": 0,
         "includeAll": false,
         "label": "Branch Name",
         "multi": false,
         "name": "BranchName",
-        "options": [
-          {
-            "selected": false,
-            "text": "refs/heads/master",
-            "value": "refs/heads/master"
-          },
-          {
-            "selected": false,
-            "text": "refs/heads/release/1.0.8",
-            "value": "refs/heads/release/1.0.8"
-          },
-          {
-            "selected": false,
-            "text": "refs/heads/release/1.0.9",
-            "value": "refs/heads/release/1.0.9"
-          }
-        ],
-        "query": "SELECT SourceBranch FROM VstsBuild\nGROUP BY SourceBranch",
-        "refresh": 0,
+        "options": [],
+        "query": "SELECT SourceBranch FROM VstsBuild\nGROUP BY SourceBranch\nORDER BY SourceBranch ASC",
+        "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 0,
@@ -180,14 +164,14 @@
           "value": "Libiothsm CI"
         },
         "datasource": "MSSQL Server",
-        "definition": "SELECT DefinitionName FROM VstsBuild GROUP BY DefinitionName",
+        "definition": "SELECT DefinitionName\nFROM VstsBuild\nGROUP BY DefinitionName\nORDER BY DefinitionName ASC",
         "hide": 0,
         "includeAll": false,
         "label": "Build Type",
         "multi": false,
         "name": "BuildType",
         "options": [],
-        "query": "SELECT DefinitionName FROM VstsBuild GROUP BY DefinitionName",
+        "query": "SELECT DefinitionName\nFROM VstsBuild\nGROUP BY DefinitionName\nORDER BY DefinitionName ASC",
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
@@ -221,5 +205,5 @@
   "timezone": "",
   "title": "Azure Dev Ops Build Status",
   "uid": "XP0gH0QZz",
-  "version": 14
+  "version": 8
 }

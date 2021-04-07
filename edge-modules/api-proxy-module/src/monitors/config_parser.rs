@@ -124,12 +124,11 @@ fn derefence_var(context: &std::collections::HashMap<String, String>, key: &str)
     match key_pair {
         //If env variable is already declared, check if the value points to another env var
         Some(env_var_candidate) => {
-            let key_pair = context.get_key_value(env_var_candidate.1);
-            //try to dereference again
-            match key_pair {
+            //try to dereference again from an existing environment variable
+            match std::env::var(env_var_candidate.1) {
                 //If the candidate exist, replace the existing variable value
-                Some(value) => Some(value.1.to_string()),
-                None => None,
+                Ok(value) => Some(value),
+                Err(_) => None,
             }
         }
         //Else add the default value
@@ -245,16 +244,10 @@ mod tests {
         let config_parser = ConfigParser::new();
         let config = config_parser.get_parsed_config(dummy_config).unwrap();
 
-        assert_eq!(
-            "#if_tag !0\r\nshould be removed\r\n#endif_tag 0\r\n\r\n",
-            config
-        );
+        assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
 
         //*************************** Check IOTEDGE_PARENTAPIPROXYNAME defaults to module id if omitted *******************
-        std::env::set_var(
-            PROXY_CONFIG_ENV_VAR_LIST,
-            "IOTEDGE_MODULEID,IOTEDGE_PARENTAPIPROXYNAME",
-        );
+        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "IOTEDGE_PARENTAPIPROXYNAME");
         let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
         for key in vars_list {
             std::env::remove_var(key);
