@@ -284,8 +284,8 @@ pub(crate) fn prepare_edge_ca(
                     let cert = openssl::x509::X509::from_pem(cert.as_ref())
                         .map_err(|e| Error::from(e.context(context.clone())))?;
 
-                    let current_time =
-                        openssl::asn1::Asn1Time::days_from_now(0).expect("current time must be valid");
+                    let current_time = openssl::asn1::Asn1Time::days_from_now(0)
+                        .expect("current time must be valid");
 
                     let diff = current_time
                         .diff(&cert.not_after())
