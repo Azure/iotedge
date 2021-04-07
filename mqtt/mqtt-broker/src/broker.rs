@@ -1105,7 +1105,10 @@ where
             acks: ack_sender,
         };
 
-        if !(config.metrics().enabled()) {
+        let metrics_enabled = std::env::var("experimentalFeatures__mqttBrokerMetricsEnabled")
+            .unwrap_or_else(|_| "false".to_string())
+            == "true";
+        if !metrics_enabled {
             mqtt_otel::set_noop_meter_provider();
         }
 
