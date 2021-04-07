@@ -14,7 +14,6 @@ pub struct BrokerConfig {
     retained_messages: RetainedMessagesConfig,
     session: SessionConfig,
     persistence: SessionPersistenceConfig,
-    metrics: MetricsConfig,
 }
 
 impl BrokerConfig {
@@ -22,13 +21,11 @@ impl BrokerConfig {
         retained_messages: RetainedMessagesConfig,
         session: SessionConfig,
         persistence: SessionPersistenceConfig,
-        metrics: MetricsConfig,
     ) -> Self {
         Self {
             retained_messages,
             session,
             persistence,
-            metrics,
         }
     }
 
@@ -42,10 +39,6 @@ impl BrokerConfig {
 
     pub fn persistence(&self) -> &SessionPersistenceConfig {
         &self.persistence
-    }
-
-    pub fn metrics(&self) -> &MetricsConfig {
-        &self.metrics
     }
 }
 
@@ -192,27 +185,6 @@ impl SessionPersistenceConfig {
 impl Default for SessionPersistenceConfig {
     fn default() -> Self {
         SessionPersistenceConfig::new(PathBuf::from("/tmp/mqttd/"), Duration::from_secs(300))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct MetricsConfig {
-    enabled: bool,
-}
-
-impl MetricsConfig {
-    pub fn new(enabled: bool) -> Self {
-        Self { enabled }
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-}
-
-impl Default for MetricsConfig {
-    fn default() -> Self {
-        MetricsConfig::new(false)
     }
 }
 
