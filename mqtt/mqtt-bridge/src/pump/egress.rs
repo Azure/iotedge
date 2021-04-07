@@ -1,4 +1,7 @@
+use std::num::NonZeroUsize;
+
 use futures_util::{pin_mut, stream::StreamExt};
+use lazy_static::lazy_static;
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
@@ -14,6 +17,10 @@ use crate::client::PublishHandle;
 use mqtt3::proto::Publication;
 
 const MAX_IN_FLIGHT: usize = 16;
+
+lazy_static! {
+    static ref BATCH_SIZE: NonZeroUsize = NonZeroUsize::new(100).unwrap();
+}
 
 /// Handles the egress of received publications.
 ///
@@ -63,7 +70,7 @@ where
         // which publish. Then convert to buffered stream so that we can have
         // multiple in-flight and also limit number of publications.
         let publications = store
-            .loader()
+            .loader(*BATCH_SIZE)
             .filter_map(|loaded| {
                 let publish_handle = publish_handle.clone();
                 async {
@@ -78,7 +85,9 @@ where
                     }
                 }
             })
-            .buffer_unordered(MAX_IN_FLIGHT);
+            .buffered(MAX_IN_FLIGHT)
+            .fuse();
+
         pin_mut!(publications);
 
         loop {
@@ -88,9 +97,7 @@ where
                     break;
                 }
                 key = publications.select_next_some() => {
-                    if let Err(e) = store.remove(key) {
-                        error!(error = %e, "failed removing publication from store");
-                    }
+                    store.remove(key).map_err(|e| EgressError::RemovePublication(key, e))?;
                 }
             }
         }
@@ -101,9 +108,9 @@ where
 }
 
 async fn try_publish(key: Key, publication: Publication, mut publish_handle: PublishHandle) -> Key {
-    debug!("publishing {:?}", key);
+    debug!("forwarding publication with key {}", key);
     if let Err(e) = publish_handle.publish(publication).await {
-        error!(error = %e, "failed publish");
+        error!(error = %e, "failed forwarding publication");
     }
 
     key
@@ -124,5 +131,7 @@ impl EgressShutdownHandle {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error("ingress error")]
-pub(crate) struct EgressError;
+pub(crate) enum EgressError {
+    #[error("Failed to remove publication from a store with key {0}. Caused by: {1}")]
+    RemovePublication(Key, #[source] crate::persist::PersistError),
+}

@@ -278,7 +278,7 @@ mod tests {
 
     impl Default for MemoryPublicationStore {
         fn default() -> Self {
-            PublicationStore::new_memory(BATCH_SIZE, &MemorySettings::new(MAX_SIZE))
+            PublicationStore::new_memory(&MemorySettings::new(MAX_SIZE))
         }
     }
 
@@ -292,7 +292,6 @@ mod tests {
             let dir_path = dir.path().to_path_buf();
 
             let result = PublicationStore::new_ring_buffer(
-                BATCH_SIZE,
                 &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
                 "test",
                 "local",
@@ -467,7 +466,7 @@ mod tests {
             .unwrap();
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -537,7 +536,7 @@ mod tests {
         handler.handle(Event::Publication(pub1)).await.unwrap();
         handler.handle(Event::Publication(pub2)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         let extracted2 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected1);
@@ -582,7 +581,7 @@ mod tests {
             .unwrap();
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted.1, expected);
     }
@@ -624,7 +623,7 @@ mod tests {
             .unwrap();
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted.1, expected);
     }
@@ -666,7 +665,7 @@ mod tests {
             .unwrap();
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
         let extracted = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted.1, expected);
     }
@@ -739,7 +738,7 @@ mod tests {
         handler.handle(Event::Publication(pub1)).await.unwrap();
         handler.handle(Event::Publication(pub2)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected1);
@@ -787,7 +786,7 @@ mod tests {
             .unwrap();
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -834,7 +833,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -891,7 +890,7 @@ mod tests {
         handler.handle(Event::Publication(pub1)).await.unwrap();
         handler.handle(Event::Publication(pub2)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
         if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
@@ -923,7 +922,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
 
@@ -974,7 +973,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
 
