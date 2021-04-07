@@ -86,12 +86,20 @@
       "_justification": "This is a test RSA signature string that is generated for a test edge hub twin data and is not a credential."
     },
     {
-      "placeholder": "c9AvfvMrcgv+jgamtd2VcHJbkajpu+7FfweuCt1ld7x4eDkGLDPuNNmEQkM1cZGwW1JXUd/zHLRp9rs1x9Zg3A==",
+      "placeholder": "hFuKaB0Yywlxc0vbK0nVj8QBm5VIYcQJjscD8ltzJJnwUzf/bGlE7aOqsqFLZuAqO5wDvslMmurMx+Anx8ceJQ==",
       "_justification": "This is a test ECC signature string that is generated for a test edge agent twin data and is not a credential."
     },
     {
-      "placeholder": "h+N0UYSXsVACJYgLNMRMWnBYxWyPc7MO+HFFpIm+MRz71T7Z9lfL7COQW8eo3eDi/QUPCkv4ldXB0SZY0GmBCDj7H+IVh7BW6DmxXcj9zzhCzcZFcypoik14tdiE6JywQw/w4jvJu7w+ljFtrPOnzY+LzGNTPqocsVOl/lj4Vj3HlYPqdMocKfJTN6gEYPZ7iKesRzNjarAH44StdoIzvCYRbiHPcuLXNhsaUFZ6yanopCyiYzAgJkdCNbWnEl2wgIqr/0wBe3baDNuOROWNhR4FjfD0AhUR3urvuVnuU6zCeg6cWgESdxnAUrl3TfeVK724kzkMFANY1CeiUyQQrGmwlWanQhCKcKxeKTM7A6TSbvhVo4vcgb6i0apXiFPsjFp991/Vl71MgYVnepdWNmIS0K+B1fw1gkajPgBZARI7v9CS0TTVd00BuvruQRkliXhVXRAQ9132jh4py1pXqSUGMWDd0yXq36Fppm7CflGfDczzARMsYhA5CYAhJ0zDOz6jHJ0prZtqLQeQnbp00H9uQvvNa+8a35LAjGRle4c3AtKGCa427qRe7JS9n2S4YCsdwfQvclHh0+S6sKlCsWS6pqUsBcTplzrp44HuLx18yTpsnnoYe4srj9r/yuBn1xk2AiThPvc4wXAKccl7xY1U2p27ZFMXQIn2t1gyCus=",
+      "placeholder": "CDcHD10TZz41YV2MZ71qKV7lUaLDwkoHYaJ9uOpUz4dpJaZxcnWf/bqlMU49M7RZSxKjo3nhMllQRcdRS+qmwHCbpztupxk0R/24rMQcH58SUu9Rkk5qR3xMslyYDsA38MidvRL0J03IyArCZPn7kqxfaah/ExGFZbxUuAZvTEqsZdHJ2pTb4y1HkY4HyTWp5hBDuLmSXPi1awSpOlIZM91/NIclT1GJfAqPOkt/Nx7WTfVz+i4RaubMpdBSHfU23gbgzTHEZDXdKMmPg3GPDtijcM7OYE0QCuNEOR5UQLDOsw/kTM+WNqKYwipHnvNmSuhFgNNIcLuerCN9+pJlTTZicGK5+CwpVhbyP7PgHyX/gpshUjqELz762gPCM+At6OOEJz/rw8hhMI7iPbywFxQ6HDmAdidUhQF2rlAFOpRJWP8HrvKLJb8FtIIOyuuqdJEgiM6nMRAZxutADlnNai7C9SOojYcAXY52adUTUYB5GbqHs+bJHMCcAp7KQI02MjkvZDHPgqz47rT6kYyXKByJNNaxmauWezoe43HlNmpCa36zf4IoKMAEwvYH8jljxDWpW8JX7xXeahaPUAr3gqDTWyayGYwhoea7PnelqHAtTrxBHAaoVfGP/jJBalUpAgsCk89Pc7+yd3LQNn5ITXyYW6/E4W5YSm7CXkXJNWo=",
       "_justification": "This is a test RSA signature string that is generated for a test edge agent twin data and is not a credential"
+    },
+    {
+      "placeholder": "SQG8DZxbNkLqpcBeaa1EgfPcukqHkmWLahbNwv6xLxEyXQle8/gOFnzbR6GBzan++fMe2EI9l0b0QWtFbxAZCA==",
+      "_justification": "This is a test ECC signature string that is generated for payload twin data and is not a credential."
+    },
+    {
+      "placeholder": "DPzArsdn1Dng+NHY7YsFZsIMXtBN+pf4StLGv1aZ7OrbEcY+w8FcBht525J68M2HOXgMDoa1kTOYsS4zneAyDBJ/8RsEFVNX2d43umjf+W7oB8+UiqGcPwYlLpE8AJz38wBA3tqmhXdjyYJ+VOcHufeMUFPhbzZEUcPdymoP+E4mNkhNayioFLP08eKqAcG7fGi7eIHVTSRktPiMHbhdLChsxRoUhRhc53kcieUYu0vYK23raMLDmoRDEgJNKzvqcYaAgEg1Ami+ZEunK4oQtOUpKGCOsWXKppLP3BqsL+e+rzwNSKoz5dl2VDz+QGPbIa5OFSDXvBaSMQPhxo9O3AnhHsriunKgOq/J3jQ15i9UR74qVGWkUFJ0Th6lIxLeOipSRFXaI/HX+yCIpnd8CAMY/p0fSnukLo1e4fVYwwi5Wwj8yC3Py686bDsBZhcXaElBlCkYTW3Pcis26+ISrhAC5mbjbqQU19Uai/MP9XnHSoNdUDnEwwKS0vwjA4MAjGZDCkaTMdJQORWjdX4p7AiWwyRnTF810E5/aQlMkLnwhKFMQgkh0LLXfQHTQlNlXD7DZHGCrO83XlQzXIyVFGw5hc2M5UKhfw/A6AARVIsbxysbiUglTVMf4d0s0VVuTMNqaqvTytHstq3clR/c0No88WjCxRL/l42inKDHRBo=",
+      "_justification": "This is a test RSA signature string that is generated for payload twin data and is not a credential."
     },
     {
       "placeholder": "YXppb3QtaWRlbnRpdHktc2VydmljZXxhemlvdC1pZGU=",

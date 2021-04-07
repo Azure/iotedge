@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
+namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_10_10
 {
     using System;
     using System.Net.Http;
     using System.Runtime.ExceptionServices;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Util.Edged.Version_2020_10_10.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
 
     class WorkloadClient : WorkloadClientVersioned
@@ -51,7 +51,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
             }
         }
 
-        public override Task<string> GetManifestTrustBundleAsync() => Task.FromResult(string.Empty);
+        public override async Task<string> GetManifestTrustBundleAsync()
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
+            {
+                var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
+                ManifestTrustBundleResponse result = await this.Execute(() => edgeletHttpClient.ManifestTrustBundleAsync(this.Version.Name), "ManifestTrustBundleAsync");
+                return result.Certificate;
+            }
+        }
 
         public override async Task<string> EncryptAsync(string initializationVector, string plainText)
         {

@@ -12,6 +12,8 @@ mod error_response;
 pub use self::error_response::ErrorResponse;
 mod identity_certificate_request;
 pub use self::identity_certificate_request::IdentityCertificateRequest;
+mod manifest_trust_bundle_response;
+pub use self::manifest_trust_bundle_response::ManifestTrustBundleResponse;
 mod private_key;
 pub use self::private_key::PrivateKey;
 mod server_certificate_request;
