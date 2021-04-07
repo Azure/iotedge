@@ -23,6 +23,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount,
             ulong totalDuplicateExpectedResultCount,
             ulong totalDuplicateActualResultCount,
+            ulong totalMisorderedActualResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults,
             Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents,
             Option<DateTime> lastActualResultTimestamp)
@@ -32,9 +33,11 @@ namespace TestResultCoordinator.Reports
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
+            this.TotalUnmatchedCount = Convert.ToUInt64(unmatchedResults.Count);
             this.TotalDuplicateExpectedResultCount = totalDuplicateExpectedResultCount;
             this.TotalDuplicateActualResultCount = totalDuplicateActualResultCount;
-            this.UnmatchedResults = unmatchedResults ?? new List<TestOperationResult>();
+            this.TotalMisorderedActualResultCount = totalMisorderedActualResultCount;
+            this.UnmatchedResults = unmatchedResults;
             this.EventHubSpecificReportComponents = eventHubSpecificReportComponents;
             this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
@@ -47,9 +50,13 @@ namespace TestResultCoordinator.Reports
 
         public ulong TotalMatchCount { get; }
 
+        public ulong TotalUnmatchedCount { get; }
+
         public ulong TotalDuplicateExpectedResultCount { get; }
 
         public ulong TotalDuplicateActualResultCount { get; }
+
+        public ulong TotalMisorderedActualResultCount { get; }
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
 
