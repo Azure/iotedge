@@ -216,11 +216,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public static void InstallCertificates(IEnumerable<X509Certificate2> certificateChain, ILogger logger)
         {
             X509Certificate2[] certs = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain)).ToArray();
-            Preconditions.CheckNotNull(logger, nameof(logger));
 
             StoreName storeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root;
 
-            logger.LogInformation($"Installing certificates {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))} to {storeName}");
+            logger?.LogInformation($"Installing certificates {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))} to {storeName}");
             using (var store = new X509Store(storeName, StoreLocation.CurrentUser))
             {
                 store.Open(OpenFlags.ReadWrite);
@@ -265,6 +264,28 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
             return ParseTrustedBundleCerts(response);
+        }
+
+        public static async Task<X509Certificate2> GetManifestTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
+        {
+            string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetManifestTrustBundleAsync();
+            return ParseManifestTrustedBundleCerts(response);
+        }
+
+        public static bool VerifyManifestTrustBunldeCertificateChaining(X509Certificate2 signerCertificate, X509Certificate2 intermediateCertificate, X509Certificate2 manifestTrustBundle)
+        {
+            var chain = new X509Chain();
+            chain.ChainPolicy.ExtraStore.Add(manifestTrustBundle);
+
+            if (intermediateCertificate != null)
+            {
+                chain.ChainPolicy.ExtraStore.Add(intermediateCertificate);
+            }
+
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+
+            return chain.Build(signerCertificate);
         }
 
         public static (X509Certificate2 ServerCertificate, IEnumerable<X509Certificate2> CertificateChain) GetServerCertificateAndChainFromFile(string serverWithChainFilePath, string serverPrivateKeyFilePath)
@@ -338,6 +359,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             Preconditions.CheckNotNull(trustedCACerts, nameof(trustedCACerts));
             return GetCertificatesFromPem(ParsePemCerts(trustedCACerts));
+        }
+
+        internal static X509Certificate2 ParseManifestTrustedBundleCerts(string manifestTrustedCACerts)
+        {
+            Preconditions.CheckNotNull(manifestTrustedCACerts, nameof(manifestTrustedCACerts));
+            return GetCertificatesFromPem(ParsePemCerts(manifestTrustedCACerts)).FirstOrDefault();
         }
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateResponse(ServerCertificateResponse response) =>

@@ -22,10 +22,15 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "https_proxy": {
-              "value": "<proxyAddress>"
+            "env": {
+              "UpstreamProtocol": {
+                "value": "mqtt"
+              },
+              "https_proxy": {
+                "value": "<proxyAddress>"
+              }
             }
           },
           "edgeHub": {
@@ -64,7 +69,7 @@
             "startupOrder": 2,
             "settings": {
               "image": "registry:latest",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"5000\/tcp\": [{\"HostPort\": \"5000\"}]}}}"
             },
             "env": {
               "REGISTRY_PROXY_REMOTEURL": {
@@ -81,7 +86,7 @@
               }
             }
           },
-          "iotedgeApiProxy": {
+          "IoTEdgeAPIProxy": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -89,7 +94,7 @@
             "startupOrder": 3,
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-api-proxy:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"443\/tcp\": [{\"HostPort\": \"443\"}]}}}"
             },
             "env": {
               "NGINX_DEFAULT_PORT": {

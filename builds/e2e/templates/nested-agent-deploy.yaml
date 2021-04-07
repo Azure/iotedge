@@ -108,9 +108,9 @@ steps:
           iotedge_package="${pkg_list[*]}"
 
           echo "  Install library"
-          sudo dpkg -i --force-confnew ${iotedge_library}
+          sudo apt-get install ${iotedge_library}
           echo "  Install edgelet"
-          sudo dpkg -i --force-confnew ${iotedge_package}          
+          sudo apt-get install ${iotedge_package}          
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:

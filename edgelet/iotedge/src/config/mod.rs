@@ -2,5 +2,5 @@
 
 pub mod apply;
 pub mod import;
-
-mod super_config;
+pub mod mp;
+pub mod super_config;

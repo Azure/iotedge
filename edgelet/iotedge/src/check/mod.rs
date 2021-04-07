@@ -22,7 +22,6 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
-mod hostname_checks_common;
 mod upstream_protocol_port;
 
 mod checker;
@@ -36,6 +35,7 @@ pub struct Check {
     dont_run: BTreeSet<String>,
     aziot_edged: PathBuf,
     expected_aziot_edged_version: Option<String>,
+    expected_aziot_version: Option<String>,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
@@ -45,6 +45,8 @@ pub struct Check {
 
     // These optional fields are populated by the checks
     iothub_hostname: Option<String>, // populated by `aziot check`
+    proxy_uri: Option<String>,       // populated by `aziot check`
+    parent_hostname: Option<String>, // populated by `aziot check`
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
@@ -86,12 +88,14 @@ impl Check {
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
         expected_aziot_edged_version: Option<String>,
+        expected_aziot_version: Option<String>,
         aziot_edged: PathBuf,
         output_format: OutputFormat,
         verbose: bool,
         warnings_as_errors: bool,
         aziot_bin: std::ffi::OsString,
         iothub_hostname: Option<String>,
+        proxy_uri: Option<String>,
     ) -> Check {
         Check {
             container_engine_config_path,
@@ -99,6 +103,7 @@ impl Check {
             dont_run,
             aziot_edged,
             expected_aziot_edged_version,
+            expected_aziot_version,
             output_format,
             verbose,
             warnings_as_errors,
@@ -107,13 +112,15 @@ impl Check {
             additional_info: AdditionalInfo::new(),
 
             iothub_hostname,
+            proxy_uri,
+            parent_hostname: None,
             settings: None,
             docker_host_arg: None,
             docker_server_version: None,
         }
     }
 
-    pub fn print_list(aziot_bin: std::ffi::OsString) -> Result<(), Error> {
+    pub fn print_list(aziot_bin: &str) -> Result<(), Error> {
         let mut all_checks: Vec<(String, Vec<CheckerMetaSerializable>)> = Vec::new();
 
         // get all the aziot checks by shelling-out to aziot
@@ -128,11 +135,9 @@ impl Check {
                     let aziot_checks: BTreeMap<String, Vec<CheckerMetaSerializable>> =
                         serde_json::from_slice(&out.stdout).context(ErrorKind::Aziot)?;
 
-                    all_checks.extend(
-                        aziot_checks
-                            .into_iter()
-                            .map(|(section_name, checks)| (section_name + " (aziot)", checks)),
-                    );
+                    all_checks.extend(aziot_checks.into_iter().map(|(section_name, checks)| {
+                        (section_name + " (aziot-identity-service)", checks)
+                    }));
                 }
                 Err(_) => {
                     // not being able to shell-out to aziot is bad... but we shouldn't fail here,
@@ -141,10 +146,13 @@ impl Check {
                     // to make sure the user knows that there should me more checks, we add
                     // this "dummy" entry instead.
                     all_checks.push((
-                        "(aziot)".into(),
+                        "(aziot-identity-service)".into(),
                         vec![CheckerMetaSerializable {
-                            id: "(aziot-error)".into(),
-                            description: "(aziot checks unavailable - could not communicate with 'aziot' binary)".into(),
+                            id: "(aziot-identity-service-error)".into(),
+                            description: format!(
+                                "(aziot-identity-service checks unavailable - could not communicate with '{}' binary)",
+                                aziot_bin
+                            ),
                         }]
                     ));
                 }
@@ -453,10 +461,25 @@ impl Check {
                 aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
             }
 
+            // Prioritize proxy address passed in as command line argument
+            // before searching aziot-edged settings for Edge Agent's
+            // environment variables.
+            if let Some(proxy_uri) = &self.proxy_uri {
+                aziot_check.arg("--proxy-uri").arg(proxy_uri.clone());
+            } else if let Ok(settings) = Settings::new() {
+                if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
+                    aziot_check.arg("--proxy-uri").arg(agent_proxy_uri.clone());
+                }
+            }
+
             if !self.dont_run.is_empty() {
                 aziot_check
                     .arg("--dont-run")
                     .arg(self.dont_run.iter().cloned().collect::<Vec<_>>().join(" "));
+            }
+
+            if let Some(version) = &self.expected_aziot_version {
+                aziot_check.arg("--expected-aziot-version").arg(version);
             }
 
             match aziot_check.spawn() {
@@ -467,7 +490,7 @@ impl Check {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {
-                                self.output_section(&format!("{} (aziot)", name))
+                                self.output_section(&format!("{} (aziot-identity-service)", name))
                             }
                             CheckOutputSerializableStreaming::Check { meta, output } => {
                                 if output_check(
@@ -493,6 +516,12 @@ impl Check {
                                         .and_then(serde_json::Value::as_str)
                                         .map(Into::into)
                                 }
+
+                                self.parent_hostname = info
+                                    .as_object()
+                                    .and_then(|m| m.get("local_gateway_hostname"))
+                                    .and_then(serde_json::Value::as_str)
+                                    .map(Into::into)
                             }
                         }
                     }
@@ -503,11 +532,14 @@ impl Check {
                     //
                     // nonetheless, we still need to notify the user that the aziot checks
                     // could not be run.
-                    self.output_section("(aziot)");
+                    self.output_section("(aziot-identity-service)");
                     output_check(
                         CheckOutput {
-                            id: "(aziot-error)".into(),
-                            description: "aziot checks unavailable - could not communicate with 'aziot' binary.".into(),
+                            id: "(aziot-identity-service-error)".into(),
+                            description: format!(
+                                "aziot-identity-service checks unavailable - could not communicate with '{}' binary.",
+                                &self.aziot_bin.to_str().expect("aziot_bin should be valid UTF-8")
+                            ),
                             result: CheckResult::Failed(err.context(ErrorKind::Aziot).into()),
                             additional_info: serde_json::Value::Null,
                         },
@@ -633,7 +665,7 @@ fn write_lines<'a>(
 #[cfg(test)]
 mod tests {
     use super::{
-        checks::{ContainerEngineIsMoby, Hostname, WellFormedConfig},
+        checks::{ContainerEngineIsMoby, WellFormedConfig},
         Check, CheckResult, Checker,
     };
 
@@ -663,34 +695,19 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
                 false,
                 "".into(), // unused for this test
                 None,
+                None,
             );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            match Hostname::default().execute(&mut check, &mut runtime) {
-                CheckResult::Failed(err) => {
-                    let message = err.to_string();
-                    assert!(
-                        message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
-                        "checking hostname in {} produced unexpected error: {}",
-                        filename,
-                        message,
-                    );
-                }
-                check_result => panic!(
-                    "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
             }
 
             // Pretend it's Moby
@@ -728,42 +745,19 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
                 false,
                 "".into(), // unused for this test
                 None,
+                None,
             );
 
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            // match WellFormedConnectionString::default().execute(&mut check, &mut runtime) {
-            //     CheckResult::Ok => (),
-            //     check_result => panic!(
-            //         "checking connection string in {} returned {:?}",
-            //         filename, check_result
-            //     ),
-            // }
-
-            match Hostname::default().execute(&mut check, &mut runtime) {
-                CheckResult::Failed(err) => {
-                    let message = err.to_string();
-                    assert!(
-                        message
-                            .starts_with("config.yaml has hostname localhost but device reports"),
-                        "checking hostname in {} produced unexpected error: {}",
-                        filename,
-                        message,
-                    );
-                }
-                check_result => panic!(
-                    "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
             }
 
             // Pretend it's Moby
@@ -802,11 +796,13 @@ mod tests {
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
             Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
             false,
             "".into(), // unused for this test
+            None,
             None,
         );
 
@@ -839,11 +835,13 @@ mod tests {
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
             Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
             false,
             "".into(), // unused for this test
+            None,
             None,
         );
 

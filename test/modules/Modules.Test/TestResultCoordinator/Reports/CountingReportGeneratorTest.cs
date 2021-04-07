@@ -8,6 +8,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -61,7 +62,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualResults.GetAsyncEnumerator(),
                 resultType,
                 new SimpleTestOperationResultComparer(),
-                UnmatchedResultsMaxSize);
+                UnmatchedResultsMaxSize,
+                false);
 
             Assert.Equal(TestDescription, reportGenerator.TestDescription);
             Assert.Equal(actualSource, reportGenerator.ActualSource);
@@ -90,7 +92,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.StartsWith("testDescription", ex.Message);
         }
@@ -113,7 +116,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.StartsWith("trackingId", ex.Message);
         }
@@ -136,7 +140,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.StartsWith("expectedSource", ex.Message);
         }
@@ -156,7 +161,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.Equal("expectedTestResults", ex.ParamName);
         }
@@ -179,7 +185,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.StartsWith("actualSource", ex.Message);
         }
@@ -199,7 +206,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     null,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.Equal("actualTestResults", ex.ParamName);
         }
@@ -222,7 +230,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     resultType,
                     new SimpleTestOperationResultComparer(),
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.StartsWith("resultType", ex.Message);
         }
@@ -243,7 +252,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     null,
-                    UnmatchedResultsMaxSize));
+                    UnmatchedResultsMaxSize,
+                    false));
 
             Assert.Equal("testResultComparer", ex.ParamName);
         }
@@ -265,7 +275,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     mockActualStore.Object,
                     "resultType1",
                     new SimpleTestOperationResultComparer(),
-                    unmatchedResultsMaxSize));
+                    unmatchedResultsMaxSize,
+                    false));
         }
 
         [Fact]
@@ -289,7 +300,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualResults.GetAsyncEnumerator(),
                 "resultType1",
                 new SimpleTestOperationResultComparer(),
-                UnmatchedResultsMaxSize);
+                UnmatchedResultsMaxSize,
+                false);
 
             var report = (CountingReport)await reportGenerator.CreateReportAsync();
 
@@ -328,7 +340,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 actualResults.GetAsyncEnumerator(),
                 resultType,
                 new SimpleTestOperationResultComparer(),
-                UnmatchedResultsMaxSize);
+                UnmatchedResultsMaxSize,
+                false);
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)

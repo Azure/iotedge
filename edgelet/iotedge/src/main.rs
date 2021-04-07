@@ -42,8 +42,8 @@ fn main() {
 fn run() -> Result<(), Error> {
     let aziot_bin = option_env!("AZIOT_BIN").unwrap_or("aziotctl");
 
-    let default_mgmt_uri =
-        option_env!("IOTEDGE_HOST").unwrap_or("unix:///var/run/iotedge/mgmt.sock");
+    let default_mgmt_uri = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI")
+        .unwrap_or("unix:///var/run/iotedge/mgmt.sock");
 
     let default_diagnostics_image_name = format!(
         "/azureiotedge-diagnostics:{}",
@@ -96,8 +96,15 @@ fn run() -> Result<(), Error> {
                     Arg::with_name("expected-aziot-edged-version")
                         .long("expected-aziot-edged-version")
                         .value_name("VERSION")
-                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <http://aka.ms/latest-iotedge-stable>")
+                        .help("Sets the expected version of the aziot-edged binary. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
                         .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("expected-aziot-version")
+                        .long("expected-aziot-version")
+                        .value_name("AZIOT_VERSION")
+                        .help("Sets the expected version of the aziot-identity-service package. Defaults to the value contained in <https://aka.ms/latest-aziot-identity-service>")
+                        .takes_value(true)
                 )
                 .arg(
                     Arg::with_name("aziot-edged")
@@ -112,6 +119,13 @@ fn run() -> Result<(), Error> {
                         .long("iothub-hostname")
                         .value_name("IOTHUB_HOSTNAME")
                         .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
+                        .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("proxy-uri")
+                        .long("proxy-uri")
+                        .value_name("PROXY_URI")
+                        .help("Sets the proxy URI that this device would use to connect to Azure DPS and IoTHub endpoints.")
                         .takes_value(true),
                 )
                 .arg(
@@ -176,6 +190,35 @@ fn run() -> Result<(), Error> {
                             .help("The path of the pre-1.2 configuration file to import")
                             .takes_value(true)
                             .default_value("/etc/iotedge/config.yaml"),
+                    )
+                    .arg(
+                        Arg::with_name("out-config-file")
+                            .short("o")
+                            .long("out-config-file")
+                            .value_name("FILE")
+                            .help("The path of the Azure IoT Edge system configuration file to write to")
+                            .takes_value(true)
+                            .default_value("/etc/aziot/config.toml"),
+                    )
+                    .arg(
+                        Arg::with_name("force")
+                            .short("f")
+                            .long("force")
+                            .help("Overwrite the new configuration file if it already exists")
+                            .takes_value(false),
+                    )
+                )
+                .subcommand(
+                    SubCommand::with_name("mp")
+                    .about("Quick-create Azure IoT Edge system configuration for manual provisioning with a connection string.")
+                    .arg(
+                        Arg::with_name("connection-string")
+                            .short("c")
+                            .long("connection-string")
+                            .value_name("CONNECTION_STRING")
+                            .help("The Azure IoT Hub connection string")
+                            .required(true)
+                            .takes_value(true),
                     )
                     .arg(
                         Arg::with_name("out-config-file")
@@ -261,21 +304,29 @@ fn run() -> Result<(), Error> {
                 )
                 .subcommand(
                     SubCommand::with_name("restart")
-                    .about("Restarts iotedged and all of its dependencies.")
+                    .about("Restarts aziot-edged and all of its dependencies.")
+                )
+                .subcommand(
+                    SubCommand::with_name("stop")
+                    .about("Stops aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("status")
-                    .about("Report the status of iotedged and all of its dependencies.")
+                    .about("Report the status of aziot-edged and all of its dependencies.")
                 )
                 .subcommand(
                     SubCommand::with_name("set-log-level")
-                    .about("Set the log level of iotedged and all of its dependencies.")
+                    .about("Set the log level of aziot-edged and all of its dependencies.")
                     .arg(
                         Arg::with_name("log_level")
                         .help(r#"One of "trace", "debug", "info", "warn", or "error""#)
                         .possible_values(&["trace", "debug", "info", "warn",  "error"])
                         .required(true),
                     )
+                )
+                .subcommand(
+                    SubCommand::with_name("reprovision")
+                    .about("Reprovision device with IoT Hub.")
                 )
         )
         .subcommand(
@@ -360,6 +411,8 @@ fn run() -> Result<(), Error> {
                     .collect(),
                 args.value_of("expected-aziot-edged-version")
                     .map(ToOwned::to_owned),
+                args.value_of("expected-aziot-version")
+                    .map(ToOwned::to_owned),
                 args.value_of_os("aziot-edged")
                     .expect("arg has a default value")
                     .to_os_string()
@@ -375,10 +428,11 @@ fn run() -> Result<(), Error> {
                 args.is_present("warnings-as-errors"),
                 aziot_bin.into(),
                 args.value_of("iothub-hostname").map(ToOwned::to_owned),
+                args.value_of("proxy-uri").map(ToOwned::to_owned),
             );
             check.execute(&mut tokio_runtime)
         }
-        ("check-list", Some(_)) => Check::print_list(aziot_bin.into()),
+        ("check-list", Some(_)) => Check::print_list(aziot_bin),
         ("config", Some(args)) => match args.subcommand() {
             ("apply", Some(args)) => {
                 let config_file = args
@@ -403,6 +457,23 @@ fn run() -> Result<(), Error> {
                 let force = args.is_present("force");
 
                 let () = iotedge::config::import::execute(old_config_file, new_config_file, force)
+                    .map_err(ErrorKind::Config)?;
+                Ok(())
+            }
+            ("mp", Some(args)) => {
+                let connection_string = args
+                    .value_of("connection-string")
+                    .expect("arg is required")
+                    .to_owned();
+
+                let out_config_file = args
+                    .value_of_os("out-config-file")
+                    .expect("arg has a default value");
+                let out_config_file = std::path::Path::new(out_config_file);
+
+                let force = args.is_present("force");
+
+                let () = iotedge::config::mp::execute(connection_string, out_config_file, force)
                     .map_err(ErrorKind::Config)?;
                 Ok(())
             }
@@ -460,11 +531,13 @@ fn run() -> Result<(), Error> {
                 System::get_system_logs(&jctl_args)
             }
             ("restart", Some(_args)) => System::system_restart(),
+            ("stop", Some(_args)) => System::system_stop(),
             ("status", Some(_args)) => System::get_system_status(),
             ("set-log-level", Some(args)) => System::set_log_level(
                 log::Level::from_str(args.value_of("log_level").expect("Value is required"))
                     .expect("Value is restricted to parsable fields"),
             ),
+            ("reprovision", Some(_args)) => System::reprovision(&mut tokio_runtime),
 
             (command, _) => {
                 eprintln!("Unknown system subcommand {:?}", command);

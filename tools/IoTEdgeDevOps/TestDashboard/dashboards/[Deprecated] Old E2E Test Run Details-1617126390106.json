@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 5,
-  "iteration": 1582769086282,
+  "id": 4,
+  "iteration": 1617126386547,
   "links": [],
   "panels": [
     {
@@ -670,7 +670,7 @@
     ]
   },
   "timezone": "",
-  "title": "Old E2E Test Run Details",
+  "title": "[Deprecated] Old E2E Test Run Details",
   "uid": "TjKlDYwWk",
-  "version": 12
+  "version": 2
 }

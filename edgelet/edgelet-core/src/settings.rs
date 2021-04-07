@@ -27,6 +27,34 @@ impl Connect {
     }
 }
 
+impl Default for Connect {
+    // Clippy wants us to use `option_env!("...").unwrap_or("...")` but that can't be used in consts.
+    #[allow(clippy::option_if_let_else)]
+    fn default() -> Self {
+        const DEFAULT_MANAGEMENT_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_MANAGEMENT_URI") {
+                value
+            } else {
+                "unix:///var/run/iotedge/mgmt.sock"
+            };
+        const DEFAULT_WORKLOAD_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_CONNECT_WORKLOAD_URI") {
+                value
+            } else {
+                "unix:///var/run/iotedge/workload.sock"
+            };
+
+        Connect {
+            workload_uri: DEFAULT_WORKLOAD_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            management_uri: DEFAULT_MANAGEMENT_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Listen {
     pub workload_uri: Url,
@@ -46,6 +74,35 @@ impl Listen {
 
     pub fn min_tls_version(&self) -> Protocol {
         self.min_tls_version
+    }
+}
+
+impl Default for Listen {
+    // Clippy wants us to use `option_env!("...").unwrap_or("...")` but that can't be used in consts.
+    #[allow(clippy::option_if_let_else)]
+    fn default() -> Self {
+        const DEFAULT_MANAGEMENT_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_MANAGEMENT_URI") {
+                value
+            } else {
+                "fd://aziot-edged.mgmt.socket"
+            };
+        const DEFAULT_WORKLOAD_URI: &str =
+            if let Some(value) = option_env!("IOTEDGE_LISTEN_WORKLOAD_URI") {
+                value
+            } else {
+                "fd://aziot-edged.workload.socket"
+            };
+
+        Listen {
+            workload_uri: DEFAULT_WORKLOAD_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            management_uri: DEFAULT_MANAGEMENT_URI
+                .parse()
+                .expect("hard-coded url::Url must parse successfully"),
+            min_tls_version: Default::default(),
+        }
     }
 }
 
@@ -249,7 +306,6 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
-    fn parent_hostname(&self) -> Option<&str>;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -258,6 +314,20 @@ pub trait RuntimeSettings {
     fn edge_ca_cert(&self) -> Option<&str>;
     fn edge_ca_key(&self) -> Option<&str>;
     fn trust_bundle_cert(&self) -> Option<&str>;
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode;
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub enum AutoReprovisioningMode {
+    Dynamic,
+    AlwaysOnStartup,
+    OnErrorOnly,
+}
+
+impl Default for AutoReprovisioningMode {
+    fn default() -> Self {
+        AutoReprovisioningMode::Dynamic
+    }
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -265,14 +335,14 @@ pub struct Settings<T> {
     pub hostname: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub parent_hostname: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_ca_cert: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub edge_ca_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,
+
+    #[serde(default = "AutoReprovisioningMode::default")]
+    pub auto_reprovisioning_mode: AutoReprovisioningMode,
 
     pub homedir: PathBuf,
 
@@ -310,10 +380,6 @@ where
         &self.hostname
     }
 
-    fn parent_hostname(&self) -> Option<&str> {
-        self.parent_hostname.as_deref()
-    }
-
     fn connect(&self) -> &Connect {
         &self.connect
     }
@@ -344,6 +410,10 @@ where
 
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.trust_bundle_cert.as_deref()
+    }
+
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
+        &self.auto_reprovisioning_mode
     }
 }
 

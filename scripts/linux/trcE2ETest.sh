@@ -212,6 +212,8 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
+    sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
+
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
@@ -866,10 +868,12 @@ quickstart_working_folder="$working_folder/quickstart"
 image_architecture_label=$(get_image_architecture_label)
 optimize_for_performance=true
 log_upload_enabled=true
+log_rotation_max_file="125"
 if [ "$image_architecture_label" = 'arm32v7' ] ||
-   [ "$image_architecture_label" = 'arm64v8' ]; then
+    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
     log_upload_enabled=false
+    log_rotation_max_file="7"
 fi
 
 deployment_working_file="$working_folder/deployment.json"

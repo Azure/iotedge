@@ -1,22 +1,23 @@
 parameters:
-  transportType: ''
+  upstream.protocol: ''
+  testInfo.testName: ''
 
 jobs:
-  - job:  Deploy_Longhaul_Linux_Arm64_${{ parameters.transportType }}
-    displayName: Set up and run longhaul tests on Linux Arm64 for ${{ parameters.transportType }}
-    dependsOn: SetupVM_level4_${{ parameters.transportType }}
+  - job:  Deploy_Longhaul_Linux_Arm64_${{ parameters['upstream.protocol'] }}
+    displayName: Set up and run longhaul tests on Linux Arm64 for ${{ parameters['upstream.protocol'] }}
+    dependsOn: SetupVM_level4_${{ parameters['upstream.protocol'] }}
     condition: and(succeeded(), eq(variables['run.linux.arm64v8.docker'], 'true'))
     pool:
       name: $(pool.name)
       demands:
-        - agent-group -equals $(agent.group)-${{ parameters.transportType }}
+        - agent-group -equals $(agent.group)-${{ parameters['upstream.protocol'] }}
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 64
         - status -equals unlocked  
     variables:
-      parentName: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['deployIoTEdge.deviceName'] ]
-      parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters.transportType }}.outputs['createIdentity.parentDeviceId'] ] 
+      parentName: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
+      parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ] 
       edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
       identityServiceArtifactName: 'packages_ubuntu-18.04_aarch64'
       identityServicePackageFilter: 'aziot-identity-service_*_arm64.deb'
@@ -33,7 +34,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           test.startDelay: '$(test.startDelay)'
-          test.deploymentFileName: 'nestededge_bottomLayerBaseDeployment_long_haul_${{ parameters.transportType }}.template.json'
+          test.deploymentFileName: "nestededge_bottomLayerBaseDeployment_long_haul_${{ parameters['upstream.protocol'] }}.template.json"
           build.source.branch: '$(Build.SourceBranchName)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
@@ -65,3 +66,5 @@ jobs:
           longHaul.parentEdgeDevice: '$(parentDeviceId)'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
           quickstart.package.name: '$(quickstart.package.name)'
+          testInfo.testName: "${{ parameters['testInfo.testName'] }}"
+          upstream.protocol: "${{ parameters['upstream.protocol'] }}"

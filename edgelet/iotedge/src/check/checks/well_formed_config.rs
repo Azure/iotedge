@@ -2,7 +2,6 @@ use std::fs::File;
 
 use failure::{self, Fail};
 
-use edgelet_core::RuntimeSettings;
 use edgelet_docker::{Settings, CONFIG_FILE_DEFAULT, UPSTREAM_PARENT_KEYWORD};
 
 use crate::check::{checker::Checker, Check, CheckResult};
@@ -61,7 +60,7 @@ impl WellFormedConfig {
             }
         };
 
-        if let Some(parent_hostname) = settings.parent_hostname() {
+        if let Some(parent_hostname) = check.parent_hostname.as_ref() {
             if let Some(image_tail) = check
                 .diagnostics_image_name
                 .strip_prefix(UPSTREAM_PARENT_KEYWORD)

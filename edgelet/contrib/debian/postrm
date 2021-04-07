@@ -4,6 +4,7 @@ set -e
 case "$1" in
     purge)
         systemctl daemon-reload
+        killall -SIGKILL -u iotedge || true
 
         if [ -d /etc/aziot ]; then
             rm -rf /etc/aziot/edged

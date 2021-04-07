@@ -17,7 +17,7 @@ URL:            https://github.com/azure/iotedge
 %{?systemd_requires}
 BuildRequires:  systemd
 Requires(pre):  shadow-utils
-Requires:       aziot-identity-service >= @version@-@release@
+Requires:       aziot-identity-service >= 1.2.0~rc4-1
 Source0:        aziot-edge-%{version}.tar.gz
 
 %description
@@ -33,11 +33,24 @@ This package contains the IoT Edge daemon and CLI tool.
 %setup -q
 
 %build
-make release
+make \
+    CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    LISTEN_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    release
 
 %install
 rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT unitdir=%{_unitdir} docdir=%{_docdir}/%{name}
+make \
+    CONNECT_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    CONNECT_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    LISTEN_MANAGEMENT_URI=unix://%{iotedge_socketdir}/mgmt.sock \
+    LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
+    DESTDIR=$RPM_BUILD_ROOT \
+    unitdir=%{_unitdir} \
+    docdir=%{_docdir}/%{name} \
+    install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -68,7 +81,12 @@ fi
 
 # Add iotedge user to moby-engine group
 if /usr/bin/getent group docker >/dev/null; then
-    %{_sbindir}/usermod -a -G docker %{iotedge_user}
+    %{_sbindir}/usermod -aG docker %{iotedge_user}
+fi
+
+# Add iotedge user to systemd-journal group so it can get system logs
+if /usr/bin/getent group systemd-journal >/dev/null; then
+    %{_sbindir}/usermod -aG systemd-journal %{iotedge_user}
 fi
 
 # Add iotedge user to aziot-identity-service groups

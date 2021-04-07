@@ -1,29 +1,32 @@
-use std::{env, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
+use chrono::Utc;
 use futures_util::future::Either;
-use log::{error, warn};
-use regex::Regex;
+use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle};
 
+use super::config_parser;
 use super::file;
 use super::shutdown_handle;
+use super::token_manager;
+
 use azure_iot_mqtt::{module::Client, Transport::Tcp, TwinProperties};
+use config_parser::ConfigParser;
 use shutdown_handle::ShutdownHandle;
+use token_manager::TokenManager;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
-const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME,IOTEDGE_PARENTAPIPROXYNAME";
-
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
-    ("NGINX_DEFAULT_PORT", "443"),
-    ("IOTEDGE_PARENTAPIPROXYNAME", "IOTEDGE_MODULEID"),
-];
 
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
 const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(300);
+
+//SAS token last 10mn
+const TOKEN_VALIDITY_SECONDS: i64 = 600;
+//Request new token 5min before expiry of actual token
+const TOKEN_EXPIRY_SECONDS_MARGIN: i64 = 300;
 
 pub fn get_sdk_client() -> Result<Client, Error> {
     let client = match Client::new_for_edge_module(
@@ -47,108 +50,79 @@ pub fn start(
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
-    //Set default value for some environment variables here
-    set_default_env_vars();
+    info!("Initializing config monitoring loop");
+    let mut token_manager = TokenManager::new().context("Cannot get client token")?;
+    let mut config_parser = ConfigParser::new();
 
-    //Allow on level of indirection, when one env var references another env var.
-    dereference_env_variable();
-
-    //Special handling of some of the environment variables
-    specific_handling_env_var();
-
-    //Parse default config and notify to reboot nginx if it has already started
-    //If the config is incorrect, return error because otherwise nginx doesn't have any config.
-
-    match parse_config() {
-        //Notify watchdog config is there
-        Ok(()) => notify_received_config.notify(),
-        Err(err) => {
-            return Err(anyhow::anyhow!(
-                "Error while parsing default config: {}",
-                err
-            ))
-        }
-    };
+    info!("Starting config monitoring loop");
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         loop {
             let wait_shutdown = shutdown_signal.notified();
             futures::pin_mut!(wait_shutdown);
+            let get_new_sas_token = token_manager.poll_new_sas_token(
+                Utc::now(),
+                chrono::Duration::seconds(TOKEN_VALIDITY_SECONDS),
+                chrono::Duration::seconds(TOKEN_EXPIRY_SECONDS_MARGIN),
+            );
+            futures::pin_mut!(get_new_sas_token);
+            let reload_config = futures::future::select(get_new_sas_token, client.next());
 
-            let message = match futures::future::select(wait_shutdown, client.next()).await {
-                Either::Left(_) => {
-                    warn!("Shutting down config monitor!");
-                    return Ok(());
-                }
-                Either::Right((Some(Ok(message)), _)) => message,
-                Either::Right((Some(Err(err)), _)) => {
-                    error!("Error receiving a message! {}", err);
-                    continue;
-                }
-                Either::Right((None, _)) => {
-                    warn!("Shutting down config monitor!");
-                    return Ok(());
-                }
-            };
+            let parse_config_request =
+                match futures::future::select(wait_shutdown, reload_config).await {
+                    Either::Left(_) => {
+                        warn!("Shutting down config monitor!");
+                        return Ok(());
+                    }
+                    Either::Right((reload_config, _)) => match reload_config {
+                        Either::Left((Ok(Some(token)), _)) => {
+                            info!("New SAS token received, reloading the config");
+                            config_parser.add_new_key("SAS_TOKEN", &token);
+                            true
+                        }
+                        Either::Left((Ok(None), _)) => {
+                            error!("Error received an empty token");
+                            false
+                        }
+                        Either::Left((Err(err), _)) => {
+                            error!("Error getting new token {}", err);
+                            false
+                        }
+                        Either::Right((Some(Ok(message)), _)) => {
+                            if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
+                                if let Err(err) = save_raw_config(&twin) {
+                                    error!("received message {}", err);
+                                    false
+                                } else {
+                                    info!("New config received from twin, reloading the config");
+                                    true
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        Either::Right((Some(Err(err)), _)) => {
+                            error!("Error receiving a message! {}", err);
+                            false
+                        }
+                        Either::Right((None, _)) => {
+                            warn!("Shutting down config monitor!");
+                            return Ok(());
+                        }
+                    },
+                };
 
-            if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
-                if let Err(err) = save_raw_config(&twin) {
-                    error!("received message {}", err);
-                } else {
-                    match parse_config() {
-                        //Notify watchdog config is there
-                        Ok(()) => notify_received_config.notify(),
-                        Err(error) => error!("Error while parsing default config: {}", error),
-                    };
-                }
+            if parse_config_request {
+                match parse_config(&config_parser) {
+                    //Notify watchdog config is there
+                    Ok(()) => notify_received_config.notify(),
+                    Err(error) => error!("Error while parsing default config: {}", error),
+                };
             };
         }
     });
 
     Ok((monitor_loop, shutdown_handle))
-}
-
-fn set_default_env_vars() {
-    for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-        match std::env::var(key) {
-            //If env variable is already declared, do nothing
-            Ok(_) => continue,
-            //Else add the default value
-            Err(_) => std::env::set_var(key, value),
-        };
-    }
-}
-
-//This function dereferences enviromnent variable pointing to another environment variable
-//For example:
-// The environment variable DOCKER_REQUEST_ROUTE_ADDRESS = "${PARENT_HOSTNAME}"
-// With PARENT_HOSTNAME="127.0.0.1"
-//After calling we want DOCKER_REQUEST_ROUTE_ADDRESS="127.0.0.1"
-fn dereference_env_variable() {
-    let vars = get_var_list();
-    let vars_list = vars.split(',');
-
-    for key in vars_list {
-        match std::env::var(key) {
-            //If env variable is already declared, do nothing
-            Ok(env_var_candidate) => {
-                //try to dereference again
-                match std::env::var(env_var_candidate) {
-                    //If the candidate exist, replace the existing variable value
-                    Ok(value) => std::env::set_var(key, value),
-                    Err(_) => continue,
-                }
-            }
-            //Else add the default value
-            Err(_) => continue,
-        };
-    }
-}
-
-fn specific_handling_env_var() {
-    if let Ok(moduleid) = env::var("IOTEDGE_PARENTAPIPROXYNAME") {
-        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", sanitize_dns_label(&moduleid));
-    }
 }
 
 fn save_raw_config(twin: &TwinProperties) -> Result<()> {
@@ -168,12 +142,12 @@ fn save_raw_config(twin: &TwinProperties) -> Result<()> {
     Ok(())
 }
 
-fn parse_config() -> Result<()> {
+fn parse_config(parse_config: &ConfigParser) -> Result<()> {
     //Read "raw configuration". Contains environment variables and sections.
     //Extract IO calls from core function for mocking
     let str = file::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
 
-    let str = get_parsed_config(&str)?;
+    let str = parse_config.get_parsed_config(&str)?;
     //Extract IO calls from core function for mocking
     file::write_binary_to_file(&str.as_bytes(), PROXY_CONFIG_PATH_PARSED)?;
 
@@ -187,187 +161,4 @@ fn get_raw_config(encoded_file: &str) -> Result<Vec<u8>, anyhow::Error> {
     };
 
     Ok(bytes)
-}
-
-fn get_var_list() -> String {
-    //Check if user passed their own env variable list.
-    match std::env::var(PROXY_CONFIG_ENV_VAR_LIST) {
-        Ok(vars) => vars,
-        //@TO CHECK It copies the string, is that ok?
-        Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
-    }
-}
-
-const ALLOWED_CHAR_DNS: char = '-';
-const DNS_MAX_SIZE: usize = 63;
-
-// The name returned from here must conform to following rules (as per RFC 1035):
-//  - length must be <= 63 characters
-//  - must be all lower case alphanumeric characters or '-'
-//  - must start with an alphabet
-//  - must end with an alphanumeric character
-pub fn sanitize_dns_label(name: &str) -> String {
-    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
-        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_lowercase()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || c == &ALLOWED_CHAR_DNS)
-        .take(DNS_MAX_SIZE)
-        .collect::<String>()
-}
-
-//Check readme for details of how parsing is done.
-//First all the environment variables are replaced by their value.
-//Only environment variables in the list NGINX_CONFIG_ENV_VAR_LIST are replaced.
-//A second pass of replacing happens. This is to allow one level of indirection.
-//Then everything that is between #if_tag 0 and #endif_tag 0 or between  #if_tag !1 and #endif_tag !1 is removed.
-fn get_parsed_config(str: &str) -> Result<String, anyhow::Error> {
-    let mut context = std::collections::HashMap::new();
-
-    let vars = get_var_list();
-    let vars = vars.split(',');
-
-    for key in vars {
-        let val = match std::env::var(key) {
-            Ok(val) => val,
-            Err(_) => "0".to_string(),
-        };
-        context.insert(key.to_string(), val);
-    }
-
-    //Do 2 passes of subst to allow one level of indirection
-    let str: String = envsubst::substitute(str, &context).context("Failed to subst the text")?;
-
-    //Replace is 0
-    let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
-        .context("Failed to remove text between #if_tag 0 tags ")?;
-    let str = re.replace_all(&str, "").to_string();
-
-    //Or not 1. This allows usage of if ... else ....
-    let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*?\n")
-        .context("Failed to remove text between #if_tag 0 tags ")?;
-    let str = re.replace_all(&str, "").to_string();
-
-    Ok(str)
-}
-
-#[cfg(test)]
-mod tests {
-    const RAW_CONFIG_BASE64:&str = "ZXZlbnRzIHsgfQ0KDQoNCmh0dHAgew0KICAgIHByb3h5X2J1ZmZlcnMgMzIgMTYwazsgIA0KICAgIHByb3h5X2J1ZmZlcl9zaXplIDE2MGs7DQogICAgcHJveHlfcmVhZF90aW1lb3V0IDM2MDA7DQogICAgZXJyb3JfbG9nIC9kZXYvc3Rkb3V0IGluZm87DQogICAgYWNjZXNzX2xvZyAvZGV2L3N0ZG91dDsNCg0KICAgIHNlcnZlciB7DQogICAgICAgIGxpc3RlbiAke05HSU5YX0RFRkFVTFRfUE9SVH0gc3NsIGRlZmF1bHRfc2VydmVyOw0KDQogICAgICAgIGNodW5rZWRfdHJhbnNmZXJfZW5jb2Rpbmcgb247DQoNCiAgICAgICAgc3NsX2NlcnRpZmljYXRlICAgICAgICBzZXJ2ZXIuY3J0Ow0KICAgICAgICBzc2xfY2VydGlmaWNhdGVfa2V5ICAgIHByaXZhdGVfa2V5LnBlbTsgDQogICAgICAgIHNzbF9jbGllbnRfY2VydGlmaWNhdGUgdHJ1c3RlZENBLmNydDsNCiAgICAgICAgc3NsX3ZlcmlmeV9jbGllbnQgb247DQoNCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX0JMT0JfTU9EVUxFfQ0KICAgICAgICBpZiAoJGh0dHBfeF9tc19ibG9iX3R5cGUgPSBCbG9ja0Jsb2IpDQogICAgICAgIHsNCiAgICAgICAgICAgIHJld3JpdGUgXiguKikkIC9zdG9yYWdlJDEgbGFzdDsNCiAgICAgICAgfSANCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7RE9DS0VSX1JFUVVFU1RfUk9VVEVfQUREUkVTU30NCiAgICAgICAgbG9jYXRpb24gL3YyIHsNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwOi8vJHtET0NLRVJfUkVRVUVTVF9ST1VURV9BRERSRVNTfSI7DQogICAgICAgICAgICBwcm94eV9wYXNzICAgICAgICAgICRiYWNrZW5kOw0KICAgICAgICB9DQogICAgICAgI2VuZGlmX3RhZyAke0RPQ0tFUl9SRVFVRVNUX1JPVVRFX0FERFJFU1N9DQoNCiAgICAgICAgI2lmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCiAgICAgICAgbG9jYXRpb24gfl4vc3RvcmFnZS8oLiopew0KICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsNCiAgICAgICAgICAgIHJlc29sdmVyIDEyNy4wLjAuMTE7DQogICAgICAgICAgICBzZXQgJGJhY2tlbmQgImh0dHA6Ly8ke05HSU5YX0JMT0JfTU9EVUxFX05BTUVfQUREUkVTU30iOw0KICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICAkYmFja2VuZC8kMSRpc19hcmdzJGFyZ3M7DQogICAgICAgIH0NCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfTk9UX1JPT1R9ICAgICAgDQogICAgICAgIGxvY2F0aW9uIC97DQogICAgICAgICAgICBwcm94eV9odHRwX3ZlcnNpb24gMS4xOw0KICAgICAgICAgICAgcmVzb2x2ZXIgMTI3LjAuMC4xMTsNCiAgICAgICAgICAgIHNldCAkYmFja2VuZCAiaHR0cHM6Ly8ke0dBVEVXQVlfSE9TVE5BTUV9OjQ0MyI7DQogICAgICAgICAgICBwcm94eV9wYXNzICAgICAgICAgICRiYWNrZW5kLyQxJGlzX2FyZ3MkYXJnczsNCiAgICAgICAgfQ0KICAgICAgICAjZW5kaWZfdGFnICR7TkdJTlhfTk9UX1JPT1R9DQogICAgfQ0KfQ==";
-    const RAW_CONFIG_TEXT:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen ${NGINX_DEFAULT_PORT} ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    private_key.pem; \r\n        ssl_client_certificate trustedCA.crt;\r\n        ssl_verify_client on;\r\n\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${DOCKER_REQUEST_ROUTE_ADDRESS}\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGINX_BLOB_MODULE_NAME_ADDRESS}\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_NOT_ROOT}      \r\n        location /{\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"https://${GATEWAY_HOSTNAME}:443\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_NOT_ROOT}\r\n    }\r\n}";
-    const PARSED_CONFIG:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen 443 ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    private_key.pem; \r\n        ssl_client_certificate trustedCA.crt;\r\n        ssl_verify_client on;\r\n\r\n\r\n        \r\n\r\n        #if_tag registry:5000\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://registry:5000\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag registry:5000\r\n\r\n        \r\n\r\n        \r\n    }\r\n}";
-    use super::*;
-
-    #[test]
-    fn env_var_tests() {
-        //unset all variables
-        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT,IOTEDGE_PARENTAPIPROXYNAME");
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-
-        //All environment variable tests are grouped in one test.
-        //The reason is concurrency. Rust test are multi threaded by default
-        //And environment variable are globals, so race condition happens.
-
-        //**************************Check config***************************************
-        std::env::set_var("NGINX_DEFAULT_PORT", "443");
-        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "registry:5000");
-
-        let byte_str = get_raw_config(RAW_CONFIG_BASE64).unwrap();
-        let config = std::str::from_utf8(&byte_str).unwrap();
-        assert_eq!(config, RAW_CONFIG_TEXT);
-
-        let config = get_parsed_config(RAW_CONFIG_TEXT).unwrap();
-
-        assert_eq!(&config, PARSED_CONFIG);
-
-        //**************************Check defaults variables set***************************************
-        for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            std::env::remove_var(*key);
-        }
-        set_default_env_vars();
-        for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            let var = std::env::var(key).unwrap();
-            assert_eq!(*value, &var);
-        }
-
-        //******************Check the the default function doesn't override user variable***************
-        //put dummy value for each env variable that has a default;
-        for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            std::env::set_var(*key, "Dummy value");
-        }
-        set_default_env_vars();
-        for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            let var = std::env::var(key).unwrap();
-            //Check the value is still equal to dummy value
-            assert_eq!("Dummy value", &var);
-        }
-
-        //************************* Check 1 level of indirection works *********************************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
-        std::env::set_var("IOTEDGE_PARENTHOSTNAME", "127.0.0.1");
-
-        dereference_env_variable();
-
-        let dummy_config = "${DOCKER_REQUEST_ROUTE_ADDRESS}";
-
-        let config = get_parsed_config(dummy_config).unwrap();
-
-        assert_eq!("127.0.0.1", config);
-
-        //************************* Check config between ![^1] get deleted *********************************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-
-        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
-        let dummy_config = "#if_tag !${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n#if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould not be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}";
-        let config = get_parsed_config(dummy_config).unwrap();
-
-        assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
-
-        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME defaults to module id if omitted *******************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-        std::env::set_var("IOTEDGE_MODULEID", "apiproxy");
-
-        set_default_env_vars();
-        //Check variable has been assigned the module id env var
-        let var = std::env::var("IOTEDGE_PARENTAPIPROXYNAME").unwrap();
-        assert_eq!("IOTEDGE_MODULEID", var);
-
-        dereference_env_variable();
-
-        specific_handling_env_var();
-
-        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
-
-        let config = get_parsed_config(dummy_config).unwrap();
-
-        assert_eq!("apiproxy", config);
-
-        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME get sanitized *******************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", "iotedge_api_proxy");
-        set_default_env_vars();
-        dereference_env_variable();
-        specific_handling_env_var();
-        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
-
-        let config = get_parsed_config(dummy_config).unwrap();
-
-        assert_eq!("iotedgeapiproxy", config);
-    }
 }
