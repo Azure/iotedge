@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 edgeAgent = Regex.Replace(edgeAgent, @"\$upstream", parentHostname);
                             });
 
-                            config.SetEdgeAgentImage(edgeAgent);
+                            config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries);
 
                             Context.Current.EdgeProxy.ForEach(proxy =>
                             {
