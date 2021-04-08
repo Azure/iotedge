@@ -58,11 +58,28 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
-      identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
     steps:
+    - bash: |
+        . /etc/os-release
+
+        case $ID in
+            'ubuntu') ;;
+            *) "Unsupported os distro $ID" && exit 1 ;;
+        esac
+
+        case $VERSION_ID in
+            '18.04'|'20.04') ;;
+            *) echo "Unsupported os version $VERSION_ID" && exit 1 ;;
+        esac
+
+        edged_artifact="iotedged-${ID}${VERSION_ID}-amd64"
+        identityd_artifact="packages_${ID}-${VERSION_ID}_amd64"
+        echo "##vso[task.setvariable variable=artifactName]$edged_artifact"
+        echo "##vso[task.setvariable variable=identityServiceArtifactName]$identityd_artifact"
+      displayName: Set artifact names based on distro and version
+
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
