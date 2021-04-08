@@ -33,7 +33,7 @@ pub enum RingBufferError {
     FileCreate(std::io::Error),
 
     #[error("File IO error occurred. Caused by {0}")]
-    FileIO(std::io::Error),
+    FileIo(std::io::Error),
 
     #[error("Storage file metadata unavailable. Caused by {0}")]
     FileMetadata(std::io::Error),

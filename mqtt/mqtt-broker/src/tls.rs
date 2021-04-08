@@ -101,7 +101,7 @@ pub enum ServerCertificateError {
     ReadFile(PathBuf, #[source] std::io::Error),
 
     #[error(transparent)]
-    OpenSSL(#[from] openssl::error::ErrorStack),
+    OpenSsl(#[from] openssl::error::ErrorStack),
 
     #[error(transparent)]
     Asn1Time(#[from] chrono::ParseError),
