@@ -18,6 +18,7 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 
 ## Edge Hub
 ### Bug Fixes
+* Update http client timeout for scope sync ( [69d8c0c](https://github.com/Azure/iotedge/commit/69d8c0cba260a4660b9132d2fe476e1390110756) )
 * Add caching to TokenProvider ( [8988456](https://github.com/Azure/iotedge/commit/8988456377154de075e83d6a896778d7200a1a61) )
 * Update Base Images for Security Vulnerability ( [ac0da07](https://github.com/Azure/iotedge/commit/ac0da07aab45bb36dc008a1ea373e979b50c0e15) )
 * Fix edgeHub children mismatched leaf device subscriptions ( [39c600f](https://github.com/Azure/iotedge/commit/39c600f40c0e2c8a8ae03bb7777231f55beba03d) )
