@@ -1,18 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
-    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common.NUnit;
-    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using NUnit.Framework;
 
     [EndToEnd]
@@ -50,7 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     new
                                     {
                                         endpoint = "$upstream",
-                                        settings = new[] {
+                                        settings = new[]
+                                        {
                                             new
                                             {
                                                 direction = "in",
@@ -174,7 +170,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
                 },
                 token);
-
         }
     }
 }
