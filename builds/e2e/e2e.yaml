@@ -54,6 +54,9 @@ jobs:
 
     pool:
       name: $(pool.name2)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
 
     variables:
       os: linux
