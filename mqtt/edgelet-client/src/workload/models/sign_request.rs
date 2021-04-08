@@ -66,6 +66,7 @@ impl SignRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Algorithm {
+    #[serde(rename = "HMACSHA256")]
     HmacSha256,
 }
 
