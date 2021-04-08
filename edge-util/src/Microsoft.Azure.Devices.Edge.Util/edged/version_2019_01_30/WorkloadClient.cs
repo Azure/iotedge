@@ -94,13 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2019_01_30
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.WorkloadUri))
             {
                 var edgeletHttpClient = new HttpWorkloadClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.WorkloadUri) };
-                SignResponse response = await this.Execute(
-                    () =>
-                    {
-                        Console.WriteLine("Calling signAsync!");
-                        return edgeletHttpClient.SignAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, signRequest);
-                    },
-                    "SignAsync");
+                SignResponse response = await this.Execute(() => edgeletHttpClient.SignAsync(this.Version.Name, this.ModuleId, this.ModuleGenerationId, signRequest), "SignAsync");
                 return Convert.ToBase64String(response.Digest);
             }
         }

@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         readonly TimeSpan defaultTtl;
         readonly TokenCache tokenCache;
         readonly AsyncLock cacheUpdateLock = new AsyncLock();
-        long counter = 0;
 
         public ClientTokenProvider(
             ISignatureProvider signatureProvider,
@@ -80,12 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 });
             try
             {
-                long curCtr = Interlocked.Increment(ref this.counter);
-                if (curCtr % 10 == 0)
-                {
-                    Console.WriteLine($"GetTokenAsync call count: {curCtr}");
-                }
-
                 string signature = await this.signatureProvider.SignAsync(data);
                 return SasTokenHelper.BuildSasToken(audience, signature, expiresOn);
             }
