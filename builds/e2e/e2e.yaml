@@ -118,3 +118,5 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
+      parameters:
+        test_type: http_proxy
