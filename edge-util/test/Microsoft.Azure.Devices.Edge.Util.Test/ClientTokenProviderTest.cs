@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;    
+    using Moq;
     using Xunit;
 
     public class ClientTokenProviderTest
@@ -79,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             {
                 Assert.Equal(token, tokens[i]);
             }
+
             signatureProvider.Verify(s => s.SignAsync(It.IsAny<string>()), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(15));
