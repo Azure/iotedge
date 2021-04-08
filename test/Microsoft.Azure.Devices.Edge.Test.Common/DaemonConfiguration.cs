@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -212,9 +213,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.SetAuth(keyName);
         }
 
-        public void SetEdgeAgentImage(string value)
+        public void SetEdgeAgentImage(string value, IEnumerable<Registry> registries)
         {
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", value);
+
+            // Currently, the only place for registries is [agent.config.auth]
+            // So only one registry is supported.
+            if (registries.Count() > 1)
+            {
+                throw new ArgumentException("Currently, up to a single registry is supported");
+            }
+
+            foreach (Registry registry in registries)
+            {
+                this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.serveraddress", registry.Address);
+                this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.username", registry.Username);
+                this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.password", registry.Password);
+            }
         }
 
         public void SetDeviceHostname(string value)
