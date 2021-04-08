@@ -75,7 +75,7 @@ namespace TestResultCoordinator.Reports
 
         public bool IsPassedHelper()
         {
-            return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.EventHubSpecificReportComponents.Match(
+            return this.TotalExpectCount > 0 && this.TotalDuplicateExpectedResultCount == 0 && this.TotalUnmatchedCount == 0 && this.TotalMisorderedActualResultCount == 0 && this.EventHubSpecificReportComponents.Match(
                 eh =>
                 {
                     return eh.AllActualResultsMatch && eh.StillReceivingFromEventHub;
