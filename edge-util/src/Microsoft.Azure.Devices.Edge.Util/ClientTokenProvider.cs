@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public class ClientTokenProvider : ITokenProvider
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         readonly Option<string> moduleId;
         readonly string iotHubHostName;
         readonly TimeSpan defaultTtl;
+        long counter = 0;
 
         public ClientTokenProvider(
             ISignatureProvider signatureProvider,
@@ -52,6 +54,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 });
             try
             {
+                long curCtr = Interlocked.Increment(ref this.counter);
+                if(curCtr % 10 == 0)
+                {
+                    Console.WriteLine($"GetTokenAsync call count: {curCtr}");
+                }
+
                 string signature = await this.signatureProvider.SignAsync(data);
                 return SasTokenHelper.BuildSasToken(audience, signature, expiresOn);
             }
