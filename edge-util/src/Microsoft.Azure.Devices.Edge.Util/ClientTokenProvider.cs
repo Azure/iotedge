@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             try
             {
                 long curCtr = Interlocked.Increment(ref this.counter);
-                if(curCtr % 10 == 0)
+                if (curCtr % 10 == 0)
                 {
                     Console.WriteLine($"GetTokenAsync call count: {curCtr}");
                 }
