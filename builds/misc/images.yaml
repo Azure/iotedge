@@ -239,7 +239,7 @@ jobs:
         - agent.osarchitecture -equals X64
     dependsOn:
       - linux_dotnet_projects
-      - linux_API_proxy_module
+      # - linux_API_proxy_module
     variables:
       tags: "['latest']"
     steps:
