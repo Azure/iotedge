@@ -11,12 +11,16 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 
 ## Edge Agent
 ### Bug Fixes
+* Update Base Images for Security Vulnerability ( [ac0da07](https://github.com/Azure/iotedge/commit/ac0da07aab45bb36dc008a1ea373e979b50c0e15) )
 * Update SDK version ( [46c2d20](https://github.com/Azure/iotedge/commit/46c2d20078470c5fa2f1fb1d9d6dc7516fb5ec6b) )
 * Update .NET Core Runtime base images ( [8f9e22e](https://github.com/Azure/iotedge/commit/8f9e22e39818cf0573fa5c401e06c94ea77cf981) )
 
 
 ## Edge Hub
 ### Bug Fixes
+* Update http client timeout for scope sync ( [69d8c0c](https://github.com/Azure/iotedge/commit/69d8c0cba260a4660b9132d2fe476e1390110756) )
+* Add caching to TokenProvider ( [8988456](https://github.com/Azure/iotedge/commit/8988456377154de075e83d6a896778d7200a1a61) )
+* Update Base Images for Security Vulnerability ( [ac0da07](https://github.com/Azure/iotedge/commit/ac0da07aab45bb36dc008a1ea373e979b50c0e15) )
 * Fix edgeHub children mismatched leaf device subscriptions ( [39c600f](https://github.com/Azure/iotedge/commit/39c600f40c0e2c8a8ae03bb7777231f55beba03d) )
 * Improve registry controller error message ( [0b0a40e](https://github.com/Azure/iotedge/commit/0b0a40e93ad2eca395b17706157fd6e06a510cce) )
 * Add edgeHub identity to the scopes cache at the startup ( [621a2ad](https://github.com/Azure/iotedge/commit/621a2ad873feba1114177c13a7d934edceed5b71) )
@@ -40,6 +44,7 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 
 ## MQTT Broker
 ### Bug Fixes
+* Makes egress pump exit with corresponding error ( [08678d5](https://github.com/Azure/iotedge/commit/08678d55e0ea52f2054c64cf4a97c880a4729568) )
 * Filter out publication duplicates in MessageLoader ( [0c0536a](https://github.com/Azure/iotedge/commit/0c0536a72cb5d53acf7d4be27bfc2fd38de21730) )
 * Fix topic mapping ( [a799291](https://github.com/Azure/iotedge/commit/a799291d06ab412cd1c85045faa3b2b5ba97e684) )
 * Fix RingBuffer initialization issue ( [b96b513](https://github.com/Azure/iotedge/commit/b96b513f6af7798bf2958982eb7be905d335760d), [c69ac53](https://github.com/Azure/iotedge/commit/c69ac53148c6fdf049d5d7f6346a470d8c5c407c) )
@@ -53,6 +58,7 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 
 ## aziot-edge
 ### Bug Fixes
+* Fix for expired CA certificate not renewing ( [ac142d1](https://github.com/Azure/iotedge/commit/ac142d137a84f37f7417ade89a2ae2051689b76f) )
 * Cache device provisioning state ( [9301f13](https://github.com/Azure/iotedge/commit/9301f13455da30c7ee28bff01f94e3579681ab30) )
 * Fix check-agent-image-version check for nested Edge scenarios ( [36d859e](https://github.com/Azure/iotedge/commit/36d859e0f3f05d73493e104afc800c8289c4343d) )
 * Import master encryption key in `iotedge config import` ( [01ef049](https://github.com/Azure/iotedge/commit/01ef049d5a26271f122dd28165b62aa7c9877277) )
