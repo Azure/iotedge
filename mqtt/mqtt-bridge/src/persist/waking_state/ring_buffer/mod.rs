@@ -202,7 +202,12 @@ impl StreamWakeableState for RingBuffer {
         // If we have set can_read_from_wrap_around_when_write_full
         // then we must also be full.
         if self.metadata.can_read_from_wrap_around_when_write_full {
-            return Err(PersistError::RingBuffer(RingBufferError::Full));
+            return Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace {
+                    free: 0,
+                    required: total_size,
+                },
+            ));
         }
 
         // Check that we have enough space to insert data.
@@ -1179,7 +1184,9 @@ mod tests {
         // second insert fails because storage is full and wrap happened
         assert_matches!(
             rb.insert(&publication),
-            Err(PersistError::RingBuffer(RingBufferError::Full))
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { free, .. }
+            )) if free == 0
         )
     }
 
