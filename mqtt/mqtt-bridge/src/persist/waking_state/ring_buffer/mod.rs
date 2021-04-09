@@ -94,11 +94,10 @@ pub struct RingBuffer {
     // Max size for the file.
     max_file_size: u64,
 
-    // A representation of Mmap with operations built-in.
+    // A file that stores ring buffer data.
     file: File,
 
-    // A collection of data that used for tracking state of the
-    // `RingBuffer`.
+    // A collection of data that used for tracking state of the `RingBuffer`
     metadata: RingBufferMetadata,
 
     // A waker for updating any pending batch after an insert.
@@ -113,8 +112,8 @@ impl RingBuffer {
     ) -> PersistResult<Self> {
         let mut file = create_file(file_path).map_err(RingBufferError::FileCreate)?;
 
-        // We cannot allow for file truncation if an existing file exists. That will surely
-        // lead to data loss.
+        // We cannot allow for file truncation if an existing file exists.
+        // That will surely lead to data loss.
         let current_file_size = file
             .metadata()
             .map_err(RingBufferError::FileMetadata)?

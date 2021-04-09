@@ -227,10 +227,6 @@ mod tests {
 
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
-    // TODO: There is a clippy bug where it shows false positive for this rule.
-    // When this issue is closed remove this allow.
-    // https://github.com/rust-lang/rust-clippy/issues/6353
-    #[allow(clippy::await_holding_refcell_ref)]
     #[tokio::test]
     async fn insert_wakes_stream(state: impl StreamWakeableState + Send + 'static) {
         // setup data
