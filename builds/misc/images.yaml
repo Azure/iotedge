@@ -197,36 +197,39 @@ jobs:
           imageName: azureiotedge-generic-mqtt-tester
           project: generic-mqtt-tester
 
-# ################################################################################
-#   - job: linux_API_proxy_module
-# ################################################################################
-#     timeoutInMinutes: 180
-#     displayName: linuxAPIProxy
-#     pool:
-#       vmImage: 'ubuntu-18.04'
-#     steps:
-#       - bash: |
-#             sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
-#             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
-#             docker buildx rm  mbuilder || true  && \
-#             docker buildx create --name mbuilder  || true  && \
-#             docker buildx use mbuilder
-#             docker -v
-#       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-#         displayName: 'Docker Login'
-#       # Build API Proxy executable
-#       - template: templates/build-api-proxy.yaml
-#       # Build API Proxy Image
-#       - template: templates/image-linux.yaml
-#         parameters:
-#           name: API Proxy
-#           imageName: azureiotedge-api-proxy
-#           project: api-proxy-module
-#           buildx_flag: false
-#       # Check API proxy
-#       - task: ComponentGovernanceComponentDetection@0
-#         inputs:
-#           dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
+################################################################################
+  - job: linux_API_proxy_module
+################################################################################
+    timeoutInMinutes: 180
+    displayName: linuxAPIProxy
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
+    steps:
+      - bash: |
+            sudo apt-get update && sudo apt-get -y install qemu binfmt-support qemu-user-static && \
+            docker run --rm --privileged multiarch/qemu-user-static --reset -p yes && \
+            docker buildx rm  mbuilder || true  && \
+            docker buildx create --name mbuilder  || true  && \
+            docker buildx use mbuilder
+            docker -v
+      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
+        displayName: 'Docker Login'
+      # Build API Proxy executable
+      - template: templates/build-api-proxy.yaml
+      # Build API Proxy Image
+      - template: templates/image-linux.yaml
+        parameters:
+          name: API Proxy
+          imageName: azureiotedge-api-proxy
+          project: api-proxy-module
+          buildx_flag: false
+      # Check API proxy
+      - task: ComponentGovernanceComponentDetection@0
+        inputs:
+          dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
 
 ################################################################################
   - job: manifest
@@ -239,7 +242,7 @@ jobs:
         - agent.osarchitecture -equals X64
     dependsOn:
       - linux_dotnet_projects
-      # - linux_API_proxy_module
+      - linux_API_proxy_module
     variables:
       tags: "['latest']"
     steps:
@@ -251,5 +254,5 @@ jobs:
       displayName: 'Publish Temperature Sensor Manifest'
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-diagnostics Manifest'
-    # - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
-    #   displayName: 'Publish azureiotedge-api-proxy Manifest'
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(Build.BuildNumber) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish azureiotedge-api-proxy Manifest'
