@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         readonly string actorDeviceId;
         AsyncLock nodesLock = new AsyncLock();
-        Dictionary<string, ServiceIdentityTreeNode> nodes;
+        IDictionary<string, ServiceIdentityTreeNode> nodes;
 
         public ServiceIdentityTree(string actorDeviceId)
         {
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public string GetActorDeviceId() => this.actorDeviceId;
 
-        public async Task InsertOrUpdate(ServiceIdentity identity)
+        public async Task<bool> AddOrUpdate(ServiceIdentity identity)
         {
             // There should always be a valid ServiceIdentity
             Preconditions.CheckNotNull(identity, nameof(identity));
@@ -40,9 +40,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
                 if (this.nodes.ContainsKey(identity.Id))
                 {
-                    // Update case - this is just remove + re-insert
-                    isUpdate = true;
-                    this.RemoveSingleNode(identity.Id);
+                    if (!this.nodes[identity.Id].Identity.Equals(identity))
+                    {
+                        // Update case - this is just remove + re-insert
+                        isUpdate = true;
+                        this.RemoveSingleNode(identity.Id);
+                    }
+                    else
+                    {
+                        Events.NodeNotChanged(identity.Id);
+                        return false;
+                    }
                 }
 
                 // Insert case
@@ -64,6 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Events.NodeAdded(identity.Id);
                 }
             }
+
+            return true;
         }
 
         public async Task Remove(string id)
@@ -216,7 +226,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 if (this.nodes.TryGetValue(id, out ServiceIdentityTreeNode treeNode))
                 {
-                    IList<ServiceIdentityTreeNode> childNodes = treeNode.GetAllChildren();
                     children.AddRange(treeNode.GetAllChildren().Select(child => child.Identity));
                 }
             }
@@ -453,6 +462,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             MaxDepthExceeded,
             AuthChainMissingDevice,
             AuthChainDisabled,
+            NodeNotChanged
         }
 
         public static void NodeAdded(string id) =>
@@ -463,6 +473,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static void NodeUpdated(string id) =>
             Log.LogInformation((int)EventIds.NodeUpdated, $"Updated node: {id}");
+
+        public static void NodeNotChanged(string id) =>
+            Log.LogInformation((int)EventIds.NodeNotChanged, $"Not changed node: {id}");
 
         public static void AuthChainAdded(string id, string authChain, int depth) =>
             Log.LogDebug((int)EventIds.AuthChainAdded, $"Auth-chain added for: {id}, at depth: {depth}, {authChain}");
