@@ -236,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             }
         }
 
-        public static ((string, byte[]), string) RegisterAgentWithOMS(string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomain)
+        public static (X509Certificate2 tempCert, (string, byte[]), string) RegisterAgentWithOMS(string logAnalyticsWorkspaceId, string logAnalyticsWorkspaceKey, string logAnalyticsWorkspaceDomain)
         {
             X509Certificate2 agentCert = null;
             string certString;
@@ -275,14 +275,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
                 Console.WriteLine("Registering agent with OMS failed (are the Log Analytics Workspace ID and Key correct?) : {0}", ex.Message);
 
                 Logger.Writer.LogCritical(ex.ToString());
-                // throw e;
                 Environment.Exit(1);
 
                 // to make the code analyzer happy
                 throw new Exception();
             }
 
-            return ((certString, certBuf), keyString);
+            return (agentCert, (certString, certBuf), keyString);
         }
     }
 }

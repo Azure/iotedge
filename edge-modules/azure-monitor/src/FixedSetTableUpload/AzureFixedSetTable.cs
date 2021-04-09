@@ -61,8 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             {
                 // Lazily generate and register certificate.
                 if (cert == null) {
-                    ((string certString, byte[] certBuf), string keyString) = CertGenerator.RegisterAgentWithOMS(workspaceId, sharedKey, Constants.DefaultLogAnalyticsWorkspaceDomain);
-                    cert = ReadX509CertWithKey(certBuf, keyString);
+                    (X509Certificate2 tempCert, (string certString, byte[] certBuf), string keyString) = CertGenerator.RegisterAgentWithOMS(workspaceId, sharedKey, Constants.DefaultLogAnalyticsWorkspaceDomain);
+                    cert = tempCert;
                 }
                 using (var handler = new HttpClientHandler())
                 {
@@ -145,6 +145,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             catch (Exception e)
             {
                 Logger.Writer.LogError(e.Message);
+                if (e.InnerException != null)
+                {
+                    Logger.Writer.LogError("InnerException - " + e.InnerException.Message);
+                }
             }
 
             return false;
