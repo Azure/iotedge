@@ -653,6 +653,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceIdentityHierarchy.Setup(s => s.Get(childEdgeId)).ReturnsAsync(Option.Some(childEdge));
             serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(Option.Some(leaf));
             serviceIdentityHierarchy.Setup(s => s.GetAuthChain(leafId)).ReturnsAsync(Option.Some(authChain));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var identitiesIterator = new Mock<IServiceIdentitiesIterator>();
             identitiesIterator.Setup(i => i.HasNext).Returns(false);
@@ -865,6 +866,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Option.Some(leaf))
                 .ReturnsAsync(Option.Some(leaf));
             serviceIdentityHierarchy.Setup(s => s.GetAllIds()).ReturnsAsync(new List<string>());
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns("edge");
 
             var failingServiceIdentityIterator = new Mock<IServiceIdentitiesIterator>();
             failingServiceIdentityIterator.Setup(s => s.HasNext).Returns(true);
@@ -904,6 +906,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public async Task ReadFromCache_WithEmptyEdgeDeviceScope_ShouldRestore()
+        {
+            // Arrange
+            string edgeDeviceId = "edge";
+            string leafId = "leaf1";
+            var store = await GetEntityStoreVersion1_1("cache", edgeDeviceId, leafId);
+
+            List<string> edgeCapability = new List<string>() { Constants.IotEdgeIdentityCapability };
+            var serviceAuth = new ServiceAuthentication(ServiceAuthenticationType.None);
+
+            string deviceScope = "ms-azure-iot-edge://edge-1234";
+            var leaf = new ServiceIdentity(leafId, null, deviceScope, new List<string> { deviceScope }, "12345", Enumerable.Empty<string>(), serviceAuth, ServiceIdentityStatus.Enabled);
+            var module = new ServiceIdentity(edgeDeviceId, "m1", null, new List<string> { }, "1234", Enumerable.Empty<string>(), serviceAuth, ServiceIdentityStatus.Enabled);
+
+            var serviceIdentityIterator = new Mock<IServiceIdentitiesIterator>();
+            serviceIdentityIterator.Setup(s => s.HasNext)
+                .Returns(false);
+
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), Mock.Of<IServiceProxy>(), store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+
+            // Act
+            var leaf1ServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(leafId);
+            var moduleServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(module.Id);
+
+            // Assert
+            Assert.Equal(leaf, leaf1ServiceIdentity.OrDefault());
+            Assert.Equal(module, moduleServiceIdentity.OrDefault());
+        }
+
+        [Fact]
         public async Task RefreshCacheCycle_PopulatedStore_ShouldNotRetry()
         {
             // Arrange
@@ -922,6 +954,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceIdentityHierarchy.SetupSequence(s => s.Get(leaf2Id))
                 .ReturnsAsync(Option.None<ServiceIdentity>())
                 .ReturnsAsync(Option.Some(leaf2));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns("edge");
 
             var failingServiceIdentityIterator = new Mock<IServiceIdentitiesIterator>();
             failingServiceIdentityIterator.Setup(s => s.HasNext).Returns(true);
@@ -976,6 +1009,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceIdentityHierarchy.SetupSequence(s => s.Get(leafId))
                 .ReturnsAsync(Option.Some(leaf))
                 .ReturnsAsync(Option.Some(updatedLeaf));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns("edge");
 
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentity(leafId, It.IsAny<string>())).ReturnsAsync(Option.Some(updatedLeaf));
@@ -1009,6 +1043,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceIdentityHierarchy.SetupSequence(s => s.Get(leafId))
                 .ReturnsAsync(Option.Some(leaf))
                 .ReturnsAsync(Option.Some(updatedLeaf));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns("edge");
 
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentity(leafId, It.IsAny<string>())).ReturnsAsync(Option.Some(updatedLeaf));
@@ -1129,6 +1164,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
             serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(Option.Some(leaf));
             serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var identitiesIterator = new Mock<IServiceIdentitiesIterator>();
             identitiesIterator.Setup(i => i.HasNext).Returns(false);
@@ -1165,6 +1201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Option.Some(leaf))
                 .ReturnsAsync(Option.Some(updatedLeaf));
             serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentity(leafId, It.Is<string>(id => id == childEdgeId))).ReturnsAsync(Option.Some(updatedLeaf));
@@ -1194,6 +1231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
             serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(Option.Some(leaf));
             serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var serviceProxy = new Mock<IServiceProxy>();
 
@@ -1225,6 +1263,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Option.Some(leaf))
                 .ReturnsAsync(Option.Some(updatedLeaf));
             serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var serviceProxy = new Mock<IServiceProxy>();
             serviceProxy.Setup(s => s.GetServiceIdentity(leafId, It.Is<string>(id => id == childEdgeId))).ReturnsAsync(Option.Some(updatedLeaf));
@@ -1288,6 +1327,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             string authChain = leafId + ";" + childEdgeId + ";" + parentEdgeId;
 
             var serviceIdentityHierarchy = new Mock<IServiceIdentityHierarchy>();
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var leafInHierarchy = Option.None<ServiceIdentity>();
             serviceIdentityHierarchy.Setup(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
@@ -1321,6 +1361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var leafInHierarchy = Option.Some(leaf);
             serviceIdentityHierarchy.Setup(s => s.Get(leafId)).ReturnsAsync(leafInHierarchy);
             serviceIdentityHierarchy.SetupSequence(s => s.TryGetAuthChain(leafId)).ReturnsAsync(Try.Success(authChain)).ReturnsAsync(Try<string>.Failure(new DeviceInvalidStateException("Device is out of scope.")));
+            serviceIdentityHierarchy.Setup(s => s.GetActorDeviceId()).Returns(parentEdgeId);
 
             var serviceProxy = new Mock<IServiceProxy>();
 
@@ -1345,6 +1386,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var si1 = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
             var storedSi1 = new DeviceScopeIdentitiesCache.StoredServiceIdentity(si1);
             await store.Put(si1.Id, storedSi1.ToJson());
+
+            return store;
+        }
+
+        static async Task<IEntityStore<string, string>> GetEntityStoreVersion1_1(string entityName, string edgeDeviceId, string leafId)
+        {
+            var store = GetEntityStore(entityName);
+            string storedEdge = "{\"serviceIdentity\":{\"deviceId\":\"" + edgeDeviceId + "\",\"moduleId\":null,\"capabilities\":[\"iotEdge\"],\"authentication\":{\"type\":\"None\",\"symmetricKey\":null,\"x509Thumbprint\":null},\"status\":\"enabled\",\"generationId\":\"1234\"},\"id\":\"d1\",\"timestamp\":\"2021-04-14T22:24:52.1985176Z\"}";
+            await store.Put(edgeDeviceId, storedEdge);
+
+            string storedModule = "{\"serviceIdentity\":{\"deviceId\":\"" + edgeDeviceId + "\",\"moduleId\":\"m1\",\"capabilities\":[],\"authentication\":{\"type\":\"None\",\"symmetricKey\":null,\"x509Thumbprint\":null},\"status\":\"enabled\",\"generationId\":\"1234\"},\"id\":\"d1\",\"timestamp\":\"2021-04-14T22:24:52.1985176Z\"}";
+            await store.Put($"{edgeDeviceId}/m1", storedModule);
+
+            string storedLeaf = "{\"serviceIdentity\":{\"deviceId\":\"" + leafId + "\",\"moduleId\":null,\"capabilities\":[],\"authentication\":{\"type\":\"None\",\"symmetricKey\":null,\"x509Thumbprint\":null},\"status\":\"enabled\",\"generationId\":\"12345\"},\"id\":\"d1\",\"timestamp\":\"2021-04-14T22:24:52.1985176Z\"}";
+            await store.Put(leafId, storedLeaf);
 
             return store;
         }
