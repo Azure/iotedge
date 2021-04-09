@@ -266,10 +266,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return ParseTrustedBundleCerts(response);
         }
 
-        public static async Task<X509Certificate2> GetManifestTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
+        public static async Task<Option<X509Certificate2>> GetManifestTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
         {
             string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetManifestTrustBundleAsync();
-            return ParseManifestTrustedBundleCerts(response);
+            if (string.IsNullOrEmpty(response))
+            {
+                return Option.None<X509Certificate2>();
+            }
+            else
+            {
+                return Option.Maybe(ParseManifestTrustedBundleCerts(response));
+            }
         }
 
         public static bool VerifyManifestTrustBunldeCertificateChaining(X509Certificate2 signerCertificate, X509Certificate2 intermediateCertificate, X509Certificate2 manifestTrustBundle)
