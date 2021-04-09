@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             var metadataStore = Mock.Of<IMetadataStore>();
 
             // Act
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler.Object, messageConverter, metadataStore);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler.Object, messageConverter, metadataStore, false);
 
             // Assert
             Assert.NotNull(linkHandler);
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 amqpMessage.Properties.ContentType = "application/json";
                 amqpMessage.Properties.ContentEncoding = "utf-8";
 
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, false);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = GetBatchedMessage(contents))
             {
                 amqpMessage.MessageFormat = AmqpConstants.AmqpBatchedMessageFormat;
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, false);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -245,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             using (AmqpMessage amqpMessage = AmqpMessage.Create(new MemoryStream(new byte[800000]), false))
             {
                 amqpMessage.ApplicationProperties.Map["LargeProp"] = new int[600000];
-                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
+                ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, false);
 
                 // Act
                 await linkHandler.OpenAsync(TimeSpan.FromSeconds(30));
@@ -336,7 +336,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
             var metadataStore = new MetadataStore(store, edgeProductInfo);
 
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, false);
 
             // Act
             await linkHandler.OpenAsync(TimeSpan.FromSeconds(1));
@@ -389,7 +389,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("modelId");
             var metadataStore = new MetadataStore(store, "testProductInfo");
 
-            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore);
+            ILinkHandler linkHandler = new EventsLinkHandler(identity, amqpLink, requestUri, boundVariables, connectionHandler, messageConverter, metadataStore, false);
 
             // Act
             await linkHandler.OpenAsync(TimeSpan.FromSeconds(1));
