@@ -199,15 +199,24 @@ impl StreamWakeableState for RingBuffer {
         let block_size = *SERIALIZED_BLOCK_SIZE;
         let total_size = block_size + data_size;
 
-        // Check that we have enough space to insert data.
         // If we have set can_read_from_wrap_around_when_write_full
         // then we must also be full.
-        let free_space = (read_index + self.max_file_size - write_index) % self.max_file_size;
         if self.metadata.can_read_from_wrap_around_when_write_full {
             return Err(PersistError::RingBuffer(RingBufferError::Full));
         }
-        if read_index != write_index && free_space < total_size {
-            return Err(PersistError::RingBuffer(RingBufferError::Full));
+
+        // Check that we have enough space to insert data.
+        let mut free_space = read_index + self.max_file_size - write_index;
+        if write_index < read_index {
+            free_space %= self.max_file_size;
+        }
+        if free_space < total_size {
+            return Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace {
+                    free: free_space,
+                    required: total_size,
+                },
+            ));
         }
 
         let start = write_index;
@@ -691,6 +700,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use mqtt3::proto::QoS;
+    use test_case::test_case;
 
     use super::*;
 
@@ -702,8 +712,24 @@ mod tests {
         unsafe { NonZeroU64::new_unchecked(MAX_FILE_SIZE_HALF) };
 
     fn default_ring_buffer() -> RingBuffer {
+        make_ring_buffer(MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS)
+    }
+
+    fn make_ring_buffer(max_size: NonZeroU64, flush_options: FlushOptions) -> RingBuffer {
         let file = NamedTempFile::new().expect("file");
-        RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS).expect("ring buffer")
+        RingBuffer::new(&file.path(), max_size, flush_options).expect("ring buffer")
+    }
+
+    fn total_size(publication: &Publication) -> u64 {
+        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        let result = bincode::serialize(&publication);
+        assert_matches!(result, Ok(_));
+        let data = result.unwrap();
+
+        let data_size = data.len() as u64;
+
+        block_size + data_size
     }
 
     #[test]
@@ -861,14 +887,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
-
-        let data = bincode::serialize(&publication).unwrap();
-
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
-
+        let total_size = total_size(&publication);
         let max_file_size = NonZeroU64::new(total_size * 20).unwrap();
 
         let read;
@@ -1073,14 +1092,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
-
-        let result = bincode::serialize(&publication);
-        let data = result.unwrap();
-
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
+        let total_size = total_size(&publication);
 
         let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
@@ -1110,13 +1122,18 @@ mod tests {
 
         assert_eq!(rb.metadata.order, inserts + 2);
         let result = rb.insert(&publication);
-        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
+        assert_matches!(
+            result,
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { .. }
+            ))
+        );
         assert_eq!(rb.metadata.order, inserts + 2);
     }
 
-    #[test]
-    fn it_errs_on_insert_when_full() {
-        let mut rb = default_ring_buffer();
+    #[test_case(1; "storage too small to insert even one publication")]
+    #[test_case(5; "fail to insert the last publication")]
+    fn it_errs_on_insert_when_insufficient_space(inserts: u64) {
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1124,25 +1141,46 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+        let total_size = total_size(&publication);
 
-        let result = bincode::serialize(&publication);
-        assert_matches!(result, Ok(_));
-        let data = result.unwrap();
+        let max_size = NonZeroU64::new((inserts + 1) * total_size - 1).unwrap();
+        let mut rb = make_ring_buffer(max_size, FlushOptions::AfterEachWrite);
 
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
-
-        let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
             let result = rb.insert(&publication);
             assert_matches!(result, Ok(_));
         }
         assert_eq!(rb.metadata.order, inserts);
         let result = rb.insert(&publication);
-        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
+        assert_matches!(
+            result,
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { .. }
+            ))
+        );
         assert_eq!(rb.metadata.order, inserts);
+    }
+
+    #[test]
+    fn it_errs_on_insert_when_full() {
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let max_size = NonZeroU64::new(total_size(&publication)).unwrap();
+        let mut rb = make_ring_buffer(max_size, FlushOptions::AfterEachWrite);
+
+        // first insert succeeds
+        assert_matches!(rb.insert(&publication), Ok(_));
+
+        // second insert fails because storage is full and wrap happened
+        assert_matches!(
+            rb.insert(&publication),
+            Err(PersistError::RingBuffer(RingBufferError::Full))
+        )
     }
 
     #[test]
@@ -1155,15 +1193,7 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
-
-        let result = bincode::serialize(&publication);
-        assert_matches!(result, Ok(_));
-        let data = result.unwrap();
-
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
+        let total_size = total_size(&publication);
 
         let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
@@ -1194,7 +1224,12 @@ mod tests {
         };
 
         let result = rb.insert(&big_publication);
-        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
+        assert_matches!(
+            result,
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { .. }
+            ))
+        );
         assert_eq!(rb.metadata.order, inserts);
     }
 
@@ -1568,27 +1603,5 @@ mod tests {
             let result = rb.pop();
             assert_matches!(result, Ok(removed) if removed == key);
         }
-    }
-
-    #[test]
-    fn it_handles_small_storage_settings() {
-        let file = NamedTempFile::new().expect("file");
-
-        dbg!(file.path());
-        let mut rb = RingBuffer::new(&file.path(), NonZeroU64::new(100).unwrap(), FLUSH_OPTIONS)
-            .expect("ring buffer");
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: vec![0; 39].into(),
-        };
-        let result = rb.insert(&publication);
-        assert_matches!(result, Ok(_));
-        let key = result.unwrap();
-
-        let batch = rb.batch(100);
-        assert_matches!(batch, Ok(batch) if batch == vec![(key, publication)]);
     }
 }
