@@ -11,7 +11,10 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: 'ubuntu-18.04'
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     variables:
       NugetSecurityAnalysisWarningLevel: warn
     strategy:
