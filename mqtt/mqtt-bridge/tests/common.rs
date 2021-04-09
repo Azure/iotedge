@@ -1,4 +1,4 @@
-use std::{num::NonZeroU64, path::PathBuf, time::Duration};
+use std::{num::NonZeroU64, path::Path, time::Duration};
 
 use tokio::task::JoinHandle;
 
@@ -78,7 +78,7 @@ pub async fn setup_bridge_controller(
     local_address: String,
     upstream_address: String,
     subs: Vec<Direction>,
-    storage_dir_override: &PathBuf,
+    storage_dir_override: &Path,
 ) -> (BridgeControllerHandle, JoinHandle<()>) {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
         device_id,
@@ -95,7 +95,7 @@ pub async fn setup_bridge_controller(
         Duration::from_secs(5),
         StorageSettings::RingBuffer(RingBufferSettings::new(
             NonZeroU64::new(33_554_432).expect("33554432"), //32mb
-            storage_dir_override.clone(),
+            storage_dir_override.to_path_buf(),
             FlushOptions::AfterEachWrite,
         )),
     );
