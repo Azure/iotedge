@@ -62,6 +62,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Error running system command")]
     System,
+
+    #[fail(display = "Error fetching module logs")]
+    Logs,
 }
 
 impl Fail for Error {

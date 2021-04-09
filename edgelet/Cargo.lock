@@ -781,6 +781,7 @@ version = "0.1.0"
 dependencies = [
  "aziot-identity-common",
  "chrono",
+ "docker",
  "edgelet-core",
  "edgelet-docker",
  "edgelet-http",

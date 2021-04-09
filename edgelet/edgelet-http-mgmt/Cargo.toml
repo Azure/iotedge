@@ -16,6 +16,7 @@ serde_json = "1.0"
 url = "2"
 
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http = { path = "../edgelet-http" }

@@ -5,6 +5,7 @@ use std::io::stdout;
 use futures::prelude::*;
 
 use edgelet_core::{LogOptions, ModuleRuntime};
+use failure::Fail;
 use support_bundle::pull_logs;
 
 use crate::error::{Error, ErrorKind};
@@ -35,7 +36,7 @@ where
     fn execute(self) -> Self::Future {
         let id = self.id.clone();
         let result = pull_logs(&self.runtime, &id, &self.options, stdout())
-            .map_err(|_| Error::from(ErrorKind::ModuleRuntime))
+            .map_err(|err| err.context(ErrorKind::Logs).into())
             .map(drop);
         Box::new(result)
     }

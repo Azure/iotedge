@@ -133,6 +133,9 @@ impl IntoResponse for Error {
         let status_code =
             if let Some(cause) = Fail::find_root_cause(&self).downcast_ref::<DockerErrorKind>() {
                 match cause {
+                    DockerErrorKind::DockerRuntime(docker::apis::Error::Api(api_error)) => {
+                        api_error.code
+                    }
                     DockerErrorKind::NotFound(_) => StatusCode::NOT_FOUND,
                     DockerErrorKind::Conflict => StatusCode::CONFLICT,
                     DockerErrorKind::NotModified => StatusCode::NOT_MODIFIED,
