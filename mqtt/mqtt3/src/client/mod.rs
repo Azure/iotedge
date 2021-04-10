@@ -777,7 +777,7 @@ pub enum Error {
     DuplicateExactlyOncePublishPacketNotMarkedDuplicate(crate::proto::PacketIdentifier),
     EncodePacket(crate::proto::EncodeError),
     PacketIdentifiersExhausted,
-    PingTimer(tokio::time::Error),
+    PingTimer(tokio::time::error::Error),
     ServerClosedConnection,
     SubAckDoesNotContainEnoughQoS(crate::proto::PacketIdentifier, usize, usize),
     SubscriptionDowngraded(String, crate::proto::QoS, crate::proto::QoS),

@@ -1,4 +1,4 @@
-//! `tokio::time::delay_for` and `tokio::time::delay_until` has a bug that
+//! `tokio::time::sleep` and `tokio::time::delay_until` has a bug that
 //! prevents to schedule a very long timeout (more than 2 years).
 //! To mitigate this issue we split a long interval by the number
 //! of small intervals and schedule small intervals and waits a small one until
@@ -9,10 +9,11 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
+    time::Duration,
 };
 
 use futures_util::{ready, FutureExt};
-use tokio::time::{self, Delay, Duration, Instant};
+use tokio::time::{self, Instant, Sleep as TokioSleep};
 
 const DEFAULT_DURATION: Duration = Duration::from_secs(30 * 24 * 60 * 60); // 30 days
 
@@ -32,7 +33,7 @@ pub fn sleep_until(deadline: Instant) -> Sleep {
 /// A future returned by `sleep` and `sleep_until`
 pub struct Sleep {
     deadline: Instant,
-    delay: Delay,
+    delay: Pin<Box<TokioSleep>>,
 }
 
 impl Future for Sleep {
@@ -51,7 +52,7 @@ impl Future for Sleep {
     }
 }
 
-fn next_delay(deadline: Instant, duration: Duration) -> Delay {
+fn next_delay(deadline: Instant, duration: Duration) -> Pin<Box<TokioSleep>> {
     let delay = cmp::min(deadline, Instant::now() + duration);
-    time::delay_until(delay)
+    Box::pin(time::sleep_until(delay))
 }

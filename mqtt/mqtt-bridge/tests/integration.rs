@@ -326,7 +326,7 @@ async fn bridge_settings_update() {
         .unwrap();
 
     // delay to propagate the update
-    tokio::time::delay_for(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     // send upstream
     local_client
@@ -424,7 +424,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
         .unwrap();
 
     // delay to have authorizer updated
-    tokio::time::delay_for(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     // send upstream
     upstream_client
@@ -637,7 +637,7 @@ async fn bridge_forwards_messages_after_restart() {
     .await;
 
     // wait until the bridges up and running
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     // send upstream
     local_client

@@ -6,8 +6,8 @@ use core::{convert::TryInto, num::TryFromIntError};
 use std::{fmt::Display, str, time::Duration};
 
 use async_trait::async_trait;
+use futures_util::TryStreamExt;
 use mockall::automock;
-use tokio::stream::StreamExt;
 use tracing::{debug, error, info};
 
 use mqtt3::{

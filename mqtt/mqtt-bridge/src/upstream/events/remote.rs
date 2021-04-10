@@ -170,9 +170,9 @@ impl PumpMessageHandler for RemoteUpstreamPumpEventHandler {
 
 #[cfg(test)]
 mod tests {
-    use tokio::sync::mpsc::error::TryRecvError;
 
     use bytes::Bytes;
+    use futures_util::FutureExt;
     use matches::assert_matches;
 
     use crate::{
@@ -210,7 +210,7 @@ mod tests {
         handler.handle(event).await;
 
         // check no message which was sent to local pump
-        assert_matches!(rx.try_recv(), Err(TryRecvError::Empty));
+        assert!(rx.recv().now_or_never().is_none());
 
         // check subscriptions has requested topic
         assert_matches!(rpc_subscriptions.remove("/foo"), Some(id) if id == "1".into());
@@ -244,7 +244,7 @@ mod tests {
         handler.handle(event).await;
 
         // check no message which was sent to local pump
-        assert_matches!(rx.try_recv(), Err(TryRecvError::Empty));
+        assert!(rx.recv().now_or_never().is_none());
 
         // check subscriptions has requested topic
         assert_matches!(rpc_subscriptions.remove("/foo"), Some(id) if id == "1".into());

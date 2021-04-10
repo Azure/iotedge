@@ -27,8 +27,7 @@ proptest! {
     fn broker_manages_sessions(
         events in proptest::collection::vec(arb_broker_event(), 1..50)
     ) {
-    tokio::runtime::Builder::new()
-        .basic_scheduler()
+    tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()

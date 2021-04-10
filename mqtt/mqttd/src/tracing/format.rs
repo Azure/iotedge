@@ -2,9 +2,7 @@ use std::marker::PhantomData;
 
 use tracing::{Event, Level};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::{
-    time::ChronoLocal, time::FormatTime, Context, FormatEvent, NewVisitor,
-};
+use tracing_subscriber::fmt::{time::ChronoLocal, time::FormatTime, FormatEvent};
 
 /// Marker for `Format` that indicates that the syslog format should be used.
 pub(crate) struct EdgeHub;

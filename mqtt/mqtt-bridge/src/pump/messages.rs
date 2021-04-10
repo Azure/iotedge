@@ -1,7 +1,6 @@
 use std::{convert::TryInto, fmt::Debug};
 
 use async_trait::async_trait;
-use futures_util::stream::StreamExt;
 use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
 use tracing::{debug, error, info};
@@ -66,7 +65,7 @@ where
     /// Runs control messages processing.
     pub(crate) async fn run(mut self) -> Result<(), MessageProcessorError> {
         info!("starting pump messages processor...");
-        while let Some(message) = self.messages.next().await {
+        while let Some(message) = self.messages.recv().await {
             match message {
                 PumpMessage::Event(event) => self.handler.handle(event).await,
                 PumpMessage::ConfigurationUpdate(update) => {

@@ -1,6 +1,6 @@
-use std::str;
+use std::{io::Read, str};
 
-use bytes::buf::{Buf, BufExt};
+use bytes::buf::Buf;
 use chrono::{DateTime, Utc};
 use http::{Request, StatusCode, Uri};
 use hyper::{body, Body, Client};
@@ -42,7 +42,7 @@ impl WorkloadClient {
         let req = IdentityCertificateRequest::new(Some(expiration.to_rfc3339()));
         let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
 
-        self.get_response(uri, body).await
+        self.read_response(uri, body).await
     }
 
     pub async fn create_server_cert(
@@ -62,10 +62,10 @@ impl WorkloadClient {
         let req = ServerCertificateRequest::new(hostname.to_string(), expiration.to_rfc3339());
         let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
 
-        self.get_response(uri, body).await
+        self.read_response(uri, body).await
     }
 
-    async fn get_response(
+    async fn read_response(
         &self,
         uri: Uri,
         body: String,
@@ -86,9 +86,11 @@ impl WorkloadClient {
             .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
         if status != StatusCode::CREATED {
-            let text =
-                str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-            return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
+            let mut text = String::new();
+            body.reader()
+                .read_to_string(&mut text)
+                .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+            return Err(ApiError::UnsuccessfulResponse(status, text).into());
         }
 
         let cert = serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
@@ -129,9 +131,11 @@ impl WorkloadClient {
             .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
         if status != StatusCode::OK {
-            let text =
-                str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-            return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
+            let mut text = String::new();
+            body.reader()
+                .read_to_string(&mut text)
+                .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+            return Err(ApiError::UnsuccessfulResponse(status, text).into());
         }
 
         let signed_data =
@@ -160,9 +164,11 @@ impl WorkloadClient {
             .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
         if status != StatusCode::OK {
-            let text =
-                str::from_utf8(body.bytes()).map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-            return Err(ApiError::UnsuccessfulResponse(status, text.into()).into());
+            let mut text = String::new();
+            body.reader()
+                .read_to_string(&mut text)
+                .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
+            return Err(ApiError::UnsuccessfulResponse(status, text).into());
         }
 
         let trust_bundle =
@@ -309,7 +315,7 @@ mod tests {
             "POST",
             "/modules/%24edgeHub/genid/12345678/sign?api-version=2019-01-30",
         )
-        .match_body(body.as_ref())
+        .match_body(body.as_str())
         .with_status(200)
         .with_body(serde_json::to_string(&res).unwrap())
         .create();
