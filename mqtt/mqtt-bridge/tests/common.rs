@@ -1,10 +1,12 @@
-use std::{path::PathBuf, time::Duration};
+use std::{num::NonZeroU64, path::Path, time::Duration};
 
 use tokio::task::JoinHandle;
 
 use mqtt_bridge::{
-    settings::{BridgeSettings, Direction},
-    BridgeController, BridgeControllerHandle,
+    settings::{
+        BridgeSettings, ConnectionSettings, Direction, RingBufferSettings, StorageSettings,
+    },
+    BridgeController, BridgeControllerHandle, FlushOptions,
 };
 use mqtt_broker::{
     auth::Authorizer, sidecar::Sidecar, BrokerBuilder, BrokerHandle, ServerCertificate,
@@ -76,24 +78,27 @@ pub async fn setup_bridge_controller(
     local_address: String,
     upstream_address: String,
     subs: Vec<Direction>,
-    storage_dir_override: &PathBuf,
+    storage_dir_override: &Path,
 ) -> (BridgeControllerHandle, JoinHandle<()>) {
     let credentials = Credentials::PlainText(AuthenticationSettings::new(
-        device_id.into(),
+        device_id,
         format!("{}/edgehub", device_id),
-        "pass".into(),
+        "pass",
         Some(CERTIFICATE.into()),
     ));
 
-    let settings = BridgeSettings::from_upstream_details(
+    let settings = create_bridge_from_upstream_details(
         upstream_address,
         credentials,
         subs,
         false,
         Duration::from_secs(5),
-        storage_dir_override,
-    )
-    .unwrap();
+        StorageSettings::RingBuffer(RingBufferSettings::new(
+            NonZeroU64::new(33_554_432).expect("33554432"), //32mb
+            storage_dir_override.to_path_buf(),
+            FlushOptions::AfterEachWrite,
+        )),
+    );
 
     let controller = BridgeController::new(local_address, device_id.into(), settings);
     let controller_handle = controller.handle();
@@ -102,4 +107,27 @@ pub async fn setup_bridge_controller(
     let join = tokio::spawn(controller.run());
 
     (controller_handle, join)
+}
+
+fn create_bridge_from_upstream_details(
+    addr: String,
+    credentials: Credentials,
+    subs: Vec<Direction>,
+    clean_session: bool,
+    keep_alive: Duration,
+    storage_settings: StorageSettings,
+) -> BridgeSettings {
+    let upstream_connection_settings = ConnectionSettings::new(
+        "$upstream",
+        addr,
+        credentials,
+        subs,
+        keep_alive,
+        clean_session,
+    );
+    BridgeSettings::new(
+        Some(upstream_connection_settings),
+        Vec::new(),
+        storage_settings,
+    )
 }

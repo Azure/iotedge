@@ -1,4 +1,7 @@
-#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
+// Needed because mock! macro violates
+#![allow(clippy::default_trait_access)]
+#![allow(clippy::upper_case_acronyms)]
+
 use core::{convert::TryInto, num::TryFromIntError};
 use std::{fmt::Display, str, time::Duration};
 
@@ -457,8 +460,8 @@ mod tests {
         let repeat: usize = (u16::MAX).into();
         let connection_credentials = Credentials::PlainText(AuthenticationSettings::new(
             "c".repeat(repeat + 1),
-            "username".into(),
-            "pass".into(),
+            "username",
+            "pass",
             None,
         ));
 
@@ -482,9 +485,9 @@ mod tests {
         let clean_session = false;
         let repeat: usize = (u16::MAX).into();
         let connection_credentials = Credentials::PlainText(AuthenticationSettings::new(
-            "user".into(),
+            "user",
             "u".repeat(repeat + 1),
-            "pass".into(),
+            "pass",
             None,
         ));
 

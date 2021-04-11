@@ -22,7 +22,6 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
-mod hostname_checks_common;
 mod upstream_protocol_port;
 
 mod checker;
@@ -36,6 +35,7 @@ pub struct Check {
     dont_run: BTreeSet<String>,
     aziot_edged: PathBuf,
     expected_aziot_edged_version: Option<String>,
+    expected_aziot_version: Option<String>,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
@@ -46,6 +46,7 @@ pub struct Check {
     // These optional fields are populated by the checks
     iothub_hostname: Option<String>, // populated by `aziot check`
     proxy_uri: Option<String>,       // populated by `aziot check`
+    parent_hostname: Option<String>, // populated by `aziot check`
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
@@ -87,6 +88,7 @@ impl Check {
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
         expected_aziot_edged_version: Option<String>,
+        expected_aziot_version: Option<String>,
         aziot_edged: PathBuf,
         output_format: OutputFormat,
         verbose: bool,
@@ -101,6 +103,7 @@ impl Check {
             dont_run,
             aziot_edged,
             expected_aziot_edged_version,
+            expected_aziot_version,
             output_format,
             verbose,
             warnings_as_errors,
@@ -110,6 +113,7 @@ impl Check {
 
             iothub_hostname,
             proxy_uri,
+            parent_hostname: None,
             settings: None,
             docker_host_arg: None,
             docker_server_version: None,
@@ -474,6 +478,10 @@ impl Check {
                     .arg(self.dont_run.iter().cloned().collect::<Vec<_>>().join(" "));
             }
 
+            if let Some(version) = &self.expected_aziot_version {
+                aziot_check.arg("--expected-aziot-version").arg(version);
+            }
+
             match aziot_check.spawn() {
                 Ok(child) => {
                     for val in
@@ -508,6 +516,12 @@ impl Check {
                                         .and_then(serde_json::Value::as_str)
                                         .map(Into::into)
                                 }
+
+                                self.parent_hostname = info
+                                    .as_object()
+                                    .and_then(|m| m.get("local_gateway_hostname"))
+                                    .and_then(serde_json::Value::as_str)
+                                    .map(Into::into)
                             }
                         }
                     }
@@ -651,7 +665,7 @@ fn write_lines<'a>(
 #[cfg(test)]
 mod tests {
     use super::{
-        checks::{ContainerEngineIsMoby, Hostname, WellFormedConfig},
+        checks::{ContainerEngineIsMoby, WellFormedConfig},
         Check, CheckResult, Checker,
     };
 
@@ -681,6 +695,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
@@ -693,23 +708,6 @@ mod tests {
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            match Hostname::default().execute(&mut check, &mut runtime) {
-                CheckResult::Failed(err) => {
-                    let message = err.to_string();
-                    assert!(
-                        message
-                            .starts_with("configuration has hostname localhost but device reports"),
-                        "checking hostname in {} produced unexpected error: {}",
-                        filename,
-                        message,
-                    );
-                }
-                check_result => panic!(
-                    "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
             }
 
             // Pretend it's Moby
@@ -747,6 +745,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
@@ -759,23 +758,6 @@ mod tests {
             match WellFormedConfig::default().execute(&mut check, &mut runtime) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
-            }
-
-            match Hostname::default().execute(&mut check, &mut runtime) {
-                CheckResult::Failed(err) => {
-                    let message = err.to_string();
-                    assert!(
-                        message
-                            .starts_with("configuration has hostname localhost but device reports"),
-                        "checking hostname in {} produced unexpected error: {}",
-                        filename,
-                        message,
-                    );
-                }
-                check_result => panic!(
-                    "checking hostname in {} returned {:?}",
-                    filename, check_result
-                ),
             }
 
             // Pretend it's Moby
@@ -814,6 +796,7 @@ mod tests {
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
             Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
@@ -851,6 +834,7 @@ mod tests {
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
+            Some("1.0.0".to_owned()),  // unused for this test
             Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test

@@ -56,7 +56,7 @@ impl IdentityClient {
         let res = build_request_uri(&self.host, &uri)
             .into_future()
             .and_then(move |uri| {
-                request::<_, _, ()>(&client, hyper::Method::POST, &uri, Some(&body))
+                request_no_content::<_, _>(&client, hyper::Method::POST, &uri, Some(&body))
             });
 
         Box::new(res)

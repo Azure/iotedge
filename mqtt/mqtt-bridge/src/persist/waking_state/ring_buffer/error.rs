@@ -1,15 +1,17 @@
+use crate::persist::Key;
+
 #[derive(Debug, thiserror::Error)]
 pub enum BlockError {
-    #[error("Unexpected block crc {found:?} expected {expected:?}")]
+    #[error("Unexpected block crc {found} expected {expected}")]
     BlockCrc { found: u32, expected: u32 },
 
     #[error("Failed to create block. Caused by {0}")]
     BlockCreation(#[from] bincode::Error),
 
-    #[error("Unexpected data crc {found:?} expected {expected:?}")]
+    #[error("Unexpected data crc {found} expected {expected}")]
     DataCrc { found: u32, expected: u32 },
 
-    #[error("Unexpected data size {found:?} expected {expected:?}")]
+    #[error("Unexpected data size {found} expected {expected}")]
     DataSize { found: u64, expected: u64 },
 
     #[error("Bad hint")]
@@ -31,7 +33,7 @@ pub enum RingBufferError {
     FileCreate(std::io::Error),
 
     #[error("File IO error occurred. Caused by {0}")]
-    FileIO(std::io::Error),
+    FileIo(std::io::Error),
 
     #[error("Storage file metadata unavailable. Caused by {0}")]
     FileMetadata(std::io::Error),
@@ -41,14 +43,11 @@ pub enum RingBufferError {
     )]
     FileTruncation { current: u64, new: u64 },
 
-    #[error("Key does not exist")]
-    NonExistantKey,
+    #[error("Read unknown block with {current} but {expected} hint expected")]
+    UnknownBlock { current: u32, expected: u32 },
 
-    #[error("Key is at invalid index for removal")]
-    RemovalIndex,
-
-    #[error("Cannot remove before reading")]
-    RemoveBeforeRead,
+    #[error("Cannot remove before reading a publication with key {0}")]
+    RemoveBeforeRead(Key),
 
     #[error("Serialization error occurred. Caused by {0}")]
     Serialization(#[from] bincode::Error),
