@@ -26,13 +26,13 @@ pub mod unix;
 
 use futures::sync::mpsc;
 use identity_client::IdentityClient;
-use std::collections::BTreeMap;
 use std::fs::DirBuilder;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::{collections::BTreeMap, fs::OpenOptions, io::Read};
 
-use failure::{Fail, ResultExt};
+use failure::{Context, Fail, ResultExt};
 use futures::future::Either;
 use futures::sync::oneshot::{self, Receiver};
 use futures::{future, Future, Stream};
@@ -41,6 +41,7 @@ use hyper::{Body, Request};
 use log::{debug, error, info, Level};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 use edgelet_core::{
     crypto::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS},
@@ -114,6 +115,9 @@ const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 /// This is the name of the cache subdirectory for settings state
 const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
+/// This is the name of the settings backup file
+const EDGE_PROVISIONING_STATE_FILENAME: &str = "provisioning_state";
+
 // 2 hours
 const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 // 90 days
@@ -130,6 +134,13 @@ enum StartApiReturnStatus {
     Shutdown,
 }
 
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
+pub struct ProvisioningResult {
+    device_id: String,
+    gateway_host_name: String,
+    hub_name: String,
+}
+
 pub struct Main<M>
 where
     M: MakeModuleRuntime,
@@ -142,7 +153,7 @@ where
     M: MakeModuleRuntime + Send + 'static,
     M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
     <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
-        Clone + DeserializeOwned + Serialize,
+        Clone + DeserializeOwned + Serialize + edgelet_core::module::NestedEdgeBodge,
     M::Settings: 'static + Clone + Serialize,
     <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
     <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
@@ -159,7 +170,7 @@ where
         F: Future<Item = (), Error = ()> + Send + 'static,
         G: Fn() -> F,
     {
-        let Main { settings } = self;
+        let Main { mut settings } = self;
 
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
@@ -193,20 +204,34 @@ where
                 AutoReprovisioningMode::Dynamic | AutoReprovisioningMode::OnErrorOnly => {}
             }
 
-            let device_info = get_device_info(&client)
-                .map_err(|e| {
-                    Error::from(
-                        e.context(ErrorKind::Initialize(InitializeErrorReason::GetDeviceInfo)),
-                    )
-                })
-                .map(|(hub_name, device_id)| {
-                    debug!("{}:{}", hub_name, device_id);
-                    (hub_name, device_id)
-                });
-            let result = tokio_runtime.block_on(device_info);
+            let result =
+                tokio_runtime.block_on(
+                    client
+                        .lock()
+                        .unwrap()
+                        .get_device()
+                        .map_err(|err| {
+                            Error::from(err.context(ErrorKind::Initialize(
+                                InitializeErrorReason::GetDeviceInfo,
+                            )))
+                        })
+                        .and_then(|identity| match identity {
+                            aziot_identity_common::Identity::Aziot(spec) => {
+                                debug!("{}:{}", spec.hub_name, spec.device_id.0);
+                                Ok(ProvisioningResult {
+                                    device_id: spec.device_id.0,
+                                    gateway_host_name: spec.gateway_host,
+                                    hub_name: spec.hub_name,
+                                })
+                            }
+                            aziot_identity_common::Identity::Local(_) => Err(Error::from(
+                                ErrorKind::Initialize(InitializeErrorReason::InvalidIdentityType),
+                            )),
+                        }),
+                );
 
             match result {
-                Ok((hub, device_id)) => {
+                Ok(provisioning_result) => {
                     info!("Finished provisioning edge device.");
 
                     // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
@@ -224,16 +249,22 @@ where
                         ))?;
                     info!("Finished stopping modules.");
 
-                    tokio_runtime
-                        .block_on(runtime.remove_all())
-                        .context(ErrorKind::Initialize(
-                            InitializeErrorReason::RemoveExistingModules,
-                        ))?;
+                    // Detect if the device was changed and if the device needs to be reconfigured
+                    check_device_reconfigure::<M>(
+                        &cache_subdir_path,
+                        EDGE_PROVISIONING_STATE_FILENAME,
+                        &provisioning_result,
+                        &runtime,
+                        &mut tokio_runtime,
+                    )?;
+
+                    settings
+                        .agent_mut()
+                        .parent_hostname_resolve_image(&provisioning_result.gateway_host_name);
 
                     let cfg = WorkloadData::new(
-                        hub,
-                        settings.parent_hostname().map(String::from),
-                        device_id,
+                        provisioning_result.hub_name,
+                        provisioning_result.device_id,
                         settings
                             .edge_ca_cert()
                             .unwrap_or(AZIOT_EDGED_CA_ALIAS)
@@ -252,6 +283,7 @@ where
 
                     let (code, should_reprovision) = start_api::<_, _, M>(
                         &settings,
+                        &provisioning_result.gateway_host_name,
                         &runtime,
                         cfg.clone(),
                         make_shutdown_signal(),
@@ -281,23 +313,6 @@ where
     }
 }
 
-fn get_device_info(
-    identity_client: &Arc<Mutex<IdentityClient>>,
-) -> impl Future<Item = (String, String), Error = Error> {
-    let id_mgr = identity_client.lock().unwrap();
-    id_mgr
-        .get_device()
-        .map_err(|err| {
-            Error::from(err.context(ErrorKind::Initialize(InitializeErrorReason::GetDeviceInfo)))
-        })
-        .and_then(|identity| match identity {
-            aziot_identity_common::Identity::Aziot(spec) => Ok((spec.hub_name, spec.device_id.0)),
-            aziot_identity_common::Identity::Local(_) => Err(Error::from(ErrorKind::Initialize(
-                InitializeErrorReason::InvalidIdentityType,
-            ))),
-        })
-}
-
 fn reprovision_device(
     identity_client: &Arc<Mutex<IdentityClient>>,
 ) -> impl Future<Item = (), Error = Error> {
@@ -307,9 +322,121 @@ fn reprovision_device(
         .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
 }
 
+fn check_device_reconfigure<M>(
+    subdir: &Path,
+    filename: &str,
+    provisioning_result: &ProvisioningResult,
+    runtime: &M::ModuleRuntime,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(), Error>
+where
+    M: MakeModuleRuntime + 'static,
+{
+    info!("Detecting if device information has changed...");
+    let path = subdir.join(filename);
+
+    let diff = diff_with_cached(provisioning_result, &path);
+    if diff {
+        info!("Change to provisioning state detected.");
+        reconfigure::<M>(
+            subdir,
+            filename,
+            provisioning_result,
+            runtime,
+            tokio_runtime,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn compute_provisioning_result_digest(
+    provisioning_result: &ProvisioningResult,
+) -> Result<String, DiffError> {
+    let s = serde_json::to_string(provisioning_result)?;
+    Ok(base64::encode(&Sha256::digest_str(&s)))
+}
+
+fn diff_with_cached(provisioning_result: &ProvisioningResult, path: &Path) -> bool {
+    fn diff_with_cached_inner(
+        provisioning_result: &ProvisioningResult,
+        path: &Path,
+    ) -> Result<bool, DiffError> {
+        let mut file = OpenOptions::new().read(true).open(path)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+        let encoded = compute_provisioning_result_digest(provisioning_result)?;
+        if encoded == buffer {
+            debug!("Provisioning state matches supplied provisioning result.");
+            Ok(false)
+        } else {
+            Ok(true)
+        }
+    }
+
+    match diff_with_cached_inner(provisioning_result, path) {
+        Ok(result) => result,
+
+        Err(err) => {
+            log_failure(Level::Debug, &err);
+            debug!("Error reading config backup.");
+            true
+        }
+    }
+}
+
+#[derive(Debug, Fail)]
+#[fail(display = "Could not load provisioning result")]
+pub struct DiffError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
+
+impl From<std::io::Error> for DiffError {
+    fn from(err: std::io::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+impl From<serde_json::Error> for DiffError {
+    fn from(err: serde_json::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+fn reconfigure<M>(
+    subdir: &Path,
+    filename: &str,
+    provisioning_result: &ProvisioningResult,
+    runtime: &M::ModuleRuntime,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(), Error>
+where
+    M: MakeModuleRuntime + 'static,
+{
+    info!("Removing all modules...");
+    tokio_runtime
+        .block_on(runtime.remove_all())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::RemoveExistingModules,
+        ))?;
+    info!("Finished removing modules.");
+
+    let path = subdir.join(filename);
+
+    // store provisioning result
+    let digest = compute_provisioning_result_digest(provisioning_result).context(
+        ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning),
+    )?;
+
+    std::fs::write(path, digest.into_bytes()).context(ErrorKind::Initialize(
+        InitializeErrorReason::SaveProvisioning,
+    ))?;
+
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn start_api<F, W, M>(
     settings: &M::Settings,
+    parent_hostname: &str,
     runtime: &M::ModuleRuntime,
     workload_config: W,
     shutdown_signal: F,
@@ -330,12 +457,6 @@ where
     let iot_hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
 
-    //TODO: Use when parent_hostname is returned by IS API
-    let _upstream_gateway = format!(
-        "https://{}",
-        workload_config.parent_hostname().unwrap_or(&iot_hub_name)
-    );
-
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (mgmt_stop_and_reprovision_tx, mgmt_stop_and_reprovision_rx) = mpsc::unbounded();
     let (work_tx, work_rx) = oneshot::channel();
@@ -348,6 +469,7 @@ where
     let edge_rt = start_runtime::<M>(
         runtime.clone(),
         &iot_hub_name,
+        parent_hostname,
         &device_id,
         &settings,
         runt_rx,
@@ -447,6 +569,7 @@ where
 fn start_runtime<M>(
     runtime: M::ModuleRuntime,
     hostname: &str,
+    parent_hostname: &str,
     device_id: &str,
     settings: &M::Settings,
     shutdown: Receiver<()>,
@@ -460,7 +583,7 @@ where
     for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let spec = settings.agent().clone();
-    let env = build_env(spec.env(), hostname, device_id, settings);
+    let env = build_env(spec.env(), hostname, parent_hostname, device_id, settings);
     let spec = ModuleSpec::<<M::ModuleRuntime as ModuleRuntime>::Config>::new(
         EDGE_RUNTIME_MODULE_NAME.to_string(),
         spec.type_().to_string(),
@@ -486,6 +609,7 @@ where
 fn build_env<S>(
     spec_env: &BTreeMap<String, String>,
     hostname: &str,
+    parent_hostname: &str,
     device_id: &str,
     settings: &S,
 ) -> BTreeMap<String, String>
@@ -499,7 +623,7 @@ where
         settings.hostname().to_string().to_lowercase(),
     );
 
-    if let Some(parent_hostname) = settings.parent_hostname() {
+    if parent_hostname.to_lowercase() != hostname.to_lowercase() {
         env.insert(
             GATEWAY_HOSTNAME_KEY.to_string(),
             parent_hostname.to_string(),
@@ -647,7 +771,6 @@ mod tests {
 
     use super::{Fail, RuntimeSettings};
 
-    static GOOD_SETTINGS_NESTED_EDGE: &str = "test/linux/sample_settings.nested.edge.toml";
     static GOOD_SETTINGS_EDGE_CA_CERT_ID: &str = "test/linux/sample_settings.edge.ca.id.toml";
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -660,14 +783,6 @@ mod tests {
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
-    }
-
-    #[test]
-    fn settings_for_nested_edge() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_NESTED_EDGE);
-        let settings = Settings::new().unwrap();
-        assert_eq!(settings.parent_hostname(), Some("parent_iotedge_device"));
     }
 
     #[test]

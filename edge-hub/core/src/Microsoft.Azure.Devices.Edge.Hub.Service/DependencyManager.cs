@@ -133,11 +133,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool trackDeviceState = authenticationMode == AuthenticationMode.Scope
                 && this.configuration.GetValue("TrackDeviceState", true);
 
+            string proxyModuleId = this.configuration.GetValue("ApiProxyModuleId", Core.Constants.DefaultApiProxyId);
+
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, nestedEdgeEnabled, authenticationMode);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, nestedEdgeEnabled, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance, experimentalFeatures);
             this.RegisterAmqpModule(builder);
-            builder.RegisterModule(new HttpModule(this.iotHubHostname));
+            builder.RegisterModule(new HttpModule(this.iotHubHostname, this.edgeDeviceId, proxyModuleId));
 
             if (experimentalFeatures.EnableMqttBroker)
             {
@@ -158,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols, amqpSettings.GetValue<bool>("delayedBatchingEnabled")));
         }
 
         void RegisterMqttModule(

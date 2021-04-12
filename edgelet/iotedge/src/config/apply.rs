@@ -14,7 +14,7 @@ const AZIOT_EDGED_HOMEDIR_PATH: &str = "/var/lib/aziot/edged";
 const TRUST_BUNDLE_USER_ALIAS: &str = "trust-bundle-user";
 
 // TODO: Dedupe this with edgelet-http-workload
-const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
+const IOTEDGED_COMMONNAME_PREFIX: &str = "iotedged workload ca";
 
 pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
     // In production, running as root is the easiest way to guarantee the tool has write access to every service's config file.
@@ -75,6 +75,7 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         tpmd_config,
         edged_config,
         preloaded_device_id_pk_bytes,
+        preloaded_master_encryption_key_bytes,
     } = execute_inner(config, aziotcs_user.uid, aziotid_user.uid, iotedge_user.uid)?;
 
     if let Some(preloaded_device_id_pk_bytes) = preloaded_device_id_pk_bytes {
@@ -85,6 +86,20 @@ pub fn execute(config: &Path) -> Result<(), std::borrow::Cow<'static, str>> {
         common_config::write_file(
             "/var/secrets/aziot/keyd/device-id",
             &preloaded_device_id_pk_bytes,
+            &aziotks_user,
+            0o0600,
+        )
+        .map_err(|err| format!("{:?}", err))?;
+    }
+
+    if let Some(preloaded_master_encryption_key_bytes) = preloaded_master_encryption_key_bytes {
+        println!("Note: Imported master encryption key will be written to /var/secrets/aziot/keyd/imported-master-encryption-key");
+
+        common_config::create_dir_all("/var/secrets/aziot/keyd", &aziotks_user, 0o0700)
+            .map_err(|err| format!("{:?}", err))?;
+        common_config::write_file(
+            "/var/secrets/aziot/keyd/imported-master-encryption-key",
+            &preloaded_master_encryption_key_bytes,
             &aziotks_user,
             0o0600,
         )
@@ -148,6 +163,7 @@ struct RunOutput {
     tpmd_config: Vec<u8>,
     edged_config: Vec<u8>,
     preloaded_device_id_pk_bytes: Option<Vec<u8>>,
+    preloaded_master_encryption_key_bytes: Option<Vec<u8>>,
 }
 
 fn execute_inner(
@@ -160,9 +176,9 @@ fn execute_inner(
         .map_err(|err| format!("could not read config file {}: {}", config.display(), err))?;
 
     let super_config::Config {
-        parent_hostname,
         trust_bundle_cert,
         auto_reprovisioning_mode,
+        imported_master_encryption_key,
         aziot,
         agent,
         connect,
@@ -206,10 +222,33 @@ fn execute_inner(
         ],
     });
 
+    let preloaded_master_encryption_key_bytes = {
+        if let Some(imported_master_encryption_key) = imported_master_encryption_key {
+            let preloaded_master_encryption_key_bytes =
+                std::fs::read(&imported_master_encryption_key).map_err(|err| {
+                    format!(
+                        "could not import master encryption key file {}: {}",
+                        imported_master_encryption_key.display(),
+                        err
+                    )
+                })?;
+            keyd_config.preloaded_keys.insert(
+                "iotedge_master_encryption_id".to_owned(),
+                (aziot_keys_common::PreloadedKeyLocation::Filesystem {
+                    path: "/var/secrets/aziot/keyd/imported-master-encryption-key".into(),
+                })
+                .to_string(),
+            );
+            Some(preloaded_master_encryption_key_bytes)
+        } else {
+            None
+        }
+    };
+
     let mut trust_bundle_certs = vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()];
 
     let edge_ca = edge_ca.unwrap_or(super_config::EdgeCa::Quickstart {
-        auto_generated_edge_ca_expiry_days: 1,
+        auto_generated_edge_ca_expiry_days: 90,
     });
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
@@ -236,7 +275,10 @@ fn execute_inner(
                 edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 aziot_certd_config::CertIssuanceOptions {
                     method: aziot_certd_config::CertIssuanceMethod::SelfSigned,
-                    common_name: Some(IOTEDGED_COMMONNAME.to_owned()),
+                    common_name: Some(format!(
+                        "{} {}",
+                        IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
+                    )),
                     expiry_days: Some(auto_generated_edge_ca_expiry_days),
                 },
             );
@@ -264,20 +306,9 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
-    // TODO: Remove this when IS gains first-class support for parent_hostname
-    if let Some(parent_hostname) = &parent_hostname {
-        if let aziot_identityd_config::ProvisioningType::Manual {
-            iothub_hostname, ..
-        } = &mut identityd_config.provisioning.provisioning
-        {
-            *iothub_hostname = parent_hostname.clone();
-        }
-    }
-
     let edged_config = edgelet_docker::Settings {
         base: edgelet_core::Settings {
             hostname: identityd_config.hostname.clone(),
-            parent_hostname,
 
             edge_ca_cert,
             edge_ca_key,
@@ -392,6 +423,7 @@ fn execute_inner(
         tpmd_config,
         edged_config,
         preloaded_device_id_pk_bytes,
+        preloaded_master_encryption_key_bytes,
     })
 }
 
@@ -428,6 +460,32 @@ mod tests {
                     Err(err) => panic!("could not read device-id file: {}", err),
                 };
 
+            let expected_preloaded_master_encryption_key_bytes = {
+                match std::fs::read(case_directory.join("master-encryption-key")) {
+                    Ok(contents) => {
+                        match std::fs::write("/tmp/master-encryption-key", &contents) {
+                            Ok(()) => (),
+                            Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
+                            Err(err) => {
+                                panic!("could not create temp master-encryption-key file: {}", err)
+                            }
+                        }
+                        Some(contents)
+                    }
+                    Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                        match std::fs::remove_file("/tmp/master-encryption-key") {
+                            Ok(()) => (),
+                            Err(err) if err.kind() == std::io::ErrorKind::NotFound => (),
+                            Err(err) => {
+                                panic!("could not delete temp master-encryption-key file: {}", err)
+                            }
+                        }
+                        None
+                    }
+                    Err(err) => panic!("could not read master-encryption-key file: {}", err),
+                }
+            };
+
             let super::RunOutput {
                 keyd_config: actual_keyd_config,
                 certd_config: actual_certd_config,
@@ -435,6 +493,7 @@ mod tests {
                 tpmd_config: actual_tpmd_config,
                 edged_config: actual_edged_config,
                 preloaded_device_id_pk_bytes: actual_preloaded_device_id_pk_bytes,
+                preloaded_master_encryption_key_bytes: actual_preloaded_master_encryption_key_bytes,
             } = super::execute_inner(
                 &super_config_file,
                 nix::unistd::Uid::from_raw(5555),
@@ -474,6 +533,11 @@ mod tests {
                 expected_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
                 actual_preloaded_device_id_pk_bytes.map(bytes::Bytes::from),
                 "device ID key bytes do not match"
+            );
+            assert_eq!(
+                expected_preloaded_master_encryption_key_bytes.map(bytes::Bytes::from),
+                actual_preloaded_master_encryption_key_bytes.map(bytes::Bytes::from),
+                "imported master encryption key bytes do not match"
             );
         }
     }

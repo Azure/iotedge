@@ -34,7 +34,7 @@ pub use self::server::ServerCertHandler;
 const AZIOT_EDGE_CA_CERT_MIN_DURATION_SECS: i64 = 5 * 60;
 
 // Workload CA CN
-const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
+const IOTEDGED_COMMONNAME_PREFIX: &str = "iotedged workload ca";
 
 #[derive(Clone)]
 pub(crate) struct EdgeCaCertificate {
@@ -284,10 +284,10 @@ pub(crate) fn prepare_edge_ca(
                     let cert = openssl::x509::X509::from_pem(cert.as_ref())
                         .map_err(|e| Error::from(e.context(context.clone())))?;
 
-                    let epoch =
-                        openssl::asn1::Asn1Time::from_unix(0).expect("unix epoch must be valid");
+                    let current_time = openssl::asn1::Asn1Time::days_from_now(0)
+                        .expect("current time must be valid");
 
-                    let diff = epoch
+                    let diff = current_time
                         .diff(&cert.not_after())
                         .map_err(|e| Error::from(e.context(context.clone())))?;
                     let diff = i64::from(diff.secs) + i64::from(diff.days) * 86400;
@@ -339,7 +339,7 @@ fn create_edge_ca_certificate(
     context: ErrorKind,
 ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
     let edgelet_ca_props = CertificateProperties::new(
-        IOTEDGED_COMMONNAME.to_string(),
+        IOTEDGED_COMMONNAME_PREFIX.to_string(),
         CertificateType::Ca,
         ca.cert_id.to_string(),
     );

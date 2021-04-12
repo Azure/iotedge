@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -78,8 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         void SetBasicDpsParam(string idScope)
         {
+            this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
+
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "dps");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.scope_id", idScope);
@@ -105,23 +107,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 new string[] { "aziot-edged/module/*" });
         }
 
-        public void SetManualSasProvisioning(string hubHostname, string deviceId, string key)
+        public void SetManualSasProvisioning(string hubHostname, Option<string> parentHostname, string deviceId, string key)
         {
             string keyName = DaemonConfiguration.SanitizeName(deviceId);
             this.CreatePreloadedKey(keyName, key);
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            parentHostname.ForEach(
+                parent_hostame =>
+                this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubHostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.method", "sas");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.device_id_pk", keyName);
 
+            this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
+
             this.SetAuth(keyName);
         }
 
-        public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identityPkPath)
+        public void SetDeviceManualX509(string hubhostname, Option<string> parentHostname, string deviceId, string identityCertPath, string identityPkPath)
         {
             if (!File.Exists(identityCertPath))
             {
@@ -134,7 +140,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             this.config[Service.Identityd].Document.RemoveIfExists("provisioning");
-            this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.always_reprovision_on_startup", true);
+            parentHostname.ForEach(
+                parent_hostame =>
+                this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.local_gateway_hostname", parent_hostame));
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.source", "manual");
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.iothub_hostname", hubhostname);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.device_id", deviceId);
@@ -150,6 +158,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string keyName = DaemonConfiguration.SanitizeName(keyFileName);
             this.config[Service.Identityd].Document.ReplaceOrAdd("provisioning.authentication.identity_pk", keyName);
             this.config[Service.Keyd].Document.ReplaceOrAdd($"preloaded_keys.{keyName}", "file://" + identityPkPath);
+
+            this.config[Service.Edged].Document.ReplaceOrAdd("auto_reprovisioning_mode", "AlwaysOnStartup");
 
             this.SetAuth(keyName);
         }
@@ -203,9 +213,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.SetAuth(keyName);
         }
 
-        public void SetEdgeAgentImage(string value)
+        public void SetEdgeAgentImage(string value, IEnumerable<Registry> registries)
         {
             this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.image", value);
+
+            // Currently, the only place for registries is [agent.config.auth]
+            // So only one registry is supported.
+            if (registries.Count() > 1)
+            {
+                throw new ArgumentException("Currently, up to a single registry is supported");
+            }
+
+            foreach (Registry registry in registries)
+            {
+                this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.serveraddress", registry.Address);
+                this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.username", registry.Username);
+                this.config[Service.Edged].Document.ReplaceOrAdd("agent.config.auth.password", registry.Password);
+            }
         }
 
         public void SetDeviceHostname(string value)

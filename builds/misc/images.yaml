@@ -3,9 +3,9 @@ trigger:
   branches:
     include:
       - master
-      - iiot
-      - preview/iiot
+      - release/*
 pr: none
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
 

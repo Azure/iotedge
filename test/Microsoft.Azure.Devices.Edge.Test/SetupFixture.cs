@@ -54,6 +54,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                     // Install IoT Edge, and do some basic configuration
                     await this.daemon.UninstallAsync(token);
+
+                    // Delete directories used by previous installs.
+                    string[] directories = { "/run/aziot", "/var/lib/aziot" };
+
+                    foreach (string directory in directories)
+                    {
+                        if (Directory.Exists(directory))
+                        {
+                            Directory.Delete(directory, true);
+                            Log.Information($"Deleted {directory}");
+                        }
+                    }
+
                     await this.daemon.InstallAsync(Context.Current.PackagePath, Context.Current.EdgeProxy, token);
 
                     // Clean the directory for test certs, keys, etc.
@@ -86,6 +99,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             config.SetDeviceHostname(hostname);
                             msgBuilder.Append("with hostname '{hostname}'");
                             props.Add(hostname);
+
+                            string edgeAgent = Context.Current.EdgeAgentImage.GetOrElse("mcr.microsoft.com/azureiotedge-agent:1.2");
+
                             Log.Information("Search parents");
                             Context.Current.ParentHostname.ForEach(parentHostname =>
                             {
@@ -94,9 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 msgBuilder.AppendLine($", parent hostname '{parentHostname}'");
                                 props.Add(parentHostname);
 
-                                string edgeAgent = Regex.Replace(Context.Current.EdgeAgentImage.GetOrElse(string.Empty), @"\$upstream", parentHostname);
-                                config.SetEdgeAgentImage(edgeAgent);
+                                edgeAgent = Regex.Replace(edgeAgent, @"\$upstream", parentHostname);
                             });
+
+                            config.SetEdgeAgentImage(edgeAgent, Context.Current.Registries);
 
                             Context.Current.EdgeProxy.ForEach(proxy =>
                             {
@@ -132,21 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.UninstallAsync(token);
 
                     // Delete test certs, keys, etc.
-                    Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
-
-                    // Restore backed up config files.
-                    foreach ((string file, string _) in this.configFiles)
+                    if (Directory.Exists(FixedPaths.E2E_TEST_DIR))
                     {
-                        string backupFile = file + ".backup";
-
-                        if (File.Exists(backupFile))
-                        {
-                            File.Move(backupFile, file, true);
-                        }
-                        else
-                        {
-                            File.Delete(file);
-                        }
+                        Directory.Delete(FixedPaths.E2E_TEST_DIR, true);
                     }
                 },
                 "Completed end-to-end test teardown"),
@@ -194,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public static async Task<(TestCertificates, CertificateAuthority ca)> GenerateCertsAsync(string deviceId, CancellationToken token)
         {
             string scriptPath = Context.Current.CaCertScriptPath.Expect(
-                () => new System.InvalidOperationException("Missing CA cert script path"));
+                () => new System.InvalidOperationException("Missing CA cert script path (check caCertScriptPath in context.json)"));
             (string, string, string) rootCa = Context.Current.RootCaKeys.Expect(
                 () => new System.InvalidOperationException("Missing root CA"));
 

@@ -249,7 +249,7 @@ impl StreamWakeableState for RingBuffer {
         Ok(Key { offset: key })
     }
 
-    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
+    fn batch(&mut self, size: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
         let write_index = self.metadata.file_pointers.write;
         let read_index = self.metadata.file_pointers.read_begin;
 
@@ -268,7 +268,7 @@ impl StreamWakeableState for RingBuffer {
         let mut start = read_index;
         let mut vdata = VecDeque::new();
         let mut reader = BufReader::with_capacity(page_size::get(), &mut self.file);
-        for _ in 0..count {
+        for _ in 0..size {
             let block = load_block_header(&mut reader, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is
@@ -308,26 +308,30 @@ impl StreamWakeableState for RingBuffer {
         Ok(vdata)
     }
 
-    fn remove(&mut self, key: Key) -> PersistResult<()> {
-        if !self.has_read {
-            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead));
-        }
-        let timer = Instant::now();
+    fn pop(&mut self) -> PersistResult<Key> {
         let read_index = self.metadata.file_pointers.read_begin;
-        let key = key.offset;
-        if key != read_index {
-            return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex));
+        let key = Key { offset: read_index };
+
+        if !self.has_read {
+            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(
+                key,
+            )));
         }
+
+        let timer = Instant::now();
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let start = key;
+        let start = key.offset;
         let mut block = load_block_header(&mut self.file, start, block_size, self.max_file_size)
             .map_err(PersistError::Serialization)?;
 
         let BlockVersion::Version1(inner_block) = block.inner_mut();
         if inner_block.hint() != BLOCK_HINT {
-            return Err(PersistError::RingBuffer(RingBufferError::NonExistantKey));
+            return Err(PersistError::RingBuffer(RingBufferError::UnknownBlock {
+                current: inner_block.hint(),
+                expected: BLOCK_HINT,
+            }));
         }
 
         inner_block.set_should_not_overwrite(false);
@@ -352,7 +356,9 @@ impl StreamWakeableState for RingBuffer {
             self.has_read = false;
         }
 
-        Ok(())
+        self.wake_up_task();
+
+        Ok(key)
     }
 
     fn set_waker(&mut self, waker: &Waker) {
@@ -435,19 +441,24 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
 
         // Check next block
         write_updates += 1;
-        order += 1; // We want to start with the next order number.
         start = end + data_size;
         end = start + block_size;
 
         // Found the last write, can stop updating write.
-        if inner.order() < order {
+        if should_update_write && inner.order() < order {
             should_update_write = false;
-            // Update write one last time to point at block
-            // where order is less.
-            write = start % max_file_size;
+
+            // If we haven't found any reads but we have found an order
+            // less than the last one, then we must have read and removed
+            // previous data. So, read should start at write and we
+            // are full.
+            if read_updates == 0 {
+                read = write;
+            }
         }
         if should_update_write {
             write = start % max_file_size;
+            order += 1; // We want to start with the next order number.
         }
 
         if start >= max_file_size {
@@ -753,7 +764,7 @@ mod tests {
                 }
 
                 for key in &keys[..39] {
-                    assert_matches!(rb.remove(*key), Ok(_));
+                    assert_matches!(rb.pop(), Ok(removed) if &removed == key);
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
@@ -779,7 +790,7 @@ mod tests {
                 assert_eq!(batch.len(), 61);
                 for key in &keys[39..] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
-                    assert_matches!(rb.remove(*key), Ok(_));
+                    assert_matches!(rb.pop(), Ok(removed) if &removed == key);
                 }
                 assert_eq!(rb.metadata.order, 100);
             }
@@ -823,8 +834,8 @@ mod tests {
             assert!(!batch.is_empty());
 
             for (key, _) in batch.drain(..) {
-                let result = rb.remove(key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if removed == key);
             }
 
             // write till wrap around
@@ -866,6 +877,86 @@ mod tests {
     }
 
     #[test]
+    fn it_inits_ok_with_previous_data_and_write_pointer_is_reaches_read_pointer_after_read() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        let data = bincode::serialize(&publication).unwrap();
+
+        let data_size = data.len() as u64;
+
+        let total_size = block_size + data_size;
+
+        let max_file_size = NonZeroU64::new(total_size * 20).unwrap();
+
+        let read;
+        let mut write;
+        {
+            let mut rb =
+                RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS).unwrap();
+
+            // write some
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+            }
+
+            let mut batch = rb.batch(10).unwrap();
+            assert!(!batch.is_empty());
+
+            for (key, _) in batch.drain(..) {
+                let removed = rb.pop().expect("unable to pop publication");
+                if removed != key {
+                    panic!(
+                        "invalid publication removed {} but expected {}",
+                        removed, key
+                    );
+                }
+            }
+
+            read = rb.metadata.file_pointers.read_begin;
+
+            // write till wrap around
+            // this will put write at read
+            loop {
+                // ignore err if any here, we just want to be full
+                let _result = rb.insert(&publication);
+
+                write = rb.metadata.file_pointers.write;
+                if write == read {
+                    break;
+                }
+            }
+
+            // Now we simulate a 'crash' and should be able to get
+            // correct pointers and read again.
+        }
+        {
+            let rb =
+                RingBuffer::new(&file.path().to_path_buf(), max_file_size, FLUSH_OPTIONS).unwrap();
+
+            let loaded_read = rb.metadata.file_pointers.read_begin;
+            let loaded_write = rb.metadata.file_pointers.write;
+            let loaded_can_read_from_wrap_around_when_write_full =
+                rb.metadata.can_read_from_wrap_around_when_write_full;
+            assert_eq!(write, loaded_write);
+            assert_eq!(read, loaded_read);
+            assert!(loaded_can_read_from_wrap_around_when_write_full);
+            // We would have written 10 + 20 entries, so the next one if there were a write
+            // should be 30. Order starts at 0.
+            assert_eq!(rb.metadata.order, 30);
+        }
+    }
+
+    #[test]
     fn it_inits_err_with_less_max_size_than_previous() {
         let publication = Publication {
             topic_name: "test".to_owned(),
@@ -901,20 +992,9 @@ mod tests {
                 assert_eq!(batch.pop_front().unwrap().0, *key);
             }
 
-            {
-                let key = keys[0];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
-
-            {
-                let key = keys[1];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
-
-            {
-                let key = keys[2];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[0]);
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[1]);
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[2]);
 
             assert_eq!(rb.metadata.order, 10);
         }
@@ -988,8 +1068,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(*key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if &removed == key);
             }
             assert_eq!(rb.metadata.order, 5);
         }
@@ -1054,9 +1134,9 @@ mod tests {
 
         let result = rb.0.batch(2);
         let batch = result.unwrap();
-        for entry in batch {
-            rb.0.remove(entry.0)
-                .expect("Failed to remove from RingBuffer");
+        for (key, _) in batch {
+            let removed = rb.0.pop().expect("Failed to remove from RingBuffer");
+            assert_eq!(removed, key);
         }
 
         let smaller_publication = Publication {
@@ -1140,8 +1220,8 @@ mod tests {
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
 
-        let result = rb.0.remove(batch[0].0);
-        assert_matches!(result, Ok(_));
+        let result = rb.0.pop();
+        assert_matches!(result, Ok(removed) if removed == batch[0].0);
 
         // need bigger pub
         let big_publication = Publication {
@@ -1249,8 +1329,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(*key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if &removed == key);
             }
         }
         {
@@ -1321,8 +1401,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if removed == key);
             }
 
             // write till wrap around
@@ -1516,71 +1596,12 @@ mod tests {
     #[test]
     fn it_errs_on_remove_when_no_read() {
         let mut rb = TestRingBuffer::default();
-        let result = rb.0.remove(Key { offset: 1 });
+        let result = rb.0.pop();
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead)
+            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(_))
         );
-    }
-
-    #[test]
-    fn it_errs_on_remove_with_key_not_equal_to_read() {
-        let mut rb = TestRingBuffer::default();
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        let result = rb.0.insert(&publication);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.0.batch(1);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.0.remove(Key { offset: 1 });
-        assert_matches!(result, Err(_));
-        assert_matches!(
-            result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemovalIndex)
-        );
-    }
-
-    #[test]
-    fn it_errs_on_remove_with_key_that_does_not_exist() {
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let file = result.unwrap();
-
-        let result = RingBuffer::new(
-            &file.path().to_path_buf(),
-            MAX_FILE_SIZE_NON_ZERO,
-            FLUSH_OPTIONS,
-        );
-        assert!(result.is_ok());
-        let mut rb = result.unwrap();
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        let result = rb.insert(&publication);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.batch(1);
-        assert_matches!(result, Ok(_));
-
-        let result = write(file.path(), "garbage");
-        assert_matches!(result, Ok(_));
-
-        let result = rb.remove(Key { offset: 0 });
-        assert_matches!(result, Err(_));
     }
 
     #[test]
@@ -1609,8 +1630,8 @@ mod tests {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
 
-            let result = rb.0.remove(key);
-            assert_matches!(result, Ok(_));
+            let result = rb.0.pop();
+            assert_matches!(result, Ok(removed) if removed == key);
         }
     }
 }

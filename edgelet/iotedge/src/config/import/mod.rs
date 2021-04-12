@@ -12,7 +12,7 @@
 
 mod old_config;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use config::Config;
 
@@ -58,18 +58,32 @@ File {} already exists. Azure IoT Edge has already been configured.
 
 To have the configuration take effect, run:
 
-    iotedge config apply
+    sudo iotedge config apply
 
 To reconfigure IoT Edge, run:
 
-    iotedge config import --force
+    sudo iotedge config import --force
 ",
             new_config_file.display()
         )
         .into());
     }
 
-    let config = execute_inner(old_config_file)?;
+    let old_master_encryption_key_path = {
+        // libiothsm derived the filenames for encryption keys from their alias (see `normalize_alias_file_path`)
+        // so the name of the master encryption key can be hard-coded.
+        const OLD_MASTER_ENCRYPTION_KEY_PATH: &str =
+            "/var/lib/iotedge/hsm/enc_keys/edgelet-masterWt5mT2xpO72EPKlt2Tt0Sq4uJCrMvfl2rzzKRB3pnyo_.enc.key";
+
+        let old_master_encryption_key_path = Path::new(OLD_MASTER_ENCRYPTION_KEY_PATH);
+        if old_master_encryption_key_path.is_file() {
+            Some(old_master_encryption_key_path.to_owned())
+        } else {
+            None
+        }
+    };
+
+    let config = execute_inner(old_config_file, old_master_encryption_key_path)?;
 
     common_config::write_file(new_config_file, &config, &root_user, 0o0600)
         .map_err(|err| format!("{:?}", err))?;
@@ -82,14 +96,17 @@ To reconfigure IoT Edge, run:
     println!("To apply the new configuration to services, run:");
     println!();
     println!(
-        "    iotedge config apply -c '{}'",
+        "    sudo iotedge config apply -c '{}'",
         new_config_file.display()
     );
 
     Ok(())
 }
 
-fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'static, str>> {
+fn execute_inner(
+    old_config_file: &Path,
+    old_master_encryption_key_path: Option<PathBuf>,
+) -> Result<Vec<u8>, std::borrow::Cow<'static, str>> {
     let old_config_file_display = old_config_file.display();
 
     let old_config_contents = match std::fs::read_to_string(old_config_file) {
@@ -345,14 +362,15 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
     };
 
     let config = super_config::Config {
-        parent_hostname,
-
         trust_bundle_cert,
 
         auto_reprovisioning_mode,
 
+        imported_master_encryption_key: old_master_encryption_key_path,
+
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
+            parent_hostname,
 
             provisioning,
 
@@ -579,9 +597,25 @@ mod tests {
             println!(".\n.\n=========\n.\nRunning test {}", test_name);
 
             let old_config_file = case_directory.join("old-config.yaml");
+            if !old_config_file.exists() {
+                // apply-specific test
+                continue;
+            }
+
             let expected_config = std::fs::read(case_directory.join("super-config.toml")).unwrap();
 
-            let actual_config = super::execute_inner(&old_config_file).unwrap();
+            let old_master_encryption_key_path = {
+                let expected_preloaded_master_encryption_key_path =
+                    case_directory.join("master-encryption-key");
+                if expected_preloaded_master_encryption_key_path.exists() {
+                    Some("/tmp/master-encryption-key".into())
+                } else {
+                    None
+                }
+            };
+
+            let actual_config =
+                super::execute_inner(&old_config_file, old_master_encryption_key_path).unwrap();
 
             // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
             // prints human-readable strings instead of raw u8s.
