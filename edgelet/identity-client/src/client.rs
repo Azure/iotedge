@@ -159,14 +159,19 @@ impl IdentityClient {
         Box::new(identities)
     }
 
-    pub fn get_aad_token(&self) -> Box<dyn Future<Item = String, Error = Error> + Send> {
+    pub fn get_aad_token(
+        &self,
+        tenant: &str,
+        scope: &str,
+        aad_id: &str,
+    ) -> Box<dyn Future<Item = String, Error = Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/device/aad?api-version={}&type=aziot",
             self.api_version
         );
 
-        let body = serde_json::json! {{ }};
+        let body = serde_json::json! {{ tenant:tenant, scope:scope, aad_id:aad_id }};
         let token = build_request_uri(&self.host, &uri)
             .into_future()
             .and_then(move |uri| {
