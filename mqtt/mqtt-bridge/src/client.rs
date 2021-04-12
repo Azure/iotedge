@@ -1,4 +1,7 @@
-#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
+// Needed because mock! macro violates
+#![allow(clippy::default_trait_access)]
+#![allow(clippy::upper_case_acronyms)]
+
 use core::{convert::TryInto, num::TryFromIntError};
 use std::{fmt::Display, str, time::Duration};
 

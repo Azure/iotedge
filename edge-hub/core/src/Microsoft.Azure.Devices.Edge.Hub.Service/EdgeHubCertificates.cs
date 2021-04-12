@@ -56,13 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
                 certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
-                X509Certificate2 manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
+                Option<X509Certificate2> manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
 
                 result = new EdgeHubCertificates(
                     certificates.ServerCertificate,
                     certificates.CertificateChain?.ToList(),
                     trustBundle?.ToList(),
-                    Option.Maybe(manifestTrustBundle));
+                    manifestTrustBundle);
             }
             else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
                      !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath) &&
