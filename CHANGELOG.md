@@ -1,4 +1,4 @@
-# 1.1.1 (2021-04-15)
+# 1.1.2 (2021-04-15)
 ## Edge Agent
 ### Bug Fixes
 * Fix vulnerability issues in docker images [fdbad67](https://github.com/Azure/iotedge/commit/fdbad674c8b0b30d9d58a2160ad7199818987416)
