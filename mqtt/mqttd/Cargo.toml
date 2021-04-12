@@ -13,6 +13,7 @@ chrono = "0.4"
 clap = "2.33"
 futures-util = { version = "0.3", features = ["sink"] }
 log = "0.4"
+pin-project = "1.0"
 thiserror = "1.0"
 tokio = { version = "1", features = ["net", "macros", "rt-multi-thread", "signal", "time"] }
 tokio-stream = { version = "0.1", features = ["signal"] }

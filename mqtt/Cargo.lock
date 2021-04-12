@@ -1164,6 +1164,7 @@ dependencies = [
  "mqtt-broker",
  "mqtt-edgehub",
  "mqtt-generic",
+ "pin-project",
  "serde_json",
  "thiserror",
  "tokio",
