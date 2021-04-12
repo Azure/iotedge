@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use http::{Request, StatusCode, Uri};
 use hyper::{body, Body, Client};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, IdentityCertificateRequest, Scheme,
@@ -40,9 +41,7 @@ impl WorkloadClient {
             make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
         let req = IdentityCertificateRequest::new(Some(expiration.to_rfc3339()));
-        let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
-
-        self.read_response(uri, body).await
+        self.post(uri, req, StatusCode::CREATED).await
     }
 
     pub async fn create_server_cert(
@@ -60,42 +59,7 @@ impl WorkloadClient {
             make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
         let req = ServerCertificateRequest::new(hostname.to_string(), expiration.to_rfc3339());
-        let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
-
-        self.read_response(uri, body).await
-    }
-
-    async fn read_response(
-        &self,
-        uri: Uri,
-        body: String,
-    ) -> Result<CertificateResponse, WorkloadError> {
-        let req = Request::post(uri)
-            .body(Body::from(body))
-            .map_err(ApiError::ConstructRequest)?;
-
-        let res = self
-            .client
-            .request(req)
-            .await
-            .map_err(ApiError::ExecuteRequest)?;
-
-        let status = res.status();
-        let body = body::aggregate(res)
-            .await
-            .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-
-        if status != StatusCode::CREATED {
-            let mut text = String::new();
-            body.reader()
-                .read_to_string(&mut text)
-                .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-            return Err(ApiError::UnsuccessfulResponse(status, text).into());
-        }
-
-        let cert = serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
-
-        Ok(cert)
+        self.post(uri, req, StatusCode::CREATED).await
     }
 
     pub async fn sign(
@@ -114,44 +78,48 @@ impl WorkloadClient {
             make_hyper_uri(&self.scheme, &path).map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
         let req = SignRequest::new(base64::encode(data.to_string()));
-        let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
-        let req = Request::post(uri)
-            .body(Body::from(body))
-            .map_err(ApiError::ConstructRequest)?;
-
-        let res = self
-            .client
-            .request(req)
-            .await
-            .map_err(ApiError::ExecuteRequest)?;
-
-        let status = res.status();
-        let body = body::aggregate(res)
-            .await
-            .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-
-        if status != StatusCode::OK {
-            let mut text = String::new();
-            body.reader()
-                .read_to_string(&mut text)
-                .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
-            return Err(ApiError::UnsuccessfulResponse(status, text).into());
-        }
-
-        let signed_data =
-            serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
-
-        Ok(signed_data)
+        self.post(uri, req, StatusCode::OK).await
     }
 
     pub async fn trust_bundle(&self) -> Result<TrustBundleResponse, WorkloadError> {
         let uri = make_hyper_uri(&self.scheme, "/trust-bundle?api-version=2019-01-30")
             .map_err(|e| ApiError::ConstructRequestUrl(e))?;
 
+        self.get(uri, StatusCode::OK).await
+    }
+
+    async fn post<Req: Serialize, Resp: DeserializeOwned>(
+        &self,
+        uri: Uri,
+        req: Req,
+        expected_status: StatusCode,
+    ) -> Result<Resp, WorkloadError> {
+        let body = serde_json::to_string(&req).map_err(ApiError::SerializeRequestBody)?;
+
+        let req = Request::post(uri)
+            .body(Body::from(body))
+            .map_err(ApiError::ConstructRequest)?;
+
+        self.read_response(req, expected_status).await
+    }
+
+    async fn get<Resp: DeserializeOwned>(
+        &self,
+        uri: Uri,
+        expected_status: StatusCode,
+    ) -> Result<Resp, WorkloadError> {
         let req = Request::get(uri)
             .body(Body::default())
             .map_err(ApiError::ConstructRequest)?;
 
+        self.read_response(req, expected_status).await
+    }
+
+    async fn read_response<Resp: DeserializeOwned>(
+        &self,
+        req: Request<Body>,
+        expected_status: StatusCode,
+    ) -> Result<Resp, WorkloadError> {
         let res = self
             .client
             .request(req)
@@ -163,7 +131,7 @@ impl WorkloadClient {
             .await
             .map_err(|e| ApiError::ReadResponse(Box::new(e)))?;
 
-        if status != StatusCode::OK {
+        if status != expected_status {
             let mut text = String::new();
             body.reader()
                 .read_to_string(&mut text)
@@ -171,10 +139,9 @@ impl WorkloadClient {
             return Err(ApiError::UnsuccessfulResponse(status, text).into());
         }
 
-        let trust_bundle =
+        let response =
             serde_json::from_reader(body.reader()).map_err(ApiError::ParseResponseBody)?;
-
-        Ok(trust_bundle)
+        Ok(response)
     }
 }
 
