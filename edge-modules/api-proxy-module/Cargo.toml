@@ -23,7 +23,7 @@ url = "2.1"
 
 azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 edgelet-client = { path = "../../mqtt/edgelet-client" }
-mqtt3 = { path = "../../mqtt/mqtt3" }
+mqtt3 = { git = "https://github.com/Azure/iotedge", rev = "4cd508" }
 
 [dev-dependencies]
 lazy_static = "1.4"

@@ -9,6 +9,7 @@ use http::{header, StatusCode};
 use hyper::{body, client::HttpConnector, Body, Client, Request};
 use serde::{Deserialize, Serialize};
 use serde_repr::Deserialize_repr;
+use tokio::time;
 use tracing::info;
 
 use mqtt_broker::{
@@ -73,14 +74,14 @@ impl Authenticator for EdgeHubAuthenticator {
         &self,
         context: AuthenticationContext,
     ) -> Result<Option<AuthId>, Self::Error> {
-        // try to authenticate a client. it reties with 500ms interval until
+        // try to authenticate a client. it retries with 500ms interval until
         // it gives up after 1min of trying.
         let when_stop_attempts = Instant::now() + Duration::from_secs(60);
         while Instant::now() <= when_stop_attempts {
             info!("authenticate client");
             match self.authenticate(&context).await {
                 Err(e) if e.can_retry() => {
-                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    time::sleep(Duration::from_millis(500)).await;
                 }
                 result => return result,
             }

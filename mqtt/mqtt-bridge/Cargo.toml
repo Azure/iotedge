@@ -40,10 +40,10 @@ mqtt-util = { path = "../mqtt-util" }
 [dev-dependencies]
 chrono = { version = "0.4", features = ["serde"] }
 matches = "0.1"
+rand = "0.8"
 serial_test = "0.5"
 tempfile = "3.2"
 test-case = "1.1"
 tokio = { version = "1", features = ["macros"] }
-rand = "0.8"
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
