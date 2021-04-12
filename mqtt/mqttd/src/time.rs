@@ -27,7 +27,7 @@ pub fn sleep(duration: Duration) -> Sleep {
 pub fn sleep_until(deadline: Instant) -> Sleep {
     Sleep {
         deadline,
-        delay: time::sleep_until(next_deadline(deadline, DEFAULT_DURATION)),
+        delay: time::sleep_until(deadline(deadline, DEFAULT_DURATION)),
     }
 }
 
@@ -50,14 +50,12 @@ impl Future for Sleep {
         if Instant::now() >= *this.deadline {
             Poll::Ready(())
         } else {
-            let deadline = next_deadline(*this.deadline, DEFAULT_DURATION);
-            this.delay.reset(deadline);
-
+            this.delay.reset(deadline(*this.deadline, DEFAULT_DURATION));
             Poll::Pending
         }
     }
 }
 
-fn next_deadline(deadline: Instant, duration: Duration) -> Instant {
+fn deadline(deadline: Instant, duration: Duration) -> Instant {
     cmp::min(deadline, Instant::now() + duration)
 }
