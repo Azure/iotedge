@@ -165,9 +165,17 @@ where
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
                     return match self.store.push(&publication) {
-                        Ok(_) |
-                        // If we are full we are dropping the message on ground.
-                        Err(PersistError::RingBuffer(RingBufferError::Full)) => Ok(Handled::Fully),
+                        Ok(_) => Ok(Handled::Fully),
+                        Err(
+                            err
+                            @
+                            PersistError::RingBuffer(RingBufferError::InsufficientSpace {
+                                ..
+                            }),
+                        ) => {
+                            error!(error = %err, "dropping incoming publication");
+                            Ok(Handled::Fully)
+                        }
                         Err(err) => Err(BridgeError::Store(err)),
                     };
                 }
