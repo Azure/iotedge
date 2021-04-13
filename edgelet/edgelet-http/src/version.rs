@@ -14,7 +14,6 @@ pub enum Version {
     Version2020_07_07,
     Version2020_10_10,
     Version2021_04_01,
-
 }
 
 impl FromStr for Version {
@@ -44,7 +43,6 @@ impl fmt::Display for Version {
             Version::Version2020_07_07 => write!(f, "2020-07-07"),
             Version::Version2020_10_10 => write!(f, "2020-10-10"),
             Version::Version2021_04_01 => write!(f, "2021-04-01"),
-
         }
     }
 }
