@@ -2,17 +2,14 @@ use std::{convert::TryInto, fmt::Debug};
 
 use async_trait::async_trait;
 use futures_util::stream::StreamExt;
+use mockall_double::double;
 use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
 use tracing::{debug, error, info};
 
 use super::{PumpHandle, PumpMessage, TopicMapperUpdates};
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::UpdateSubscriptionHandle;
 
 /// A trait for all custom pump event handlers.

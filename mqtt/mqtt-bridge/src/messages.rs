@@ -2,11 +2,12 @@ use std::{collections::HashMap, convert::TryFrom, time::Duration};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
+use mockall_double::double;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 use mqtt3::{
     proto::{Publication, SubscribeTo},
@@ -14,11 +15,7 @@ use mqtt3::{
 };
 use mqtt_broker::TopicFilter;
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::UpdateSubscriptionHandle;
 
 use crate::{
@@ -46,7 +43,7 @@ impl TryFrom<TopicRule> for TopicMapper {
 
     fn try_from(topic: TopicRule) -> Result<Self, BridgeError> {
         let topic_filter = topic
-            .topic()
+            .subscribe_to()
             .parse()
             .map_err(BridgeError::TopicFilterParse)?;
 
@@ -81,20 +78,37 @@ impl<S> StoreMqttEventHandler<S> {
 
     fn transform(&self, topic_name: &str) -> Option<String> {
         self.topic_mappers.values().find_map(|mapper| {
-            mapper
-                .topic_settings
-                .in_prefix()
-                // maps if local does not have a value it uses the topic that was received,
-                // else it checks that the received topic starts with local prefix and removes the local prefix
-                .map_or(Some(topic_name), |local_prefix| {
-                    topic_name.strip_prefix(format!("{}/", local_prefix).as_str())
-                })
-                // match topic without local prefix with the topic filter pattern
-                .filter(|stripped_topic| mapper.topic_filter.matches(stripped_topic))
-                .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
-                    Some(remote_prefix) => format!("{}/{}", remote_prefix, stripped_topic),
-                    None => stripped_topic.to_string(),
-                })
+            if mapper.topic_filter.matches(topic_name) {
+                mapper
+                    .topic_settings
+                    .in_prefix()
+                    // maps if local does not have a value it uses the topic that was received,
+                    // else it checks that the received topic starts with local prefix and removes the local prefix
+                    .map_or(Some(topic_name), |in_prefix| {
+                        topic_name.strip_prefix::<&str>(in_prefix)
+                    })
+                    .map(|stripped_topic| match mapper.topic_settings.out_prefix() {
+                        Some(out_prefix) => {
+                            format!("{}{}", out_prefix, stripped_topic)
+                        }
+                        None => stripped_topic.to_string(),
+                    })
+                    .and_then(|transformed_topic| {
+                        // transform_topic can be empty when topic is # and outPrefix is empty and it matches on inPrefix
+                        // example topic: #, inPrefix: local/messages, outPrefix: "" and message is sent with topic local/messages
+                        if transformed_topic.is_empty() {
+                            warn!(
+                                "topic {} was matched with {:#?}, but remote topic is not valid",
+                                topic_name, mapper.topic_settings
+                            );
+                            None
+                        } else {
+                            Some(transformed_topic)
+                        }
+                    })
+            } else {
+                None
+            }
         })
     }
 
@@ -147,15 +161,21 @@ where
 
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
-
                     return match self.store.push(&publication) {
-                        Ok(_) |
-                        // If we are full we are dropping the message on ground.
-                        Err(PersistError::RingBuffer(RingBufferError::Full)) => Ok(Handled::Fully),
+                        Ok(_) => Ok(Handled::Fully),
+                        Err(
+                            err
+                            @
+                            PersistError::RingBuffer(RingBufferError::InsufficientSpace {
+                                ..
+                            }),
+                        ) => {
+                            error!(error = %err, "dropping incoming publication");
+                            Ok(Handled::Fully)
+                        }
                         Err(err) => Err(BridgeError::Store(err)),
                     };
                 }
-                warn!("no topic matched");
             }
             Event::SubscriptionUpdates(sub_updates) => {
                 for update in sub_updates {
@@ -169,7 +189,10 @@ where
                             self.handle_unsubscribed(&unsub);
                         }
                         SubscriptionUpdateEvent::RejectedByServer(sub) => {
-                            debug!("received subscription rejected: {}", sub.topic_filter);
+                            warn!(
+                                "received subscription rejected by broker, verify that you have permissions to subscribe to topic: {}",
+                                sub.topic_filter
+                            );
                             self.handle_rejected(sub.clone());
                         }
                     }
@@ -194,10 +217,13 @@ pub async fn retry_subscriptions(
 
     while let Some(subs) = retries.next().await {
         if !subs.is_empty() {
-            info!("try to re-subscribe to {} topics", subs.len());
+            warn!("trying to re-subscribe to {} topics", subs.len());
             for sub in subs {
                 if topic_mappers_updates.contains_key(&sub.topic_filter) {
-                    debug!("re-subscribe to {} qos {:?}", sub.topic_filter, sub.qos);
+                    warn!(
+                        "re-subscribing to {} with qos {:?}",
+                        sub.topic_filter, sub.qos
+                    );
                     if let Err(e) = subscription_handle.subscribe(sub).await {
                         error!("failed to send subscribe {}", e);
                     }
@@ -257,7 +283,7 @@ mod tests {
 
     impl Default for MemoryPublicationStore {
         fn default() -> Self {
-            PublicationStore::new_memory(BATCH_SIZE, &MemorySettings::new(MAX_SIZE))
+            PublicationStore::new_memory(&MemorySettings::new(MAX_SIZE))
         }
     }
 
@@ -271,7 +297,6 @@ mod tests {
             let dir_path = dir.path().to_path_buf();
 
             let result = PublicationStore::new_ring_buffer(
-                BATCH_SIZE,
                 &RingBufferSettings::new(MAX_FILE_SIZE, dir_path, FLUSH_OPTIONS),
                 "test",
                 "local",
@@ -299,7 +324,7 @@ mod tests {
                     sub.subscribe_to(),
                     TopicMapper {
                         topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
                     },
                 )
             })
@@ -338,7 +363,7 @@ mod tests {
                     sub.subscribe_to(),
                     TopicMapper {
                         topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
                     },
                 )
             })
@@ -412,7 +437,7 @@ mod tests {
                     sub.subscribe_to(),
                     TopicMapper {
                         topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
                     },
                 )
             })
@@ -446,10 +471,208 @@ mod tests {
             .unwrap();
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
+    async fn message_handler_saves_message_with_local_and_multileveltopic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "local/telemetry/".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected1 = Publication {
+            topic_name: "remote/messages/".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let pub2 = ReceivedPublication {
+            topic_name: "local/floor4".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected2 = Publication {
+            topic_name: "floor4".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/telemetry/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "local/floor4/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub2)).await.unwrap();
+
+        let mut loader = handler.store.loader(BATCH_SIZE);
+        let extracted1 = loader.try_next().await.unwrap().unwrap();
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted1.1, expected1);
+        assert_eq!(extracted2.1, expected2);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
+    async fn message_handler_saves_message_with_remote_and_multileveltopic<T>(
+        store: PublicationStore<T>,
+    ) where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "floor3".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected = Publication {
+            topic_name: "remote/messages/floor3".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "floor3/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        let mut loader = handler.store.loader(BATCH_SIZE);
+        let extracted = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted.1, expected);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
+    async fn message_handler_saves_message_justmultileveltopic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "floor5".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected = Publication {
+            topic_name: "floor5".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "floor5/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        let mut loader = handler.store.loader(BATCH_SIZE);
+        let extracted = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted.1, expected);
+    }
+
+    #[test_case(MemoryPublicationStore::default())]
+    #[test_case(RingBufferPublicationStore::default())]
+    #[tokio::test]
+    async fn message_handler_saves_message_emptytopic<T>(store: PublicationStore<T>)
+    where
+        T: StreamWakeableState + Send + Sync,
+    {
+        let settings = test_bridge_settings();
+        let connection_settings = settings.upstream().unwrap();
+        let topics = forwards_topics_from_settings(connection_settings);
+        let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
+
+        let pub1 = ReceivedPublication {
+            topic_name: "foo/bar".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+        let expected = Publication {
+            topic_name: "bar/foo".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "foo/bar".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
+
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        let mut loader = handler.store.loader(BATCH_SIZE);
+        let extracted = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted.1, expected);
     }
 
     #[test_case(MemoryPublicationStore::default())]
@@ -463,19 +686,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -487,8 +698,23 @@ mod tests {
             dup: false,
         };
 
-        let expected = Publication {
+        let expected1 = Publication {
             topic_name: "floor2/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let pub2 = ReceivedPublication {
+            topic_name: "/floor2-2".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
+        let expected2 = Publication {
+            topic_name: "/floor2-2".to_string(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: Bytes::new(),
@@ -504,12 +730,25 @@ mod tests {
             .await
             .unwrap();
 
-        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "/floor2-2".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
 
-        let mut loader = handler.store.loader();
+        handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub2)).await.unwrap();
+
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
-        assert_eq!(extracted1.1, expected);
+        assert_eq!(extracted1.1, expected1);
+        let extracted2 = loader.try_next().await.unwrap().unwrap();
+        assert_eq!(extracted2.1, expected2);
     }
 
     #[test_case(MemoryPublicationStore::default())]
@@ -522,19 +761,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -564,7 +791,7 @@ mod tests {
             .unwrap();
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -580,19 +807,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -623,7 +838,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let extracted1 = loader.try_next().await.unwrap().unwrap();
         assert_eq!(extracted1.1, expected);
@@ -639,24 +854,20 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
         let pub1 = ReceivedPublication {
             topic_name: "local/temp/1".to_string(),
+            qos: QoS::AtLeastOnce,
+            retain: true,
+            payload: Bytes::new(),
+            dup: false,
+        };
+
+        let pub2 = ReceivedPublication {
+            topic_name: "just/local".to_string(),
             qos: QoS::AtLeastOnce,
             retain: true,
             payload: Bytes::new(),
@@ -672,9 +883,19 @@ mod tests {
             ]))
             .await
             .unwrap();
+        handler
+            .handle(Event::SubscriptionUpdates(vec![
+                SubscriptionUpdateEvent::Subscribe(SubscribeTo {
+                    topic_filter: "just/local/#".to_string(),
+                    qos: QoS::AtLeastOnce,
+                }),
+            ]))
+            .await
+            .unwrap();
         handler.handle(Event::Publication(pub1)).await.unwrap();
+        handler.handle(Event::Publication(pub2)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
         if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
@@ -692,19 +913,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -718,7 +927,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
 
@@ -738,19 +947,7 @@ mod tests {
         let settings = test_bridge_settings();
         let connection_settings = settings.upstream().unwrap();
 
-        let topics = connection_settings
-            .forwards()
-            .iter()
-            .map(|sub| {
-                (
-                    sub.subscribe_to(),
-                    TopicMapper {
-                        topic_settings: sub.clone(),
-                        topic_filter: TopicFilter::from_str(sub.topic()).unwrap(),
-                    },
-                )
-            })
-            .collect();
+        let topics = forwards_topics_from_settings(connection_settings);
 
         let mut handler = StoreMqttEventHandler::new(store, TopicMapperUpdates::new(topics));
 
@@ -781,7 +978,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader();
+        let mut loader = handler.store.loader(BATCH_SIZE);
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
 
@@ -804,14 +1001,41 @@ mod tests {
                     "workload",
                 )),
                 vec![
-                    Direction::Both(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
+                    Direction::Both(TopicRule::new(
+                        "temp/#",
+                        None,
+                        Some("floor/kitchen/".into()),
+                    )),
                     Direction::Out(TopicRule::new(
                         "floor/#",
-                        Some("local".into()),
-                        Some("remote".into()),
+                        Some("local/".into()),
+                        Some("remote/".into()),
                     )),
                     Direction::Out(TopicRule::new("pattern/#", None, None)),
                     Direction::Out(TopicRule::new("floor2/#", Some("".into()), Some("".into()))),
+                    Direction::Out(TopicRule::new(
+                        "/floor2-2",
+                        Some("".into()),
+                        Some("".into()),
+                    )),
+                    Direction::Out(TopicRule::new(
+                        "#",
+                        Some("local/telemetry/".into()),
+                        Some("remote/messages/".into()),
+                    )),
+                    Direction::Out(TopicRule::new("#", Some("just/local/".into()), None)),
+                    Direction::Out(TopicRule::new(
+                        "floor3/#",
+                        None,
+                        Some("remote/messages/".into()),
+                    )),
+                    Direction::Out(TopicRule::new("floor4/#", Some("local/".into()), None)),
+                    Direction::Out(TopicRule::new("floor5/#", None, None)),
+                    Direction::Out(TopicRule::new(
+                        "",
+                        Some("foo/bar".into()),
+                        Some("bar/foo".into()),
+                    )),
                 ],
                 Duration::from_secs(60),
                 false,
@@ -823,8 +1047,12 @@ mod tests {
                     "client", "mymodule", "pass", None,
                 )),
                 vec![
-                    Direction::In(TopicRule::new("temp/#", None, Some("floor/kitchen".into()))),
-                    Direction::Out(TopicRule::new("some", None, Some("remote".into()))),
+                    Direction::In(TopicRule::new(
+                        "temp/#",
+                        None,
+                        Some("floor/kitchen/".into()),
+                    )),
+                    Direction::Out(TopicRule::new("some", None, Some("remote/".into()))),
                 ],
                 Duration::from_secs(60),
                 false,
@@ -835,5 +1063,24 @@ mod tests {
                 FlushOptions::AfterEachWrite,
             )),
         )
+    }
+
+    fn forwards_topics_from_settings(
+        connection_settings: &crate::settings::ConnectionSettings,
+    ) -> HashMap<String, TopicMapper> {
+        let topics = connection_settings
+            .forwards()
+            .iter()
+            .map(|sub| {
+                (
+                    sub.subscribe_to(),
+                    TopicMapper {
+                        topic_settings: sub.clone(),
+                        topic_filter: TopicFilter::from_str(sub.subscribe_to().as_ref()).unwrap(),
+                    },
+                )
+            })
+            .collect();
+        topics
     }
 }

@@ -34,11 +34,11 @@ dependencies = [
  "md5",
  "mockito",
  "mqtt3",
+ "percent-encoding 1.0.1",
  "regex",
  "serde_json",
- "syn",
- "test-case",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -1290,18 +1290,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dfed899f0eb03f32ee8c6a0aabdb8a7949659e3466561fc0adf54e26d88c5f4"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "test-case"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "199464148b42bcf3da8b2a56f6ee87ca68f47402496d1268849291ec9fb463c8"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "version_check",
 ]
 
 [[package]]

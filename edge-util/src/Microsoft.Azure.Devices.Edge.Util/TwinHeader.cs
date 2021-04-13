@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class TwinHeader : IEquatable<TwinHeader>
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public string[] SignerCert { get; }
 
         [JsonProperty("intermediatecacert")]
+        [JsonConverter(typeof(OptionConverter<string[]>))]
         public Option<string[]> IntermediateCACert { get; }
 
         public override bool Equals(object obj)

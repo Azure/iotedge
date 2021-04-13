@@ -6,12 +6,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     using System.Linq;
     using System.Net;
     using System.Net.WebSockets;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Http.Controllers;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -22,11 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
     {
         readonly RequestDelegate next;
         readonly IWebSocketListenerRegistry webSocketListenerRegistry;
+        readonly Task<IHttpProxiedCertificateExtractor> httpProxiedCertificateExtractorProvider;
 
-        public WebSocketHandlingMiddleware(RequestDelegate next, IWebSocketListenerRegistry webSocketListenerRegistry)
+        public WebSocketHandlingMiddleware(RequestDelegate next, IWebSocketListenerRegistry webSocketListenerRegistry, Task<IHttpProxiedCertificateExtractor> httpProxiedCertificateExtractorProvider)
         {
             this.next = Preconditions.CheckNotNull(next, nameof(next));
             this.webSocketListenerRegistry = Preconditions.CheckNotNull(webSocketListenerRegistry, nameof(webSocketListenerRegistry));
+            this.httpProxiedCertificateExtractorProvider = Preconditions.CheckNotNull(httpProxiedCertificateExtractorProvider, nameof(httpProxiedCertificateExtractorProvider));
         }
 
         public Task Invoke(HttpContext context)
@@ -75,40 +79,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
             var remoteEndPoint = new IPEndPoint(context.Connection.RemoteIpAddress, context.Connection.RemotePort);
 
             X509Certificate2 cert = await context.Connection.GetClientCertificateAsync();
+            IAuthenticator proxyAuthenticator = null;
 
             if (cert == null)
             {
-                // If the connection came through the API proxy, the client cert
-                // would have been forwarded in a custom header. But since TLS
-                // termination occurs at the proxy, we can only trust this custom
-                // header if the request came through port 8080, which an internal
-                // port only accessible within the local Docker vNet.
-                if (context.Connection.LocalPort == Constants.ApiProxyPort)
+                try
                 {
-                    if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
-                    {
-                        Events.AuthenticationApiProxy(context.Connection.RemoteIpAddress.ToString());
-
-                        string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
-
-                        try
-                        {
-                            var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
-                            cert = new X509Certificate2(clientCertificateBytes);
-                        }
-                        catch (Exception ex)
-                        {
-                            Events.InvalidCertificate(ex, remoteEndPoint.ToString());
-                            throw;
-                        }
-                    }
+                    var certExtractor = await this.httpProxiedCertificateExtractorProvider;
+                    // if not certificate in header it returns null, no api proxy authentication needed in this case
+                    // if certificate was set in header it means it was forwarded by api proxy and authenticates api proxy by sas token
+                    // and throws AuthenticationException if api proxy was not authenticated or returns the certificate if api proxy authentication succeeded
+                    cert = (await certExtractor.GetClientCertificate(context)).OrDefault();
+                }
+                catch (AuthenticationException ex)
+                {
+                    Events.AuthenticationApiProxyFailed(remoteEndPoint.ToString(), ex);
+                    // Set authenticator to unauthorize the call from subprotocol level (Mqtt or Amqp)
+                    proxyAuthenticator = new NullAuthenticator();
+                    cert = context.GetForwardedCertificate();
                 }
             }
 
             if (cert != null)
             {
                 IList<X509Certificate2> certChain = context.GetClientCertificateChain();
-                await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, cert, certChain);
+                await listener.ProcessWebSocketRequestAsync(webSocket, localEndPoint, remoteEndPoint, correlationId, cert, certChain, proxyAuthenticator);
             }
             else
             {
@@ -149,13 +144,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Middleware
                 Log.LogWarning((int)EventIds.InvalidCertificate, Invariant($"Invalid client certificate for incoming connection: {connectionIp}, Exception: {ex.Message}"));
 
             public static void AuthenticationApiProxy(string remoteAddress) =>
-                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+                Log.LogDebug((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+
+            public static void AuthenticationApiProxyFailed(string remoteAddress, Exception ex) =>
+                Log.LogError((int)EventIds.AuthenticationApiProxy, $"Failed authentication attempt through ApiProxy for {remoteAddress}", ex);
         }
     }
 
     public static class WebSocketHandlingMiddlewareExtensions
     {
-        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry) =>
-            builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry);
+        public static IApplicationBuilder UseWebSocketHandlingMiddleware(this IApplicationBuilder builder, IWebSocketListenerRegistry webSocketListenerRegistry, Task<IHttpProxiedCertificateExtractor> httpProxiedCertificateExtractor) =>
+            builder.UseMiddleware<WebSocketHandlingMiddleware>(webSocketListenerRegistry, httpProxiedCertificateExtractor);
     }
 }
