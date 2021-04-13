@@ -63,6 +63,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not start workload service")]
     StartService,
+
+    #[fail(display = "Error getting AAD token")]
+    AAD,
 }
 
 impl Fail for Error {

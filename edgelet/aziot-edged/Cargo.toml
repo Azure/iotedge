@@ -26,16 +26,16 @@ native-tls = "0.2"
 url = "2"
 url_serde = "0.2"
 
-aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-identity-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-identity-common-http = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-client = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-common-http = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+aziot-key-openssl-engine = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+http-common = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+openssl2 = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
+openssl-sys2 = { git = "https://github.com/lfitchett/iot-identity-service", branch = "add_aad_endpoint" }
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
