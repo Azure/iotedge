@@ -1,15 +1,12 @@
 use async_trait::async_trait;
 use bson::doc;
 use bytes::Bytes;
+use mockall_double::double;
 use mqtt3::{proto::Publication, proto::QoS};
 use serde_json::json;
 use tracing::{debug, error};
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockPublishHandle as PublishHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::PublishHandle;
 
 use crate::{
