@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Option.Maybe(moduleId);
             this.DeviceScope = Option.Maybe(deviceScope);
-            this.ParentScopes = new List<string>(Preconditions.CheckNotNull(parentScopes, nameof(parentScopes)));
+            this.ParentScopes = parentScopes != null ? new List<string>(parentScopes) : new List<string>();
             this.Capabilities = Preconditions.CheckNotNull(capabilities, nameof(capabilities));
             this.Authentication = Preconditions.CheckNotNull(authentication, nameof(authentication));
             this.Id = this.ModuleId.Map(m => $"{deviceId}/{moduleId}").GetOrElse(deviceId);
