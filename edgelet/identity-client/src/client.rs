@@ -171,7 +171,7 @@ impl IdentityClient {
             self.api_version
         );
 
-        let body = serde_json::json! {{ tenant:tenant, scope:scope, aad_id:aad_id }};
+        let body = serde_json::json! {{ "tenant":tenant, "scope":scope, "aad_id":aad_id }};
         let token = build_request_uri(&self.host, &uri)
             .into_future()
             .and_then(move |uri| {

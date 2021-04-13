@@ -26,6 +26,8 @@ mod trust_bundle_response;
 pub use self::trust_bundle_response::TrustBundleResponse;
 mod aad_response;
 pub use self::aad_response::AADResponse;
+mod aad_request;
+pub use self::aad_request::AADRequest;
 
 // TODO(farcaller): sort out files
 pub struct File;
