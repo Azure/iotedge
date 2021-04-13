@@ -26,8 +26,8 @@ pub enum RingBufferError {
     #[error("Flushing failed. Caused by {0}")]
     Flush(std::io::Error),
 
-    #[error("Buffer is full and messages must be drained to continue")]
-    Full,
+    #[error("Storage has insufficient space to insert data: required: {required}b, but only {free}b available")]
+    InsufficientSpace { free: u64, required: u64 },
 
     #[error("Unable to create file. Caused by {0}")]
     FileCreate(std::io::Error),
