@@ -192,7 +192,7 @@ where
 
             let url = settings.endpoints().aziot_identityd_url().clone();
             let client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
-                aziot_identity_common_http::ApiVersion::V2020_12_10,
+                aziot_identity_common_http::ApiVersion::V2021_04_01,
                 &url,
             )));
 
@@ -677,7 +677,7 @@ where
 
     let identity_uri = settings.endpoints().aziot_identityd_url().clone();
     let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
-        aziot_identity_common_http::ApiVersion::V2020_12_10,
+        aziot_identity_common_http::ApiVersion::V2021_04_01,
         &identity_uri,
     )));
 
@@ -740,7 +740,7 @@ where
         &certd_url,
     )));
     let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
-        aziot_identity_common_http::ApiVersion::V2020_12_10,
+        aziot_identity_common_http::ApiVersion::V2021_04_01,
         &identityd_url,
     )));
 
