@@ -2,6 +2,7 @@ use std::{collections::HashMap, convert::TryFrom, time::Duration};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
+use mockall_double::double;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time,
@@ -14,11 +15,7 @@ use mqtt3::{
 };
 use mqtt_broker::TopicFilter;
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::UpdateSubscriptionHandle;
 
 use crate::{

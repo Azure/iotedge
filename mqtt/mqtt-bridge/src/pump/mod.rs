@@ -1,6 +1,3 @@
-// Needed because mock! macro violates
-#![allow(clippy::upper_case_acronyms)]
-
 mod builder;
 mod egress;
 mod ingress;
