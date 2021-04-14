@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use mockall_double::double;
 use mqtt3::proto::{Publication, QoS, SubscribeTo};
 use tracing::{error, warn};
 
@@ -9,12 +10,7 @@ use crate::{
     },
 };
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-use crate::client::{
-    MockPublishHandle as PublishHandle, MockUpdateSubscriptionHandle as UpdateSubscriptionHandle,
-};
-#[cfg(not(test))]
+#[double]
 use crate::client::{PublishHandle, UpdateSubscriptionHandle};
 
 /// Pump control event for a remote upstream bridge pump.
