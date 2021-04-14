@@ -5,6 +5,7 @@ hostname = "my-device"
 edge_ca_cert = "aziot-edged-ca"
 edge_ca_key = "aziot-edged-ca"
 trust_bundle_cert = "aziot-edged-trust-bundle"
+manifest_trust_bundle_cert = "aziot-edged-manifest-trust-bundle"
 auto_reprovisioning_mode = "OnErrorOnly"
 homedir = "/var/lib/aziot/edged"
 
