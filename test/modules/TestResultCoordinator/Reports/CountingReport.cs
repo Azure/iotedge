@@ -9,7 +9,21 @@ namespace TestResultCoordinator.Reports
     using Newtonsoft.Json;
 
     /// <summary>
-    /// This is a counting report to show test result counts, e.g. expect and match counts; and contains a list of unmatched test results.
+    /// This is a counting report to show test result counts. It tracks a number
+    /// of result counts in order to give full context of test operation.
+    ///
+    /// This counting report will fail the test for the following reasons:
+    ///     1: Duplicate expected results (not congruent with the design of the TRC)
+    ///     2: Unmatched results
+    ///
+    /// It also supports a special mode if the counting report is tracking event hub
+    /// results (i.e. upstream telemetry). This is needed because there are large
+    /// delays reading messages from eventhub, so we don't want to fail the tests
+    /// for messages that just take a long time to come in. Specifically, this will
+    /// allow unmatched results if:
+    ///     1:  All missing actual result sequence numbers are higher than the last
+    ///         received actual result
+    ///     2: We are still receiving messages from eventhub
     /// </summary>
     class CountingReport : TestResultReportBase
     {
