@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             // Populate the serviceIdentityHierarchy
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in cache)
             {
-                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => serviceIdentityHierarchy.AddOrUpdate(serviceIdentity).Wait());
+                await kvp.Value.ServiceIdentity.ForEachAsync(serviceIdentity => serviceIdentityHierarchy.AddOrUpdate(serviceIdentity));
             }
 
             var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, encryptedStorage, refreshRate, refreshDelay, cache.Count > 0);
@@ -303,8 +303,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 int.MaxValue,
                 (key, value) =>
                 {
-                    var storedIdentity = JsonConvert.DeserializeObject<StoredServiceIdentity>(value);
-                    cache.Add(key, storedIdentity);
+                    cache.Add(key, JsonConvert.DeserializeObject<StoredServiceIdentity>(value));
                     return Task.CompletedTask;
                 });
             return cache;
