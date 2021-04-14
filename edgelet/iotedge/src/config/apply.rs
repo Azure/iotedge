@@ -313,6 +313,7 @@ fn execute_inner(
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
+            manifest_trust_bundle_cert: Some(edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()),
 
             auto_reprovisioning_mode,
 
