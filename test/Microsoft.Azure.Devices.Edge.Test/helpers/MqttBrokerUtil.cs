@@ -3,28 +3,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
     using System.Collections.Generic;
-    using System.Net.Http;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
-    using Newtonsoft.Json.Linq;
-    using NUnit.Framework;
-    using Serilog;
 
     public class MqttBrokerUtil
     {
-        static readonly string[] OnlyIotHubOperationPermissions = new[] { "mqtt:connect" };
-        static readonly string[] AllOperationPermissions = new[] { "mqtt:connect", "mqtt:publish", "mqtt:subscribe" };
+        static readonly Dictionary<string, object> OnlyIotHubOperationAuthorizations = new Dictionary<string, object>
+        {
+            ["identities"] = new[] { "{{iot:identity}}" },
+            ["allow"] = new[]
+            {
+                new Dictionary<string, object>
+                {
+                    ["operations"] = new[] { "mqtt:connect" }
+                }
+            }
+        };
+
+        static readonly Dictionary<string, object> AllOperationAuthorizations = new Dictionary<string, object>
+        {
+            ["identities"] = new[] { "{{iot:identity}}" },
+            ["allow"] = new[]
+            {
+                new Dictionary<string, object>
+                {
+                    ["operations"] = new[] { "mqtt:connect", "mqtt:publish", "mqtt:subscribe" },
+                    ["resources"] = new[] { "#" }
+                }
+            }
+        };
 
         public static Action<EdgeConfigBuilder> BuildAddBrokerToDeployment(bool onlyIotHubTopics)
         {
-            string[] permissions;
+            var authorizations = new Dictionary<string, object> { };
             if (onlyIotHubTopics)
             {
-                permissions = OnlyIotHubOperationPermissions;
+                authorizations = OnlyIotHubOperationAuthorizations;
             }
             else
             {
-                permissions = AllOperationPermissions;
+                authorizations = AllOperationAuthorizations;
             }
 
             return new Action<EdgeConfigBuilder>(
@@ -38,21 +55,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         })
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
-                            ["mqttBroker"] = new
+                            ["mqttBroker"] = new Dictionary<string, object>
                             {
-                                authorizations = new[]
+                                ["authorizations"] = new Dictionary<string, object>
                                 {
-                            new
-                            {
-                                 identities = new[] { "{{iot:identity}}" },
-                                 allow = new[]
-                                 {
-                                     new
-                                     {
-                                         operations = permissions
-                                     }
-                                 }
-                            }
+                                    ["identities"] = new[] { "{{iot:identity}}" },
+                                    ["allow"] = new Dictionary<string, object>
+                                    {
+                                        ["operations"] = authorizations
+                                    }
                                 }
                             }
                         });
