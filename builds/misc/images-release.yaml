@@ -36,7 +36,7 @@ jobs:
         displayName: "Edge Agent Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Agent.Service
+          FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Agent.Service
           Pattern: Microsoft.Azure.Devices.Edge.*.dll
           SessionTimeout: 20
           inlineOperation: |
@@ -627,7 +627,7 @@ jobs:
         displayName: "Metrics Collector Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+          FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Azure.Monitor
           Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
           SessionTimeout: 20
           inlineOperation: |
