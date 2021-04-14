@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class MetricsScraper : IDisposable
     {
@@ -43,10 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             return SelectManyAsync(this.endpoints, async endpoint =>
             {
-                Logger.Writer.LogInformation($"Scraping endpoint {endpoint}");
+                LoggerUtil.Writer.LogInformation($"Scraping endpoint {endpoint}");
                 string metricsData = await this.ScrapeEndpoint(endpoint, cancellationToken);
                 IEnumerable<Metric> parsedMetrics = PrometheusMetricsParser.ParseMetrics(this.systemTime.UtcNow, metricsData, endpoint: endpoint);
-                Logger.Writer.LogInformation($"Scraping finished, received {parsedMetrics.Count()} metrics from endpoint {endpoint}");
+                LoggerUtil.Writer.LogInformation($"Scraping finished, received {parsedMetrics.Count()} metrics from endpoint {endpoint}");
                 return parsedMetrics;
             });
         }
@@ -75,16 +76,16 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 }
                 else
                 {
-                    Logger.Writer.LogError($"Error connecting to {endpoint} with result error code {result.StatusCode}");
+                    LoggerUtil.Writer.LogError($"Error connecting to {endpoint} with result error code {result.StatusCode}");
                 }
             }
             catch (System.Net.Sockets.SocketException e) when (e.Source == "System.Net.NameResolution")
             {
-                Logger.Writer.LogError($"Error scraping endpoint {endpoint}, hostname likely can not be found - {e}");
+                LoggerUtil.Writer.LogError($"Error scraping endpoint {endpoint}, hostname likely can not be found - {e}");
             }
             catch (Exception e)
             {
-                Logger.Writer.LogError($"Error scraping endpoint {endpoint} - {e}");
+                LoggerUtil.Writer.LogError($"Error scraping endpoint {endpoint} - {e}");
             }
 
             return string.Empty;

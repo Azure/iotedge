@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class FixedSetTableUpload : IMetricsPublisher
     {
@@ -47,14 +48,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 }
 
                 if (success)
-                    Logger.Writer.LogInformation($"Successfully sent {metricList.DataItems.Count()} metrics to fixed set table");
+                    LoggerUtil.Writer.LogInformation($"Successfully sent {metricList.DataItems.Count()} metrics to fixed set table");
                 else
-                    Logger.Writer.LogError($"Failed to send {metricList.DataItems.Count()} metrics to fixed set table after {Constants.UploadMaxRetries} retries");
+                    LoggerUtil.Writer.LogError($"Failed to send {metricList.DataItems.Count()} metrics to fixed set table after {Constants.UploadMaxRetries} retries");
                 return success;
             }
             catch (Exception e)
             {
-                Logger.Writer.LogError(e, "Error uploading metrics to fixed set table");
+                LoggerUtil.Writer.LogError(e, "Error uploading metrics to fixed set table");
                 return false;
             }
         }

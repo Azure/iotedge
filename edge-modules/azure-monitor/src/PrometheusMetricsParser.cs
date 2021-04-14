@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using System.Linq;
     using System.Text.RegularExpressions;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public static class PrometheusMetricsParser
     {
@@ -60,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                             endpoint: endpoint);
                     }
                     else {
-                        Logger.Writer.LogInformation("Dropped malformed metric \"" + line + "\", (only numerical metric values are supported)");
+                        LoggerUtil.Writer.LogInformation("Dropped malformed metric \"" + line + "\", (only numerical metric values are supported)");
                     }
                 }
             }

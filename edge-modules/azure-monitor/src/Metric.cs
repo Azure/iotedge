@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using System.Collections.Generic;
     using System.Linq;
     using System.Diagnostics.Contracts;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class Metric : IEquatable<Metric>
     {

@@ -4,7 +4,6 @@
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Net.Http;
     using System.Net.Http.Headers;
@@ -18,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
     using Org.BouncyCastle.Crypto;
     using Org.BouncyCastle.Crypto.Parameters;
     using Org.BouncyCastle.OpenSsl;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Org.BouncyCastle.Security;
 
     using Certificategenerator;
@@ -100,20 +100,16 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 
                         if (contentLength > 1024 * 1024 )
                         {
-                            Logger.Writer.LogDebug( 
+                            LoggerUtil.Writer.LogDebug( 
                                 "HTTP post content greater than 1mb" + " " +
                                 "Length - " + contentLength.ToString());
                         }
 
                         contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                        // Logger.Writer.LogDebug(
-                        //               client.DefaultRequestHeaders.ToString() +
-                        //               contentMsg.Headers +
-                        //               contentMsg.ReadAsStringAsync().Result);
 
                         var response = await client.PostAsync(requestUri, contentMsg).ConfigureAwait(false);
                         var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        Logger.Writer.LogDebug(
+                        LoggerUtil.Writer.LogDebug(
                             ((int)response.StatusCode).ToString() + " " +
                             response.ReasonPhrase + " " +
                         responseMsg);
@@ -122,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                             failurecount += 1;
 
                             if (DateTime.Now - lastFailureReportedTime > TimeSpan.FromMinutes(1)) {
-                                Logger.Writer.LogDebug(                                
+                                LoggerUtil.Writer.LogDebug(                                
                                     "abnormal HTTP response code - " +
                                     "responsecode: " + ((int)response.StatusCode).ToString() + " " +
                                     "reasonphrase: " + response.ReasonPhrase + " " +
@@ -144,10 +140,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             }
             catch (Exception e)
             {
-                Logger.Writer.LogError(e.Message);
+                LoggerUtil.Writer.LogError(e.Message);
                 if (e.InnerException != null)
                 {
-                    Logger.Writer.LogError("InnerException - " + e.InnerException.Message);
+                    LoggerUtil.Writer.LogError("InnerException - " + e.InnerException.Message);
                 }
             }
 
@@ -210,7 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             }
             catch (Exception e) {
                 // log an error and exit. Modules are restarted automatically so it makes more sense to crash and restart than recover from this.
-                Logger.Writer.LogCritical(e.ToString());
+                LoggerUtil.Writer.LogCritical(e.ToString());
                 Environment.Exit(1);
 
                 // to make the code analyzer happy, otherwise not all codepaths return a value

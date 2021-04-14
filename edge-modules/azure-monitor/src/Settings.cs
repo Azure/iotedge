@@ -5,12 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics.Contracts;
     using System.IO;
     using System.Linq;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     internal class Settings
     {
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             if (this.Endpoints.Count == 0)
             {
-                Logger.Writer.LogError("No scraping endpoints specified, exiting");
+                LoggerUtil.Writer.LogError("No scraping endpoints specified, exiting");
                 throw new ArgumentException("No endpoints specified for which to scrape metrics");
             }
 
@@ -79,8 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<string>("HubResourceID", ""));
             }
             catch (ArgumentException e) {
-                Logger.Writer.LogCritical("Error reading arguments from environment variables. Make sure all required parameter are present");
-                Logger.Writer.LogCritical(e.ToString());
+                LoggerUtil.Writer.LogCritical("Error reading arguments from environment variables. Make sure all required parameter are present");
+                LoggerUtil.Writer.LogCritical(e.ToString());
                 Environment.Exit(2);
                 throw new Exception();  // to make code analyzers happy (this line will never run)
             }

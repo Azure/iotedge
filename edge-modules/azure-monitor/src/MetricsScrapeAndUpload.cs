@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class MetricsScrapeAndUpload : IDisposable
     {
@@ -26,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public void Start(TimeSpan scrapeAndUploadInterval)
         {
-            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadMetricsAsync, scrapeAndUploadInterval, new TimeSpan(0, 0, 0), Logger.Writer, "Scrape and Upload Metrics", instantStart: true);
+            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadMetricsAsync, scrapeAndUploadInterval, new TimeSpan(0, 0, 0), LoggerUtil.Writer, "Scrape and Upload Metrics", true);
         }
 
         public void Dispose()
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             }
             catch (Exception e)
             {
-                Logger.Writer.LogError(e, "Error scraping and uploading metrics");
+                LoggerUtil.Writer.LogError(e, "Error scraping and uploading metrics");
             }
         }
 

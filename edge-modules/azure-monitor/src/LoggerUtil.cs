@@ -8,9 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using Serilog;
     using Serilog.Core;
     using Serilog.Events;
+    using Microsoft.Azure.Devices.Edge.Util;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-    public static class Logger
+    public static class LoggerUtil
     {
         public static readonly ILogger Writer = CreateLogger("MetricsCollector");
 

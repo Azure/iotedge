@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class IotHubMetricsUpload : IMetricsPublisher
     {
@@ -37,12 +38,12 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
 
                 await this.moduleClient.SendEventAsync("metricOutput", metricsMessage);
 
-                Logger.Writer.LogInformation("Successfully sent metrics via IoT message");
+                LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
                 return true;
             }
             catch (Exception e)
             {
-                Logger.Writer.LogError(e, "Error sending metrics via IoT message");
+                LoggerUtil.Writer.LogError(e, "Error sending metrics via IoT message");
                 return false;
             }
         }

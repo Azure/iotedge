@@ -17,7 +17,7 @@ jobs:
       build.registry.address: edgebuilds.azurecr.io
       build.registry.user: EdgeBuilds
       registry.address: edgerelease.azurecr.io
-      registry.user: EdgeRelease      
+      registry.user: EdgeRelease
     steps: 
       - bash: |
             docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
@@ -253,10 +253,10 @@ jobs:
               ]
           signConfigType: inlineSignParams
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-        displayName: "Azure Metrics Collector Code Sign"
+        displayName: "Metrics Collector Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
-          FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
+          FolderPath: $(Build.BinariesDirectory)\publish\Microsoft.Azure.Devices.Edge.Azure.Monitor
           Pattern: Microsoft.Azure.Devices.Edge.Azure.Monitor*.dll
           SessionTimeout: 20
           inlineOperation: |
@@ -370,7 +370,7 @@ jobs:
       - template: templates/image-linux.yaml
         parameters:
           imageName: azureiotedge-metrics-collector
-          name: "Azure IoTEdge Metrics Collector"
+          name: "Azure IoT Edge Metrics Collector"
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
           version: $(version)          
       - task: PublishBuildArtifacts@1
@@ -396,7 +396,7 @@ jobs:
     steps: 
       - script: |
             docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
-            docker login $(registry.address) -u $(registry.user) -p $(registry.password)          
+            docker login $(registry.address) -u $(registry.user) -p $(registry.password)
         displayName: 'docker login'
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -624,7 +624,7 @@ jobs:
               ]
           signConfigType: inlineSignParams
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-        displayName: "Azure Metrics Collector Code Sign"
+        displayName: "Metrics Collector Code Sign"
         inputs: 
           ConnectedServiceName: "Azure IoT Edge Code Sign 2"
           FolderPath: $(Build.BinariesDirectory)/publish/Microsoft.Azure.Devices.Edge.Azure.Monitor
@@ -703,7 +703,7 @@ jobs:
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
           targetType: filePath
       - task: PowerShell@2
-        displayName: "Build Image - Azure Metrics Collector - amd64"
+        displayName: "Build Image - Metrics Collector - amd64"
         inputs:
           arguments: "-Name 'azureiotedge-metrics-collector' -Project 'Microsoft.Azure.Devices.Edge.Azure.Monitor' -Version '$(version)' -Registry '$(registry.address)' -Namespace '$(namespace)' -Push"
           filePath: ./scripts/windows/build/Publish-DockerImage.ps1
@@ -732,4 +732,4 @@ jobs:
     - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish Temperature Sensor Manifest'
     - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -u '$(registry.user)' -p '$(registry.password)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
-      displayName: 'Publish Azure Metrics Collector Manifest'      
+      displayName: 'Publish IoT Edge Metrics Collector Manifest'

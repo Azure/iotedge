@@ -274,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Certificategenerator
             {
                 Console.WriteLine("Registering agent with OMS failed (are the Log Analytics Workspace ID and Key correct?) : {0}", ex.Message);
 
-                Logger.Writer.LogCritical(ex.ToString());
+                LoggerUtil.Writer.LogCritical(ex.ToString());
                 Environment.Exit(1);
 
                 // to make the code analyzer happy
