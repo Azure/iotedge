@@ -60,6 +60,14 @@ stages:
       - template: templates/nested-get-device-name.yaml
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-clear-docker-cached-images.yaml
+
+      - task: Bash@3
+        displayName: 'sleep infinity'
+        inputs: 
+          targetType: inline
+          script: |
+            sleep infinity
+
       - template: templates/e2e-run.yaml
         parameters:
           EventHubCompatibleEndpoint: $(EventHubStressConnStr)
