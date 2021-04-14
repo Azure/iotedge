@@ -439,7 +439,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
             // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
-            return this.manifestTrustBundle.HasValue || (integrity != null && integrity.HasValues);
+            bool hasIntegrity = integrity != null && integrity.HasValues;
+            bool hasManifestCA = this.manifestTrustBundle.HasValue;
+            this.deploymentMetrics.ReportManifestIntegrity(hasManifestCA, hasIntegrity);
+            return hasManifestCA || hasIntegrity;
         }
 
         internal bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
@@ -493,9 +496,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
 
                 // Extract the manifest trust bundle certificate and verify chaining
-                if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                using (IDisposable verificationTimer = this.deploymentMetrics.StartTwinSignatureTimer())
                 {
-                    throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                    if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                    {
+                        throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                    }
                 }
 
                 // Extract Signature bytes and algorithm section
@@ -503,12 +509,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
                 KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
+                this.deploymentMetrics.ReportTwinSignatureResult(true);
                 Events.ExtractAgentTwinSucceeded();
 
                 return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
             }
             catch (Exception ex)
             {
+                this.deploymentMetrics.ReportTwinSignatureResult(false);
                 Events.ExtractAgentTwinAndVerifyFailed(ex);
                 throw ex;
             }
