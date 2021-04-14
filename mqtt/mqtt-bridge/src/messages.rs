@@ -245,12 +245,7 @@ mod tests {
     };
 
     use bytes::Bytes;
-    use futures_util::{
-        future::{self, Either},
-        pin_mut,
-        stream::Stream,
-        StreamExt, TryStreamExt,
-    };
+    use futures_util::{stream::Stream, StreamExt, TryStreamExt};
 
     use mqtt3::{
         proto::{Publication, QoS, SubscribeTo},
@@ -971,24 +966,10 @@ mod tests {
         assert_empty(handler.store.loader(BATCH_SIZE)).await;
     }
 
-    async fn assert_empty<S: Stream<Item = T> + Unpin, T: Debug>(stream: S) {
-        assert_empty_for(stream, Duration::from_millis(500)).await;
-    }
-
-    async fn assert_empty_for<S: Stream<Item = T> + Unpin, T: Debug>(
-        mut stream: S,
-        timeout: Duration,
-    ) {
-        let timeout = time::sleep(timeout);
-        let next = stream.next();
-        pin_mut!(timeout, next);
-
-        match future::select(timeout, next).await {
-            Either::Left(_) => {}
-            Either::Right((publication, _)) => {
-                panic!("no messages expected but received {:?}", publication)
-            }
-        }
+    async fn assert_empty<S: Stream<Item = T> + Unpin, T: Debug>(mut stream: S) {
+        time::timeout(Duration::from_millis(500), stream.next())
+            .await
+            .expect_err("expected empty stream");
     }
 
     fn test_bridge_settings() -> BridgeSettings {

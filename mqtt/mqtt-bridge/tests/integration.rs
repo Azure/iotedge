@@ -325,6 +325,7 @@ async fn bridge_settings_update() {
         ))
         .unwrap();
 
+    // TODO expose an event from the bridge controller when update is processed
     // delay to propagate the update
     tokio::time::sleep(Duration::from_secs(2)).await;
 
@@ -423,6 +424,7 @@ async fn subscribe_to_upstream_rejected_should_retry() {
         ))
         .unwrap();
 
+    // TODO expose an event from the command handler when update is processed
     // delay to have authorizer updated
     tokio::time::sleep(Duration::from_secs(2)).await;
 
@@ -636,6 +638,7 @@ async fn bridge_forwards_messages_after_restart() {
     )
     .await;
 
+    // TODO expose an event from the bridge controller when all bridges up and running
     // wait until the bridges up and running
     tokio::time::sleep(Duration::from_secs(1)).await;
 

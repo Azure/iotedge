@@ -510,15 +510,12 @@ async fn offline_messages() {
     );
 
     // read and map 3 expected publications from the stream
-    let mut events = client_a
+    let events = client_a
         .publications()
         .take(3)
         .map(|p| (p.payload))
         .collect::<Vec<_>>()
         .await;
-
-    // sort by payload for ease of comparison.
-    events.sort();
 
     assert_eq!(3, events.len());
     assert_eq!(events[0], Bytes::from("o qos 0"));
@@ -582,15 +579,12 @@ async fn offline_messages_persisted_on_broker_restart() {
     );
 
     // read and map 3 expected publications from the stream
-    let mut events = client_a
+    let events = client_a
         .publications()
         .take(3)
         .map(|p| (p.payload))
         .collect::<Vec<_>>()
         .await;
-
-    // sort by payload for ease of comparison.
-    events.sort();
 
     assert_eq!(3, events.len());
     assert_eq!(events[0], Bytes::from("o qos 0"));
@@ -923,7 +917,7 @@ async fn overlapping_subscriptions() {
     client_b.publish_qos1(topic, "overlap qos 1", false).await;
     client_b.publish_qos2(topic, "overlap qos 2", false).await;
 
-    let mut events: Vec<_> = client_a
+    let events: Vec<_> = client_a
         .publications()
         .take(3)
         .map(|p| (p.payload))
@@ -931,11 +925,9 @@ async fn overlapping_subscriptions() {
         .await;
 
     // need to wait till all messages are processed
-    time::sleep(Duration::from_millis(500)).await;
-
-    assert!(client_a.publications().next().now_or_never().is_none()); // no new message expected.
-
-    events.sort();
+    time::timeout(Duration::from_millis(500), client_a.publications().next())
+        .await
+        .expect_err("no messages expected");
 
     assert_eq!(3, events.len());
     assert_eq!(events[0], Bytes::from("overlap qos 0"));

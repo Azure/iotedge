@@ -1,4 +1,5 @@
 use std::{
+    pin::Pin,
     task::{Context, Poll},
     time::{Duration, Instant},
 };
@@ -6,6 +7,7 @@ use std::{
 use futures_util::{sink::SinkExt, stream::Stream, StreamExt};
 use lazy_static::lazy_static;
 use tokio::net::{TcpStream, ToSocketAddrs};
+use tokio_io_timeout::TimeoutStream;
 use tokio_util::codec::Framed;
 
 use mqtt3::{
@@ -21,7 +23,7 @@ lazy_static! {
 /// to a broker for more granular integration testing.
 #[derive(Debug)]
 pub struct PacketStream {
-    codec: Framed<TcpStream, PacketCodec>,
+    codec: Pin<Box<Framed<TimeoutStream<TcpStream>, PacketCodec>>>,
 }
 
 #[allow(dead_code)]
@@ -42,8 +44,12 @@ impl PacketStream {
         }
 
         let tcp_stream = result.expect("unable to establish tcp connection");
+        let mut timeout = TimeoutStream::new(tcp_stream);
 
-        let codec = Framed::new(tcp_stream, PacketCodec::default());
+        timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
+        timeout.set_write_timeout(Some(*DEFAULT_TIMEOUT));
+
+        let codec = Box::pin(Framed::new(timeout, PacketCodec::default()));
 
         Self { codec }
     }

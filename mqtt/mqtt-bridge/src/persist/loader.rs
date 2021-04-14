@@ -105,11 +105,7 @@ mod tests {
     use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
     use bytes::Bytes;
-    use futures_util::{
-        future::{self, join, Either},
-        pin_mut,
-        stream::TryStreamExt,
-    };
+    use futures_util::{future, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use test_case::test_case;
@@ -315,14 +311,9 @@ mod tests {
         let (last_key, _) = loader.try_next().await.unwrap().unwrap();
         assert_eq!(&last_key, keys.last().unwrap());
 
-        let timeout = time::sleep(Duration::from_millis(10));
-        pin_mut!(timeout);
-        if let Either::Right((next, _)) = future::select(timeout, loader.try_next()).await {
-            panic!(
-                "MessageLoader returned the value {:?} when it should still polling the storage",
-                next
-            );
-        }
+        time::timeout(Duration::from_millis(10), loader.try_next())
+            .await
+            .expect_err("MessageLoader should still polling the storage");
     }
 
     #[test_case(TestRingBuffer::default())]
@@ -406,7 +397,7 @@ mod tests {
         // add an element to the state
         let insert = async move {
             // wait to make sure that stream is polled initially
-            time::sleep(Duration::from_secs(2)).await;
+            time::sleep(Duration::from_millis(100)).await;
 
             // insert element once stream is polled
             {
@@ -415,6 +406,6 @@ mod tests {
             }
         };
 
-        join(poll_stream, insert).await;
+        future::join(poll_stream, insert).await;
     }
 }
