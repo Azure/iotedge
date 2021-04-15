@@ -39,7 +39,7 @@ steps:
     if ($IsWindows)
     {
         # set docker command prefix
-        $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
+        $dockerCommand="docker -H 'npipe:////./pipe/iotedge_moby_engine'"
 
         # Pull required images
         $images | foreach { Invoke-Expression ( $dockerCommand + " pull $_" ) }
