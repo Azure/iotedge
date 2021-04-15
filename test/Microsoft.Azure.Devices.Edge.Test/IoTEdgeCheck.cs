@@ -100,10 +100,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
             });
 
-            // TODO: iotedge check currently has 2 legitimate errors in it. When we update the aziot-submodule, the errors
-            // will go away, and we should change this assertion to empty string instead of passing on 2 errors.
-            // This is better than disabling the test, because it still tests iotedge check to some extent, and it will
-            // remind us with a failed run to update this test.
+            // When test runs behind proxy, MQTT and AMQP checks legitimately fail in three different connectivity checks
+            if (Context.Current.EdgeProxy.HasValue)
+            {
+                Assert.AreEqual("6 check(s) raised errors.", errors_number);
+            }
+
             Assert.AreEqual(string.Empty, errors_number);
         }
     }
