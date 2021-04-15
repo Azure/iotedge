@@ -82,7 +82,8 @@ jobs:
         docker -H 'npipe:////./pipe/iotedge_moby_engine' --version
         $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
         Invoke-Expression ( $dockerCommand + " --version" )
-        Invoke-Expression ( $dockerCommand + " images" )
+        # Invoke-Expression ( $dockerCommand + " images" )
+        Get-ChildItem \\.\pipe\ |% FullName
     - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
         Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
