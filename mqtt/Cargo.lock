@@ -1158,6 +1158,7 @@ dependencies = [
 name = "mqttd"
 version = "0.1.0"
 dependencies = [
+ "ansi_term 0.12.1",
  "anyhow",
  "async-trait",
  "cfg-if",
@@ -1177,6 +1178,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "tracing-core",
  "tracing-log",
  "tracing-subscriber",
 ]
