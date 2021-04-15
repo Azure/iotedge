@@ -105,8 +105,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 Assert.AreEqual("6 check(s) raised errors.", errors_number);
             }
-
-            Assert.AreEqual(string.Empty, errors_number);
+            else
+            {
+                Assert.AreEqual(string.Empty, errors_number);
+            }
         }
     }
 }

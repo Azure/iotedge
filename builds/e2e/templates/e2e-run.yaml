@@ -41,7 +41,12 @@ steps:
     elseif ($test_type -eq 'http_proxy')
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
-      $filter += '&FullyQualifiedName!~PriorityQueue&FullyQualifiedName!~PlugAndPlay'
+      $filter += '&FullyQualifiedName!~PriorityQueue&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+
+      #Disable tests that timeout in proxy self-host environment
+      $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
+
+      #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
     }
     else
