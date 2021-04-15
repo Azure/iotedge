@@ -26,7 +26,7 @@ pub struct Config {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<Url>,
-    
+
     #[serde(flatten)]
     pub aziot: aziotctl_common::config::super_config::Config,
 

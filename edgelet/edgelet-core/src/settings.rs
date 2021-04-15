@@ -349,7 +349,7 @@ pub struct Settings<T> {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<String>,
-    
+
     pub agent: ModuleSpec<T>,
 
     pub connect: Connect,
