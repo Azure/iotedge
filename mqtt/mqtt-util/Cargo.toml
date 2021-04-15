@@ -13,9 +13,9 @@ percent-encoding = "1.0"
 serde = { version = "1.0", features = ["derive", "rc"] }
 thiserror = "1.0"
 tracing = "0.1"
-tokio = { version = "0.2", features = ["dns", "rt-util"] }
-tokio-openssl = "0.4"
-url = "2.1"
+tokio = { version = "1", features = ["net", "rt"] }
+tokio-openssl = "0.6"
+url = "2.2"
 
 edgelet-client = { path = "../edgelet-client" }
 mqtt3 = { path = "../mqtt3" }

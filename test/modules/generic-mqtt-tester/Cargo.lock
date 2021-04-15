@@ -220,6 +220,7 @@ dependencies = [
 [[package]]
 name = "edgelet-client"
 version = "0.1.0"
+source = "git+https://github.com/Azure/iotedge?rev=4cd508#4cd508994b86d01f7fd673f69a1c1801377765a6"
 dependencies = [
  "async-trait",
  "base64",
@@ -781,6 +782,7 @@ dependencies = [
 [[package]]
 name = "mqtt-broker"
 version = "0.1.0"
+source = "git+https://github.com/Azure/iotedge?rev=4cd508#4cd508994b86d01f7fd673f69a1c1801377765a6"
 dependencies = [
  "async-trait",
  "bincode",
@@ -811,6 +813,7 @@ dependencies = [
 [[package]]
 name = "mqtt-broker-tests-util"
 version = "0.1.0"
+source = "git+https://github.com/Azure/iotedge?rev=4cd508#4cd508994b86d01f7fd673f69a1c1801377765a6"
 dependencies = [
  "async-trait",
  "bytes 0.5.6",
@@ -830,6 +833,7 @@ dependencies = [
 [[package]]
 name = "mqtt-util"
 version = "0.1.0"
+source = "git+https://github.com/Azure/iotedge?rev=4cd508#4cd508994b86d01f7fd673f69a1c1801377765a6"
 dependencies = [
  "async-trait",
  "chrono",
@@ -849,6 +853,7 @@ dependencies = [
 [[package]]
 name = "mqtt3"
 version = "0.1.0"
+source = "git+https://github.com/Azure/iotedge?rev=4cd508#4cd508994b86d01f7fd673f69a1c1801377765a6"
 dependencies = [
  "bytes 0.5.6",
  "futures-channel",

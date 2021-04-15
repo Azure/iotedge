@@ -13,7 +13,8 @@ use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
 use serde::Deserialize;
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream};
-use tracing::{debug, error};
+use tokio_openssl::SslStream;
+use tracing::error;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use mqtt3::IoSource;
@@ -147,7 +148,8 @@ impl ClientIoSource {
                 })?;
             }
 
-            let config = SslConnector::builder(SslMethod::tls())
+            let hostname = address.split(':').next().unwrap_or(&address);
+            let mut ssl = SslConnector::builder(SslMethod::tls())
                 .map(|mut builder| {
                     if let Some(trust_bundle) = server_root_certificate {
                         X509::stack_from_pem(trust_bundle.as_bytes())
@@ -162,19 +164,17 @@ impl ClientIoSource {
                     builder.build()
                 })
                 .and_then(|conn| conn.configure())
+                .and_then(|config| config.into_ssl(hostname))
+                .and_then(|ssl| SslStream::new(ssl, stream))
                 .map_err(|e| Error::new(ErrorKind::NotConnected, e))?;
 
-            let hostname = address.split(':').next().unwrap_or(&address);
+            Pin::new(&mut ssl)
+                .connect()
+                .await
+                .map_err(|e| Error::new(ErrorKind::NotConnected, e))?;
 
-            let io = tokio_openssl::connect(config, &hostname, stream).await;
-
-            debug!("Tls connection {:?} for {:?}", io, address);
-
-            io.map(|io| {
-                let stream: Pin<Box<dyn ClientIo>> = Box::pin(io);
-                Ok((stream, password))
-            })
-            .map_err(|e| Error::new(ErrorKind::NotConnected, e))?
+            let stream: Pin<Box<dyn ClientIo>> = Box::pin(ssl);
+            Ok((stream, password))
         })
     }
 }

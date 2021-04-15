@@ -10,5 +10,6 @@ mod generic;
 #[cfg(all(not(feature = "edgehub"), feature = "generic"))]
 pub use generic::init;
 
-mod format;
-use format::Format;
+// TODO fix this
+// mod format;
+// use format::Format;

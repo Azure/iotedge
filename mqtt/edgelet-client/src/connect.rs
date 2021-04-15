@@ -1,11 +1,9 @@
 use std::{
     error::Error as StdError,
-    mem::MaybeUninit,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use bytes::{Buf, BufMut};
 use futures_util::{future::BoxFuture, FutureExt};
 use http::Uri;
 use hyper::client::{connect::Connection, HttpConnector};
@@ -68,33 +66,11 @@ pub enum Stream {
 }
 
 impl AsyncRead for Stream {
-    #[inline]
-    unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [MaybeUninit<u8>]) -> bool {
-        match self {
-            #[cfg(unix)]
-            Self::Unix(stream) => stream.prepare_uninitialized_buffer(buf),
-            Self::Http(stream) => stream.prepare_uninitialized_buffer(buf),
-        }
-    }
-
-    #[inline]
-    fn poll_read_buf<B: BufMut>(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut B,
-    ) -> Poll<std::io::Result<usize>> {
-        match self.get_mut() {
-            #[cfg(unix)]
-            Self::Unix(stream) => Pin::new(stream).poll_read_buf(cx, buf),
-            Self::Http(stream) => Pin::new(stream).poll_read_buf(cx, buf),
-        }
-    }
-
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<std::io::Result<usize>> {
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
             #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_read(cx, buf),
@@ -102,13 +78,12 @@ impl AsyncRead for Stream {
         }
     }
 }
-
 impl AsyncWrite for Stream {
     fn poll_write(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> Poll<std::io::Result<usize>> {
+    ) -> Poll<Result<usize, std::io::Error>> {
         match self.get_mut() {
             #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_write(cx, buf),
@@ -116,20 +91,7 @@ impl AsyncWrite for Stream {
         }
     }
 
-    fn poll_write_buf<B: Buf>(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut B,
-    ) -> Poll<std::io::Result<usize>> {
-        match self.get_mut() {
-            #[cfg(unix)]
-            Self::Unix(stream) => Pin::new(stream).poll_write_buf(cx, buf),
-            Self::Http(stream) => Pin::new(stream).poll_write_buf(cx, buf),
-        }
-    }
-
-    #[inline]
-    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
         match self.get_mut() {
             #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_flush(cx),
@@ -137,11 +99,34 @@ impl AsyncWrite for Stream {
         }
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+    fn poll_shutdown(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), std::io::Error>> {
         match self.get_mut() {
             #[cfg(unix)]
             Self::Unix(stream) => Pin::new(stream).poll_shutdown(cx),
             Self::Http(stream) => Pin::new(stream).poll_shutdown(cx),
+        }
+    }
+
+    fn poll_write_vectored(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        bufs: &[std::io::IoSlice<'_>],
+    ) -> Poll<Result<usize, std::io::Error>> {
+        match self.get_mut() {
+            #[cfg(unix)]
+            Self::Unix(stream) => Pin::new(stream).poll_write_vectored(cx, bufs),
+            Self::Http(stream) => Pin::new(stream).poll_write_vectored(cx, bufs),
+        }
+    }
+
+    fn is_write_vectored(&self) -> bool {
+        match self {
+            #[cfg(unix)]
+            Self::Unix(stream) => stream.is_write_vectored(),
+            Self::Http(stream) => stream.is_write_vectored(),
         }
     }
 }
