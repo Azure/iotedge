@@ -165,6 +165,7 @@ steps:
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
       numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
+      genericMqttTesterImage = "$imagePrefix-generic-mqtt-tester:$imageTag"
       registries = @(
         @{
           address = '$(cr.address)';
