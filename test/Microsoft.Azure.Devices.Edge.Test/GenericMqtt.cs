@@ -16,9 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string NetworkControllerModuleName = "networkController";
         const string GenericMqttInitiatorModuleName = "GenericMqttInitiator";
         const string GenericMqttRelayerModuleName = "GenericMqttRelayer";
-        const int GenericMqttTesterMaxMessages = 10;
-        const string GenericMqttTesterTestStartDelay = "45s";
-        const int SecondsBeforeVerification = 90;
+        const string GenericMqttTesterMaxMessages = "5";
+        const string GenericMqttTesterTestStartDelay = "10s";
+        const int SecondsBeforeVerification = 45;
 
         [Test]
         public async Task GenericMqttTelemetry()
@@ -35,7 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Action<EdgeConfigBuilder> addGenericMqttTesterConfig = this.BuildAddGenericMqttTesterConfig(trackingId, trcImage, genericMqttTesterImage);
             Action<EdgeConfigBuilder> config = addMqttBrokerConfig + addNetworkControllerConfig + addTestResultCoordinatorConfig + addGenericMqttTesterConfig;
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(config, token, Context.Current.NestedEdge);
+
             await Task.Delay(TimeSpan.FromSeconds(SecondsBeforeVerification));
+
             await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
@@ -44,15 +46,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
-                    builder.AddModule(GenericMqttInitiatorModuleName, genericMqttTesterImage)
+                    builder.AddModule(GenericMqttInitiatorModuleName, genericMqttTesterImage, false)
                         .WithEnvironment(new[]
                         {
                             ("TEST_SCENARIO", "Initiate"),
                             ("TRACKING_ID", trackingId),
                             ("TEST_START_DELAY", GenericMqttTesterTestStartDelay),
+                            ("MESSAGES_TO_SEND", GenericMqttTesterMaxMessages),
                         });
 
-                    builder.AddModule(GenericMqttRelayerModuleName, genericMqttTesterImage)
+                    builder.AddModule(GenericMqttRelayerModuleName, genericMqttTesterImage, false)
                         .WithEnvironment(new[]
                         {
                             ("TEST_SCENARIO", "Relay"),

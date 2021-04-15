@@ -7,34 +7,40 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class MqttBrokerUtil
     {
-        static readonly Dictionary<string, object> OnlyIotHubOperationAuthorizations = new Dictionary<string, object>
+        static readonly List<Dictionary<string, object>> OnlyIotHubOperationAuthorizations = new List<Dictionary<string, object>>
         {
-            ["identities"] = new[] { "{{iot:identity}}" },
-            ["allow"] = new[]
+            new Dictionary<string, object>
             {
-                new Dictionary<string, object>
+                ["identities"] = new[] { "{{iot:identity}}" },
+                ["allow"] = new[]
                 {
-                    ["operations"] = new[] { "mqtt:connect" }
+                    new Dictionary<string, object>
+                    {
+                        ["operations"] = new[] { "mqtt:connect" }
+                    }
                 }
             }
         };
 
-        static readonly Dictionary<string, object> AllOperationAuthorizations = new Dictionary<string, object>
+        static readonly List<Dictionary<string, object>> AllOperationAuthorizations = new List<Dictionary<string, object>>
         {
-            ["identities"] = new[] { "{{iot:identity}}" },
-            ["allow"] = new[]
+            new Dictionary<string, object>
             {
-                new Dictionary<string, object>
+                ["identities"] = new[] { "{{iot:identity}}" },
+                ["allow"] = new[]
                 {
-                    ["operations"] = new[] { "mqtt:connect", "mqtt:publish", "mqtt:subscribe" },
-                    ["resources"] = new[] { "#" }
+                    new Dictionary<string, object>
+                    {
+                        ["operations"] = new[] { "mqtt:connect", "mqtt:publish", "mqtt:subscribe" },
+                        ["resources"] = new[] { "#" }
+                    }
                 }
             }
         };
 
         public static Action<EdgeConfigBuilder> BuildAddBrokerToDeployment(bool onlyIotHubTopics)
         {
-            var authorizations = new Dictionary<string, object> { };
+            var authorizations = new List<Dictionary<string, object>> { };
             if (onlyIotHubTopics)
             {
                 authorizations = OnlyIotHubOperationAuthorizations;
@@ -57,14 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         {
                             ["mqttBroker"] = new Dictionary<string, object>
                             {
-                                ["authorizations"] = new Dictionary<string, object>
-                                {
-                                    ["identities"] = new[] { "{{iot:identity}}" },
-                                    ["allow"] = new Dictionary<string, object>
-                                    {
-                                        ["operations"] = authorizations
-                                    }
-                                }
+                                ["authorizations"] = authorizations
                             }
                         });
                 });
