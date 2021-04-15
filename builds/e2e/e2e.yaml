@@ -77,6 +77,10 @@ jobs:
 
     steps:
     - pwsh: |
+        Get-Command docker
+        docker --version
+        docker -H 'npipe:////./pipe/iotedge_moby_engine' --version
+    - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
         Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
       displayName: Clean up HSM previous run artifacts
