@@ -20,20 +20,20 @@ impl TokenClient {
         generation_id: String,
         iothub_hostname: String,
         work_load_api_client: edgelet_client::WorkloadClient,
-    ) -> Result<Self, Error> {
-        Ok(TokenClient {
+    ) -> Self {
+        TokenClient {
             device_id,
             module_id,
             generation_id,
             iothub_hostname,
             work_load_api_client,
-        })
+        }
     }
 
     pub async fn get_new_sas_token(
-        &mut self,
+        &self,
         expiration_date: &str,
-    ) -> Result<Option<String>, Error> {
+    ) -> Result<String, Error> {
         let audience = format!(
             "{}/devices/{}/modules/{}",
             self.iothub_hostname,
@@ -59,6 +59,6 @@ impl TokenClient {
 
         info!("Successfully generated new token");
 
-        Ok(Some(token))
+        Ok(token)
     }
 }
