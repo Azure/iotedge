@@ -1030,11 +1030,10 @@ impl tokio_util::codec::Decoder for PacketCodec {
     }
 }
 
-impl tokio_util::codec::Encoder for PacketCodec {
-    type Item = Packet;
+impl tokio_util::codec::Encoder<Packet> for PacketCodec {
     type Error = super::EncodeError;
 
-    fn encode(&mut self, item: Self::Item, dst: &mut bytes::BytesMut) -> Result<(), Self::Error> {
+    fn encode(&mut self, item: Packet, dst: &mut bytes::BytesMut) -> Result<(), Self::Error> {
         dst.reserve(std::mem::size_of::<u8>() + 4 * std::mem::size_of::<u8>());
 
         match &item {

@@ -1,8 +1,8 @@
 use std::{collections::HashMap, collections::HashSet, error::Error as StdError, time::Duration};
 
 use async_trait::async_trait;
-use futures_util::future::BoxFuture;
-use tokio::{net::TcpStream, stream::StreamExt};
+use futures_util::{future::BoxFuture, TryStreamExt};
+use tokio::net::TcpStream;
 use tracing::{debug, error, info};
 
 use mqtt3::{

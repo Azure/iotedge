@@ -2,14 +2,8 @@
 
 mod common;
 
-#[test]
-fn server_publishes_at_most_once() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_publishes_at_most_once() {
     let (io_source, done) = common::IoSource::new(vec![vec![
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
             mqtt3::proto::Connect {
@@ -69,7 +63,6 @@ fn server_publishes_at_most_once() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -92,19 +85,12 @@ fn server_publishes_at_most_once() {
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn server_publishes_at_least_once() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_publishes_at_least_once() {
     let (io_source, done) = common::IoSource::new(vec![vec![
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
             mqtt3::proto::Connect {
@@ -170,7 +156,6 @@ fn server_publishes_at_least_once() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -192,19 +177,12 @@ fn server_publishes_at_least_once() {
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn server_publishes_at_least_once_with_reconnect_before_publish() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_publishes_at_least_once_with_reconnect_before_publish() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -328,7 +306,6 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -359,19 +336,12 @@ fn server_publishes_at_least_once_with_reconnect_before_publish() {
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn server_publishes_at_least_once_with_reconnect_before_ack() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_publishes_at_least_once_with_reconnect_before_ack() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -506,7 +476,6 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -547,19 +516,12 @@ fn server_publishes_at_least_once_with_reconnect_before_ack() {
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn should_reject_invalid_publications() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn should_reject_invalid_publications() {
     let (io_source, done) = common::IoSource::new(vec![vec![
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
             mqtt3::proto::Connect {
@@ -601,17 +563,16 @@ fn should_reject_invalid_publications() {
     });
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![mqtt3::Event::NewConnection {
             reset_session: true,
         }],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
-    match runtime.block_on(publish_future) {
+
+    match publish_future.await {
 		Err(mqtt3::PublishError::EncodePacket(_, mqtt3::proto::EncodeError::StringTooLarge(_))) => (),
 		result => panic!("expected client.publish() to fail with EncodePacket(StringTooLarge) but it returned {:?}", result),
 	}

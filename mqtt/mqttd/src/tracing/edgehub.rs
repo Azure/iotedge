@@ -1,10 +1,11 @@
 use std::env;
 
-use tracing::{log::LevelFilter, Level};
+use log::LevelFilter;
+use tracing::Level;
 use tracing_log::LogTracer;
 use tracing_subscriber::{fmt, EnvFilter};
 
-use super::Format;
+// use super::Format;
 
 const EDGE_HUB_LOG_LEVEL_ENV: &str = "RuntimeLogLevel";
 
@@ -28,13 +29,14 @@ pub fn init() {
 
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::TRACE)
-        .on_event(Format::default())
+        // TODO
+        // .on_event(Format::default())
         .with_env_filter(EnvFilter::new(log_level.clone()))
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 
     let filter = log_level.parse().unwrap_or(LevelFilter::Info);
-    let _ = LogTracer::builder().with_max_level(filter).init();
+    let _ = LogTracer::init_with_filter(filter);
 }
 
 // make sure to replace all edgehub-specific log levels to rust-compatible

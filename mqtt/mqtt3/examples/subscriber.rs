@@ -2,7 +2,7 @@
 //
 //     cargo run --example subscriber -- --server 127.0.0.1:1883 --client-id 'example-subscriber' --topic-filter foo --qos 1
 
-#![allow(clippy::let_unit_value)]
+use futures_util::StreamExt;
 
 mod common;
 
@@ -52,7 +52,8 @@ struct Options {
     qos: mqtt3::proto::QoS,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::Builder::from_env(env_logger::Env::new().filter_or(
         "MQTT3_LOG",
         "mqtt3=debug,mqtt3::logging=trace,subscriber=info",
@@ -69,8 +70,6 @@ fn main() {
         topic_filter,
         qos,
     } = structopt::StructOpt::from_args();
-
-    let mut runtime = tokio::runtime::Runtime::new().expect("couldn't initialize tokio runtime");
 
     let mut client = mqtt3::Client::new(
         client_id,
@@ -90,7 +89,7 @@ fn main() {
     let mut shutdown_handle = client
         .shutdown_handle()
         .expect("couldn't get shutdown handle");
-    runtime.spawn(async move {
+    tokio::spawn(async move {
         let () = tokio::signal::ctrl_c()
             .await
             .expect("couldn't get Ctrl-C notification");
@@ -101,7 +100,7 @@ fn main() {
     let mut update_subscription_handle = client
         .update_subscription_handle()
         .expect("couldn't get subscription update handle");
-    runtime.spawn(async move {
+    tokio::spawn(async move {
         let result = update_subscription_handle
             .subscribe(mqtt3::proto::SubscribeTo { topic_filter, qos })
             .await;
@@ -110,28 +109,24 @@ fn main() {
         }
     });
 
-    runtime.block_on(async {
-        use futures_util::StreamExt;
+    while let Some(event) = client.next().await {
+        let event = event.unwrap();
 
-        while let Some(event) = client.next().await {
-            let event = event.unwrap();
-
-            if let mqtt3::Event::Publication(publication) = event {
-                match std::str::from_utf8(&publication.payload) {
-                    Ok(s) => log::info!(
-                        "Received publication: {:?} {:?} {:?}",
-                        publication.topic_name,
-                        s,
-                        publication.qos,
-                    ),
-                    Err(_) => log::info!(
-                        "Received publication: {:?} {:?} {:?}",
-                        publication.topic_name,
-                        publication.payload,
-                        publication.qos,
-                    ),
-                }
+        if let mqtt3::Event::Publication(publication) = event {
+            match std::str::from_utf8(&publication.payload) {
+                Ok(s) => log::info!(
+                    "Received publication: {:?} {:?} {:?}",
+                    publication.topic_name,
+                    s,
+                    publication.qos,
+                ),
+                Err(_) => log::info!(
+                    "Received publication: {:?} {:?} {:?}",
+                    publication.topic_name,
+                    publication.payload,
+                    publication.qos,
+                ),
             }
         }
-    });
+    }
 }
