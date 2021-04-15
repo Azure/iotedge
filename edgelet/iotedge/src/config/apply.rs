@@ -179,6 +179,7 @@ fn execute_inner(
         trust_bundle_cert,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
+        manifest_trust_bundle_cert,
         aziot,
         agent,
         connect,
@@ -306,6 +307,14 @@ fn execute_inner(
         aziot_certd_config::PreloadedCert::Ids(trust_bundle_certs),
     );
 
+    let manifest_trust_bundle_cert = manifest_trust_bundle_cert.map(|manifest_trust_bundle_cert| {
+        certd_config.preloaded_certs.insert(
+            edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned(),
+            aziot_certd_config::PreloadedCert::Uri(manifest_trust_bundle_cert),
+        );
+        edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()
+    });
+
     let edged_config = edgelet_docker::Settings {
         base: edgelet_core::Settings {
             hostname: identityd_config.hostname.clone(),
@@ -313,7 +322,7 @@ fn execute_inner(
             edge_ca_cert,
             edge_ca_key,
             trust_bundle_cert: Some(edgelet_core::TRUST_BUNDLE_ALIAS.to_owned()),
-            manifest_trust_bundle_cert: Some(edgelet_core::MANIFEST_TRUST_BUNDLE_ALIAS.to_owned()),
+            manifest_trust_bundle_cert,
 
             auto_reprovisioning_mode,
 

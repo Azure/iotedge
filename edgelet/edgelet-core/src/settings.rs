@@ -341,14 +341,15 @@ pub struct Settings<T> {
     pub edge_ca_key: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_bundle_cert: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub manifest_trust_bundle_cert: Option<String>,
 
     #[serde(default = "AutoReprovisioningMode::default")]
     pub auto_reprovisioning_mode: AutoReprovisioningMode,
 
     pub homedir: PathBuf,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest_trust_bundle_cert: Option<String>,
+    
     pub agent: ModuleSpec<T>,
 
     pub connect: Connect,
