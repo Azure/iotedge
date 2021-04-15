@@ -1,4 +1,5 @@
 //! Code in this module is greatly inspired by `tracing-subscriber` internals.
+#![allow(clippy::unused_self)]
 use std::{
     fmt::{self, Write},
     marker::PhantomData,
@@ -263,6 +264,7 @@ impl Style {
 }
 
 mod time {
+    #![allow(clippy::inline_always)]
     use std::fmt::{Result, Write};
 
     #[cfg(feature = "ansi")]
