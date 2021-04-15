@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use async_trait::async_trait;
 use bson::{doc, Document};
-use bytes::buf::BufExt;
+use bytes::Buf;
 use lazy_static::lazy_static;
 use mqtt3::{Event, ReceivedPublication, SubscriptionUpdateEvent};
 use regex::Regex;
