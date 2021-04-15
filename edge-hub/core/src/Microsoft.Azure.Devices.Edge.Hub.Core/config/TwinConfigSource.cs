@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -235,7 +236,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
             // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
-            return this.manifestTrustBundle.HasValue || (integrity != null && integrity.HasValues);
+            bool hasIntegrity = integrity != null && integrity.HasValues;
+            bool hasManifestCA = this.manifestTrustBundle.HasValue;
+            Metrics.ReportManifestIntegrity(hasManifestCA, hasIntegrity);
+            return hasManifestCA || hasIntegrity;
         }
 
         internal bool ExtractHubTwinAndVerify(TwinCollection twinDesiredProperties)
@@ -292,9 +296,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
 
                 // Extract the manifest trust bundle certificate and verify chaining
-                if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                using (IDisposable verificationTimer = Metrics.StartTwinSignatureTimer())
                 {
-                    throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                    if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                    {
+                        throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                    }
                 }
 
                 // Extract Signature bytes and algorithm section
@@ -302,12 +309,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
                 KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
+                Metrics.ReportTwinSignatureResult(true);
                 Events.ExtractHubTwinSucceeded();
 
                 return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
             }
             catch (Exception ex)
             {
+                Metrics.ReportTwinSignatureResult(false);
                 Events.ExtractHubTwinAndVerifyFailed(ex);
                 throw ex;
             }
@@ -444,6 +453,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 Log.LogWarning((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsGauge ManifestIntegrityFlag = Util.Metrics.Metrics.Instance.CreateGauge(
+                "manifest_integrity_flag",
+                "The value is 1 (manifest integrity is present) or 0 (not present), tags are true or false and indicate which integrity components are present",
+                new List<string> { "signing_with_ca_enabled", "signing_with_integrity_enabled", "id", MetricsConstants.MsTelemetry });
+
+            static readonly IMetricsCounter TwinSignatureChecks = Util.Metrics.Metrics.Instance.CreateCounter(
+                "twin_signature_check_count",
+                "The number of twin signature checks, both successful and unsuccessful",
+                new List<string> { "result", "id", MetricsConstants.MsTelemetry });
+
+            static readonly IMetricsTimer TwinSignatureTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "twin_signaturs_check_seconds",
+                "The amount of time it took to verify twin signature",
+                new List<string> { "id", MetricsConstants.MsTelemetry });
+
+            public static void ReportManifestIntegrity(bool manifestCaPresent, bool integrtySectionPresent)
+            {
+                int manifestFlag = (manifestCaPresent || integrtySectionPresent) ? 1 : 0;
+                string[] tags = { manifestCaPresent.ToString(), integrtySectionPresent.ToString(), true.ToString() };
+                ManifestIntegrityFlag.Set(manifestFlag, tags);
+            }
+
+            public static void ReportTwinSignatureResult(bool success)
+            {
+                string result = success ? "Success" : "Failure";
+                string[] tags = { result, true.ToString() };
+                TwinSignatureChecks.Increment(1, tags);
+            }
+
+            public static IDisposable StartTwinSignatureTimer() => TwinSignatureTimer.GetTimer(new string[1] { true.ToString() });
         }
     }
 }

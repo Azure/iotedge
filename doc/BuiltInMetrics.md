@@ -42,9 +42,9 @@ instance_number | A Guid representing the current runtime. On restart, all metri
 | `edgehub_connected_clients`                              	  | 															 												| Current number of clients connected to edgeHub        					| gauge |                                                            
 | `edgehub_client_connect_success_total`                      | `id` (Device/Module ID)<br>																					| Total number of times each client successfully connected to edgeHub   | counter |                                                              
 | `edgehub_client_disconnect_total`                      	  | `id` (Device/Module ID)<br>																					| Total number of times each client disconnected from edgeHub   		| counter |
-| `edgehub_manifest_integrity_flag` | `signing_with_ca_enabled`, `signing_with_integrity_enabled` | The value is 0 (no manifest integrity) or 1 (manifest integrity is present), tags are "true" or "false" and indicate which integrity components are present. | Gauge |
+| `edgehub_manifest_integrity_flag` | `signing_with_ca_enabled`<br> `signing_with_integrity_enabled` | The value is 0 (no manifest integrity) or 1 (manifest integrity is present), tags are "true" or "false" and indicate which integrity components are present. | Gauge |
 | `edgehub_twin_signature_check_count` | `result` | The number of twin signature checks, `result` is "Success" or "Failure". | Counter |
-| `edgehub_twin_signature_check_seconds` |  | The amount of time it took to verify twin signature. | Summary |
+| `edgehub_twin_signature_check_seconds` |   | The amount of time it took to verify twin signature. | Summary |
 
 ### EdgeAgent
 | Name                                                        | Dimensions                                                                                                                                                                           | Description                                                                                                                                                                                              | Type    |
