@@ -14,10 +14,6 @@ pub fn execute(
     out_config_file: &Path,
     force: bool,
 ) -> Result<(), std::borrow::Cow<'static, str>> {
-    // Validate connection string syntax, without actually caring about the specific bits it's comprised of.
-    let _ = common_config::parse_manual_connection_string(&connection_string)
-        .map_err(|err| format!("Invalid connection string: {}", err))?;
-
     if !force && out_config_file.exists() {
         return Err(format!(
             "\
@@ -50,7 +46,10 @@ To reconfigure IoT Edge, run:
             provisioning: common_config::super_config::Provisioning {
                 provisioning: common_config::super_config::ProvisioningType::Manual {
                     inner: common_config::super_config::ManualProvisioning::ConnectionString {
-                        connection_string,
+                        connection_string: common_config::super_config::ConnectionString::new(
+                            connection_string,
+                        )
+                        .map_err(|e| format!("Invalid connection string: {}", e))?,
                     },
                 },
             },
