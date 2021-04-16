@@ -4,17 +4,14 @@ use bytes::buf::Buf;
 use chrono::{DateTime, Utc};
 use http::{Request, StatusCode, Uri};
 use hyper::{body, Body, Client};
-use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::percent_encode;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{
     make_hyper_uri, ApiError, CertificateResponse, Connector, IdentityCertificateRequest, Scheme,
-    ServerCertificateRequest, SignRequest, SignResponse, TrustBundleResponse,
+    ServerCertificateRequest, SignRequest, SignResponse, TrustBundleResponse, IOTHUB_ENCODE_SET,
+    PATH_SEGMENT_ENCODE_SET,
 };
-
-define_encode_set! {
-    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '$' }
-}
 
 #[derive(Debug)]
 pub struct WorkloadClient {
