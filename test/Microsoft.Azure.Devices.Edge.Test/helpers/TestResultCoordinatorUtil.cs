@@ -41,10 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
-                    // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so many of the parameters
+                    // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so some of the parameters
                     // are unnecessary for the e2e tests.
-                    // TODO: Make TestResultCoordinator more generic, so we don't have to fill out garbage values in the e2e tests.
-                    // TODO ANDREW: Can we safely remove test duration?
                     builder.AddModule(TrcModuleName, trcImage)
                        .WithEnvironment(new[]
                        {
