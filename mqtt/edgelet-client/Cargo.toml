@@ -15,7 +15,7 @@ futures-util = "0.3"
 openssl = "0.10"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
-percent-encoding = "1.0"
+percent-encoding = "2"
 thiserror = "1.0"
 tokio = { version = "1", features = ["net"] }
 tower-service = "0.3"
