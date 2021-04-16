@@ -495,24 +495,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string intermediatecacertCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
                 X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
 
+                // Extract Signature bytes and algorithm section
+                JToken signature = integrity["signature"]["bytes"];
+                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
+                JToken algo = integrity["signature"]["algorithm"];
+                string algoStr = algo.ToString();
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algoStr);
+
                 // Extract the manifest trust bundle certificate and verify chaining
+                bool signatureVerified = false;
                 using (IDisposable verificationTimer = this.deploymentMetrics.StartTwinSignatureTimer())
                 {
                     if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
                     {
                         throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
                     }
+
+                    signatureVerified = SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
                 }
 
-                // Extract Signature bytes and algorithm section
-                JToken signature = integrity["signature"]["bytes"];
-                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
-                JToken algo = integrity["signature"]["algorithm"];
-                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
-                this.deploymentMetrics.ReportTwinSignatureResult(true);
-                Events.ExtractAgentTwinSucceeded();
+                this.deploymentMetrics.ReportTwinSignatureResult(signatureVerified, algoStr);
+                if (signatureVerified)
+                {
+                    Events.ExtractAgentTwinSucceeded();
+                }
 
-                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+                return signatureVerified;
             }
             catch (Exception ex)
             {

@@ -67,13 +67,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
             this.manifestIntegrityFlag = metricsProvider.CreateGauge(
                 "manifest_integrity_flag",
-                "The value is 1 (manifest integrity is present) or 0 (not present), tags are true or false and indicate which integrity components are present",
+                "The value is 1 if manifest integrity is present or 0 if not present, tags indicate which integrity components are present",
                 new List<string> { "signing_with_ca_enabled", "signing_with_integrity_enabled", MetricsConstants.MsTelemetry });
 
             this.twinSignatureChecks = metricsProvider.CreateCounter(
                 "twin_signature_check_count",
                 "The number of twin signature checks, both successful and unsuccessful",
-                new List<string> { "result", MetricsConstants.MsTelemetry });
+                new List<string> { "result", "algorithm", MetricsConstants.MsTelemetry });
 
             this.twinSignatureTime = metricsProvider.CreateTimer(
                 "twin_signaturs_check_seconds",
@@ -217,10 +217,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.manifestIntegrityFlag.Set(manifestFlag, tags);
         }
 
-        public void ReportTwinSignatureResult(bool success)
+        public void ReportTwinSignatureResult(bool success, string algorithm = "unknown")
         {
             string result = success ? "Success" : "Failure";
-            string[] tags = { result, true.ToString() };
+            string[] tags = { result, algorithm, true.ToString() };
             this.twinSignatureChecks.Increment(1, tags);
         }
 

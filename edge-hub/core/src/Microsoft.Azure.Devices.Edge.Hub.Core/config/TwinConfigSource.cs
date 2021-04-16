@@ -295,24 +295,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 string intermediatecacertCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
                 X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
 
+                // Extract Signature bytes and algorithm section
+                JToken signature = integrity["signature"]["bytes"];
+                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
+                JToken algo = integrity["signature"]["algorithm"];
+                string algoStr = algo.ToString();
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algoStr);
+
                 // Extract the manifest trust bundle certificate and verify chaining
+                bool signatureVerified = false;
                 using (IDisposable verificationTimer = Metrics.StartTwinSignatureTimer())
                 {
                     if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
                     {
                         throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
                     }
+
+                    signatureVerified = SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
                 }
 
-                // Extract Signature bytes and algorithm section
-                JToken signature = integrity["signature"]["bytes"];
-                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
-                JToken algo = integrity["signature"]["algorithm"];
-                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
-                Metrics.ReportTwinSignatureResult(true);
-                Events.ExtractHubTwinSucceeded();
+                Metrics.ReportTwinSignatureResult(signatureVerified, algoStr);
+                if (signatureVerified)
+                {
+                    Events.ExtractHubTwinSucceeded();
+                }
 
-                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+                return signatureVerified;
             }
             catch (Exception ex)
             {
@@ -459,18 +467,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             static readonly IMetricsGauge ManifestIntegrityFlag = Util.Metrics.Metrics.Instance.CreateGauge(
                 "manifest_integrity_flag",
-                "The value is 1 (manifest integrity is present) or 0 (not present), tags are true or false and indicate which integrity components are present",
-                new List<string> { "signing_with_ca_enabled", "signing_with_integrity_enabled", "id", MetricsConstants.MsTelemetry });
+                "The value is 1 if manifest integrity is present or 0 if not present, tags indicate which integrity components are present.",
+                new List<string> { "signing_with_ca_enabled", "signing_with_integrity_enabled", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsCounter TwinSignatureChecks = Util.Metrics.Metrics.Instance.CreateCounter(
                 "twin_signature_check_count",
                 "The number of twin signature checks, both successful and unsuccessful",
-                new List<string> { "result", "id", MetricsConstants.MsTelemetry });
+                new List<string> { "result", "algorithm", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsTimer TwinSignatureTimer = Util.Metrics.Metrics.Instance.CreateTimer(
                 "twin_signaturs_check_seconds",
                 "The amount of time it took to verify twin signature",
-                new List<string> { "id", MetricsConstants.MsTelemetry });
+                new List<string> { MetricsConstants.MsTelemetry });
 
             public static void ReportManifestIntegrity(bool manifestCaPresent, bool integrtySectionPresent)
             {
@@ -479,10 +487,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 ManifestIntegrityFlag.Set(manifestFlag, tags);
             }
 
-            public static void ReportTwinSignatureResult(bool success)
+            public static void ReportTwinSignatureResult(bool success, string algorithm = "unknown")
             {
                 string result = success ? "Success" : "Failure";
-                string[] tags = { result, true.ToString() };
+                string[] tags = { result, algorithm, true.ToString() };
                 TwinSignatureChecks.Increment(1, tags);
             }
 
