@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             if (shouldRestart)
             {
                 restartPolicy = "always";
-
             }
             else
             {
