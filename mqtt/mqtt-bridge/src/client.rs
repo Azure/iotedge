@@ -174,7 +174,10 @@ where
     async fn handle_events(&mut self) -> Result<(), ClientError> {
         debug!("polling bridge client...");
 
-        while let Some(event) = self.client.try_next().await? {
+        let client = self.client;
+        // futures_util::pin_mut!(client);
+
+        while let Some(event) = client.try_next().await? {
             debug!("handling event {:?}", event);
             if let Err(e) = self.event_handler.handle(event).await {
                 error!(error = %e, "error processing event");

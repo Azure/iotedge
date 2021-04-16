@@ -10,6 +10,8 @@ pub use publish::{PublishError, PublishHandle};
 mod subscriptions;
 pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};
 
+use pin_project::pin_project;
+
 /// An MQTT v3.1.1 client.
 ///
 /// A `Client` is a [`Stream`] of [`Event`]s. It automatically reconnects if the connection to the server is broken,
@@ -22,8 +24,9 @@ pub use subscriptions::{UpdateSubscriptionError, UpdateSubscriptionHandle};
 /// The [`Stream`] only ends (returns `Ready(None)`) when the client is told to shut down gracefully using the handle
 /// returned by [`Client::shutdown_handle`]. The `Client` becomes unusable after it has returned `None`
 /// and should be dropped.
+#[pin_project]
 #[derive(Debug)]
-pub struct Client<IoS>(ClientState<IoS>)
+pub struct Client<IoS>(#[pin] ClientState<IoS>)
 where
     IoS: IoSource;
 
@@ -240,8 +243,9 @@ where
         use futures_sink::Sink;
 
         let reason = loop {
-            match &mut self.0 {
-                ClientState::Up {
+            let mut this = self.as_mut().project();
+            match this.0.as_mut().project() {
+                ClientStateProj::Up {
                     client_id,
                     username,
                     will,
@@ -252,7 +256,7 @@ where
                     packet_identifiers,
 
                     connect,
-                    ping,
+                    mut ping,
                     publish,
                     subscriptions,
 
@@ -349,7 +353,7 @@ where
                     }
                 }
 
-                ClientState::ShuttingDown {
+                ClientStateProj::ShuttingDown {
                     client_id,
                     username,
                     will,
@@ -371,9 +375,8 @@ where
                         std::task::Poll::Ready(framed) => framed,
                         std::task::Poll::Pending => {
                             // Already disconnected
-                            self.0 = ClientState::ShutDown {
-                                reason: reason.take(),
-                            };
+                            let reason = reason.take();
+                            this.0.set(ClientState::ShutDown { reason });
                             continue;
                         }
                     };
@@ -382,18 +385,16 @@ where
                         if *sent_disconnect {
                             match std::pin::Pin::new(&mut framed).poll_flush(cx) {
                                 std::task::Poll::Ready(Ok(())) => {
-                                    self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
-                                    };
+                                    let reason = reason.take();
+                                    this.0.set(ClientState::ShutDown { reason });
                                     break;
                                 }
 
                                 std::task::Poll::Ready(Err(err)) => {
                                     let err = Error::EncodePacket(err);
                                     log::warn!("couldn't send DISCONNECT: {}", err);
-                                    self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
-                                    };
+                                    let reason = reason.take();
+                                    this.0.set(ClientState::ShutDown { reason });
                                     break;
                                 }
 
@@ -409,9 +410,8 @@ where
 
                                     Err(err) => {
                                         log::warn!("couldn't send DISCONNECT: {}", err);
-                                        self.0 = ClientState::ShutDown {
-                                            reason: reason.take(),
-                                        };
+                                        let reason = reason.take();
+                                        this.0.set(ClientState::ShutDown { reason });
                                         break;
                                     }
                                 }
@@ -419,9 +419,8 @@ where
 
                             std::task::Poll::Ready(Err(err)) => {
                                 log::warn!("couldn't send DISCONNECT: {}", err);
-                                self.0 = ClientState::ShutDown {
-                                    reason: reason.take(),
-                                };
+                                let reason = reason.take();
+                                this.0.set(ClientState::ShutDown { reason });
                                 break;
                             }
 
@@ -430,7 +429,7 @@ where
                     }
                 }
 
-                ClientState::ShutDown { reason } => match reason.take() {
+                ClientStateProj::ShutDown { reason } => match reason.take() {
                     Some(err) => return std::task::Poll::Ready(Some(Err(err))),
                     None => return std::task::Poll::Ready(None),
                 },
@@ -451,7 +450,7 @@ where
             } => {
                 log::warn!("Shutting down...");
 
-                self.0 = ClientState::ShuttingDown {
+                self.as_mut().project().0.set(ClientState::ShuttingDown {
                     client_id,
                     username,
                     will,
@@ -462,7 +461,7 @@ where
                     sent_disconnect: false,
 
                     reason,
-                };
+                });
                 self.poll_next(cx)
             }
 
@@ -557,6 +556,7 @@ impl ShutdownHandle {
     }
 }
 
+#[pin_project(project = ClientStateProj)]
 #[derive(Debug)]
 enum ClientState<IoS>
 where
@@ -569,13 +569,18 @@ where
         keep_alive: std::time::Duration,
 
         shutdown_send: futures_channel::mpsc::Sender<()>,
+
         shutdown_recv: futures_channel::mpsc::Receiver<()>,
 
         packet_identifiers: PacketIdentifiers,
 
         connect: connect::Connect<IoS>,
+
+        #[pin]
         ping: ping::State,
+
         publish: publish::State,
+
         subscriptions: subscriptions::State,
 
         /// Packets waiting to be written to the underlying `Framed`
@@ -610,7 +615,7 @@ fn client_poll<S>(
     keep_alive: std::time::Duration,
     packets_waiting_to_be_sent: &mut std::collections::VecDeque<crate::proto::Packet>,
     packet_identifiers: &mut PacketIdentifiers,
-    ping: &mut ping::State,
+    mut ping: std::pin::Pin<&mut ping::State>,
     publish: &mut publish::State,
     subscriptions: &mut subscriptions::State,
 ) -> std::task::Poll<Result<Event, Error>>

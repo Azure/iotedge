@@ -12,6 +12,7 @@ futures-channel = { version = "0.3", features = ["sink"] }
 futures-sink = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
 log = "0.4"
+pin-project = "1.0"
 serde = { version = "1.0", optional = true, features = ["derive"] }
 tokio = { version = "1", features = ["time"] }
 tokio-util = { version = "0.6", features = ["codec"] }

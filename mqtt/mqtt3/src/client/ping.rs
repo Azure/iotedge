@@ -1,11 +1,14 @@
+use pin_project::pin_project;
+
+#[pin_project(project = StateProj)]
 pub(super) enum State {
     BeginWaitingForNextPing,
-    WaitingForNextPing(std::pin::Pin<Box<tokio::time::Sleep>>),
+    WaitingForNextPing(#[pin] tokio::time::Sleep),
 }
 
 impl State {
     pub(super) fn poll(
-        &mut self,
+        self: &mut std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
 
         packet: &mut Option<crate::proto::Packet>,
@@ -14,9 +17,9 @@ impl State {
         if let Some(crate::proto::Packet::PingResp(crate::proto::PingResp)) = packet {
             let _ = packet.take();
 
-            match self {
-                State::BeginWaitingForNextPing => (),
-                State::WaitingForNextPing(ping_timer) => ping_timer
+            match self.as_mut().project() {
+                StateProj::BeginWaitingForNextPing => (),
+                StateProj::WaitingForNextPing(mut ping_timer) => ping_timer
                     .as_mut()
                     .reset(deadline(tokio::time::Instant::now(), keep_alive)),
             }
@@ -25,13 +28,13 @@ impl State {
         loop {
             log::trace!("    {:?}", self);
 
-            match self {
-                State::BeginWaitingForNextPing => {
+            match self.as_mut().project() {
+                StateProj::BeginWaitingForNextPing => {
                     let ping_timer = tokio::time::sleep(keep_alive);
-                    *self = State::WaitingForNextPing(Box::pin(ping_timer));
+                    self.set(State::WaitingForNextPing(ping_timer));
                 }
 
-                State::WaitingForNextPing(ping_timer) => {
+                StateProj::WaitingForNextPing(mut ping_timer) => {
                     use futures_util::FutureExt;
                     match ping_timer.poll_unpin(cx) {
                         std::task::Poll::Ready(()) => {
@@ -47,8 +50,8 @@ impl State {
         }
     }
 
-    pub(super) fn new_connection(&mut self) {
-        *self = State::BeginWaitingForNextPing;
+    pub(super) fn new_connection(self: &mut std::pin::Pin<&mut Self>) {
+        self.set(State::BeginWaitingForNextPing);
     }
 }
 
