@@ -476,7 +476,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 new List<string> { "result", "algorithm", MetricsConstants.MsTelemetry });
 
             static readonly IMetricsTimer TwinSignatureTimer = Util.Metrics.Metrics.Instance.CreateTimer(
-                "twin_signaturs_check_seconds",
+                "twin_signature_check_seconds",
                 "The amount of time it took to verify twin signature",
                 new List<string> { MetricsConstants.MsTelemetry });
 

@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 new List<string> { "result", "algorithm", MetricsConstants.MsTelemetry });
 
             this.twinSignatureTime = metricsProvider.CreateTimer(
-                "twin_signaturs_check_seconds",
+                "twin_signature_check_seconds",
                 "The amount of time it took to verify twin signature",
                 new List<string> { MetricsConstants.MsTelemetry });
 
