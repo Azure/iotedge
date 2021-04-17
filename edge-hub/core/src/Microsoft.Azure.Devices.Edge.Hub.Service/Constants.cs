@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         public const string VersionInfoFileName = "versionInfo.json";
         public const string WorkloadApiVersion = "2019-01-30";
+        public const string WorkloadMinManifestTrustVersion = "2019-01-30";
 
         public static class ConfigKey
         {
