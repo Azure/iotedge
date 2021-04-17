@@ -64,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             installCommand = $"Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
             commands = new[]
             {
-                "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Set-PSDebug -Trace 2",
                 installCommand,
