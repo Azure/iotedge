@@ -82,7 +82,7 @@ jobs:
           ". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
           "Uninstall-IoTEdge -Force"
         )
-        echo ($commands -join ';')
+        echo "$($commands -join ';')"
         powershell ($commands -join ';')
         echo "exit: $LastExitCode"
     - pwsh: |
