@@ -77,14 +77,13 @@ jobs:
 
     steps:
     - pwsh: |
-        Get-Command docker
-        docker --version
-        docker -H 'npipe:////./pipe/iotedge_moby_engine' --version
-        $dockerCommand="docker -H npipe:////./pipe/iotedge_moby_engine"
-        Invoke-Expression ( $dockerCommand + " --version" )
-        # Invoke-Expression ( $dockerCommand + " images" )
-        Get-ChildItem \\.\pipe\ |% FullName
-        Get-Service iotedge-moby
+        $commands = @(
+          "$ProgressPreference='SilentlyContinue'",
+          $". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
+          "Uninstall-IoTEdge -Force"
+        )
+        echo commands -join ';'
+        powershell $commands -join ';'
     - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
         Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
