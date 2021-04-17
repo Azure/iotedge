@@ -78,7 +78,7 @@ jobs:
     steps:
     - pwsh: |
         $commands = @(
-          '$ProgressPreference=' + "'SilentlyContinue'",
+          "`$ProgressPreference='SilentlyContinue'",
           ". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
           "Uninstall-IoTEdge -Force"
         )
