@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             properties = new object[] { Dns.GetHostName() };
             message = "Initialized edge daemon on '{Device}'";
             installCommand = $"Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
-            var commands = new[]
+            commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
