@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     properties = properties.Append(p).ToArray();
                 });
 
-            string installCommand = $"Install-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
+            string installCommand = $"Deploy-IoTEdge -ContainerOs Windows";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
@@ -40,6 +40,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 d => Task.FromResult(d),
                 () => this.DownloadInstallerAsync(token));
 
+            var commands = new[]
+            {
+                "$ProgressPreference='SilentlyContinue'",
+                $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
+                "Set-PSDebug -Trace 2",
+                installCommand,
+                "Set-PSDebug -Off"
+            };
+
+            await Profiler.Run(
+                async () =>
+                {
+                    string[] output =
+                        await Process.RunAsync("powershell", string.Join(";", commands), token);
+                    Log.Verbose(string.Join("\n", output));
+                },
+                message,
+                properties);
+
+            properties = new object[] { Dns.GetHostName() };
+            message = "Initialized edge daemon on '{Device}'";
+            installCommand = $"Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
             var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
