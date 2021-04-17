@@ -67,7 +67,7 @@ jobs:
       demands:
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals azure-iot-edge-win10-entn2019-test-image
+        - ImageOverride -equals aziotedge-win10-entn2019-agent
         # - run-new-e2e-tests -equals true
 
     variables:
