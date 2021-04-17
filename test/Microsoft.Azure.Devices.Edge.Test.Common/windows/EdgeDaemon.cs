@@ -58,16 +58,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 },
                 message,
                 properties);
+        }
 
-            properties = new object[] { Dns.GetHostName() };
-            message = "Initialized edge daemon on '{Device}'";
-            installCommand = $"Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
-            commands = new[]
+        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
+        {
+            var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Set-PSDebug -Trace 2",
-                installCommand,
+                "Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'",
                 "Set-PSDebug -Off"
             };
 
@@ -78,12 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
                     Log.Verbose(string.Join("\n", output));
                 },
-                message,
-                properties);
-        }
+                "Initialized edge daemon on '{Device}'",
+                new object[] { Dns.GetHostName() });
 
-        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
-        {
             string configYamlPath =
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
 
