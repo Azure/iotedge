@@ -79,9 +79,10 @@ jobs:
     - pwsh: |
         $OpenSslPath = Join-Path (Split-Path (get-command git).Source) '..\mingw64\bin' -Resolve
         echo "OpenSSL found: $OpenSslPath"
-        $systemPath = [System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine) -split ';' | Where-Object { $_.Length -gt 0 }
-        $systemPath += $OpenSslPath
-        [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
+        echo "PATH: $env:Path"
+        # $systemPath = [System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine) -split ';' | Where-Object { $_.Length -gt 0 }
+        # $systemPath += $OpenSslPath
+        # [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
 
     - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
