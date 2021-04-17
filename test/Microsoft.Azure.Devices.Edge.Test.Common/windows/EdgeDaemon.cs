@@ -62,12 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
-            string scriptDir = await this.scriptDir.Match(
-                d => Task.FromResult(d),
-                () => this.DownloadInstallerAsync(token));
-
             var commands = new[]
             {
+                "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
                 "Set-PSDebug -Trace 2",
                 "Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'",
