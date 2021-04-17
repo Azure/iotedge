@@ -78,12 +78,13 @@ jobs:
     steps:
     - pwsh: |
         $commands = @(
-          "$ProgressPreference='SilentlyContinue'",
-          $". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
+          "\$ProgressPreference='SilentlyContinue'",
+          ". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
           "Uninstall-IoTEdge -Force"
         )
         echo commands -join ';'
         powershell $commands -join ';'
+        echo "exit: $LastExitCode"
     - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
         Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
