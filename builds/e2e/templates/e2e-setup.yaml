@@ -3,15 +3,15 @@ steps:
   clean: true
   fetchDepth: 100
 
-- pwsh: |
-    $commands = @(
-      "`$ProgressPreference='SilentlyContinue'",
-      ". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
-      "Uninstall-IoTEdge -Force"
-    )
-    echo "$($commands -join ';')"
-    powershell ($commands -join ';')
-    echo "exit: $LastExitCode"
+# - pwsh: |
+#     $commands = @(
+#       "`$ProgressPreference='SilentlyContinue'",
+#       ". $(Build.SourcesDirectory)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1",
+#       "Uninstall-IoTEdge -Force"
+#     )
+#     echo "$($commands -join ';')"
+#     powershell ($commands -join ';')
+#     echo "exit: $LastExitCode"
 
 - task: AzureKeyVault@1
   displayName: Get secrets
