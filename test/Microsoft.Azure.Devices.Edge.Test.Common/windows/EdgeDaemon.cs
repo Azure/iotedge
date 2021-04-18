@@ -36,9 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
 
+            Log.Information("### Inside EdgeDaemon.InstallAsync");
+
             string scriptDir = await this.scriptDir.Match(
                 d => Task.FromResult(d),
                 () => this.DownloadInstallerAsync(token));
+
+            Log.Information("### Script location: {ScriptLocation}", scriptDir);
 
             var commands = new[]
             {
