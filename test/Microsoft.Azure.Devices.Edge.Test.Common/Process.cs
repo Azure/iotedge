@@ -8,10 +8,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using RunProcessAsTask;
+    using Serilog;
 
     public class Process
     {
-        public static async Task<string[]> RunAsync(string name, string args, List<string> stdout, List<string> stderr, CancellationToken token)
+        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
         {
             var info = new ProcessStartInfo
             {
@@ -20,26 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 RedirectStandardInput = true,
             };
 
-            try {
-                using (ProcessResults result = await ProcessEx.RunAsync(info, stdout, stderr, token))
-                {
-                    if (result.ExitCode != 0)
-                    {
-                        throw new Win32Exception(result.ExitCode);
-                    }
-
-                    return result.StandardOutput;
-                }
-            }
-            catch (TaskCanceledException e)
+            using (ProcessResults result = await ProcessEx.RunAsync(info, o => Log.Information(o), e => Log.Error(e), token))
             {
-                throw new TaskCanceledException(
-                    $"\nOUTPUT:\n{String.Join("\n", stdout)}\n\nERROR\n{String.Join("\n", stderr)}",
-                    e);
+                if (result.ExitCode != 0)
+                {
+                    throw new Win32Exception(result.ExitCode);
+                }
+
+                return result.StandardOutput;
             }
         }
-
-        public static Task<string[]> RunAsync(string name, string args, CancellationToken token) =>
-            RunAsync(name, args, new List<string>(), new List<string>(), token);
     }
 }
