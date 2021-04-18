@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Process
     {
-        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
+        public static async Task<string[]> RunAsync(string name, string args, string[] stdout, string[] stderr, CancellationToken token)
         {
             var info = new ProcessStartInfo
             {
@@ -18,15 +18,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 RedirectStandardInput = true,
             };
 
-            using (ProcessResults result = await ProcessEx.RunAsync(info, token))
-            {
-                if (result.ExitCode != 0)
+            try {
+                using (ProcessResults result = await ProcessEx.RunAsync(info, stdout, stderr, token))
                 {
-                    throw new Win32Exception(result.ExitCode, $"{string.Join("\n", result.StandardOutput)}\n\n'{name}' failed with: {string.Join("\n", result.StandardError)}");
-                }
+                    if (result.ExitCode != 0)
+                    {
+                        throw new Win32Exception(result.ExitCode);
+                    }
 
-                return result.StandardOutput;
+                    return result.StandardOutput;
+                }
             }
+            catch (Exception e)
+            {
+                e.Message += $"\nOUTPUT:\n{String.Join("\n", stdout)}\n\nERROR\n{String.Join("\n", stderr)}";
+                throw e;
+            }
+        }
+
+        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
+        {
+            return RunAsync(name, args, new List<string>(), new List<string>(), token);
         }
     }
 }
