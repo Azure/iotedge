@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
+    using System;
+    using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Threading;
@@ -9,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Process
     {
-        public static async Task<string[]> RunAsync(string name, string args, string[] stdout, string[] stderr, CancellationToken token)
+        public static async Task<string[]> RunAsync(string name, string args, List<string> stdout, List<string> stderr, CancellationToken token)
         {
             var info = new ProcessStartInfo
             {
@@ -29,16 +31,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     return result.StandardOutput;
                 }
             }
-            catch (Exception e)
+            catch (TaskCanceledException e)
             {
-                e.Message += $"\nOUTPUT:\n{String.Join("\n", stdout)}\n\nERROR\n{String.Join("\n", stderr)}";
-                throw e;
+                throw new TaskCanceledException(
+                    $"\nOUTPUT:\n{String.Join("\n", stdout)}\n\nERROR\n{String.Join("\n", stderr)}",
+                    e);
             }
         }
 
-        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
-        {
-            return RunAsync(name, args, new List<string>(), new List<string>(), token);
-        }
+        public static Task<string[]> RunAsync(string name, string args, CancellationToken token) =>
+            RunAsync(name, args, new List<string>(), new List<string>(), token);
     }
 }
