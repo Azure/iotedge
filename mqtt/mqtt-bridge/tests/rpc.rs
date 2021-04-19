@@ -33,7 +33,7 @@ async fn get_twin_update_via_rpc() {
     .await;
 
     // wait for bridge controller subscribed to all required topics
-    time::delay_for(Duration::from_millis(100)).await;
+    time::sleep(Duration::from_millis(100)).await;
 
     // connect to the remote broker to emulate upstream interaction
     let mut upstream = TestClientBuilder::new(upstream_server_handle.address())
@@ -120,7 +120,7 @@ async fn handle_rpc_subscription_duplicates() {
     .await;
 
     // wait for bridge controller subscribed to all required topics
-    time::delay_for(Duration::from_millis(100)).await;
+    time::sleep(Duration::from_millis(100)).await;
 
     // connect to the local broker with eh-core client
     let mut edgehub = TestClientBuilder::new(local_server_handle.address())

@@ -777,7 +777,6 @@ pub enum Error {
     DuplicateExactlyOncePublishPacketNotMarkedDuplicate(crate::proto::PacketIdentifier),
     EncodePacket(crate::proto::EncodeError),
     PacketIdentifiersExhausted,
-    PingTimer(tokio::time::Error),
     ServerClosedConnection,
     SubAckDoesNotContainEnoughQoS(crate::proto::PacketIdentifier, usize, usize),
     SubscriptionDowngraded(String, crate::proto::QoS, crate::proto::QoS),
@@ -844,9 +843,6 @@ impl std::fmt::Display for Error {
 			Error::PacketIdentifiersExhausted =>
 				write!(f, "all packet identifiers exhausted"),
 
-			Error::PingTimer(err) =>
-				write!(f, "ping timer failed: {}", err),
-
 			Error::ServerClosedConnection =>
 				write!(f, "connection closed by server"),
 
@@ -873,7 +869,6 @@ impl std::error::Error for Error {
             Error::DuplicateExactlyOncePublishPacketNotMarkedDuplicate(_) => None,
             Error::EncodePacket(err) => Some(err),
             Error::PacketIdentifiersExhausted => None,
-            Error::PingTimer(err) => Some(err),
             Error::ServerClosedConnection => None,
             Error::SubAckDoesNotContainEnoughQoS(_, _, _) => None,
             Error::SubscriptionDowngraded(_, _, _) => None,
