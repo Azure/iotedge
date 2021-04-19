@@ -540,7 +540,7 @@ namespace Modules.Test.TestResultCoordinator
         {
             if (!throwException)
             {
-                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, 0, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
+                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, 0, 0, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
             }
 
             return Task.FromException<ITestResultReport>(new ApplicationException("Inject exception for testing"));

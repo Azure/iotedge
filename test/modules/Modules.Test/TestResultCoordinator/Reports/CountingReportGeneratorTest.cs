@@ -19,26 +19,29 @@ namespace Modules.Test.TestResultCoordinator.Reports
         public static IEnumerable<object[]> GetCreateReportData =>
             new List<object[]>
             {
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 0, 0, 0 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 10, 7, 6, 0, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 10, 7, 5, 0, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 10, 7, 5, 0, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 10, 7, 5, 0, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 0, 2, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 0, 3, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "1", "2", "3", "4", "5", "6", "6" }, 10, 7, 6, 0, 2, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 4, 7, 6, 0, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 4, 7, 5, 0, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 0, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 0, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7", "7" }, 4, 7, 5, 0, 1, 2 },
-                new object[] { new[] { "1", "2", "3", "4", "5", "6", "7", "7" }, Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 1, 0, 0 },
-                new object[] { new[] { "1", "1", "2", "3", "4", "5", "6", "7", "7" }, Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 2, 0, 0 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 0, 0, 0, 0 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 10, 7, 6, 0, 0, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 0, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 0, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 10, 7, 5, 0, 0, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 10, 7, 5, 0, 0, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 10, 7, 5, 0, 0, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 0, 2, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 0, 3, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "1", "2", "3", "4", "5", "6", "6" }, 10, 7, 6, 0, 2, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 4, 7, 6, 0, 0, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 0, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 0, 0, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 4, 7, 5, 0, 0, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 0, 0, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 0, 0, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7", "7" }, 4, 7, 5, 0, 1, 0, 2 },
+                new object[] { new[] { "1", "2", "3", "4", "5", "6", "7", "7" }, Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 1, 0, 0, 0 },
+                new object[] { new[] { "1", "1", "2", "3", "4", "5", "6", "7", "7" }, Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 2, 0, 0, 0 },
+                new object[] { new[] { "1", "2", "3", "4", "5", "6", "7" }, new[] { "1", "2", "1", "3", "4", "5", "6", "7" }, 10, 7, 7, 0, 0, 1, 0 },
+                new object[] { new[] { "1", "2", "3", "4", "5", "6", "7" }, new[] { "1", "2", "1", "3", "4", "5", "6", "7", "6" }, 10, 7, 7, 0, 0, 2, 0 },
             };
+
         static readonly string TestDescription = "dummy description";
         static readonly ushort UnmatchedResultsMaxSize = 10;
 
@@ -309,9 +312,10 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             Assert.Equal(0UL, report.TotalExpectCount);
             Assert.Equal(0UL, report.TotalMatchCount);
+            Assert.Equal(0UL, report.TotalUnmatchedCount);
             Assert.Equal(0UL, report.TotalDuplicateExpectedResultCount);
             Assert.Equal(0UL, report.TotalDuplicateActualResultCount);
-            Assert.Equal(0, report.UnmatchedResults.Count);
+            Assert.Equal(0UL, report.TotalMisorderedActualResultCount);
         }
 
         [Theory]
@@ -324,8 +328,13 @@ namespace Modules.Test.TestResultCoordinator.Reports
             ulong expectedTotalMatchCount,
             ulong expectedTotalDuplicateExpectedResultCount,
             ulong expectedTotalDuplicateActualResultCount,
-            int expectedMissingResultsCount)
+            ulong expectedTotalMisorderedActualResultCount,
+            ulong expectedMissingResultsCount)
         {
+            // give fake tracking id and batch id to mimic real scenario
+            expectedStoreValues = expectedStoreValues.Select(v => "xx;yy;" + v);
+            actualStoreValues = actualStoreValues.Select(v => "xx;yy;" + v);
+
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
             string resultType = TestOperationResultType.Messages.ToString();
@@ -365,9 +374,10 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             Assert.Equal(expectedTotalExpectedCount, report.TotalExpectCount);
             Assert.Equal(expectedTotalMatchCount, report.TotalMatchCount);
+            Assert.Equal(expectedMissingResultsCount, report.TotalUnmatchedCount);
             Assert.Equal(expectedTotalDuplicateExpectedResultCount, report.TotalDuplicateExpectedResultCount);
             Assert.Equal(expectedTotalDuplicateActualResultCount, report.TotalDuplicateActualResultCount);
-            Assert.Equal(expectedMissingResultsCount, report.UnmatchedResults.Count);
+            Assert.Equal(expectedTotalMisorderedActualResultCount, report.TotalMisorderedActualResultCount);
         }
 
         static List<(long, TestOperationResult)> GetStoreData(string source, string resultType, IEnumerable<string> resultValues, int start = 0)

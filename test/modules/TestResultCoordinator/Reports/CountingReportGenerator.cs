@@ -76,6 +76,7 @@ namespace TestResultCoordinator.Reports
             ulong totalMatchCount = 0;
             ulong totalDuplicateExpectedResultCount = 0;
             ulong totalDuplicateActualResultCount = 0;
+            ulong totalMisorderedActualResultCount = 0;
             var unmatchedResults = new Queue<TestOperationResult>();
             bool allActualResultsMatch = false;
             Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents = Option.None<EventHubSpecificReportComponents>();
@@ -89,6 +90,17 @@ namespace TestResultCoordinator.Reports
                 this.ValidateResult(this.ExpectedTestResults.Current, this.ExpectedSource);
                 this.ValidateResult(this.ActualTestResults.Current, this.ActualSource);
 
+                // If we see an actual result with an older sequence number
+                // then we know that it came in out of order. So we should
+                // record it and skip it.
+                if (this.IsActualResultSequenceNumberOlder(this.ActualTestResults.Current, this.ExpectedTestResults.Current))
+                {
+                    totalMisorderedActualResultCount++;
+
+                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                    continue;
+                }
+
                 if (this.TestResultComparer.Matches(lastLoadedExpectedResult, this.ExpectedTestResults.Current))
                 {
                     totalDuplicateExpectedResultCount++;
@@ -101,14 +113,6 @@ namespace TestResultCoordinator.Reports
 
                 lastLoadedExpectedResult = this.ExpectedTestResults.Current;
 
-                // Skip any duplicate actual value
-                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
-                {
-                    totalDuplicateActualResultCount++;
-                    lastLoadedActualResult = this.ActualTestResults.Current;
-                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
-                }
-
                 totalExpectCount++;
 
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
@@ -117,6 +121,15 @@ namespace TestResultCoordinator.Reports
                     hasActualResult = await this.ActualTestResults.MoveNextAsync();
                     hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                     totalMatchCount++;
+
+                    // Skip any duplicate actual value
+                    while (hasActualResult && this.TestResultComparer.Matches(lastLoadedActualResult, this.ActualTestResults.Current))
+                    {
+                        totalDuplicateActualResultCount++;
+                        lastLoadedActualResult = this.ActualTestResults.Current;
+                        hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                        continue;
+                    }
                 }
                 else
                 {
@@ -189,6 +202,11 @@ namespace TestResultCoordinator.Reports
                 // Log actual queue items
                 Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
 
+                if (this.IsActualResultSequenceNumberOlder(this.ActualTestResults.Current, lastLoadedExpectedResult))
+                {
+                    totalMisorderedActualResultCount++;
+                }
+
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
@@ -207,9 +225,24 @@ namespace TestResultCoordinator.Reports
                 totalMatchCount,
                 totalDuplicateExpectedResultCount,
                 totalDuplicateActualResultCount,
+                totalMisorderedActualResultCount,
                 new List<TestOperationResult>(unmatchedResults).AsReadOnly(),
                 eventHubSpecificReportComponents,
                 lastLoadedResultCreatedAt);
+        }
+
+        bool IsActualResultSequenceNumberOlder(TestOperationResult actualResult, TestOperationResult expectedResult)
+        {
+            // TODO: The controller for TestResultCoordinator takes in a custom type
+            // not derived from the original types the test modules send. This
+            // means we have to rely on string magic like this to get the sequence
+            // numbers. In order to clean this up we should allow the controller to
+            // ingest the original type the test modules are sending. Then we
+            // can cast to MessageTestResult and grab the sequence number attribute.
+            int actualSequenceNumber = int.Parse(actualResult.Result.Split(";")[2]);
+            int expectedSequenceNumber = int.Parse(expectedResult.Result.Split(";")[2]);
+
+            return actualSequenceNumber < expectedSequenceNumber;
         }
 
         void ValidateResult(TestOperationResult current, string expectedSource)
