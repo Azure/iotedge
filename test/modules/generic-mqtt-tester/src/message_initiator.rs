@@ -2,7 +2,7 @@ use bytes::BufMut;
 use bytes::BytesMut;
 use futures_util::{
     future::{self, Either},
-    pin_mut, StreamExt,
+    pin_mut,
 };
 use tokio::{
     sync::mpsc::{self, Receiver},
@@ -76,9 +76,9 @@ impl MessageInitiator {
                 payload: payload.into(),
             };
 
-            let shutdown_recv_fut = self.shutdown_recv.next();
+            let shutdown_recv_fut = self.shutdown_recv.recv();
             let publish_fut = publish_handle.publish(publication);
-            pin_mut!(publish_fut);
+            pin_mut!(shutdown_recv_fut, publish_fut);
 
             match future::select(shutdown_recv_fut, publish_fut).await {
                 Either::Left((shutdown, _)) => {
@@ -91,10 +91,21 @@ impl MessageInitiator {
                 }
             };
 
-            self.report_message_sent(seq_num).await?;
+            let result = MessageTestResult::new(
+                self.settings.tracking_id(),
+                self.batch_id.to_string(),
+                seq_num,
+            );
+
+            let test_type = trc_client::TestType::Messages;
+            let created_at = chrono::Utc::now();
+            self.reporting_client
+                .report_result(SEND_SOURCE.to_string(), result, test_type, created_at)
+                .await
+                .map_err(MessageTesterError::ReportResult)?;
             seq_num += 1;
 
-            time::delay_for(self.settings.message_frequency()).await;
+            time::sleep(self.settings.message_frequency()).await;
         }
 
         Ok(ExitedWork::MessageInitiator)
@@ -102,22 +113,5 @@ impl MessageInitiator {
 
     pub fn shutdown_handle(&self) -> ShutdownHandle {
         self.shutdown_handle.clone()
-    }
-
-    async fn report_message_sent(&self, sequence_number: u32) -> Result<(), MessageTesterError> {
-        let result = MessageTestResult::new(
-            self.settings.tracking_id(),
-            self.batch_id.to_string(),
-            sequence_number,
-        );
-
-        let test_type = trc_client::TestType::Messages;
-        let created_at = chrono::Utc::now();
-        self.reporting_client
-            .report_result(SEND_SOURCE.to_string(), result, test_type, created_at)
-            .await
-            .map_err(MessageTesterError::ReportResult)?;
-
-        Ok(())
     }
 }

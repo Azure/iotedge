@@ -13,25 +13,25 @@ branch = "span-fix"
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
-bytes = "0.5"
-config = { version = "0.10", features = ["json"], default-features = false }
+bytes = "1.0"
+config = { version = "0.11", features = ["json"], default-features = false }
 chrono = "0.4"
 futures-util = "0.3"
-humantime = "2.0"
+humantime = "2.1"
 humantime-serde = "1.0"
 thiserror = "1.0"
-tokio = { version = "0.2", features = ["rt-util", "rt-threaded", "macros", "signal"] }
-tokio-signal = "0.2.9"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+tokio-signal = "0.2"
 tracing = "0.1"
 tracing-futures = "0.2"
-tracing-subscriber = "0.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_derive = "1.0"
-serde_json = "1.0"
+tracing-subscriber = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_derive = "1"
+serde_json = "1"
 uuid = { version = "0.8", features = ["v4", "serde"] }
 
-edgelet-client = { git = "https://github.com/Azure/iotedge", rev = "4cd508" }
-mqtt-util = { git = "https://github.com/Azure/iotedge", rev = "4cd508" }
-mqtt-broker-tests-util = { git = "https://github.com/Azure/iotedge", rev = "4cd508" }
-mqtt3 = { git = "https://github.com/Azure/iotedge", rev = "4cd508" }
+edgelet-client = { path = "../../../mqtt/edgelet-client" }
+mqtt-util = { path = "../../../mqtt/mqtt-util" }
+mqtt-broker-tests-util = { path = "../../../mqtt/mqtt-broker-tests-util" }
+mqtt3 = { path = "../../../mqtt/mqtt3" }
 trc-client = { path = "../../rust-test-util/test-result-reporting-client" }
