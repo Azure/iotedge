@@ -7,7 +7,7 @@ use std::result::Result;
 use futures::prelude::*;
 
 use kube_client::{get_config, Client};
-use tokio::runtime::Runtime;
+use tokio::runtime::current_thread::Runtime;
 
 fn main() -> Result<(), ()> {
     env_logger::init();
