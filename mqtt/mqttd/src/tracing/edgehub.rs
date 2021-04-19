@@ -5,7 +5,7 @@ use tracing::Level;
 use tracing_log::LogTracer;
 use tracing_subscriber::{fmt, EnvFilter};
 
-// use super::Format;
+use super::Format;
 
 const EDGE_HUB_LOG_LEVEL_ENV: &str = "RuntimeLogLevel";
 
@@ -29,8 +29,7 @@ pub fn init() {
 
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::TRACE)
-        // TODO
-        // .on_event(Format::default())
+        .event_format(Format::edgehub())
         .with_env_filter(EnvFilter::new(log_level.clone()))
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
