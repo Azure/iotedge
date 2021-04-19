@@ -85,9 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
             }
 
-            // TODO ANDREW: fix so that TRC isn't configured with delay where it doesn't look at recent results
-            //              prob isn't the problem tho or there wouldn't be any unmatched
-
             await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
