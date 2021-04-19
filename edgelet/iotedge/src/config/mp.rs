@@ -46,7 +46,10 @@ To reconfigure IoT Edge, run:
             provisioning: common_config::super_config::Provisioning {
                 provisioning: common_config::super_config::ProvisioningType::Manual {
                     inner: common_config::super_config::ManualProvisioning::ConnectionString {
-                        connection_string,
+                        connection_string: common_config::super_config::ConnectionString::new(
+                            connection_string,
+                        )
+                        .map_err(|e| format!("invalid connection string: {}", e))?,
                     },
                 },
             },
