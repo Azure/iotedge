@@ -48,9 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                "Set-PSDebug -Trace 2",
-                installCommand,
-                "Set-PSDebug -Off"
+                // "Set-PSDebug -Trace 2",
+                installCommand
+                // "Set-PSDebug -Off"
             };
 
             await Profiler.Run(
@@ -69,9 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             commands = new[]
             {
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                "Set-PSDebug -Trace 2",
-                installCommand,
-                "Set-PSDebug -Off"
+                // "Set-PSDebug -Trace 2",
+                installCommand
+                // "Set-PSDebug -Off"
             };
 
             await Profiler.Run(
@@ -149,9 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                "Set-PSDebug -Trace 2",
-                "Uninstall-IoTEdge -Force",
-                "Set-PSDebug -Off"
+                // "Set-PSDebug -Trace 2",
+                "Uninstall-IoTEdge -Force"
+                // "Set-PSDebug -Off"
             };
 
             await Profiler.Run(
