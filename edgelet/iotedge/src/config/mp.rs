@@ -49,7 +49,7 @@ To reconfigure IoT Edge, run:
                         connection_string: common_config::super_config::ConnectionString::new(
                             connection_string,
                         )
-                        .map_err(|e| format!("Invalid connection string: {}", e))?,
+                        .map_err(|e| format!("invalid connection string: {}", e))?,
                     },
                 },
             },
