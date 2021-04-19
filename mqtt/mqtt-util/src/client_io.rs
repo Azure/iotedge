@@ -10,13 +10,14 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
-use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::percent_encode;
 use serde::Deserialize;
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream};
 use tokio_openssl::SslStream;
 use tracing::error;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
+use edgelet_client::IOTHUB_ENCODE_SET;
 use mqtt3::IoSource;
 
 const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
@@ -185,10 +186,6 @@ fn validate_length(id: &str) -> Result<(), TryFromIntError> {
     Ok(())
 }
 
-define_encode_set! {
-    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
-}
-
 #[async_trait]
 pub trait TokenSource {
     async fn get(&self, expiry: &DateTime<Utc>) -> Result<Option<String>, Error>;
@@ -213,11 +210,11 @@ impl SasTokenSource {
         let audience = format!(
             "{}/devices/{}/modules/{}",
             provider_settings.iothub_hostname(),
-            percent_encode(provider_settings.device_id().as_bytes(), IOTHUB_ENCODE_SET).to_string(),
-            percent_encode(provider_settings.module_id().as_bytes(), IOTHUB_ENCODE_SET).to_string()
-        );
-        let resource_uri =
-            percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
+            percent_encode(provider_settings.device_id().as_bytes(), IOTHUB_ENCODE_SET),
+            percent_encode(provider_settings.module_id().as_bytes(), IOTHUB_ENCODE_SET)
+        )
+        .to_lowercase();
+        let resource_uri = percent_encode(audience.as_bytes(), IOTHUB_ENCODE_SET);
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
         let client = edgelet_client::workload(provider_settings.workload_uri()).map_err(|e| {
