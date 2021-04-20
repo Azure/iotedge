@@ -414,7 +414,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collectorr:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           }

@@ -156,7 +156,7 @@ jobs:
       - template: templates/image-linux.yaml
         parameters:
           name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
+          imageName: azureiotedge-test-metrics-collectorr
           project: MetricsCollector
 
      # Deployment Tester
@@ -352,7 +352,7 @@ jobs:
       - template: templates/image-windows.yaml
         parameters:
           name: Metrics Collector
-          imageName: azureiotedge-metrics-collector
+          imageName: azureiotedge-test-metrics-collectorr
           project: MetricsCollector
 
      # TestResultCoordinator

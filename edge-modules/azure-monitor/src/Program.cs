@@ -50,7 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             {
                 moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
                 moduleClient.ProductInfo = Constants.ProductInfo;
-                Option<SortedDictionary<string, string>> additionalTags = await GetAdditionalTagsFromTwin(moduleClient);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
@@ -61,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     publisher = new IotHubMetricsUpload.IotHubMetricsUpload(moduleClient);
                 }
 
-                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, additionalTags))
+                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                     metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
@@ -84,24 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             LoggerUtil.Writer.LogInformation("MetricsCollector Main() finished.");
             return 0;
         }
-
-        //TODO: we don't use the module twin for anything, don't bother getting tags?
-        static async Task<Option<SortedDictionary<string, string>>> GetAdditionalTagsFromTwin(ModuleClient moduleClient)
-        {
-            Twin twin = await moduleClient.GetTwinAsync();
-            TwinCollection desiredProperties = twin.Properties.Desired;
-            LoggerUtil.Writer.LogInformation($"Received {desiredProperties.Count} tags from module twin's desired properties that will be added to scraped metrics");
-
-            const string additionalTagsPlaceholder = "additionalTags";
-            Dictionary<string, string> deserializedTwin = JsonConvert.DeserializeObject<Dictionary<string, string>>(twin.Properties.Desired.ToJson());
-            if (deserializedTwin.ContainsKey(additionalTagsPlaceholder))
-            {
-                return Option.Some<SortedDictionary<string, string>>(ParseKeyValuePairs(deserializedTwin[additionalTagsPlaceholder], LoggerUtil.Writer, true));
-            }
-
-            return Option.None<SortedDictionary<string, string>>();
-        }
-
 
         // Test info is used in the longhaul, stress, and connectivity tests to provide contextual information when reporting.
         // This info is passed from the vsts pipeline and needs to be parsed by the test modules.
