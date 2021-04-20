@@ -1,11 +1,9 @@
 parameters:
   upstream.protocol: 'amqp'
-  runSetup: true
 
 jobs:
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
-    condition: and(succeeded(), eq('${{ parameters.runSetup }}', true))
     timeoutInMinutes: 180
     variables:
       artifactName: iotedged-ubuntu18.04-amd64
@@ -34,7 +32,7 @@ jobs:
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
     dependsOn: SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
-    condition: and(succeeded(), eq('${{ parameters.runSetup }}', true))
+    condition: succeeded()
     timeoutInMinutes: 180
     variables:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64

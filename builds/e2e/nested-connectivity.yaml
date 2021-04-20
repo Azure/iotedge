@@ -23,7 +23,7 @@ stages:
   - job:  Deploy_Connectivity_Linux_Amd64_mqtt
     displayName: Set up and run connectivity tests on Linux Amd64 mqtt
     dependsOn: SetupVM_level4_mqtt
-    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'), eq(variables['run.mqtt'], 'true'))
+    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     strategy:
       matrix:
         Online:
@@ -157,7 +157,7 @@ stages:
       - SetupVM_level5_mqtt
       - SetupVM_level4_mqtt
       - Deploy_connectivity_Linux_Amd64_mqtt
-    condition: eq(variables['run.mqtt'], 'true')
+    condition: always()
     displayName: Clean up identities and unlock agents mqtt
     variables:    
       deviceLvl5mqttAgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]         
@@ -190,7 +190,7 @@ stages:
   - job:  Deploy_Connectivity_Linux_Amd64_amqp
     displayName: Set up and run connectivity tests on Linux Amd64 amqp
     dependsOn: SetupVM_level4_amqp
-    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'), eq(variables['run.amqp'], 'true'))
+    condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     strategy:
       matrix:
         Online:
@@ -324,7 +324,7 @@ stages:
       - SetupVM_level5_amqp
       - SetupVM_level4_amqp
       - Deploy_connectivity_Linux_Amd64_amqp
-    condition: eq(variables['run.amqp'], 'true')
+    condition: always()
     displayName: Clean up identities and unlock agents amqp
     variables:    
       deviceLvl5AgentName: $[ dependencies.SetupVM_level5_amqp.outputs['lock_test_agent.agentName'] ]         
