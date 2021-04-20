@@ -766,8 +766,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(iterator1.Object);
             serviceProxy.SetupSequence(s => s.GetServiceIdentity(It.Is<string>(id => id == id1), It.IsAny<string>()))
                 .ReturnsAsync(Option.Some(si1_initial))
-                .ReturnsAsync(Option.Some(si1_updated))
-                .ReturnsAsync(Option.Some(si1_initial));  // Flip the response back to initial idenitity
+                .ReturnsAsync(Option.Some(si1_updated));
 
             // Act
             var updatedIdentities = new List<ServiceIdentity>();
@@ -778,24 +777,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Refresh the identity to trigger the delay
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
-            // Refresh again without waiting
-            await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
             Option<ServiceIdentity> initialServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(id1);
 
             // Wait for delay to expire and try again
-            await Task.Delay(TimeSpan.FromSeconds(refreshDelaySec));
+            await Task.Delay(TimeSpan.FromSeconds(refreshDelaySec + 1));
             await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
             var updatedServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(id1);
 
-            await deviceScopeIdentitiesCache.RefreshServiceIdentity(id1);
-            var initialAfterUpdateServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(id1);
-
             // Should be the same as initial value, as was still in the delay period
             Assert.Equal(si1_initial, initialServiceIdentity.OrDefault());
-            // Should be updated
             Assert.Equal(si1_updated, updatedServiceIdentity.OrDefault());
-            // Refresh delay should have been ignored due to AuthenticationType.None
-            Assert.Equal(si1_initial, initialAfterUpdateServiceIdentity.OrDefault());
         }
 
         [Fact]
