@@ -34,10 +34,9 @@ use log::{debug, error, Level};
 use native_tls::Identity;
 #[cfg(unix)]
 use native_tls::TlsAcceptor;
-use openssl::pkcs12::Pkcs12;
-use openssl::pkey::PKey;
+use openssl::pkey::{PKey, PKeyRef, Private};
 use openssl::stack::Stack;
-use openssl::x509::X509;
+use openssl::x509::{X509Ref, X509};
 #[cfg(target_os = "linux")]
 use systemd::Socket;
 use tokio::net::TcpListener;
@@ -60,6 +59,8 @@ pub mod route;
 mod unix;
 mod util;
 mod version;
+#[cfg(windows)]
+mod windows;
 
 pub use certificate_manager::CertificateManager;
 pub use error::{BindListenerType, Error, ErrorKind, InvalidUrlReason};
@@ -84,23 +85,11 @@ const FD_SCHEME: &str = "fd";
 pub struct PemCertificate {
     cert: Vec<u8>,
     key: Option<Vec<u8>>,
-    username: Option<String>,
-    password: Option<String>,
 }
 
 impl PemCertificate {
-    pub fn new(
-        cert: Vec<u8>,
-        key: Option<Vec<u8>>,
-        username: Option<String>,
-        password: Option<String>,
-    ) -> Self {
-        PemCertificate {
-            cert,
-            key,
-            username,
-            password,
-        }
+    pub fn new(cert: Vec<u8>, key: Option<Vec<u8>>) -> Self {
+        PemCertificate { cert, key }
     }
 
     pub fn get_certificate(&self) -> &[u8] {
@@ -123,7 +112,7 @@ impl PemCertificate {
             Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
         };
 
-        Ok(PemCertificate::new(cert, key, None, None))
+        Ok(PemCertificate::new(cert, key))
     }
 
     pub fn get_identity(&self) -> Result<Identity, Error> {
@@ -147,20 +136,7 @@ impl PemCertificate {
 
         let identity_cert = &certs[0];
 
-        let mut builder = Pkcs12::builder();
-        builder.ca(ca_certs);
-        let pkcs_certs = builder
-            .build(
-                self.password.as_ref().map_or("", String::as_str),
-                self.username.as_ref().map_or("", String::as_str),
-                &key,
-                &identity_cert,
-            )
-            .context(ErrorKind::IdentityCertificate)?;
-
-        let der = pkcs_certs
-            .to_der()
-            .context(ErrorKind::IdentityCertificate)?;
+        let der = make_pkcs12(&identity_cert, &key, ca_certs)?;
 
         let identity = Identity::from_pkcs12(&der, "")
             .with_context(|err| ErrorKind::PKCS12Identity(err.to_string()))?;
@@ -174,6 +150,33 @@ impl Debug for PemCertificate {
         // do not print either the username, password or private key
         write!(f, "Certificate: {:?}", self.cert)
     }
+}
+
+#[cfg(windows)]
+fn make_pkcs12(
+    identity_cert: &X509Ref,
+    key: &PKeyRef<Private>,
+    ca_certs: Stack<X509>,
+) -> Result<Vec<u8>, Error> {
+    crate::windows::make_pkcs12(identity_cert, key, &ca_certs)
+}
+
+#[cfg(not(windows))]
+fn make_pkcs12(
+    identity_cert: &X509Ref,
+    key: &PKeyRef<Private>,
+    ca_certs: Stack<X509>,
+) -> Result<Vec<u8>, Error> {
+    let mut builder = openssl::pkcs12::Pkcs12::builder();
+    builder.ca(ca_certs);
+    let pkcs_certs = builder
+        .build("", "", key, identity_cert)
+        .context(ErrorKind::IdentityCertificate)?;
+
+    let der = pkcs_certs
+        .to_der()
+        .context(ErrorKind::IdentityCertificate)?;
+    Ok(der)
 }
 
 pub trait IntoResponse {
