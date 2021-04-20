@@ -20,6 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string GenericMqttTesterTestStartDelay = "10s";
         const int SecondsBeforeVerification = 45;
 
+        /// <summary>
+        /// Scenario:
+        /// - Deploy Edge Hub with the broker enabled and two genericMqttTester
+        ///   modules.
+        /// - One genericMqttTester module will be in initiate mode and the other
+        ///   will be in relay mode.
+        /// - The initiate mode module will publish on an mqtt topic initiate/1
+        ///   which the relaying module will be subscribed to.
+        /// - When the relaying module receives a message, it will publish it
+        ///   back on relay/1.
+        /// - The initiating module will be subscribed on this relay/1 topic
+        ///   and will report to the TRC when it receives the message.
+        /// </summary>
+        /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
         public async Task GenericMqttTelemetry()
         {
