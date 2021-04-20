@@ -67,7 +67,8 @@ jobs:
       demands:
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals aziotedge-win10-entn2019-agent
+        - ImageOverride -equals aziotedge-winserver-2019-agent
+        # - ImageOverride -equals aziotedge-win10-entn2019-agent
         # - run-new-e2e-tests -equals true
 
     variables:
