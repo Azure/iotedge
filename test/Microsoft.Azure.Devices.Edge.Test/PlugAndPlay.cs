@@ -29,10 +29,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
         const string LoadGenModuleName = "loadGenModule";
 
-        [TestCase(Protocol.Mqtt, false)]
-        [TestCase(Protocol.Amqp, false)]
-        [TestCase(Protocol.Mqtt, true)]
-        [TestCase(Protocol.Amqp, true)]
+        [TestCase(Protocol.MqttWs, false)]
+        [TestCase(Protocol.AmqpWs, false)]
+        [TestCase(Protocol.MqttWs, true)]
+        [TestCase(Protocol.AmqpWs, true)]
         public async Task PlugAndPlayDeviceClient(Protocol protocol, bool brokerOn)
         {
             CancellationToken token = this.TestToken;
@@ -84,10 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [TestCase(Protocol.Mqtt, false)]
-        [TestCase(Protocol.Amqp, false)]
-        [TestCase(Protocol.Mqtt, true)]
-        [TestCase(Protocol.Amqp, true)]
+        [TestCase(Protocol.MqttWs, false)]
+        [TestCase(Protocol.AmqpWs, false)]
+        [TestCase(Protocol.MqttWs, true)]
+        [TestCase(Protocol.AmqpWs, true)]
         [Test]
         public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
         {
