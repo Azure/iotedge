@@ -90,10 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             {
                 // When test runs behind proxy, skip MQTT and AMQP checks which legitimately fail
                 new List<string>
-                {   "--dont-run", 
-                    "container-connect-upstream-mqtt", "container-connect-upstream-amqp", 
+                {   "--dont-run",
+                    "container-connect-upstream-mqtt", "container-connect-upstream-amqp",
                     "container-default-connect-upstream-mqtt", "container-default-connect-upstream-amqp",
-                    "host-connect-iothub-mqtt", "host-connect-iothub-amqp" 
+                    "host-connect-iothub-mqtt", "host-connect-iothub-amqp"
                 }.ForEach(arg => iotedgeCheckProcess.StartInfo.ArgumentList.Add(arg));
             }
 
