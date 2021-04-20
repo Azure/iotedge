@@ -17,7 +17,6 @@ hyper = { version = "0.13", features = ["stream"] }
 hyper-uds = { path = "../hyper-uds" }
 lazy_static = "1.2"
 log = "0.4"
-mqtt3 = { path = "../../../../mqtt/mqtt3" }
 native-tls = "0.2"
 percent-encoding = "2"
 regex = "1.1"
@@ -30,6 +29,8 @@ tokio-io-timeout = "0.4"
 tokio-tls = "0.3"
 tungstenite = "0.10"
 url = "2"
+
+mqtt3 = { git = "https://github.com/Azure/iotedge", rev = "4cd508" }
 
 [dev-dependencies]
 env_logger = "0.7"

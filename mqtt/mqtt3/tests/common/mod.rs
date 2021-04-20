@@ -1,13 +1,12 @@
 use std::future::Future;
 
 pub(crate) fn verify_client_events(
-    runtime: &mut tokio::runtime::Runtime,
     mut client: mqtt3::Client<IoSource>,
     expected: Vec<mqtt3::Event>,
 ) {
     let mut expected = expected.into_iter();
 
-    runtime.spawn(async move {
+    tokio::spawn(async move {
         use futures_util::StreamExt;
 
         while let Some(event) = client.next().await {
@@ -101,7 +100,7 @@ impl mqtt3::IoSource for IoSource {
             // If the connection broke while there were still steps remaining in the TestConnection, then the dropped sender will cause the test
             // to receive a futures_channel::oneshot::Canceled error, so the test will panic before this deadline elapses anyway.
             Box::pin(async {
-                let () = tokio::time::delay_for(std::time::Duration::from_secs(5)).await;
+                let () = tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 unreachable!();
             })
         }
@@ -131,9 +130,9 @@ pub(crate) enum TestConnectionStep<TReceives, TSends> {
 impl tokio::io::AsyncRead for TestConnection {
     fn poll_read(
         mut self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
-        buf: &mut [u8],
-    ) -> std::task::Poll<std::io::Result<usize>> {
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
         let (read, step_done) = match self.steps.front_mut() {
             Some(TestConnectionStep::Receives(_)) => {
                 println!(
@@ -146,8 +145,13 @@ impl tokio::io::AsyncRead for TestConnection {
 
             Some(TestConnectionStep::Sends((packet, cursor))) => {
                 println!("server sends {:?}", packet);
-                let read = std::io::Read::read(cursor, buf)?;
-                (read, cursor.position() == cursor.get_ref().len() as u64)
+                let start = buf.filled().len();
+
+                futures_util::pin_mut!(cursor);
+                futures_util::ready!(tokio::io::AsyncRead::poll_read(cursor, cx, buf))?;
+
+                let read = buf.filled().len() - start;
+                (read, true)
             }
 
             None => {
@@ -165,7 +169,7 @@ impl tokio::io::AsyncRead for TestConnection {
 
         println!("client read {} bytes from server", read);
 
-        std::task::Poll::Ready(Ok(read))
+        std::task::Poll::Ready(Ok(()))
     }
 }
 
