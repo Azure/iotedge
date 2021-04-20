@@ -84,7 +84,7 @@ where
     // parameters.
     struct OptionalValueVisitor<K, V> {
         marker: PhantomData<fn() -> (K, V)>,
-    };
+    }
 
     impl<K, V> OptionalValueVisitor<K, V> {
         fn new() -> Self {
