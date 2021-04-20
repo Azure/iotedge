@@ -105,7 +105,6 @@ MOCKABLE_FUNCTION(, const void*, certificate_info_get_private_key, CERT_INFO_HAN
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 const char* TEST_ALIAS_STRING = "test_alias";
 const char* TEST_ISSUER_ALIAS_STRING = "test_issuer_alias";
@@ -291,27 +290,27 @@ static void test_helper_setup_create_cert_info_callstack
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(hsm_client_crypto_interface());
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_get_certificate(handle, EDGE_DEVICE_ALIAS));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 }
 
@@ -329,39 +328,39 @@ static void test_helper_setup_sign_with_private_key_callstack
     umock_c_reset_all_calls();
 
     STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     STRICT_EXPECTED_CALL(hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(hsm_client_crypto_interface());
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_get_certificate(handle, EDGE_DEVICE_ALIAS));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     EXPECTED_CALL(gballoc_free(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     EXPECTED_CALL(hsm_client_crypto_interface());
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 
     STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_sign_with_private_key(handle, EDGE_DEVICE_ALIAS, IGNORED_PTR_ARG, IGNORED_NUM_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     failed_function_list[i++] = 1;
 
     EXPECTED_CALL(certificate_info_destroy(IGNORED_PTR_ARG));
-    ASSERT_IS_TRUE((i < failed_function_size), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE((i < failed_function_size), "Line:" MU_TOSTRING(__LINE__));
     i++;
 }
 
@@ -374,7 +373,6 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
 
@@ -454,7 +452,6 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         umock_c_deinit();
 
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -486,8 +483,8 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         status = hsm_client_x509_init(TEST_VALIDITY);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         hsm_client_x509_deinit();
@@ -502,15 +499,15 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
         umock_c_reset_all_calls();
 
         // act
         status = hsm_client_x509_init(TEST_VALIDITY);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         hsm_client_x509_deinit();
@@ -540,7 +537,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
             status = hsm_client_x509_init(TEST_VALIDITY);
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
         }
 
         //cleanup
@@ -559,15 +556,15 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         const HSM_CLIENT_X509_INTERFACE* result = hsm_client_x509_interface();
 
         // assert
-        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_x509_create, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_x509_destroy, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_get_cert, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_get_key, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_get_common_name, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_free_buffer, "Line:" TOSTRING(__LINE__));
-        ASSERT_IS_NOT_NULL(result->hsm_client_sign_with_private_key, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_x509_create, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_x509_destroy, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_get_cert, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_get_key, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_get_common_name, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_free_buffer, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result->hsm_client_sign_with_private_key, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
     }
@@ -581,21 +578,21 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
         EXPECTED_CALL(hsm_client_crypto_interface());
         EXPECTED_CALL(mocked_hsm_client_crypto_create());
 
         // act
-        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+        CERT_INFO_HANDLE handle = iface->hsm_client_x509_create();
 
         // assert
-        ASSERT_IS_NOT_NULL(handle, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(handle, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -606,14 +603,14 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     TEST_FUNCTION(hsm_client_x509_create_without_init_fails)
     {
         //arrange
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
 
         // act
-        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+        CERT_INFO_HANDLE handle = iface->hsm_client_x509_create();
 
         // assert
-        ASSERT_IS_NULL(handle, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(handle, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
     }
@@ -630,8 +627,8 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
         EXPECTED_CALL(hsm_client_crypto_interface());
         EXPECTED_CALL(mocked_hsm_client_crypto_create());
@@ -644,10 +641,10 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
+            CERT_INFO_HANDLE handle = iface->hsm_client_x509_create();
 
             // assert
-            ASSERT_IS_NULL(handle, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(handle, "Line:" MU_TOSTRING(__LINE__));
         }
 
         //cleanup
@@ -664,15 +661,15 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
 
         // act
-        interface->hsm_client_x509_destroy(NULL);
+        iface->hsm_client_x509_destroy(NULL);
 
         // assert
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         hsm_client_x509_deinit();
@@ -687,20 +684,20 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
-        ASSERT_IS_NOT_NULL(handle, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        CERT_INFO_HANDLE handle = iface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(handle, "Line:" MU_TOSTRING(__LINE__));
         umock_c_reset_all_calls();
         EXPECTED_CALL(hsm_client_crypto_interface());
         STRICT_EXPECTED_CALL(mocked_hsm_client_crypto_destroy(handle));
 
         // act
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
 
         // assert
 
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         hsm_client_x509_deinit();
@@ -713,14 +710,14 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     TEST_FUNCTION(hsm_client_x509_destroy_without_does_nothing)
     {
         //arrange
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
 
         // act
-        interface->hsm_client_x509_destroy(TEST_CERT_INFO_HANDLE);
+        iface->hsm_client_x509_destroy(TEST_CERT_INFO_HANDLE);
 
         // assert
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
     }
@@ -734,21 +731,21 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
         EXPECTED_CALL(hsm_client_crypto_interface());
         EXPECTED_CALL(mocked_hsm_client_crypto_create());
 
         // act
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
 
         // assert
-        ASSERT_IS_NOT_NULL(handle, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(handle, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -759,15 +756,15 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     TEST_FUNCTION(hsm_client_get_cert_info_invalid_param_does_nothing)
     {
         //arrange
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
 
         // act
-        CERT_INFO_HANDLE cert_info = interface->hsm_client_get_cert_info(NULL);
+        CERT_INFO_HANDLE cert_info = iface->hsm_client_get_cert_info(NULL);
 
         // assert
-        ASSERT_IS_NULL(cert_info, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(cert_info, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
     }
@@ -781,23 +778,23 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
 
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
         test_helper_setup_create_cert_info_callstack(handle, failed_function_list, failed_function_size);
 
         // act
-        CERT_INFO_HANDLE cert_info = interface->hsm_client_get_cert_info(handle);
+        CERT_INFO_HANDLE cert_info = iface->hsm_client_get_cert_info(handle);
 
         // assert
-        ASSERT_IS_NOT_NULL(cert_info, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(cert_info, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -813,9 +810,9 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
 
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
@@ -830,15 +827,15 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                CERT_INFO_HANDLE cert_info = interface->hsm_client_get_cert_info(handle);
+                CERT_INFO_HANDLE cert_info = iface->hsm_client_get_cert_info(handle);
 
                 // assert
-                ASSERT_IS_NULL(cert_info, "Line:" TOSTRING(__LINE__));
+                ASSERT_IS_NULL(cert_info, "Line:" MU_TOSTRING(__LINE__));
             }
         }
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
         umock_c_negative_tests_deinit();
     }
@@ -852,20 +849,20 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
         umock_c_reset_all_calls();
 
         // act
-        char *result = interface->hsm_client_get_cert(handle);
+        char *result = iface->hsm_client_get_cert(handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -878,20 +875,20 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
         umock_c_reset_all_calls();
 
         // act
-        char *result = interface->hsm_client_get_key(handle);
+        char *result = iface->hsm_client_get_key(handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -904,20 +901,20 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
         umock_c_reset_all_calls();
 
         // act
-        char *result = interface->hsm_client_get_common_name(handle);
+        char *result = iface->hsm_client_get_common_name(handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -929,22 +926,22 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     TEST_FUNCTION(hsm_client_crypto_sign_with_private_key_invalid_param_does_nothing)
     {
         //arrange
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         unsigned char data[3] = {'0', '0', '0'};
         unsigned char *digest = NULL;
         size_t digest_size = 0;
         umock_c_reset_all_calls();
 
         // act
-        int result = interface->hsm_client_sign_with_private_key(NULL,
+        int result = iface->hsm_client_sign_with_private_key(NULL,
                                                                  data,
                                                                  sizeof(data),
                                                                  &digest,
                                                                  &digest_size);
 
         // assert
-        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
     }
@@ -958,9 +955,9 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         //arrange
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
         unsigned char data[3] = {'0', '0', '0'};
         unsigned char *digest = NULL;
         size_t digest_size = 0;
@@ -970,18 +967,18 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         test_helper_setup_sign_with_private_key_callstack(handle, failed_function_list, failed_function_size);
 
         // act
-        int result = interface->hsm_client_sign_with_private_key(handle,
+        int result = iface->hsm_client_sign_with_private_key(handle,
                                                                  data,
                                                                  sizeof(data),
                                                                  &digest,
                                                                  &digest_size);
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
-        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls(), "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
     }
 
@@ -998,9 +995,9 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
         int status;
         status = hsm_client_x509_init(TEST_VALIDITY);
-        ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
+        ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
+        HSM_CLIENT_CREATE handle = iface->hsm_client_x509_create();
 
         size_t failed_function_size = MAX_FAILED_FUNCTION_LIST_SIZE;
         char failed_function_list[MAX_FAILED_FUNCTION_LIST_SIZE];
@@ -1019,19 +1016,19 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
             if (failed_function_list[i] == 1)
             {
                 // act
-                int result = interface->hsm_client_sign_with_private_key(handle,
+                int result = iface->hsm_client_sign_with_private_key(handle,
                                                                         data,
                                                                         sizeof(data),
                                                                         &digest,
                                                                         &digest_size);
 
                 // assert
-                ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+                ASSERT_ARE_NOT_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
             }
         }
 
         //cleanup
-        interface->hsm_client_x509_destroy(handle);
+        iface->hsm_client_x509_destroy(handle);
         hsm_client_x509_deinit();
         umock_c_negative_tests_deinit();
     }

@@ -125,7 +125,7 @@ mod tests {
     use hyper::{header, Body, Method, Request, Response, StatusCode};
     use maplit::btreemap;
     use serde_json::json;
-    use tokio::runtime::Runtime;
+    use tokio::runtime::current_thread::Runtime;
     use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 
     use edgelet_core::{AuthId, Authenticator};
