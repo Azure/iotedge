@@ -153,6 +153,10 @@ impl Debug for PemCertificate {
 }
 
 #[cfg(windows)]
+#[allow(
+    // `ca_certs` must be taken as `Stack` to be API-compatible with its `cfg(unix)` variant
+    clippy::needless_pass_by_value,
+)]
 fn make_pkcs12(
     identity_cert: &X509Ref,
     key: &PKeyRef<Private>,

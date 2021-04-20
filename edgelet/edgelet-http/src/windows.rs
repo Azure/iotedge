@@ -18,7 +18,13 @@ use crate::{Error, ErrorKind};
 // so the directory keeps getting new files over time.
 //
 // Therefore, rather than use openssl, we use winapi to construct the PKCS#12 blob instead, in a way that doesn't have this problem.
+// The key is to mark the private key as "exportable", which is a Windows-specific attribute and is thus not doable with openssl.
 #[cfg(windows)]
+#[allow(
+    // Conversions between usize and u* winapi types
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+)]
 pub(crate) fn make_pkcs12(
     identity_cert: &X509Ref,
     key: &PKeyRef<Private>,
