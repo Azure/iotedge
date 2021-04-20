@@ -214,12 +214,7 @@ jobs:
             if ($WMI_Reg) {
                 if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
                 if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
-
-                #Checking for SCCM namespace
-                $SCCM_Namespace = Get-WmiObject -Namespace ROOT\CCM\ClientSDK -List -ErrorAction Ignore
-                if ($SCCM_Namespace) {
-                    if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
-                }
+                if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
 
                 if ($PendingReboot -eq $true) {
                     [PSCustomObject]@{
@@ -237,7 +232,6 @@ jobs:
         } finally {
             #Clearing Variables
             $WMI_Reg        = $null
-            $SCCM_Namespace = $null
         }
       displayName: '1b: Needs a reboot?'
 
@@ -399,12 +393,7 @@ jobs:
             if ($WMI_Reg) {
                 if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
                 if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
-
-                #Checking for SCCM namespace
-                $SCCM_Namespace = Get-WmiObject -Namespace ROOT\CCM\ClientSDK -List -ErrorAction Ignore
-                if ($SCCM_Namespace) {
-                    if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
-                }
+                if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
 
                 if ($PendingReboot -eq $true) {
                     [PSCustomObject]@{
@@ -422,7 +411,6 @@ jobs:
         } finally {
             #Clearing Variables
             $WMI_Reg        = $null
-            $SCCM_Namespace = $null
         }
       displayName: '2b: Needs a reboot?'
 
