@@ -202,7 +202,44 @@ jobs:
         } catch {
             Write-Error -Message $_.Exception.Message
         }
-      displayName: '1: Does machine need a reboot?'
+      displayName: '1a: Needs a reboot?'
+
+    - pwsh: |
+        Try {
+            $PendingReboot = $false
+
+            $HKLM = [UInt32] "0x80000002"
+            $WMI_Reg = [WMIClass] "\\.\root\default:StdRegProv"
+
+            if ($WMI_Reg) {
+                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
+                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
+
+                #Checking for SCCM namespace
+                $SCCM_Namespace = Get-WmiObject -Namespace ROOT\CCM\ClientSDK -List -ErrorAction Ignore
+                if ($SCCM_Namespace) {
+                    if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
+                }
+
+                if ($PendingReboot -eq $true) {
+                    [PSCustomObject]@{
+                        PendingReboot  = $true
+                    }
+                    } else {
+                    [PSCustomObject]@{
+                        PendingReboot  = $false
+                    }
+                }
+            }
+        } catch {
+            Write-Error $_.Exception.Message
+
+        } finally {
+            #Clearing Variables
+            $WMI_Reg        = $null
+            $SCCM_Namespace = $null
+        }
+      displayName: '1b: Needs a reboot?'
 
     - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
@@ -350,7 +387,44 @@ jobs:
         } catch {
             Write-Error -Message $_.Exception.Message
         }
-      displayName: '2: Does machine need a reboot?'
+      displayName: '2a: Needs a reboot?'
+
+    - pwsh: |
+        Try {
+            $PendingReboot = $false
+
+            $HKLM = [UInt32] "0x80000002"
+            $WMI_Reg = [WMIClass] "\\.\root\default:StdRegProv"
+
+            if ($WMI_Reg) {
+                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
+                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
+
+                #Checking for SCCM namespace
+                $SCCM_Namespace = Get-WmiObject -Namespace ROOT\CCM\ClientSDK -List -ErrorAction Ignore
+                if ($SCCM_Namespace) {
+                    if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
+                }
+
+                if ($PendingReboot -eq $true) {
+                    [PSCustomObject]@{
+                        PendingReboot  = $true
+                    }
+                    } else {
+                    [PSCustomObject]@{
+                        PendingReboot  = $false
+                    }
+                }
+            }
+        } catch {
+            Write-Error $_.Exception.Message
+
+        } finally {
+            #Clearing Variables
+            $WMI_Reg        = $null
+            $SCCM_Namespace = $null
+        }
+      displayName: '2b: Needs a reboot?'
 
     - template: templates/e2e-run.yaml
 
