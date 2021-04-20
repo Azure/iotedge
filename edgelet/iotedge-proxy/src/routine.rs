@@ -9,7 +9,7 @@ use futures::sync::oneshot::Receiver;
 use futures::{Future, IntoFuture};
 use hyper::Server;
 use log::{debug, info, warn};
-use tokio::runtime::Runtime;
+use tokio::runtime::current_thread::Runtime;
 
 use crate::api::ApiService;
 use crate::proxy::{get_config, Client, ProxyService};
