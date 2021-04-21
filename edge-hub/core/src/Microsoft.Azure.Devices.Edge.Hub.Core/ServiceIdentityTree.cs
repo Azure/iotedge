@@ -457,12 +457,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             NodeAdded = IdStart,
             NodeRemoved,
             NodeUpdated,
+            NodeNotChanged,
             AuthChainAdded,
             AuthChainRemoved,
             MaxDepthExceeded,
             AuthChainMissingDevice,
             AuthChainDisabled,
-            NodeNotChanged
         }
 
         public static void NodeAdded(string id) =>

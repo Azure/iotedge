@@ -885,7 +885,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .Returns(serviceIdentityIterator.Object);
             serviceProxy.Setup(s => s.GetServiceIdentity(leaf2Id, It.IsAny<string>())).ReturnsAsync(Option.Some(leaf2));
 
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierarchy.Object, serviceProxy.Object, store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(0));
 
             await deviceScopeIdentitiesCache.WaitForCacheRefresh(TimeSpan.FromSeconds(20));
 
