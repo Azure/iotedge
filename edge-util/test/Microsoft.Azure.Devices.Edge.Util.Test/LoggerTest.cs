@@ -46,6 +46,34 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Assert.Equal("3", emittedEvents[0].Properties["Severity"].ToString());
         }
 
+        [Fact]
+        public void NoNewLinesTest()
+        {
+
+            using (var writer = new System.IO.StringWriter())
+            {
+                System.Console.SetOut(writer);
+
+                ILogger logger = Logger.Factory.CreateLogger("test");
+                Assert.NotNull(logger);
+
+                var testObject = new TestObject("Hello\n World\n!\n");
+                logger.LogInformation("{@TestObject}", testObject);
+                var msg = writer.ToString();
+                Assert.Contains("Hello\\n World\\n!\\n", msg);
+            }
+        }
+
+        class TestObject
+        {
+            public string Message { get; set; }
+
+            public TestObject(string message)
+            {
+                this.Message = message;
+            }
+        }
+
         class TestSink : ILogEventSink
         {
             List<LogEvent> emittedEvents = new List<LogEvent>();
