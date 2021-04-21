@@ -1,11 +1,9 @@
 use anyhow::{Error, Result};
 use log::info;
-use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::percent_encode;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
-define_encode_set! {
-    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
-}
+use edgelet_client::IOTHUB_ENCODE_SET;
 
 pub struct TokenClient {
     device_id: String,

@@ -11,7 +11,6 @@ base64 = "0.13"
 chrono = "0.4"
 env_logger = "0.8"
 envsubst = "0.2"
-futures = "0.3"
 futures-util = "0.3"
 log = "0.4"
 md5 = "0.7"
@@ -28,5 +27,5 @@ mqtt3 = { path = "../../mqtt/mqtt3" }
 [dev-dependencies]
 lazy_static = "1.4"
 matches = "0.1"
-mockito = "0.0"
+mockito = "0.30"
 tokio = { version = "1.5", features = ["macros"] }

@@ -531,7 +531,7 @@ pub struct TokioToStd<T> {
 
 impl<T> TokioToStd<T> {
     fn set_cx(&mut self, cx: *mut std::task::Context<'_>) {
-        self.cx = cx as *mut std::ffi::c_void as *mut _;
+        self.cx = cx.cast::<std::ffi::c_void>().cast();
     }
 }
 
