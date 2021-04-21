@@ -31,47 +31,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     properties = properties.Append(p).ToArray();
                 });
 
-            string installCommand = $"Deploy-IoTEdge -ContainerOs Windows";
+            string installCommand = $"Install-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
-
-            Log.Information("### Inside EdgeDaemon.InstallAsync");
 
             string scriptDir = await this.scriptDir.Match(
                 d => Task.FromResult(d),
                 () => this.DownloadInstallerAsync(token));
 
-            Log.Information("### Script location: {ScriptLocation}", scriptDir);
-
             var commands = new[]
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                // "Set-PSDebug -Trace 2",
                 installCommand
-                // "Set-PSDebug -Off"
-            };
-
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                message,
-                properties);
-
-            properties = new object[] { Dns.GetHostName() };
-            message = "Initialized edge daemon on '{Device}'";
-            installCommand = $"Initialize-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
-            commands = new[]
-            {
-                $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                // "Set-PSDebug -Trace 2",
-                installCommand
-                // "Set-PSDebug -Off"
             };
 
             await Profiler.Run(
@@ -149,9 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             {
                 "$ProgressPreference='SilentlyContinue'",
                 $". {scriptDir}\\IotEdgeSecurityDaemon.ps1",
-                // "Set-PSDebug -Trace 2",
                 "Uninstall-IoTEdge -Force"
-                // "Set-PSDebug -Off"
             };
 
             await Profiler.Run(
