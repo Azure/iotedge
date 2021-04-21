@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// </summary>
         /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
-        [Category("UsesBroker")]
+        [Category("BrokerRequired")]
         public async Task AuthorizationPolicyUpdateTest()
         {
             CancellationToken token = this.TestToken;
@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// </summary>
         /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
-        [Category("UsesBroker")]
+        [Category("BrokerRequired")]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
             CancellationToken token = this.TestToken;

@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// </summary>
         /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
-        [Category("UsesBroker")]
+        [Category("BrokerRequired")]
         public async Task GenericMqttTelemetry()
         {
             CancellationToken token = this.TestToken;
