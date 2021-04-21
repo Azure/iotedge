@@ -41,8 +41,11 @@ impl Settings {
         config.merge(Environment::new())?;
 
         let test_scenario: TestScenario = config.get("test_scenario")?;
-        if let TestScenario::Initiate = test_scenario {
-            config.set("batch_id", Some(Uuid::new_v4().to_string()))?;
+        match test_scenario {
+            TestScenario::Initate | TestScenario::InitiateAndReceiveRelayed => {
+                config.set("batch_id", Some(Uuid::new_v4().to_string()))?;
+            }
+            _ => {}
         }
 
         config.try_into()
@@ -114,6 +117,8 @@ impl Settings {
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum TestScenario {
+    Initate,
+    InitiateAndReceiveRelayed,
     Relay,
-    Initiate,
+    Receive,
 }
