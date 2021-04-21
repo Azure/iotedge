@@ -77,164 +77,164 @@ jobs:
       artifactName: iotedged-windows
 
     steps:
-    - pwsh: |
-        $OpenSslPath = Join-Path (Split-Path (get-command git).Source) '..\mingw64\bin' -Resolve
-        echo "OpenSSL found: $OpenSslPath"
-        echo "PATH: $env:Path"
-        # $systemPath = [System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine) -split ';' | Where-Object { $_.Length -gt 0 }
-        # $systemPath += $OpenSslPath
-        # [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
+    # - pwsh: |
+    #     $OpenSslPath = Join-Path (Split-Path (get-command git).Source) '..\mingw64\bin' -Resolve
+    #     echo "OpenSSL found: $OpenSslPath"
+    #     echo "PATH: $env:Path"
+    #     # $systemPath = [System.Environment]::GetEnvironmentVariable('Path', [System.EnvironmentVariableTarget]::Machine) -split ';' | Where-Object { $_.Length -gt 0 }
+    #     # $systemPath += $OpenSslPath
+    #     # [System.Environment]::SetEnvironmentVariable('PATH', ($systemPath -join ';'), [System.EnvironmentVariableTarget]::Machine)
 
-    - pwsh: |
-        $ErrorActionPreference = 'Stop'
+    # - pwsh: |
+    #     $ErrorActionPreference = 'Stop'
 
-        $scriptBlock = {
+    #     $scriptBlock = {
 
-            function Test-RegistryKey {
-                [OutputType('bool')]
-                [CmdletBinding()]
-                param
-                (
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Key
-                )
+    #         function Test-RegistryKey {
+    #             [OutputType('bool')]
+    #             [CmdletBinding()]
+    #             param
+    #             (
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Key
+    #             )
             
-                $ErrorActionPreference = 'Stop'
+    #             $ErrorActionPreference = 'Stop'
 
-                if (Get-Item -Path $Key -ErrorAction Ignore) {
-                    $true
-                }
-            }
+    #             if (Get-Item -Path $Key -ErrorAction Ignore) {
+    #                 $true
+    #             }
+    #         }
 
-            function Test-RegistryValue {
-                [OutputType('bool')]
-                [CmdletBinding()]
-                param
-                (
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Key,
+    #         function Test-RegistryValue {
+    #             [OutputType('bool')]
+    #             [CmdletBinding()]
+    #             param
+    #             (
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Key,
 
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Value
-                )
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Value
+    #             )
             
-                $ErrorActionPreference = 'Stop'
+    #             $ErrorActionPreference = 'Stop'
 
-                if (Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) {
-                    $true
-                }
-            }
+    #             if (Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) {
+    #                 $true
+    #             }
+    #         }
 
-            function Test-RegistryValueNotNull {
-                [OutputType('bool')]
-                [CmdletBinding()]
-                param
-                (
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Key,
+    #         function Test-RegistryValueNotNull {
+    #             [OutputType('bool')]
+    #             [CmdletBinding()]
+    #             param
+    #             (
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Key,
 
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Value
-                )
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Value
+    #             )
             
-                $ErrorActionPreference = 'Stop'
+    #             $ErrorActionPreference = 'Stop'
 
-                if (($regVal = Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) -and $regVal.($Value)) {
-                    $true
-                }
-            }
+    #             if (($regVal = Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) -and $regVal.($Value)) {
+    #                 $true
+    #             }
+    #         }
 
-            # Added "test-path" to each test that did not leverage a custom function from above since
-            # an exception is thrown when Get-ItemProperty or Get-ChildItem are passed a nonexistant key path
-            $tests = @(
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' }
-                { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress' }
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' }
-                { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending' }
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\PostRebootReporting' }
-                { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations' }
-                { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations2' }
-                { 
-                    # Added test to check first if key exists, using "ErrorAction ignore" will incorrectly return $true
-                    'HKLM:\SOFTWARE\Microsoft\Updates' | Where-Object { test-path $_ -PathType Container } | ForEach-Object {            
-                        (Get-ItemProperty -Path $_ -Name 'UpdateExeVolatile' -ErrorAction Ignore | Select-Object -ExpandProperty UpdateExeVolatile) -ne 0 
-                    }
-                }
-                { Test-RegistryValue -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' -Value 'DVDRebootSignal' }
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\ServerManager\CurrentRebootAttemps' }
-                { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'JoinDomain' }
-                { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'AvoidSpnSet' }
-                {
-                    # Added test to check first if keys exists, if not each group will return $Null
-                    # May need to evaluate what it means if one or both of these keys do not exist
-                    ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName' | Where-Object { test-path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } ) -ne 
-                    ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName' | Where-Object { Test-Path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } )
-                }
-                {
-                    # Added test to check first if key exists
-                    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending' | Where-Object { 
-                        (Test-Path $_) -and (Get-ChildItem -Path $_) } | ForEach-Object { $true }
-                }
-            )
+    #         # Added "test-path" to each test that did not leverage a custom function from above since
+    #         # an exception is thrown when Get-ItemProperty or Get-ChildItem are passed a nonexistant key path
+    #         $tests = @(
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' }
+    #             { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress' }
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' }
+    #             { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending' }
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\PostRebootReporting' }
+    #             { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations' }
+    #             { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations2' }
+    #             { 
+    #                 # Added test to check first if key exists, using "ErrorAction ignore" will incorrectly return $true
+    #                 'HKLM:\SOFTWARE\Microsoft\Updates' | Where-Object { test-path $_ -PathType Container } | ForEach-Object {            
+    #                     (Get-ItemProperty -Path $_ -Name 'UpdateExeVolatile' -ErrorAction Ignore | Select-Object -ExpandProperty UpdateExeVolatile) -ne 0 
+    #                 }
+    #             }
+    #             { Test-RegistryValue -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' -Value 'DVDRebootSignal' }
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\ServerManager\CurrentRebootAttemps' }
+    #             { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'JoinDomain' }
+    #             { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'AvoidSpnSet' }
+    #             {
+    #                 # Added test to check first if keys exists, if not each group will return $Null
+    #                 # May need to evaluate what it means if one or both of these keys do not exist
+    #                 ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName' | Where-Object { test-path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } ) -ne 
+    #                 ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName' | Where-Object { Test-Path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } )
+    #             }
+    #             {
+    #                 # Added test to check first if key exists
+    #                 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending' | Where-Object { 
+    #                     (Test-Path $_) -and (Get-ChildItem -Path $_) } | ForEach-Object { $true }
+    #             }
+    #         )
 
-            foreach ($test in $tests) {
-                Write-Verbose "Running scriptblock: [$($test.ToString())]"
-                if (& $test) {
-                    $true
-                    break
-                }
-            }
-        }
+    #         foreach ($test in $tests) {
+    #             Write-Verbose "Running scriptblock: [$($test.ToString())]"
+    #             if (& $test) {
+    #                 $true
+    #                 break
+    #             }
+    #         }
+    #     }
 
-        try {
-            $output = @{
-                IsPendingReboot = $false
-            }
+    #     try {
+    #         $output = @{
+    #             IsPendingReboot = $false
+    #         }
 
-            if (-not ($output.IsPendingReboot = Invoke-Command -ScriptBlock $scriptBlock)) {
-                $output.IsPendingReboot = $false
-            }
-            [pscustomobject]$output
-        } catch {
-            Write-Error -Message $_.Exception.Message
-        }
-      displayName: '1a: Needs a reboot?'
+    #         if (-not ($output.IsPendingReboot = Invoke-Command -ScriptBlock $scriptBlock)) {
+    #             $output.IsPendingReboot = $false
+    #         }
+    #         [pscustomobject]$output
+    #     } catch {
+    #         Write-Error -Message $_.Exception.Message
+    #     }
+    #   displayName: '1a: Needs a reboot?'
 
-    - pwsh: |
-        Try {
-            $PendingReboot = $false
+    # - pwsh: |
+    #     Try {
+    #         $PendingReboot = $false
 
-            $HKLM = [UInt32] "0x80000002"
-            $WMI_Reg = [WMIClass] "\\.\root\default:StdRegProv"
+    #         $HKLM = [UInt32] "0x80000002"
+    #         $WMI_Reg = [WMIClass] "\\.\root\default:StdRegProv"
 
-            if ($WMI_Reg) {
-                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
-                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
-                if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
+    #         if ($WMI_Reg) {
+    #             if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
+    #             if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
+    #             if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
 
-                if ($PendingReboot -eq $true) {
-                    [PSCustomObject]@{
-                        PendingReboot  = $true
-                    }
-                    } else {
-                    [PSCustomObject]@{
-                        PendingReboot  = $false
-                    }
-                }
-            }
-        } catch {
-            Write-Error $_.Exception.Message
+    #             if ($PendingReboot -eq $true) {
+    #                 [PSCustomObject]@{
+    #                     PendingReboot  = $true
+    #                 }
+    #                 } else {
+    #                 [PSCustomObject]@{
+    #                     PendingReboot  = $false
+    #                 }
+    #             }
+    #         }
+    #     } catch {
+    #         Write-Error $_.Exception.Message
 
-        } finally {
-            #Clearing Variables
-            $WMI_Reg        = $null
-        }
-      displayName: '1b: Needs a reboot?'
+    #     } finally {
+    #         #Clearing Variables
+    #         $WMI_Reg        = $null
+    #     }
+    #   displayName: '1b: Needs a reboot?'
 
     - pwsh: |
         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
@@ -264,156 +264,156 @@ jobs:
 
     - template: templates/e2e-clear-docker-cached-images.yaml
 
-    - pwsh: |
-        $ErrorActionPreference = 'Stop'
+    # - pwsh: |
+    #     $ErrorActionPreference = 'Stop'
 
-        $scriptBlock = {
+    #     $scriptBlock = {
 
-            function Test-RegistryKey {
-                [OutputType('bool')]
-                [CmdletBinding()]
-                param
-                (
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Key
-                )
+    #         function Test-RegistryKey {
+    #             [OutputType('bool')]
+    #             [CmdletBinding()]
+    #             param
+    #             (
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Key
+    #             )
             
-                $ErrorActionPreference = 'Stop'
+    #             $ErrorActionPreference = 'Stop'
 
-                if (Get-Item -Path $Key -ErrorAction Ignore) {
-                    $true
-                }
-            }
+    #             if (Get-Item -Path $Key -ErrorAction Ignore) {
+    #                 $true
+    #             }
+    #         }
 
-            function Test-RegistryValue {
-                [OutputType('bool')]
-                [CmdletBinding()]
-                param
-                (
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Key,
+    #         function Test-RegistryValue {
+    #             [OutputType('bool')]
+    #             [CmdletBinding()]
+    #             param
+    #             (
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Key,
 
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Value
-                )
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Value
+    #             )
             
-                $ErrorActionPreference = 'Stop'
+    #             $ErrorActionPreference = 'Stop'
 
-                if (Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) {
-                    $true
-                }
-            }
+    #             if (Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) {
+    #                 $true
+    #             }
+    #         }
 
-            function Test-RegistryValueNotNull {
-                [OutputType('bool')]
-                [CmdletBinding()]
-                param
-                (
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Key,
+    #         function Test-RegistryValueNotNull {
+    #             [OutputType('bool')]
+    #             [CmdletBinding()]
+    #             param
+    #             (
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Key,
 
-                    [Parameter(Mandatory)]
-                    [ValidateNotNullOrEmpty()]
-                    [string]$Value
-                )
+    #                 [Parameter(Mandatory)]
+    #                 [ValidateNotNullOrEmpty()]
+    #                 [string]$Value
+    #             )
             
-                $ErrorActionPreference = 'Stop'
+    #             $ErrorActionPreference = 'Stop'
 
-                if (($regVal = Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) -and $regVal.($Value)) {
-                    $true
-                }
-            }
+    #             if (($regVal = Get-ItemProperty -Path $Key -Name $Value -ErrorAction Ignore) -and $regVal.($Value)) {
+    #                 $true
+    #             }
+    #         }
 
-            # Added "test-path" to each test that did not leverage a custom function from above since
-            # an exception is thrown when Get-ItemProperty or Get-ChildItem are passed a nonexistant key path
-            $tests = @(
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' }
-                { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress' }
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' }
-                { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending' }
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\PostRebootReporting' }
-                { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations' }
-                { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations2' }
-                { 
-                    # Added test to check first if key exists, using "ErrorAction ignore" will incorrectly return $true
-                    'HKLM:\SOFTWARE\Microsoft\Updates' | Where-Object { test-path $_ -PathType Container } | ForEach-Object {            
-                        (Get-ItemProperty -Path $_ -Name 'UpdateExeVolatile' -ErrorAction Ignore | Select-Object -ExpandProperty UpdateExeVolatile) -ne 0 
-                    }
-                }
-                { Test-RegistryValue -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' -Value 'DVDRebootSignal' }
-                { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\ServerManager\CurrentRebootAttemps' }
-                { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'JoinDomain' }
-                { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'AvoidSpnSet' }
-                {
-                    # Added test to check first if keys exists, if not each group will return $Null
-                    # May need to evaluate what it means if one or both of these keys do not exist
-                    ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName' | Where-Object { test-path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } ) -ne 
-                    ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName' | Where-Object { Test-Path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } )
-                }
-                {
-                    # Added test to check first if key exists
-                    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending' | Where-Object { 
-                        (Test-Path $_) -and (Get-ChildItem -Path $_) } | ForEach-Object { $true }
-                }
-            )
+    #         # Added "test-path" to each test that did not leverage a custom function from above since
+    #         # an exception is thrown when Get-ItemProperty or Get-ChildItem are passed a nonexistant key path
+    #         $tests = @(
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' }
+    #             { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress' }
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' }
+    #             { Test-RegistryKey -Key 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending' }
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\PostRebootReporting' }
+    #             { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations' }
+    #             { Test-RegistryValueNotNull -Key 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager' -Value 'PendingFileRenameOperations2' }
+    #             { 
+    #                 # Added test to check first if key exists, using "ErrorAction ignore" will incorrectly return $true
+    #                 'HKLM:\SOFTWARE\Microsoft\Updates' | Where-Object { test-path $_ -PathType Container } | ForEach-Object {            
+    #                     (Get-ItemProperty -Path $_ -Name 'UpdateExeVolatile' -ErrorAction Ignore | Select-Object -ExpandProperty UpdateExeVolatile) -ne 0 
+    #                 }
+    #             }
+    #             { Test-RegistryValue -Key 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce' -Value 'DVDRebootSignal' }
+    #             { Test-RegistryKey -Key 'HKLM:\SOFTWARE\Microsoft\ServerManager\CurrentRebootAttemps' }
+    #             { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'JoinDomain' }
+    #             { Test-RegistryValue -Key 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon' -Value 'AvoidSpnSet' }
+    #             {
+    #                 # Added test to check first if keys exists, if not each group will return $Null
+    #                 # May need to evaluate what it means if one or both of these keys do not exist
+    #                 ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName' | Where-Object { test-path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } ) -ne 
+    #                 ( 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName' | Where-Object { Test-Path $_ } | %{ (Get-ItemProperty -Path $_ ).ComputerName } )
+    #             }
+    #             {
+    #                 # Added test to check first if key exists
+    #                 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Services\Pending' | Where-Object { 
+    #                     (Test-Path $_) -and (Get-ChildItem -Path $_) } | ForEach-Object { $true }
+    #             }
+    #         )
 
-            foreach ($test in $tests) {
-                Write-Verbose "Running scriptblock: [$($test.ToString())]"
-                if (& $test) {
-                    $true
-                    break
-                }
-            }
-        }
+    #         foreach ($test in $tests) {
+    #             Write-Verbose "Running scriptblock: [$($test.ToString())]"
+    #             if (& $test) {
+    #                 $true
+    #                 break
+    #             }
+    #         }
+    #     }
 
-        try {
-            $output = @{
-                IsPendingReboot = $false
-            }
+    #     try {
+    #         $output = @{
+    #             IsPendingReboot = $false
+    #         }
 
-            if (-not ($output.IsPendingReboot = Invoke-Command -ScriptBlock $scriptBlock)) {
-                $output.IsPendingReboot = $false
-            }
-            [pscustomobject]$output
-        } catch {
-            Write-Error -Message $_.Exception.Message
-        }
-      displayName: '2a: Needs a reboot?'
+    #         if (-not ($output.IsPendingReboot = Invoke-Command -ScriptBlock $scriptBlock)) {
+    #             $output.IsPendingReboot = $false
+    #         }
+    #         [pscustomobject]$output
+    #     } catch {
+    #         Write-Error -Message $_.Exception.Message
+    #     }
+    #   displayName: '2a: Needs a reboot?'
 
-    - pwsh: |
-        Try {
-            $PendingReboot = $false
+    # - pwsh: |
+    #     Try {
+    #         $PendingReboot = $false
 
-            $HKLM = [UInt32] "0x80000002"
-            $WMI_Reg = [WMIClass] "\\.\root\default:StdRegProv"
+    #         $HKLM = [UInt32] "0x80000002"
+    #         $WMI_Reg = [WMIClass] "\\.\root\default:StdRegProv"
 
-            if ($WMI_Reg) {
-                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
-                if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
-                if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
+    #         if ($WMI_Reg) {
+    #             if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\")).sNames -contains 'RebootPending') {$PendingReboot = $true}
+    #             if (($WMI_Reg.EnumKey($HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\")).sNames -contains 'RebootRequired') {$PendingReboot = $true}
+    #             if (([WmiClass]"\\.\ROOT\CCM\ClientSDK:CCM_ClientUtilities").DetermineIfRebootPending().RebootPending -eq $true) {$PendingReboot = $true}
 
-                if ($PendingReboot -eq $true) {
-                    [PSCustomObject]@{
-                        PendingReboot  = $true
-                    }
-                    } else {
-                    [PSCustomObject]@{
-                        PendingReboot  = $false
-                    }
-                }
-            }
-        } catch {
-            Write-Error $_.Exception.Message
+    #             if ($PendingReboot -eq $true) {
+    #                 [PSCustomObject]@{
+    #                     PendingReboot  = $true
+    #                 }
+    #                 } else {
+    #                 [PSCustomObject]@{
+    #                     PendingReboot  = $false
+    #                 }
+    #             }
+    #         }
+    #     } catch {
+    #         Write-Error $_.Exception.Message
 
-        } finally {
-            #Clearing Variables
-            $WMI_Reg        = $null
-        }
-      displayName: '2b: Needs a reboot?'
+    #     } finally {
+    #         #Clearing Variables
+    #         $WMI_Reg        = $null
+    #     }
+    #   displayName: '2b: Needs a reboot?'
 
     - template: templates/e2e-run.yaml
 
