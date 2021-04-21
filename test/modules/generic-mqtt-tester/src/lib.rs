@@ -36,7 +36,7 @@ impl ShutdownHandle {
         Self(sender)
     }
 
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
+    pub async fn shutdown(self) -> Result<(), MessageTesterError> {
         self.0
             .send(())
             .await
