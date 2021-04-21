@@ -69,7 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
             var yaml = new DaemonConfiguration(configYamlPath);
             (string message, object[] properties) = await config(yaml);
-            Log.Information($"==========\n{configYamlPath}:\n{File.ReadAllText(configYamlPath)}\n==========");
 
             if (restart)
             {
