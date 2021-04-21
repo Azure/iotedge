@@ -21,25 +21,28 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             },
             "env": {
               "experimentalfeatures__enabled": {
-                "value": "true"
+                  "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                "value": "true"
+                  "value": "true"
               }
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-windows-<Architecture>",
+              "createOptions": "{\"User\": \"ContainerAdministrator\",\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
+              "CollectMetrics": {
+                "value": "true"
+              },
               "amqpSettings__enabled": {
                 "value": "<amqpSettings__enabled>"
               },
@@ -47,13 +50,10 @@
                 "value": "<mqttSettings__enabled>"
               },
               "experimentalfeatures__enabled": {
-                "value": "true"
+                  "value": "true"
               },
               "experimentalfeatures__enableMetrics": {
-                "value": "true"
-              },
-              "NestedEdgeEnabled": {
-                "value": "false"
+                  "value": "true"
               }
             },
             "status": "running",
@@ -75,7 +75,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -93,7 +93,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -111,7 +111,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -129,126 +129,126 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
           "twinTester1": {
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-              "TransportType": {
-                "value": "<TransportType1>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "TwinUpdateFailureThreshold": {
-                "value": "<TwinUpdateFailureThreshold>"
-              },
-              "EdgeHubRestartFailureTolerance": {
-                "value": "<EdgeHubRestartFailureTolerance>"
-              }
+                "TransportType": {
+                    "value": "<TransportType1>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
+                }
             },
             "status": "running",
             "restartPolicy": "always"
           },
           "twinTester2": {
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-              "TransportType": {
-                "value": "<TransportType2>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "TwinUpdateFailureThreshold": {
-                "value": "<TwinUpdateFailureThreshold>"
-              },
-              "EdgeHubRestartFailureTolerance": {
-                "value": "<EdgeHubRestartFailureTolerance>"
-              }
+                "TransportType": {
+                    "value": "<TransportType2>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
+                }
             },
             "status": "running",
             "restartPolicy": "always"
           },
           "twinTester3": {
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-              "TransportType": {
-                "value": "<TransportType3>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "TwinUpdateFailureThreshold": {
-                "value": "<TwinUpdateFailureThreshold>"
-              },
-              "EdgeHubRestartFailureTolerance": {
-                "value": "<EdgeHubRestartFailureTolerance>"
-              }
+                "TransportType": {
+                    "value": "<TransportType3>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
+                }
             },
             "status": "running",
             "restartPolicy": "always"
           },
           "twinTester4": {
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-              "TransportType": {
-                "value": "<TransportType4>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "TwinUpdateFailureThreshold": {
-                "value": "<TwinUpdateFailureThreshold>"
-              },
-              "EdgeHubRestartFailureTolerance": {
-                "value": "<EdgeHubRestartFailureTolerance>"
-              }
+                "TransportType": {
+                    "value": "<TransportType4>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                },
+                "EdgeHubRestartFailureTolerance": {
+                    "value": "<EdgeHubRestartFailureTolerance>"
+                }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -285,11 +285,14 @@
               },
               "RUST_LOG": {
                 "value": "snitcher=info"
+              },
+              "MANAGEMENT_URI": {
+                "value": "<Management.Uri>"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/lib/iotedge/mgmt.sock:/var/lib/iotedge/mgmt.sock\"]}}"
+              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-windows-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Binds\":[<Snitch.Binds>]}}"
             }
           },
           "analyzer": {
@@ -302,7 +305,7 @@
               },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
-              },
+              }, 
               "LogAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
               },
@@ -317,7 +320,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
@@ -327,28 +330,28 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "LogAnalyticsWorkspaceId": {
-                "value": "<LogAnalyticsWorkspaceId>"
-              },
-              "LogAnalyticsSharedKey": {
-                "value": "<LogAnalyticsSharedKey>"
-              },
-              "LogAnalyticsLogType": {
-                "value": "testMetricsV2"
-              },
-              "MetricsEndpointsCSV": {
-                "value": "<MetricsCollector.MetricsEndpointsCSV>"
-              },
-              "ScrapeFrequencyInSecs": {
-                "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
-              },
-              "UploadTarget": {
-                "value": "<MetricsCollector.UploadTarget>"
-              }
+                "LogAnalyticsWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "LogAnalyticsSharedKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                },
+                "LogAnalyticsLogType": {
+                  "value": "testMetricsV2"
+                },
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
+                }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+                "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
             }
           }
         }
