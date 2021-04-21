@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use bytes::Buf;
 use futures_util::{
     future::{self, Either},
-    stream::StreamExt,
+    pin_mut,
 };
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::sync::mpsc;
@@ -151,8 +151,9 @@ where
     pub async fn run(mut self) -> Result<ExitedWork, MessageTesterError> {
         info!("starting message channel");
         loop {
-            let received_pub = self.publication_receiver.next();
-            let shutdown_signal = self.shutdown_recv.next();
+            let received_pub = self.publication_receiver.recv();
+            let shutdown_signal = self.shutdown_recv.recv();
+            pin_mut!(received_pub, shutdown_signal);
 
             match future::select(received_pub, shutdown_signal).await {
                 Either::Left((received_publication, _)) => {

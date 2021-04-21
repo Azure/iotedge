@@ -4,7 +4,7 @@ use bytes::BufMut;
 use bytes::BytesMut;
 use futures_util::{
     future::{self, Either},
-    pin_mut, StreamExt,
+    pin_mut,
 };
 use tokio::{
     sync::mpsc::{self, Receiver},
@@ -92,9 +92,9 @@ impl MessageInitiator {
                 payload: payload.into(),
             };
 
-            let shutdown_recv_fut = self.shutdown_recv.next();
+            let shutdown_recv_fut = self.shutdown_recv.recv();
             let publish_fut = publish_handle.publish(publication);
-            pin_mut!(publish_fut);
+            pin_mut!(shutdown_recv_fut, publish_fut);
 
             match future::select(shutdown_recv_fut, publish_fut).await {
                 Either::Left((shutdown, _)) => {
@@ -107,10 +107,25 @@ impl MessageInitiator {
                 }
             };
 
-            self.report_message_sent(seq_num).await;
-            seq_num += 1;
+            let result = MessageTestResult::new(
+                self.tracking_id.clone(),
+                self.batch_id.to_string(),
+                seq_num,
+            );
 
-            time::delay_for(self.message_frequency).await;
+            let test_type = trc_client::TestType::Messages;
+            let created_at = chrono::Utc::now();
+
+            if let Err(e) = self
+                .reporting_client
+                .report_result(self.report_source.clone(), result, test_type, created_at)
+                .await
+            {
+                error!("error reporting result to trc: {:?}", e);
+            }
+
+            seq_num += 1;
+            time::sleep(self.message_frequency).await;
         }
 
         Ok(ExitedWork::MessageInitiator)
@@ -118,24 +133,5 @@ impl MessageInitiator {
 
     pub fn shutdown_handle(&self) -> ShutdownHandle {
         self.shutdown_handle.clone()
-    }
-
-    async fn report_message_sent(&self, sequence_number: u32) {
-        let result = MessageTestResult::new(
-            self.tracking_id.clone(),
-            self.batch_id.to_string(),
-            sequence_number,
-        );
-
-        let test_type = trc_client::TestType::Messages;
-        let created_at = chrono::Utc::now();
-
-        if let Err(e) = self
-            .reporting_client
-            .report_result(self.report_source.clone(), result, test_type, created_at)
-            .await
-        {
-            error!("error reporting result to trc: {:?}", e);
-        }
     }
 }
