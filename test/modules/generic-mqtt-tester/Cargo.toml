@@ -5,11 +5,6 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 description = "Test module for longhaul / connectivity tests. Reports status to TestResultCoordinator (TRC)."
 
-# when fixed we can remove (https://github.com/Lymia/enumset/issues/17)
-[patch.crates-io.enumset_derive]
-git = "https://github.com/ocboogie/enumset"
-branch = "span-fix" 
-
 [dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
@@ -21,7 +16,6 @@ humantime = "2.1"
 humantime-serde = "1.0"
 thiserror = "1.0"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
-tokio-signal = "0.2"
 tracing = "0.1"
 tracing-futures = "0.2"
 tracing-subscriber = "0.2"

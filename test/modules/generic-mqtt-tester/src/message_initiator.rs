@@ -107,7 +107,7 @@ impl MessageInitiator {
             };
 
             let result = MessageTestResult::new(
-                self.settings.tracking_id(),
+                self.tracking_id.clone(),
                 self.batch_id.to_string(),
                 seq_num,
             );
@@ -115,12 +115,12 @@ impl MessageInitiator {
             let test_type = trc_client::TestType::Messages;
             let created_at = chrono::Utc::now();
             self.reporting_client
-                .report_result(SEND_SOURCE.to_string(), result, test_type, created_at)
+                .report_result(self.report_source.clone(), result, test_type, created_at)
                 .await
                 .map_err(MessageTesterError::ReportResult)?;
             seq_num += 1;
 
-            time::sleep(self.settings.message_frequency()).await;
+            time::sleep(self.message_frequency).await;
         }
 
         Ok(ExitedWork::MessageInitiator)
