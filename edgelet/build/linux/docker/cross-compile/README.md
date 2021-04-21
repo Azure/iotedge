@@ -12,9 +12,6 @@ The table below lists what platforms we cross compile for and how to build these
 | Target                       | Arch  | Dockerfile                                           | Script |
 | ---------------------------- | ----- | ---------------------------------------------------- | ------ |
 | Generic ARM (Debian 9 based) | arm32 | Dockerfile.arm.armv7-unknown-linux-gnueabi           | `armbuild/build_arm_toolchain_container.sh armv7-unknown-linux-gnueabi` |
-| Debian 8 (Jessie)            | arm64 | Dockerfile.debian8.aarch64-unknown-linux-gnueabi     | `debian8/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
-| Debian 8 (Jessie)            | arm32 | Dockerfile.debian8.armv7-unknown-linux-gnueabi       | `debian8/build_arm_toolchain_container.sh armv7-unknown-linux-gnueabi` |
-| Debian 8 (Jessie)            | amd64 | Dockerfile.debian8.x86\_64-unknown-linux-gnu         | `debian8/build_amd64_container.sh` |
 | Debian 9 (Stretch)           | arm32 | Dockerfile.debian9.armv7-unknown-linux-gnueabi       | `debian9/build_arm_toolchain_container.sh armv7-unknown-linux-gnueabi` |
 | Debian 9 (Stretch)           | arm64 | Dockerfile.debian9.aarch64-unknown-linux-gnu         | `debian9/build_arm64_toolchain_container.sh aarch64-unknown-linux-gnu` |
 | Debian 9 (Stretch)           | amd64 | Dockerfile.debian9.x86\_64-unknown-linux-gnu         | `debian9/build_amd64_container.sh` |
