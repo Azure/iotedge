@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             string debPackages = $"https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list";
             if (this.os.ToLower() == "ubuntu" && this.version == "20.04")
             {
-                // Should be chanbed to 20.04 when we publish to that repo.
+                // Should be changed to 20.04 when we publish to that repo.
                 debPackages = $"https://packages.microsoft.com/config/{this.os}/18.04/multiarch/prod.list";
             }
             return this.packageExtension switch
