@@ -1,5 +1,5 @@
 use future::{select_all, Either};
-use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
+use futures_util::{future, pin_mut, stream::TryStreamExt};
 use mpsc::UnboundedSender;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
@@ -208,7 +208,7 @@ impl MessageTester {
                 "waiting for test start delay of {:?}",
                 self.settings.test_start_delay()
             );
-            time::delay_for(self.settings.test_start_delay()).await;
+            time::sleep(self.settings.test_start_delay()).await;
 
             let message_loop = tokio::spawn(message_initiator.run());
             tasks.push(message_loop);
@@ -289,7 +289,8 @@ async fn poll_client(
     loop {
         let message_send_handle = message_send_handle.clone();
         let event = client.try_next();
-        let shutdown = shutdown_recv.next();
+        let shutdown = shutdown_recv.recv();
+        pin_mut!(shutdown);
 
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {
