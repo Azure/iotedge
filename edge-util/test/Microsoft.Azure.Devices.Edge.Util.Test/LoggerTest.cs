@@ -49,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void NoNewLinesTest()
         {
-
             using (var writer = new System.IO.StringWriter())
             {
                 System.Console.SetOut(writer);
