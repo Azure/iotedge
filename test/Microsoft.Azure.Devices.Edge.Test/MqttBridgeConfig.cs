@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// - Validate the successful result.
         /// </summary>
         [Test]
-        [Category("BrokerRequired")]
+        [Category("UsesBroker")]
         public async Task BridgeConfigUpdateTest()
         {
             CancellationToken token = this.TestToken;
