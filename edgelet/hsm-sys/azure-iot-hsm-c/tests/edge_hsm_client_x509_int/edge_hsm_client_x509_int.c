@@ -28,7 +28,6 @@
 //#############################################################################
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 #define TEST_CA_ALIAS "test_ca_alias"
 #define TEST_SERVER_ALIAS "test_server_alias"
@@ -132,9 +131,9 @@ static char* prepare_file_path(const char* base_dir, const char* file_name)
 {
     size_t path_size = get_max_file_path_size();
     char *file_path = calloc(path_size, 1);
-    ASSERT_IS_NOT_NULL(file_path, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(file_path, "Line:" MU_TOSTRING(__LINE__));
     int status = snprintf(file_path, path_size, "%s%s%s", base_dir, SLASH, file_name);
-    ASSERT_IS_TRUE(((status > 0) || (status < (int)path_size)), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE(((status > 0) || (status < (int)path_size)), "Line:" MU_TOSTRING(__LINE__));
 
     return file_path;
 }
@@ -144,8 +143,8 @@ static void test_helper_setup_homedir(void)
     int status;
 
     TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" MU_TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" MU_TOSTRING(__LINE__));
 
     printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
     hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
@@ -155,11 +154,11 @@ static void test_helper_setup_homedir(void)
     TEST_DEVICE_ID_PK_RSA_FILE = prepare_file_path(TEST_IOTEDGE_HOMEDIR, TEST_DEVICE_ID_PK_RSA_FILE_NAME);
 
     status = write_cstring_to_file(TEST_DEVICE_ID_CERT_RSA_FILE, TEST_RSA_CERT);
-    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
     printf("Write device certificate to: [%s]\r\n", TEST_DEVICE_ID_CERT_RSA_FILE);
 
     status = write_buffer_to_file(TEST_DEVICE_ID_PK_RSA_FILE, TEST_PRIVATE_KEY, sizeof(TEST_PRIVATE_KEY), false);
-    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
     printf("Write device private key to: [%s]\r\n", TEST_DEVICE_ID_PK_RSA_FILE);
 }
 
@@ -191,7 +190,6 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
 
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
         test_helper_setup_homedir();
@@ -201,7 +199,6 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
     {
         test_helper_teardown_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -235,19 +232,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
-        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
 
         // act
-        char* certificate = interface->hsm_client_get_cert(hsm_handle);
+        char* certificate = iface->hsm_client_get_cert(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(certificate, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(certificate, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -258,19 +255,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
-        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
 
         // act
-        char* key = interface->hsm_client_get_key(hsm_handle);
+        char* key = iface->hsm_client_get_key(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(key, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(key, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -281,19 +278,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
-        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
 
         // act
-        char* name = interface->hsm_client_get_common_name(hsm_handle);
+        char* name = iface->hsm_client_get_common_name(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(name, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(name, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -302,19 +299,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
     TEST_FUNCTION(hsm_client_x509_get_certificate_info_with_missing_env_vars_fails)
     {
         //arrange
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
-        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
+        ASSERT_IS_NOT_NULL(hsm_handle, "Line:" MU_TOSTRING(__LINE__));
 
         // act
-        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+        CERT_INFO_HANDLE result = iface->hsm_client_get_cert_info(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -325,26 +322,26 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
 
         // act
-        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+        CERT_INFO_HANDLE result = iface->hsm_client_get_cert_info(hsm_handle);
 
         // assert
-        ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(result, "Line:" MU_TOSTRING(__LINE__));
         int cmp_result = strcmp(TEST_RSA_CERT, certificate_info_get_certificate(result));
-        ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
         size_t result_pk_size = 0;
         const void * result_pk = certificate_info_get_private_key(result, &result_pk_size);
-        ASSERT_ARE_EQUAL(size_t, sizeof(TEST_PRIVATE_KEY), result_pk_size, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(size_t, sizeof(TEST_PRIVATE_KEY), result_pk_size, "Line:" MU_TOSTRING(__LINE__));
         cmp_result = memcmp(TEST_PRIVATE_KEY, result_pk, result_pk_size);
-        ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(result);
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -355,19 +352,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, "blah.txt");
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
 
         // act
-        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+        CERT_INFO_HANDLE result = iface->hsm_client_get_cert_info(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(result);
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -377,19 +374,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
     {
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
 
         // act
-        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+        CERT_INFO_HANDLE result = iface->hsm_client_get_cert_info(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(result);
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
     }
@@ -399,19 +396,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, "blah.txt");
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
 
         // act
-        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+        CERT_INFO_HANDLE result = iface->hsm_client_get_cert_info(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(result);
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(ENV_DEVICE_ID_CERTIFICATE_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH);
@@ -421,19 +418,19 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
     {
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
-        const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
+        const HSM_CLIENT_X509_INTERFACE* iface = hsm_client_x509_interface();
         hsm_client_x509_init(TEST_VALIDITY);
-        HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
+        HSM_CLIENT_CREATE hsm_handle = iface->hsm_client_x509_create();
 
         // act
-        CERT_INFO_HANDLE result = interface->hsm_client_get_cert_info(hsm_handle);
+        CERT_INFO_HANDLE result = iface->hsm_client_get_cert_info(hsm_handle);
 
         // assert
-        ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
 
         //cleanup
         certificate_info_destroy(result);
-        interface->hsm_client_x509_destroy(hsm_handle);
+        iface->hsm_client_x509_destroy(hsm_handle);
         hsm_client_x509_deinit();
         hsm_test_util_unsetenv(TEST_DEVICE_ID_CERT_RSA_FILE);
     }

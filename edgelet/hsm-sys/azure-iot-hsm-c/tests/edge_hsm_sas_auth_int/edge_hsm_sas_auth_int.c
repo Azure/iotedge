@@ -36,7 +36,6 @@ static char* TEST_IOTEDGE_HOMEDIR = NULL;
 static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 //#############################################################################
 // Test helpers
@@ -45,8 +44,8 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 static void test_helper_setup_homedir(void)
 {
     TEST_IOTEDGE_HOMEDIR = hsm_test_util_create_temp_dir(&TEST_IOTEDGE_HOMEDIR_GUID);
-    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR_GUID, "Line:" MU_TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_IOTEDGE_HOMEDIR, "Line:" MU_TOSTRING(__LINE__));
 
     printf("Temp dir created: [%s]\r\n", TEST_IOTEDGE_HOMEDIR);
     hsm_test_util_setenv("IOTEDGE_HOMEDIR", TEST_IOTEDGE_HOMEDIR);
@@ -69,10 +68,10 @@ static HSM_CLIENT_HANDLE tpm_provision(void)
 {
     int status;
     status = hsm_client_tpm_init();
-    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
-    HSM_CLIENT_HANDLE result = interface->hsm_client_tpm_create();
-    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+    const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_interface();
+    HSM_CLIENT_HANDLE result = iface->hsm_client_tpm_create();
+    ASSERT_IS_NOT_NULL(result, "Line:" MU_TOSTRING(__LINE__));
     return result;
 }
 
@@ -83,9 +82,9 @@ static void tpm_activate_key
     size_t key_size
 )
 {
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
-    int status = interface->hsm_client_activate_identity_key(hsm_handle, key, key_size);
-    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_interface();
+    int status = iface->hsm_client_activate_identity_key(hsm_handle, key, key_size);
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 }
 
 static int tpm_sign
@@ -98,46 +97,46 @@ static int tpm_sign
     BUFFER_HANDLE hash
 )
 {
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
+    const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_interface();
     unsigned char *digest;
     size_t digest_size;
     int status;
     if (derived_identity == NULL)
     {
-        status = interface->hsm_client_sign_with_identity(hsm_handle, data, data_len,
+        status = iface->hsm_client_sign_with_identity(hsm_handle, data, data_len,
                                                           &digest, &digest_size);
     }
     else
     {
-        status = interface->hsm_client_derive_and_sign_with_identity(hsm_handle,
+        status = iface->hsm_client_derive_and_sign_with_identity(hsm_handle,
                                                                      data, data_len,
                                                                      derived_identity,
                                                                      derived_identity_size,
                                                                      &digest,
                                                                      &digest_size);
     }
-    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
     status = BUFFER_build(hash, digest, digest_size);
-    ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
     free(digest);
     return status;
 }
 
 static void tpm_deprovision(HSM_CLIENT_HANDLE hsm_handle)
 {
-    const HSM_CLIENT_TPM_INTERFACE* interface = hsm_client_tpm_interface();
-    interface->hsm_client_tpm_destroy(hsm_handle);
+    const HSM_CLIENT_TPM_INTERFACE* iface = hsm_client_tpm_interface();
+    iface->hsm_client_tpm_destroy(hsm_handle);
     hsm_client_tpm_deinit();
 }
 
 static BUFFER_HANDLE test_helper_base64_converter(const char* input)
 {
     BUFFER_HANDLE result = Azure_Base64_Decode(input);
-    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(result, "Line:" MU_TOSTRING(__LINE__));
     size_t out_len = BUFFER_length(result);
-    ASSERT_ARE_NOT_EQUAL(size_t, 0, out_len, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_NOT_EQUAL(size_t, 0, out_len, "Line:" MU_TOSTRING(__LINE__));
     unsigned char* out_buffer = BUFFER_u_char(result);
-    ASSERT_IS_NOT_NULL(out_buffer, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(out_buffer, "Line:" MU_TOSTRING(__LINE__));
     return result;
 }
 
@@ -150,10 +149,10 @@ static BUFFER_HANDLE test_helper_compute_hmac
 {
     int status;
     BUFFER_HANDLE result = BUFFER_new();
-    ASSERT_IS_NOT_NULL(result, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(result, "Line:" MU_TOSTRING(__LINE__));
     status = HMACSHA256_ComputeHash(BUFFER_u_char(key_handle), BUFFER_length(key_handle),
                                     input, input_size, result);
-    ASSERT_ARE_EQUAL(int, (int)HMACSHA256_OK, status, "Line:" TOSTRING(__LINE__));
+    ASSERT_ARE_EQUAL(int, (int)HMACSHA256_OK, status, "Line:" MU_TOSTRING(__LINE__));
     return result;
 }
 
@@ -243,7 +242,6 @@ static STRING_HANDLE tpm_construct_sas_token
 BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
         test_helper_setup_homedir();
@@ -253,7 +251,6 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
     {
         test_helper_tear_down_homedir();
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -289,7 +286,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // act
         BUFFER_HANDLE test_output_digest = BUFFER_new();
-        ASSERT_IS_NOT_NULL(test_output_digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output_digest, "Line:" MU_TOSTRING(__LINE__));
         HSM_CLIENT_HANDLE hsm_handle = test_helper_init_tpm_and_activate_key(decoded_key);
         tpm_sign(hsm_handle, NULL, 0, test_data_to_be_signed,
                  test_data_to_be_signed_size, test_output_digest);
@@ -338,7 +335,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // act
         BUFFER_HANDLE test_output_digest = BUFFER_new();
-        ASSERT_IS_NOT_NULL(test_output_digest, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output_digest, "Line:" MU_TOSTRING(__LINE__));
         HSM_CLIENT_HANDLE hsm_handle = test_helper_init_tpm_and_activate_key(decoded_key);
         tpm_sign(hsm_handle, (unsigned char*)primary_fqmid, strlen(primary_fqmid),
                  test_data_to_be_signed, test_data_to_be_signed_size, test_output_digest);
@@ -383,9 +380,9 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
 
         // act
         BUFFER_HANDLE test_output_primary_key_buf = BUFFER_new();
-        ASSERT_IS_NOT_NULL(test_output_primary_key_buf, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output_primary_key_buf, "Line:" MU_TOSTRING(__LINE__));
         BUFFER_HANDLE test_output_secondary_key_buf = BUFFER_new();
-        ASSERT_IS_NOT_NULL(test_output_secondary_key_buf, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(test_output_secondary_key_buf, "Line:" MU_TOSTRING(__LINE__));
 
         HSM_CLIENT_HANDLE hsm_handle = test_helper_init_tpm_and_activate_key(decoded_key);
         tpm_sign(hsm_handle, NULL, 0, (unsigned char*)primary_fqmid, strlen(primary_fqmid), test_output_primary_key_buf);
@@ -434,7 +431,7 @@ BEGIN_TEST_SUITE(edge_hsm_sas_auth_int_tests)
         HSM_CLIENT_HANDLE hsm_handle = tpm_provision();
         tpm_activate_key(hsm_handle, BUFFER_u_char(decoded_key), BUFFER_length(decoded_key));
         STRING_HANDLE token = tpm_construct_sas_token(hsm_handle, NULL, 0, hostname, device_id, expiry_time);
-        ASSERT_IS_NOT_NULL(token, "Line:" TOSTRING(__LINE__));
+        ASSERT_IS_NOT_NULL(token, "Line:" MU_TOSTRING(__LINE__));
         printf("TPM Generated Token: [%s]\n", STRING_c_str(token));
 
         // cleanup
