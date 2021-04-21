@@ -77,6 +77,10 @@ jobs:
       artifactName: iotedged-windows
 
     steps:
+    - pwsh: |
+        [Environment]::SetEnvironmentVariable("IOTEDGE_LOG", "debug", [EnvironmentVariableTarget]::Machine)
+      displayName: Enable iotedged debug logging
+
     # - pwsh: |
     #     $OpenSslPath = Join-Path (Split-Path (get-command git).Source) '..\mingw64\bin' -Resolve
     #     echo "OpenSSL found: $OpenSslPath"
