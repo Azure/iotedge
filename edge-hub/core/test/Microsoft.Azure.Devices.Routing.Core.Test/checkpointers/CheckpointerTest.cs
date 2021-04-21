@@ -8,9 +8,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Extensions.Logging;
     using Moq;
     using Xunit;
 
@@ -151,6 +153,33 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             }
         }
 
+        [Fact]
+        [Unit]
+        public async Task TestPropose()
+        {
+            var store = new Mock<ICheckpointStore>();
+            store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(0));
+
+            var metricsGauge = new MetricsGauge();
+            var provider = new Mock<IMetricsProvider>();
+            provider.Setup(d => d.CreateGauge(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<string>>())).Returns(metricsGauge);
+            var logger = new Mock<ILogger>();
+            Metrics.InitWithAspNet(provider.Object, logger.Object);
+
+            using (var cts = new CancellationTokenSource())
+            using (var checkpointer = await Checkpointer.CreateAsync("id", store.Object))
+            {
+                for (var i = 0; i < 1000; i++)
+                {
+                    var message = MessageWithOffset(i);
+                    checkpointer.Propose(message);
+                    Assert.Equal(0, checkpointer.Offset);
+                    Assert.Equal(i, checkpointer.Proposed);
+                    Assert.Equal(i, metricsGauge.Value);
+                }
+            }
+        }
+
         static IMessage MessageWithOffset(long offset) =>
             new Message(TelemetryMessageSource.Instance, new byte[] { 1, 2, 3 }, new Dictionary<string, string>(), offset);
 
@@ -202,6 +231,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             };
 
             public static IEnumerable<object[]> TestData => Data;
+        }
+
+        class MetricsGauge : IMetricsGauge
+        {
+            public string[] LabelValues { get; set; }
+            public double Value { get; set; }
+
+            public void Set(double value, string[] labelValues)
+            {
+                LabelValues = labelValues;
+                Value = value;
+            }
         }
     }
 }
