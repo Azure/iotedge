@@ -20,27 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string TestModelId = "dtmi:edgeE2ETest:TestCapabilityModel;1";
         const string LoadGenModuleName = "loadGenModule";
 
-        [TestCase(Protocol.Mqtt, false)]
-        [TestCase(Protocol.Amqp, false)]
-        [TestCase(Protocol.Mqtt, true)]
-        [TestCase(Protocol.Amqp, true)]
-        public async Task PlugAndPlayDeviceClient(Protocol protocol, bool brokerOn)
+        [TestCase(Protocol.Mqtt)]
+        [TestCase(Protocol.Amqp)]
+        [Category("LegacyMqttRequired")]
+        public async Task PlugAndPlayDeviceClient(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
             string leafDeviceId = DeviceId.Current.Generate();
 
-            // If broker is on, MQTT will be used by default in nested environment. And new MQTT won't work for P&P
-            if (Context.Current.NestedEdge && brokerOn)
-            {
-                Assert.Ignore();
-            }
-
             Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol);
-            if (brokerOn)
-            {
-                config += MqttBrokerUtil.BuildAddBrokerToDeployment(true);
-            }
-
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 config,
                 token,
@@ -73,28 +61,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 });
         }
 
-        [TestCase(Protocol.Mqtt, false)]
-        [TestCase(Protocol.Amqp, false)]
-        [TestCase(Protocol.Mqtt, true)]
-        [TestCase(Protocol.Amqp, true)]
+        [TestCase(Protocol.Mqtt)]
+        [TestCase(Protocol.Amqp)]
+        [Category("LegacyMqttRequired")]
         [Test]
-        public async Task PlugAndPlayModuleClient(Protocol protocol, bool brokerOn)
+        public async Task PlugAndPlayModuleClient(Protocol protocol)
         {
             CancellationToken token = this.TestToken;
 
-            // If broker is on, MQTT will be used by default in nested environment. And new MQTT won't work for P&P
-            if (Context.Current.NestedEdge && brokerOn)
-            {
-                Assert.Ignore();
-            }
-
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
-            Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
-            if (brokerOn)
-            {
-                config += MqttBrokerUtil.BuildAddBrokerToDeployment(true);
-            }
 
+            Action<EdgeConfigBuilder> config = this.BuildAddEdgeHubConfig(protocol) + this.BuildAddLoadGenConfig(protocol, loadGenImage);
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 config,
                 token,
