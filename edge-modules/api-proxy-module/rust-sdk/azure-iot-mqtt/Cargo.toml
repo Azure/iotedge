@@ -11,9 +11,11 @@ bytes = "1.0"
 futures-core = "0.3"
 futures-channel = "0.3"
 futures-util = "0.3"
+hex = "0.4"
 hmac = "0.10"
 http = "0.2"
 hyper = { version = "0.14", features = ["client", "http1", "tcp", "stream"] }
+hyperlocal = "0.8"
 lazy_static = "1.4"
 log = "0.4"
 native-tls = "0.2"
@@ -30,7 +32,6 @@ tungstenite = "0.13"
 url = "2.2"
 
 mqtt3 = { path = "../../../../mqtt/mqtt3" }
-hyper-uds = { path = "../hyper-uds" }
 
 [dev-dependencies]
 env_logger = "0.8"

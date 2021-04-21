@@ -14,34 +14,11 @@ impl Client {
                 workload_url.to_string(),
                 Connector::Http(hyper::client::HttpConnector::new()),
             ),
-            "unix" => {
-                if cfg!(windows) {
-                    // We get better handling of Windows file syntax if we parse a
-                    // unix:// URL as a file:// URL. Specifically:
-                    // - On Unix, `Url::parse("unix:///path")?.to_file_path()` succeeds and returns `Ok("/path")`.
-                    // - On Windows, `Url::parse("unix:///C:/path")?.to_file_path()` fails with `Err(())`.
-                    // - On Windows, `Url::parse("file:///C:/path")?.to_file_path()` succeeds and returns `Ok(r"C:\path")`.
-                    let mut workload_url = workload_url.clone();
-                    workload_url
-                        .set_scheme("file")
-                        .expect(r#"changing the scheme of workload URI to "file" should not fail"#);
-                    let base = workload_url
-                        .to_file_path()
-                        .map_err(|()| Error::ParseWorkloadUrlUnixFilePath)?;
-                    let base = base.to_str().ok_or(Error::ParseWorkloadUrlUnixFilePath)?;
-                    (
-                        Scheme::Unix,
-                        base.to_owned(),
-                        Connector::Unix(hyper_uds::UdsConnector::new()),
-                    )
-                } else {
-                    (
-                        Scheme::Unix,
-                        workload_url.path().to_owned(),
-                        Connector::Unix(hyper_uds::UdsConnector::new()),
-                    )
-                }
-            }
+            "unix" => (
+                Scheme::Unix,
+                workload_url.path().to_owned(),
+                Connector::Unix(hyperlocal::UnixConnector),
+            ),
             scheme => return Err(Error::UnrecognizedWorkloadUrlScheme(scheme.to_owned())),
         };
 
@@ -244,14 +221,19 @@ fn make_hyper_uri(
             Ok(url)
         }
 
-        Scheme::Unix => Ok(hyper_uds::make_hyper_uri(base, path)?),
+        Scheme::Unix => {
+            let host = hex::encode(base.as_bytes());
+            let uri = format!("unix://{}:0{}", host, path);
+            let uri = uri.parse()?;
+            Ok(uri)
+        }
     }
 }
 
 #[derive(Clone)]
 enum Connector {
     Http(hyper::client::HttpConnector),
-    Unix(hyper_uds::UdsConnector),
+    Unix(hyperlocal::UnixConnector),
 }
 
 impl hyper::service::Service<http::Uri> for Connector {
@@ -288,7 +270,7 @@ impl hyper::service::Service<http::Uri> for Connector {
 
 enum Transport {
     Http(<hyper::client::HttpConnector as hyper::service::Service<http::Uri>>::Response),
-    Unix(<hyper_uds::UdsConnector as hyper::service::Service<http::Uri>>::Response),
+    Unix(<hyperlocal::UnixConnector as hyper::service::Service<http::Uri>>::Response),
 }
 
 impl hyper::client::connect::Connection for Transport {
@@ -368,7 +350,6 @@ struct SignResponse {
 #[derive(Debug)]
 pub(super) enum Error {
     GetServerRootCertificate(ApiErrorReason),
-    ParseWorkloadUrlUnixFilePath,
     SignSasToken(ApiErrorReason),
     UnrecognizedWorkloadUrlScheme(String),
 }
@@ -378,9 +359,6 @@ impl std::fmt::Display for Error {
         match self {
             Error::GetServerRootCertificate(reason) => {
                 write!(f, "could not get server root certificate: {}", reason)
-            }
-            Error::ParseWorkloadUrlUnixFilePath => {
-                write!(f, "could not parse workload URL as UDS file path")
             }
             Error::SignSasToken(reason) => write!(f, "could not create SAS token: {}", reason),
             Error::UnrecognizedWorkloadUrlScheme(scheme) => {
@@ -395,7 +373,6 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Error::GetServerRootCertificate(reason) => reason.source(),
-            Error::ParseWorkloadUrlUnixFilePath => None,
             Error::SignSasToken(reason) => reason.source(),
             Error::UnrecognizedWorkloadUrlScheme(_) => None,
         }

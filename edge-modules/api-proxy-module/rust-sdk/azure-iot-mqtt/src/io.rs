@@ -2,8 +2,6 @@
 
 use std::future::Future;
 
-use percent_encoding::percent_decode_str;
-
 /// A [`mqtt3::IoSource`] implementation used by the clients.
 pub struct IoSource {
     iothub_hostname: std::sync::Arc<str>,
