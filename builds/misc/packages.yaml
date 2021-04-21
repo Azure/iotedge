@@ -24,20 +24,6 @@ jobs:
           target.iotedged: edgelet/target/rpmbuild/RPMS/x86_64
         # Centos75-arm32v7 and Centos75-aarch64 are built in packages.slow.yaml
 
-        Debian8-amd64:
-          os: debian8
-          arch: amd64
-          target.iotedged: edgelet/target/release
-        Debian8-arm32v7:
-          os: debian8
-          arch: arm32v7
-          target.iotedged: edgelet/target/armv7-unknown-linux-gnueabihf/release
-        # Do not build debian8 aarch64 because it is not LTS, only amd64 and armhf are.
-        # aarch64 packages are not available in the base Debian repos and also not in ports.
-        #
-        # Per https://wiki.debian.org/LTS/Using
-        # >Important: Jessie-LTS only supports i386, amd64, armel and armhf. Users of other architectures are encouraged to upgrade to Debian 9 ("Stretch"). 
-
         Debian9-amd64:
           os: debian9
           arch: amd64
