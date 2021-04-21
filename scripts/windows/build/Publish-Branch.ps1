@@ -153,6 +153,7 @@ $appProjectList.Add("MetricsValidator.csproj")
 $appProjectList.Add("NumberLogger.csproj")
 $appProjectList.Add("CloudToDeviceMessageTester.csproj")
 $appProjectList.Add("IotedgeDiagnosticsDotnet.csproj")
+$appProjectList.Add("Microsoft.Azure.Devices.Edge.Azure.Monitor.csproj")
 
 # Download latest rocksdb ARM32 library
 $rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"
