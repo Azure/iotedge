@@ -155,9 +155,9 @@ jobs:
      # Metrics Collector
       - template: templates/image-linux.yaml
         parameters:
-          name: Metrics Collector
+          name: Metrics Collector - Tests only
           imageName: azureiotedge-test-metrics-collectorr
-          project: MetricsCollector
+          project: MetricsCollectorTestsOnly
 
      # Deployment Tester
       - template: templates/image-linux.yaml
@@ -180,10 +180,10 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
-     # Azure Monitor
+     # Azure IoT Edge Metrics Collector
       - template: templates/image-linux.yaml
         parameters:
-          name: Metrics Collector
+          name: Azure IoT Edge Metrics Collector
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
@@ -351,9 +351,9 @@ jobs:
      # Metrics Collector
       - template: templates/image-windows.yaml
         parameters:
-          name: Metrics Collector
-          imageName: azureiotedge-test-metrics-collectorr
-          project: MetricsCollector
+          name: Metrics Collector - Tests only
+          imageName: azureiotedge-test-metrics-collector
+          project: MetricsCollectorTestsOnly
 
      # TestResultCoordinator
       - template: templates/image-windows.yaml
@@ -383,10 +383,10 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
-     # Azure Monitor
+     # Azure IoT Edge Metrics Collector
       - template: templates/image-windows.yaml
         parameters:
-          name: Metrics Collector
+          name: Azure IoT Edge Metrics Collector
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
