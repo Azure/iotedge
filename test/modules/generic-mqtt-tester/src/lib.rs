@@ -28,9 +28,6 @@ pub mod message_initiator;
 pub mod settings;
 pub mod tester;
 
-const SEND_SOURCE: &str = "genericMqttTester.send";
-const RECEIVE_SOURCE: &str = "genericMqttTester.receive";
-
 #[derive(Debug, Clone)]
 pub struct ShutdownHandle(Sender<()>);
 

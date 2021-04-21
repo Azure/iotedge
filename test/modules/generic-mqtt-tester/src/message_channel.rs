@@ -15,9 +15,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{
-    parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle, RECEIVE_SOURCE,
-};
+use crate::{parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -31,14 +29,22 @@ pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
     tracking_id: String,
     batch_id: Uuid,
+    report_source: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(reporting_client: TrcClient, tracking_id: String, batch_id: Uuid) -> Self {
+    pub fn new(
+        reporting_client: TrcClient,
+        tracking_id: String,
+        batch_id: Uuid,
+        module_name: &str,
+    ) -> Self {
+        let report_source = format!("{}{}", module_name, ".receive");
         Self {
             reporting_client,
             tracking_id,
             batch_id,
+            report_source,
         }
     }
 }
@@ -66,7 +72,7 @@ impl MessageHandler for ReportResultMessageHandler {
             let test_type = trc_client::TestType::Messages;
             let created_at = chrono::Utc::now();
             self.reporting_client
-                .report_result(RECEIVE_SOURCE.to_string(), result, test_type, created_at)
+                .report_result(self.report_source.clone(), result, test_type, created_at)
                 .await
                 .map_err(MessageTesterError::ReportResult)?;
         } else {
