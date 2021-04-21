@@ -2,6 +2,8 @@
 
 use std::future::Future;
 
+use percent_encoding::percent_decode_str;
+
 /// A [`mqtt3::IoSource`] implementation used by the clients.
 pub struct IoSource {
     iothub_hostname: std::sync::Arc<str>,
@@ -14,7 +16,6 @@ pub struct IoSource {
 #[derive(Clone, Debug)]
 enum IoSourceExtra {
     Raw,
-
     WebSocket { uri: http::Uri },
 }
 
@@ -58,17 +59,17 @@ impl IoSource {
     }
 }
 
-pub const IOTHUB_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS // C0 control
+pub const FRAGMENT_ENCODE_SET: &percent_encoding::AsciiSet = &percent_encoding::CONTROLS
     .add(b' ')
     .add(b'"')
     .add(b'<')
     .add(b'>')
-    .add(b'`') // fragment
-    .add(b'#')
-    .add(b'?')
-    .add(b'{')
-    .add(b'}') // path
-    .add(b'=');
+    .add(b'`');
+
+pub const PATH_ENCODE_SET: &percent_encoding::AsciiSet =
+    &FRAGMENT_ENCODE_SET.add(b'#').add(b'?').add(b'{').add(b'}');
+
+pub const IOTHUB_ENCODE_SET: &percent_encoding::AsciiSet = &PATH_ENCODE_SET.add(b'=');
 
 impl mqtt3::IoSource for IoSource {
     type Io = Io<
@@ -371,7 +372,7 @@ where
             } => (inner, pending_read),
         };
 
-        if buf.filled().is_empty() {
+        if buf.remaining() == 0 {
             return std::task::Poll::Ready(Ok(()));
         }
 
