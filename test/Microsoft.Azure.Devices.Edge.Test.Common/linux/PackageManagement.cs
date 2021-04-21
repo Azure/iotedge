@@ -60,10 +60,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             };
         }
 
-        public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy)
+        public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy) => this.packageExtension switch
         {
-            throw new NotImplementedException("aziot-edge and aziot-identity-service currently aren't available in package repos");
-        }
+            SupportedPackageExtension.Deb => new[]
+            {
+                $"curl https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
+                "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
+                $"apt-get update",
+                $"apt-get install --yes aziot-edge"
+            },
+            SupportedPackageExtension.Rpm => new[]
+            {
+                $"rpm -iv --replacepkgs https://packages.microsoft.com/config/{this.os}/{this.version}/packages-microsoft-prod.rpm",
+                $"yum updateinfo",
+                $"yum install --yes aziot-edge",
+                "pathToSystemdConfig=$(systemctl cat aziot-edge | head -n 1)",
+                "sed 's/=on-failure/=no/g' ${pathToSystemdConfig#?} > ~/override.conf",
+                "sudo mv -f ~/override.conf ${pathToSystemdConfig#?}",
+                "sudo systemctl daemon-reload"
+            },
+            _ => throw new NotImplementedException($"Don't know how to install daemon on for '.{this.packageExtension}'"),
+        };
 
         public string[] GetUninstallCommands() => this.packageExtension switch
         {
