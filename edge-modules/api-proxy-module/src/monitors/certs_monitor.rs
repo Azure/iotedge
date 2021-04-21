@@ -61,7 +61,7 @@ pub fn start(
                 return Ok(());
             }
 
-            //Check for rotation. If rotated then we notify_one.
+            //Check for rotation. If rotated then we notify.
             new_trust_bundle = match cert_monitor.get_new_trust_bundle().await {
                 Ok(Some(trust_bundle)) => {
                     //If we have a new cert, we need to write it in file system

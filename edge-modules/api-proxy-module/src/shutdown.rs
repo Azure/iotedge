@@ -1,8 +1,3 @@
-// Copyright (c) Microsoft. All rights reserved.
-
-// Adapted from the conduit proxy signal handling:
-// https://github.com/runconduit/conduit/blob/master/proxy/src/signal.rs
-
 use futures_util::{
     future::{self, Either},
     pin_mut,

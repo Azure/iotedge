@@ -23,7 +23,7 @@ use tokio::{
 
 use api_proxy_module::{
     monitors::{certs_monitor, config_monitor, shutdown_handle},
-    signals::shutdown,
+    shutdown,
 };
 use shutdown_handle::ShutdownHandle;
 
