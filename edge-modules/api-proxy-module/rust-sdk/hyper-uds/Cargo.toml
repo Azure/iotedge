@@ -6,8 +6,8 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-bytes = "0.5"
+bytes = "1.0"
 futures = "0.3"
 hex = "0.4"
-hyper = "0.13"
-tokio = { version = "0.2", features = ["blocking", "io-util", "macros", "sync"] }
+hyper = { version = "0.14", features = ["client"] }
+tokio = { version = "1", features = ["rt", "macros", "sync"] }

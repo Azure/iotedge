@@ -184,22 +184,23 @@ impl hyper::client::connect::Connection for UnixStream {
 }
 
 impl tokio::io::AsyncRead for UnixStream {
-	fn poll_read(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>, buf: &mut [u8]) -> std::task::Poll<std::io::Result<usize>> {
+	fn poll_read(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>, buf: &mut tokio::io::ReadBuf<'_>) -> std::task::Poll<std::io::Result<()>> {
 		match self.pending_read.lock() {
 			Ok(mut pending_read) => {
 				let pending_read = &mut *pending_read;
 
 				if !pending_read.bytes.is_empty() {
-					let len = std::cmp::min(pending_read.bytes.len(), buf.len());
-					buf[..len].copy_from_slice(&pending_read.bytes[..len]);
+					let filled = buf.filled_mut();
+					let len = std::cmp::min(pending_read.bytes.len(), filled.len());
+					filled[..len].copy_from_slice(&pending_read.bytes[..len]);
 					bytes::Buf::advance(&mut pending_read.bytes, len);
-					std::task::Poll::Ready(Ok(len))
+					std::task::Poll::Ready(Ok(()))
 				}
 				else if let Some(err) = pending_read.err.take() {
 					std::task::Poll::Ready(Err(err))
 				}
 				else if pending_read.eof {
-					std::task::Poll::Ready(Ok(0))
+					std::task::Poll::Ready(Ok(()))
 				}
 				else {
 					match self.reader_sender.send(cx.waker().clone()) {
