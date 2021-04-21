@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
+    using System;
     using System.Collections.Generic;
+    using System.IO;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
     using Serilog;
@@ -49,9 +51,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Fact]
         public void NoNewLinesTest()
         {
-            using (var writer = new System.IO.StringWriter())
+            using (var writer = new StringWriter())
             {
-                System.Console.SetOut(writer);
+                Console.SetOut(writer);
 
                 ILogger logger = Logger.Factory.CreateLogger("test");
                 Assert.NotNull(logger);
