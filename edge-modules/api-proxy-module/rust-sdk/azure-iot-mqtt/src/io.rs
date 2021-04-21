@@ -223,7 +223,7 @@ impl mqtt3::IoSource for IoSource {
             let stream = stream?;
             stream.set_nodelay(true)?;
 
-            let mut stream = Box::pin(tokio_io_timeout::TimeoutStream::new(stream));
+            let mut stream = tokio_io_timeout::TimeoutStream::new(stream);
             stream.set_read_timeout(Some(timeout));
 
             let mut tls_connector_builder = native_tls::TlsConnector::builder();
@@ -243,7 +243,7 @@ impl mqtt3::IoSource for IoSource {
             let connector: tokio_native_tls::TlsConnector = connector.into();
 
             let stream = connector
-                .connect(&iothub_hostname, stream)
+                .connect(&iothub_hostname, Box::pin(stream))
                 .await
                 .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
 
@@ -372,14 +372,17 @@ where
         };
 
         if buf.filled().is_empty() {
-            return std::task::Poll::Ready(Ok(0));
+            return std::task::Poll::Ready(Ok(()));
         }
 
         loop {
             if pending_read.position() != pending_read.get_ref().len() as u64 {
-                return std::task::Poll::Ready(Ok(pending_read
-                    .read(buf)
-                    .expect("Cursor::read cannot fail")));
+                let read = pending_read
+                    .read(buf.initialize_unfilled())
+                    .expect("Cursor::read cannot fail");
+                buf.advance(read);
+
+                return std::task::Poll::Ready(Ok(()));
             }
 
             inner.get_mut().set_cx(cx);
@@ -545,8 +548,9 @@ where
                 .as_mut()
                 .expect("TokioToStd used without setting task context");
 
-            match std::pin::Pin::new(&mut self.tokio).poll_read(cx, buf) {
-                std::task::Poll::Ready(Ok(read)) => Ok(buf),
+            let mut buf = tokio::io::ReadBuf::new(buf);
+            match std::pin::Pin::new(&mut self.tokio).poll_read(cx, &mut buf) {
+                std::task::Poll::Ready(Ok(_)) => Ok(buf.filled().len()),
                 std::task::Poll::Ready(Err(err)) => Err(err),
                 std::task::Poll::Pending => Err(std::io::ErrorKind::WouldBlock.into()),
             }
