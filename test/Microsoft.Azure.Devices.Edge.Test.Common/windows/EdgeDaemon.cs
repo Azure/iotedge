@@ -95,17 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             }
 
             Log.Information("==========\nC:\\ProgramData\\iotedge:");
-            Log.Information($"{Process.RunAsync("powershell", "ls C:\\ProgramData\\iotedge", token)}");
-            if (Directory.Exists("C:\\ProgramData\\iotedge\\mgmt"))
-            {
-                Log.Information("==========\nC:\\ProgramData\\iotedge\\mgmt:");
-                Log.Information($"{Process.RunAsync("powershell", "ls C:\\ProgramData\\iotedge\\mgmt", token)}");
-            }
-            if (Directory.Exists("C:\\ProgramData\\iotedge\\workload"))
-            {
-                Log.Information("==========\nC:\\ProgramData\\iotedge\\workload:");
-                Log.Information($"{Process.RunAsync("powershell", "ls C:\\ProgramData\\iotedge\\workload", token)}");
-            }
+            Log.Information($"{string.Join("\n", await Process.RunAsync("powershell", "Get-ChildItem -Recurse 'C:\\ProgramData\\iotedge' | ForEach-Object { $_.FullName }", token))}");
             Log.Information("==========");
         }
 
