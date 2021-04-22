@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         DeviceScopeIdentitiesCache(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
-            ServiceIdentityStore storage,
+            ServiceIdentityStore identityStore,
             TimeSpan periodicRefreshRate,
             TimeSpan refreshDelay,
             TimeSpan initializationRefreshDelay,
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.serviceIdentityHierarchy = serviceIdentityHierarchy;
             this.edgeDeviceId = serviceIdentityHierarchy.GetActorDeviceId();
             this.serviceProxy = serviceProxy;
-            this.store = storage;
+            this.store = identityStore;
             this.periodicRefreshRate = periodicRefreshRate;
             this.refreshDelay = refreshDelay;
             this.initializationRefreshDelay = initializationRefreshDelay;
@@ -89,8 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
             Preconditions.CheckNotNull(serviceIdentityHierarchy, nameof(serviceIdentityHierarchy));
 
-            var storage = new ServiceIdentityStore(encryptedStorage);
-            IDictionary<string, StoredServiceIdentity> cache = await storage.ReadCacheFromStore(encryptedStorage, serviceIdentityHierarchy.GetActorDeviceId());
+            var identityStore = new ServiceIdentityStore(encryptedStorage);
+            IDictionary<string, StoredServiceIdentity> cache = await identityStore.ReadCacheFromStore(encryptedStorage, serviceIdentityHierarchy.GetActorDeviceId());
 
             // Populate the serviceIdentityHierarchy
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in cache)
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await kvp.Value.ServiceIdentity.ForEachAsync(serviceIdentity => serviceIdentityHierarchy.AddOrUpdate(serviceIdentity));
             }
 
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, storage, refreshRate, refreshDelay, initializationRefreshDelay, cache.Count > 0);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, identityStore, refreshRate, refreshDelay, initializationRefreshDelay, cache.Count > 0);
 
             Events.Created();
             return deviceScopeIdentitiesCache;
@@ -478,7 +478,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal class ServiceIdentityStore : IDisposable
         {
+            static readonly string DeviceScopeFormat = "ms-azure-iot-edge://{0}-{1}";
             readonly IKeyValueStore<string, string> entityStore;
+
             public ServiceIdentityStore(IKeyValueStore<string, string> entityStore)
             {
                 this.entityStore = entityStore;
@@ -514,7 +516,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     if (string.IsNullOrEmpty(edgeDeviceScope) && storedServiceIdentity.ServiceIdentity.HasValue)
                     {
                         var edgeServiceIdentity = storedServiceIdentity.ServiceIdentity.OrDefault();
-                        edgeDeviceScope = $"ms-azure-iot-edge://{edgeServiceIdentity.DeviceId}-{edgeServiceIdentity.GenerationId}";
+                        edgeDeviceScope = string.Format(DeviceScopeFormat, edgeServiceIdentity.DeviceId, edgeServiceIdentity.GenerationId);
                         List<string> keys = new List<string>(cache.Keys);
                         foreach (var key in keys)
                         {

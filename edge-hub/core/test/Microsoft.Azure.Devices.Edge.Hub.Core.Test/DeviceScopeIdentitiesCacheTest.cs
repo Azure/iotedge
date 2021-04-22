@@ -924,7 +924,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             serviceIdentityIterator.Setup(s => s.HasNext)
                 .Returns(false);
 
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), Mock.Of<IServiceProxy>(), store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0));
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), Mock.Of<IServiceProxy>(), store, TimeSpan.FromHours(1), TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(0));
 
             // Act
             var leaf1ServiceIdentity = await deviceScopeIdentitiesCache.GetServiceIdentity(leafId);
