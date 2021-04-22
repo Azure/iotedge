@@ -87,7 +87,6 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "futures-util",
- "hex",
  "hmac",
  "http",
  "hyper",
