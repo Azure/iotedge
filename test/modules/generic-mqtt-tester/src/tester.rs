@@ -137,13 +137,9 @@ impl MessageTester {
         let message_handler: Option<Box<dyn MessageHandler + Send>> = match settings.test_scenario()
         {
             TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
-                let batch_id = settings
-                    .batch_id()
-                    .ok_or(MessageTesterError::MissingBatchId)?;
                 Some(Box::new(ReportResultMessageHandler::new(
                     reporting_client.clone(),
                     tracking_id,
-                    batch_id,
                     &module_name,
                 )))
             }

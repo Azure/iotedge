@@ -28,22 +28,15 @@ pub trait MessageHandler {
 pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
     tracking_id: String,
-    batch_id: Uuid,
     report_source: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(
-        reporting_client: TrcClient,
-        tracking_id: String,
-        batch_id: Uuid,
-        module_name: &str,
-    ) -> Self {
+    pub fn new(reporting_client: TrcClient, tracking_id: String, module_name: &str) -> Self {
         let report_source = format!("{}{}", module_name, ".receive");
         Self {
             reporting_client,
             tracking_id,
-            batch_id,
             report_source,
         }
     }
@@ -58,26 +51,22 @@ impl MessageHandler for ReportResultMessageHandler {
         let sequence_number = parse_sequence_number(&received_publication);
         let batch_id = Uuid::from_u128_le(received_publication.payload.slice(4..20).get_u128_le());
 
-        if self.batch_id == batch_id {
-            info!(
-                "reporting result for publication with sequence number {}",
-                sequence_number,
-            );
-            let result = MessageTestResult::new(
-                self.tracking_id.clone(),
-                self.batch_id.to_string(),
-                sequence_number,
-            );
+        info!(
+            "reporting result for publication with sequence number {}",
+            sequence_number,
+        );
+        let result = MessageTestResult::new(
+            self.tracking_id.clone(),
+            batch_id.to_string(),
+            sequence_number,
+        );
 
-            let test_type = trc_client::TestType::Messages;
-            let created_at = chrono::Utc::now();
-            self.reporting_client
-                .report_result(self.report_source.clone(), result, test_type, created_at)
-                .await
-                .map_err(MessageTesterError::ReportResult)?;
-        } else {
-            error!("received publication with non-matching batch id");
-        }
+        let test_type = trc_client::TestType::Messages;
+        let created_at = chrono::Utc::now();
+        self.reporting_client
+            .report_result(self.report_source.clone(), result, test_type, created_at)
+            .await
+            .map_err(MessageTesterError::ReportResult)?;
 
         Ok(())
     }
