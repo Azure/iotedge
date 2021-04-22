@@ -221,12 +221,7 @@ fn make_hyper_uri(
             Ok(url)
         }
 
-        Scheme::Unix => {
-            let host = hex::encode(base.as_bytes());
-            let uri = format!("unix://{}:0{}", host, path);
-            let uri = uri.parse()?;
-            Ok(uri)
-        }
+        Scheme::Unix => Ok(hyperlocal::Uri::new(base, path).into()),
     }
 }
 
