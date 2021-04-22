@@ -96,18 +96,18 @@ impl MessageTesterShutdownHandle {
 /// This module is designed to test generic (non-iothub) mqtt telemetry in both a single-node and nested environment.
 /// The module will run in one mode listed below. The behavior depends on this mode.
 ///
-/// 1: Initiate mode
+/// 1: `Initiate` mode
 /// - Sends messages on initiate topic
 ///
-/// 2: Receive mode
+/// 2: `Receive` mode
 /// - Receives messages on initiate topic
 ///
-/// 3: InitiateAndReceiveRelayed mode
+/// 3: `InitiateAndReceiveRelayed` mode
 /// - Spawn a thread that publishes messages continuously to initiate topic.
 /// - Receives same message routed back on relay topic by other test module
 /// - Reports the result to the Test Result Coordinator test module.
 ///
-/// 4: Relay mode
+/// 4: `Relay` mode
 /// - Receives messages on initiate topic and relays it back to on relay topic.
 pub struct MessageTester {
     settings: Settings,
@@ -202,12 +202,9 @@ impl MessageTester {
 
         let mut message_channel = None;
         let mut message_send_handle = None;
-        match self.message_channel {
-            Some(channel) => {
-                message_send_handle = Some(channel.message_channel()); // TODO: rename to send
-                message_channel = Some(channel);
-            }
-            None => {}
+        if let Some(channel) = self.message_channel {
+            message_send_handle = Some(channel.message_channel()); // TODO: rename to send
+            message_channel = Some(channel);
         }
 
         let poll_client_join = tokio::spawn(
