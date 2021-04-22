@@ -170,7 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
 
             var serviceProxy = new Mock<IServiceProxy>();
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, GetEntityStore("store"), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
+            var store = await GetPopulatedEntityStore("store");
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, store, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
 
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -218,7 +219,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ICredentialsCache credentialsCache = new CredentialsCache(new NullCredentialsCache());
 
             var serviceProxy = new Mock<IServiceProxy>();
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, GetEntityStore("store"), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
+            var store = await GetPopulatedEntityStore("store");
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, store, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
 
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -274,8 +276,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Option.Some(edgeServiceIdentity));
 
             var serviceIdentityHierachy = new ServiceIdentityTree(edgeDeviceId);
-            await serviceIdentityHierachy.InsertOrUpdate(edgeServiceIdentity);
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierachy, serviceProxy.Object, GetEntityStore("store"), TimeSpan.FromMinutes(10), TimeSpan.Zero);
+            await serviceIdentityHierachy.AddOrUpdate(edgeServiceIdentity);
+            var store = await GetPopulatedEntityStore("store");
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(serviceIdentityHierachy, serviceProxy.Object, store, TimeSpan.FromMinutes(10), TimeSpan.Zero);
 
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -327,7 +330,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 .ReturnsAsync(Option.None<ServiceIdentity>())
                 .ReturnsAsync(Option.Some(new ServiceIdentity("dummy", "dummy", new List<string>(), new ServiceAuthentication(ServiceAuthenticationType.None), ServiceIdentityStatus.Enabled)));
 
-            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, GetEntityStore("store"), TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
+            var store = await GetPopulatedEntityStore("store");
+            var deviceScopeIdentitiesCache = await DeviceScopeIdentitiesCache.Create(new ServiceIdentityTree(edgeDeviceId), serviceProxy.Object, store, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(2));
 
             var cloudConnectionProvider = new CloudConnectionProvider(
                 messageConverterProvider,
@@ -1416,8 +1420,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             return deviceClient.Object;
         }
 
-        static IEntityStore<string, string> GetEntityStore(string entityName)
-            => new EntityStore<string, string>(new KeyValueStoreMapper<string, byte[], string, byte[]>(new InMemoryDbStore(), new BytesMapper<string>(), new BytesMapper<string>()), entityName);
+        static async Task<IEntityStore<string, string>> GetPopulatedEntityStore(string entityName)
+        {
+            var store = new EntityStore<string, string>(new KeyValueStoreMapper<string, byte[], string, byte[]>(new InMemoryDbStore(), new BytesMapper<string>(), new BytesMapper<string>()), entityName);
+            var serviceAuthentication = new ServiceAuthentication(ServiceAuthenticationType.None);
+            var si1 = new ServiceIdentity("d1", "1234", Enumerable.Empty<string>(), serviceAuthentication, ServiceIdentityStatus.Enabled);
+            var storedSi1 = new DeviceScopeIdentitiesCache.StoredServiceIdentity(si1);
+            await store.Put(si1.Id, storedSi1.ToJson());
+
+            return store;
+        }
 
         static IIdentityProvider GetIdentityProvider() => new IdentityProvider(IotHubHostName);
 
