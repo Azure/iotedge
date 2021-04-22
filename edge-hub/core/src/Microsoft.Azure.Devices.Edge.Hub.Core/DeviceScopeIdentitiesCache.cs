@@ -506,13 +506,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         return Task.CompletedTask;
                     });
 
+                await this.RestoreDeviceScope(encryptedStore, actorDeviceId, cache);
+
+                return cache;
+            }
+
+            public void Dispose() => this.entityStore?.Dispose();
+
+            // Version 1.1 didn't have deviceScope in store, this method sets the deviceScope for edge device from deviceId and generationid
+            // for leaf devices set the DeviceScope and ParentScopes to the edge device scope because if they are present in store they must be children of the edge device
+            async Task RestoreDeviceScope(IKeyValueStore<string, string> encryptedStore, string actorDeviceId, IDictionary<string, StoredServiceIdentity> cache)
+            {
                 if (cache.TryGetValue(actorDeviceId, out StoredServiceIdentity storedServiceIdentity))
                 {
                     string edgeDeviceScope = null;
                     storedServiceIdentity.ServiceIdentity.ForEach(si => edgeDeviceScope = si.DeviceScope.OrDefault());
 
-                    // Version 1.1 didn't have deviceScope in store, set the deviceScope for edge device from deviceId and generationid
-                    // for leaf devices set the DeviceScope and ParentScopes to the edge device scope because if they are present in store they must be children of the edge device
                     if (string.IsNullOrEmpty(edgeDeviceScope) && storedServiceIdentity.ServiceIdentity.HasValue)
                     {
                         var edgeServiceIdentity = storedServiceIdentity.ServiceIdentity.OrDefault();
@@ -537,11 +546,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         }
                     }
                 }
-
-                return cache;
             }
-
-            public void Dispose() => this.entityStore?.Dispose();
         }
 
         internal class StoredServiceIdentity
