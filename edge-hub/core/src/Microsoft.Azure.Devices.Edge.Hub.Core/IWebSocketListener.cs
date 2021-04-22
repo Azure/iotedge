@@ -24,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             EndPoint remoteEndPoint,
             string correlationId,
             X509Certificate2 clientCert,
-            IList<X509Certificate2> clientCertChain);
+            IList<X509Certificate2> clientCertChain,
+            IAuthenticator proxyAuthenticator = null);
     }
 }

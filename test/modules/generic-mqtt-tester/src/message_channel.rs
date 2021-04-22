@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use bytes::Buf;
 use futures_util::{
     future::{self, Either},
-    stream::StreamExt,
+    pin_mut,
 };
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::sync::mpsc;
@@ -15,9 +15,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{
-    parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle, RECEIVE_SOURCE,
-};
+use crate::{parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -31,14 +29,22 @@ pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
     tracking_id: String,
     batch_id: Uuid,
+    report_source: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(reporting_client: TrcClient, tracking_id: String, batch_id: Uuid) -> Self {
+    pub fn new(
+        reporting_client: TrcClient,
+        tracking_id: String,
+        batch_id: Uuid,
+        module_name: &str,
+    ) -> Self {
+        let report_source = format!("{}{}", module_name, ".receive");
         Self {
             reporting_client,
             tracking_id,
             batch_id,
+            report_source,
         }
     }
 }
@@ -66,7 +72,7 @@ impl MessageHandler for ReportResultMessageHandler {
             let test_type = trc_client::TestType::Messages;
             let created_at = chrono::Utc::now();
             self.reporting_client
-                .report_result(RECEIVE_SOURCE.to_string(), result, test_type, created_at)
+                .report_result(self.report_source.clone(), result, test_type, created_at)
                 .await
                 .map_err(MessageTesterError::ReportResult)?;
         } else {
@@ -152,8 +158,9 @@ where
     pub async fn run(mut self) -> Result<ExitedWork, MessageTesterError> {
         info!("starting message channel");
         loop {
-            let received_pub = self.publication_receiver.next();
-            let shutdown_signal = self.shutdown_recv.next();
+            let received_pub = self.publication_receiver.recv();
+            let shutdown_signal = self.shutdown_recv.recv();
+            pin_mut!(received_pub, shutdown_signal);
 
             match future::select(received_pub, shutdown_signal).await {
                 Either::Left((received_publication, _)) => {

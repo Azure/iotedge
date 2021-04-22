@@ -1,6 +1,7 @@
 use std::{collections::HashMap, convert::TryInto};
 
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use crate::{
     bridge::BridgeError,
@@ -159,7 +160,7 @@ where
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
 
         tokio::spawn(messages::retry_subscriptions(
-            retry_recv,
+            UnboundedReceiverStream::new(retry_recv),
             remote_topic_mappers_updates.clone(),
             retry_sub_handle,
         ));

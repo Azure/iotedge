@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly bool pullOnReconnect;
         readonly IDeviceManager deviceManager;
         readonly IDeploymentMetrics deploymentMetrics;
+        readonly Option<X509Certificate2> manifestTrustBundle;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -54,8 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
             IDeviceManager deviceManager,
-            IDeploymentMetrics deploymentMetrics)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<X509Certificate2> manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
         {
         }
 
@@ -66,8 +68,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan configRefreshFrequency,
-            IDeploymentMetrics deploymentMetrics)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<X509Certificate2> manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
         {
         }
 
@@ -79,7 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy,
-            IDeploymentMetrics deploymentMetrics)
+            IDeploymentMetrics deploymentMetrics,
+            Option<X509Certificate2> manifestTrustBundle)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -92,6 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             Events.TwinRefreshInit(refreshConfigFrequency);
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
             this.initTask = this.ForceRefreshTwin();
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
@@ -269,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     try
                     {
                         Events.LogDesiredPropertiesAfterFullTwin(twin.Properties.Desired);
-                        if (CheckIfTwinSignatureIsValid(twin.Properties.Desired))
+                        if (this.CheckIfTwinSignatureIsValid(twin.Properties.Desired))
                         {
                             this.desiredProperties = Option.Some(twin.Properties.Desired);
                             await this.UpdateDeploymentConfig(twin.Properties.Desired);
@@ -342,7 +347,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
                 desiredProperties = new TwinCollection(mergedJson);
                 Events.LogDesiredPropertiesAfterPatch(desiredProperties);
-                if (CheckIfTwinSignatureIsValid(desiredProperties))
+                if (this.CheckIfTwinSignatureIsValid(desiredProperties))
                 {
                     this.desiredProperties = Option.Some(desiredProperties);
                     await this.UpdateDeploymentConfig(desiredProperties);
@@ -404,18 +409,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         async Task<bool> WaitForDeviceClientInitialization() =>
             await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
 
-        internal static bool CheckIfTwinSignatureIsValid(TwinCollection twinDesiredProperties)
+        internal bool CheckIfTwinSignatureIsValid(TwinCollection twinDesiredProperties)
         {
             // This function call returns false only when the signature verification fails
             // It returns true when there is no signature data or when the signature is verified
-            if (!CheckIfTwinPropertiesAreSigned(twinDesiredProperties))
+            if (!this.CheckIfManifestSigningIsEnabled(twinDesiredProperties))
             {
-                Events.TwinPropertiesAreNotSigned();
+                Events.ManifestSigningIsNotEnabled();
             }
             else
             {
-                Events.TwinPropertiesAreSigned();
-                if (ExtractAgentTwinAndVerify(twinDesiredProperties))
+                Events.ManifestSigningIsEnabled();
+                if (this.ExtractAgentTwinAndVerify(twinDesiredProperties))
                 {
                     Events.VerifyTwinSignatureSuceeded();
                 }
@@ -429,14 +434,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return true;
         }
 
-        internal static bool CheckIfTwinPropertiesAreSigned(TwinCollection twinDesiredProperties)
+        internal bool CheckIfManifestSigningIsEnabled(TwinCollection twinDesiredProperties)
         {
-            // If there is no integrity section in the desired twin properties then it is unsigned twin
+            // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
+            // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
-            return integrity != null && integrity.HasValues != false;
+            return this.manifestTrustBundle.HasValue || (integrity != null && integrity.HasValues);
         }
 
-        internal static bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
+        internal bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
         {
             try
             {
@@ -448,15 +454,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 desiredProperties["schemaVersion"] = twinJobject["schemaVersion"];
                 desiredProperties["systemModules"] = twinJobject["systemModules"];
 
-                // Extract Integrity section
+                // Check if Manifest Trust Bundle is configured
+                X509Certificate2 manifestTrustBundleRootCertificate;
+                if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
+                {
+                    // Actual code path would never get here as we check enablement before this. Added for Unit test purpose only.
+                    Events.ManifestSigningIsNotEnabled();
+                    throw new ManifestSigningIsNotEnabledProperly("Manifest Signing is Disabled.");
+                }
+                else if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] != null)
+                {
+                    Events.ManifestTrustBundleIsNotConfigured();
+                    throw new ManifestSigningIsNotEnabledProperly("Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+                }
+                else if (this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
+                {
+                    Events.DeploymentManifestIsNotSigned();
+                    throw new ManifestSigningIsNotEnabledProperly("Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+                }
+                else
+                {
+                    // deployment manifest is signed and also the manifest trust bundle is configured
+                    manifestTrustBundleRootCertificate = this.manifestTrustBundle.OrDefault();
+                }
+
+                // Extract Integrity header section
                 JToken integrity = twinJobject["integrity"];
                 JToken header = integrity["header"];
-                JToken signerCertJtoken = integrity["header"]["signercert"];
-                string combinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
-                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(combinedCert));
-                JToken signature = integrity["signature"]["bytes"];
 
-                // Extract Signature and algorithm
+                // Extract Signer Cert section
+                JToken signerCertJtoken = integrity["header"]["signercert"];
+                string signerCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(signerCombinedCert));
+
+                // Extract Intermediate CA Cert section
+                JToken intermediatecacertJtoken = integrity["header"]["intermediatecacert"];
+                string intermediatecacertCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
+
+                // Extract the manifest trust bundle certificate and verify chaining
+                if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                {
+                    throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                }
+
+                // Extract Signature bytes and algorithm section
+                JToken signature = integrity["signature"]["bytes"];
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
                 KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
@@ -510,8 +553,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 VerifyTwinSignatureFailed,
                 VerifyTwinSignatureSuceeded,
                 VerifyTwinSignatureException,
-                TwinPropertiesAreSigned,
-                TwinPropertiesAreNotSigned
+                ManifestSigningIsEnabled,
+                ManifestSigningIsNotEnabled,
+                ManifestTrustBundleIsNotConfigured,
+                DeploymentManifestIsNotSigned
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -676,14 +721,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogInformation((int)EventIds.VerifyTwinSignatureSuceeded, "Twin Signature is verified");
             }
 
-            internal static void TwinPropertiesAreSigned()
+            internal static void ManifestSigningIsEnabled()
             {
-                Log.LogDebug((int)EventIds.TwinPropertiesAreSigned, $"Twin Properties are signed");
+                Log.LogDebug((int)EventIds.ManifestSigningIsEnabled, $"Manifest Signing is enabled");
             }
 
-            internal static void TwinPropertiesAreNotSigned()
+            internal static void ManifestSigningIsNotEnabled()
             {
-                Log.LogDebug((int)EventIds.TwinPropertiesAreNotSigned, $"Twin Properties are not signed");
+                Log.LogDebug((int)EventIds.ManifestSigningIsNotEnabled, $"Manifest Signing is not enabled. To enable, sign the deployment manifest and also enable manifest trust bundle in certificate client");
+            }
+
+            internal static void ManifestTrustBundleIsNotConfigured()
+            {
+                Log.LogWarning((int)EventIds.ManifestTrustBundleIsNotConfigured, $"Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+            }
+
+            internal static void DeploymentManifestIsNotSigned()
+            {
+                Log.LogWarning((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
             }
         }
     }

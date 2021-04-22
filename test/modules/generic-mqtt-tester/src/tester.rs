@@ -1,5 +1,5 @@
 use future::{select_all, Either};
-use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
+use futures_util::{future, pin_mut, stream::TryStreamExt};
 use mpsc::UnboundedSender;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
@@ -123,6 +123,7 @@ impl MessageTester {
 
         let tracking_id = settings.tracking_id();
         let relay_topic = settings.relay_topic();
+        let module_name = settings.module_name();
         let test_result_coordinator_url = settings.trc_url();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
@@ -135,6 +136,7 @@ impl MessageTester {
                     reporting_client.clone(),
                     tracking_id,
                     batch_id,
+                    &module_name,
                 ))
             }
             TestScenario::Relay => Box::new(RelayingMessageHandler::new(
@@ -147,11 +149,7 @@ impl MessageTester {
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
         if let TestScenario::Initiate = settings.test_scenario() {
-            let batch_id = settings
-                .batch_id()
-                .ok_or(MessageTesterError::MissingBatchId)?;
-            let initiator =
-                MessageInitiator::new(publish_handle, reporting_client, settings.clone(), batch_id);
+            let initiator = MessageInitiator::new(publish_handle, reporting_client, &settings)?;
 
             message_initiator_shutdown = Some(initiator.shutdown_handle());
             message_initiator = Some(initiator);
@@ -210,7 +208,7 @@ impl MessageTester {
                 "waiting for test start delay of {:?}",
                 self.settings.test_start_delay()
             );
-            time::delay_for(self.settings.test_start_delay()).await;
+            time::sleep(self.settings.test_start_delay()).await;
 
             let message_loop = tokio::spawn(message_initiator.run());
             tasks.push(message_loop);
@@ -291,7 +289,8 @@ async fn poll_client(
     loop {
         let message_send_handle = message_send_handle.clone();
         let event = client.try_next();
-        let shutdown = shutdown_recv.next();
+        let shutdown = shutdown_recv.recv();
+        pin_mut!(shutdown);
 
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {

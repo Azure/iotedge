@@ -21,11 +21,11 @@ File {} already exists. Azure IoT Edge has already been configured.
 
 To have the configuration take effect, run:
 
-    iotedge config apply
+    sudo iotedge config apply
 
 To reconfigure IoT Edge, run:
 
-    iotedge config mp --force
+    sudo iotedge config mp --force
 ",
             out_config_file.display()
         )
@@ -33,18 +33,23 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
+        trust_bundle_cert: None,
+
         auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
 
-        trust_bundle_cert: None,
+        imported_master_encryption_key: None,
 
         aziot: common_config::super_config::Config {
             hostname: None,
-            local_gateway_hostname: None,
+            parent_hostname: None,
 
             provisioning: common_config::super_config::Provisioning {
                 provisioning: common_config::super_config::ProvisioningType::Manual {
                     inner: common_config::super_config::ManualProvisioning::ConnectionString {
-                        connection_string,
+                        connection_string: common_config::super_config::ConnectionString::new(
+                            connection_string,
+                        )
+                        .map_err(|e| format!("invalid connection string: {}", e))?,
                     },
                 },
             },
@@ -91,7 +96,7 @@ To reconfigure IoT Edge, run:
     println!("To apply the new configuration to services, run:");
     println!();
     println!(
-        "    iotedge config apply -c '{}'",
+        "    sudo iotedge config apply -c '{}'",
         out_config_file.display()
     );
     println!();

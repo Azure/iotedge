@@ -1,7 +1,6 @@
 use failure::{self, Context};
 
-use aziotctl_common::check_last_modified::check_last_modified;
-use aziotctl_common::check_last_modified::CheckResult as InternalCheckResult;
+use aziotctl_common::check_last_modified::{check_last_modified, LastModifiedError};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -26,12 +25,12 @@ impl Checker for UpToDateConfig {
 impl UpToDateConfig {
     fn inner_execute(_check: &mut Check) -> Result<CheckResult, failure::Error> {
         let check_result = match check_last_modified(&["edged"]) {
-            InternalCheckResult::Ok => CheckResult::Ok,
-            InternalCheckResult::Ignored => CheckResult::Ignored,
-            InternalCheckResult::Warning(message) => {
+            Ok(()) => CheckResult::Ok,
+            Err(LastModifiedError::Ignored) => CheckResult::Ignored,
+            Err(LastModifiedError::Warning(message)) => {
                 CheckResult::Warning(Context::new(message).into())
             }
-            InternalCheckResult::Failed(error) => CheckResult::Failed(error.into()),
+            Err(LastModifiedError::Failed(error)) => CheckResult::Failed(error.into()),
         };
 
         Ok(check_result)
