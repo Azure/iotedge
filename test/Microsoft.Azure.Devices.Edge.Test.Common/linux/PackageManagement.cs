@@ -62,18 +62,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public string[] GetInstallCommandsFromMicrosoftProd(Option<Uri> proxy)
         {
-            string debPackages = $"https://packages.microsoft.com/config/{this.os}/{this.version}/multiarch/prod.list";
-            if (this.os.ToLower() == "ubuntu" && this.version == "20.04")
+            // we really support only two options for now.
+            string repository = this.os.ToLower() switch
             {
-                // Should be changed to 20.04 when we publish to that repo.
-                debPackages = $"https://packages.microsoft.com/config/{this.os}/18.04/multiarch/prod.list";
-            }
+                "ubuntu" => $"https://packages.microsoft.com/config/ubuntu/18.04/multiarch/prod.list",
+                "debian" => $"https://packages.microsoft.com/config/debian/stretch/multiarch/prod.list",
+                _ => throw new NotImplementedException($"Don't know how to install daemon for '{this.os}'"),
+            };
 
             return this.packageExtension switch
             {
                 SupportedPackageExtension.Deb => new[]
                 {
-                    $"curl {debPackages} > /etc/apt/sources.list.d/microsoft-prod.list",
+                    $"curl {repository} > /etc/apt/sources.list.d/microsoft-prod.list",
                     "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                     $"apt-get update",
                     $"apt-get install --yes aziot-edge"
