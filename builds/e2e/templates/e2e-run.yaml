@@ -26,7 +26,7 @@ steps:
       $filter += '&Category!=NestedEdgeAmqpOnly'
       $filter += '&Category!=LegacyMqttRequired'
     
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_amqp')
     {
