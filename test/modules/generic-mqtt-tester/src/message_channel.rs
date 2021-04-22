@@ -183,7 +183,7 @@ where
         }
     }
 
-    pub fn message_channel(&self) -> UnboundedSender<ReceivedPublication> {
+    pub fn send_handle(&self) -> UnboundedSender<ReceivedPublication> {
         self.publication_sender.clone()
     }
 

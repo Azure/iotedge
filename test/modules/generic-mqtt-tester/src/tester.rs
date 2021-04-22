@@ -203,7 +203,7 @@ impl MessageTester {
         let mut message_channel = None;
         let mut message_send_handle = None;
         if let Some(channel) = self.message_channel {
-            message_send_handle = Some(channel.message_channel()); // TODO: rename to send
+            message_send_handle = Some(channel.send_handle());
             message_channel = Some(channel);
         }
 
