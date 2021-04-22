@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             Log.Information($"{string.Join("\n", await Process.RunAsync("powershell", "'WHO AM I?'; whoami", token))}");
             Log.Information("==========\n");
             // Log.Information($"{string.Join("\n", await Process.RunAsync("powershell", "Get-ChildItem -Recurse 'C:\\ProgramData\\iotedge' | ForEach-Object { $_.FullName }", token))}");
-            Log.Information($"{string.Join("\n", await Process.RunAsync("powershell", "foreach($file in ls C:\\ProgramData\\iotedge\\hsm\\enc_keys) { $file.FullName; $acl = Get-Acl $file; \"$($acl.Group):$($acl.Owner)\"; $acl.AccessToString; '' }", token))}");
+            Log.Information($"{string.Join("\n", await Process.RunAsync("powershell", "foreach($file in ls C:\\ProgramData\\iotedge\\hsm\\enc_keys) { $file.FullName; $acl = Get-Acl $file; $($acl.Group); $($acl.Owner); $acl.AccessToString; '' }", token))}");
             Log.Information("==========");
         }
 
