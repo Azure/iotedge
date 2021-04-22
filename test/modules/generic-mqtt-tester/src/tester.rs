@@ -151,7 +151,7 @@ impl MessageTester {
                 publish_handle.clone(),
                 relay_topic,
             ))),
-            TestScenario::Initate => None,
+            TestScenario::Initiate => None,
         };
 
         let mut message_channel = None;
@@ -165,7 +165,7 @@ impl MessageTester {
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
         match settings.test_scenario() {
-            TestScenario::Initate | TestScenario::InitiateAndReceiveRelayed => {
+            TestScenario::Initiate | TestScenario::InitiateAndReceiveRelayed => {
                 let initiator = MessageInitiator::new(publish_handle, reporting_client, &settings)?;
 
                 message_initiator_shutdown = Some(initiator.shutdown_handle());
@@ -302,7 +302,7 @@ impl MessageTester {
                 })
                 .await
                 .map_err(MessageTesterError::UpdateSubscription)?,
-            TestScenario::Initate => {}
+            TestScenario::Initiate => {}
         };
 
         info!("finished subscribing to test topics");
