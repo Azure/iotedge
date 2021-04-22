@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             int scrapeFrequencySecs,
             UploadTarget uploadTarget,
             bool compressForUpload,
+            bool transformForUpload,
             string allowedMetrics,
             string blockedMetrics,
             string hubResourceID)
@@ -53,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.CompressForUpload = compressForUpload;
+            this.TransformForUpload = transformForUpload;
 
             // Create list of allowed metrics. If this list is not empty then any metrics not on it should be discarded.
             this.AllowedMetrics = new MetricFilter(allowedMetrics);
@@ -74,6 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
                     configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureMonitor),
                     configuration.GetValue<bool>("CompressForUpload", true),
+                    configuration.GetValue<bool>("TransformForUpload", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
                     configuration.GetValue<string>("HubResourceID", ""));
@@ -98,6 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public bool CompressForUpload { get; }
 
+        public bool TransformForUpload { get; }
+
         public MetricFilter AllowedMetrics { get; }
 
         public MetricFilter BlockedMetrics { get; }
@@ -115,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString() },
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) },
                 { nameof(this.CompressForUpload), this.CompressForUpload.ToString() },
+                { nameof(this.TransformForUpload), this.TransformForUpload.ToString() },
                 { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics) },
                 { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics) },
                 { nameof(this.HubResourceID), this.HubResourceID ?? string.Empty }
