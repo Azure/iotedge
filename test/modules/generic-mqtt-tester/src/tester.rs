@@ -103,8 +103,8 @@ impl MessageTesterShutdownHandle {
 /// - Receives messages on initiate topic
 ///
 /// 3: `InitiateAndReceiveRelayed` mode
-/// - Spawn a thread that publishes messages continuously to initiate topic.
-/// - Receives same message routed back on relay topic by other test module
+/// - Sends messages on initiate topic.
+/// - Receives same messages routed back on relay topic by other test module
 /// - Reports the result to the Test Result Coordinator test module.
 ///
 /// 4: `Relay` mode
