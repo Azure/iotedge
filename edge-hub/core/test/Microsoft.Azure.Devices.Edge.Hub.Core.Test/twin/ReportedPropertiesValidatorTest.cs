@@ -197,8 +197,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             yield return new object[]
             {
                 new TwinCollection("{ \"ok\": [\"good\"], \"ok2\": [], \"level1\": [{ \"field1\": null }] }"),
-                null,
-                string.Empty
+                typeof(InvalidOperationException),
+                "Property field1 of an object in an array cannot be 'null'"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
+                    ok = "ok",
+                    complex = new
+                            {
+                                array1 = new object[]
+                                {
+                                    "one",
+                                    "two",
+                                    new { array2 = new []
+                                        {
+                                            new { hello = (string)null}
+                                        }
+                                    },
+                                }
+                            }
+                })),
+                typeof(InvalidOperationException),
+                "Property hello of an object in an array cannot be 'null'"
             };
 
             yield return new object[]
@@ -266,6 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                                 {
                                     new[] { "one", "two", "three" },
                                     new[] { "four", "five", "six" },
+                                    new object[] { "seven", new { ok = "ok" } },
                                 },
                                 pi = 3.14,
                                 sometime = new DateTime(2021, 1, 20),
