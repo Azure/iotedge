@@ -48,12 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 message,
                 properties);
         }
@@ -134,12 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 "Uninstalled edge daemon");
         }
 
@@ -172,13 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    await Process.RunAsync(
-                        "powershell",
-                        string.Join(';', commands),
-                        token);
-                },
+                async () => await Process.RunAsync("powershell", string.Join(';', commands), token),
                 "Downloaded Edge daemon Windows installer from '{Address}'",
                 Address);
 
