@@ -30,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 onStderr = (string e) => {};
             }
 
+            Log.Information($"### Process.RunAsync: {name} {args}");
+
             using (ProcessResults result = await ProcessEx.RunAsync(info, onStdout, onStderr, token))
             {
                 if (result.ExitCode != 0)
