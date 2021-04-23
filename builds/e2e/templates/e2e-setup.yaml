@@ -80,8 +80,7 @@ steps:
       -ArtifactName $(identityServiceArtifactName) `
       -PackagesFilter $(identityServicePackageFilter) `
       -AziotCommit $(aziotis.commit)`
-      -VaultName $(kv.name) `
-      -Proxy $(Agent.ProxyUrl)
+      -VaultName $(kv.name)
     azurePowerShellVersion: '5.7.0'
     pwsh: true
 
