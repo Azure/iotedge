@@ -63,7 +63,10 @@
                 },
                 "CompressForUpload": {
                     "value": "true"
-                }
+                },
+                "TransformForUpload": {
+                  "value": "false"
+              }
             },
             "status": "running",
             "restartPolicy": "always",
