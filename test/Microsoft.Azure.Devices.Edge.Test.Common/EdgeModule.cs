@@ -75,7 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
-                        Log.Information($"### In EdgeModule.WaitForStatusAsync: Daemon not ready? {DaemonNotReady(e.ToString())}");
                         return DaemonNotReady(e.ToString());
                     },
                     TimeSpan.FromSeconds(5),

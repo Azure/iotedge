@@ -24,11 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             await this.BeforeTestTimerStarts();
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
-
-            // await Process.RunAsync("powershell", "'=========='; 'WHO AM I?'; whoami", this.cts.Token);
-            // await Process.RunAsync("powershell", "'=========='; foreach($file in ls 'C:\\ProgramData\\iotedge\\hsm\\enc_keys') { $file.FullName; $acl = Get-Acl $file.FullName; $acl.Group; $acl.Owner; $acl.AccessToString; '' }", this.cts.Token);
-            // await Process.RunAsync("powershell", "'=========='", this.cts.Token);
-
             this.testStartTime = DateTime.Now;
             this.profiler = Profiler.Start();
             Log.Information("Running test '{Name}'", TestContext.CurrentContext.Test.Name);

@@ -37,11 +37,6 @@ steps:
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
 
-- pwsh: |
-    cat C:\ProgramData\iotedge\config.yaml
-  displayName: Dump config.yaml
-  condition: succeededOrFailed()
-
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:
