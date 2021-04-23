@@ -68,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     a => a.Length == moduleIds.Length,
                     e =>
                     {
+                        Log.Information($"### In EdgeModule.WaitForStatusAsync: 'iotedge list' failed:\n{e.ToString()}\n\n### ==========");
                         // Retry if iotedged's management endpoint is still starting up,
                         // and therefore isn't responding to `iotedge list` yet
                         static bool DaemonNotReady(string details) =>
