@@ -130,6 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             {
                 throw new InvalidOperationException($"Property {name} of an object in an array cannot be 'null'");
             }
+
             if (value.Type is JTokenType.Integer)
             {
                 ValidateIntegerValue(name, (long)value);
