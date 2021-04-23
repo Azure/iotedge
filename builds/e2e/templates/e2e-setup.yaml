@@ -82,6 +82,8 @@ steps:
       -AziotCommit $(aziotis.commit)`
       -VaultName $(kv.name) `
       -Proxy $(Agent.ProxyUrl)
+    azurePowerShellVersion: latestVersion
+    pwsh: true
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
