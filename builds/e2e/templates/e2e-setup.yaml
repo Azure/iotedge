@@ -82,7 +82,7 @@ steps:
       -AziotCommit $(aziotis.commit)`
       -VaultName $(kv.name) `
       -Proxy $(Agent.ProxyUrl)
-    azurePowerShellVersion: latestVersion
+    azurePowerShellVersion: '5.7.0'
     pwsh: true
 
 - pwsh: |
