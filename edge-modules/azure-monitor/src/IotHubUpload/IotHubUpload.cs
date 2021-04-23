@@ -29,18 +29,18 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
-
-                // <TODO>: why transform the Metric to ExportedMetric here. They're almost identical
                 IEnumerable<ExportMetric> outputMetrics = metrics.Select(m => new ExportMetric(m));
 
                 string outputString = JsonConvert.SerializeObject(outputMetrics);
+                LoggerUtil.Writer.LogDebug("Metrics selected for upload . . .");
+                LoggerUtil.Writer.LogDebug(outputString);
                 if (Settings.Current.TransformForUpload)
                 {
-                    LoggerUtil.Writer.LogInformation("Transforming metrics prior to upload . . .");
                     outputString = Transform(outputMetrics);
+                    LoggerUtil.Writer.LogDebug("Metrics transformed prior to upload . . .");
+                    LoggerUtil.Writer.LogDebug(outputString);
                 }
-                
-                LoggerUtil.Writer.LogDebug(outputString);
+
                 byte[] metricsData = Encoding.UTF8.GetBytes(outputString);
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
@@ -137,10 +137,48 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
             string from = metric.Labels.GetValueOrDefault("from", string.Empty);
             if (from == string.Empty)
             {
-                from = metric.Labels.GetValueOrDefault("id", string.Empty);
+                from = metric.Labels.GetValueOrDefault("module_name", string.Empty);
                 if (from == string.Empty)
                 {
-                    from = metric.Labels.GetValueOrDefault("module_name", string.Empty);
+                    from = metric.Labels.GetValueOrDefault("id", string.Empty);
+                    if (from != string.Empty && from.Contains("[IotHubHostName:"))
+                    {
+                        // Process ids like: 'DeviceId: <deviceId>; ModuleId: <moduleName> [IotHubHostName: <iothubFullyQualifiedName>]'
+                        // to make them look like <deviceId>/<moduleId>
+                        string device = string.Empty;
+                        string module = string.Empty;
+                        string temp = from.Replace('[', ';');
+                        string[] idParts = temp.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                        foreach (string idPart in idParts)
+                        {
+                            string part = idPart.Trim().ToLowerInvariant();
+                            string[] subParts = part.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                            if (subParts.Length == 2)
+                            {
+                                if (subParts[0].Trim() == "deviceid")
+                                {
+                                    device = subParts[1].Trim();
+                                    continue;
+                                }
+
+                                if (subParts[0].Trim() == "moduleid")
+                                {
+                                    module = subParts[1].Trim();
+                                    continue;
+                                }
+                            }
+                        }
+
+                        if (device == string.Empty || module == string.Empty)
+                        {
+                            LoggerUtil.Writer.LogInformation($"skipped transforming from: '{from}' in metric: '{metric.Name}'");
+                            from = string.Empty;
+                        }
+                        else
+                        {
+                            from = $"{device}/{module}";
+                        }
+                    }
                 }
             }
             if (from != string.Empty)
