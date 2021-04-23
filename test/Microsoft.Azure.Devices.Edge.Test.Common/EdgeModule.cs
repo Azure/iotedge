@@ -72,6 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         // Retry if iotedged's management endpoint is still starting up,
                         // and therefore isn't responding to `iotedge list` yet
                         static bool DaemonNotReady(string details) =>
+                            details.Contains("Incorrect function", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
