@@ -47,8 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                        Log.Verbose(string.Join("\n", output));
-
                         return output
                             .Where(
                                 ln =>

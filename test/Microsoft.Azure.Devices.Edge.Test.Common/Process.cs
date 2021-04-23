@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Process
     {
-        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
+        public static async Task<string[]> RunAsync(string name, string args, CancellationToken token, bool logVerbose = true)
         {
             var info = new ProcessStartInfo
             {
@@ -21,7 +21,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 RedirectStandardInput = true,
             };
 
-            using (ProcessResults result = await ProcessEx.RunAsync(info, o => Log.Information(o), e => Log.Error(e), token))
+            Action<string> onStdout = (string o) => Log.Verbose(o);
+            Action<string> onStderr = (string e) => Log.Verbose(e);
+
+            if (!logVerbose)
+            {
+                onStdout = (string o) => {};
+                onStderr = (string e) => {};
+            }
+
+            using (ProcessResults result = await ProcessEx.RunAsync(info, onStdout, onStderr, token))
             {
                 if (result.ExitCode != 0)
                 {
