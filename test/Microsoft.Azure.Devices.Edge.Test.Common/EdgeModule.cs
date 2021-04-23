@@ -68,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     a => a.Length == moduleIds.Length,
                     e =>
                     {
-                        Log.Information($"### In EdgeModule.WaitForStatusAsync: 'iotedge list' failed:\n{e.ToString()}\n\n### ==========");
                         // Retry if iotedged's management endpoint is still starting up,
                         // and therefore isn't responding to `iotedge list` yet
                         static bool DaemonNotReady(string details) =>
@@ -76,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
+                        Log.Information($"### In EdgeModule.WaitForStatusAsync: Daemon not ready? {DaemonNotReady(e.ToString())}");
                         return DaemonNotReady(e.ToString());
                     },
                     TimeSpan.FromSeconds(5),
