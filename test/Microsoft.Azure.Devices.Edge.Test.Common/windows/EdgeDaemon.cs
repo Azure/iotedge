@@ -110,7 +110,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             var sc = new ServiceController("iotedge");
             if (sc.Status != ServiceControllerStatus.Stopped)
             {
-                sc.Stop();
+                try
+                {
+                    sc.Stop();
+                }
+                catch (InvalidOperationException e) when (
+                    e.InnerException is Win32Exception &&
+                    e.InnerException.Message.Contains("The service has not been started"))
+                {
+                    Log.Verbose(e, "Did not stop edge daemon because it is already stopped");
+                }
+
                 await WaitForStatusAsync(sc, ServiceControllerStatus.Stopped, token);
             }
         }
