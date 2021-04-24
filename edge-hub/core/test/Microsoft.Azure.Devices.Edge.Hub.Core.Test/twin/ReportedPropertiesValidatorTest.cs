@@ -124,6 +124,65 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             yield return new object[]
             {
                 new TwinCollection(JsonConvert.SerializeObject(new
+                    {
+                        ok = "ok",
+                        complex = new
+                        {
+                            array1 = new[]
+                                {
+                                    new[]
+                                    {
+                                        new[]
+                                        {
+                                            new[]
+                                            {
+                                                new[]
+                                                {
+                                                    new[]
+                                                    {
+                                                        new[]
+                                                        {
+                                                            new[]
+                                                            {
+                                                                new[]
+                                                                {
+                                                                    new[]
+                                                                    {
+                                                                        new[]
+                                                                        {
+                                                                            new[]
+                                                                            {
+                                                                                new[]
+                                                                                {
+                                                                                    new[]
+                                                                                    {
+                                                                                        new[]
+                                                                                        {
+                                                                                            new[] { "one", "two", "three" },
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                }
+                        }
+                    })),
+                typeof(InvalidOperationException),
+                "Nested depth of twin property exceeds 10"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
                 {
                     array = new[] { 0, 1, 2 }
                 })),
@@ -212,9 +271,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                                 {
                                     "one",
                                     "two",
-                                    new { array2 = new []
+                                    new
+                                    {
+                                        array2 = new[]
                                         {
-                                            new { hello = (string)null}
+                                            new { hello = (string)null }
                                         }
                                     },
                                 }
