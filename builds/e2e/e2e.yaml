@@ -51,6 +51,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - ImageOverride -equals azure-iot-edge-ubuntu-18.04-test-image
+        # - run-new-e2e-tests -equals true
 
     variables:
       os: linux
@@ -110,29 +111,30 @@ jobs:
     - template: templates/e2e-clear-docker-cached-images.yaml
     - template: templates/e2e-run.yaml
 
-# ################################################################################
-#   - job: centos7_amd64
-# ################################################################################
-#     displayName: CentOs7 amd64
+################################################################################
+  - job: centos7_amd64
+################################################################################
+    displayName: CentOs7 amd64
 
-#     pool:
-#       name: $(pool.name)
-#       demands:
-#         - Agent.OS -equals Linux
-#         - Agent.OSArchitecture -equals X64
-#         - run-new-e2e-tests -equals true
-#         - centos -equals 7
+    pool:
+      name: $(pool.name2)
+      demands:
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - ImageOverride -equals aziotedge-agent-centos-7
+        # - run-new-e2e-tests -equals true
+        # - centos -equals 7
 
-#     variables:
-#       os: linux
-#       arch: amd64
-#       artifactName: iotedged-centos7-amd64
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-centos7-amd64
 
-#     steps:
-#     - template: templates/e2e-clean-directory.yaml
-#     - template: templates/e2e-setup.yaml
-#     - template: templates/e2e-clear-docker-cached-images.yaml
-#     - template: templates/e2e-run.yaml 
+    steps:
+    - template: templates/e2e-clean-directory.yaml
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml 
 
 # ################################################################################
 #   - job: EFLOW_amd64
