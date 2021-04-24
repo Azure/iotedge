@@ -119,8 +119,6 @@ jobs:
     pool:
       name: $(pool.name2)
       demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
         - ImageOverride -equals aziotedge-agent-centos-7
         # - run-new-e2e-tests -equals true
         # - centos -equals 7
