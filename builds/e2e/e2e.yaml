@@ -40,76 +40,76 @@ jobs:
 #     - template: templates/e2e-clear-docker-cached-images.yaml
 #     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: linux_amd64
-################################################################################
-    displayName: Linux amd64
+# ################################################################################
+#   - job: linux_amd64
+# ################################################################################
+#     displayName: Linux amd64
 
-    pool:
-      name: $(pool.name2)
-      demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals azure-iot-edge-ubuntu-18.04-test-image
-        # - run-new-e2e-tests -equals true
+#     pool:
+#       name: $(pool.name2)
+#       demands:
+#         - Agent.OS -equals Linux
+#         - Agent.OSArchitecture -equals X64
+#         - ImageOverride -equals azure-iot-edge-ubuntu-18.04-test-image
+#         # - run-new-e2e-tests -equals true
 
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-ubuntu18.04-amd64
+#     variables:
+#       os: linux
+#       arch: amd64
+#       artifactName: iotedged-ubuntu18.04-amd64
 
-    steps:
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+#     steps:
+#     - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-run.yaml
 
-################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
+# ################################################################################
+#   - job: windows_amd64
+# ################################################################################
+#     displayName: Windows amd64
 
-    pool:
-      name: $(pool.name2)
-      demands:
-        - Agent.OS -equals Windows_NT
-        - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals aziotedge-winserver-2019-agent
-        # - ImageOverride -equals aziotedge-win10-entn2019-agent
-        # - run-new-e2e-tests -equals true
+#     pool:
+#       name: $(pool.name2)
+#       demands:
+#         - Agent.OS -equals Windows_NT
+#         - Agent.OSArchitecture -equals X64
+#         - ImageOverride -equals aziotedge-winserver-2019-agent
+#         # - ImageOverride -equals aziotedge-win10-entn2019-agent
+#         # - run-new-e2e-tests -equals true
 
-    variables:
-      os: windows
-      arch: amd64
-      artifactName: iotedged-windows
+#     variables:
+#       os: windows
+#       arch: amd64
+#       artifactName: iotedged-windows
 
-    steps:
-    - pwsh: |
-        Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
-        Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
-      displayName: Clean up HSM previous run artifacts
+#     steps:
+#     - pwsh: |
+#         Remove-Item –path C:\ProgramData\iotedge\hsm\cert_keys\* –recurse -ErrorAction SilentlyContinue
+#         Remove-Item –path C:\ProgramData\iotedge\hsm\certs\* –recurse -ErrorAction SilentlyContinue
+#       displayName: Clean up HSM previous run artifacts
 
-    - template: templates/e2e-setup.yaml
+#     - template: templates/e2e-setup.yaml
 
-    - pwsh: |
-        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
-        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
-        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
-          -ArgumentList 'Root', 'LocalMachine'
-        $store.Open('ReadWrite')
-        $store.Add($cert)
-      displayName: Install CAB signing root cert
-      env:
-        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+#     - pwsh: |
+#         $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+#         $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+#         $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+#           -ArgumentList 'Root', 'LocalMachine'
+#         $store.Open('ReadWrite')
+#         $store.Add($cert)
+#       displayName: Install CAB signing root cert
+#       env:
+#         PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
 
-    - pwsh: |
-        Write-Output '>>> BEFORE:'
-        netsh interface ipv6 show prefixpolicies
-        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
-        Write-Output '>>> AFTER:'
-        netsh interface ipv6 show prefixpolicies
-      displayName: Prefer IPv4
+#     - pwsh: |
+#         Write-Output '>>> BEFORE:'
+#         netsh interface ipv6 show prefixpolicies
+#         netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+#         Write-Output '>>> AFTER:'
+#         netsh interface ipv6 show prefixpolicies
+#       displayName: Prefer IPv4
 
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+#     - template: templates/e2e-clear-docker-cached-images.yaml
+#     - template: templates/e2e-run.yaml
 
 ################################################################################
   - job: centos7_amd64
