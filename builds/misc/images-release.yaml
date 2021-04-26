@@ -19,7 +19,6 @@ jobs:
             docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
             docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
         displayName: 'Docker Login'
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       # Build
