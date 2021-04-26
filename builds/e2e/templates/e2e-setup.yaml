@@ -70,7 +70,7 @@ steps:
     allowPartiallySucceededBuilds: true
 
 - pwsh: |
-    if(-Not Get-Module Az.Accounts) 
+    if(-Not (Get-Module Az.Accounts)) 
     {
         Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
     }
