@@ -70,11 +70,14 @@ steps:
     allowPartiallySucceededBuilds: true
 
 - pwsh: |
+    $proxy = if($env:AGENT_PROXYURL) { "-Proxy $env:AGENT_PROXYURL" } else { "" }
     if(-Not (Get-Module Az.Accounts)) 
     {
         Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
     }
   displayName: Check AzurePowerShell is installed
+  env:
+    AGENT_PROXYURL: $(Agent.ProxyUrl)
 
 - task: AzurePowerShell@5
   displayName: 'Download aziot-identity-service'
@@ -90,6 +93,7 @@ steps:
     PACKAGE_FILTER: $(identityServicePackageFilter)
     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
     IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+    AGENT_PROXYURL: $(Agent.ProxyUrl)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
