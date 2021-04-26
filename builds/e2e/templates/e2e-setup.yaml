@@ -75,14 +75,14 @@ steps:
     azureSubscription: $(az.subscription)
     scriptPath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
     workingDirectory: $(Build.SourcesDirectory)
-    scriptArguments:
-      -DownloadPath $(System.ArtifactsDirectory)/$(artifactName) `
-      -ArtifactName $(identityServiceArtifactName) `
-      -PackagesFilter $(identityServicePackageFilter) `
-      -AziotCommit $(aziotis.commit)`
-      -VaultName $(kv.name)
     azurePowerShellVersion: '5.7.0'
     pwsh: true
+  env:
+    VAULT_NAME: $(kv.name)
+    ARTIFACT_NAME: $(identityServiceArtifactName)
+    PACKAGE_FILTER: $(identityServicePackageFilter)
+    DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
+    IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
