@@ -301,6 +301,17 @@
 # bootstrap_identity_pk = "file:///var/secrets/est-bootstrap-id.key.pem"            # file URI, or...
 # bootstrap_identity_pk = "pkcs11:slot-id=0;object=est-bootstrap-id?pin-value=1234" # PKCS#11 URI
 
+# Edge CA certificate issued from a local CA certificate:
+# Requires [cert_issuance.local_ca] to be set.
+# ---------------------
+
+# [edge_ca]
+# method = "local_ca"
+#
+# # Optional configuration below.
+#
+# common_name = "iotedged workload ca"
+# expiry_days = 90
 
 # ==============================================================================
 # Edge CA certificate (Quickstart)
