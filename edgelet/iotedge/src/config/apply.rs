@@ -253,7 +253,54 @@ fn execute_inner(
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
         super_config::EdgeCa::Issued { method } => match method {
-            super_config::EdgeCaIssuanceMethod::Est { .. } => (None, None),
+            super_config::EdgeCaIssuanceMethod::Est {
+                common_name,
+                expiry_days,
+                url,
+                auth,
+            } => {
+                let mut aziotcs_principal = aziot_keyd_config::Principal {
+                    uid: aziotcs_uid.as_raw(),
+                    keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+                };
+
+                let mut keys = std::collections::BTreeMap::default();
+
+                let auth = aziotctl_common::config::apply::set_est_auth(
+                    &auth,
+                    &mut certd_config.preloaded_certs,
+                    &mut keys,
+                    &mut aziotcs_principal,
+                );
+
+                keyd_config.principal.push(aziotcs_principal);
+
+                keyd_config.preloaded_keys.append(
+                    &mut keys
+                        .into_iter()
+                        .map(|(id, location)| (id, location.to_string()))
+                        .collect(),
+                );
+
+                let common_name = Some(common_name.unwrap_or(format!(
+                    "{} {}",
+                    IOTEDGED_COMMONNAME_PREFIX, identityd_config.hostname
+                )));
+
+                certd_config.cert_issuance.certs.insert(
+                    edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
+                    aziot_certd_config::CertIssuanceOptions {
+                        method: aziot_certd_config::CertIssuanceMethod::Est { url, auth },
+                        common_name,
+                        expiry_days,
+                    },
+                );
+
+                (
+                    Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                    Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                )
+            }
         },
         super_config::EdgeCa::Preloaded { cert, pk } => {
             keyd_config.preloaded_keys.insert(
