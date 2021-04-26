@@ -81,14 +81,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
+            // BEARWASHERE -- RuntimeInfoProvider
             var containerLogsParameters = new ContainerLogsParameters
             {
                 Follow = follow,
                 ShowStderr = true,
                 ShowStdout = true
             };
-            tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
+            tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
 
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }

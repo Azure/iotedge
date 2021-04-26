@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public async Task<byte[]> GetLogs(string id, ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
+            // BEARWASHERE -- The three ref
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, cancellationToken);
             Events.ReceivedStream(id);
 
