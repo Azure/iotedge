@@ -266,7 +266,7 @@ fn execute_inner(
 
                 let mut keys = std::collections::BTreeMap::default();
 
-                let auth = aziotctl_common::config::apply::set_est_auth(
+                let auth = common_config::apply::set_est_auth(
                     &auth,
                     &mut certd_config.preloaded_certs,
                     &mut keys,
