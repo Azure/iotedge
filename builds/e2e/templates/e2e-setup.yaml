@@ -20,7 +20,12 @@ steps:
       TestRootCaCertificate,
       TestRootCaKey,
       TestRootCaPassword,
-      TestBlobStoreSas
+      TestBlobStoreSas,
+      TestManifestSigningRootCa,
+      TestManifestSigningIntermediateCa,
+      TestManifestSigningSignerCert,
+      TestManifestSigningSignerKey,
+      TestManifestSigningSignerAlgorithm
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
@@ -104,6 +109,25 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
+    $testDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
+    dotnet build $testDir
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
+    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+    $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
+    New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
+    $env:ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/root_ca.pem"
+    $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
+    $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.crt"
+    $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
+    Write-Output "##vso[task.setvariable variable=certsDir]$manifestSigningCertDir"
+  displayName: Build Manifest Signer Client and set up certificates
+  env:
+    ROOT_CA_CERT: $(TestManifestSigningRootCa)
+    INTERMEDIATE_CA_CERT: $(TestManifestSigningIntermediateCa)
+    SIGNER_CERT: $(TestManifestSigningSignerCert)
+    SIGNER_KEY: $(TestManifestSigningSignerKey)
+
+- pwsh: |
     $imageId = Get-Content -Encoding Utf8 `
       '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageId = ($imageId -split '=')[1]
@@ -141,6 +165,14 @@ steps:
     }else
     {
       $edgeHubImage = "$imagePrefix-hub:$imageTag";
+    }
+
+    if ('$(manifestSigningFlag)' -eq 'true')
+    {
+      $testManifestSigningRootCaPath = Convert-Path "$(manifestSigningCertDir)/root_ca.pem";
+      $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
+      $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
+      $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -192,6 +224,15 @@ steps:
       }
     }
 
+    if ('$(manifestSigningFlag)' -eq 'true')
+    {
+      $context['testManifestSigningRootCaPath'] = '$($testManifestSigningRootCaPath)'
+      $context['testManifestSigningIntermediateCaPath'] = '$(testManifestSigningIntermediateCaPath)'
+      $context['testManifestSigningSignerCertPath'] = '$(testManifestSigningSignerCertPath)'
+      $context['testManifestSigningSignerKeyPath'] = '$testManifestSigningSignerKeyPath'
+      $context[''] = $env:ALGORITHM
+    }
+
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
@@ -206,5 +247,9 @@ steps:
       $context['edgeProxy'] = $env:AGENT_PROXYURL
     }
 
+    echo "Context Contents": "$context"
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
+
+  env:
+    ALGORITHM: $(TestManifestSigningSignerAlgorithm)

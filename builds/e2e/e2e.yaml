@@ -61,6 +61,7 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+      manifestSigningFlag : true
 
     steps:
     - template: templates/e2e-setup.yaml
