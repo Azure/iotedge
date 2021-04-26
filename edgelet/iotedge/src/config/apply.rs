@@ -304,8 +304,8 @@ fn execute_inner(
                         aziot_certd_config::CertIssuanceOptions {
                             method: aziot_certd_config::CertIssuanceMethod::LocalCa,
                             common_name,
-                            expiry_days
-                        }
+                            expiry_days,
+                        },
                     );
 
                     keyd_config.principal.push(aziot_keyd_config::Principal {
@@ -317,7 +317,7 @@ fn execute_inner(
                         Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
                     )
-                },
+                }
                 common_config::super_config::CertIssuanceMethod::SelfSigned => {
                     // This is equivalent to a quickstart CA.
                     set_quickstart_ca(
