@@ -10,7 +10,10 @@ jobs:
 ################################################################################
     displayName: Linux Rust ${{ parameters.archName }}
     pool:
-      vmImage: ubuntu-16.04
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     steps:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
