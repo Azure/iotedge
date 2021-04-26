@@ -308,6 +308,11 @@ fn execute_inner(
                         }
                     );
 
+                    keyd_config.principal.push(aziot_keyd_config::Principal {
+                        uid: aziotcs_uid.as_raw(),
+                        keys: vec![edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()],
+                    });
+
                     (
                         Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
                         Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
