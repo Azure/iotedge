@@ -361,9 +361,6 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "verificationDelay": {
-                "value": "<TestResultCoordinator.VerificationDelay>"
-              },
               "sendReportFrequency": {
                 "value": "<SendReportFrequency>"
               },
