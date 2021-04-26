@@ -69,13 +69,20 @@ steps:
     artifactName: $(artifactName)
     allowPartiallySucceededBuilds: true
 
+- pwsh: |
+    if(-Not Get-Module Az.Accounts) 
+    {
+        Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
+    }
+  displayName: Check AzurePowerShell is installed
+
 - task: AzurePowerShell@5
   displayName: 'Download aziot-identity-service'
   inputs:
     azureSubscription: $(az.subscription)
     scriptPath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
     workingDirectory: $(Build.SourcesDirectory)
-    azurePowerShellVersion: '5.7.0'
+    azurePowerShellVersion: latestVersion
     pwsh: true
   env:
     VAULT_NAME: $(kv.name)
