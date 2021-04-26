@@ -323,7 +323,10 @@ fn execute_inner(
                         common_name,
                     );
 
-                    (None, None)
+                    (
+                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                        Some(edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned()),
+                    )
                 }
             }
         }
