@@ -18,6 +18,7 @@ jobs:
     pool:
       vmImage: 'ubuntu-18.04'
     steps:
+      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
