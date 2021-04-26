@@ -252,7 +252,10 @@ fn execute_inner(
     });
 
     let (edge_ca_cert, edge_ca_key) = match edge_ca {
-        super_config::EdgeCa::Explicit { cert, pk } => {
+        super_config::EdgeCa::Issued { method } => match method {
+            super_config::EdgeCaIssuanceMethod::Est { .. } => (None, None),
+        },
+        super_config::EdgeCa::Preloaded { cert, pk } => {
             keyd_config.preloaded_keys.insert(
                 edgelet_core::AZIOT_EDGED_CA_ALIAS.to_owned(),
                 pk.to_string(),

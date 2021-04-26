@@ -64,12 +64,36 @@ pub fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig>
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
 pub enum EdgeCa {
-    Explicit {
+    Issued {
+        #[serde(flatten)]
+        method: EdgeCaIssuanceMethod,
+    },
+    Preloaded {
         cert: Url,
         pk: Url,
     },
     Quickstart {
         auto_generated_edge_ca_expiry_days: u32,
+    },
+}
+
+#[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(tag = "method")]
+pub enum EdgeCaIssuanceMethod {
+    #[serde(rename = "est")]
+    Est {
+        common_name: Option<String>,
+
+        #[serde(
+            default,
+            deserialize_with = "aziot_certd_config::deserialize_expiry_days"
+        )]
+        expiry_days: Option<u32>,
+
+        url: Option<Url>,
+
+        #[serde(flatten)]
+        auth: Option<aziotctl_common::config::super_config::EstAuth>,
     },
 }
 
