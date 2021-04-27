@@ -388,9 +388,6 @@ jobs:
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
-      - powershell: docker system prune -a -f
-        displayName: Clean Machine
-
 ################################################################################
   - job: manifest
 ################################################################################
