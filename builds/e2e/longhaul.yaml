@@ -56,11 +56,27 @@ jobs:
         fetchDepth: 100
         submodules: recursive
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Common Test Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeLonghaulStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Test Specific Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+          SecretsFilter: >- 
+            IotEdgeLongHaulHub-ConnStr,
+            IotEdgeLongHaulHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -117,8 +133,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotEdgeLongHaulHub-ConnStr)'
+          eventHub.connectionString: '$(IotEdgeLongHaulHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -166,11 +182,27 @@ jobs:
         fetchDepth: 100
         submodules: recursive
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Common Test Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeLonghaulStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Test Specific Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+          SecretsFilter: >- 
+            IotEdgeLongHaulHub-ConnStr,
+            IotEdgeLongHaulHub-EventHubConnStr
       - template: templates/e2e-clean-directory.yaml
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
@@ -228,8 +260,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotEdgeLongHaulHub-ConnStr)'
+          eventHub.connectionString: '$(IotEdgeLongHaulHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
@@ -276,11 +308,27 @@ jobs:
         fetchDepth: 100
         submodules: recursive
       - task: AzureKeyVault@1
-        displayName: 'Azure Key Vault'
+        displayName: 'Common Test Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            StorageAccountMasterKeyStress,
+            SnitchLongHaulAlertUrl,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeLonghaulStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Test Specific Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchLongHaulAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeLonghaulStorageAccountConnString,GitHubAccessToken'
+          SecretsFilter: >- 
+            IotEdgeLongHaulHub-ConnStr,
+            IotEdgeLongHaulHub-EventHubConnStr
       - template: templates/e2e-clean-directory.yaml
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
@@ -338,8 +386,8 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotEdgeLongHaulHub-ConnStr)'
+          eventHub.connectionString: '$(IotEdgeLongHaulHub-EventHubConnStr)'
           snitch.build.number: '$(snitch.build.number)'
           snitch.alert.url: '$(SnitchLongHaulAlertUrl)'
           snitch.storage.account: '$(snitch.storage.account)'
