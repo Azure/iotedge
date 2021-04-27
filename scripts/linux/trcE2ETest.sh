@@ -837,6 +837,11 @@ function run_longhaul_test() {
     return $ret
 }
 
+function set_output_params() {
+    L3_IP_ADDRESS=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+    echo "##vso[task.setvariable variable=L3_IP_ADDRESS;isOutput=true]${L3_IP_ADDRESS}"
+}
+
 LONGHAUL_TEST_NAME="LongHaul"
 CONNECTIVITY_TEST_NAME="Connectivity"
 
@@ -884,6 +889,8 @@ TEST_INFO="$TEST_INFO,UpstreamProtocol=$UPSTREAM_PROTOCOL"
 TEST_INFO="$TEST_INFO,NetworkControllerOfflineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[0]}"
 TEST_INFO="$TEST_INFO,NetworkControllerOnlineFrequency=${NETWORK_CONTROLLER_FREQUENCIES[1]}"
 TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIES[2]}"
+
+set_output_params
 
 testRet=0
 if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
