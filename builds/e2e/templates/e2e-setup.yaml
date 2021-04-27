@@ -83,6 +83,8 @@ steps:
     PACKAGE_FILTER: $(identityServicePackageFilter)
     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
     IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+    http_proxy: $(AGENT_PROXYURL)
+    https_proxy: $(AGENT_PROXYURL)
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
