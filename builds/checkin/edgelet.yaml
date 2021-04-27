@@ -12,7 +12,10 @@ jobs:
 ################################################################################
     displayName: Check pipeline preconditions (changes ARE in builds or edgelet)
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i '^(builds|edgelet)'
@@ -30,7 +33,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
@@ -52,7 +58,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -81,7 +90,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     variables:
       IOTEDGE_HOMEDIR: /tmp
     steps:
@@ -110,7 +122,11 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "vs2017-win2016"
+      name: $(pool.name)
+      demands:
+        - Agent.OS -equals Windows_NT
+        - Agent.OSArchitecture -equals X64
+        - ImageOverride -equals agent-aziotedge-winserver-2019-build
     steps:
       - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
         displayName: Set env variables
@@ -130,7 +146,10 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
