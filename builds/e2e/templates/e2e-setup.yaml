@@ -70,14 +70,14 @@ steps:
     allowPartiallySucceededBuilds: true
 
 - pwsh: |
-    $proxy = if($env:AGENT_PROXYURL) { "-Proxy $env:AGENT_PROXYURL" } else { "" }
+    $proxy = if($env:HTTP_PROXY) { "-Proxy $env:HTTP_PROXY" } else { "" }
     if(-Not (Get-Module -ListAvailable Az.Accounts)) 
     {
-        Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force
+        Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force $proxy
     }
   displayName: Check AzurePowerShell is installed
   env:
-    AGENT_PROXYURL: $(http_proxy)
+    HTTP_PROXY: $(http_proxy)
 
 - task: AzurePowerShell@5
   displayName: 'Download aziot-identity-service'
