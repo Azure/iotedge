@@ -91,7 +91,7 @@ else
 
 Write-Output "Getting github token from key vault"
 
-$gitHubToken = Get-AzKeyVaultSecret -VaultName $vaultName -Name "TestGitHubAccessToken" -AsPlainText
+$gitHubToken = (az keyvault secret show --vault-name $vaultName -n "TestGitHubAccessToken" -o tsv --query value)
 
 Write-Output "Downloading aziot-identity-service $aziotCommit"
 

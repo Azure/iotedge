@@ -69,24 +69,14 @@ steps:
     artifactName: $(artifactName)
     allowPartiallySucceededBuilds: true
 
-- pwsh: |
-    $proxy = if($env:HTTP_PROXY) { "-Proxy $env:HTTP_PROXY" } else { "" }
-    if(-Not (Get-Module -ListAvailable Az.Accounts)) 
-    {
-        Install-Module -Name Az -Scope CurrentUser -Repository PSGallery -Force $proxy
-    }
-  displayName: Check AzurePowerShell is installed
-  env:
-    HTTP_PROXY: $(http_proxy)
-
-- task: AzurePowerShell@5
+- task: AzureCLI@2
   displayName: 'Download aziot-identity-service'
   inputs:
     azureSubscription: $(az.subscription)
+    scriptType: pscore
+    scriptLocation: scriptPath
     scriptPath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
     workingDirectory: $(Build.SourcesDirectory)
-    azurePowerShellVersion: latestVersion
-    pwsh: true
   env:
     VAULT_NAME: $(kv.name)
     ARTIFACT_NAME: $(identityServiceArtifactName)
