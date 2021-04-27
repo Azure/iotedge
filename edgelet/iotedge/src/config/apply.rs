@@ -274,6 +274,7 @@ fn execute_inner(
                         &mut certd_config.preloaded_certs,
                         &mut keys,
                         &mut aziotcs_principal,
+                        edgelet_core::AZIOT_EDGED_CA_ALIAS,
                     );
 
                     keyd_config.principal.push(aziotcs_principal);
