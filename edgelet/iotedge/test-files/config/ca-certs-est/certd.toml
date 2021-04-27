@@ -9,14 +9,14 @@ method = "est"
 url = "https://example.org/.well-known/est"
 username = "user"
 password = "password"
-identity_cert = "est-id-device-id"
-identity_pk = "est-id-device-id"
-bootstrap_identity_cert = "est-bootstrap-id-device-id"
-bootstrap_identity_pk = "est-bootstrap-id-device-id"
+identity_cert = "est-id-aziot-edged-ca"
+identity_pk = "est-id-aziot-edged-ca"
+bootstrap_identity_cert = "est-bootstrap-id-aziot-edged-ca"
+bootstrap_identity_pk = "est-bootstrap-id-aziot-edged-ca"
 
 [preloaded_certs]
 aziot-edged-trust-bundle = ["aziot-edged-ca", "trust-bundle-user"]
-est-bootstrap-id-device-id = "file:///var/secrets/est-bootstrap-id.pem"
+est-bootstrap-id-aziot-edged-ca = "file:///var/secrets/est-bootstrap-id.pem"
 trust-bundle-user = "file:///var/secrets/trusted-ca.pem"
 
 [[principal]]
