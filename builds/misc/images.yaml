@@ -221,7 +221,7 @@ jobs:
       demands:
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals aziotedge-winserver-2019-agent
+        - ImageOverride -equals agent-aziotedge-winserver-2019-build
     workspace:
       clean: all
     steps:
