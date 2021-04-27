@@ -26,8 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (!logVerbose)
             {
-                onStdout = (string o) => {};
-                onStderr = (string e) => {};
+                onStdout = (string o) => { };
+                onStderr = (string e) => { };
             }
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, onStdout, onStderr, token))
