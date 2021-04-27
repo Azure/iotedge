@@ -77,7 +77,7 @@ steps:
     }
   displayName: Check AzurePowerShell is installed
   env:
-    AGENT_PROXYURL: $(Agent.ProxyUrl)
+    AGENT_PROXYURL: $(http_proxy)
 
 - task: AzurePowerShell@5
   displayName: 'Download aziot-identity-service'
