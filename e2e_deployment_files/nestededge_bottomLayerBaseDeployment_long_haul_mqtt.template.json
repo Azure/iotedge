@@ -497,13 +497,13 @@
             "restartPolicy": "always",
             "env": {
               "TEST_SCENARIO": {
-                "value": "Initiate"
+                "value": "InitiateAndRelayReceived"
               },
               "TRACKING_ID": {
                 "value": "<TrackingId>"
               },
               "TEST_START_DELAY": {
-                "value": "10s"
+                "value": "120s"
               }
             },
             "settings": {
