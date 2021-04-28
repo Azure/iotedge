@@ -274,7 +274,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
     class AmqpTestConnection : AmqpConnectionBase
     {
-        public AmqpTestConnection() : base("test", new TestTransport(), new AmqpConnectionSettings(), false)
+        public AmqpTestConnection()
+            : base("test", new TestTransport(), new AmqpConnectionSettings(), false)
         {
         }
 
@@ -302,11 +303,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     }
 
     class TestTransport : TransportBase
-    {        
+    {
         public override string LocalEndPoint => "localhost";
         public override string RemoteEndPoint => "remotehost";
 
-        public TestTransport() : base("test")
+        public TestTransport()
+            : base("test")
         {
         }
 

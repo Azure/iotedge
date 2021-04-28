@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 await this.deviceListener.ForEachAsync(d => d.CloseAsync());
                 this.deviceListener = Option.None<IDeviceListener>();
-                await this.amqpConnection.CloseAsync(closeTimeout);
+                await this.amqpConnection.CloseAsync(this.closeTimeout);
             }
         }
 
