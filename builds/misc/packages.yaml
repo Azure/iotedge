@@ -182,6 +182,9 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - ImageOverride -equals agent-aziotedge-winserver-2019-build
     steps:
+      - powershell: ls env:/
+        displayName: Dump environment
+
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
           if ($base_version -like '*~*') {
