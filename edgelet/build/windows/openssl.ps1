@@ -8,7 +8,10 @@ function Get-OpenSSL
 
     $ErrorActionPreference = 'Continue'
 
-    Write-Host "`$env:HOMEDRIVE = $env:HOMEDRIVE"
+    if (!$env:HOMEDRIVE && $env:AGENT_WORKFOLDER)
+    {
+        $env:HOMEDRIVE = $env:AGENT_WORKFOLDER
+    }
 
     if (!((Test-Path -Path $env:HOMEDRIVE\vcpkg) -and ((Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))))
     {
