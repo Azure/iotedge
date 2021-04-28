@@ -3,13 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel.Design.Serialization;
-    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Org.BouncyCastle.Security;
     using Xunit;
 
     [Unit]
@@ -63,17 +60,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         internal ServiceIdentityTree SetupTree()
         {
             var tree = new ServiceIdentityTree(this.root.Id);
-            tree.InsertOrUpdate(this.root).Wait();
-            tree.InsertOrUpdate(this.e1_L1).Wait();
-            tree.InsertOrUpdate(this.e2_L1).Wait();
-            tree.InsertOrUpdate(this.e1_L2).Wait();
-            tree.InsertOrUpdate(this.e2_L2).Wait();
-            tree.InsertOrUpdate(this.e3_L2).Wait();
-            tree.InsertOrUpdate(this.e4_L2).Wait();
-            tree.InsertOrUpdate(this.leaf1).Wait();
-            tree.InsertOrUpdate(this.leaf2).Wait();
-            tree.InsertOrUpdate(this.mod1).Wait();
-            tree.InsertOrUpdate(this.mod2).Wait();
+            tree.AddOrUpdate(this.root).Wait();
+            tree.AddOrUpdate(this.e1_L1).Wait();
+            tree.AddOrUpdate(this.e2_L1).Wait();
+            tree.AddOrUpdate(this.e1_L2).Wait();
+            tree.AddOrUpdate(this.e2_L2).Wait();
+            tree.AddOrUpdate(this.e3_L2).Wait();
+            tree.AddOrUpdate(this.e4_L2).Wait();
+            tree.AddOrUpdate(this.leaf1).Wait();
+            tree.AddOrUpdate(this.leaf2).Wait();
+            tree.AddOrUpdate(this.mod1).Wait();
+            tree.AddOrUpdate(this.mod2).Wait();
 
             return tree;
         }
@@ -131,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Insert an orphaned node and check for its invalid auth chain
             ServiceIdentity orphan = CreateServiceIdentity("orphan", null, null, null, false);
-            tree.InsertOrUpdate(orphan).Wait();
+            tree.AddOrUpdate(orphan).Wait();
             Assert.False(tree.GetAuthChain(orphan.Id).Result.HasValue);
         }
 
@@ -150,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             // Insert an orphaned node and check for its invalid auth chain
             ServiceIdentity orphan = CreateServiceIdentity("orphan", null, null, null, false);
-            tree.InsertOrUpdate(orphan).Wait();
+            tree.AddOrUpdate(orphan).Wait();
             authChainTry = await tree.TryGetAuthChain(orphan.Id);
             Assert.Throws<DeviceInvalidStateException>(() => authChainTry.Value);
         }
@@ -164,8 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ServiceIdentity edge_L2 = CreateServiceIdentity("edge_L2", null, "edge_L2_scope", "e1_L1_scope", true, false);
             ServiceIdentity leaf = CreateServiceIdentity("leaf", null, null, "edge_L2_scope", false);
 
-            tree.InsertOrUpdate(edge_L2).Wait();
-            tree.InsertOrUpdate(leaf).Wait();
+            tree.AddOrUpdate(edge_L2).Wait();
+            tree.AddOrUpdate(leaf).Wait();
 
             // Act
             Option<string> authChain = tree.GetAuthChain(leaf.Id).Result;
@@ -184,8 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ServiceIdentity leaf = CreateServiceIdentity("leaf", null, null, "edge_L2_scope", false);
             var expectedAuthChain = "leaf;edge_L2;e1_L1;root";
 
-            tree.InsertOrUpdate(edge_L2).Wait();
-            tree.InsertOrUpdate(leaf).Wait();
+            tree.AddOrUpdate(edge_L2).Wait();
+            tree.AddOrUpdate(leaf).Wait();
 
             // Act
             var authChain = await tree.TryGetAuthChain(leaf.Id);
@@ -201,10 +198,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             var tree = new ServiceIdentityTree(this.root.Id);
 
             // Insert L2 identities
-            tree.InsertOrUpdate(this.e1_L2).Wait();
-            tree.InsertOrUpdate(this.e2_L2).Wait();
-            tree.InsertOrUpdate(this.e3_L2).Wait();
-            tree.InsertOrUpdate(this.e4_L2).Wait();
+            tree.AddOrUpdate(this.e1_L2).Wait();
+            tree.AddOrUpdate(this.e2_L2).Wait();
+            tree.AddOrUpdate(this.e3_L2).Wait();
+            tree.AddOrUpdate(this.e4_L2).Wait();
 
             // Should have no valid auth chains
             Assert.False(tree.GetAuthChain(this.e1_L2.Id).Result.HasValue);
@@ -213,8 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(tree.GetAuthChain(this.e4_L2.Id).Result.HasValue);
 
             // Insert L1 identities
-            tree.InsertOrUpdate(this.e1_L1).Wait();
-            tree.InsertOrUpdate(this.e2_L1).Wait();
+            tree.AddOrUpdate(this.e1_L1).Wait();
+            tree.AddOrUpdate(this.e2_L1).Wait();
 
             // Should have no valid auth chains
             Assert.False(tree.GetAuthChain(this.e1_L2.Id).Result.HasValue);
@@ -225,10 +222,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(tree.GetAuthChain(this.e2_L1.Id).Result.HasValue);
 
             // Insert leaf identities
-            tree.InsertOrUpdate(this.leaf1).Wait();
-            tree.InsertOrUpdate(this.leaf2).Wait();
-            tree.InsertOrUpdate(this.mod1).Wait();
-            tree.InsertOrUpdate(this.mod2).Wait();
+            tree.AddOrUpdate(this.leaf1).Wait();
+            tree.AddOrUpdate(this.leaf2).Wait();
+            tree.AddOrUpdate(this.mod1).Wait();
+            tree.AddOrUpdate(this.mod2).Wait();
 
             // Should have no valid auth chains
             Assert.False(tree.GetAuthChain(this.e1_L2.Id).Result.HasValue);
@@ -243,10 +240,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.False(tree.GetAuthChain(this.mod2.Id).Result.HasValue);
 
             // Insert root
-            tree.InsertOrUpdate(this.root).Wait();
+            tree.AddOrUpdate(this.root).Wait();
 
             // All auth chains should now be valid because root is available
             this.CheckValidAuthChains(tree);
+        }
+
+        [Fact]
+        public void Update_NotChanged_Test()
+        {
+            ServiceIdentityTree tree = this.SetupTree();
+
+            ServiceIdentity updated = CreateServiceIdentity("e2_L2", null, "e2_L2_scope", "e1_L1_scope", true);
+            ServiceIdentity root = CreateServiceIdentity("root", null, "rootScope", null, true);
+            // Re-insert the same node, nothing should have changed
+            tree.AddOrUpdate(updated).Wait();
+            tree.AddOrUpdate(root).Wait();
+            this.CheckValidAuthChains(tree);
+
+            Option<ServiceIdentity> roundTripIdentity = tree.Get(this.e2_L2.Id).Result;
+            Option<ServiceIdentity> roundTripRoot = tree.Get(this.root.Id).Result;
+            Assert.True(roundTripIdentity.HasValue);
+            Assert.True(ReferenceEquals(roundTripIdentity.OrDefault(), this.e2_L2));
+            Assert.False(ReferenceEquals(roundTripIdentity.OrDefault(), updated));
+            Assert.True(roundTripRoot.HasValue);
+            Assert.True(ReferenceEquals(roundTripRoot.OrDefault(), this.root));
+            Assert.False(ReferenceEquals(roundTripRoot.OrDefault(), root));
         }
 
         [Fact]
@@ -255,7 +274,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ServiceIdentityTree tree = this.SetupTree();
 
             // Re-insert the same node, nothing should have changed
-            tree.InsertOrUpdate(this.e2_L2).Wait();
+            tree.AddOrUpdate(this.e2_L2).Wait();
             this.CheckValidAuthChains(tree);
 
             // Re-parent e3_L2 from e2_L1 to e1_L1
@@ -266,7 +285,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 this.e1_L1.DeviceScope.Expect(() => new InvalidOperationException()),
                 true);
 
-            tree.InsertOrUpdate(updatedIdentity).Wait();
+            tree.AddOrUpdate(updatedIdentity).Wait();
 
             // Equality check
             Option<ServiceIdentity> roundTripIdentity = tree.Get(updatedIdentity.Id).Result;
@@ -320,23 +339,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             ServiceIdentity e1_L3 = CreateServiceIdentity("e1_L3", null, "e1_L3_scope", null, true);
             ServiceIdentity e1_L4 = CreateServiceIdentity("e1_L4", null, "e1_L4_scope", "e1_L3_scope", true);
             ServiceIdentity e1_L5 = CreateServiceIdentity("e1_L5", null, "e1_L5_scope", "e1_L4_scope", true);
-            tree.InsertOrUpdate(e1_L3).Wait();
-            tree.InsertOrUpdate(e1_L4).Wait();
-            tree.InsertOrUpdate(e1_L5).Wait();
+            tree.AddOrUpdate(e1_L3).Wait();
+            tree.AddOrUpdate(e1_L4).Wait();
+            tree.AddOrUpdate(e1_L5).Wait();
 
             // Merge this chain into the main tree, this exceeds the maximum depth,
             // and e1_L5 should have no valid auth chain
             e1_L3 = CreateServiceIdentity("e1_L3", null, "e1_L3_scope", "e1_L2_scope", true);
-            tree.InsertOrUpdate(e1_L3).Wait();
+            tree.AddOrUpdate(e1_L3).Wait();
             Assert.False(tree.GetAuthChain(e1_L5.Id).Result.HasValue);
 
             // Try explicitly adding yet another layer with an Edge device, this shouldn't yield a valid chain
-            tree.InsertOrUpdate(e1_L5).Wait();
+            tree.AddOrUpdate(e1_L5).Wait();
             Assert.False(tree.GetAuthChain(e1_L5.Id).Result.HasValue);
 
             // But we should still be able to add a leaf device
             ServiceIdentity leaf = CreateServiceIdentity("leaf", null, null, "e1_L4_scope", false);
-            tree.InsertOrUpdate(leaf).Wait();
+            tree.AddOrUpdate(leaf).Wait();
 
             Option<string> authChainActual = tree.GetAuthChain(leaf.Id).Result;
             string leaf_authchain_expected =

@@ -1,5 +1,5 @@
 use future::{select_all, Either};
-use futures_util::{future, stream::StreamExt, stream::TryStreamExt};
+use futures_util::{future, pin_mut, stream::TryStreamExt};
 use mpsc::UnboundedSender;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
@@ -30,14 +30,14 @@ const EDGEHUB_CONTAINER_ADDRESS: &str = "edgeHub:8883";
 #[derive(Debug, Clone)]
 pub struct MessageTesterShutdownHandle {
     poll_client_shutdown: Sender<()>,
-    message_channel_shutdown: ShutdownHandle,
+    message_channel_shutdown: Option<ShutdownHandle>,
     message_initiator_shutdown: Option<ShutdownHandle>,
 }
 
 impl MessageTesterShutdownHandle {
     fn new(
         poll_client_shutdown: Sender<()>,
-        message_channel_shutdown: ShutdownHandle,
+        message_channel_shutdown: Option<ShutdownHandle>,
         message_initiator_shutdown: Option<ShutdownHandle>,
     ) -> Self {
         Self {
@@ -70,8 +70,10 @@ impl MessageTesterShutdownHandle {
     }
 
     async fn shutdown_message_channel(&self) {
-        if let Err(e) = self.message_channel_shutdown.clone().shutdown().await {
-            error!("couldn't shutdown message channel: {:?}", e);
+        if let Some(message_channel_shutdown) = self.message_channel_shutdown.clone() {
+            if let Err(e) = message_channel_shutdown.shutdown().await {
+                error!("couldn't shutdown message channel: {:?}", e);
+            }
         }
     }
 
@@ -92,20 +94,25 @@ impl MessageTesterShutdownHandle {
 
 /// Abstracts the test logic for this generic mqtt telemetry test module.
 /// This module is designed to test generic (non-iothub) mqtt telemetry in both a single-node and nested environment.
-/// The module will run in one of two modes. The behavior depends on this mode.
+/// The module will run in one mode listed below. The behavior depends on this mode.
 ///
-/// 1: Initiate mode
-/// - If nested scenario, test module runs on the lowest node in the topology.
-/// - Spawn a thread that publishes messages continuously to upstream edge.
-/// - Receives same message routed back from upstream edge and reports the result to the Test Result Coordinator test module.
+/// 1: `Initiate` mode
+/// - Sends messages on initiate topic
 ///
-/// 2: Relay mode
-/// - If nested scenario, test module runs on the middle node in the topology.
-/// - Receives a message from downstream edge and relays it back to downstream edge.
+/// 2: `Receive` mode
+/// - Receives messages on initiate topic
+///
+/// 3: `InitiateAndReceiveRelayed` mode
+/// - Sends messages on initiate topic.
+/// - Receives same messages routed back on relay topic by other test module
+/// - Reports the result to the Test Result Coordinator test module.
+///
+/// 4: `Relay` mode
+/// - Receives messages on initiate topic and relays it back to on relay topic.
 pub struct MessageTester {
     settings: Settings,
     client: Client<ClientIoSource>,
-    message_channel: MessageChannel<dyn MessageHandler + Send>,
+    message_channel: Option<MessageChannel<dyn MessageHandler + Send>>,
     message_initiator: Option<MessageInitiator>,
     shutdown_handle: MessageTesterShutdownHandle,
     poll_client_shutdown_recv: Receiver<()>,
@@ -123,45 +130,51 @@ impl MessageTester {
 
         let tracking_id = settings.tracking_id();
         let relay_topic = settings.relay_topic();
+        let module_name = settings.module_name();
         let test_result_coordinator_url = settings.trc_url();
         let reporting_client = TrcClient::new(test_result_coordinator_url);
 
-        let message_handler: Box<dyn MessageHandler + Send> = match settings.test_scenario() {
-            TestScenario::Initiate => {
-                let batch_id = settings
-                    .batch_id()
-                    .ok_or(MessageTesterError::MissingBatchId)?;
-                Box::new(ReportResultMessageHandler::new(
+        let message_handler: Option<Box<dyn MessageHandler + Send>> = match settings.test_scenario()
+        {
+            TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
+                Some(Box::new(ReportResultMessageHandler::new(
                     reporting_client.clone(),
                     tracking_id,
-                    batch_id,
-                ))
+                    &module_name,
+                )))
             }
-            TestScenario::Relay => Box::new(RelayingMessageHandler::new(
+            TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
                 publish_handle.clone(),
                 relay_topic,
-            )),
+            ))),
+            TestScenario::Initiate => None,
         };
-        let message_channel = MessageChannel::new(message_handler);
+
+        let mut message_channel = None;
+        let mut message_channel_shutdown = None;
+        if let Some(message_handler) = message_handler {
+            let channel = MessageChannel::new(message_handler);
+            message_channel_shutdown = Some(channel.shutdown_handle());
+            message_channel = Some(channel);
+        }
 
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
-        if let TestScenario::Initiate = settings.test_scenario() {
-            let batch_id = settings
-                .batch_id()
-                .ok_or(MessageTesterError::MissingBatchId)?;
-            let initiator =
-                MessageInitiator::new(publish_handle, reporting_client, settings.clone(), batch_id);
+        match settings.test_scenario() {
+            TestScenario::Initiate | TestScenario::InitiateAndReceiveRelayed => {
+                let initiator = MessageInitiator::new(publish_handle, reporting_client, &settings)?;
 
-            message_initiator_shutdown = Some(initiator.shutdown_handle());
-            message_initiator = Some(initiator);
+                message_initiator_shutdown = Some(initiator.shutdown_handle());
+                message_initiator = Some(initiator);
+            }
+            _ => {}
         }
 
         let (poll_client_shutdown_send, poll_client_shutdown_recv) = mpsc::channel::<()>(1);
-        let message_handler_shutdown = message_channel.shutdown_handle();
+
         let shutdown_handle = MessageTesterShutdownHandle::new(
             poll_client_shutdown_send,
-            message_handler_shutdown,
+            message_channel_shutdown,
             message_initiator_shutdown,
         );
 
@@ -182,7 +195,14 @@ impl MessageTester {
             .client
             .update_subscription_handle()
             .map_err(MessageTesterError::UpdateSubscriptionHandle)?;
-        let message_send_handle = self.message_channel.message_channel();
+
+        let mut message_channel = None;
+        let mut message_send_handle = None;
+        if let Some(channel) = self.message_channel {
+            message_send_handle = Some(channel.send_handle());
+            message_channel = Some(channel);
+        }
+
         let poll_client_join = tokio::spawn(
             poll_client(
                 message_send_handle,
@@ -195,14 +215,17 @@ impl MessageTester {
         // make subscription
         Self::subscribe(client_sub_handle, self.settings.clone()).await?;
 
-        // run message channel
-        let message_channel_join = tokio::spawn(
-            self.message_channel
-                .run()
-                .instrument(info_span!("message channel")),
-        );
+        let mut tasks = vec![poll_client_join];
 
-        let mut tasks = vec![message_channel_join, poll_client_join];
+        if let Some(message_channel) = message_channel {
+            let message_channel_join = tokio::spawn(
+                message_channel
+                    .run()
+                    .instrument(info_span!("message channel")),
+            );
+
+            tasks.push(message_channel_join);
+        }
 
         // maybe start message initiator depending on mode
         if let Some(message_initiator) = self.message_initiator {
@@ -210,7 +233,7 @@ impl MessageTester {
                 "waiting for test start delay of {:?}",
                 self.settings.test_start_delay()
             );
-            time::delay_for(self.settings.test_start_delay()).await;
+            time::sleep(self.settings.test_start_delay()).await;
 
             let message_loop = tokio::spawn(message_initiator.run());
             tasks.push(message_loop);
@@ -261,20 +284,21 @@ impl MessageTester {
     ) -> Result<(), MessageTesterError> {
         info!("subscribing to test topics");
         match settings.test_scenario() {
-            TestScenario::Initiate => client_sub_handle
+            TestScenario::InitiateAndReceiveRelayed => client_sub_handle
                 .subscribe(SubscribeTo {
                     topic_filter: settings.relay_topic(),
                     qos: QoS::AtLeastOnce,
                 })
                 .await
                 .map_err(MessageTesterError::UpdateSubscription)?,
-            TestScenario::Relay => client_sub_handle
+            TestScenario::Relay | TestScenario::Receive => client_sub_handle
                 .subscribe(SubscribeTo {
                     topic_filter: settings.initiate_topic(),
                     qos: QoS::AtLeastOnce,
                 })
                 .await
                 .map_err(MessageTesterError::UpdateSubscription)?,
+            TestScenario::Initiate => {}
         };
 
         info!("finished subscribing to test topics");
@@ -283,7 +307,7 @@ impl MessageTester {
 }
 
 async fn poll_client(
-    message_send_handle: UnboundedSender<ReceivedPublication>,
+    message_send_handle: Option<UnboundedSender<ReceivedPublication>>,
     mut client: Client<ClientIoSource>,
     mut shutdown_recv: Receiver<()>,
 ) -> Result<ExitedWork, MessageTesterError> {
@@ -291,7 +315,8 @@ async fn poll_client(
     loop {
         let message_send_handle = message_send_handle.clone();
         let event = client.try_next();
-        let shutdown = shutdown_recv.next();
+        let shutdown = shutdown_recv.recv();
+        pin_mut!(shutdown);
 
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {
@@ -316,7 +341,7 @@ async fn poll_client(
 
 fn process_event(
     event: Event,
-    message_send_handle: &UnboundedSender<ReceivedPublication>,
+    message_send_handle: &Option<UnboundedSender<ReceivedPublication>>,
 ) -> Result<(), MessageTesterError> {
     match event {
         Event::NewConnection { .. } => {
@@ -324,9 +349,11 @@ fn process_event(
         }
         Event::Publication(publication) => {
             info!("received publication {:?}", publication);
-            message_send_handle
-                .send(publication)
-                .map_err(MessageTesterError::SendPublicationInChannel)?;
+            if let Some(message_send_handle) = message_send_handle {
+                message_send_handle
+                    .send(publication)
+                    .map_err(MessageTesterError::SendPublicationInChannel)?;
+            }
         }
         Event::SubscriptionUpdates(sub_updates) => {
             info!("received subscription update {:?}", sub_updates);
