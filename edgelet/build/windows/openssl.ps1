@@ -8,7 +8,7 @@ function Get-OpenSSL
 
     $ErrorActionPreference = 'Continue'
 
-    if (!$env:HOMEDRIVE && $env:AGENT_WORKFOLDER)
+    if (!$env:HOMEDRIVE -and $env:AGENT_WORKFOLDER)
     {
         $env:HOMEDRIVE = $env:AGENT_WORKFOLDER
     }
