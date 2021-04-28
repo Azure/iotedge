@@ -63,7 +63,10 @@
                 },
                 "CompressForUpload": {
                     "value": "true"
-                }
+                },
+                "TransformForIoTCentral": {
+                  "value": "false"
+              }
             },
             "status": "running",
             "restartPolicy": "always",
