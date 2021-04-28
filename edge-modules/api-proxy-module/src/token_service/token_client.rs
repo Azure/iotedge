@@ -30,10 +30,7 @@ impl TokenClient {
         }
     }
 
-    pub async fn get_new_sas_token(
-        &self,
-        expiration_date: &str,
-    ) -> Result<String, Error> {
+    pub async fn get_new_sas_token(&self, expiration_date: &str) -> Result<String, Error> {
         let audience = format!(
             "{}/devices/{}/modules/{}",
             self.iothub_hostname,

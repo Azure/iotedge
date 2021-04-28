@@ -11,5 +11,5 @@
 )]
 
 pub mod monitors;
+pub mod token_service;
 pub mod utils;
-pub mod token_server;

@@ -23,8 +23,8 @@ use tokio::{
 
 use api_proxy_module::{
     monitors::{certs_monitor, config_monitor},
-    token_server::{token_server},
-    utils::{shutdown_handle, shutdown},
+    token_service::token_server,
+    utils::{shutdown, shutdown_handle},
 };
 use shutdown_handle::ShutdownHandle;
 
@@ -56,9 +56,8 @@ async fn main() -> Result<()> {
         notify_trust_bundle_reload_api_proxy.clone(),
     )
     .context("Failed running nginx controller")?;
-    let (token_server_handle, token_server_shutdown_handle) = token_server::start()
-    .context("Failed running token server")?;
-
+    let (token_server_handle, token_server_shutdown_handle) =
+        token_server::start().context("Failed running token server")?;
 
     //If one task closes, clean up everything
     if let Err(e) = nginx_controller_handle.await {
@@ -75,7 +74,6 @@ async fn main() -> Result<()> {
     config_monitor_shutdown_handle.shutdown().await;
     nginx_controller_shutdown_handle.shutdown().await;
     token_server_shutdown_handle.shutdown().await;
-
 
     if let Err(e) = cert_monitor_handle.await {
         error!("error on finishing cert monitor: {}", e);

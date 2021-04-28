@@ -1,11 +1,11 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
-use futures_util::future::Either;
+use futures_util::{future::Either, pin_mut, StreamExt};
 use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle};
 
-use super::config_parser;
+use crate::monitors::config_parser;
 use crate::utils::file;
 use crate::utils::shutdown_handle;
 
@@ -43,22 +43,23 @@ pub fn start(
 
     info!("Initializing config monitoring loop");
     let config_parser = ConfigParser::new();
+    parse_config(&config_parser)?;
 
     info!("Starting config monitoring loop");
     //Config is ready, send notification.
-    notify_received_config.notify();
+    notify_received_config.notify_one();
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         loop {
             let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
+            pin_mut!(wait_shutdown);
 
             let parse_config_request =
-                match futures::future::select(wait_shutdown, client.next()).await {
+                match futures_util::future::select(wait_shutdown, client.next()).await {
                     Either::Left(_) => {
                         warn!("Shutting down config monitor!");
                         return Ok(());
-                    },
+                    }
                     Either::Right((Some(Ok(message)), _)) => {
                         if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
                             if let Err(err) = save_raw_config(&twin) {
@@ -71,15 +72,15 @@ pub fn start(
                         } else {
                             false
                         }
-                    },
+                    }
                     Either::Right((Some(Err(err)), _)) => {
                         error!("Error receiving a message! {}", err);
                         false
-                    },
+                    }
                     Either::Right((None, _)) => {
                         warn!("Shutting down config monitor!");
                         return Ok(());
-                    },
+                    }
                 };
 
             if parse_config_request {
