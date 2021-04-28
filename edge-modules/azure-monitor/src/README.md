@@ -53,8 +53,11 @@ Optional config items:
     - This should really only be turned off in extremely CPU-bound applications, if at all.
     - ex: `true`
     - Defaults to true.
-- `TransformForUpload`
+- `TransformForIoTCentral`
     - If the metrics data needs to be flattened prior to published as IoT messages.
+    - Metrics module emits metrics in Prometheus data format. Metrics are emitted as an array of key/value pair. Enabling IoT       Central to build dashboards, The data needs to be flattened out to match the device template interfaces.
+    - Turning this option on, it reduces the data size by 70%
+    - This can only be turned on if `UploadTarget` set to `IotMessage`
     - ex: `false`
     - Defaults to false.
 
@@ -82,7 +85,7 @@ Metrics published as IoT messages are emitted as UTF8-encoded json from the endp
 }]
 ```
 
-Turning on TransformForUpload, the format of IoT messages changes to:
+Turning on TransformForIoTCentral, the format of IoT messages changes to:
 
 ```
 {

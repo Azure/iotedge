@@ -64,7 +64,7 @@
                 "CompressForUpload": {
                     "value": "true"
                 },
-                "TransformForUpload": {
+                "TransformForIoTCentral": {
                   "value": "false"
               }
             },

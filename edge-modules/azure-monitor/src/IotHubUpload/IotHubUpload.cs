@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 string outputString = JsonConvert.SerializeObject(outputMetrics);
                 LoggerUtil.Writer.LogDebug("Metrics selected for upload . . .");
                 LoggerUtil.Writer.LogDebug(outputString);
-                if (Settings.Current.TransformForUpload)
+                if (Settings.Current.TransformForIoTCentral)
                 {
                     outputString = Transform(outputMetrics);
                     LoggerUtil.Writer.LogDebug("Metrics transformed prior to upload . . .");
