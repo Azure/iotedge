@@ -8,6 +8,8 @@ function Get-OpenSSL
 
     $ErrorActionPreference = 'Continue'
 
+    Write-Host "`$env:HOMEDRIVE = $env:HOMEDRIVE"
+
     if (!((Test-Path -Path $env:HOMEDRIVE\vcpkg) -and ((Test-Path -Path $env:HOMEDRIVE\vcpkg\vcpkg.exe))))
     {
         Write-Host "Installing vcpkg from github..."
@@ -23,7 +25,7 @@ function Get-OpenSSL
             Throw "Failed to bootstrap vcpkg with exit code $LastExitCode"
         }
         Write-Host "Installing vcpkg..."
-        & $env:HOMEDRIVE\\vcpkg\\vcpkg.exe integrate install
+        & $env:HOMEDRIVE\vcpkg\vcpkg.exe integrate install
         if ($LastExitCode)
         {
             Throw "Failed to install vcpkg with exit code $LastExitCode"
