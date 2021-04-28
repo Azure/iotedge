@@ -225,6 +225,9 @@ jobs:
     workspace:
       clean: all
     steps:
+      - powershell: ls env:/
+        displayName: Dump environment
+
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
 
