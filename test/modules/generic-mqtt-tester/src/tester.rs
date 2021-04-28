@@ -10,9 +10,10 @@ use tracing_futures::Instrument;
 
 use mqtt3::{
     proto::{QoS, SubscribeTo},
-    Client, Event, ReceivedPublication, SubscriptionUpdateEvent, UpdateSubscriptionHandle,
+    Client, Event, PublishHandle, ReceivedPublication, SubscriptionUpdateEvent,
+    UpdateSubscriptionHandle,
 };
-use mqtt_broker_tests_util::client;
+use mqtt_broker_tests_util::client::{self};
 use mqtt_util::ClientIoSource;
 use trc_client::TrcClient;
 
@@ -128,27 +129,7 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let tracking_id = settings.tracking_id();
-        let relay_topic = settings.relay_topic();
-        let module_name = settings.module_name();
-        let test_result_coordinator_url = settings.trc_url();
-        let reporting_client = TrcClient::new(test_result_coordinator_url);
-
-        let message_handler: Option<Box<dyn MessageHandler + Send>> = match settings.test_scenario()
-        {
-            TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
-                Some(Box::new(ReportResultMessageHandler::new(
-                    reporting_client.clone(),
-                    tracking_id,
-                    &module_name,
-                )))
-            }
-            TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
-                publish_handle.clone(),
-                relay_topic,
-            ))),
-            TestScenario::Initiate => None,
-        };
+        let message_handler = message_handler(&settings, publish_handle.clone());
 
         let mut message_channel = None;
         let mut message_channel_shutdown = None;
@@ -157,6 +138,9 @@ impl MessageTester {
             message_channel_shutdown = Some(channel.shutdown_handle());
             message_channel = Some(channel);
         }
+
+        let test_result_coordinator_url = settings.trc_url();
+        let reporting_client = TrcClient::new(test_result_coordinator_url);
 
         let mut message_initiator = None;
         let mut message_initiator_shutdown = None;
@@ -306,6 +290,28 @@ impl MessageTester {
     }
 }
 
+fn message_handler(
+    settings: &Settings,
+    publish_handle: PublishHandle,
+) -> Option<Box<dyn MessageHandler + Send>> {
+    let tracking_id = settings.tracking_id();
+    let relay_topic = settings.relay_topic();
+    let module_name = settings.module_name();
+    let test_result_coordinator_url = settings.trc_url();
+    let reporting_client = TrcClient::new(test_result_coordinator_url);
+
+    match settings.test_scenario() {
+        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => Some(Box::new(
+            ReportResultMessageHandler::new(reporting_client, tracking_id, &module_name),
+        )),
+        TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
+            publish_handle,
+            relay_topic,
+        ))),
+        TestScenario::Initiate => None,
+    }
+}
+
 async fn poll_client(
     message_send_handle: Option<UnboundedSender<ReceivedPublication>>,
     mut client: Client<ClientIoSource>,
@@ -320,7 +326,7 @@ async fn poll_client(
         match future::select(event, shutdown).await {
             Either::Left((event, _)) => {
                 if let Ok(Some(event)) = event {
-                    process_event(event, &message_send_handle)?;
+                    process_event(event, message_send_handle)?;
                 }
             }
             Either::Right((shutdown, _)) => {
@@ -340,7 +346,7 @@ async fn poll_client(
 
 fn process_event(
     event: Event,
-    message_send_handle: &Option<UnboundedSender<ReceivedPublication>>,
+    message_send_handle: Option<UnboundedSender<ReceivedPublication>>,
 ) -> Result<(), MessageTesterError> {
     match event {
         Event::NewConnection { .. } => {

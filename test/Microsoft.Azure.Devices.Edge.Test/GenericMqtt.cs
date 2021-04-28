@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     builder.AddModule(GenericMqttInitiatorModuleName, genericMqttTesterImage, false)
                         .WithEnvironment(new[]
                         {
-                            ("TEST_SCENARIO", "Initiate"),
+                            ("TEST_SCENARIO", "InitiateAndReceiveRelayed"),
                             ("TRACKING_ID", trackingId),
                             ("TEST_START_DELAY", GenericMqttTesterTestStartDelay),
                             ("MESSAGES_TO_SEND", GenericMqttTesterMaxMessages),
