@@ -53,6 +53,13 @@ Optional config items:
     - This should really only be turned off in extremely CPU-bound applications, if at all.
     - ex: `true`
     - Defaults to true.
+- `TransformForIoTCentral`
+    - If the metrics data needs to be flattened prior to published as IoT messages.
+    - Metrics module emits metrics in Prometheus data format. Metrics are emitted as an array of key/value pair. Enabling IoT       Central to build dashboards, The data needs to be flattened out to match the device template interfaces.
+    - Turning this option on, it reduces the data size by 70%
+    - This can only be turned on if `UploadTarget` set to `IotMessage`
+    - ex: `false`
+    - Defaults to false.
 
 
 ## Upload Target:
@@ -76,6 +83,34 @@ Metrics published as IoT messages are emitted as UTF8-encoded json from the endp
         "name": "AzureMonitorForIotEdgeModule"
     }
 }]
+```
+
+Turning on TransformForIoTCentral, the format of IoT messages changes to:
+
+```
+{
+  "TimeGeneratedUtc": "<time generated>",
+  "edge_device": "<device bame>",
+  "instance_number": "<instance number>",
+  "<prometheus metric name>": {
+    "value": <decimal value>,
+    "from": "<value of: 'from', 'module_name', or 'id' if exists>",
+    "from_route_output": "<value of: 'from_route_output', 'route_output', or 'source' if exists>",
+    "to": "<value of: 'to', 'to_route_input', or 'target' if exists>",
+    "priority": <integer value of 'priority' if exists>,
+    "quantile": <decimal value of 'quantile' if exists>,
+    "command": "<value of 'command' if exists>",
+    "disk_name": "<value of 'disk_name' if exists>"
+  },
+  "edgeAgent_used_memory_bytes": {
+    "value": 54992896.0,
+    "from": "edgeAgent"
+  },
+  "edgeAgent_used_memory_bytes": {
+    "value": 131170304.0,
+    "from": "edgeHub"
+  }
+}
 ```
 
 
