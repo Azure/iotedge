@@ -119,6 +119,14 @@ jobs:
           target.iotedged: builds/mariner/out/RPMS/x86_64/
     steps:
       - bash: |
+          echo '=========='
+          sudo ls -al /usr/local/go/bin
+          echo '=========='
+          command -v go
+          echo '=========='
+          env
+          echo '=========='
+      - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
           echo "##vso[task.setvariable variable=VERSION;]$VERSION"
