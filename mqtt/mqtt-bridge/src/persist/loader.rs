@@ -105,10 +105,7 @@ mod tests {
     use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
     use bytes::Bytes;
-    use futures_util::{
-        future::{self, join, Either},
-        stream::TryStreamExt,
-    };
+    use futures_util::{future, stream::TryStreamExt};
     use mqtt3::proto::{Publication, QoS};
     use parking_lot::Mutex;
     use test_case::test_case;
@@ -305,7 +302,7 @@ mod tests {
         // schedule to remove a publication by a key when we awaiting the last item
         let key1 = keys[0];
         tokio::spawn(async move {
-            time::delay_for(Duration::from_millis(10)).await;
+            time::sleep(Duration::from_millis(10)).await;
             let key = state.lock().pop().unwrap();
             assert_eq!(key, key1);
         });
@@ -314,17 +311,9 @@ mod tests {
         let (last_key, _) = loader.try_next().await.unwrap().unwrap();
         assert_eq!(&last_key, keys.last().unwrap());
 
-        if let Either::Right((next, _)) = future::select(
-            time::delay_for(Duration::from_millis(10)),
-            loader.try_next(),
-        )
-        .await
-        {
-            panic!(
-                "MessageLoader returned the value {:?} when it should still polling the storage",
-                next
-            );
-        }
+        time::timeout(Duration::from_millis(10), loader.try_next())
+            .await
+            .expect_err("MessageLoader should still polling the storage");
     }
 
     #[test_case(TestRingBuffer::default())]
@@ -408,7 +397,7 @@ mod tests {
         // add an element to the state
         let insert = async move {
             // wait to make sure that stream is polled initially
-            time::delay_for(Duration::from_secs(2)).await;
+            time::sleep(Duration::from_millis(100)).await;
 
             // insert element once stream is polled
             {
@@ -417,6 +406,6 @@ mod tests {
             }
         };
 
-        join(poll_stream, insert).await;
+        future::join(poll_stream, insert).await;
     }
 }

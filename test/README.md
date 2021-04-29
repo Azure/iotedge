@@ -46,7 +46,8 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `tempFilterImage` | * | Docker image to pull/use for the temperature filter module. Required when running the test 'TempFilter', ignored otherwise.|
 | `tempSensorImage` || Docker image to pull/use for the temperature sensor module (see the test 'TempSensor'). If not given, `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` is used.|
 | `numberLoggerImage` || Docker image to pull/use for the Edge agent direct method tests. Used to generate predictable logs. |
-| `testResultCoordinatorImage` | * | TestResultCoordinator image to be used. Required when running PriorityQueue tests, ignored otherwise.|
+| `testResultCoordinatorImage` | * | TestResultCoordinator image to be used. Required when running PriorityQueue or GenericMqtt tests, ignored otherwise.|
+| `genericMqttTesterImage` | * | GenericMqttTester image to be used. Required when running GenericMqtt tests, ignored otherwise.
 | `testTimeoutMinutes` || The maximum amount of time, in minutes, a single test should take. If this time is exceeded, the associated test will fail with a timeout error. If not given, the default value is `5`. |
 | `verbose` || Boolean value indicating whether to output more verbose logging information to standard output during a test run. If not given, the default is `false`. |
 

@@ -10,7 +10,8 @@ use futures_util::{
     stream::{Fuse, FusedStream},
     StreamExt,
 };
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{debug, error, info};
 
 use mqtt_broker::sidecar::{Sidecar, SidecarShutdownHandle, SidecarShutdownHandleError};
@@ -35,7 +36,7 @@ pub struct BridgeController {
     device_id: String,
     settings: BridgeSettings,
     handle: BridgeControllerHandle,
-    messages: Fuse<UnboundedReceiver<BridgeControllerMessage>>,
+    messages: Fuse<UnboundedReceiverStream<BridgeControllerMessage>>,
 }
 
 impl BridgeController {
@@ -48,7 +49,7 @@ impl BridgeController {
             device_id,
             settings,
             handle,
-            messages: updates_receiver.fuse(),
+            messages: UnboundedReceiverStream::new(updates_receiver).fuse(),
         }
     }
 

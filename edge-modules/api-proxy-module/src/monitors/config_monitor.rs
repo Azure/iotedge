@@ -2,19 +2,15 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
 use chrono::Utc;
-use futures_util::future::Either;
+use futures_util::{future::Either, pin_mut, StreamExt};
 use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle};
 
-use super::config_parser;
-use super::file;
-use super::shutdown_handle;
-use super::token_manager;
-
 use azure_iot_mqtt::{module::Client, Transport::Tcp, TwinProperties};
-use config_parser::ConfigParser;
-use shutdown_handle::ShutdownHandle;
-use token_manager::TokenManager;
+
+use crate::monitors::{
+    config_parser::ConfigParser, file, shutdown_handle::ShutdownHandle, token_manager::TokenManager,
+};
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
@@ -46,7 +42,6 @@ pub fn start(
     mut client: Client,
     notify_received_config: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
-    use futures_util::StreamExt;
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
@@ -59,17 +54,17 @@ pub fn start(
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         loop {
             let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
+            pin_mut!(wait_shutdown);
             let get_new_sas_token = token_manager.poll_new_sas_token(
                 Utc::now(),
                 chrono::Duration::seconds(TOKEN_VALIDITY_SECONDS),
                 chrono::Duration::seconds(TOKEN_EXPIRY_SECONDS_MARGIN),
             );
-            futures::pin_mut!(get_new_sas_token);
-            let reload_config = futures::future::select(get_new_sas_token, client.next());
+            pin_mut!(get_new_sas_token);
+            let reload_config = futures_util::future::select(get_new_sas_token, client.next());
 
             let parse_config_request =
-                match futures::future::select(wait_shutdown, reload_config).await {
+                match futures_util::future::select(wait_shutdown, reload_config).await {
                     Either::Left(_) => {
                         warn!("Shutting down config monitor!");
                         return Ok(());
@@ -115,7 +110,7 @@ pub fn start(
             if parse_config_request {
                 match parse_config(&config_parser) {
                     //Notify watchdog config is there
-                    Ok(()) => notify_received_config.notify(),
+                    Ok(()) => notify_received_config.notify_one(),
                     Err(error) => error!("Error while parsing default config: {}", error),
                 };
             };
