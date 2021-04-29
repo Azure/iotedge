@@ -5,7 +5,7 @@ parameters:
 
 steps:
   - task: Docker@2
-    displayName: Build image for $(module.path)
+    displayName: Build amd64 image for ${{ parameters['module.name'] }}
     inputs:
       repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
       command: buildAndPush
@@ -14,7 +14,7 @@ steps:
       buildContext: ${{ parameters['module.path'] }}/target
       tags: $(Build.BuildNumber)-linux-amd64
   - task: Docker@2
-    displayName: Build image for $(module.path)
+    displayName: Build arm32 image for ${{ parameters['module.name'] }}
     inputs:
       repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
       command: buildAndPush
@@ -23,7 +23,7 @@ steps:
       buildContext: ${{ parameters['module.path'] }}/target
       tags: $(Build.BuildNumber)-linux-amd64
   - task: Docker@2
-    displayName: Build image for $(module.path)
+    displayName: Build arm64 image for ${{ parameters['module.name'] }}
     inputs:
       repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
       command: buildAndPush
