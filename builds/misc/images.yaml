@@ -222,7 +222,7 @@ jobs:
   - job: Rust test modules
 ################################################################################
     timeoutInMinutes: 180
-    displayName: Rust test modules
+    displayName: RustTestModules
     pool:
       vmImage: 'ubuntu-18.04'
     steps:
