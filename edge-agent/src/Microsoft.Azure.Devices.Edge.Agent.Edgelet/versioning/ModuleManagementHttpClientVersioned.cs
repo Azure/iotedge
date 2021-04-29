@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
                 since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
                 until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
-                tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
+                // tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
                 var logsUri = new Uri(logsUrl.ToString());
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
                 Stream stream = await this.Execute(
@@ -104,7 +104,60 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                         return await httpResponseMessage.Content.ReadAsStreamAsync();
                     },
                     $"Get logs for {module}");
-                return stream;
+                //return stream;
+                return tail.Match(
+                t =>
+                {
+                    // Implement my own tail:
+                    // 1. Seek to the end of the stream, find t-number of newline backwards from the end
+                    // 2. Move the seek cursor to the beginning of the t-number of line
+                    int count = 0;
+                    byte[] buffer = new byte[1];
+                    bool isBeyondStream = false;
+
+                    // read to the end.
+                    stream.Seek(0, SeekOrigin.End);
+
+                    // read backwards (t+1) lines
+                    while (count <= t)
+                    {
+                        try
+                        {
+                            stream.Seek(-1, SeekOrigin.Current);
+                        }
+                        catch (IOException)
+                        {
+                            // this can happen if the seek goes beyond the beginning of the stream
+                            isBeyondStream = true;
+                            break;
+                        }
+
+                        stream.Read(buffer, 0, 1);
+                        if (buffer[0] == '\n')
+                        {
+                            count++;
+                        }
+
+                        // fs.Read(...) advances the position, so we need to go back again
+                        stream.Seek(-1, SeekOrigin.Current); 
+                    }
+
+                    if (!isBeyondStream)
+                    {
+                        // go past the last '\n'
+                        stream.Seek(1, SeekOrigin.Current);
+                    }
+                    else
+                    {
+                        stream.Seek(0, SeekOrigin.Begin);
+                    }
+
+                    return stream;
+                },
+                () =>
+                {
+                    return stream;
+                });
             }
         }
 

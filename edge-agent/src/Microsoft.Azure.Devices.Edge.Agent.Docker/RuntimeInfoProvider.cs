@@ -89,9 +89,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 ShowStdout = true
             };
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
-            tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
+            // tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
+            // return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
 
-            return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
+            Task<Stream> sinceResult = this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
+
+            return tail.Match(
+                t =>
+                {
+                    // Implement my own tail:
+                    // 1. Seek to the end of the stream, find t-number of newline backwards from the end
+                    // 2. Move the seek cursor to the beginning of the t-number of line
+                    using (Stream stream = sinceResult.Result)
+                    {
+                        int count = 0;
+                        byte[] buffer = new byte[1];
+                        bool isBeyondStream = false;
+
+                        // read to the end.
+                        stream.Seek(0, SeekOrigin.End);
+
+                        // read backwards (t+1) lines
+                        while (count <= t)
+                        {
+                            try
+                            {
+                                stream.Seek(-1, SeekOrigin.Current);
+                            }
+                            catch (IOException)
+                            {
+                                // this can happen if the seek goes beyond the beginning of the stream
+                                isBeyondStream = true;
+                                break;
+                            }
+
+                            stream.Read(buffer, 0, 1);
+                            if (buffer[0] == '\n')
+                            {
+                                count++;
+                            }
+
+                            // fs.Read(...) advances the position, so we need to go back again
+                            stream.Seek(-1, SeekOrigin.Current); 
+                        }
+
+                        if (!isBeyondStream)
+                        {
+                            // go past the last '\n'
+                            stream.Seek(1, SeekOrigin.Current);
+                        }
+                        else
+                        {
+                            stream.Seek(0, SeekOrigin.Begin);
+                        }
+
+                        return Task.Run(() => stream);
+                    }
+                },
+                () =>
+                {
+                    return sinceResult;
+                });
         }
 
         public Task<SystemInfo> GetSystemInfo(CancellationToken token) => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));

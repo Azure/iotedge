@@ -116,7 +116,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
             return bytesRead;
         }
 
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotImplementedException();
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            if (this.eos)
+            {
+                return 0;
+            }
+
+            if (this.chunkBytes == 0)
+            {
+                string line = this.stream.ReadLine();
+                if (!int.TryParse(line, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out this.chunkBytes))
+                {
+                    throw new IOException($"Cannot parse chunk header - {line}");
+                }
+            }
+
+            // Chunking along in a chunky manner.
+            return this.stream.Seek( offset*this.chunkBytes, origin);
+        }
 
         public override void SetLength(long value) => throw new NotImplementedException();
 
