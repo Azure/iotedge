@@ -6,7 +6,7 @@ homedir_path = "/var/lib/aziot/keyd"
 
 [preloaded_keys]
 device-id = "file:///var/secrets/aziot/keyd/device-id"
-est-bootstrap-id-device-id = "file:///var/secrets/est-bootstrap-id.key.pem"
+est-bootstrap-id-aziot-edged-ca = "file:///var/secrets/est-bootstrap-id.key.pem"
 
 [[principal]]
 uid = 5556
@@ -18,4 +18,4 @@ keys = ["aziot-edged-ca", "iotedge_master_encryption_id"]
 
 [[principal]]
 uid = 5555
-keys = ["aziot-edged-ca", "est-bootstrap-id-device-id", "est-id-device-id"]
+keys = ["aziot-edged-ca", "est-bootstrap-id-aziot-edged-ca", "est-id-aziot-edged-ca"]
