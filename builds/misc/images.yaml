@@ -29,7 +29,6 @@ jobs:
         displayName: Build ($(Build.Configuration)) dotnet artifacts
 
       - template: templates/build-broker-watchdog.yaml
-      - template: templates/consolidate-build-artifacts.yaml
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
@@ -226,16 +225,11 @@ jobs:
     pool:
       vmImage: 'ubuntu-18.04'
     steps:
-      - template: templates/build-rust-test-modules.yaml
-      - task: Docker@2
-        displayName: Build amd64 image
-        inputs:
-          repository: azureiotedge/generic-mqtt-tester
-          command: buildAndPush
-          containerRegistry: iotedge-edgebuilds-acr
-          Dockerfile: test/modules/generic-mqtt-tester/docker/linux/amd64/Dockerfile
-          buildContext: test/modules/generic-mqtt-tester/target
-          tags: $(Build.BuildNumber)-linux-amd64
+      - template: templates/rust-test-module-build.yaml
+      - template: templates/rust-test-module-images.yaml
+        parameters:
+          module.path: 'test/modules/generic-mqtt-tester'
+          module.name: 'generic-mqtt-tester'
 
 ################################################################################
   - job: manifest
