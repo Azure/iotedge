@@ -4,7 +4,6 @@ parameters:
   module.name: ''
 
 steps:
-  - template: templates/rust-test-module-build.yaml
   - task: Docker@2
     displayName: Build image for $(module.path)
     inputs:
