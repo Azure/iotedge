@@ -10,8 +10,8 @@ $util = Join-Path -Path $PSScriptRoot -ChildPath "util.ps1"
 
 Assert-Rust -Arm:$Arm
 
-# # Bring in openssl install function
-# $openssl = Join-Path -Path $PSScriptRoot -ChildPath "openssl.ps1"
-# . $openssl
+# Bring in openssl install function
+$openssl = Join-Path -Path $PSScriptRoot -ChildPath "openssl.ps1"
+. $openssl
 
-# Get-OpenSSL -Arm:$Arm
+Get-OpenSSL -Arm:$Arm
