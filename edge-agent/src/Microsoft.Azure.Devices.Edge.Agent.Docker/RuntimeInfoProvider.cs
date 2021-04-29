@@ -100,51 +100,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     // Implement my own tail:
                     // 1. Seek to the end of the stream, find t-number of newline backwards from the end
                     // 2. Move the seek cursor to the beginning of the t-number of line
-                    using (Stream stream = sinceResult.Result)
+                    int count = 0;
+                    byte[] buffer = new byte[1];
+                    bool isBeyondStream = false;
+
+                    Stream stream = new MemoryStream();
+                    // make stream seekable
+                    sinceResult.Result.CopyTo(stream);
+
+                    // read to the end.
+                    stream.Seek(0, SeekOrigin.End);
+
+                    // read backwards (t+1) lines
+                    while (count <= t)
                     {
-                        int count = 0;
-                        byte[] buffer = new byte[1];
-                        bool isBeyondStream = false;
-
-                        // read to the end.
-                        stream.Seek(0, SeekOrigin.End);
-
-                        // read backwards (t+1) lines
-                        while (count <= t)
+                        try
                         {
-                            try
-                            {
-                                stream.Seek(-1, SeekOrigin.Current);
-                            }
-                            catch (IOException)
-                            {
-                                // this can happen if the seek goes beyond the beginning of the stream
-                                isBeyondStream = true;
-                                break;
-                            }
-
-                            stream.Read(buffer, 0, 1);
-                            if (buffer[0] == '\n')
-                            {
-                                count++;
-                            }
-
-                            // fs.Read(...) advances the position, so we need to go back again
-                            stream.Seek(-1, SeekOrigin.Current); 
+                            stream.Seek(-1, SeekOrigin.Current);
+                        }
+                        catch (IOException)
+                        {
+                            // this can happen if the seek goes beyond the beginning of the stream
+                            isBeyondStream = true;
+                            break;
                         }
 
-                        if (!isBeyondStream)
+                        stream.Read(buffer, 0, 1);
+                        if (buffer[0] == '\n')
                         {
-                            // go past the last '\n'
-                            stream.Seek(1, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            stream.Seek(0, SeekOrigin.Begin);
+                            count++;
                         }
 
-                        return Task.Run(() => stream);
+                        // fs.Read(...) advances the position, so we need to go back again
+                        stream.Seek(-1, SeekOrigin.Current); 
                     }
+
+                    if (!isBeyondStream)
+                    {
+                        // go past the last '\n'
+                        stream.Seek(1, SeekOrigin.Current);
+                    }
+                    else
+                    {
+                        stream.Seek(0, SeekOrigin.Begin);
+                    }
+
+                    return Task.Run(() => stream);
                 },
                 () =>
                 {

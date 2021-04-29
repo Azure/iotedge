@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 // tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
                 var logsUri = new Uri(logsUrl.ToString());
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
-                Stream stream = await this.Execute(
+                Stream fullStream = await this.Execute(
                     async () =>
                     {
                         HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -114,6 +114,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                     int count = 0;
                     byte[] buffer = new byte[1];
                     bool isBeyondStream = false;
+
+                    Stream stream = new MemoryStream();
+                    fullStream.CopyTo(stream);
 
                     // read to the end.
                     stream.Seek(0, SeekOrigin.End);
@@ -156,7 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 },
                 () =>
                 {
-                    return stream;
+                    return fullStream;
                 });
             }
         }
