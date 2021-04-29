@@ -219,10 +219,10 @@ jobs:
           dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
 
 ################################################################################
-  - job: Rust test modules
+  - job: RustTestModules
 ################################################################################
     timeoutInMinutes: 180
-    displayName: RustTestModules
+    displayName: Rust Test Modules
     pool:
       vmImage: 'ubuntu-18.04'
     steps:
