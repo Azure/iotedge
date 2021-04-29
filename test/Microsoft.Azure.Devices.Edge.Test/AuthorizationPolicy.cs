@@ -3,13 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -29,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// </summary>
         /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
+        [Category("BrokerRequired")]
         public async Task AuthorizationPolicyUpdateTest()
         {
             CancellationToken token = this.TestToken;
@@ -184,6 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         /// </summary>
         /// <returns><see cref="Task"/> representing the asynchronous unit test.</returns>
         [Test]
+        [Category("BrokerRequired")]
         public async Task AuthorizationPolicyExplicitPolicyTest()
         {
             CancellationToken token = this.TestToken;

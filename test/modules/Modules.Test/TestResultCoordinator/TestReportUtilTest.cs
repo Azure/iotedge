@@ -6,7 +6,6 @@ namespace Modules.Test.TestResultCoordinator
     using System.Threading.Tasks;
     using global::TestResultCoordinator;
     using global::TestResultCoordinator.Reports;
-    using global::TestResultCoordinator.Reports.DirectMethod;
     using global::TestResultCoordinator.Reports.DirectMethod.Connectivity;
     using global::TestResultCoordinator.Reports.DirectMethod.LongHaul;
     using global::TestResultCoordinator.Reports.EdgeHubRestartTest;
@@ -541,7 +540,7 @@ namespace Modules.Test.TestResultCoordinator
         {
             if (!throwException)
             {
-                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
+                return Task.FromResult<ITestResultReport>(new CountingReport("mock", "mock", "mock", "mock", "mock", 23, 21, 12, 0, 0, new List<TestOperationResult>(), Option.None<EventHubSpecificReportComponents>(), Option.None<DateTime>()));
             }
 
             return Task.FromException<ITestResultReport>(new ApplicationException("Inject exception for testing"));
