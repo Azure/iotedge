@@ -29,8 +29,6 @@ jobs:
         displayName: Build ($(Build.Configuration)) dotnet artifacts
 
       - template: templates/build-broker-watchdog.yaml
-      - template: templates/build-rust-test-modules.yaml
-
       - template: templates/consolidate-build-artifacts.yaml
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
@@ -189,13 +187,6 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
-     # Generic Mqtt Tester
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Generic Mqtt Tester
-          imageName: azureiotedge-generic-mqtt-tester
-          project: generic-mqtt-tester
-
 ################################################################################
   - job: linux_API_proxy_module
 ################################################################################
@@ -226,6 +217,25 @@ jobs:
       - task: ComponentGovernanceComponentDetection@0
         inputs:
           dockerImagesToScan: '$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-amd64,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm32v7,$(registry.address)/microsoft/azureiotedge-api-proxy:$(Build.BuildNumber)-linux-arm64v8'
+
+################################################################################
+  - job: Rust test modules
+################################################################################
+    timeoutInMinutes: 180
+    displayName: Rust test modules
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+      - template: templates/build-rust-test-modules.yaml
+      - task: Docker@2
+        displayName: Build amd64 image
+        inputs:
+          repository: azureiotedge/generic-mqtt-tester
+          command: buildAndPush
+          containerRegistry: iotedge-edgebuilds-acr
+          Dockerfile: test/modules/generic-mqtt-tester/docker/linux/amd64/Dockerfile
+          buildContext: test/modules/generic-mqtt-tester/target
+          tags: $(Build.BuildNumber)-linux-amd64
 
 ################################################################################
   - job: manifest
