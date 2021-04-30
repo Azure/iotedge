@@ -132,7 +132,7 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     };
 
     // wait for all the bits to get done and then build report and alert
-    let all_futures: Vec<Box<Future<Item = (), Error = Error> + Send>> =
+    let all_futures: Vec<Box<dyn Future<Item = (), Error = Error> + Send>> =
         vec![Box::new(add_log_files), Box::new(get_analysis)];
     let report_copy = report.clone();
     future::join_all(all_futures)

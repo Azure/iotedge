@@ -87,15 +87,15 @@ HSM_CLIENT_HANDLE edge_x598_hsm_create()
     }
     else
     {
-        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-        if (interface == NULL)
+        const HSM_CLIENT_CRYPTO_INTERFACE* iface = hsm_client_crypto_interface();
+        if (iface == NULL)
         {
             LOG_ERROR("hsm_client_crypto_interface returned NULL");
             result = NULL;
         }
         else
         {
-            result = interface->hsm_client_crypto_create();
+            result = iface->hsm_client_crypto_create();
             if (result != NULL)
             {
                 g_ref_cnt++;
@@ -124,14 +124,14 @@ void edge_x509_hsm_destroy(HSM_CLIENT_HANDLE hsm_handle)
         }
         else
         {
-            const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-            if (interface == NULL)
+            const HSM_CLIENT_CRYPTO_INTERFACE* iface = hsm_client_crypto_interface();
+            if (iface == NULL)
             {
                 LOG_ERROR("hsm_client_crypto_interface returned NULL");
             }
             else
             {
-                interface->hsm_client_crypto_destroy(hsm_handle);
+                iface->hsm_client_crypto_destroy(hsm_handle);
             }
             g_ref_cnt--;
         }
@@ -173,9 +173,9 @@ static int get_device_id_cert_env_vars(char **device_cert_file_path, char **devi
 
 static CERT_INFO_HANDLE get_device_id_cert_if_exists(HSM_CLIENT_HANDLE hsm_handle)
 {
-    const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
+    const HSM_CLIENT_CRYPTO_INTERFACE* iface = hsm_client_crypto_interface();
 
-    CERT_INFO_HANDLE result = interface->hsm_client_crypto_get_certificate(hsm_handle,
+    CERT_INFO_HANDLE result = iface->hsm_client_crypto_get_certificate(hsm_handle,
                                                                            EDGE_DEVICE_ALIAS);
     if (result == NULL)
     {
@@ -273,8 +273,8 @@ static int edge_x509_sign_with_private_key
     }
     else
     {
-        const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-        result = interface->hsm_client_crypto_sign_with_private_key(hsm_handle,
+        const HSM_CLIENT_CRYPTO_INTERFACE* iface = hsm_client_crypto_interface();
+        result = iface->hsm_client_crypto_sign_with_private_key(hsm_handle,
                                                                     EDGE_DEVICE_ALIAS,
                                                                     data,
                                                                     data_size,
