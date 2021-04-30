@@ -110,6 +110,7 @@ jobs:
       demands:
         - agent.os -equals Linux
         - agent.osarchitecture -equals X64
+        - ImageOverride -equals azure-iot-edge-ubuntu-20.04-test-image
     strategy:
       matrix:
         CBL-Mariner1.0-amd64:
