@@ -119,7 +119,7 @@ steps:
     $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
     $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.crt"
     $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
-    Write-Output "##vso[task.setvariable variable=certsDir]$manifestSigningCertDir"
+    Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
   displayName: Build Manifest Signer Client and set up certificates
   env:
     ROOT_CA_CERT: $(TestManifestSigningRootCa)
