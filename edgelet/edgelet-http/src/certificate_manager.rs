@@ -145,14 +145,13 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
     fn create_cert(&self) -> Result<Certificate, Error> {
         // remove any certificate with this alias (if it exists),
         // then create the new certificate.
-        let cert = {
-            self.crypto
-                .destroy_certificate(self.props.alias().to_string())
-                .with_context(|_| ErrorKind::CertificateDeletionError)?;
-            self.crypto
-                .create_certificate(&self.props)
-                .with_context(|_| ErrorKind::CertificateCreationError)?
-        };
+        self.crypto
+            .destroy_certificate(self.props.alias().to_string())
+            .with_context(|_| ErrorKind::CertificateDeletionError)?;
+        let cert = self
+            .crypto
+            .create_certificate(&self.props)
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
 
         let cert_pem = cert
             .pem()
