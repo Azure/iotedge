@@ -108,7 +108,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 return tail.Match(
                 t =>
                 {
-                    return DockerLogHelper.GetLogTail(fullStream, t).Result;
+                    if (until.HasValue)
+                    {
+                        return DockerLogHelper.GetLogTail(fullStream, t).Result;
+                    }
+                    else
+                    {
+                        return fullStream;
+                    }
                 },
                 () =>
                 {

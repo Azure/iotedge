@@ -83,6 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
             // BEARWASHERE -- RuntimeInfoProvider
+            // Remark: ContainerLogsParameters class does not support 'until'
             var containerLogsParameters = new ContainerLogsParameters
             {
                 Follow = follow,
