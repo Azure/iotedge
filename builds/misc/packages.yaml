@@ -67,6 +67,7 @@ jobs:
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
       # Ensure any changes here are replicated in packages.slow.yaml
+      - bash: env
 
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
