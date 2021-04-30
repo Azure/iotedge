@@ -19,6 +19,7 @@ jobs:
       demands:
         - agent.os -equals Linux
         - agent.osarchitecture -equals X64
+        - ImageOverride -equals temp-ubuntu-18.04
     strategy:
       matrix:
         Centos75-amd64:
