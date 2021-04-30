@@ -315,7 +315,7 @@ mod tests {
     use hyper::{Body, Method, Request, StatusCode};
     use maplit::btreemap;
     use serde_json::json;
-    use tokio::runtime::Runtime;
+    use tokio::runtime::current_thread::Runtime;
 
     use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
     use edgelet_core::{ImagePullPolicy, ModuleSpec, RuntimeOperation};
