@@ -230,7 +230,7 @@ steps:
       $context['testManifestSigningIntermediateCaPath'] = '$(testManifestSigningIntermediateCaPath)'
       $context['testManifestSigningSignerCertPath'] = '$(testManifestSigningSignerCertPath)'
       $context['testManifestSigningSignerKeyPath'] = '$testManifestSigningSignerKeyPath'
-      $context[''] = $env:ALGORITHM
+      $context['testManifestSigningSignerAlgorithm'] = $env:ALGORITHM
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
