@@ -19,7 +19,6 @@ jobs:
       demands:
         - agent.os -equals Linux
         - agent.osarchitecture -equals X64
-        - ImageOverride -equals temp-ubuntu-18.04
     strategy:
       matrix:
         Centos75-amd64:
@@ -108,12 +107,10 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: ubuntu-18.04
-      # name: $(pool.name)
-      # demands:
-      #   - agent.os -equals Linux
-      #   - agent.osarchitecture -equals X64
-      #   - ImageOverride -equals azure-iot-edge-ubuntu-20.04-test-image
+      name: $(pool.name)
+      demands:
+        - agent.os -equals Linux
+        - agent.osarchitecture -equals X64
     strategy:
       matrix:
         CBL-Mariner1.0-amd64:
