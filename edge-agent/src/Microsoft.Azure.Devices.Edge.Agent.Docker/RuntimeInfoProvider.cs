@@ -82,26 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
-            // BEARWASHERE -- RuntimeInfoProvider
-            // Remark: ContainerLogsParameters class does not support 'until'
             var containerLogsParameters = new ContainerLogsParameters
             {
                 Follow = follow,
                 ShowStderr = true,
                 ShowStdout = true
             };
+            tail.ForEach(t => containerLogsParameters.Tail = t.ToString());
             since.ForEach(t => containerLogsParameters.Since = t.ToString());
 
-            Task<Stream> sinceResult = this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
-            return tail.Match(
-                t =>
-                {
-                    return DockerLogHelper.GetLogTail(sinceResult.Result, t);
-                },
-                () =>
-                {
-                    return sinceResult;
-                });
+            return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
 
         public Task<SystemInfo> GetSystemInfo(CancellationToken token) => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
