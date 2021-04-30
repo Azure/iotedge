@@ -192,19 +192,6 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - ImageOverride -equals agent-aziotedge-winserver-2019-build
     steps:
-      - powershell: |
-          $VsPath = 'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools'
-          Import-Module "$VsPath\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-          Enter-VsDevShell -VsInstallPath $VsPath
-          Get-Command cmake
-          cmake --version
-        displayName: Is CMake available inside developer command prompt environment?
-
-      - powershell: |
-          Get-Command cmake
-          cmake --version
-        displayName: Is CMake available outside of developer command prompt environment?
-
       - powershell: ls env:/
         displayName: Dump environment
 
