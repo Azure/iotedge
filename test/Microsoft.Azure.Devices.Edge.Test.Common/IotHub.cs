@@ -18,15 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         readonly string eventHubEndpoint;
         readonly string iotHubConnectionString;
+        readonly Option<string> manifestSigningFlag;
         readonly Lazy<RegistryManager> registryManager;
         readonly Lazy<ServiceClient> serviceClient;
         readonly Lazy<EventHubClient> eventHubClient;
 
-        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri)
+        public IotHub(string iotHubConnectionString, string eventHubEndpoint, Option<Uri> proxyUri, Option<string> manifestSigningFlag)
         {
             this.eventHubEndpoint = eventHubEndpoint;
             this.iotHubConnectionString = iotHubConnectionString;
             Option<IWebProxy> proxy = proxyUri.Map(p => new WebProxy(p) as IWebProxy);
+            this.manifestSigningFlag = manifestSigningFlag;
 
             this.registryManager = new Lazy<RegistryManager>(
                 () =>
@@ -130,7 +132,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public Task DeployDeviceConfigurationAsync(
             string deviceId,
             ConfigurationContent config,
-            CancellationToken token) => this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
+            CancellationToken token)
+        {
+            if (this.manifestSigningFlag == Option.Some("true"))
+            {
+                // wrtie config to file
+                // update the path to launchsettings
+                // update the path of a location where the signed manifest wuld go
+                // dotnet run manifestclient
+                // read back and update the config
+            }
+            return this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
+        }
 
         public Task<Twin> GetTwinAsync(
             string deviceId,

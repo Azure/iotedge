@@ -119,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.NestedEdge = context.GetValue("nestededge", false);
             this.DeviceId = Option.Maybe(Get("deviceId"));
             this.ISA95Tag = context.GetValue("isa95Tag", false);
+            this.ManifestSigningFlag = Option.Maybe(Get("manifestSigningFlag"));
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -202,5 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public bool NestedEdge { get; }
 
         public bool ISA95Tag { get; }
+
+        public Option<string> ManifestSigningFlag { get; }
     }
 }
