@@ -65,7 +65,7 @@ impl TokenManager {
                     .unwrap_or(0);
 
                 let delay_seconds = tokio::time::Duration::from_secs(delay_seconds);
-                time::delay_for(delay_seconds).await;
+                time::sleep(delay_seconds).await;
             } else {
                 error!("Token has expired before API proxy was able to request a new one. Requesting a new SAS token now");
             }

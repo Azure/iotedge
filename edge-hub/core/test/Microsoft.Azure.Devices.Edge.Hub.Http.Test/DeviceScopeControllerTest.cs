@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             string generationId = "generation1";
             var authentication = new ServiceAuthentication(new SymmetricKeyAuthentication(this.primaryKey, this.secondaryKey));
             var resultDeviceIdentity = new ServiceIdentity(deviceId, null, deviceScope, new List<string>() { parentScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
-            var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>() { deviceScope }, generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
+            var resultModuleIdentity = new ServiceIdentity(deviceId, moduleId, null, new List<string>(), generationId, Enumerable.Empty<string>(), authentication, ServiceIdentityStatus.Enabled);
             var resultIdentities = new List<ServiceIdentity>() { resultDeviceIdentity, resultModuleIdentity };
             var authChainMapping = new Dictionary<string, string>();
             authChainMapping.Add(childEdgeId, "edge2;edge1;edgeroot");

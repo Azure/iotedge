@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         string GetActorDeviceId();
 
-        Task InsertOrUpdate(ServiceIdentity identity);
+        Task<bool> AddOrUpdate(ServiceIdentity identity);
 
         Task Remove(string id);
 

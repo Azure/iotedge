@@ -1,4 +1,4 @@
-//! `tokio::time::delay_for` and `tokio::time::delay_until` has a bug that
+//! `tokio::time::sleep` and `tokio::time::delay_until` has a bug that
 //! prevents to schedule a very long timeout (more than 2 years).
 //! To mitigate this issue we split a long interval by the number
 //! of small intervals and schedule small intervals and waits a small one until
@@ -9,10 +9,12 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
+    time::Duration,
 };
 
-use futures_util::{ready, FutureExt};
-use tokio::time::{self, Delay, Duration, Instant};
+use futures_util::ready;
+use pin_project::pin_project;
+use tokio::time::{self, Instant, Sleep as TokioSleep};
 
 const DEFAULT_DURATION: Duration = Duration::from_secs(30 * 24 * 60 * 60); // 30 days
 
@@ -25,33 +27,37 @@ pub fn sleep(duration: Duration) -> Sleep {
 pub fn sleep_until(deadline: Instant) -> Sleep {
     Sleep {
         deadline,
-        delay: next_delay(deadline, DEFAULT_DURATION),
+        delay: time::sleep_until(next_deadline(deadline, DEFAULT_DURATION)),
     }
 }
 
-/// A future returned by `sleep` and `sleep_until`
+/// A future returned by `sleep` and `sleep_until`.
+#[pin_project]
 pub struct Sleep {
     deadline: Instant,
-    delay: Delay,
+
+    #[pin]
+    delay: TokioSleep,
 }
 
 impl Future for Sleep {
     type Output = ();
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        ready!(self.delay.poll_unpin(cx));
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut this = self.project();
+        ready!(this.delay.as_mut().poll(cx));
 
-        if Instant::now() >= self.deadline {
+        if Instant::now() >= *this.deadline {
             Poll::Ready(())
         } else {
-            self.delay = next_delay(self.deadline, DEFAULT_DURATION);
-            cx.waker().wake_by_ref();
+            let deadline = next_deadline(*this.deadline, DEFAULT_DURATION);
+            this.delay.reset(deadline);
+
             Poll::Pending
         }
     }
 }
 
-fn next_delay(deadline: Instant, duration: Duration) -> Delay {
-    let delay = cmp::min(deadline, Instant::now() + duration);
-    time::delay_until(delay)
+fn next_deadline(deadline: Instant, duration: Duration) -> Instant {
+    cmp::min(deadline, Instant::now() + duration)
 }

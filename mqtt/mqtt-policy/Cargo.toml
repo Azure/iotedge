@@ -15,7 +15,7 @@ mqtt3 = { path = "../mqtt3" }
 policy = { path = "../policy" }
 
 [dev-dependencies]
-assert_matches = "1.3"
-bytes = "0.5"
-proptest = "0.9"
-test-case = "1.0"
+assert_matches = "1.5"
+bytes = "1.0"
+proptest = "1.0"
+test-case = "1.1"

@@ -266,7 +266,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             Assert.Equal(0UL, report.TotalExpectCount);
             Assert.Equal(0UL, report.TotalMatchCount);
-            Assert.Equal(0UL, report.TotalDuplicateResultCount);
+            Assert.Equal(0UL, report.TotalDuplicateActualResultCount);
             Assert.Equal(0, report.UnmatchedResults.Count);
         }
 

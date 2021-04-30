@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Threading;
@@ -84,6 +85,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     ArgumentList = { "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
                 }
             };
+
+            if (Context.Current.EdgeProxy.HasValue)
+            {
+                // When test runs behind proxy, skip MQTT and AMQP checks which legitimately fail
+                new List<string>
+                {
+                    "--dont-run",
+                    "container-connect-upstream-mqtt", "container-connect-upstream-amqp",
+                    "container-default-connect-upstream-mqtt", "container-default-connect-upstream-amqp",
+                    "host-connect-iothub-mqtt", "host-connect-iothub-amqp"
+                }.ForEach(arg => iotedgeCheckProcess.StartInfo.ArgumentList.Add(arg));
+            }
+
             string errors_number = string.Empty;
             iotedgeCheckProcess.Start();
             await Task.Run(() =>
@@ -100,10 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
             });
 
-            // TODO: iotedge check currently has 2 legitimate errors in it. When we update the aziot-submodule, the errors
-            // will go away, and we should change this assertion to empty string instead of passing on 2 errors.
-            // This is better than disabling the test, because it still tests iotedge check to some extent, and it will
-            // remind us with a failed run to update this test.
             Assert.AreEqual(string.Empty, errors_number);
         }
     }

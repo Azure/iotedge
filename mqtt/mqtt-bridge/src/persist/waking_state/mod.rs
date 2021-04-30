@@ -187,7 +187,8 @@ mod tests {
 
     #[test_case(TestRingBuffer::default())]
     #[test_case(TestWakingMemoryStore::default())]
-    fn remove_loaded(mut state: impl StreamWakeableState) {
+    #[tokio::test]
+    async fn remove_loaded(mut state: impl StreamWakeableState) {
         let pub1 = Publication {
             topic_name: "1".to_string(),
             qos: QoS::ExactlyOnce,
@@ -289,7 +290,7 @@ mod tests {
             if mut_self.should_return_pending {
                 mut_self.should_return_pending = false;
                 state.set_waker(cx.waker());
-                mut_self.notify.notify();
+                mut_self.notify.notify_one();
                 Poll::Pending
             } else {
                 Poll::Ready(Some(1))

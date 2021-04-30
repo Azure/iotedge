@@ -109,6 +109,8 @@ pub enum ServerCertificateError {
 
 #[cfg(test)]
 mod tests {
+    use std::pin::Pin;
+
     use chrono::{offset::TimeZone, Utc};
     use futures_util::StreamExt;
     use openssl::{
@@ -119,7 +121,7 @@ mod tests {
         io::{AsyncReadExt, AsyncWriteExt},
         net::TcpStream,
     };
-    use tokio_openssl::connect;
+    use tokio_openssl::SslStream;
 
     use super::{parse_openssl_time, ServerCertificate};
     use crate::transport::Transport;
@@ -173,9 +175,11 @@ mod tests {
         let tcp = TcpStream::connect(addr).await.unwrap();
 
         let config = connector.configure().unwrap();
-        let mut tls = connect(config, "localhost", tcp).await.unwrap();
+        let ssl = config.into_ssl("localhost").unwrap();
+        let mut tls = SslStream::new(ssl, tcp).unwrap();
+        Pin::new(&mut tls).connect().await.unwrap();
 
-        tls.write(message.as_ref()).await.unwrap();
+        tls.write(message).await.unwrap();
 
         let mut buffer = vec![0; message.len()];
         tls.read(&mut buffer[..]).await.unwrap();

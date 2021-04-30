@@ -7,8 +7,9 @@
 use std::time::Duration;
 
 use bytes::Bytes;
-use futures_util::StreamExt;
+use futures_util::{FutureExt, StreamExt};
 use matches::assert_matches;
+use tokio::time;
 
 use mqtt3::{
     proto::{
@@ -36,7 +37,7 @@ async fn basic_connect_clean_session() {
         .build();
 
     assert_eq!(
-        client.connections().recv().await,
+        client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -62,7 +63,7 @@ async fn basic_connect_existing_session() {
         .build();
 
     assert_eq!(
-        client.connections().recv().await,
+        client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -75,7 +76,7 @@ async fn basic_connect_existing_session() {
         .build();
 
     assert_eq!(
-        client.connections().recv().await,
+        client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: false
         })
@@ -110,19 +111,19 @@ async fn basic_pub_sub() {
     client.publish_qos2(topic, "qos 2", false).await;
 
     assert_matches!(
-        client.subscriptions().recv().await,
+        client.subscriptions().next().await,
         Some(Event::SubscriptionUpdates(_))
     );
     assert_matches!(
-        client.publications().recv().await,
+        client.publications().next().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 0")
     );
     assert_matches!(
-        client.publications().recv().await,
+        client.publications().next().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 1")
     );
     assert_matches!(
-        client.publications().recv().await,
+        client.publications().next().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("qos 2")
     );
 
@@ -158,7 +159,7 @@ async fn retained_messages() {
     client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
     assert_matches!(
-        client.subscriptions().recv().await,
+        client.subscriptions().next().await,
         Some(Event::SubscriptionUpdates(_))
     );
 
@@ -207,10 +208,6 @@ async fn retained_messages() {
 /// - Expects no retain messages in the broker state.
 #[tokio::test]
 async fn retained_messages_zero_payload() {
-    let topic_a = "topic/A";
-    let topic_b = "topic/B";
-    let topic_c = "topic/C";
-
     let broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let mut server_handle = start_server(broker, DummyAuthenticator::anonymous());
@@ -219,18 +216,18 @@ async fn retained_messages_zero_payload() {
         .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests".into()))
         .build();
 
-    client.publish_qos0(topic_a, "r qos 0", true).await;
-    client.publish_qos0(topic_a, "", true).await;
+    client.publish_qos0("topic/A", "r qos 0", true).await;
+    client.publish_qos0("topic/A", "", true).await;
 
-    client.publish_qos1(topic_b, "r qos 1", true).await;
-    client.publish_qos1(topic_b, "", true).await;
+    client.publish_qos1("topic/B", "r qos 1", true).await;
+    client.publish_qos1("topic/B", "", true).await;
 
-    client.publish_qos2(topic_c, "r qos 2", true).await;
-    client.publish_qos2(topic_c, "", true).await;
+    client.publish_qos2("topic/C", "r qos 2", true).await;
+    client.publish_qos2("topic/C", "", true).await;
 
     client.subscribe("topic/+", QoS::ExactlyOnce).await;
 
-    assert_eq!(client.publications().try_recv().ok(), None); // no new message expected.
+    assert!(client.publications().next().now_or_never().is_none()); // no new message expected.
 
     client.shutdown().await;
     let state = server_handle.shutdown().await;
@@ -275,7 +272,7 @@ async fn retained_messages_persisted_on_broker_restart() {
     client.publish_qos2(topic_c, "r qos 2", true).await;
 
     // need to wait till all messages are processed.
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    time::sleep(Duration::from_secs(1)).await;
 
     client.shutdown().await;
     let state = server_handle.shutdown().await;
@@ -332,7 +329,7 @@ async fn will_message() {
 
     client_b.subscribe(topic, QoS::AtLeastOnce).await;
 
-    client_b.subscriptions().recv().await; // wait for SubAck.
+    client_b.subscriptions().next().await; // wait for SubAck.
 
     let mut client_a = TestClientBuilder::new(server_handle.address())
         .with_client_id(ClientId::IdWithCleanSession("mqtt-smoke-tests-a".into()))
@@ -344,13 +341,13 @@ async fn will_message() {
         })
         .build();
 
-    client_a.connections().recv().await; // wait for ConnAck
+    client_a.connections().next().await; // wait for ConnAck
 
     client_a.terminate().await;
 
     // expect will message
     assert_matches!(
-        client_b.publications().recv().await,
+        client_b.publications().next().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
     );
 
@@ -383,7 +380,7 @@ async fn will_message_on_broker_shutdown() {
         .build();
 
     // wait for ConnAck
-    client_a.connections().recv().await;
+    client_a.connections().next().await;
 
     // shutdown broker.
     let state = server_handle.shutdown().await;
@@ -422,7 +419,7 @@ async fn will_message_on_protocol_error() {
 
     client_b.subscribe(topic, QoS::AtLeastOnce).await;
 
-    client_b.subscriptions().recv().await; // wait for SubAck.
+    client_b.subscriptions().next().await; // wait for SubAck.
 
     let mut client_a = PacketStream::connect(
         ClientId::IdWithCleanSession("test-client-a".into()),
@@ -456,7 +453,7 @@ async fn will_message_on_protocol_error() {
 
     // expect will message
     assert_matches!(
-        client_b.publications().recv().await,
+        client_b.publications().next().await,
         Some(ReceivedPublication{payload, .. }) if payload == Bytes::from("will_msg_a")
     );
 
@@ -506,22 +503,19 @@ async fn offline_messages() {
 
     // expects existing session.
     assert_eq!(
-        client_a.connections().recv().await,
+        client_a.connections().next().await,
         Some(Event::NewConnection {
             reset_session: false
         })
     );
 
     // read and map 3 expected publications from the stream
-    let mut events = client_a
+    let events = client_a
         .publications()
         .take(3)
         .map(|p| (p.payload))
         .collect::<Vec<_>>()
         .await;
-
-    // sort by payload for ease of comparison.
-    events.sort();
 
     assert_eq!(3, events.len());
     assert_eq!(events[0], Bytes::from("o qos 0"));
@@ -559,7 +553,7 @@ async fn offline_messages_persisted_on_broker_restart() {
     client_b.publish_qos2(topic_c, "o qos 2", false).await;
 
     // need to wait till all messages are processed.
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    time::sleep(Duration::from_secs(1)).await;
 
     client_b.shutdown().await;
     let state = server_handle.shutdown().await;
@@ -578,22 +572,19 @@ async fn offline_messages_persisted_on_broker_restart() {
 
     // expects existing session.
     assert_eq!(
-        client_a.connections().recv().await,
+        client_a.connections().next().await,
         Some(Event::NewConnection {
             reset_session: false
         })
     );
 
     // read and map 3 expected publications from the stream
-    let mut events = client_a
+    let events = client_a
         .publications()
         .take(3)
         .map(|p| (p.payload))
         .collect::<Vec<_>>()
         .await;
-
-    // sort by payload for ease of comparison.
-    events.sort();
 
     assert_eq!(3, events.len());
     assert_eq!(events[0], Bytes::from("o qos 0"));
@@ -926,19 +917,17 @@ async fn overlapping_subscriptions() {
     client_b.publish_qos1(topic, "overlap qos 1", false).await;
     client_b.publish_qos2(topic, "overlap qos 2", false).await;
 
-    let mut events: Vec<_> = client_a
+    let events: Vec<_> = client_a
         .publications()
         .take(3)
         .map(|p| (p.payload))
         .collect()
         .await;
 
-    // need to wait till all messages are processed.
-    tokio::time::delay_for(Duration::from_secs(1)).await;
-
-    assert_eq!(client_a.publications().try_recv().ok(), None); // no new message expected.
-
-    events.sort();
+    // need to wait till all messages are processed
+    time::timeout(Duration::from_millis(500), client_a.publications().next())
+        .await
+        .expect_err("no messages expected");
 
     assert_eq!(3, events.len());
     assert_eq!(events[0], Bytes::from("overlap qos 0"));

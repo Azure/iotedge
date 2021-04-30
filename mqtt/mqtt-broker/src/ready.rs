@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display, hash::Hash};
 
-use tokio::sync::broadcast::{self, Receiver, RecvError, Sender};
+use tokio::sync::broadcast::{self, error::RecvError, Receiver, Sender};
 use tracing::{debug, error, warn};
 
 /// `BrokerReady` component acts as a intermediate entity to determine whether
@@ -16,14 +16,14 @@ pub struct BrokerReady<E> {
     event_send: Sender<E>,
 }
 
-impl<E> Default for BrokerReady<E> {
+impl<E: Clone> Default for BrokerReady<E> {
     fn default() -> Self {
         let (event_send, _) = broadcast::channel(5);
         Self { event_send }
     }
 }
 
-impl<E> BrokerReady<E> {
+impl<E: Clone> BrokerReady<E> {
     pub fn new() -> Self {
         Self::default()
     }

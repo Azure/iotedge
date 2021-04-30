@@ -1,3 +1,5 @@
+use crate::proto::Packet;
+
 #[derive(Debug)]
 pub(crate) struct LoggingFramed<T>
 where
@@ -17,12 +19,11 @@ where
     }
 }
 
-impl<T> futures_sink::Sink<<crate::proto::PacketCodec as tokio_util::codec::Encoder>::Item>
-    for LoggingFramed<T>
+impl<T> futures_sink::Sink<Packet> for LoggingFramed<T>
 where
     T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin,
 {
-    type Error = <crate::proto::PacketCodec as tokio_util::codec::Encoder>::Error;
+    type Error = <crate::proto::PacketCodec as tokio_util::codec::Encoder<Packet>>::Error;
 
     fn poll_ready(
         mut self: std::pin::Pin<&mut Self>,
@@ -31,10 +32,7 @@ where
         std::pin::Pin::new(&mut self.inner).poll_ready(cx)
     }
 
-    fn start_send(
-        mut self: std::pin::Pin<&mut Self>,
-        item: <crate::proto::PacketCodec as tokio_util::codec::Encoder>::Item,
-    ) -> Result<(), Self::Error> {
+    fn start_send(mut self: std::pin::Pin<&mut Self>, item: Packet) -> Result<(), Self::Error> {
         log::trace!(">>> {:?}", item);
         std::pin::Pin::new(&mut self.inner).start_send(item)
     }

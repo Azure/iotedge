@@ -78,8 +78,7 @@ async fn test_persistor(count: usize, ops: Vec<Op>) {
 #[test]
 fn test_failpoints_smoketest() {
     let scenario = FailScenario::setup();
-    tokio::runtime::Builder::new()
-        .basic_scheduler()
+    tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()
@@ -102,8 +101,7 @@ proptest! {
     #[test]
     fn test_failpoints(count in 0usize..10, ops in vec(arb_op(), 0..50)) {
         let scenario = FailScenario::setup();
-        tokio::runtime::Builder::new()
-            .basic_scheduler()
+        tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap()

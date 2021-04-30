@@ -10,7 +10,7 @@ use futures_util::{
 use pin_project::pin_project;
 
 /// This function will attempt to pull items from both streams in ordered
-/// fasion. First stream will be polled until it is able to yield an item.
+/// fashion. First stream will be polled until it is able to yield an item.
 /// Second stream will be polled only when there are no items available in
 /// the first stream.
 ///

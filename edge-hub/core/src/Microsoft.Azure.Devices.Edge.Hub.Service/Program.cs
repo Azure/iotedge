@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             // Once we get the scopes from the upstream, this record is replaced.
             ServiceIdentity edgeHubIdentity = container.ResolveNamed<ServiceIdentity>("EdgeHubIdentity");
             IServiceIdentityHierarchy identityScopes = container.Resolve<IServiceIdentityHierarchy>();
-            await identityScopes.InsertOrUpdate(edgeHubIdentity);
+            await identityScopes.AddOrUpdate(edgeHubIdentity);
 
             // Initializing configuration
             logger.LogInformation("Initializing configuration");

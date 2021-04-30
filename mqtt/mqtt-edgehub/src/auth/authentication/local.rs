@@ -41,7 +41,6 @@ impl Authenticator for LocalAuthenticator {
 mod tests {
     use matches::assert_matches;
     use test_case::test_case;
-    use tokio::runtime::Runtime;
 
     use mqtt_broker::{
         auth::{AuthenticationContext, Authenticator, Identity},
@@ -52,14 +51,14 @@ mod tests {
 
     #[test_case("127.0.0.1:12345"; "ipv4")]
     #[test_case("[::1]:12345"; "ipv6")]
-    fn it_authenticates_client_id_when_localhost(peer_addr: &str) {
+    #[tokio::test]
+    async fn it_authenticates_client_id_when_localhost(peer_addr: &str) {
         let client_id = "client_1".into();
         let peer_addr = peer_addr.parse().unwrap();
         let context = AuthenticationContext::new(client_id, peer_addr);
 
         let authenticator = authenticator();
-        let mut runtime = Runtime::new().expect("runtime");
-        let auth_id = runtime.block_on(authenticator.authenticate(context));
+        let auth_id = authenticator.authenticate(context).await;
 
         assert_matches!(auth_id, Ok(Some(AuthId::Identity(identity))) if identity == Identity::from("client_1"));
     }

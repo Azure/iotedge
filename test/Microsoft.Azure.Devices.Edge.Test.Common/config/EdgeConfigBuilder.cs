@@ -45,9 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        public IModuleConfigBuilder AddModule(string name, string image)
+        public IModuleConfigBuilder AddModule(string name, string image, bool shouldRestart = true)
         {
-            var builder = new ModuleConfigBuilder(name, image);
+            var builder = new ModuleConfigBuilder(name, image, shouldRestart);
             this.moduleBuilders.Add(builder.Name, builder);
             return builder;
         }

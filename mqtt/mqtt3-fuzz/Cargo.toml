@@ -9,13 +9,13 @@ publish = false
 [dependencies]
 afl = "0.6"
 mqtt3 = { path = "../mqtt3" }
-bytes = "0.5"
-tokio-util = { version = "0.2", features = ["codec"] }
+bytes = "1.0"
+tokio-util = { version = "0.6", features = ["codec"] }
 
 [build-dependencies]
-bytes = "0.5"
+bytes = "1.0"
 mqtt3 = { path = "../mqtt3" }
-tokio-util = { version = "0.2", features = ["codec"] }
+tokio-util = { version = "0.6", features = ["codec"] }
 
 [profile.dev]
 codegen-units = 1 # Workaround for https://github.com/rust-fuzz/cargo-fuzz/issues/161

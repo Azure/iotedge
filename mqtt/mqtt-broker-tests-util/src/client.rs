@@ -7,11 +7,12 @@ use futures::{future::FutureExt, select, stream::StreamExt};
 use tokio::{
     net::ToSocketAddrs,
     sync::{
-        mpsc::{self, UnboundedReceiver},
+        mpsc::{self},
         oneshot::{self, Sender},
     },
     task::JoinHandle,
 };
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::info;
 
 use mqtt3::{
@@ -35,9 +36,9 @@ pub struct TestClient {
 
     /// Used to simulate unexpected shutdown.
     termination_handle: Sender<()>,
-    pub_receiver: UnboundedReceiver<ReceivedPublication>,
-    sub_receiver: UnboundedReceiver<Event>,
-    conn_receiver: UnboundedReceiver<Event>,
+    pub_receiver: UnboundedReceiverStream<ReceivedPublication>,
+    sub_receiver: UnboundedReceiverStream<Event>,
+    conn_receiver: UnboundedReceiverStream<Event>,
     event_loop_handle: JoinHandle<()>,
 }
 
@@ -126,15 +127,15 @@ impl TestClient {
             .expect("couldn't terminate a client")
     }
 
-    pub fn connections(&mut self) -> &mut UnboundedReceiver<Event> {
+    pub fn connections(&mut self) -> &mut UnboundedReceiverStream<Event> {
         &mut self.conn_receiver
     }
 
-    pub fn publications(&mut self) -> &mut UnboundedReceiver<ReceivedPublication> {
+    pub fn publications(&mut self) -> &mut UnboundedReceiverStream<ReceivedPublication> {
         &mut self.pub_receiver
     }
 
-    pub fn subscriptions(&mut self) -> &mut UnboundedReceiver<Event> {
+    pub fn subscriptions(&mut self) -> &mut UnboundedReceiverStream<Event> {
         &mut self.sub_receiver
     }
 }
@@ -288,9 +289,9 @@ where
             subscription_handle,
             shutdown_handle,
             termination_handle,
-            pub_receiver,
-            sub_receiver,
-            conn_receiver,
+            pub_receiver: UnboundedReceiverStream::new(pub_receiver),
+            sub_receiver: UnboundedReceiverStream::new(sub_receiver),
+            conn_receiver: UnboundedReceiverStream::new(conn_receiver),
             event_loop_handle,
         }
     }

@@ -314,6 +314,7 @@ pub trait RuntimeSettings {
     fn edge_ca_cert(&self) -> Option<&str>;
     fn edge_ca_key(&self) -> Option<&str>;
     fn trust_bundle_cert(&self) -> Option<&str>;
+    fn manifest_trust_bundle_cert(&self) -> Option<&str>;
     fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode;
 }
 
@@ -345,6 +346,9 @@ pub struct Settings<T> {
     pub auto_reprovisioning_mode: AutoReprovisioningMode,
 
     pub homedir: PathBuf,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest_trust_bundle_cert: Option<String>,
 
     pub agent: ModuleSpec<T>,
 
@@ -410,6 +414,10 @@ where
 
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.trust_bundle_cert.as_deref()
+    }
+
+    fn manifest_trust_bundle_cert(&self) -> Option<&str> {
+        self.manifest_trust_bundle_cert.as_deref()
     }
 
     fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {

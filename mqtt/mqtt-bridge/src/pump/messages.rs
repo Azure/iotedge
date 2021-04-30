@@ -1,18 +1,14 @@
 use std::{convert::TryInto, fmt::Debug};
 
 use async_trait::async_trait;
-use futures_util::stream::StreamExt;
+use mockall_double::double;
 use mqtt3::{proto::QoS, proto::SubscribeTo};
 use tokio::sync::mpsc;
 use tracing::{debug, error, info};
 
 use super::{PumpHandle, PumpMessage, TopicMapperUpdates};
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::UpdateSubscriptionHandle;
 
 /// A trait for all custom pump event handlers.
@@ -66,7 +62,7 @@ where
     /// Runs control messages processing.
     pub(crate) async fn run(mut self) -> Result<(), MessageProcessorError> {
         info!("starting pump messages processor...");
-        while let Some(message) = self.messages.next().await {
+        while let Some(message) = self.messages.recv().await {
             match message {
                 PumpMessage::Event(event) => self.handler.handle(event).await,
                 PumpMessage::ConfigurationUpdate(update) => {

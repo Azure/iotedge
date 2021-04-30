@@ -1526,6 +1526,10 @@ mod tests {
             unimplemented!()
         }
 
+        fn manifest_trust_bundle_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
         fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
             unimplemented!()
         }

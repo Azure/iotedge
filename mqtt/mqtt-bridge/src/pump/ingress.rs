@@ -1,12 +1,9 @@
+use mockall_double::double;
 use tracing::{error, info};
 
 use crate::client::{MqttClient, MqttEventHandler};
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockShutdownHandle as ShutdownHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::ShutdownHandle;
 
 /// Handles incoming MQTT publications and puts them into the store.

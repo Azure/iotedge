@@ -5,6 +5,7 @@
 use std::{any::Any, convert::Infallible, time::Duration};
 
 use chrono::Utc;
+use futures_util::StreamExt;
 use mqtt3::{proto::ClientId, ConnectionError, Event};
 use mqtt_broker::{
     auth::AllowAll,
@@ -36,13 +37,13 @@ async fn drop_session_on_expiry() {
 
     // assert clients connected
     assert_eq!(
-        offline_client.connections().recv().await,
+        offline_client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
     );
     assert_eq!(
-        online_client.connections().recv().await,
+        online_client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -52,7 +53,7 @@ async fn drop_session_on_expiry() {
     offline_client.shutdown().await;
 
     // let broker process disconnect.
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     // send cleanup signal that should remove the offline session.
     let expiration = Utc::now();
@@ -92,13 +93,13 @@ async fn drop_session_on_expiry_after_restart() {
 
     // assert clients connected
     assert_eq!(
-        offline_client.connections().recv().await,
+        offline_client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
     );
     assert_eq!(
-        online_client.connections().recv().await,
+        online_client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -108,7 +109,7 @@ async fn drop_session_on_expiry_after_restart() {
     offline_client.shutdown().await;
 
     // let broker process disconnect.
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     // take a expiration date now, so sessions created above would be
     // considered expired.
@@ -133,7 +134,7 @@ async fn drop_session_on_expiry_after_restart() {
 
     // assert client reconnected with persistent session.
     assert_eq!(
-        online_client.connections().recv().await,
+        online_client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: false
         })
@@ -179,13 +180,13 @@ async fn drop_sessions_on_reauthorize() {
 
     // assert clients connected
     assert_eq!(
-        client.connections().recv().await,
+        client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
     );
     assert_eq!(
-        root_client.connections().recv().await,
+        root_client.connections().next().await,
         Some(Event::NewConnection {
             reset_session: true
         })
@@ -199,7 +200,7 @@ async fn drop_sessions_on_reauthorize() {
 
     // assert client disconnected.
     assert_eq!(
-        client.connections().recv().await,
+        client.connections().next().await,
         Some(Event::Disconnected(ConnectionError::ServerClosedConnection))
     );
 

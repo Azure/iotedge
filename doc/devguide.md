@@ -38,9 +38,9 @@ To run integration tests and/or BVTs, make sure the following dependencies are i
 
 | Dependency        | Notes                |
 |-------------------|----------------------|
-| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) |
-| Powershell        | Installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell-core-on-linux) |
-| Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/) |
+| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli). |
+| Powershell        | Installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell-core-on-linux). |
+| Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/). |
 | Docker            | Installation instructions [here](https://docs.docker.com/engine/installation/#supported-platforms). In Linux environments, be sure to follow the [post-installation steps](https://docs.docker.com/engine/installation/linux/linux-postinstall/) so the tests can run without `sudo`. |
 
 The integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
@@ -74,7 +74,7 @@ Sometimes it is useful to build the Edge Hub container locally. If you want to d
 ```
 scripts/linux/buildBranch.sh
 scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path mqtt/mqttd
-scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path edgehub/watchdog
+scripts/linux/cross-platform-rust-build.sh --os alpine --arch amd64 --build-path edge-hub/watchdog
 scripts/linux/consolidate-build-artifacts.sh --artifact-name "edge-hub"
 scripts/linux/buildImage.sh -r "$(registry.address)" -u "$(registry.user)" -p "$(registry.password)" -i "${{ parameters.imageName }}" -n "${{ parameters.namespace }}" -P "${{ parameters.project }}" -v "${{ parameters.version }} --bin-dir target"
 ```

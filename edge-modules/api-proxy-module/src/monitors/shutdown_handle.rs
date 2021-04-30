@@ -7,6 +7,6 @@ pub struct ShutdownHandle(pub Arc<Notify>);
 
 impl ShutdownHandle {
     pub async fn shutdown(self) {
-        self.0.notify();
+        self.0.notify_one();
     }
 }

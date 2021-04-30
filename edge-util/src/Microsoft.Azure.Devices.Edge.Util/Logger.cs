@@ -50,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         static ILoggerFactory GetLoggerFactory()
         {
             string outputTemplate = logLevel > LogEventLevel.Debug
-                ? "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message}{NewLine}{Exception}"
-                : "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message}{NewLine}{Exception}";
+                ? "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] - {Message:j}{NewLine}{Exception}"
+                : "<{Severity}> {Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] [{SourceContext:1}] - {Message:j}{NewLine}{Exception}";
 
             LoggerConfiguration ConsoleSinkMap(LoggerSinkConfiguration loggerSinkConfiguration)
                 => loggerSinkConfiguration.Console(outputTemplate: outputTemplate);

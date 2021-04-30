@@ -16,7 +16,7 @@ where
     IoS: super::IoSource,
 {
     BeginBackOff,
-    EndBackOff(tokio::time::Delay),
+    EndBackOff(std::pin::Pin<Box<tokio::time::Sleep>>),
     BeginConnecting,
     WaitingForIoToConnect(<IoS as super::IoSource>::Future),
     Framed {
@@ -108,12 +108,14 @@ where
                         log::debug!("Backing off for {:?}", back_off);
                         self.current_back_off =
                             std::cmp::min(self.max_back_off, self.current_back_off * 2);
-                        *state = State::EndBackOff(tokio::time::delay_for(back_off));
+                        *state = State::EndBackOff(Box::pin(tokio::time::sleep(back_off)));
                     }
                 },
 
                 State::EndBackOff(back_off_timer) => {
-                    match std::pin::Pin::new(back_off_timer).poll(cx) {
+                    use futures_util::FutureExt;
+                    match back_off_timer.poll_unpin(cx) {
+                        // match std::pin::Pin::new(back_off_timer).poll(cx) {
                         std::task::Poll::Ready(()) => *state = State::BeginConnecting,
                         std::task::Poll::Pending => return std::task::Poll::Pending,
                     }

@@ -28,9 +28,6 @@ pub mod message_initiator;
 pub mod settings;
 pub mod tester;
 
-const SEND_SOURCE: &str = "genericMqttTester.send";
-const RECEIVE_SOURCE: &str = "genericMqttTester.receive";
-
 #[derive(Debug, Clone)]
 pub struct ShutdownHandle(Sender<()>);
 
@@ -39,7 +36,7 @@ impl ShutdownHandle {
         Self(sender)
     }
 
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
+    pub async fn shutdown(self) -> Result<(), MessageTesterError> {
         self.0
             .send(())
             .await

@@ -7,19 +7,16 @@ use std::{
     task::{Context, Poll},
 };
 
-use bytes::{Buf, BufMut};
-use core::mem::MaybeUninit;
-use futures_util::stream::FuturesUnordered;
+use futures_util::stream::{FuturesUnordered, Stream};
 use openssl::{
-    ssl::{SslAcceptor, SslMethod, SslOptions, SslVerifyMode},
+    ssl::{Ssl, SslAcceptor, SslMethod, SslOptions, SslVerifyMode},
     x509::X509Ref,
 };
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     net::{TcpListener, TcpStream},
-    stream::Stream,
 };
-use tokio_openssl::{accept, HandshakeError, SslStream};
+use tokio_openssl::SslStream;
 use tracing::{debug, error, warn};
 
 use crate::{auth::Certificate, Error, InitializeBrokerError, ServerCertificate};
@@ -142,7 +139,7 @@ fn prepare_acceptor(identity: ServerCertificate) -> Result<SslAcceptor, Initiali
 }
 
 type HandshakeFuture =
-    Pin<Box<dyn Future<Output = Result<SslStream<TcpStream>, HandshakeError<TcpStream>>> + Send>>;
+    Pin<Box<dyn Future<Output = Result<SslStream<TcpStream>, openssl::ssl::Error>> + Send>>;
 
 pub enum Incoming {
     Tcp(IncomingTcp),
@@ -183,7 +180,7 @@ impl IncomingTcp {
 impl Stream for IncomingTcp {
     type Item = std::io::Result<StreamSelector>;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         match self.listener.poll_accept(cx) {
             Poll::Ready(Ok((tcp, _))) => match tcp.set_nodelay(true) {
                 Ok(()) => {
@@ -235,8 +232,24 @@ impl Stream for IncomingTls {
                 Poll::Ready(Ok((stream, _))) => match stream.set_nodelay(true) {
                     Ok(()) => {
                         let acceptor = self.acceptor.clone();
-                        self.connections
-                            .push(Box::pin(async move { accept(&acceptor, stream).await }));
+                        let stream = Ssl::new(acceptor.context())
+                            .and_then(|ssl| SslStream::new(ssl, stream));
+
+                        let mut stream = match stream {
+                            Ok(stream) => stream,
+                            Err(err) => {
+                                error!(
+                                    error = %err,
+                                    "dropping client that failed to complete a TLS handshake",
+                                );
+                                continue;
+                            }
+                        };
+
+                        self.connections.push(Box::pin(async move {
+                            Pin::new(&mut stream).accept().await?;
+                            Ok(stream)
+                        }));
                     }
                     Err(err) => warn!(
                         "dropping client because failed to setup TCP properties: {}",
@@ -338,31 +351,11 @@ fn stringify(cert: &X509Ref) -> Result<Certificate, Error> {
 }
 
 impl AsyncRead for StreamSelector {
-    #[inline]
-    unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [MaybeUninit<u8>]) -> bool {
-        match self {
-            Self::Tcp(stream) => stream.prepare_uninitialized_buffer(buf),
-            Self::Tls(stream) => stream.prepare_uninitialized_buffer(buf),
-        }
-    }
-
-    #[inline]
-    fn poll_read_buf<B: BufMut>(
+    fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut B,
-    ) -> Poll<std::io::Result<usize>> {
-        match self.get_mut() {
-            Self::Tcp(stream) => Pin::new(stream).poll_read_buf(cx, buf),
-            Self::Tls(stream) => Pin::new(stream).poll_read_buf(cx, buf),
-        }
-    }
-
-    fn poll_read(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<std::io::Result<usize>> {
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
             Self::Tcp(stream) => Pin::new(stream).poll_read(cx, buf),
             Self::Tls(stream) => Pin::new(stream).poll_read(cx, buf),
@@ -379,17 +372,6 @@ impl AsyncWrite for StreamSelector {
         match self.get_mut() {
             Self::Tcp(stream) => Pin::new(stream).poll_write(cx, buf),
             Self::Tls(stream) => Pin::new(stream).poll_write(cx, buf),
-        }
-    }
-
-    fn poll_write_buf<B: Buf>(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut B,
-    ) -> Poll<std::io::Result<usize>> {
-        match self.get_mut() {
-            Self::Tcp(stream) => Pin::new(stream).poll_write_buf(cx, buf),
-            Self::Tls(stream) => Pin::new(stream).poll_write_buf(cx, buf),
         }
     }
 

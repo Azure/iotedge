@@ -29,6 +29,8 @@ pub struct Settings {
     relay_topic: String,
 
     messages_to_send: Option<u32>,
+
+    iotedge_moduleid: String,
 }
 
 impl Settings {
@@ -39,8 +41,11 @@ impl Settings {
         config.merge(Environment::new())?;
 
         let test_scenario: TestScenario = config.get("test_scenario")?;
-        if let TestScenario::Initiate = test_scenario {
-            config.set("batch_id", Some(Uuid::new_v4().to_string()))?;
+        match test_scenario {
+            TestScenario::Initiate | TestScenario::InitiateAndReceiveRelayed => {
+                config.set("batch_id", Some(Uuid::new_v4().to_string()))?;
+            }
+            _ => {}
         }
 
         config.try_into()
@@ -104,10 +109,16 @@ impl Settings {
     pub fn messages_to_send(&self) -> Option<u32> {
         self.messages_to_send
     }
+
+    pub fn module_name(&self) -> String {
+        self.iotedge_moduleid.clone()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub enum TestScenario {
-    Relay,
     Initiate,
+    InitiateAndReceiveRelayed,
+    Relay,
+    Receive,
 }

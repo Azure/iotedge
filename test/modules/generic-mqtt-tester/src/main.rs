@@ -6,7 +6,6 @@ use futures_util::{
 use tokio::{
     self,
     signal::unix::{signal, SignalKind},
-    stream::StreamExt,
 };
 use tracing::{info, info_span, subscriber, Level};
 use tracing_futures::Instrument;
@@ -59,13 +58,14 @@ async fn listen_for_shutdown() -> Result<(), MessageTesterError> {
     info!("registering unix signal listeners");
     let mut interrupt =
         signal(SignalKind::interrupt()).map_err(MessageTesterError::CreateUnixSignalListener)?;
-    let mut term =
+    let mut terminate =
         signal(SignalKind::terminate()).map_err(MessageTesterError::CreateUnixSignalListener)?;
-    let interrupt_fut = interrupt.next();
-    let term_fut = term.next();
+    let interrupt = interrupt.recv();
+    let terminate = terminate.recv();
+    pin_mut!(interrupt, terminate);
 
     info!("listening for unix signals");
-    match select(interrupt_fut, term_fut).await {
+    match select(interrupt, terminate).await {
         Either::Left((interrupt, _)) => {
             info!("received SIGINT");
             interrupt.ok_or(MessageTesterError::ListenForUnixSignal)?

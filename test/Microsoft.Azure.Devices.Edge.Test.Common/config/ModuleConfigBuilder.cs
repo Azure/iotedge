@@ -5,18 +5,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
     public class ModuleConfigBuilder : BaseModuleConfigBuilder
     {
-        public ModuleConfigBuilder(string name, string image)
-            : this(name, image, Option.None<string>())
+        public ModuleConfigBuilder(string name, string image, bool shouldRestart)
+            : this(name, image, Option.None<string>(), shouldRestart)
         {
         }
 
-        public ModuleConfigBuilder(string name, string image, Option<string> createOptions)
+        public ModuleConfigBuilder(string name, string image, Option<string> createOptions, bool shouldRestart)
             : base(name, image)
         {
+            string restartPolicy = string.Empty;
+            if (shouldRestart)
+            {
+                restartPolicy = "always";
+            }
+            else
+            {
+                restartPolicy = "never";
+            }
+
             this.WithDeployment(
                 new[]
                 {
-                    ("restartPolicy", "always"),
+                    ("restartPolicy", restartPolicy),
                     ("status", "running")
                 });
             createOptions.ForEach(s => this.WithSettings(new[] { ("createOptions", s) }));

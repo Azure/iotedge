@@ -13,6 +13,7 @@ mod connect;
 mod workload;
 
 pub use connect::Connector;
+use percent_encoding::{AsciiSet, CONTROLS};
 pub use workload::{
     CertificateResponse, IdentityCertificateRequest, ServerCertificateRequest, SignRequest,
     SignResponse, TrustBundleResponse, WorkloadClient, WorkloadError,
@@ -25,6 +26,20 @@ use hyper::{client::HttpConnector, Client};
 #[cfg(unix)]
 use hyperlocal::UnixConnector;
 use url::{ParseError, Url};
+
+/// Ref <https://url.spec.whatwg.org/#path-percent-encode-set>
+pub const PATH_SEGMENT_ENCODE_SET: &AsciiSet = &CONTROLS
+    .add(b' ')
+    .add(b'"')
+    .add(b'<')
+    .add(b'>')
+    .add(b'`') // fragment percent-encode set
+    .add(b'#')
+    .add(b'?')
+    .add(b'{')
+    .add(b'}'); // path percent-encode set
+
+pub const IOTHUB_ENCODE_SET: &AsciiSet = &PATH_SEGMENT_ENCODE_SET.add(b'$');
 
 pub fn workload(url: &str) -> Result<WorkloadClient, Error> {
     let url = Url::parse(url).map_err(|e| Error::ParseUrl(url.to_string(), e))?;

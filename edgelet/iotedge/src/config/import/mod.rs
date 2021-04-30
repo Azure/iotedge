@@ -342,7 +342,7 @@ fn execute_inner(
             }) = device_cert
             {
                 (
-                    Some(super_config::EdgeCa::Explicit {
+                    Some(super_config::EdgeCa::Preloaded {
                         cert: device_ca_cert,
                         pk: device_ca_pk,
                     }),
@@ -367,6 +367,8 @@ fn execute_inner(
         auto_reprovisioning_mode,
 
         imported_master_encryption_key: old_master_encryption_key_path,
+
+        manifest_trust_bundle_cert: None,
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),

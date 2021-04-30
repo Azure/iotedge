@@ -5,17 +5,13 @@ use futures_util::{
     stream::{StreamExt, TryStreamExt},
 };
 use lazy_static::lazy_static;
+use mockall_double::double;
 use tokio::{select, sync::oneshot};
 use tracing::{debug, error, info};
 
-use crate::persist::{Key, PublicationStore, StreamWakeableState};
-
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockPublishHandle as PublishHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::PublishHandle;
+use crate::persist::{Key, PublicationStore, StreamWakeableState};
 
 use mqtt3::proto::Publication;
 

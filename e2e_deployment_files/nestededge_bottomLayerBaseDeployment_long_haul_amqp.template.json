@@ -26,6 +26,9 @@
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
