@@ -99,6 +99,35 @@ impl NestedEdgeBodge for DockerConfig {
             self.image = format!("{}{}", parent_hostname, rest);
         }
     }
+
+    fn parent_hostname_resolve_auth(&mut self, parent_hostname: &str) {
+        let auth = match &self.auth {
+            Some(auth) => auth,
+            _ => return,
+        };
+
+        let mut new_auth = AuthConfig::new();
+
+        if let Some(username) = auth.username() {
+            new_auth.set_username(username.to_string());
+        }
+
+        if let Some(email) = auth.email() {
+            new_auth.set_email(email.to_string());
+        }
+
+        if let Some(password) = auth.password() {
+            new_auth.set_password(password.to_string());
+        }
+
+        if let Some(serveraddress) = auth.serveraddress() {
+            if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
+                new_auth.set_serveraddress(format!("{}{}", parent_hostname, rest));
+            }
+        }
+
+        self.auth = Some(new_auth);
+    }
 }
 
 #[cfg(test)]

@@ -259,7 +259,7 @@ where
 
                     settings
                         .agent_mut()
-                        .parent_hostname_resolve_image(&provisioning_result.gateway_host_name);
+                        .parent_hostname_resolve(&provisioning_result.gateway_host_name);
 
                     let cfg = WorkloadData::new(
                         provisioning_result.hub_name,
@@ -277,7 +277,7 @@ where
                             .unwrap_or(TRUST_BUNDLE_ALIAS)
                             .to_string(),
                         settings
-                            .manifest_trust_bundle_cert()
+                            .trust_bundle_cert()
                             .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
                             .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
