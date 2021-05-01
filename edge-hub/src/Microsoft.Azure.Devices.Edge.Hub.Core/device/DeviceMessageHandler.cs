@@ -213,13 +213,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             switch (this.Identity)
             {
                 case IModuleIdentity moduleIdentity:
-                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = moduleIdentity.DeviceId;
-                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = moduleIdentity.ModuleId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.RpConnectionDeviceIdInternal] = moduleIdentity.DeviceId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.RpConnectionModuleIdInternal] = moduleIdentity.ModuleId;
                     break;
                 case IDeviceIdentity deviceIdentity:
-                    reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = deviceIdentity.DeviceId;
+                    reportedPropertiesMessage.SystemProperties[SystemProperties.RpConnectionDeviceIdInternal] = deviceIdentity.DeviceId;
                     break;
             }
+
+            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = this.edgeHub.GetEdgeDeviceId();
+            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = Constants.EdgeHubModuleId;
 
             try
             {
