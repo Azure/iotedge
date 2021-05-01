@@ -127,8 +127,6 @@ jobs:
           echo '=========='
           env
           echo '=========='
-          curl -L 'https://packages.microsoft.com/cbl-mariner/1.0/prod/'
-          echo '=========='
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
