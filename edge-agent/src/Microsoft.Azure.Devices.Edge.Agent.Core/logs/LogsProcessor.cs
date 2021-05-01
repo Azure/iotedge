@@ -71,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
             IRunnableGraph<Task<IImmutableList<string>>> GetGraph()
             {
+                // BEARWASHERE -- Maybe we can do the tail here?! -- AFter this you should do tail
                 if (filter.Regex.HasValue || filter.LogLevel.HasValue)
                 {
                     GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
@@ -161,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 var graph = source
                     .Via(FramingFlow)
                     .Select(parserFunc)
+                    // BEARWASHERE -- Create a tail .via() here in case `tail` is supplied
                     .MapMaterializedValue(_ => AkkaNet.NotUsed.Instance);
                 return new GraphBuilder(graph);
             }
@@ -173,6 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     .Via(FramingFlow)
                     .Select(b => b.Slice(8))
                     .Select(b => b.ToString(Encoding.UTF8))
+                    // BEARWASHERE -- Create a tail .via() here in case `tail` is supplied
                     .ToMaterialized(seqSink, Keep.Right);
                 return graph;
             }

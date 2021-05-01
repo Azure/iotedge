@@ -93,39 +93,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
+                since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
+                until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
 
-                if (tail.HasValue && since.HasValue && until.HasValue)
+                if (!(tail.HasValue && since.HasValue && until.HasValue))
                 {
-                    since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
-                    until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
-                    var logsUri = new Uri(logsUrl.ToString());
-                    var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
-                    Stream stream = await this.Execute(
-                        async () =>
-                        {
-                            HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                            return await httpResponseMessage.Content.ReadAsStreamAsync();
-                        },
-                        $"Get logs for {module}");
-                    return DockerLogHelper.GetLogTail(stream, tail.Expect(() => new ArgumentException("tail argument has no value"))).Result;
-                }
-                else
-                {
-                    // Remark: Docker API applies `tail` first before it applies `until`
                     tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
-                    since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
-                    until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
-                    var logsUri = new Uri(logsUrl.ToString());
-                    var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
-                    Stream stream = await this.Execute(
-                        async () =>
-                        {
-                            HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-                            return await httpResponseMessage.Content.ReadAsStreamAsync();
-                        },
-                        $"Get logs for {module}");
-                    return stream;
                 }
+
+                var logsUri = new Uri(logsUrl.ToString());
+                var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
+                Stream stream = await this.Execute(
+                    async () =>
+                    {
+                        HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                        return await httpResponseMessage.Content.ReadAsStreamAsync();
+                    },
+                    $"Get logs for {module}");
+                return stream;
             }
         }
 
