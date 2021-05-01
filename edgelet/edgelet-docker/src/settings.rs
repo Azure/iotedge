@@ -144,6 +144,10 @@ impl RuntimeSettings for Settings {
         self.base.trust_bundle_cert()
     }
 
+    fn manifest_trust_bundle_cert(&self) -> Option<&str> {
+        self.base.manifest_trust_bundle_cert()
+    }
+
     fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
         self.base.auto_reprovisioning_mode()
     }

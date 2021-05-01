@@ -39,6 +39,8 @@ To reconfigure IoT Edge, run:
 
         imported_master_encryption_key: None,
 
+        manifest_trust_bundle_cert: None,
+
         aziot: common_config::super_config::Config {
             hostname: None,
             parent_hostname: None,
