@@ -107,10 +107,11 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      name: $(pool.name)
-      demands:
-        - agent.os -equals Linux
-        - agent.osarchitecture -equals X64
+      vmImage: 'ubuntu-18.04'
+      # name: $(pool.name)
+      # demands:
+      #   - agent.os -equals Linux
+      #   - agent.osarchitecture -equals X64
     strategy:
       matrix:
         CBL-Mariner1.0-amd64:
