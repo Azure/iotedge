@@ -20,9 +20,9 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Insta
     opentelemetry::util::tokio_interval_stream(duration).skip(1)
 }
 
-fn init_meter(period: f64) -> metrics::Result<PushController> {
+fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushController> {
     let export_config = ExporterConfig {
-        endpoint: "http://localhost:4317".to_string(),
+        endpoint: otlp_endpoint.to_string(),
         ..ExporterConfig::default()
     };
     opentelemetry_otlp::new_metrics_pipeline(tokio::spawn, delayed_interval)
@@ -37,6 +37,7 @@ struct Config {
     update_rate: f64,
     push_rate: f64,
     batching_enabled: bool,
+    otlp_endpoint: String,
 }
 
 fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
@@ -46,21 +47,24 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                 .short("u")
                 .long("update-rate")
                 .help("Rate at which each instrument is updated with a new metric measurement (updates/sec)")
-                .default_value("1.0"),
         )
         .arg(
             Arg::with_name("push-rate")
                 .short("p")
                 .long("push-rate")
                 .help("Rate at which measurements are pushed out of the client (pushes/sec)")
-                .default_value("0.2"),
         )
         .arg(
-            Arg::with_name("batching_enabled")
+            Arg::with_name("batching-enabled")
                 .short("b")
                 .long("batching-enabled")
                 .help("Enables or disables batch recording of measurements.")
-                .default_value("false"),
+        )
+        .arg(
+            Arg::with_name("otlp-endpoint")
+                .short("e")
+                .long("otlp-endpoint")
+                .help("Endpoint to which OTLP messages will be sent.")
         )
         .get_matches();
 
@@ -80,6 +84,14 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
         } else {
             value_t!(matches.value_of("batching-enabled"), bool).unwrap_or(false)
         },
+        otlp_endpoint: if let Ok(v) = std::env::var("OBS_AGENT_OTLP_ENDPOINT") {
+            v.parse()?
+        } else {
+            matches
+                .value_of("otlp-endpoint")
+                .unwrap_or("http://localhost:4317")
+                .to_string()
+        },
     };
     println!("Parsed config: {:?}", config);
     Ok(config)
@@ -88,7 +100,7 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let config = init_config()?;
-    let _started = init_meter(1.0 / config.push_rate)?;
+    let _started = init_meter(1.0 / config.push_rate, config.otlp_endpoint)?;
     let meter = global::meter("microsoft.com/azureiot-edge");
 
     // Init synchronous instruments
