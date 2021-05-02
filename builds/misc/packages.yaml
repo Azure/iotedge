@@ -111,7 +111,6 @@ jobs:
       demands:
         - agent.os -equals Linux
         - agent.osarchitecture -equals X64
-        - ImageOverride -equals MMSUbuntu18.04
     strategy:
       matrix:
         CBL-Mariner1.0-amd64:
