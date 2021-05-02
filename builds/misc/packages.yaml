@@ -120,13 +120,18 @@ jobs:
           target.iotedged: builds/mariner/out/RPMS/x86_64/
     steps:
       - bash: |
-          echo '=========='
-          sudo ls -al /usr/local/go/bin
-          echo '=========='
-          command -v go
-          echo '=========='
-          env
-          echo '=========='
+          sudo apt-get update
+          sudo apt-get install -y binutils bison brotli build-essential bzip2 \
+            coreutils curl dbus dnsutils dpkg fakeroot file flex ftp gnupg2   \
+            haveged imagemagick iproute2 iputils-ping jq lib32z1 libc++-dev   \
+            libc++abi-dev libcurl3 libgbm-dev libgconf-2-4 libgsl-dev         \
+            libgtk-3-0 libmagic-dev libmagickcore-dev libmagickwand-dev       \
+            libsecret-1-dev libsqlite3-dev libunwind8 libxkbfile-dev libxss1  \
+            locales m4 mediainfo net-tools netcat openssh-client p7zip-full   \
+            p7zip-rar parallel pass patchelf pkg-config pollinate             \
+            python-setuptools rpm rsync shellcheck sphinxsearch sqlite3 ssh   \
+            sshpass subversion sudo swig telnet texinfo time tk tzdata unzip  \
+            upx wget xorriso xvfb xz-utils zip zsync
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
