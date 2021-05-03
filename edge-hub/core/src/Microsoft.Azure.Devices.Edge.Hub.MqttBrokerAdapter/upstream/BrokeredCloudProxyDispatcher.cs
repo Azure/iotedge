@@ -312,7 +312,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                     {
                         // DirectMethodResponse has a 'Status' and 'HttpStatusCode'. If everything is fine, 'Status' contains
                         // the response of the device and HttpStatusCode is 200. In this case we pass back the response of the
-                        // device. If something when wrong, then HttpStatusCode is an error (typically 404). In this case we
+                        // device. If something went wrong, then HttpStatusCode is an error (typically 404). In this case we
                         // pass back that value. The value 500/InternalServerError is just a fallback, edgeHub is supposed to
                         // handle errors, so 500 always should be overwritten.
                         var responseCode = Convert.ToInt32(HttpStatusCode.InternalServerError);
