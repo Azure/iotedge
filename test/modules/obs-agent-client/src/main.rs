@@ -4,7 +4,7 @@ use futures::StreamExt;
 use opentelemetry::sdk::metrics::{selectors, PushController};
 // use opentelemetry::trace::TraceError;
 use opentelemetry::global;
-use opentelemetry::metrics::{self, ObserverResult};
+use opentelemetry::metrics::{self, ObserverResult, ValueRecorder};
 use opentelemetry_otlp::ExporterConfig;
 use std::error::Error;
 use std::time::Duration;
@@ -38,6 +38,8 @@ struct Config {
     push_rate: f64,
     batching_enabled: bool,
     otlp_endpoint: String,
+    enable_value_recorder: bool,
+    enable_value_observer: bool,
 }
 
 fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
@@ -66,6 +68,18 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                 .long("otlp-endpoint")
                 .help("Endpoint to which OTLP messages will be sent.")
         )
+        .arg(
+            Arg::with_name("enable-value-recorder")
+                .short("r")
+                .long("enable-value-recorder")
+                .help("Enables or disables value recorder instrument.")
+        )
+        .arg(
+            Arg::with_name("enable-value-observer")
+                .short("v")
+                .long("enable-value-observer")
+                .help("Enables or disables value observer instrument.")
+        )        
         .get_matches();
 
     let config = Config {
@@ -92,8 +106,22 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                 .unwrap_or("http://localhost:4317")
                 .to_string()
         },
+        enable_value_recorder: if let Ok(v) =
+            std::env::var("OBS_AGENT_CLIENT_ENABLE_VALUE_RECORDER")
+        {
+            v.parse()?
+        } else {
+            value_t!(matches.value_of("enable-value-recorder"), bool).unwrap_or(false)
+        },
+        enable_value_observer: if let Ok(v) =
+            std::env::var("OBS_AGENT_CLIENT_ENABLE_VALUE_OBSERVER")
+        {
+            v.parse()?
+        } else {
+            value_t!(matches.value_of("enable-value-observer"), bool).unwrap_or(false)
+        },
     };
-    println!("Parsed config: {:?}", config);
+    println!("{:?}", config);
     Ok(config)
 }
 
@@ -108,9 +136,12 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let ud_counter = meter
         .i64_up_down_counter("i64_up_down_counter_example")
         .init();
-    let value_recorder = meter
-        .f64_value_recorder("f64_value_recorder_example")
-        .init();
+    let mut value_recorder: Option<ValueRecorder<f64>> = None;
+    if config.enable_value_recorder {
+        value_recorder = Some(meter
+            .f64_value_recorder("f64_value_recorder_example")
+            .init());
+    }
 
     // Init asynchronous instruments
     let sum = Arc::new(Mutex::new(0));
@@ -131,15 +162,20 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let _ud_sum_observer = meter
         .i64_up_down_sum_observer("i64_up_down_sum_observer_example", ud_sum_observer_cb)
         .init();
-    let value = Arc::new(Mutex::new(0.0));
-    let value_clone = Arc::clone(&value);
-    let value_observer_cb = move |res: ObserverResult<f64>| {
-        let value_clone = value_clone.lock().unwrap();
-        res.observe(*value_clone, &[]);
-    };
-    let _value_observer = meter
-        .f64_value_observer("f64_value_observer_example", value_observer_cb)
-        .init();
+    let mut value: Option<Arc<Mutex<f64>>> = None;
+    if config.enable_value_observer {
+        value = Some(Arc::new(Mutex::new(0.0)));
+        if let Some(ref v) = value {
+            let value_clone = Arc::clone(v);
+            let value_observer_cb = move |res: ObserverResult<f64>| {
+                let value_clone = value_clone.lock().unwrap();
+                res.observe(*value_clone, &[]);
+            };
+            let _value_observer = meter
+                .f64_value_observer("f64_value_observer_example", value_observer_cb)
+                .init();
+        }
+    }
 
     // Loop, updating each metric value at the configured update rate
     let mut rng = rand::thread_rng();
@@ -148,13 +184,17 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     while !term.load(Ordering::Relaxed) {
         counter.add(1, &[]);
         ud_counter.add(1, &[]);
-        value_recorder.record(rng.gen::<f64>(), &[]);
+        if let Some(ref v) = value_recorder {
+            v.record(rng.gen::<f64>(), &[]);
+        }
         let mut sum = sum.lock().unwrap();
         *sum += 1;
         let mut ud_sum = ud_sum.lock().unwrap();
         *ud_sum += 1;
-        let mut value = value.lock().unwrap();
-        *value = rng.gen::<f64>();
+        if let Some(ref v) = value {
+            let mut v = v.lock().unwrap();
+            *v = rng.gen::<f64>();
+        }
         tokio::time::sleep(Duration::from_secs_f64(1.0 / config.update_rate)).await;
     }
 
