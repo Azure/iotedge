@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -16,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
     public sealed class DeviceScopeIdentitiesCache : IDeviceScopeIdentitiesCache
     {
+        static readonly TimeSpan defaultInitializationRefreshDelay = TimeSpan.FromSeconds(60);
+
         readonly string edgeDeviceId;
         readonly IServiceProxy serviceProxy;
         readonly IKeyValueStore<string, string> encryptedStore;
@@ -23,9 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly Timer refreshCacheTimer;
         readonly TimeSpan periodicRefreshRate;
         readonly TimeSpan refreshDelay;
+        readonly TimeSpan initializationRefreshDelay;
         readonly AsyncManualResetEvent refreshCacheSignal = new AsyncManualResetEvent(false);
         readonly AsyncManualResetEvent refreshCacheCompleteSignal = new AsyncManualResetEvent(false);
         readonly object refreshCacheLock = new object();
+        readonly AtomicBoolean isInitialized = new AtomicBoolean(false);
 
         Task refreshCacheTask;
         DateTime cacheLastRefreshTime;
@@ -35,9 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
-            IDictionary<string, StoredServiceIdentity> initialCache,
             TimeSpan periodicRefreshRate,
-            TimeSpan refreshDelay)
+            TimeSpan refreshDelay,
+            TimeSpan initializationRefreshDelay,
+            bool initializedFromCache)
         {
             this.serviceIdentityHierarchy = serviceIdentityHierarchy;
             this.edgeDeviceId = serviceIdentityHierarchy.GetActorDeviceId();
@@ -45,14 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.encryptedStore = encryptedStorage;
             this.periodicRefreshRate = periodicRefreshRate;
             this.refreshDelay = refreshDelay;
+            this.initializationRefreshDelay = initializationRefreshDelay;
             this.identitiesLastRefreshTime = new Dictionary<string, DateTime>();
             this.cacheLastRefreshTime = DateTime.MinValue;
 
-            // Populate the serviceIdentityHierarchy
-            foreach (KeyValuePair<string, StoredServiceIdentity> kvp in initialCache)
-            {
-                kvp.Value.ServiceIdentity.ForEach(serviceIdentity => this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity).Wait());
-            }
+            this.isInitialized.Set(initializedFromCache);
 
             // Kick off the initial refresh after we processed all the stored identities
             this.refreshCacheTimer = new Timer(this.RefreshCache, null, TimeSpan.Zero, this.periodicRefreshRate);
@@ -64,18 +67,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public event EventHandler<IList<string>> ServiceIdentitiesUpdated;
 
-        public static async Task<DeviceScopeIdentitiesCache> Create(
+        public static Task<DeviceScopeIdentitiesCache> Create(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
             IKeyValueStore<string, string> encryptedStorage,
             TimeSpan refreshRate,
             TimeSpan refreshDelay)
         {
+            return Create(serviceIdentityHierarchy, serviceProxy, encryptedStorage, refreshRate, refreshDelay, defaultInitializationRefreshDelay);
+        }
+
+        public static async Task<DeviceScopeIdentitiesCache> Create(
+           IServiceIdentityHierarchy serviceIdentityHierarchy,
+           IServiceProxy serviceProxy,
+           IKeyValueStore<string, string> encryptedStorage,
+           TimeSpan refreshRate,
+           TimeSpan refreshDelay,
+           TimeSpan initializationRefreshDelay)
+        {
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
             Preconditions.CheckNotNull(serviceIdentityHierarchy, nameof(serviceIdentityHierarchy));
             IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, encryptedStorage, cache, refreshRate, refreshDelay);
+
+            // Populate the serviceIdentityHierarchy
+            foreach (KeyValuePair<string, StoredServiceIdentity> kvp in cache)
+            {
+                await kvp.Value.ServiceIdentity.ForEachAsync(serviceIdentity => serviceIdentityHierarchy.AddOrUpdate(serviceIdentity));
+            }
+
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, encryptedStorage, refreshRate, refreshDelay, initializationRefreshDelay, cache.Count > 0);
+
             Events.Created();
             return deviceScopeIdentitiesCache;
         }
@@ -84,18 +106,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             Events.ReceivedRequestToRefreshCache();
 
-            TimeSpan durationSinceLastRefresh = DateTime.UtcNow - this.cacheLastRefreshTime;
-
             lock (this.refreshCacheLock)
             {
+                DateTime now = DateTime.UtcNow;
                 // Only refresh the cache if we haven't done so recently
-                if (durationSinceLastRefresh > this.refreshDelay)
+                if (now - this.cacheLastRefreshTime > this.refreshDelay)
                 {
                     this.refreshCacheCompleteSignal.Reset();
                     this.refreshCacheSignal.Set();
-
-                    // Update the cache refresh timestamp
-                    this.cacheLastRefreshTime = DateTime.UtcNow;
                 }
                 else
                 {
@@ -129,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task RefreshServiceIdentities(IEnumerable<string> ids) => this.RefreshServiceIdentities(ids, this.edgeDeviceId);
 
-        internal async Task RefreshServiceIdentities(IEnumerable<string> ids, string onBehalfOf)
+        async Task RefreshServiceIdentities(IEnumerable<string> ids, string onBehalfOf)
         {
             List<string> idList = Preconditions.CheckNotNull(ids, nameof(ids)).ToList();
             foreach (string id in idList)
@@ -308,6 +326,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task<bool> ShouldRefreshIdentity(string id)
         {
+            if (!this.isInitialized.Get())
+            {
+                return false;
+            }
+
             bool hasRefreshed = this.identitiesLastRefreshTime.TryGetValue(id, out DateTime lastRefreshTime);
 
             // Only refresh an identity if we haven't done so recently
@@ -340,59 +363,79 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         {
             while (true)
             {
-                var currentCacheIds = new List<string>();
-
-                try
+                bool succeeded = await this.RefreshCacheInternal();
+                if (this.ShouldRetryRefreshCache(succeeded))
                 {
-                    Events.StartingRefreshCycle();
-                    IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
-                    while (iterator.HasNext)
+                    Events.RetryRefreshCycle(this.initializationRefreshDelay);
+                    await this.IsReady(this.initializationRefreshDelay);
+                }
+                else
+                {
+                    Events.DoneRefreshCycle(this.periodicRefreshRate);
+                    this.isInitialized.Set(true);
+                    this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
+
+                    lock (this.refreshCacheLock)
                     {
-                        IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
-                        foreach (ServiceIdentity serviceIdentity in batch)
-                        {
-                            try
-                            {
-                                await this.HandleNewServiceIdentity(serviceIdentity);
-                                currentCacheIds.Add(serviceIdentity.Id);
-                            }
-                            catch (Exception e)
-                            {
-                                Events.ErrorProcessing(serviceIdentity, e);
-                            }
-                        }
+                        // Update the cache refresh timestamp
+                        this.cacheLastRefreshTime = DateTime.UtcNow;
+
+                        // Send the completion signal first, then reset the
+                        // refresh signal to signify that we're no longer
+                        // doing any work on this thread
+                        this.refreshCacheCompleteSignal.Set();
+                        this.refreshCacheSignal.Reset();
                     }
 
-                    // Diff and update
-                    IList<string> allIds = await this.serviceIdentityHierarchy.GetAllIds();
-                    IList<string> removedIds = allIds.Except(currentCacheIds).ToList();
-                    await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
+                    await this.IsReady(this.periodicRefreshRate);
                 }
-                catch (Exception e)
-                {
-                    Events.ErrorInRefreshCycle(e);
-                }
-
-                Events.DoneRefreshCycle(this.periodicRefreshRate);
-                this.ServiceIdentitiesUpdated?.Invoke(this, await this.serviceIdentityHierarchy.GetAllIds());
-
-                lock (this.refreshCacheLock)
-                {
-                    // Send the completion signal first, then reset the
-                    // refresh signal to signify that we're no longer
-                    // doing any work on this thread
-                    this.refreshCacheCompleteSignal.Set();
-                    this.refreshCacheSignal.Reset();
-                }
-
-                await this.IsReady();
             }
         }
 
-        async Task IsReady()
+        bool ShouldRetryRefreshCache(bool lastRefreshSucceeded) => !lastRefreshSucceeded && !this.isInitialized.Get();
+
+        async Task<bool> RefreshCacheInternal()
+        {
+            try
+            {
+                Events.StartingRefreshCycle();
+                var currentCacheIds = new List<string>();
+                IServiceIdentitiesIterator iterator = this.serviceProxy.GetServiceIdentitiesIterator();
+                while (iterator.HasNext)
+                {
+                    IEnumerable<ServiceIdentity> batch = await iterator.GetNext();
+                    foreach (ServiceIdentity serviceIdentity in batch)
+                    {
+                        try
+                        {
+                            await this.HandleNewServiceIdentity(serviceIdentity);
+                            currentCacheIds.Add(serviceIdentity.Id);
+                        }
+                        catch (Exception e)
+                        {
+                            Events.ErrorProcessing(serviceIdentity, e);
+                        }
+                    }
+                }
+
+                // Diff and update
+                IList<string> allIds = await this.serviceIdentityHierarchy.GetAllIds();
+                IList<string> removedIds = allIds.Except(currentCacheIds).ToList();
+                await Task.WhenAll(removedIds.Select(id => this.HandleNoServiceIdentity(id)));
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Events.ErrorInRefreshCycle(e);
+                return false;
+            }
+        }
+
+        async Task IsReady(TimeSpan delay)
         {
             Task refreshCacheSignalTask = this.refreshCacheSignal.WaitAsync();
-            Task sleepTask = Task.Delay(this.periodicRefreshRate);
+            Task sleepTask = Task.Delay(delay);
             Task task = await Task.WhenAny(refreshCacheSignalTask, sleepTask);
             if (task == refreshCacheSignalTask)
             {
@@ -430,15 +473,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         async Task HandleNewServiceIdentity(ServiceIdentity serviceIdentity)
         {
             Option<ServiceIdentity> existing = await this.serviceIdentityHierarchy.Get(serviceIdentity.Id);
-            bool hasUpdated = existing.HasValue && !existing.Contains(serviceIdentity);
 
-            await this.serviceIdentityHierarchy.InsertOrUpdate(serviceIdentity);
-            await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
-            Events.AddInScope(serviceIdentity.Id);
-
-            if (hasUpdated)
+            bool hasChanged = await this.serviceIdentityHierarchy.AddOrUpdate(serviceIdentity);
+            if (hasChanged)
             {
-                this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
+                Events.AddInScope(serviceIdentity.Id);
+                await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
+
+                if (existing.HasValue)
+                {
+                    this.ServiceIdentityUpdated?.Invoke(this, serviceIdentity);
+                }
             }
         }
 
@@ -501,7 +546,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 SkipRefreshServiceIdentity,
                 RefreshingAuthChain,
                 GettingServiceIdentity,
-                VerifyServiceIdentity
+                VerifyServiceIdentity,
+                RetryCycle,
             }
 
             public static void Created() =>
@@ -515,6 +561,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void StartingRefreshCycle() =>
                 Log.LogInformation((int)EventIds.StartingCycle, "Starting refresh of device scope identities cache");
+
+            public static void RetryRefreshCycle(TimeSpan refreshRate) =>
+               Log.LogInformation((int)EventIds.RetryCycle, $"Retry refreshing device scope identities cache. Waiting for {refreshRate.TotalSeconds} seconds.");
 
             public static void DoneRefreshCycle(TimeSpan refreshRate) =>
                 Log.LogInformation((int)EventIds.DoneCycle, $"Done refreshing device scope identities cache. Waiting for {refreshRate.TotalMinutes} minutes.");
