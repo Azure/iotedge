@@ -79,7 +79,7 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                 .short("v")
                 .long("enable-value-observer")
                 .help("Enables or disables value observer instrument.")
-        )        
+        )
         .get_matches();
 
     let config = Config {
@@ -138,9 +138,11 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         .init();
     let mut value_recorder: Option<ValueRecorder<f64>> = None;
     if config.enable_value_recorder {
-        value_recorder = Some(meter
-            .f64_value_recorder("f64_value_recorder_example")
-            .init());
+        value_recorder = Some(
+            meter
+                .f64_value_recorder("f64_value_recorder_example")
+                .init(),
+        );
     }
 
     // Init asynchronous instruments

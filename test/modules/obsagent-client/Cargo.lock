@@ -468,7 +468,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "obs-agent-client"
+name = "obsagent-client"
 version = "0.1.0"
 dependencies = [
  "clap",

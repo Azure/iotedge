@@ -2,7 +2,7 @@ FROM ubuntu:18.04
 
 WORKDIR /app
 
-COPY ./x86_64-unknown-linux-gnu/release/obs-agent-client ./
+COPY ./x86_64-unknown-linux-gnu/release/obsagent-client ./
 
 RUN apt-get update && apt-get install -y libssl-dev
 
@@ -11,4 +11,4 @@ RUN useradd -ms /bin/bash moduleuser
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /app/obs-agent-client
+    exec /app/obsagent-client
