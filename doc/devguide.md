@@ -38,9 +38,9 @@ To run integration tests and/or BVTs, make sure the following dependencies are i
 
 | Dependency        | Notes                |
 |-------------------|----------------------|
-| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli) |
-| Powershell        | Installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell-core-on-linux) |
-| Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/) |
+| Azure CLI         | Installation instructions [here](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli). |
+| Powershell        | Installation instructions [here](https://docs.microsoft.com/en-us/powershell/scripting/setup/installing-powershell-core-on-linux). |
+| Jq                | Installation instructions [here](https://stedolan.github.io/jq/download/). |
 | Docker            | Installation instructions [here](https://docs.docker.com/engine/installation/#supported-platforms). In Linux environments, be sure to follow the [post-installation steps](https://docs.docker.com/engine/installation/linux/linux-postinstall/) so the tests can run without `sudo`. |
 
 The integration tests and BVTs expect to find certain values in an Azure KeyVault (see `edge-util/test/Microsoft.Azure.Devices.Edge.Util.Test.Common/settings/base.json`). For the tests to access the KeyVault at runtime, a certificate must first be installed in the environment where the tests will run. Install the KeyVault certificate with:
