@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.DockerLogHelper;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
@@ -87,7 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
-            // BEARWASHERE -- ModuleManagementHttpClientVersioned**
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');

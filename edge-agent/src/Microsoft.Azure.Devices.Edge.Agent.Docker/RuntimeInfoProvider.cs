@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.DockerLogHelper;
     using Microsoft.Extensions.Logging;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 

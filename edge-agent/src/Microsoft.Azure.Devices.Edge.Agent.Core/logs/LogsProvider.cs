@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public async Task<byte[]> GetLogs(string id, ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
-            // BEARWASHERE -- The three ref
+
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, cancellationToken);
             Events.ReceivedStream(id);
 
@@ -73,7 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         async Task<byte[]> GetProcessedLogs(string id, Stream logsStream, ModuleLogOptions logOptions)
         {
-            // BEARWASHERE -- implement the tail here?!?
             byte[] logBytes = await this.ProcessByContentType(id, logsStream, logOptions);
             logBytes = ProcessByContentEncoding(logBytes, logOptions.ContentEncoding);
             return logBytes;
@@ -81,8 +80,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         async Task<byte[]> ProcessByContentType(string id, Stream logsStream, ModuleLogOptions logOptions)
         {
-            // BEARWASHERE -- need to edit both of these to tail
-            //   Need to figure out how the `tail` is being applied from the logOptions.
             switch (logOptions.ContentType)
             {
                 case LogsContentType.Json:

@@ -59,11 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = graphBuilder.GetMaterializingGraph(m => (ModuleLogMessage)m);
 
             IImmutableList<ModuleLogMessage> result = await graph.Run(this.materializer);
-            // BEARWASHERE -- Hypothetically this should do it (since it's already parse by line)
             return filter.Tail.Match<IReadOnlyList<ModuleLogMessage>>(
                 t =>
                 {
-                    return result.Skip(Math.Max(0, result.Count-t)).ToList().AsReadOnly();
+                    return result.Skip(Math.Max(0, result.Count - t)).ToList().AsReadOnly();
                 },
                 () => result);
         }
@@ -92,12 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
             IRunnableGraph<Task<IImmutableList<string>>> graph = GetGraph();
             IImmutableList<string> result = await graph.Run(this.materializer);
-            // BEARWASHERE -- Maybe we can do the tail here?!
-            //return result;
+
             return filter.Tail.Match<IReadOnlyList<string>>(
                 t =>
                 {
-                    return result.Skip(Math.Max(0, result.Count-t)).ToList().AsReadOnly();
+                    return result.Skip(Math.Max(0, result.Count - t)).ToList().AsReadOnly();
                 },
                 () => result);
         }
@@ -174,7 +172,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 var graph = source
                     .Via(FramingFlow)
                     .Select(parserFunc)
-                    // BEARWASHERE -- Need to collect the last N-number of ModuleLogMessageData which is parsed. (dumbass Bear)
                     .MapMaterializedValue(_ => AkkaNet.NotUsed.Instance);
                 return new GraphBuilder(graph);
             }
@@ -187,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     .Via(FramingFlow)
                     .Select(b => b.Slice(8))
                     .Select(b => b.ToString(Encoding.UTF8))
-                    // BEARWASHERE -- This is UTF8 need to be handled by "\r\n" and keep the last N-lines.  (dumbass Bear)
                     .ToMaterialized(seqSink, Keep.Right);
                 return graph;
             }
