@@ -6,13 +6,13 @@ publish = false
 edition = "2018"
 
 [dependencies]
-config = { version = "0.9", default-features = false }
-failure = "0.1.2"
+config = { version = "0.11", default-features = false }
+failure = "0.1"
 log = "0.4"
 serde = "1.0"
 serde_json = "1.0"
 yaml-rust = "0.4"
 
 [dev_dependencies]
-futures = "0.1"
+tokio = { version = "1", features = ["rt", "macros"]}
 serde_derive = "1.0"
