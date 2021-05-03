@@ -126,45 +126,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 new TwinCollection(JsonConvert.SerializeObject(new
                     {
                         ok = "ok",
-                        complex = new
+                        level1 = new
                         {
+                            // level 2
                             array1 = new[]
                                 {
+                                    // level 3
                                     new[]
                                     {
+                                        // level 4
                                         new[]
                                         {
+                                            // level 5
                                             new[]
                                             {
+                                                // level 6
                                                 new[]
                                                 {
+                                                    // level 7
                                                     new[]
                                                     {
+                                                        // level 8
                                                         new[]
                                                         {
+                                                            // level 9
                                                             new[]
                                                             {
+                                                                // level 10
                                                                 new[]
                                                                 {
-                                                                    new[]
-                                                                    {
-                                                                        new[]
-                                                                        {
-                                                                            new[]
-                                                                            {
-                                                                                new[]
-                                                                                {
-                                                                                    new[]
-                                                                                    {
-                                                                                        new[]
-                                                                                        {
-                                                                                            new[] { "one", "two", "three" },
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
+                                                                    // level 11
+                                                                    new[] { "one", "two", "three" },
                                                                 }
                                                             }
                                                         }

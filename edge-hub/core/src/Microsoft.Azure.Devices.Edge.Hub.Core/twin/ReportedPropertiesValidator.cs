@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         public void Validate(TwinCollection reportedProperties)
         {
             Preconditions.CheckNotNull(reportedProperties, nameof(reportedProperties));
+
             JToken reportedPropertiesJToken = JToken.Parse(reportedProperties.ToJson());
             ValidateTwinCollectionSize(reportedProperties);
             // root level has no property name.
@@ -32,10 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
             if (item is JObject @object)
             {
-                if (currentDepth > TwinPropertyMaxDepth)
-                {
-                    throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
-                }
+                ValidateTwinDepth(currentDepth);
 
                 // do validation recursively
                 foreach (JProperty kvp in @object.Properties())
@@ -52,10 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
             if (item is JArray array)
             {
-                if (currentDepth > TwinPropertyMaxDepth)
-                {
-                    throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
-                }
+                ValidateTwinDepth(currentDepth);
 
                 // do array validation
                 ValidateArrayContent(array, currentDepth + 1);
@@ -165,6 +160,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             if (size > TwinPropertyDocMaxLength)
             {
                 throw new InvalidOperationException($"Twin properties size {size} exceeds maximum {TwinPropertyDocMaxLength}");
+            }
+        }
+
+        static void ValidateTwinDepth(int currentDepth)
+        {
+            if (currentDepth > TwinPropertyMaxDepth)
+            {
+                throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
             }
         }
     }
