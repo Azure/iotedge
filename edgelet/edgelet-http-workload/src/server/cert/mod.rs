@@ -209,7 +209,7 @@ fn create_csr(
 ) -> std::result::Result<Vec<u8>, ErrorStack> {
     let mut csr = openssl::x509::X509Req::builder()?;
 
-    csr.set_version(2)?;
+    csr.set_version(0)?;
 
     let mut subject_name = openssl::x509::X509Name::builder()?;
     subject_name.append_entry_by_text("CN", props.common_name())?;
