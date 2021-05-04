@@ -173,5 +173,41 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeModule sender = deployment.Modules[methodSender];
             await sender.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
+
+        [Test]
+        [Category("CentOsSafe")]
+        public async Task AzureIotEdgeMetricsCollector()
+        {
+            const string AzureIotEdgeMetricsCollectorName = "azureIotEdgeMetricsCollector";
+            const string DefaultAzureIotEdgeMetricsCollectorImage = "edgebuilds.azurecr.io/microsoft/azureiotedge-metrics-collector:20210423.2-linux-amd64";
+            const string DefaultHubResourceId = "/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/pezara-rg/providers/Microsoft.Devices/IotHubs/pezara-edge-hub";
+
+            string azureIotEdgeMetricsCollectorImage = Context.Current.AzureIotEdgeMetricsCollectorImage.GetOrElse(DefaultAzureIotEdgeMetricsCollectorImage);
+            string hubResourceId = Context.Current.HubResourceId.GetOrElse(DefaultHubResourceId);
+            CancellationToken token = this.TestToken;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                    builder.AddModule(AzureIotEdgeMetricsCollectorName, azureIotEdgeMetricsCollectorImage)
+                        .WithEnvironment(new[]
+                        {
+                            ("UploadTarget", "IotMessage"),
+                            ("HubResourceID", hubResourceId)
+                        });
+                    builder.GetModule(ModuleName.EdgeHub)
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{AzureIotEdgeMetricsCollectorName}/* INTO $upstream"
+                            }
+                        } );
+                },
+                token);
+
+            EdgeModule azureIotEdgeMetricsCollector = deployment.Modules[AzureIotEdgeMetricsCollectorName];
+            await azureIotEdgeMetricsCollector.WaitForEventsReceivedAsync(deployment.StartTime, token);
+        }
     }
 }

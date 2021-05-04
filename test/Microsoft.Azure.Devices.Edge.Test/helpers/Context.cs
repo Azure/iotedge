@@ -99,6 +99,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
             this.NumberLoggerImage = Option.Maybe(Get("numberLoggerImage"));
             this.MetricsValidatorImage = Option.Maybe(Get("metricsValidatorImage"));
+            this.AzureIotEdgeMetricsCollectorImage = Option.Maybe(Get("azureIotEdgeMetricsCollectorImage"));
+            this.HubResourceId = Option.Maybe(Get("hubResourceId"));
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
@@ -159,6 +161,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Option<string> NumberLoggerImage { get; }
 
         public Option<string> MetricsValidatorImage { get; }
+
+        public Option<string> AzureIotEdgeMetricsCollectorImage { get; }
+
+        public Option<string> HubResourceId { get; }
 
         public Option<string> TestResultCoordinatorImage { get; }
 

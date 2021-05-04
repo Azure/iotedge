@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<string>("LogAnalyticsSharedKey", null),
                     configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
-                    configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureMonitor),
+                    configuration.GetValue<string>("UploadTarget", "AzureMonitor").ToUploadTarget(),
                     configuration.GetValue<bool>("CompressForUpload", true),
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
@@ -128,11 +128,5 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
-    }
-
-    public enum UploadTarget
-    {
-        IotMessage,
-        AzureMonitor
     }
 }
