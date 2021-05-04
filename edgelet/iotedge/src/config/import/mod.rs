@@ -368,6 +368,8 @@ fn execute_inner(
 
         imported_master_encryption_key: old_master_encryption_key_path,
 
+        manifest_trust_bundle_cert: None,
+
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
             parent_hostname,

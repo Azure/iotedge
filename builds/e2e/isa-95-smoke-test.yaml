@@ -177,8 +177,8 @@ stages:
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
-          IotHubConnectionString: $(IotHubStressConnString)  
+          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: $(test_type)
 
   - job:  Clean_up     
