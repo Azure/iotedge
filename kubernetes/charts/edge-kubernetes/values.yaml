@@ -19,6 +19,8 @@ iotedged:
   data:
     enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
+    # set iotedged log level.
+    runtimeLogLevel: "info"
     # Normally the iotedged is running as a host process, and has access to 
     # the host's trusted CA certificates.  Use this options to allow the 
     # iotedged deployment to use the host OS's /etc/ssl/certs 
