@@ -4,6 +4,11 @@
 include(../deps/c-shared/configs/azure_iot_build_rules.cmake)
 usePermissiveRulesForSamplesAndTests()
 
+if(MSVC)
+    # Turn off compiler warning C5105 in VS2019+
+    add_definitions(/wd5105)
+endif(MSVC)
+
 set(save_ut ${run_unittests})
 set(run_unittests OFF CACHE BOOL "unittests" FORCE)
 add_subdirectory(../deps/c-shared/testtools/ctest c-shared/testtools/ctest)

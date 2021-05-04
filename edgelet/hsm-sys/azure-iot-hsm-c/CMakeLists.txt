@@ -70,9 +70,6 @@ if(MSVC)
         add_definitions(/W4)
     endif(run_unittests)
 
-    # Turn off compiler warning C5105 in VS2019+
-    add_definitions(/wd5105)
-
     # export functions in DLL
     set(source_c_files ${source_c_files}
         ./src/hsm_client_data.def
