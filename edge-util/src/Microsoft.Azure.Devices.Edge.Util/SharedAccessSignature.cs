@@ -14,8 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
     /// </summary>
     public sealed class SharedAccessSignature : ISharedAccessSignatureCredential
     {
-        private readonly string _encodedAudience;
-        private readonly string _expiry;
+        private readonly string encodedAudience;
+        private readonly string expiry;
 
         private SharedAccessSignature(
             string iotHubName,
@@ -40,8 +40,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             IotHubName = iotHubName;
             Signature = signature;
             Audience = WebUtility.UrlDecode(encodedAudience);
-            _encodedAudience = encodedAudience;
-            _expiry = expiry;
+            this.encodedAudience = encodedAudience;
+            this.expiry = expiry;
             KeyName = keyName ?? string.Empty;
         }
 
@@ -187,8 +187,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             var fields = new List<string>
             {
-                _encodedAudience,
-                _expiry,
+                encodedAudience,
+                expiry,
             };
 
             using var hmac = new HMACSHA256(key);
@@ -239,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         // This is also a function that can be removed later once the C# version being used
         // supports https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.cryptographicoperations.fixedtimeequals?view=net-5.0
         //
-        // This implementation is taken directly from 
+        // This implementation is taken directly from
         // https://github.com/dotnet/runtime/blob/main/src/libraries/System.Security.Cryptography.Primitives/src/System/Security/Cryptography/CryptographicOperations.cs#L31
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static bool FixedTimeEquals(string left, string right)

@@ -10,8 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
     /// </summary>
     public sealed class SharedAccessSignatureAuthorizationRule : IEquatable<SharedAccessSignatureAuthorizationRule>
     {
-        private string _primaryKey;
-        private string _secondaryKey;
+        private string primaryKey;
+        private string secondaryKey;
 
         [JsonProperty(PropertyName = "keyName")]
         public string KeyName { get; set; }
@@ -22,12 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [JsonProperty(PropertyName = "primaryKey")]
         public string PrimaryKey
         {
-            get => _primaryKey;
+            get => primaryKey;
 
             set
             {
                 StringValidationHelper.EnsureNullOrBase64String(value, "PrimaryKey");
-                _primaryKey = value;
+                primaryKey = value;
             }
         }
 
@@ -37,12 +37,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [JsonProperty(PropertyName = "secondaryKey")]
         public string SecondaryKey
         {
-            get => _secondaryKey;
+            get => secondaryKey;
 
             set
             {
                 StringValidationHelper.EnsureNullOrBase64String(value, "SecondaryKey");
-                _secondaryKey = value;
+                secondaryKey = value;
             }
         }
 
