@@ -248,7 +248,7 @@ steps:
       $context['edgeProxy'] = $env:AGENT_PROXYURL
     }
 
-    echo "Context Contents: $context | ConvertTo-Json"
+    echo "Context Contents: $context['testManifestSigningRootCaPath']"
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
   displayName: Create test arguments file (context.json)
 
