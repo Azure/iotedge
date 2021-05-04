@@ -3,7 +3,6 @@
 use std::fmt;
 
 use failure::Fail;
-use futures::Future;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 pub enum AuthType {
@@ -68,20 +67,16 @@ impl IdentitySpec {
     }
 }
 
+#[async_trait::async_trait]
 pub trait IdentityManager {
     type Identity: Identity;
     type Error: Fail;
-    type CreateFuture: Future<Item = Self::Identity, Error = Self::Error> + Send;
-    type UpdateFuture: Future<Item = Self::Identity, Error = Self::Error> + Send;
-    type ListFuture: Future<Item = Vec<Self::Identity>, Error = Self::Error> + Send;
-    type GetFuture: Future<Item = Option<Self::Identity>, Error = Self::Error> + Send;
-    type DeleteFuture: Future<Item = (), Error = Self::Error> + Send;
 
-    fn create(&mut self, id: IdentitySpec) -> Self::CreateFuture;
-    fn update(&mut self, id: IdentitySpec) -> Self::UpdateFuture;
-    fn list(&self) -> Self::ListFuture;
-    fn get(&self, id: IdentitySpec) -> Self::GetFuture;
-    fn delete(&mut self, id: IdentitySpec) -> Self::DeleteFuture;
+    async fn create(&mut self, id: IdentitySpec) -> Result<Self::Identity, Self::Error>;
+    async fn update(&mut self, id: IdentitySpec) -> Result<Self::Identity, Self::Error>;
+    async fn list(&self) -> Result<Vec<Self::Identity>, Self::Error>;
+    async fn get(&self, id: IdentitySpec) -> Result<Option<Self::Identity>, Self::Error>;
+    async fn delete(&mut self, id: IdentitySpec) -> Result<(), Self::Error>;
 }
 
 // Useful for error contexts
