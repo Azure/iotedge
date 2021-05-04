@@ -512,8 +512,10 @@ pub trait ModuleRuntime: Sized {
 
     type Config: Clone + Send;
     type Module: Module<Config = Self::Config> + Send;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
     type Logs: Stream<Item = Self::Chunk>;
+    type ListWithDetailsStream: Stream<Item = (Self::Module, ModuleRuntimeState)>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -524,11 +526,12 @@ pub trait ModuleRuntime: Sized {
     async fn system_info(&self) -> Result<SystemInfo, Self::Error>;
     async fn system_resources(&self) -> Result<SystemResources, Self::Error>;
     async fn list(&self) -> Result<Vec<Self::Module>, Self::Error>;
-    async fn list_with_details(&self) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
+    async fn list_with_details(&self) -> Result<Self::ListWithDetailsStream, Self::Error>;
     async fn logs(&self, id: &str, options: &LogOptions) -> Result<Self::Logs, Self::Error>;
-    async fn registry(&self) -> Result<Self::Config, Self::Error>;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
+
+    fn registry(&self) -> &Self::ModuleRegistry;
 }
 
 #[derive(Clone, Copy, Debug)]
