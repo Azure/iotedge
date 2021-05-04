@@ -21,6 +21,9 @@ namespace Diagnostics
             // Create a socket connection with the specified server and port.
             using (Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP))
             {
+                socket.ReceiveTimeout = 5000;
+                socket.SendTimeout = 1000;
+
                 socket.Connect(new UnixDomainSocketEndPoint(uri.LocalPath));
 
                 // Send request to the server.
