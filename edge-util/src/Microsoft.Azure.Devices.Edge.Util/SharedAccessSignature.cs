@@ -32,17 +32,17 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             this.ExpiresOn = expiresOn;
 
-            if (IsExpired())
+            if (this.IsExpired())
             {
                 throw new UnauthorizedAccessException("The specified SAS token is expired");
             }
 
-            IotHubName = iotHubName;
-            Signature = signature;
-            Audience = WebUtility.UrlDecode(encodedAudience);
+            this.IotHubName = iotHubName;
+            this.Signature = signature;
+            this.Audience = WebUtility.UrlDecode(encodedAudience);
             this.encodedAudience = encodedAudience;
             this.expiry = expiry;
-            KeyName = keyName ?? string.Empty;
+            this.KeyName = keyName ?? string.Empty;
         }
 
         /// <summary>
@@ -142,14 +142,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 throw new ArgumentNullException(nameof(sasAuthorizationRule), "The SAS Authorization Rule cannot be null.");
             }
 
-            if (IsExpired())
+            if (this.IsExpired())
             {
                 throw new UnauthorizedAccessException("The specified SAS token has expired.");
             }
 
             if (sasAuthorizationRule.PrimaryKey != null)
             {
-                string primareyKeyComputedSignature = ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.PrimaryKey));
+                string primareyKeyComputedSignature = this.ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.PrimaryKey));
 #if NETSTANDARD2_1
                 if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(this.Signature), Encoding.ASCII.GetBytes(primareyKeyComputedSignature)))
 #else
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (sasAuthorizationRule.SecondaryKey != null)
             {
-                string secondaryKeyComputedSignature = ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.SecondaryKey));
+                string secondaryKeyComputedSignature = this.ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.SecondaryKey));
 #if NETSTANDARD2_1
                 if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(this.Signature), Encoding.ASCII.GetBytes(secondaryKeyComputedSignature)))
 #else

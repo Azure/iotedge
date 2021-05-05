@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj) => Equals(obj as SharedAccessSignatureAuthorizationRule);
+        public override bool Equals(object obj) => this.Equals(obj as SharedAccessSignatureAuthorizationRule);
 
         /// <summary>
         /// Gets a hash code for a given object.
