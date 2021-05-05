@@ -3,8 +3,10 @@ use std::env;
 use anyhow::{Context, Result};
 use regex::Regex;
 
+use crate::token_service::token_server;
+
 const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME,IOTEDGE_PARENTAPIPROXYNAME,SAS_TOKEN";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME,IOTEDGE_PARENTAPIPROXYNAME";
 
 const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
     ("NGINX_DEFAULT_PORT", "443"),
@@ -65,6 +67,10 @@ impl ConfigParser {
                 sanitize_dns_label(&moduleid),
             );
         }
+
+        // Tokens are cached by nginx. Current duration is 30mn. Make sure the the validity is not lower than the caching time.
+        context.insert("TOKEN_VALIDITY_MINUTES".to_string(), (token_server::TOKEN_VALIDITY_SECONDS/60/2).to_string());
+        context.insert("TOKEN_SERVER_PORT".to_string(), token_server::TOKEN_SERVER_PORT.to_string());
 
         ConfigParser { context }
     }
