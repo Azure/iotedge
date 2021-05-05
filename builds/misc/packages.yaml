@@ -191,11 +191,12 @@ jobs:
     displayName: Windows amd64
     timeoutInMinutes: 90
     pool:
-      name: $(pool.name)
-      demands:
-        - Agent.OS -equals Windows_NT
-        - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals agent-aziotedge-winserver-2019-build
+      vmImage: 'windows-2019'
+      # name: $(pool.name)
+      # demands:
+      #   - Agent.OS -equals Windows_NT
+      #   - Agent.OSArchitecture -equals X64
+      #   - ImageOverride -equals agent-aziotedge-winserver-2019-build
     steps:
       - powershell: ls env:/
         displayName: Dump environment
