@@ -269,9 +269,7 @@ fn execute_inner(
                         global_endpoint,
                         id_scope: scope_id,
                         attestation: common_config::super_config::DpsAttestationMethod::X509 {
-                            // TODO: Remove this when IS supports registration ID being optional for DPS-X509
-                            registration_id: registration_id
-                                .ok_or_else(|| "registration ID is currently required")?,
+                            registration_id,
                             identity: common_config::super_config::X509Identity::Preloaded {
                                 identity_cert,
                                 identity_pk: {
