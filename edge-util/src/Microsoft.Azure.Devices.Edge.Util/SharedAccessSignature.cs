@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 throw new ArgumentNullException(nameof(iotHubName));
             }
 
-            ExpiresOn = expiresOn;
+            this.ExpiresOn = expiresOn;
 
             if (IsExpired())
             {
@@ -141,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 throw new ArgumentNullException(nameof(sasAuthorizationRule), "The SAS Authorization Rule cannot be null.");
             }
+
             if (IsExpired())
             {
                 throw new UnauthorizedAccessException("The specified SAS token has expired.");
@@ -150,9 +151,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 string primareyKeyComputedSignature = ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.PrimaryKey));
 #if NETSTANDARD2_1
-                if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(Signature), Encoding.ASCII.GetBytes(primareyKeyComputedSignature)))
+                if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(this.Signature), Encoding.ASCII.GetBytes(primareyKeyComputedSignature)))
 #else
-                if (FixedTimeEquals(Signature, primareyKeyComputedSignature))
+                if (FixedTimeEquals(this.Signature, primareyKeyComputedSignature))
 #endif
                 {
                     return;
@@ -163,9 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 string secondaryKeyComputedSignature = ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.SecondaryKey));
 #if NETSTANDARD2_1
-                if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(Signature), Encoding.ASCII.GetBytes(secondaryKeyComputedSignature)))
+                if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(this.Signature), Encoding.ASCII.GetBytes(secondaryKeyComputedSignature)))
 #else
-                if (FixedTimeEquals(Signature, secondaryKeyComputedSignature))
+                if (FixedTimeEquals(this.Signature, secondaryKeyComputedSignature))
 #endif
                 {
                     return;
@@ -184,8 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             var fields = new List<string>
             {
-                encodedAudience,
-                expiry,
+                this.encodedAudience,
+                this.expiry,
             };
 
             using var hmac = new HMACSHA256(key);

@@ -22,12 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [JsonProperty(PropertyName = "primaryKey")]
         public string PrimaryKey
         {
-            get => primaryKey;
+            get => this.primaryKey;
 
             set
             {
                 StringValidationHelper.EnsureNullOrBase64String(value, "PrimaryKey");
-                primaryKey = value;
+                this.primaryKey = value;
             }
         }
 
@@ -37,12 +37,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [JsonProperty(PropertyName = "secondaryKey")]
         public string SecondaryKey
         {
-            get => secondaryKey;
+            get => this.secondaryKey;
 
             set
             {
                 StringValidationHelper.EnsureNullOrBase64String(value, "SecondaryKey");
-                secondaryKey = value;
+                this.secondaryKey = value;
             }
         }
 
@@ -59,10 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 return false;
             }
 
-            bool equals = string.Equals(KeyName, other.KeyName, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(PrimaryKey, other.PrimaryKey, StringComparison.Ordinal) &&
-                string.Equals(SecondaryKey, other.SecondaryKey, StringComparison.Ordinal) &&
-                Equals(Rights, other.Rights);
+            bool equals = string.Equals(this.KeyName, other.KeyName, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(this.PrimaryKey, other.PrimaryKey, StringComparison.Ordinal) &&
+                string.Equals(this.SecondaryKey, other.SecondaryKey, StringComparison.Ordinal) &&
+                Equals(this.Rights, other.Rights);
 
             return equals;
         }
