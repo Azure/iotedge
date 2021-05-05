@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 TempFilterToCloud = $"FROM /messages/modules/{filterName}/outputs/alertOutput INTO $upstream",
                                 TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterName}/inputs/input1')"
                             }
-                        } );
+                        });
                 },
                 token);
 
@@ -176,14 +176,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
-        public async Task AzureIotEdgeMetricsCollector()
+        public async Task MetricsCollector()
         {
-            const string AzureIotEdgeMetricsCollectorName = "azureIotEdgeMetricsCollector";
-            const string DefaultAzureIotEdgeMetricsCollectorImage = "edgebuilds.azurecr.io/microsoft/azureiotedge-metrics-collector:20210423.2-linux-amd64";
-            const string DefaultHubResourceId = "/subscriptions/5ed2dcb6-29bb-40de-a855-8c24a8260343/resourceGroups/pezara-rg/providers/Microsoft.Devices/IotHubs/pezara-edge-hub";
+            const string AzureIotEdgeMetricsCollectorName = "metricsCollector";
 
-            string azureIotEdgeMetricsCollectorImage = Context.Current.AzureIotEdgeMetricsCollectorImage.GetOrElse(DefaultAzureIotEdgeMetricsCollectorImage);
-            string hubResourceId = Context.Current.HubResourceId.GetOrElse(DefaultHubResourceId);
+            string azureIotEdgeMetricsCollectorImage = Context.Current.MetricsCollectorImage.Expect(() => new ArgumentException("metricsCollectorImage parameter is required for MetricsCollector test"));
+            string hubResourceId = Context.Current.HubResourceId.Expect(() => new ArgumentException("IOT_HUB_RESOURCE_ID is required for MetricsCollector test"));
+
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -202,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             {
                                 AzureIotEdgeMetricsCollectorToCloud = $"FROM /messages/modules/{AzureIotEdgeMetricsCollectorName}/* INTO $upstream"
                             }
-                        } );
+                        });
                 },
                 token);
 

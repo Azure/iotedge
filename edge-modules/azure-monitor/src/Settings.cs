@@ -63,7 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         private static Settings Create()
         {
-            try {
+            try
+            {
                 IConfiguration configuration = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddEnvironmentVariables()
@@ -74,14 +75,15 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<string>("LogAnalyticsSharedKey", null),
                     configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
-                    configuration.GetValue<string>("UploadTarget", "AzureMonitor").ToUploadTarget(),
+                    configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureMonitor),
                     configuration.GetValue<bool>("CompressForUpload", true),
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
                     configuration.GetValue<string>("HubResourceID", ""));
             }
-            catch (ArgumentException e) {
+            catch (ArgumentException e)
+            {
                 LoggerUtil.Writer.LogCritical("Error reading arguments from environment variables. Make sure all required parameter are present");
                 LoggerUtil.Writer.LogCritical(e.ToString());
                 Environment.Exit(2);
@@ -128,5 +130,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
+    }
+
+    public enum UploadTarget
+    {
+        IotMessage,
+        AzureMonitor
     }
 }
