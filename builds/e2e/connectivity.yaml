@@ -105,10 +105,10 @@ jobs:
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.flag'], 1)
-        displayName: 'Azure Key Vault: EdgeBuildkv'
+        displayName: 'Azure Key Vault: $(azure.commonKeyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
-          KeyVaultName: 'edgebuildkv'
+          KeyVaultName: $(azure.commonKeyVault)
           SecretsFilter: >- 
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
@@ -298,10 +298,10 @@ jobs:
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.flag'], 1)
-        displayName: 'Azure Key Vault: EdgeBuildkv'
+        displayName: 'Azure Key Vault: $(azure.commonKeyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
-          KeyVaultName: 'edgebuildkv'
+          KeyVaultName: $(azure.commonKeyVault)
           SecretsFilter: >- 
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
