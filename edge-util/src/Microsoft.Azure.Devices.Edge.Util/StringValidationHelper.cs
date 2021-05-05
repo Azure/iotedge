@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                         global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Microsoft.Azure.Devices.Common.Resources", typeof(Resources).GetTypeInfo().Assembly);
                         resourceMan = temp;
                     }
-                    
+
                     return resourceMan;
                 }
             }
