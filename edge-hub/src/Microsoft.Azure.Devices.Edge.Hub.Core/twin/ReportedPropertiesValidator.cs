@@ -20,42 +20,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         public void Validate(TwinCollection reportedProperties)
         {
             Preconditions.CheckNotNull(reportedProperties, nameof(reportedProperties));
+
             JToken reportedPropertiesJToken = JToken.Parse(reportedProperties.ToJson());
-            ValidateTwinProperties(reportedPropertiesJToken, 1);
             ValidateTwinCollectionSize(reportedProperties);
+            // root level has no property name.
+            ValidateToken(string.Empty, reportedPropertiesJToken, 0, false);
         }
 
-        static void ValidateTwinProperties(JToken properties, int currentDepth)
+        static void ValidateToken(string name, JToken item, int currentDepth, bool inArray)
         {
-            foreach (JProperty kvp in ((JObject)properties).Properties())
+            ValidatePropertyNameAndLength(name);
+
+            if (item is JObject @object)
             {
-                ValidatePropertyNameAndLength(kvp.Name);
+                ValidateTwinDepth(currentDepth);
 
-                ValidateValueType(kvp.Name, kvp.Value);
-
-                if (kvp.Value is JValue)
+                // do validation recursively
+                foreach (JProperty kvp in @object.Properties())
                 {
-                    if (kvp.Value.Type is JTokenType.Integer)
-                    {
-                        ValidateIntegerValue(kvp.Name, (long)kvp.Value);
-                    }
-                    else
-                    {
-                        string s = kvp.Value.ToString();
-                        ValidatePropertyValueLength(kvp.Name, s);
-                    }
+                    ValidateToken(kvp.Name, kvp.Value, currentDepth + 1, inArray);
                 }
+            }
 
-                if (kvp.Value != null && kvp.Value is JObject)
-                {
-                    if (currentDepth > TwinPropertyMaxDepth)
-                    {
-                        throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
-                    }
+            if (item is JValue value)
+            {
+                ValidateValueType(name, value);
+                ValidateValue(name, value, inArray);
+            }
 
-                    // do validation recursively
-                    ValidateTwinProperties(kvp.Value, currentDepth + 1);
-                }
+            if (item is JArray array)
+            {
+                ValidateTwinDepth(currentDepth);
+
+                // do array validation
+                ValidateArrayContent(array, currentDepth + 1);
             }
         }
 
@@ -94,6 +92,51 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             }
         }
 
+        static void ValidateArrayContent(JArray array, int currentDepth)
+        {
+            foreach (var item in array)
+            {
+                if (item.Type is JTokenType.Null)
+                {
+                    throw new InvalidOperationException("Arrays cannot contain 'null' as value");
+                }
+
+                if (item is JArray inner)
+                {
+                    if (currentDepth > TwinPropertyMaxDepth)
+                    {
+                        throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
+                    }
+
+                    // do array validation
+                    ValidateArrayContent(inner, currentDepth + 1);
+                }
+                else
+                {
+                    // items in the array don't have property name.
+                    ValidateToken(string.Empty, item, currentDepth, true);
+                }
+            }
+        }
+
+        static void ValidateValue(string name, JValue value, bool inArray)
+        {
+            if (inArray && value.Type is JTokenType.Null)
+            {
+                throw new InvalidOperationException($"Property {name} of an object in an array cannot be 'null'");
+            }
+
+            if (value.Type is JTokenType.Integer)
+            {
+                ValidateIntegerValue(name, (long)value);
+            }
+            else
+            {
+                string s = value.ToString();
+                ValidatePropertyValueLength(name, s);
+            }
+        }
+
         [AssertionMethod]
         static void ValidateIntegerValue(string name, long value)
         {
@@ -117,6 +160,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
             if (size > TwinPropertyDocMaxLength)
             {
                 throw new InvalidOperationException($"Twin properties size {size} exceeds maximum {TwinPropertyDocMaxLength}");
+            }
+        }
+
+        static void ValidateTwinDepth(int currentDepth)
+        {
+            if (currentDepth > TwinPropertyMaxDepth)
+            {
+                throw new InvalidOperationException($"Nested depth of twin property exceeds {TwinPropertyMaxDepth}");
             }
         }
     }
