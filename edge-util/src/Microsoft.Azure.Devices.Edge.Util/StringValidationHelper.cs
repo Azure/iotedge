@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
-    using System.Reflection;
+    using System.Globalization;
 
     public static class StringValidationHelper
     {
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             if (!IsNullOrBase64String(value))
             {
-                throw new ArgumentException(CommonResources.GetString(Resources.StringIsNotBase64, value), paramName);
+                throw new ArgumentException(GetString("'{0}' is not a valid Base64 encoded string.", value), paramName);
             }
         }
 
@@ -70,78 +70,22 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return true;
         }
 
-        internal class Resources
+        internal static string GetString(string value, params object[] args)
         {
-            private static global::System.Globalization.CultureInfo resourceCulture;
-
-            private static global::System.Resources.ResourceManager resourceMan;
-
-            /// <summary>
-            ///   Overrides the current thread's CurrentUICulture property for all
-            ///   resource lookups using this strongly typed resource class.
-            /// </summary>
-            [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-            internal static global::System.Globalization.CultureInfo Culture
+            if (args != null && args.Length > 0)
             {
-                get
+                for (int i = 0; i < args.Length; i++)
                 {
-                    return resourceCulture;
-                }
-                set
-                {
-                    resourceCulture = value;
-                }
-            }
-
-            /// <summary>
-            ///   Returns the cached ResourceManager instance used by this class.
-            /// </summary>
-            [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-            internal static global::System.Resources.ResourceManager ResourceManager
-            {
-                get
-                {
-                    if (resourceMan is null)
+                    if (args[i] is string text && text.Length > 1024)
                     {
-                        global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Microsoft.Azure.Devices.Common.Resources", typeof(Resources).GetTypeInfo().Assembly);
-                        resourceMan = temp;
+                        args[i] = text.Substring(0, 1021) + "...";
                     }
-
-                    return resourceMan;
-                }
-            }
-
-            /// <summary>
-            ///   Looks up a localized string similar to &apos;{0}&apos; is not a valid Base64 encoded string..
-            /// </summary>
-            internal static string StringIsNotBase64
-            {
-                get
-                {
-                    return ResourceManager.GetString("StringIsNotBase64", resourceCulture);
-                }
-            }
-        }
-
-        internal sealed class CommonResources : Resources
-        {
-            internal static string GetString(string value, params object[] args)
-            {
-                if (args != null && args.Length > 0)
-                {
-                    for (int i = 0; i < args.Length; i++)
-                    {
-                        if (args[i] is string text && text.Length > 1024)
-                        {
-                            args[i] = text.Substring(0, 1021) + "...";
-                        }
-                    }
-
-                    return string.Format(Culture, value, args);
                 }
 
-                return value;
+                return string.Format(CultureInfo.InvariantCulture, value, args);
             }
+
+            return value;
         }
     }
 }

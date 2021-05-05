@@ -149,12 +149,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (sasAuthorizationRule.PrimaryKey != null)
             {
-                string primareyKeyComputedSignature = this.ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.PrimaryKey));
-#if NETSTANDARD2_1
-                if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(this.Signature), Encoding.ASCII.GetBytes(primareyKeyComputedSignature)))
-#else
-                if (FixedTimeEquals(this.Signature, primareyKeyComputedSignature))
-#endif
+                string primaryKeyComputedSignature = ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.PrimaryKey), this.encodedAudience, this.expiry);
+
+                if (CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(this.Signature), Encoding.UTF8.GetBytes(primaryKeyComputedSignature)))
                 {
                     return;
                 }
@@ -162,12 +159,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             if (sasAuthorizationRule.SecondaryKey != null)
             {
-                string secondaryKeyComputedSignature = this.ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.SecondaryKey));
-#if NETSTANDARD2_1
-                if (CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(this.Signature), Encoding.ASCII.GetBytes(secondaryKeyComputedSignature)))
-#else
-                if (FixedTimeEquals(this.Signature, secondaryKeyComputedSignature))
-#endif
+                string secondaryKeyComputedSignature = ComputeSignature(Convert.FromBase64String(sasAuthorizationRule.SecondaryKey), this.encodedAudience, this.expiry);
+
+                if (CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(this.Signature), Encoding.UTF8.GetBytes(secondaryKeyComputedSignature)))
                 {
                     return;
                 }
@@ -181,12 +175,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// </summary>
         /// <param name="key">Key used for computing the signature.</param>
         /// <returns>The string representation of the signature.</returns>
-        public string ComputeSignature(byte[] key)
+        public static string ComputeSignature(byte[] key, string encodedAudience, string expiry)
         {
             var fields = new List<string>
             {
-                this.encodedAudience,
-                this.expiry,
+                encodedAudience,
+                expiry,
             };
 
             using var hmac = new HMACSHA256(key);
@@ -213,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (!string.IsNullOrEmpty(field))
                 {
-                    string[] fieldParts = field.Split(new string[] { SharedAccessSignatureConstants.KeyValueSeparator }, StringSplitOptions.None);
+                    string[] fieldParts = field.Split(SharedAccessSignatureConstants.KeyValueSeparator, 2);
                     if (string.Equals(fieldParts[0], SharedAccessSignatureConstants.AudienceFieldName, StringComparison.OrdinalIgnoreCase))
                     {
                         // We need to preserve the casing of the escape characters in the audience,
@@ -229,36 +223,5 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             return parsedFields;
         }
-
-#if NETSTANDARD2_1
-#else
-        // N.B. This allows for string comparisons without a potential security vulnerability.
-        // Without this it could be possible to attempt different values and determine length
-        // and maybe even entire string through brute force atttempts.
-        //
-        // This is also a function that can be removed later once the C# version being used
-        // supports https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.cryptographicoperations.fixedtimeequals?view=net-5.0
-        //
-        // This implementation is taken directly from
-        // https://github.com/dotnet/runtime/blob/main/src/libraries/System.Security.Cryptography.Primitives/src/System/Security/Cryptography/CryptographicOperations.cs#L31
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        private static bool FixedTimeEquals(string left, string right)
-        {
-            if (left.Length != right.Length)
-            {
-                return false;
-            }
-
-            int length = left.Length;
-            int accum = 0;
-
-            for (int i = 0; i < length; i++)
-            {
-                accum |= left[i] - right[i];
-            }
-
-            return accum == 0;
-        }
-#endif
     }
 }
