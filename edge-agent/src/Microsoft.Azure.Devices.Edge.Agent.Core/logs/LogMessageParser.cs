@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     {
         const int DefaultLogLevel = 6;
         const string LogRegexPattern = @"^(<(?<logLevel>\d)>)?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
-        const string timestampRegexPattern = @"^\[((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})\s(?<logType>\D{3})\])";
+        const string TimestampRegexPattern = @"^\[((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3})\s(?<logType>\D{3})\])";
 
         readonly string iotHubName;
         readonly string deviceId;
@@ -88,9 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
                     if (!timeStamp.HasValue)
                     {
-                        // BEARWASHERE -- 
+                        // BEARWASHERE --
                         // If a module does not follow the prescribed format, use the timestamp that Docker provides for the log line.
-                        var timestampRegex = new Regex(timestampRegexPattern);
+                        var timestampRegex = new Regex(TimestampRegexPattern);
                         var timestampMatch = timestampRegex.Match(text);
                         var tsm = timestampMatch.Groups["timestamp"];
                         if (tsm?.Length > 0)
