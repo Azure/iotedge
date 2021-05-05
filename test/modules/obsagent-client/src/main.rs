@@ -1,18 +1,22 @@
-use futures::stream::Stream;
-use futures::StreamExt;
-// use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry::sdk::metrics::{selectors, PushController};
-// use opentelemetry::trace::TraceError;
-use opentelemetry::global;
-use opentelemetry::metrics::{self, ObserverResult, ValueRecorder};
-use opentelemetry_otlp::ExporterConfig;
-use std::error::Error;
-use std::time::Duration;
+// Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::{
+    error::Error,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    time::Duration,
+};
 
 use clap::{value_t, App, Arg};
+use futures::{Stream, StreamExt};
+use opentelemetry::{
+    global,
+    metrics::{self, ObserverResult, ValueRecorder},
+    sdk::metrics::{selectors, PushController},
+};
+use opentelemetry_otlp::ExporterConfig;
 use rand::Rng;
 
 // Skip first immediate tick from tokio, not needed for async_std.
@@ -22,7 +26,7 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Insta
 
 fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushController> {
     let export_config = ExporterConfig {
-        endpoint: otlp_endpoint.to_string(),
+        endpoint: otlp_endpoint,
         ..ExporterConfig::default()
     };
     opentelemetry_otlp::new_metrics_pipeline(tokio::spawn, delayed_interval)
@@ -46,59 +50,65 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
     let matches = App::new("obs_agent_client")
         .arg(
             Arg::with_name("update-rate")
-                .short("u")
+                .short("u")       
                 .long("update-rate")
+                .takes_value(true)                
                 .help("Rate at which each instrument is updated with a new metric measurement (updates/sec)")
         )
         .arg(
             Arg::with_name("push-rate")
                 .short("p")
                 .long("push-rate")
+                .takes_value(true)
                 .help("Rate at which measurements are pushed out of the client (pushes/sec)")
         )
         .arg(
             Arg::with_name("batching-enabled")
                 .short("b")
                 .long("batching-enabled")
+                .takes_value(true)                
                 .help("Enables or disables batch recording of measurements.")
         )
         .arg(
             Arg::with_name("otlp-endpoint")
                 .short("e")
                 .long("otlp-endpoint")
+                .takes_value(true)                
                 .help("Endpoint to which OTLP messages will be sent.")
         )
         .arg(
             Arg::with_name("enable-value-recorder")
                 .short("r")
                 .long("enable-value-recorder")
+                .takes_value(true)                
                 .help("Enables or disables value recorder instrument.")
         )
         .arg(
             Arg::with_name("enable-value-observer")
                 .short("v")
                 .long("enable-value-observer")
+                .takes_value(true)                
                 .help("Enables or disables value observer instrument.")
         )
         .get_matches();
 
     let config = Config {
-        update_rate: if let Ok(v) = std::env::var("OBS_AGENT_CLIENT_UPDATE_RATE") {
+        update_rate: if let Ok(v) = std::env::var("UPDATE_RATE") {
             v.parse()?
         } else {
             value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)
         },
-        push_rate: if let Ok(v) = std::env::var("OBS_AGENT_CLIENT_PUSH_RATE") {
+        push_rate: if let Ok(v) = std::env::var("PUSH_RATE") {
             v.parse()?
         } else {
             value_t!(matches.value_of("push-rate"), f64).unwrap_or(0.2)
         },
-        batching_enabled: if let Ok(v) = std::env::var("OBS_AGENT_CLIENT_BATCHING_ENABLED") {
+        batching_enabled: if let Ok(v) = std::env::var("BATCHING_ENABLED") {
             v.parse()?
         } else {
             value_t!(matches.value_of("batching-enabled"), bool).unwrap_or(false)
         },
-        otlp_endpoint: if let Ok(v) = std::env::var("OBS_AGENT_OTLP_ENDPOINT") {
+        otlp_endpoint: if let Ok(v) = std::env::var("OTLP_ENDPOINT") {
             v.parse()?
         } else {
             matches
@@ -107,14 +117,14 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                 .to_string()
         },
         enable_value_recorder: if let Ok(v) =
-            std::env::var("OBS_AGENT_CLIENT_ENABLE_VALUE_RECORDER")
+            std::env::var("ENABLE_VALUE_RECORDER")
         {
             v.parse()?
         } else {
             value_t!(matches.value_of("enable-value-recorder"), bool).unwrap_or(false)
         },
         enable_value_observer: if let Ok(v) =
-            std::env::var("OBS_AGENT_CLIENT_ENABLE_VALUE_OBSERVER")
+            std::env::var("ENABLE_VALUE_OBSERVER")
         {
             v.parse()?
         } else {
@@ -189,10 +199,14 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         if let Some(ref v) = value_recorder {
             v.record(rng.gen::<f64>(), &[]);
         }
-        let mut sum = sum.lock().unwrap();
-        *sum += 1;
-        let mut ud_sum = ud_sum.lock().unwrap();
-        *ud_sum += 1;
+        {
+            let mut sum = sum.lock().unwrap();
+            *sum += 1;
+        }
+        {
+            let mut ud_sum = ud_sum.lock().unwrap();
+            *ud_sum += 1;
+        }
         if let Some(ref v) = value {
             let mut v = v.lock().unwrap();
             *v = rng.gen::<f64>();
