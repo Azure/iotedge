@@ -10,11 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Util
         private const char Base64Padding = '=';
 
         private static readonly HashSet<char> base64Table =
-            new HashSet<char>{  'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
-                                'P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d',
-                                'e','f','g','h','i','j','k','l','m','n','o','p','q','r','s',
-                                't','u','v','w','x','y','z','0','1','2','3','4','5','6','7',
-                                '8','9','+','/' };
+            new HashSet<char>
+            {  
+                'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',
+                'P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d',
+                'e','f','g','h','i','j','k','l','m','n','o','p','q','r','s',
+                't','u','v','w','x','y','z','0','1','2','3','4','5','6','7',
+                '8','9','+','/'
+            };
 
         public static void EnsureNullOrBase64String(string value, string paramName)
         {
@@ -69,7 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal class Resources
         {
-
             private static global::System.Globalization.CultureInfo resourceCulture;
 
             private static global::System.Resources.ResourceManager resourceMan;
@@ -99,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 get
                 {
-                    if (object.ReferenceEquals(resourceMan, null))
+                    if (resourceMan is null)
                     {
                         global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Microsoft.Azure.Devices.Common.Resources", typeof(Resources).GetTypeInfo().Assembly);
                         resourceMan = temp;
@@ -128,8 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 {
                     for (int i = 0; i < args.Length; i++)
                     {
-                        string text = args[i] as string;
-                        if (text != null && text.Length > 1024)
+                        if (args[i] is string text && text.Length > 1024)
                         {
                             args[i] = text.Substring(0, 1021) + "...";
                         }

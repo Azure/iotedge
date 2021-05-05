@@ -129,10 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// <summary>
         /// Indicates if the token has expired.
         /// </summary>
-        public bool IsExpired()
-        {
-            return ExpiresOn + SharedAccessSignatureConstants.MaxClockSkew < DateTime.UtcNow;
-        }
+        public bool IsExpired() => this.ExpiresOn + SharedAccessSignatureConstants.MaxClockSkew < DateTime.UtcNow;
 
         /// <summary>
         /// Authenticate against the IoT Hub using an authorization rule.
@@ -232,6 +229,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return parsedFields;
         }
 
+#if NETSTANDARD2_1
+#else
         // N.B. This allows for string comparisons without a potential security vulnerability.
         // Without this it could be possible to attempt different values and determine length
         // and maybe even entire string through brute force atttempts.
@@ -259,5 +258,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             return accum == 0;
         }
+#endif
     }
 }

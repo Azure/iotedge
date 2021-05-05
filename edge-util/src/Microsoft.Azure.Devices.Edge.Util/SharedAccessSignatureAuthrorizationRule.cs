@@ -68,10 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as SharedAccessSignatureAuthorizationRule);
-        }
+        public override bool Equals(object obj) => Equals(obj as SharedAccessSignatureAuthorizationRule);
 
         /// <summary>
         /// Gets a hash code for a given object.
@@ -111,10 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         /// Gets a hash code for the current object.
         /// </summary>
         /// <returns>A hash code for the current object.</returns>
-        public override int GetHashCode()
-        {
-            return GetHashCode(this);
-        }
+        public override int GetHashCode() => GetHashCode(this);
 
         /// <summary>
         /// Shared access policy permissions of IoT hub.
