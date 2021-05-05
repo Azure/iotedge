@@ -44,7 +44,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `relayerImage` | * | Relayer image to be used. Required when running PriorityQueue tests, ignored otherwise.|
 | `tempFilterFuncImage` | * | Azure temperature filter function to be used. Required when running the test 'TempFilterFunc', ignored otherwise.|
 | `tempFilterImage` | * | Docker image to pull/use for the temperature filter module. Required when running the test 'TempFilter', ignored otherwise.|
-| `azureIotEdgeMetricsCollectorImage` | * | Docker image to pull/use for the Azure IoT Edge Metrics Collector module. Required when running the test 'AzureIotEdgeMetricsCollector', ignored otherwise.|
+| `metricsCollectorImage` | * | Docker image to pull/use for the Azure IoT Edge Metrics Collector module. Required when running the test 'AzureIotEdgeMetricsCollector', ignored otherwise.|
 | `tempSensorImage` || Docker image to pull/use for the temperature sensor module (see the test 'TempSensor'). If not given, `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` is used.|
 | `edgeAgentBootstrapImage` || Docker image to pull/use for the initial startup of edgeAgent. It is the EdgeAgent image used in config.yaml. This is a temporary parameter - only here now because the 1.0 version is incompatible with the way this test framework verifies deployments in the master branch. If you want to specify your own, the container registry used is the first registry in the list of registries given by the 'registries' parameter|'
 | `numberLoggerImage` || Docker image to pull/use for the Edge agent direct method tests. Used to generate predictable logs. |
