@@ -137,6 +137,12 @@ Next, set each environment variable's value by listing them directly.
 | IOTEDGE_PARENTHOSTNAME | Read only variable. Do not assign, its value is automatically assigned to Parent hostname when container starts |
 | IOTEDGE_PARENTAPIPROXYNAME | Set the name of the parent api proxy module, as specified in azure portal. This is used for certificate authentication. When omitted, the name of the parent is defaulted to the child api proxy name. | 
 
+Some variables are also usable in the configuration but not editable:
+| Variables  | comments |
+| ------------- |  ------------- |
+| TOKEN_VALIDITY_MINUTES | How long tokens are cached  |
+| TOKEN_SERVER_PORT | Port on which the token server is listening  |
+
 ### Update the proxy configuration dynamically
 
 To update the proxy configuration dynamically:

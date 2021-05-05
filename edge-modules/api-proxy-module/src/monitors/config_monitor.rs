@@ -1,16 +1,17 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::{Context, Error, Result};
-use chrono::Utc;
 use futures_util::{future::Either, pin_mut, StreamExt};
 use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle};
 
-use azure_iot_mqtt::{module::Client, Transport::Tcp, TwinProperties};
+use crate::monitors::config_parser;
+use crate::utils::file;
+use crate::utils::shutdown_handle;
 
-use crate::monitors::{
-    config_parser::ConfigParser, file, shutdown_handle::ShutdownHandle, token_manager::TokenManager,
-};
+use azure_iot_mqtt::{module::Client, Transport::Tcp, TwinProperties};
+use config_parser::ConfigParser;
+use shutdown_handle::ShutdownHandle;
 
 const PROXY_CONFIG_TAG: &str = "proxy_config";
 const PROXY_CONFIG_PATH_RAW: &str = "/app/nginx_default_config.conf";
@@ -18,11 +19,6 @@ const PROXY_CONFIG_PATH_PARSED: &str = "/app/nginx_config.conf";
 
 const TWIN_CONFIG_MAX_BACK_OFF: Duration = Duration::from_secs(30);
 const TWIN_CONFIG_KEEP_ALIVE: Duration = Duration::from_secs(300);
-
-//SAS token last 10mn
-const TOKEN_VALIDITY_SECONDS: i64 = 600;
-//Request new token 5min before expiry of actual token
-const TOKEN_EXPIRY_SECONDS_MARGIN: i64 = 300;
 
 pub fn get_sdk_client() -> Result<Client, Error> {
     let client = match Client::new_for_edge_module(
@@ -46,65 +42,45 @@ pub fn start(
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
     info!("Initializing config monitoring loop");
-    let mut token_manager = TokenManager::new().context("Cannot get client token")?;
-    let mut config_parser = ConfigParser::new();
+    let config_parser = ConfigParser::new();
+    parse_config(&config_parser)?;
 
     info!("Starting config monitoring loop");
+    //Config is ready, send notification.
+    notify_received_config.notify_one();
 
     let monitor_loop: JoinHandle<Result<()>> = tokio::spawn(async move {
         loop {
             let wait_shutdown = shutdown_signal.notified();
             pin_mut!(wait_shutdown);
-            let get_new_sas_token = token_manager.poll_new_sas_token(
-                Utc::now(),
-                chrono::Duration::seconds(TOKEN_VALIDITY_SECONDS),
-                chrono::Duration::seconds(TOKEN_EXPIRY_SECONDS_MARGIN),
-            );
-            pin_mut!(get_new_sas_token);
-            let reload_config = futures_util::future::select(get_new_sas_token, client.next());
 
             let parse_config_request =
-                match futures_util::future::select(wait_shutdown, reload_config).await {
+                match futures_util::future::select(wait_shutdown, client.next()).await {
                     Either::Left(_) => {
                         warn!("Shutting down config monitor!");
                         return Ok(());
                     }
-                    Either::Right((reload_config, _)) => match reload_config {
-                        Either::Left((Ok(Some(token)), _)) => {
-                            info!("New SAS token received, reloading the config");
-                            config_parser.add_new_key("SAS_TOKEN", &token);
-                            true
-                        }
-                        Either::Left((Ok(None), _)) => {
-                            error!("Error received an empty token");
-                            false
-                        }
-                        Either::Left((Err(err), _)) => {
-                            error!("Error getting new token {}", err);
-                            false
-                        }
-                        Either::Right((Some(Ok(message)), _)) => {
-                            if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
-                                if let Err(err) = save_raw_config(&twin) {
-                                    error!("received message {}", err);
-                                    false
-                                } else {
-                                    info!("New config received from twin, reloading the config");
-                                    true
-                                }
-                            } else {
+                    Either::Right((Some(Ok(message)), _)) => {
+                        if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
+                            if let Err(err) = save_raw_config(&twin) {
+                                error!("received message {}", err);
                                 false
+                            } else {
+                                info!("New config received from twin, reloading the config");
+                                true
                             }
-                        }
-                        Either::Right((Some(Err(err)), _)) => {
-                            error!("Error receiving a message! {}", err);
+                        } else {
                             false
                         }
-                        Either::Right((None, _)) => {
-                            warn!("Shutting down config monitor!");
-                            return Ok(());
-                        }
-                    },
+                    }
+                    Either::Right((Some(Err(err)), _)) => {
+                        error!("Error receiving a message! {}", err);
+                        false
+                    }
+                    Either::Right((None, _)) => {
+                        warn!("Shutting down config monitor!");
+                        return Ok(());
+                    }
                 };
 
             if parse_config_request {
