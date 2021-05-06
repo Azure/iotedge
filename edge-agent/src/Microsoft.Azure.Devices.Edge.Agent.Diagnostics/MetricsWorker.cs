@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     ("from", new Summer()),
                     ("to", new Summer())
                 ),
-                new AggregationTemplate("edgehub_queue_length", "endpoint", new Averager()),
+                new AggregationTemplate("edgehub_queue_length", "endpoint", new Summer()),
                 new AggregationTemplate(
                     new string[]
                     {
