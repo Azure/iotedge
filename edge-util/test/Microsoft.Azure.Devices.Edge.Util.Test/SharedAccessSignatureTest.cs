@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             var rule = JsonConvert.DeserializeObject<SharedAccessSignatureAuthorizationRule>(json.ToString());
 
-            AssertNoThrow(() => sas.Authenticate(rule));
+            this.AssertNoThrow(() => sas.Authenticate(rule));
         }
 
         [Fact]
