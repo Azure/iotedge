@@ -32,7 +32,7 @@
         "modules": {
           "AzureMonitorForIotEdgeModule": {
             "settings": {
-              "image": "mcr.microsoft.com/azureiotedge-metrics-collector:0.1",
+              "image": "mcr.microsoft.com/azureiotedge-metrics-collector:1.0.0",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
             "type": "docker",
