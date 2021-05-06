@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using System.Globalization;
     using System.Net;
-    using System.Runtime.CompilerServices;
     using System.Security.Cryptography;
     using System.Text;
 

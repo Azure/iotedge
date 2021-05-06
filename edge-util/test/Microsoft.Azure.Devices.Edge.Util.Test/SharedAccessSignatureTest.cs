@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System;
+    using System.Net;
     using System.Threading;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
@@ -162,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             var sr = "test";
 
             var sig = SharedAccessSignature.ComputeSignature(Convert.FromBase64String("test"), sr, expiry);
+            sig = WebUtility.UrlEncode(sig);
 
             return "SharedAccessSignature\nsig=" + sig + "&se=" + expiry + "&sr=" + sr;
         }
