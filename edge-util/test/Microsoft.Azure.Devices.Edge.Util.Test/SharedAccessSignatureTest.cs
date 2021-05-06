@@ -23,13 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void IsExpiredTest()
         {
-            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetAlmostExpiredToken());
+            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetAlmostExpiredToken());
 
             Thread.Sleep(5 * 1000);
 
             Assert.True(sas.IsExpired());
 
-            sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetNonExpiredToken());
+            sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetNonExpiredToken());
 
             Assert.False(sas.IsExpired());
         }
@@ -84,13 +84,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         [Fact]
         [Unit]
-        public void ParseDoesNotThrowWithNonExpiredRawTokenTest() => AssertNoThrow(() => SharedAccessSignature.Parse(IOT_HUB_NAME, GetNonExpiredToken()));
+        public void ParseDoesNotThrowWithNonExpiredRawTokenTest() => this.AssertNoThrow(() => SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetNonExpiredToken()));
 
         [Fact]
         [Unit]
         public void AuthenticateThrowsWhenRuleIsNullTest()
         {
-            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetNonExpiredToken());
+            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetNonExpiredToken());
 
             Assert.Throws<ArgumentNullException>(() => sas.Authenticate(null));
         }
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void AuthenticateThrowsIsExpiredTest()
         {
-            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetAlmostExpiredToken());
+            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetAlmostExpiredToken());
 
             var rule = new SharedAccessSignatureAuthorizationRule();
 
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void AuthenticateThrowsInvalidSASTest()
         {
-            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetNonExpiredToken());
+            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetNonExpiredToken());
 
             var rule = new SharedAccessSignatureAuthorizationRule();
 
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void AuthenticateSucceedsWhenValidSASWithPrimaryKeyTest()
         {
-            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetNonExpiredToken());
+            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetNonExpiredToken());
 
             var json = new JObject
             {
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void AuthenticateSucceedsWhenValidSASWithSecondaryKeyTest()
         {
-            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, GetNonExpiredToken());
+            var sas = SharedAccessSignature.Parse(IOT_HUB_NAME, this.GetNonExpiredToken());
 
             var json = new JObject
             {
@@ -152,15 +152,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             var rule = JsonConvert.DeserializeObject<SharedAccessSignatureAuthorizationRule>(json.ToString());
 
-            AssertNoThrow(() => sas.Authenticate(rule));
+            this.AssertNoThrow(() => sas.Authenticate(rule));
         }
-
-
 
         private string GetNonExpiredToken()
         {
             // Generate a valid looking sas token
-            var expiry = GetExpiry(10).ToString();
+            var expiry = this.GetExpiry(10).ToString();
             var sr = "test";
 
             var sig = SharedAccessSignature.ComputeSignature(Convert.FromBase64String("test"), sr, expiry);
@@ -168,13 +166,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             return "SharedAccessSignature\nsig=" + sig + "&se=" + expiry + "&sr=" + sr;
         }
 
-        private string GetAlmostExpiredToken() => "SharedAccessSignature\nsig=test&se=" + GetExpiry(2) + "&sr=test";
+        private string GetAlmostExpiredToken() => "SharedAccessSignature\nsig=test&se=" + this.GetExpiry(2) + "&sr=test";
 
         private void AssertNoThrow(Func<object> test) => Assert.Null(Record.Exception(test));
 
         private void AssertNoThrow(Action test) => Assert.Null(Record.Exception(test));
 
         private int GetExpiry(int secondsInFuture) => (int)Math.Floor((DateTime.UtcNow.AddSeconds(secondsInFuture).Subtract(SharedAccessSignatureConstants.MaxClockSkew) - SharedAccessSignatureConstants.EpochTime).TotalSeconds);
-
     }
 }
