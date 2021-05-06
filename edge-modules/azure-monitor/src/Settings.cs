@@ -130,8 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) },
                 { nameof(this.CompressForUpload), this.CompressForUpload.ToString() },
                 { nameof(this.TransformForIoTCentral), this.TransformForIoTCentral.ToString() },
-                { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics) },
-                { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics) },
+                { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics.ToString()) },
+                { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics.ToString()) },
                 { nameof(this.HubResourceID), this.HubResourceID ?? string.Empty }
             };
 
