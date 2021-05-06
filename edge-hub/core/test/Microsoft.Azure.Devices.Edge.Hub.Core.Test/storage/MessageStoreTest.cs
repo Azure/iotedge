@@ -74,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
                     }
                 }
             }
+
+            Assert.Equal(0, metricsGauge.Value);
         }
 
         [Theory]
@@ -632,6 +634,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
             Assert.Equal(originalMessage.Properties, updatedMessage.Properties);
             Assert.Equal(originalMessage.SystemProperties, updatedMessage.SystemProperties);
             Assert.Equal(offset, updatedMessage.Offset);
+        }
+
+        class MetricsGauge : IMetricsGauge
+        {
+            public string[] LabelValues { get; set; }
+            public double Value { get; set; }
+
+            public void Set(double value, string[] labelValues)
+            {
+                this.LabelValues = labelValues;
+                this.Value = value;
+            }
         }
     }
 }

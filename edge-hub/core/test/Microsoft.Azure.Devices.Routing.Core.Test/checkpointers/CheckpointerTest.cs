@@ -254,8 +254,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
 
             public void Set(double value, string[] labelValues)
             {
-                LabelValues = labelValues;
-                Value = value;
+                this.LabelValues = labelValues;
+                this.Value = value;
             }
         }
     }
