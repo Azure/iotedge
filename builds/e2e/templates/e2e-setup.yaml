@@ -15,6 +15,7 @@ steps:
       TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
+      TestIotHubResourceId,
       TestPreviewIotHubConnectionString,
       TestRootCaCertificate,
       TestRootCaKey,
@@ -104,6 +105,7 @@ steps:
       networkControllerImage = "$imagePrefix-network-controller:$imageTag";
       testResultCoordinatorImage = "$imagePrefix-test-result-coordinator:$imageTag";
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
+      metricsCollectorImage = "$imagePrefix-metrics-collector:$imageTag"
       numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
       registries = @(
