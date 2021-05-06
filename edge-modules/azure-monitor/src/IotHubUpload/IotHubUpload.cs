@@ -42,6 +42,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 }
 
                 byte[] metricsData = Encoding.UTF8.GetBytes(outputString);
+                if (Settings.Current.CompressForUpload)
+                {
+                    metricsData = Compression.CompressToGzip(metricsData);
+                }
+
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
