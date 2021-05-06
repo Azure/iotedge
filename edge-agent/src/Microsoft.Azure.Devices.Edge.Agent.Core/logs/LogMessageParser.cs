@@ -48,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             string stream = GetStream(arg[0]);
             ByteString payload = arg.Slice(8);
+            // BEARWASHERE -- Maybe we need to parse this for the field of "timestamp" returning from the docker API
             string payloadString = payload.ToString(Encoding.UTF8);
             (int logLevel, Option<DateTime> timeStamp, string logText) = ParseLogText(payloadString);
             var moduleLogMessage = new ModuleLogMessageData(iotHubName, deviceId, moduleId, stream, logLevel, timeStamp, logText, arg, payloadString);

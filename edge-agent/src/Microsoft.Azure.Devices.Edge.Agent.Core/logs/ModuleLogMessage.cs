@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         [JsonProperty(PropertyName = "text")]
         public string Text { get; }
 
+        // BEARWASHERE -- Template for returning docker log
         [JsonProperty(PropertyName = "timestamp")]
         [JsonConverter(typeof(OptionConverter<DateTime>))]
         public Option<DateTime> TimeStamp { get; }
