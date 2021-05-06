@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
 
             var iterator = db.NewIterator(this.Handle);
+            this.count = 0;
             while (iterator.Next() != null)
             {
                 this.count += 1;
