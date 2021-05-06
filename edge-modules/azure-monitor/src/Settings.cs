@@ -26,10 +26,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             bool transformForIoTCentral,
             string allowedMetrics,
             string blockedMetrics,
-            string hubResourceID)
+            string resourceId)
         {
             this.UploadTarget = uploadTarget;
-            this.HubResourceID = Preconditions.CheckNonWhiteSpace(hubResourceID, nameof(hubResourceID));
+            this.ResourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
 
             if (this.UploadTarget == UploadTarget.AzureMonitor)
             {
@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public MetricFilter BlockedMetrics { get; }
 
-        public string HubResourceID { get; }
+        public string ResourceId { get; }
 
 
         // TODO: is this used anywhere important? Make sure to test it if so
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.TransformForIoTCentral), this.TransformForIoTCentral.ToString() },
                 { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics) },
                 { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics) },
-                { nameof(this.HubResourceID), this.HubResourceID ?? string.Empty }
+                { nameof(this.ResourceId), this.ResourceId ?? string.Empty }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
