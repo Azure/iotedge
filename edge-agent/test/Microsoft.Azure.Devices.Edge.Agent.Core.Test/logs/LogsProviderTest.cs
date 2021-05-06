@@ -30,14 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public static IEnumerable<object[]> GetNeedToProcessStreamTestData()
         {
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), false };
             yield return new object[] { new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
-            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("foo")), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Json, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.SimpleLength, Option.None<LogsOutputGroupingConfig>(), false), true };
+            yield return new object[] { new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, new ModuleLogFilter(Option.Some(10), Option.Some("100"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.None<string>()), LogOutputFraming.None, Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromMilliseconds(1000))), false), false };
         }
 
         [Fact]
@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
-            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.Some("Starting"));
+            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.None<bool>(), Option.Some("Starting"));
             var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
 
             var receivedBytes = new List<byte>();
@@ -278,8 +278,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId1 = "mod1";
             string moduleId2 = "mod2";
 
-            var filter1 = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.Some("Starting"));
-            var filter2 = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.Some("bad"));
+            var filter1 = new ModuleLogFilter(tail, since, Option.None<string>(), Option.Some(6), Option.None<bool>(), Option.Some("Starting"));
+            var filter2 = new ModuleLogFilter(Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("bad"));
 
             byte[] dockerLogsStreamBytes1 = DockerFraming.Frame(TestLogTexts);
             byte[] dockerLogsStreamBytes2 = DockerFraming.Frame(TestLogTexts);
@@ -351,7 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId1 = "mod1";
             string moduleId2 = "mod2";
 
-            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.None<int>(), Option.Some("bad"));
+            var filter = new ModuleLogFilter(tail, since, Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("bad"));
 
             byte[] dockerLogsStreamBytes1 = DockerFraming.Frame(TestLogTexts);
             byte[] dockerLogsStreamBytes2 = DockerFraming.Frame(TestLogTexts);
