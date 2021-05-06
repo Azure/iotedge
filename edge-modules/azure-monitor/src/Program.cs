@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         static async Task<int> MainAsync()
         {
             LoggerUtil.Writer.LogInformation("Initializing metrics collector");
+            LoggerUtil.Writer.LogInformation("Version - {0}", Settings.Current.Version);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), LoggerUtil.Writer);
 
