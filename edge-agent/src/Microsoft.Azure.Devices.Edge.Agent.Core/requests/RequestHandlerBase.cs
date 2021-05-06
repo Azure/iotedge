@@ -25,6 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         public async Task<Option<string>> HandleRequest(Option<string> payloadJson, CancellationToken cancellationToken)
         {
+            // BEARWASHERE -- Should we make the timestamp also requestable from the portal?
+            // My guess is a yes!
             numCalls.WithLabels(this.RequestName).Inc();
             Option<TU> payload = this.ParsePayload(payloadJson);
             Option<TV> result = await this.HandleRequestInternal(payload, cancellationToken);

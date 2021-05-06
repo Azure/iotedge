@@ -45,8 +45,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         [JsonConverter(typeof(OptionConverter<int>), true)]
         public Option<int> LogLevel { get; }
 
-        [JsonIgnore]
-        public Option<bool> IncludeTimestamp { get; }
+        //BEARWASHERE -- Config this.
+        [JsonProperty("timestamps")]
+        [JsonConverter(typeof(OptionConverter<bool>), true)]
+        public Option<bool> IncludeTimestamp { get; set; }
 
         [JsonIgnore]
         public Option<Regex> Regex { get; }
