@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager.Object);
 
             // Act
-            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<string>(), Option.None<bool>(), CancellationToken.None);
+            Stream receivedLogsStream = await runtimeInfoProvider.GetModuleLogs(id, false, Option.None<int>(), Option.None<string>(), Option.None<string>(), Option.None<bool>(), CancellationToken.None);
 
             // Assert
             var buffer = new byte[1024];

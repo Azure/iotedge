@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         }
 
         [JsonConstructor]
-        ModuleLogFilter(int? tail, string since, string until, int? loglevel, bool? includeTimestamp,string regex)
+        ModuleLogFilter(int? tail, string since, string until, int? loglevel, bool? includeTimestamp, string regex)
             : this(Option.Maybe(tail), Option.Maybe(since), Option.Maybe(until), Option.Maybe(loglevel), Option.Maybe(includeTimestamp), Option.Maybe(regex))
         {
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         [JsonConverter(typeof(OptionConverter<int>), true)]
         public Option<int> LogLevel { get; }
 
-        //BEARWASHERE -- Config this.
+        // BEARWASHERE -- Config this.
         [JsonProperty("timestamps")]
         [JsonConverter(typeof(OptionConverter<bool>), true)]
         public Option<bool> IncludeTimestamp { get; set; }
