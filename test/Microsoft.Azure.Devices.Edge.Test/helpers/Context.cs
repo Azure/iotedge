@@ -78,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
+            this.HubResourceId = Option.Maybe(Get("IOT_HUB_RESOURCE_ID"));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -100,7 +101,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.NumberLoggerImage = Option.Maybe(Get("numberLoggerImage"));
             this.MetricsValidatorImage = Option.Maybe(Get("metricsValidatorImage"));
             this.MetricsCollectorImage = Option.Maybe(Get("metricsCollectorImage"));
-            this.HubResourceId = Option.Maybe(Get("hubResourceId"));
             this.TestResultCoordinatorImage = Option.Maybe(Get("testResultCoordinatorImage"));
             this.LoadGenImage = Option.Maybe(Get("loadGenImage"));
             this.RelayerImage = Option.Maybe(Get("relayerImage"));
