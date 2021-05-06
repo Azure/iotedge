@@ -12,11 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
+        private long count;
 
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
+
+            var iterator = db.NewIterator(this.Handle);
+            while (iterator.Next() != null)
+            {
+                this.count += 1;
+            }
         }
 
         internal ColumnFamilyHandle Handle { get; }
@@ -54,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
+            this.count += 1;
             Action operation = () => this.db.Put(key, value, this.Handle);
             return operation.ExecuteUntilCancelled(cancellationToken);
         }
@@ -61,6 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
+
+            this.count -= 1;
             Action operation = () => this.db.Remove(key, this.Handle);
             return operation.ExecuteUntilCancelled(cancellationToken);
         }
@@ -127,6 +137,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
+
+        public Task<long> Count() => Task.FromResult(this.count);
 
         public void Dispose()
         {

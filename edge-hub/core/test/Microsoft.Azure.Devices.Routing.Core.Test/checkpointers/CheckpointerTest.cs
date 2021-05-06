@@ -42,10 +42,24 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Checkpointers
             var store = new Mock<ICheckpointStore>();
             store.Setup(d => d.GetCheckpointDataAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(new CheckpointData(offset));
 
+            var metricsGauge = new MetricsGauge();
+            var provider = new Mock<IMetricsProvider>();
+            provider.Setup(d => d.CreateGauge(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<List<string>>())).Returns(metricsGauge);
+            var logger = new Mock<ILogger>();
+            Metrics.InitWithAspNet(provider.Object, logger.Object);
+
             using (ICheckpointer checkpointer1 = await Checkpointer.CreateAsync("id1", store.Object))
             {
+                Assert.Equal(offset, checkpointer1.Offset);
+                Assert.Equal(offset, checkpointer1.Proposed);
+                Assert.Equal(0, metricsGauge.Value);
+
                 await checkpointer1.CommitAsync(new IMessage[] { message }, new IMessage[] { }, Option.None<DateTime>(), Option.None<DateTime>(), CancellationToken.None);
+
                 Assert.Equal(expected, checkpointer1.Offset);
+                Assert.Equal(offset, checkpointer1.Proposed);
+                Assert.Equal(Math.Max(checkpointer1.Proposed - checkpointer1.Offset, 0), metricsGauge.Value);
+
                 Expression<Func<CheckpointData, bool>> expr = obj => obj.Offset == expected;
                 if (message.Offset == expected && message.Offset != offset)
                 {
