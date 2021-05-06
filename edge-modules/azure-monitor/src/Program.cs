@@ -34,6 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         static async Task<int> MainAsync()
         {
+            LoggerUtil.Writer.LogInformation("Initializing metrics collector");
+
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), LoggerUtil.Writer);
 
             // wait up to 30 seconds for debugger to attach if in a debug build
@@ -41,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             WaitForDebugger();
 #endif
 
-            LoggerUtil.Writer.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
+            LoggerUtil.Writer.LogInformation($"Metrics collector initialized with the following settings:\r\n{Settings.Current}");
             var transportSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
 
             ITransportSettings[] transportSettings = { transportSetting };
