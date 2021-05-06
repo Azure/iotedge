@@ -63,7 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         private static Settings Create()
         {
-            try {
+            try
+            {
                 IConfiguration configuration = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddEnvironmentVariables()
@@ -81,7 +82,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<string>("BlockedMetrics", ""),
                     configuration.GetValue<string>("HubResourceID", ""));
             }
-            catch (ArgumentException e) {
+            catch (ArgumentException e)
+            {
                 LoggerUtil.Writer.LogCritical("Error reading arguments from environment variables. Make sure all required parameter are present");
                 LoggerUtil.Writer.LogCritical(e.ToString());
                 Environment.Exit(2);
