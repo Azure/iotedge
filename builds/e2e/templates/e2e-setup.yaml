@@ -107,7 +107,7 @@ steps:
       metricsValidatorImage = "$imagePrefix-metrics-validator:$imageTag";
       numberLoggerImage = "$imagePrefix-number-logger:$imageTag";
       edgeAgentBootstrapImage = "$imagePrefix-agent-bootstrap-e2e-$(os)-$(arch)";
-      metricsCollectorImage = "$imagePrefix-metrics-collector-$(os)-$(arch)"
+      metricsCollectorImage = "$imagePrefix-metrics-collector-$(os)-$(arch):$imageTag"
       registries = @(
         @{
           address = '$(cr.address)';
