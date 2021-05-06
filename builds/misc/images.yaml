@@ -155,7 +155,7 @@ jobs:
      # Metrics Collector
       - template: templates/image-linux.yaml
         parameters:
-          name: Metrics Collector - Tests only
+          name: Metrics Collector (test-only)
           imageName: azureiotedge-test-metrics-collector
           project: MetricsCollector
 
@@ -183,7 +183,7 @@ jobs:
      # Azure IoT Edge Metrics Collector
       - template: templates/image-linux.yaml
         parameters:
-          name: Azure IoT Edge Metrics Collector
+          name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 

@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
-                    configuration.GetValue<string>("HubResourceID", ""));
+                    configuration.GetValue<string>("ResourceID", ""));
             }
             catch (ArgumentException e)
             {
