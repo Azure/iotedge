@@ -83,15 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
             int hashKeyName, hashPrimaryKey, hashSecondaryKey, hashRights;
 
-#if NETSTANDARD2_0 || NET451 || NET472
-            hashKeyName = rule.KeyName == null ? 0 : rule.KeyName.GetHashCode();
-
-            hashPrimaryKey = rule.PrimaryKey == null ? 0 : rule.PrimaryKey.GetHashCode();
-
-            hashSecondaryKey = rule.SecondaryKey == null ? 0 : rule.SecondaryKey.GetHashCode();
-
-            hashRights = rule.Rights.GetHashCode();
-#else
             hashKeyName = rule.KeyName == null ? 0 : rule.KeyName.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
 
             hashPrimaryKey = rule.PrimaryKey == null ? 0 : rule.PrimaryKey.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
@@ -99,7 +90,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
             hashSecondaryKey = rule.SecondaryKey == null ? 0 : rule.SecondaryKey.GetHashCode(StringComparison.InvariantCultureIgnoreCase);
 
             hashRights = rule.Rights.GetHashCode();
-#endif
 
             return hashKeyName ^ hashPrimaryKey ^ hashSecondaryKey ^ hashRights;
         }

@@ -39,11 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static bool IsBase64String(string value)
         {
-#if NETSTANDARD2_1
             value = value.Replace("\r", string.Empty, StringComparison.Ordinal).Replace("\n", string.Empty, StringComparison.Ordinal);
-#else
-            value = value.Replace("\r", string.Empty).Replace("\n", string.Empty);
-#endif
 
             if (value.Length == 0 || (value.Length % 4) != 0)
             {
