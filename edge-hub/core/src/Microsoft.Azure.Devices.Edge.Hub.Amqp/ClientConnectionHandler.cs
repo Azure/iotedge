@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     /// </summary>
     class ClientConnectionHandler : IConnectionHandler
     {
-        readonly TimeSpan closeTimeout = TimeSpan.FromSeconds(10);
+        readonly TimeSpan closeTimeout = TimeSpan.FromSeconds(60);
         readonly IDictionary<LinkType, ILinkHandler> registry = new Dictionary<LinkType, ILinkHandler>();
         readonly IIdentity identity;
         readonly AmqpConnectionBase amqpConnection;
