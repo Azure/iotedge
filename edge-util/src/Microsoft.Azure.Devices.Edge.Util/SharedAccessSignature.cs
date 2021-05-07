@@ -191,10 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         {
             string[] lines = sharedAccessSignature.Split();
 
-            if (!StringComparer.Ordinal.Equals(
-                    lines[0].Trim(),
-                    SharedAccessSignatureConstants.SharedAccessSignature)
-                || lines.Length != 2)
+            if (!string.Equals(lines[0].Trim(), SharedAccessSignatureConstants.SharedAccessSignature, StringComparison.Ordinal) || lines.Length != 2)
             {
                 throw new FormatException("Malformed signature");
             }
@@ -206,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 if (!string.IsNullOrEmpty(field))
                 {
-                    string[] fieldParts = field.Split(SharedAccessSignatureConstants.KeyValueSeparator, 2);
+                    string[] fieldParts = field.Split(new string[] { SharedAccessSignatureConstants.KeyValueSeparator }, StringSplitOptions.None);
                     if (string.Equals(fieldParts[0], SharedAccessSignatureConstants.AudienceFieldName, StringComparison.OrdinalIgnoreCase))
                     {
                         // We need to preserve the casing of the escape characters in the audience,
