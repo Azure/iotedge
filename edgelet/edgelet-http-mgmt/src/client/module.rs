@@ -317,11 +317,12 @@ impl ModuleRuntime for ModuleClient {
         let result = self
             .client
             .module_api()
-            .module_logs(
+            .module_logs( // BEARWASHERE -- Do I need to update this?
                 &API_VERSION.to_string(),
                 &id,
                 options.follow(),
                 tail,
+                options.timestamps(),
                 options.since(),
             )
             .then(|logs| match logs {

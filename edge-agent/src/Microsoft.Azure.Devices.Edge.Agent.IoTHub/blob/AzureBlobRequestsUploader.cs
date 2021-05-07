@@ -49,6 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Blob
                 string blobName = this.GetBlobName(id, GetLogsExtension(logsContentEncoding, logsContentType));
                 var container = new CloudBlobContainer(containerUri);
                 Events.Uploading(blobName, container.Name);
+
+                // BEARWASHERE -- printout test log payload
+                using( var stream = new StreamReader(new MemoryStream(payload)))
+                {
+                    Console.WriteLine($"\n\n BEARWASHERE PAYLOAD: {stream.ReadLine()}\n\n");
+                }
+
                 await ExecuteWithRetry(
                     () =>
                     {

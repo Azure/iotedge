@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
                 since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
                 until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
-                includeTimestamp.ForEach(b => logsUrl.AppendFormat($"&{LogsIncludeTimestampParameter}={b}"));
+                //includeTimestamp.ForEach(b => logsUrl.AppendFormat($"&{LogsIncludeTimestampParameter}={b.ToString().ToLower()}"));
                 var logsUri = new Uri(logsUrl.ToString());
                 Console.WriteLine($"BEARWASHERE -- {logsUri}");
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
