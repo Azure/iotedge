@@ -116,8 +116,8 @@ pub trait ContainerApi: Send + Sync {
         stderr: bool,
         since: i32,
         until: Option<i32>,
-        tail: &str,
         timestamps: bool,
+        tail: &str,
     ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send>;
     fn container_pause(
         &self,
@@ -819,8 +819,8 @@ where
         stderr: bool,
         since: i32,
         until: Option<i32>,
-        tail: &str,
         timestamps: bool,
+        tail: &str,
     ) -> Box<dyn Future<Item = hyper::Body, Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 

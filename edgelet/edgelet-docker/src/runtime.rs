@@ -983,9 +983,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 options.since(),
                 options.until(),
-                false,
-                tail,
                 options.timestamps(),
+                tail,
             )
             .then(|result| match result {
                 Ok(logs) => {
