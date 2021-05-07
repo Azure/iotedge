@@ -26,7 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             bool transformForIoTCentral,
             string allowedMetrics,
             string blockedMetrics,
-            string hubResourceID)
+            string hubResourceID,
+            string version)
         {
             this.UploadTarget = uploadTarget;
             this.HubResourceID = Preconditions.CheckNonWhiteSpace(hubResourceID, nameof(hubResourceID));
@@ -59,6 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             // Create list of allowed metrics. If this list is not empty then any metrics not on it should be discarded.
             this.AllowedMetrics = new MetricFilter(allowedMetrics);
             this.BlockedMetrics = new MetricFilter(blockedMetrics);
+
+            this.Version = version;
         }
 
         private static Settings Create()
@@ -68,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 IConfiguration configuration = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
                     .AddEnvironmentVariables()
+                    .AddJsonFile("config/versionInfo.json")
                     .Build();
 
                 return new Settings(
@@ -80,7 +84,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
-                    configuration.GetValue<string>("HubResourceID", ""));
+                    configuration.GetValue<string>("HubResourceID", ""),
+                    configuration.GetValue<string>("version", ""));
             }
             catch (ArgumentException e)
             {
@@ -111,6 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public string HubResourceID { get; }
 
+        public string Version { get; }
+
 
         // TODO: is this used anywhere important? Make sure to test it if so
         public override string ToString()
@@ -123,8 +130,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) },
                 { nameof(this.CompressForUpload), this.CompressForUpload.ToString() },
                 { nameof(this.TransformForIoTCentral), this.TransformForIoTCentral.ToString() },
-                { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics) },
-                { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics) },
+                { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics.ToString()) },
+                { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics.ToString()) },
                 { nameof(this.HubResourceID), this.HubResourceID ?? string.Empty }
             };
 
