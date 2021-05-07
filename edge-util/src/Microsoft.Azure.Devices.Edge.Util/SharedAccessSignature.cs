@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     /// <summary>
     /// A shared access signature, which can be used for authorization to an IoT Hub.
     /// </summary>
-    public sealed class SharedAccessSignature : ISharedAccessSignatureCredential
+    public sealed class SharedAccessSignature
     {
         private readonly string encodedAudience;
         private readonly string expiry;
