@@ -18,6 +18,8 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::ExporterConfig;
 use rand::Rng;
+use tracing::{info, subscriber, Level};
+use tracing_subscriber::fmt::Subscriber;
 
 // Skip first immediate tick from tokio, not needed for async_std.
 fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Instant> {
@@ -52,7 +54,7 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
             Arg::with_name("update-rate")
                 .short("u")       
                 .long("update-rate")
-                .takes_value(true)                
+                .takes_value(true)
                 .help("Rate at which each instrument is updated with a new metric measurement (updates/sec)")
         )
         .arg(
@@ -66,78 +68,79 @@ fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
             Arg::with_name("batching-enabled")
                 .short("b")
                 .long("batching-enabled")
-                .takes_value(true)                
+                .takes_value(true)
                 .help("Enables or disables batch recording of measurements.")
         )
         .arg(
             Arg::with_name("otlp-endpoint")
                 .short("e")
                 .long("otlp-endpoint")
-                .takes_value(true)                
+                .takes_value(true)
                 .help("Endpoint to which OTLP messages will be sent.")
         )
         .arg(
             Arg::with_name("enable-value-recorder")
                 .short("r")
                 .long("enable-value-recorder")
-                .takes_value(true)                
+                .takes_value(true)
                 .help("Enables or disables value recorder instrument.")
         )
         .arg(
             Arg::with_name("enable-value-observer")
-                .short("v")
+                .short("o")
                 .long("enable-value-observer")
-                .takes_value(true)                
+                .takes_value(true)
                 .help("Enables or disables value observer instrument.")
         )
         .get_matches();
 
     let config = Config {
-        update_rate: if let Ok(v) = std::env::var("UPDATE_RATE") {
-            v.parse()?
-        } else {
-            value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)
-        },
-        push_rate: if let Ok(v) = std::env::var("PUSH_RATE") {
-            v.parse()?
-        } else {
-            value_t!(matches.value_of("push-rate"), f64).unwrap_or(0.2)
-        },
-        batching_enabled: if let Ok(v) = std::env::var("BATCHING_ENABLED") {
-            v.parse()?
-        } else {
-            value_t!(matches.value_of("batching-enabled"), bool).unwrap_or(false)
-        },
-        otlp_endpoint: if let Ok(v) = std::env::var("OTLP_ENDPOINT") {
-            v.parse()?
-        } else {
-            matches
-                .value_of("otlp-endpoint")
-                .unwrap_or("http://localhost:4317")
-                .to_string()
-        },
-        enable_value_recorder: if let Ok(v) =
-            std::env::var("ENABLE_VALUE_RECORDER")
-        {
-            v.parse()?
-        } else {
-            value_t!(matches.value_of("enable-value-recorder"), bool).unwrap_or(false)
-        },
-        enable_value_observer: if let Ok(v) =
-            std::env::var("ENABLE_VALUE_OBSERVER")
-        {
-            v.parse()?
-        } else {
-            value_t!(matches.value_of("enable-value-observer"), bool).unwrap_or(false)
-        },
+        update_rate: std::env::var("UPDATE_RATE").map_or_else(
+            |_e| Ok(value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)),
+            |v| v.parse(),
+        )?,
+        push_rate: std::env::var("PUSH_RATE").map_or_else(
+            |_e| Ok(value_t!(matches.value_of("push-rate"), f64).unwrap_or(0.2)),
+            |v| v.parse(),
+        )?,
+        batching_enabled: std::env::var("BATCHING_ENABLED").map_or_else(
+            |_e| Ok(value_t!(matches.value_of("batching-enabled"), bool).unwrap_or(false)),
+            |v| v.parse(),
+        )?,
+        otlp_endpoint: std::env::var("OTLP_ENDPOINT").map_or_else(
+            |_e| {
+                Ok(matches
+                    .value_of("otlp-endpoint")
+                    .unwrap_or("http://localhost:4317")
+                    .to_string())
+            },
+            |v| v.parse(),
+        )?,
+        enable_value_recorder: std::env::var("ENABLE_VALUE_RECORDER").map_or_else(
+            |_e| Ok(value_t!(matches.value_of("enable-value-recorder"), bool).unwrap_or(false)),
+            |v| v.parse(),
+        )?,
+        enable_value_observer: std::env::var("ENABLE_VALUE_OBSERVER").map_or_else(
+            |_e| Ok(value_t!(matches.value_of("enable-value-observer"), bool).unwrap_or(false)),
+            |v| v.parse(),
+        )?,
     };
-    println!("{:?}", config);
     Ok(config)
+}
+
+fn init_logging() {
+    let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
+    let _ = subscriber::set_global_default(subscriber);
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+    init_logging();
     let config = init_config()?;
+    info!(
+        "Starting Observability Agent Client with configuration: {:?}",
+        config
+    );
     let _started = init_meter(1.0 / config.push_rate, config.otlp_endpoint)?;
     let meter = global::meter("microsoft.com/azureiot-edge");
 
