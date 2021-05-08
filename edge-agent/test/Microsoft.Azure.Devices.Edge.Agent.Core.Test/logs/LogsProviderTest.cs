@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             for (int i = 0; i < logMessages.Count; i++)
             {
                 ModuleLogMessage logMessage = logMessages[i];
-                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i]);
+                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i], Option.None<bool>());
                 Assert.Equal(logLevel, logMessage.LogLevel);
                 Assert.Equal(timeStamp.HasValue, logMessage.TimeStamp.HasValue);
                 Assert.Equal(timeStamp.OrDefault(), logMessage.TimeStamp.OrDefault());
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             for (int i = 0; i < logMessages.Count; i++)
             {
                 ModuleLogMessage logMessage = logMessages[i];
-                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i]);
+                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i], Option.None<bool>());
                 Assert.Equal(logLevel, logMessage.LogLevel);
                 Assert.Equal(timeStamp.HasValue, logMessage.TimeStamp.HasValue);
                 Assert.Equal(timeStamp.OrDefault(), logMessage.TimeStamp.OrDefault());

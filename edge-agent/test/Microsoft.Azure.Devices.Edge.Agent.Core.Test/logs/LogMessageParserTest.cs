@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         public void TestParseLogText(string value, int expectedLogLevel, string expectedDateTime, string expectedText)
         {
             // Act
-            (int logLevel, Option<DateTime> timeStamp, string logText) = LogMessageParser.ParseLogText(value);
+            (int logLevel, Option<DateTime> timeStamp, string logText) = LogMessageParser.ParseLogText(value, Option.None<bool>());
 
             // Assert
             Assert.Equal(expectedText, logText);
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             int expectedLogLevel = 6;
 
             // Act
-            ModuleLogMessage moduleLogMessage = LogMessageParser.GetLogMessage(byteString, iotHub, deviceId, moduleId);
+            ModuleLogMessage moduleLogMessage = LogMessageParser.GetLogMessage(byteString, iotHub, deviceId, moduleId, Option.None<bool>());
 
             // Assert
             Assert.NotNull(moduleLogMessage);
