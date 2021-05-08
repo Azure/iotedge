@@ -66,13 +66,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
 
         async Task UploadLogs(string sasUrl, string id, ModuleLogOptions moduleLogOptions, CancellationToken token)
         {
-            // BEARWASHERE
-            // Since this function is only called by 'UploadModuleLogs' method,
-            // I think it is safe to inject the timestamp including option here for docker engine.
-            moduleLogOptions.Filter.IncludeTimestamp = Option.Some(true);
-
             if (moduleLogOptions.ContentType == LogsContentType.Json)
             {
+                // BEARWASHERE
+                // I think it is safe to inject the timestamp including option here for docker engine.
+                moduleLogOptions.Filter.IncludeTimestamp = Option.Some(true);
+
                 byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
                 await this.requestsUploader.UploadLogs(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
             }
