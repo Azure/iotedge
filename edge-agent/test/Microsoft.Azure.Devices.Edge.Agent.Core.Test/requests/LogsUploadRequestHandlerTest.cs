@@ -31,15 +31,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             yield return new object[] { @"{""schemaVersion"":""1.0"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeHub""},""encoding"":""none"",""contentType"":""json""}".Replace("<sasurl>", sasUrl), "edgeHub", sasUrl, LogsContentEncoding.None, LogsContentType.Json, ModuleLogFilter.Empty };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some(true), Option.Some("ERR"));
             yield return new object[] { @"{""schemaVersion"":""1.0"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            filter = new ModuleLogFilter(Option.None<int>(), Option.Some("1501000"), Option.None<string>(), Option.None<int>(), Option.None<bool>(), Option.Some("ERR"));
+            filter = new ModuleLogFilter(Option.None<int>(), Option.Some("1501000"), Option.None<string>(), Option.None<int>(), Option.Some(true), Option.Some("ERR"));
             yield return new object[] { @"{""schemaVersion"":""1.5"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
 
             sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            filter = new ModuleLogFilter(Option.Some(100), Option.None<string>(), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.None<string>());
+            filter = new ModuleLogFilter(Option.Some(100), Option.None<string>(), Option.None<string>(), Option.Some(3), Option.Some(true), Option.None<string>());
             yield return new object[] { @"{""schemaVersion"":""1.2"",""sasUrl"":""<sasurl>"",""items"":{""id"":""edgeAgent"",""filter"":<filter>}}".Replace("<sasurl>", sasUrl).Replace("<filter>", filter.ToJson()), "edgeAgent", sasUrl, LogsContentEncoding.None, LogsContentType.Json, filter };
         }
 
@@ -98,7 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         {
             // Arrange
             string sasUrl = $"https://test1.blob.core.windows.net/cont2?st={Guid.NewGuid()}";
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("ERR"));
+            // Note: When LogsContentType = Json, edgeAgent automatically set the "includeTimestamp" to be true.
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some(true), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.None;
             LogsContentType contentType = LogsContentType.Json;
 

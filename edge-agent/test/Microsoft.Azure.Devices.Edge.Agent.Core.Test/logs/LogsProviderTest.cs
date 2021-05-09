@@ -111,7 +111,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
+            // Note: EdgeAgent automatically includes the timestamp for log parsing by default for content type JSON 
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), Option.Some(true), cancellationToken))
                 .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
@@ -152,7 +153,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             CancellationToken cancellationToken = CancellationToken.None;
 
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
+            // Note: EdgeAgent automatically includes the timestamp for log parsing by default.
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, Option.None<string>(), Option.Some(true), cancellationToken))
                 .ReturnsAsync(new MemoryStream(DockerFraming.Frame(TestLogTexts)));
 
             var logsProcessor = new LogsProcessor(new LogMessageParser(iotHub, deviceId));
