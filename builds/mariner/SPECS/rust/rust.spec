@@ -45,7 +45,6 @@ chmod 755 %{buildroot}%{_libdir}/lib*.so
 %doc %{_docdir}/rls/*
 %doc %{_docdir}/rust-analyzer/*
 %doc %{_docdir}/rustfmt/*
-# %{_datadir}/zsh/*
 %{_prefix}%{_sysconfdir}/bash_completion.d/cargo
 
 %changelog
