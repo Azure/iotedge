@@ -91,6 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         public async Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
         {
+            Preconditions.CheckNotNull(id, nameof(id));
+            Preconditions.CheckNotNull(stream, nameof(stream));
+            Preconditions.CheckNotNull(logOptions, nameof(logOptions));
+
             GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             logOptions.Filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             logOptions.Filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));

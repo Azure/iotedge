@@ -106,6 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                         return await httpResponseMessage.Content.ReadAsStreamAsync();
                     },
                     $"Get logs for {module}");
+
                 return stream;
             }
         }
