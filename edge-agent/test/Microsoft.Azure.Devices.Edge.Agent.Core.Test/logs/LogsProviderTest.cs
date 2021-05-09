@@ -219,7 +219,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
-            //logOptions.Filter.IncludeTimestamp.Expect(() => new ArgumentException("BEARWASHERE"));
 
             var receivedBytes = new List<byte>();
 
