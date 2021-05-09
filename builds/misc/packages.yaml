@@ -106,9 +106,7 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+      vmImage: 'ubuntu-18.04'
     strategy:
       matrix:
         CBL-Mariner1.0-amd64:
