@@ -29,8 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     public class LogMessageParser : ILogMessageParser
     {
         const int DefaultLogLevel = 6;
-        const string LogRegexPattern = @"^(<(?<logLevel>\d)>)?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
-        const string LogRegexPatternWithTimestamp = @"^(?<dockerTimestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}Z)?\s*<(?<logType>\d)>?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
+        // BEARWASHERE -- TO be removed
+        //const string LogRegexPattern = @"^(<(?<logLevel>\d)>)?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
+        const string LogRegexPattern = @"^(?<dockerTimestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}Z)?\s*<(?<logType>\d)>?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
 
         readonly string iotHubName;
         readonly string deviceId;
@@ -61,23 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         internal static (int logLevel, Option<DateTime> timeStamp, string text) ParseLogText(string value, Option<bool> includeTimestamp)
         {
-            // BEARWASHERE -- Parse this
-            var regex = includeTimestamp.Match(
-                b =>
-                {
-                    if (b)
-                    {
-                        return new Regex(LogRegexPatternWithTimestamp);
-                    }
-                    else
-                    {
-                        return new Regex(LogRegexPattern);
-                    }
-                },
-                () =>
-                {
-                    return new Regex(LogRegexPattern);
-                });
+            // TODO: includeTimestamp is currently unused because regex is smart enough to parse out the prepending timestamp.
+            //       This will be come more relavant once includeTimestamp is changed from boolean to enum enabling Cx to specify if the
+            //       prepending timestamp should be include in their docker logs.
+            var regex = new Regex(LogRegexPattern);
 
             var match = regex.Match(value);
             int logLevel = DefaultLogLevel;
