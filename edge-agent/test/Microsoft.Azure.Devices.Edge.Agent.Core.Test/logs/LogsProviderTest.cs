@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             for (int i = 0; i < logMessages.Count; i++)
             {
                 ModuleLogMessage logMessage = logMessages[i];
-                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i], Option.None<bool>());
+                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i]);
                 Assert.Equal(logLevel, logMessage.LogLevel);
                 Assert.Equal(timeStamp.HasValue, logMessage.TimeStamp.HasValue);
                 Assert.Equal(timeStamp.OrDefault(), logMessage.TimeStamp.OrDefault());
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             for (int i = 0; i < logMessages.Count; i++)
             {
                 ModuleLogMessage logMessage = logMessages[i];
-                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i], Option.None<bool>());
+                (int logLevel, Option<DateTime> timeStamp, string text) = LogMessageParser.ParseLogText(TestLogTexts[i]);
                 Assert.Equal(logLevel, logMessage.LogLevel);
                 Assert.Equal(timeStamp.HasValue, logMessage.TimeStamp.HasValue);
                 Assert.Equal(timeStamp.OrDefault(), logMessage.TimeStamp.OrDefault());
@@ -204,11 +204,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             string moduleId = "mod1";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
+            Option<string> until = Option.None<string>();
+            Option<bool> includeTimestamp = Option.None<bool>();
             CancellationToken cancellationToken = CancellationToken.None;
 
             byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, Option.None<string>(), Option.None<bool>(), cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new ModuleRuntimeInfo(moduleId, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });
@@ -217,6 +219,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), true);
+            //logOptions.Filter.IncludeTimestamp.Expect(() => new ArgumentException("BEARWASHERE"));
+            if (logOptions.Filter == null)
+            {
+                throw new ArgumentException("BEARWASHERE");
+            }
 
             var receivedBytes = new List<byte>();
 

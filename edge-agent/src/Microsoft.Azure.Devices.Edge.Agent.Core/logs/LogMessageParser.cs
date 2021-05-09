@@ -43,28 +43,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         }
 
         // BEARWASHERE -- Parse
-        public ModuleLogMessageData Parse(ByteString byteString, string moduleId, Option<bool> includeTimestamp) =>
-            GetLogMessage(byteString, this.iotHubName, this.deviceId, moduleId, includeTimestamp);
+        public ModuleLogMessageData Parse(ByteString byteString, string moduleId) =>
+            GetLogMessage(byteString, this.iotHubName, this.deviceId, moduleId);
 
-        internal static ModuleLogMessageData GetLogMessage(ByteString arg, string iotHubName, string deviceId, string moduleId, Option<bool> includeTimestamp)
+        internal static ModuleLogMessageData GetLogMessage(ByteString arg, string iotHubName, string deviceId, string moduleId)
         {
             string stream = GetStream(arg[0]);
             ByteString payload = arg.Slice(8);
             string payloadString = payload.ToString(Encoding.UTF8);
 
             // BEARWASHERE -- GetLogMessage
-            (int logLevel, Option<DateTime> timeStamp, string logText) = ParseLogText(payloadString, includeTimestamp);
+            (int logLevel, Option<DateTime> timeStamp, string logText) = ParseLogText(payloadString);
             var moduleLogMessage = new ModuleLogMessageData(iotHubName, deviceId, moduleId, stream, logLevel, timeStamp, logText, arg, payloadString);
             return moduleLogMessage;
         }
 
         internal static string GetStream(byte streamByte) => streamByte == 2 ? "stderr" : "stdout";
 
-        internal static (int logLevel, Option<DateTime> timeStamp, string text) ParseLogText(string value, Option<bool> includeTimestamp)
+        internal static (int logLevel, Option<DateTime> timeStamp, string text) ParseLogText(string value)
         {
-            // TODO: includeTimestamp is currently unused because regex is smart enough to parse out the prepending timestamp.
-            //       This will be come more relavant once includeTimestamp is changed from boolean to enum enabling Cx to specify if the
-            //       prepending timestamp should be include in their docker logs.
             var regex = new Regex(LogRegexPattern);
 
             var match = regex.Match(value);

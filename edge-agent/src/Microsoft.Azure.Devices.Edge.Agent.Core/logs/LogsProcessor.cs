@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(filter, nameof(filter));
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
 
-            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id, filter.IncludeTimestamp));
+            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
             IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = graphBuilder.GetMaterializingGraph(m => (ModuleLogMessage)m);
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             {
                 if (filter.Regex.HasValue || filter.LogLevel.HasValue)
                 {
-                    GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id, filter.IncludeTimestamp));
+                    GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
                     filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
                     filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
                     return graphBuilder.GetMaterializingGraph(m => m.FullText);
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         public async Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
         {
-            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id, logOptions.Filter.IncludeTimestamp));
+            GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             logOptions.Filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             logOptions.Filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
 
