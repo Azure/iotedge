@@ -25,7 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             this.workspaceKey = Preconditions.CheckNonWhiteSpace(workspaceKey, nameof(workspaceKey));
 
             string DNSName = Environment.GetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME");
-            if (DNSName == null || String.IsNullOrEmpty(DNSName)) {
+            if (DNSName == null || String.IsNullOrEmpty(DNSName))
+            {
                 // TODO: is this a good fallback?
                 // TODO: test
                 DNSName = Dns.GetHostName();
@@ -44,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 for (int i = 0; i < Constants.UploadMaxRetries && (!success); i++)
                 {
                     // TODO: split up metricList so that no individual post is greater than 1mb
-                    success = await AzureFixedSetTable.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metricList), Settings.Current.HubResourceID);
+                    success = await AzureFixedSetTable.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metricList), Settings.Current.ResourceId);
                 }
 
                 if (success)
@@ -66,7 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
             public string IPName => Constants.MetricUploadIPName;
             public IEnumerable<LaMetric> DataItems { get; }
 
-            public LaMetricList(IEnumerable<LaMetric> items) {
+            public LaMetricList(IEnumerable<LaMetric> items)
+            {
                 DataItems = items;
             }
         }
