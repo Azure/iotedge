@@ -4,6 +4,7 @@ pr: none
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
+  Build.Configuration: release
   
 jobs:
 ################################################################################
