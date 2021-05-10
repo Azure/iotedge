@@ -32,40 +32,40 @@
         "modules": {
           "AzureMonitorForIotEdgeModule": {
             "settings": {
-                "image": "mcr.microsoft.com/azureiotedge-metrics-collector:0.1",
-                "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
+              "image": "mcr.microsoft.com/azureiotedge-metrics-collector:1.0.0",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             },
             "type": "docker",
-              "env": {
-                "UploadTarget": {
-                  "value": "AzureMonitor"
-                },
-                "LogAnalyticsWorkspaceId": {
-                    "value": "<log analytics workspace id>"
-                },
-                "LogAnalyticsSharedKey": {
-                    "value": "<log analytics workspace shared key>"
-                },
-                "MetricsEndpointsCSV": {
-                    "value": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"
-                },
-                "HubResourceID": {
-                    "value": "<IoT hub resource id>"
-                },
-                "ScrapeFrequencyInSecs": {
-                    "value": "300"
-                },
-                "AllowedMetrics": {
-                    "value": ""
-                },
-                "BlockedMetrics": {
-                    "value": ""
-                },
-                "CompressForUpload": {
-                    "value": "true"
-                },
-                "TransformForIoTCentral": {
-                  "value": "false"
+            "env": {
+              "UploadTarget": {
+                "value": "AzureMonitor"
+              },
+              "LogAnalyticsWorkspaceId": {
+                "value": "<log analytics workspace id>"
+              },
+              "LogAnalyticsSharedKey": {
+                "value": "<log analytics workspace shared key>"
+              },
+              "MetricsEndpointsCSV": {
+                "value": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"
+              },
+              "ResourceID": {
+                "value": "<IoT hub resource id>"
+              },
+              "ScrapeFrequencyInSecs": {
+                "value": "300"
+              },
+              "AllowedMetrics": {
+                "value": ""
+              },
+              "BlockedMetrics": {
+                "value": ""
+              },
+              "CompressForUpload": {
+                "value": "true"
+              },
+              "TransformForIoTCentral": {
+                "value": "false"
               }
             },
             "status": "running",

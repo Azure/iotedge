@@ -26,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             bool transformForIoTCentral,
             string allowedMetrics,
             string blockedMetrics,
-            string hubResourceID,
+            string resourceId,
             string version)
         {
             this.UploadTarget = uploadTarget;
-            this.HubResourceID = Preconditions.CheckNonWhiteSpace(hubResourceID, nameof(hubResourceID));
+            this.ResourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
 
             if (this.UploadTarget == UploadTarget.AzureMonitor)
             {
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<bool>("TransformForIoTCentral", false),
                     configuration.GetValue<string>("AllowedMetrics", ""),
                     configuration.GetValue<string>("BlockedMetrics", ""),
-                    configuration.GetValue<string>("HubResourceID", ""),
+                    configuration.GetValue<string>("ResourceID", ""),
                     configuration.GetValue<string>("version", ""));
             }
             catch (ArgumentException e)
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public MetricFilter BlockedMetrics { get; }
 
-        public string HubResourceID { get; }
+        public string ResourceId { get; }
 
         public string Version { get; }
 
@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.TransformForIoTCentral), this.TransformForIoTCentral.ToString() },
                 { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics.ToString()) },
                 { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics.ToString()) },
-                { nameof(this.HubResourceID), this.HubResourceID ?? string.Empty }
+                { nameof(this.ResourceId), this.ResourceId ?? string.Empty }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

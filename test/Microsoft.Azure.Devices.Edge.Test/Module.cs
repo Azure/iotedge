@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         .WithEnvironment(new[]
                         {
                             ("UploadTarget", "IotMessage"),
-                            ("HubResourceID", hubResourceId)
+                            ("ResourceID", hubResourceId)
                         });
                     builder.GetModule(ModuleName.EdgeHub)
                         .WithDesiredProperties(new Dictionary<string, object>
