@@ -77,8 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         {
             // Arrange
             string iotHub = "foo.azure-devices.net";
-            string deviceId = "dev1";
-            string moduleId = "mod1";
+            string deviceId = "dev2";
+            string moduleId = "mod2";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
             Option<string> until = Option.None<string>();
@@ -200,8 +200,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         {
             // Arrange
             string iotHub = "foo.azure-devices.net";
-            string deviceId = "dev1";
-            string moduleId = "mod1";
+            string deviceId = "dev3";
+            string moduleId = "mod3";
             Option<int> tail = Option.None<int>();
             Option<string> since = Option.None<string>();
             Option<string> until = Option.None<string>();
@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             byte[] dockerLogsStreamBytes = DockerFraming.Frame(TestLogTexts);
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, false, tail, since, until, includeTimestamp, cancellationToken))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(moduleId, true, tail, since, until, includeTimestamp, cancellationToken))
                 .ReturnsAsync(new MemoryStream(dockerLogsStreamBytes));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new ModuleRuntimeInfo(moduleId, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });

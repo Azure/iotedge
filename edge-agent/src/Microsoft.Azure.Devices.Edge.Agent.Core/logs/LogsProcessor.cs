@@ -65,6 +65,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         // Gzip encoding or output framing don't apply to this method.
         public async Task<IReadOnlyList<string>> GetText(string id, Stream stream, ModuleLogFilter filter)
         {
+            Preconditions.CheckNotNull(stream, nameof(stream));
+            Preconditions.CheckNotNull(filter, nameof(filter));
+            Preconditions.CheckNonWhiteSpace(id, nameof(id));
+
             IRunnableGraph<Task<IImmutableList<string>>> GetGraph()
             {
                 if (filter.Regex.HasValue || filter.LogLevel.HasValue)
@@ -87,10 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         public async Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)
         {
-            Preconditions.CheckNotNull(id, nameof(id));
-            Preconditions.CheckNotNull(stream, nameof(stream));
-            Preconditions.CheckNotNull(logOptions, nameof(logOptions));
-
             GraphBuilder graphBuilder = GraphBuilder.CreateParsingGraphBuilder(stream, b => this.logMessageParser.Parse(b, id));
             logOptions.Filter.LogLevel.ForEach(l => graphBuilder.AddFilter(m => m.LogLevel == l));
             logOptions.Filter.Regex.ForEach(r => graphBuilder.AddFilter(m => r.IsMatch(m.Text)));
