@@ -67,7 +67,7 @@ jobs:
     pool:
       name: $(pool.windows.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-winserver-2019-test
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-test
 
     variables:
       os: windows
