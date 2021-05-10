@@ -46,12 +46,9 @@ jobs:
     displayName: Linux amd64
 
     pool:
-      name: $(pool.name2)
+      name: $(pool.linux.name)
       demands:
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals azure-iot-edge-ubuntu-18.04-test-image
-        # - run-new-e2e-tests -equals true
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
 
     variables:
       os: linux
@@ -68,13 +65,9 @@ jobs:
     displayName: Windows amd64
 
     pool:
-      name: $(pool.name2)
+      name: $(pool.windows.name)
       demands:
-        - Agent.OS -equals Windows_NT
-        - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals aziotedge-winserver-2019-agent
-        # - ImageOverride -equals aziotedge-win10-entn2019-agent
-        # - run-new-e2e-tests -equals true
+        - ImageOverride -equals agent-aziotedge-winserver-2019-test
 
     variables:
       os: windows
@@ -117,13 +110,12 @@ jobs:
     displayName: CentOs7 amd64
 
     pool:
-      name: $(pool.name2)
+      name: $(pool.name)
       demands:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - ImageOverride -equals aziotedge-agent-centos-7
-        # - run-new-e2e-tests -equals true
-        # - centos -equals 7
+        - run-new-e2e-tests -equals true
+        - centos -equals 7
 
     variables:
       os: linux

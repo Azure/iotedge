@@ -12,10 +12,9 @@ jobs:
 ################################################################################
     displayName: LinuxDotnet
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent.os -equals Linux
-        - agent.osarchitecture -equals X64
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
@@ -217,10 +216,8 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 90
     pool:
-      name: $(pool.name)
+      name: $(pool.windows.name)
       demands:
-        - Agent.OS -equals Windows_NT
-        - Agent.OSArchitecture -equals X64
         - ImageOverride -equals agent-aziotedge-winserver-2019-build
     workspace:
       clean: all
@@ -393,10 +390,9 @@ jobs:
 ################################################################################
     displayName: Manifest
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent.os -equals Linux
-        - agent.osarchitecture -equals X64
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn:
       - linux_dotnet_projects
       - linux_rust_amd64
