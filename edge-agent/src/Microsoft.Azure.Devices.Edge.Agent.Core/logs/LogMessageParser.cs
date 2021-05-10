@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     public class LogMessageParser : ILogMessageParser
     {
         const int DefaultLogLevel = 6;
-        const string LogRegexPattern = @"^(?<dockerTimestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}Z)?\s*(<(?<logLevel>\d)>)?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
+        const string LogRegexPattern = @"^((?<dockerTimestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}Z))?\s*(<(?<logLevel>\d)>)?\s*((?<timestamp>\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}.\d{3}\s[+-]\d{2}:\d{2})\s)?\s*(?<logtext>.*)";
 
         readonly string iotHubName;
         readonly string deviceId;
