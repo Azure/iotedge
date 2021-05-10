@@ -143,6 +143,7 @@ Name | Type | Description  | Notes
  **stdout** | **bool**| Return logs from &#x60;stdout&#x60; | [default to false]
  **stderr** | **bool**| Return logs from &#x60;stderr&#x60; | [default to false]
  **tail** | **String**| Only return this number of lines from the end of the logs. | [default to all]
+ **timestamps** | **bool**| Return logs with prepended rfc3339 timestamp to each line of log.  | [default to false]
 
 ### Return type
 
