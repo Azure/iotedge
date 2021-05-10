@@ -24,7 +24,7 @@ jobs:
 #     displayName: Linux arm32v7
 
 #     pool:
-#       name: $(pool.name)
+#       name: $(pool.custom.name)
 #       demands: rpi3-e2e-tests
 
 #     variables:
@@ -110,7 +110,7 @@ jobs:
     displayName: CentOs7 amd64
 
     pool:
-      name: $(pool.name)
+      name: $(pool.custom.name)
       demands:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
@@ -134,7 +134,7 @@ jobs:
 #     displayName: EFLOW amd64
 
 #     pool:
-#       name: $(pool.name)
+#       name: $(pool.custom.name)
 #       demands:
 #         - Agent.OS -equals Linux
 #         - Agent.OSArchitecture -equals X64
