@@ -383,7 +383,7 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
-     #  Metrics Collector (customer-facing)
+     # Metrics Collector (customer-facing)
       - template: templates/image-windows.yaml
         parameters:
           name: Metrics Collector (customer-facing)
