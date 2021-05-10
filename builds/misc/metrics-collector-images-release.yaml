@@ -1,4 +1,6 @@
 name: $(version)
+trigger: none
+pr: none
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
