@@ -65,9 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         // Gzip encoding or output framing don't apply to this method.
         public async Task<IReadOnlyList<string>> GetText(string id, Stream stream, ModuleLogFilter filter)
         {
-            Preconditions.CheckNotNull(filter, nameof(filter));
-            Preconditions.CheckNonWhiteSpace(id, nameof(id));
-
             IRunnableGraph<Task<IImmutableList<string>>> GetGraph()
             {
                 if (filter.Regex.HasValue || filter.LogLevel.HasValue)
