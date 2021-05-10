@@ -21,9 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             var iterator = db.NewIterator(this.Handle);
             this.count = 0;
-            while (iterator.Next() != null)
+            while (iterator.Valid())
             {
                 this.count += 1;
+                iterator = iterator.Next();
             }
         }
 
