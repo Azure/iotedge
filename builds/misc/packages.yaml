@@ -189,7 +189,7 @@ jobs:
     pool:
       name: $(pool.windows.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-winserver-2019-build
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - powershell: ls env:/
         displayName: Dump environment
