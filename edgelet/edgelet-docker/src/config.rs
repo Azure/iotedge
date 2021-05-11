@@ -106,23 +106,10 @@ impl NestedEdgeBodge for DockerConfig {
 
         if let Some(serveraddress) = auth.serveraddress() {
             if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
-                let mut new_auth = AuthConfig::new();
-
-                if let Some(username) = auth.username() {
-                    new_auth.set_username(username.to_string());
+                let url = rest.to_string();
+                if let Some(auth) = &mut self.auth {
+                    auth.set_serveraddress(format!("{}{}", parent_hostname, url))
                 }
-
-                if let Some(email) = auth.email() {
-                    new_auth.set_email(email.to_string());
-                }
-
-                if let Some(password) = auth.password() {
-                    new_auth.set_password(password.to_string());
-                }
-
-                new_auth.set_serveraddress(format!("{}{}", parent_hostname, rest));
-
-                self.auth = Some(new_auth);
             }
         }
     }

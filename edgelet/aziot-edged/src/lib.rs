@@ -277,7 +277,7 @@ where
                             .unwrap_or(TRUST_BUNDLE_ALIAS)
                             .to_string(),
                         settings
-                            .trust_bundle_cert()
+                            .manifest_trust_bundle_cert()
                             .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
                             .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
