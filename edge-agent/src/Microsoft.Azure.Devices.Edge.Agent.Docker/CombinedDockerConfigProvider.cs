@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     public class CombinedDockerConfigProvider : ICombinedConfigProvider<CombinedDockerConfig>
     {
         readonly IEnumerable<AuthConfig> authConfigs;
+        private NestedEdgeParentUriParser parser = new NestedEdgeParentUriParser();
 
         public CombinedDockerConfigProvider(IEnumerable<AuthConfig> authConfigs)
         {
@@ -36,7 +37,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
             // Convert registry credentials from config to AuthConfig objects
             List<AuthConfig> deploymentAuthConfigs = dockerRuntimeConfig.Config.RegistryCredentials
-                .Select(c => new AuthConfig { ServerAddress = c.Value.Address, Username = c.Value.Username, Password = c.Value.Password })
+                .Select(c =>
+                {
+                    string address = this.parser.ParseURI(c.Value.Address).GetOrElse(c.Value.Address);
+                    return new AuthConfig { ServerAddress = address, Username = c.Value.Username, Password = c.Value.Password };
+                })
                 .ToList();
 
             // First try to get matching auth config from the runtime info. If no match is found,
