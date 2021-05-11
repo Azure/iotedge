@@ -46,7 +46,8 @@ pub fn start(
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
 
     info!("Initializing config monitoring loop");
-    let config_parser = ConfigParser::new();
+    let config = &file::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
+    let config_parser = ConfigParser::new(config)?;
     parse_config(&config_parser)?;
 
     info!("Starting config monitoring loop");
