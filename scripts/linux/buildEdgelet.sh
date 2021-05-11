@@ -177,8 +177,13 @@ build_project()
     # build project with cross
     cd "$EDGELET_DIR"
 
-    execute cross build -p "$PROJECT" --manifest-path=iotedged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TARGET"
-    execute "$STRIP" "$EDGELET_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT"
+    if [[ ${PROJECT,,} == "iotedged" ]]; then
+        execute cross build -p "$PROJECT" --manifest-path=iotedged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TARGET"
+        execute "$STRIP" "$EDGELET_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT"
+    else
+        execute ${BUILD_REPOSITORY_LOCALPATH}/scripts/linux/cross-platform-proxy-build.sh --os alpine --arch ${ARCH} --build-path edgelet --project "$PROJECT"
+    fi
+
 
     # prepare docker folder
     local EXE_DOCKER_DIR="$PUBLISH_DIR/$DOCKER_IMAGENAME/docker/linux/$ARCH"
