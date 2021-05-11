@@ -20,9 +20,10 @@ use std::{
 
 use anyhow::{Context, Result};
 use child::run;
-use signal_hook::{iterator::Signals};
-use signal_hook::consts::SIGINT;
-use signal_hook::consts::SIGTERM;
+use signal_hook::{
+    consts::{SIGINT, SIGTERM},
+    iterator::Signals,
+};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
