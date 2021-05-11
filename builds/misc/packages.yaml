@@ -241,7 +241,7 @@ jobs:
           CertificateId: 302
           OpusName: 'Azure IoT Edge'
           OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
-          SessionTimeout: 20
+          SessionTimeout: 120
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifact: iotedged-windows'
         inputs:
