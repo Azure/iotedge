@@ -203,11 +203,12 @@ namespace Microsoft.Azure.Devices.Routing.Core.Checkpointers
                 "Number of messages pending to be processed for the endpoint",
                 new List<string> { "endpoint", "priority", MetricsConstants.MsTelemetry });
 
-            public static void SetQueueLength(Checkpointer checkpointer) => SetQueueLength(checkpointer.Proposed - checkpointer.Offset, checkpointer.EndpointId, checkpointer.Priority);
+            public static void SetQueueLength(Checkpointer checkpointer) => SetQueueLength(CalculateQueueLength(checkpointer), checkpointer.EndpointId, checkpointer.Priority);
 
-            public static void SetQueueLength(long length, string endpointId, string priority) => QueueLength.Set(CalculateQueueLength(length), new[] { endpointId, priority, bool.TrueString });
+            public static void SetQueueLength(double length, string endpointId, string priority) => QueueLength.Set(length, new[] { endpointId, priority, bool.TrueString });
 
             private static double CalculateQueueLength(Checkpointer checkpointer) => CalculateQueueLength(checkpointer.Proposed - checkpointer.Offset);
+
             private static double CalculateQueueLength(long length) => Math.Max(length, 0);
         }
     }
