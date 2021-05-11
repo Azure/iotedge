@@ -55,7 +55,7 @@ jobs:
         displayName: Format Code (Generic MQTT Tester)
       - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/generic-mqtt-tester"
         displayName: Clippy (Generic MQTT Tester)
-      - bash: scripts/linux/generic-rust/format.sh --project-root "test/modules/generic-mqtt-tester"
+      - bash: scripts/linux/generic-rust/format.sh --project-root "test/modules/obsagent-client"
         displayName: Format Code (Observability-Agent Client)
-      - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/generic-mqtt-tester"
+      - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/obsagent-client"
         displayName: Clippy (Observability-Agent Client)
