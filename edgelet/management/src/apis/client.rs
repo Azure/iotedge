@@ -1,46 +1,44 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
+use hyper;
 use super::configuration::Configuration;
 
-pub struct APIClient {
-    device_actions_api: Box<dyn crate::apis::DeviceActionsApi>,
-    identity_api: Box<dyn crate::apis::IdentityApi>,
-    module_api: Box<dyn crate::apis::ModuleApi>,
-    system_information_api: Box<dyn crate::apis::SystemInformationApi>,
+pub struct APIClient<C: hyper::client::Connect> {
+  configuration: Rc<Configuration<C>>,
+  device_actions_api: Box<::apis::DeviceActionsApi>,
+  identity_api: Box<::apis::IdentityApi>,
+  module_api: Box<::apis::ModuleApi>,
+  system_information_api: Box<::apis::SystemInformationApi>,
 }
 
-impl APIClient {
-    pub fn new<C>(configuration: Configuration<C>) -> Self
-    where
-        C: hyper::client::connect::Connect + 'static,
-    {
-        let configuration = Arc::new(configuration);
+impl<C: hyper::client::Connect> APIClient<C> {
+  pub fn new(configuration: Configuration<C>) -> APIClient<C> {
+    let rc = Rc::new(configuration);
 
-        APIClient {
-            device_actions_api: Box::new(crate::apis::DeviceActionsApiClient::new(
-                configuration.clone(),
-            )),
-            identity_api: Box::new(crate::apis::IdentityApiClient::new(configuration.clone())),
-            module_api: Box::new(crate::apis::ModuleApiClient::new(configuration.clone())),
-            system_information_api: Box::new(crate::apis::SystemInformationApiClient::new(
-                configuration,
-            )),
-        }
+    APIClient {
+      configuration: rc.clone(),
+      device_actions_api: Box::new(::apis::DeviceActionsApiClient::new(rc.clone())),
+      identity_api: Box::new(::apis::IdentityApiClient::new(rc.clone())),
+      module_api: Box::new(::apis::ModuleApiClient::new(rc.clone())),
+      system_information_api: Box::new(::apis::SystemInformationApiClient::new(rc.clone())),
     }
+  }
 
-    pub fn device_actions_api(&self) -> &dyn crate::apis::DeviceActionsApi {
-        self.device_actions_api.as_ref()
-    }
+  pub fn device_actions_api(&self) -> &::apis::DeviceActionsApi{
+    self.device_actions_api.as_ref()
+  }
 
-    pub fn identity_api(&self) -> &dyn crate::apis::IdentityApi {
-        self.identity_api.as_ref()
-    }
+  pub fn identity_api(&self) -> &::apis::IdentityApi{
+    self.identity_api.as_ref()
+  }
 
-    pub fn module_api(&self) -> &dyn crate::apis::ModuleApi {
-        self.module_api.as_ref()
-    }
+  pub fn module_api(&self) -> &::apis::ModuleApi{
+    self.module_api.as_ref()
+  }
 
-    pub fn system_information_api(&self) -> &dyn crate::apis::SystemInformationApi {
-        self.system_information_api.as_ref()
-    }
+  pub fn system_information_api(&self) -> &::apis::SystemInformationApi{
+    self.system_information_api.as_ref()
+  }
+
+
 }
