@@ -1,5 +1,7 @@
 mod config;
 pub use self::config::Config;
+mod disk;
+pub use self::disk::Disk;
 mod env_var;
 pub use self::env_var::EnvVar;
 mod error_response;
@@ -12,20 +14,24 @@ mod identity_list;
 pub use self::identity_list::IdentityList;
 mod identity_spec;
 pub use self::identity_spec::IdentitySpec;
-mod update_identity;
-pub use self::update_identity::UpdateIdentity;
 mod module_details;
 pub use self::module_details::ModuleDetails;
 mod module_list;
 pub use self::module_list::ModuleList;
 mod module_spec;
 pub use self::module_spec::ModuleSpec;
+mod provisioning;
+pub use self::provisioning::Provisioning;
 mod runtime_status;
 pub use self::runtime_status::RuntimeStatus;
 mod status;
 pub use self::status::Status;
 mod system_info;
 pub use self::system_info::SystemInfo;
+mod system_resources;
+pub use self::system_resources::SystemResources;
+mod update_identity;
+pub use self::update_identity::UpdateIdentity;
 
 // TODO(farcaller): sort out files
 pub struct File;
