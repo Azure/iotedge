@@ -227,12 +227,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var identity in identitiesReplaced)
             {
-                if (this.knownConnections.TryRemove(identity, out var deviceListener))
-                {
-                    // AddConnectionAsync() would do this, but let's avoid the warning
-                    await deviceListener.CloseAsync();
-                }
-
                 await this.AddConnectionAsync(identity, true, connectionProvider);
             }
         }
@@ -370,7 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void UnknownClientDisconnected(string identity) => Log.LogWarning((int)EventIds.UnknownClientDisconnected, $"Received disconnect notification about a not-connected client {identity}");
-            public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
+            public static void ExistingClientAdded(string identity) => Log.LogInformation((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
             public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
             public static void CouldNotFindClientToClose(string identity) => Log.LogInformation((int)EventIds.CouldNotFindClientToClose, $"Could not find to close: {identity}. No signal will be sent to the broker");
