@@ -218,7 +218,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             builder.RegisterModule(new HttpModule("Edge1", iotHubConnectionStringBuilder.DeviceId, "iotedgeApiProxy"));
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false, this.sslProtocols));
-            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols));
+            builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true, this.sslProtocols, false));
         }
 
         static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)

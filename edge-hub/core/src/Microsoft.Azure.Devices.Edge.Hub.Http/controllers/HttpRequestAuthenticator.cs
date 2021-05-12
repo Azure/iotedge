@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
@@ -134,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             public static void AuthenticationApiProxy(string remoteAddress)
             {
-                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+                Log.LogDebug((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
             }
         }
     }

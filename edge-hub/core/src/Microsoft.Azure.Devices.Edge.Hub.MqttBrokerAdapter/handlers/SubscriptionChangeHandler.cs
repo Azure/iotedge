@@ -98,7 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             // slower method to reconcile so we handle the direct case separately with a faster method
             await moduleId.Filter(i => string.Equals(i, Constants.EdgeHubModuleId))
                      .Match(
-                        _ => this.HandleNestedSubscriptionChanges(subscriptionList),
+                        _ => deviceId.Match(
+                                dev => this.HandleNestedSubscriptionChanges(subscriptionList, this.identityProvider.Create(dev, Constants.EdgeHubModuleId)),
+                                () => throw new ArgumentException("Invalid topic structure for subscriptions - Module name matched but no Device name")),
                         () => this.HandleDirectSubscriptionChanges(deviceId, moduleId, subscriptionList));
 
             return true;
@@ -168,12 +170,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         // been seen before.
         // To solve 2), we need to take all known devices and unsubscribe from all topics not listed in the
         // current notification.
-        async Task HandleNestedSubscriptionChanges(List<string> subscriptionList)
+        async Task HandleNestedSubscriptionChanges(List<string> subscriptionList, IIdentity parent)
         {
             // As a first step, go through the sent subscription list and subscribe to everything it says.
             // The call returns all clients that had a subscription and ans also returns their subscriptions.
             // In the next step a second loop is going to unsubscribe from everything not in the list.
             var affectedClients = await this.SubscribeAndGetAffectedClients(subscriptionList);
+
+            // This is a nested subscription change. The affected children may or may not contain parent information.
+            // When a child is first noticed by a sent message for example, parent edgeHub does not know which downstream edgeHub
+            // forwarded that message, because the topic structure does not contain information about that. We need the parent information
+            // to calculate the "unsubscribe" set later. We learn about parent/child relation when edgeHub subscribes to topics of
+            // some of its children. The 'affectedClients' set created above represents that relationship, so we use that information
+            // to update.
+            // If the parent information is already set, the "update" will still apply. The current implementation logs
+            // a warning if the parent changed - that is an uncommon situation and hard to picture when that can happen.
+            await this.connectionRegistry.UpdateNestedParentInfoAsync(affectedClients.Keys, parent);
 
             // At this point we have a collection about 'affectedClients'. Those are the clients subscribed to something.
             // What we don't know are the unsubscribtions. That is because the broker sends only the current subscription list,
@@ -182,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             // previously as subscribed, that is unsubscribed. E.g. if a client subscribed to 'methods' only, then we say that
             // it unsubscribed from twin responses, c2d, m2m, etc. The underlaying layers take care of the optimization doing
             // nothing when unsubscribed twice from a topic.
-            await this.UnsubscribeNotListedSubscriptions(affectedClients);
+            await this.UnsubscribeNotListedSubscriptions(affectedClients, parent);
         }
 
         async Task<Dictionary<IIdentity, HashSet<DeviceSubscription>>> SubscribeAndGetAffectedClients(List<string> subscriptionList)
@@ -230,13 +242,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             return affectedClients;
         }
 
-        async Task UnsubscribeNotListedSubscriptions(Dictionary<IIdentity, HashSet<DeviceSubscription>> affectedClients)
+        async Task UnsubscribeNotListedSubscriptions(Dictionary<IIdentity, HashSet<DeviceSubscription>> affectedClients, IIdentity parent)
         {
             // As a first step we need all nested connections, because it is possible that affectedClients does not
             // cover all clients. It can happen when a client had only a single subscription before, but now it unsubscribed even from that.
             // In that case that client will not be contained by the subscription event sent by the broker, because it has no
             // subscription at all.
-            var nestConnections = await this.connectionRegistry.GetNestedConnectionsAsync();
+            var nestConnections = await this.connectionRegistry.GetNestedConnectionsAsync(parent);
             foreach (var connection in nestConnections)
             {
                 // for a given client we are going to unsubscribe from everything that was not marked as subscribed

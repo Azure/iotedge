@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             IConfiguration amqpSettings = this.configuration.GetSection("amqpSettings");
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
-            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols));
+            builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols, amqpSettings.GetValue<bool>("delayedBatchingEnabled")));
         }
 
         void RegisterMqttModule(

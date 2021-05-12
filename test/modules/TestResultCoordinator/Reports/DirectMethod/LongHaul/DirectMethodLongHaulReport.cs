@@ -57,7 +57,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             // TODO: When the SDK allows edgehub to de-register from subscriptions and we make the fix in edgehub, then we can fail tests for any status code 0.
             long allStatusCount = this.SenderSuccesses + this.StatusCodeZero + this.Other.Sum(x => x.Value);
             bool statusCodeZeroBelowThreshold = (this.StatusCodeZero == 0) || (this.StatusCodeZero < ((double)allStatusCount / 1000));
-            bool deviceNotFoundBelowThreshold = (this.DeviceNotFound == 0) || (this.DeviceNotFound < ((double)allStatusCount / 1000));
+            bool deviceNotFoundBelowThreshold = (this.DeviceNotFound == 0) || (this.DeviceNotFound < ((double)allStatusCount / 100));
 
             // Pass if status code zero is below the threshold, and sender and receiver got same amount of successess (or receiver has no results)
             return statusCodeZeroBelowThreshold && deviceNotFoundBelowThreshold && senderAndReceiverSuccessesPass;

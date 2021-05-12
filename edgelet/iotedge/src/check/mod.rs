@@ -35,6 +35,7 @@ pub struct Check {
     dont_run: BTreeSet<String>,
     aziot_edged: PathBuf,
     expected_aziot_edged_version: Option<String>,
+    expected_aziot_version: Option<String>,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
@@ -87,6 +88,7 @@ impl Check {
         diagnostics_image_name: String,
         dont_run: BTreeSet<String>,
         expected_aziot_edged_version: Option<String>,
+        expected_aziot_version: Option<String>,
         aziot_edged: PathBuf,
         output_format: OutputFormat,
         verbose: bool,
@@ -101,6 +103,7 @@ impl Check {
             dont_run,
             aziot_edged,
             expected_aziot_edged_version,
+            expected_aziot_version,
             output_format,
             verbose,
             warnings_as_errors,
@@ -475,6 +478,10 @@ impl Check {
                     .arg(self.dont_run.iter().cloned().collect::<Vec<_>>().join(" "));
             }
 
+            if let Some(version) = &self.expected_aziot_version {
+                aziot_check.arg("--expected-aziot-version").arg(version);
+            }
+
             match aziot_check.spawn() {
                 Ok(child) => {
                     for val in
@@ -688,6 +695,7 @@ mod tests {
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
                 Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
@@ -736,6 +744,7 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
+                Some("1.0.0".to_owned()),  // unused for this test
                 Some("1.0.0".to_owned()),  // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
@@ -787,6 +796,7 @@ mod tests {
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
             Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
@@ -824,6 +834,7 @@ mod tests {
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
+            Some("1.0.0".to_owned()),  // unused for this test
             Some("1.0.0".to_owned()),  // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test

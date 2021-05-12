@@ -13,7 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         Task<Option<IDeviceListener>> GetOrCreateDeviceListenerAsync(IIdentity identity, bool directOnCreation = false);
         Task<Option<IDeviceProxy>> GetDeviceProxyAsync(IIdentity identity);
 
-        Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync();
+        Task UpdateNestedParentInfoAsync(IEnumerable<IIdentity> childDevices, IIdentity parentIdentity);
+        Task<IReadOnlyList<IIdentity>> GetNestedConnectionsAsync(IIdentity parentIdentity);
 
         Task CloseConnectionAsync(IIdentity identity);
     }
