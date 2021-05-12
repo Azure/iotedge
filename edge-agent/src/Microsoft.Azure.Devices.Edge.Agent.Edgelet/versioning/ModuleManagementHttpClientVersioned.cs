@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
                 includeTimestamp.ForEach(b => logsUrl.AppendFormat($"&{LogsIncludeTimestampParameter}={b.ToString().ToLower()}"));
                 var logsUri = new Uri(logsUrl.ToString());
-                Console.WriteLine($"BEARWASHERE -- {logsUri}");
+
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
                 Stream stream = await this.Execute(
                     async () =>

@@ -57,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
 
-        // BEARWASHERE Add this -- Option<bool> includeTimestamp 1
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, until, includeTimestamp, cancellationToken);
 

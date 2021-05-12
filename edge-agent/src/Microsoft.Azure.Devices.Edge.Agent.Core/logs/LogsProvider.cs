@@ -25,9 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public async Task<byte[]> GetLogs(string id, ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
-            // BEARWASHERE -- GetModuleLogs
-            // Deal with Filter.includeTimestamp
-            // BEARWASHERE Add this -- Option<bool> includeTimestamp 3
+
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, logOptions.Filter.IncludeTimestamp, cancellationToken);
             Events.ReceivedStream(id);
 
@@ -62,7 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            // BEARWASHERE Add this -- Option<bool> includeTimestamp 3
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, logOptions.Follow, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, logOptions.Filter.IncludeTimestamp, cancellationToken);
             Events.ReceivedStream(id);
 

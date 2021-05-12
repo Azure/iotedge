@@ -40,7 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
 
-        // BEARWASHERE -- Parse
         public ModuleLogMessageData Parse(ByteString byteString, string moduleId) =>
             GetLogMessage(byteString, this.iotHubName, this.deviceId, moduleId);
 
@@ -50,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             ByteString payload = arg.Slice(8);
             string payloadString = payload.ToString(Encoding.UTF8);
 
-            // BEARWASHERE -- GetLogMessage
             (int logLevel, Option<DateTime> timeStamp, string logText) = ParseLogText(payloadString);
             var moduleLogMessage = new ModuleLogMessageData(iotHubName, deviceId, moduleId, stream, logLevel, timeStamp, logText, arg, payloadString);
             return moduleLogMessage;

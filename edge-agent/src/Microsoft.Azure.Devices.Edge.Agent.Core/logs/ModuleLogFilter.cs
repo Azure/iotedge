@@ -45,9 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         [JsonConverter(typeof(OptionConverter<int>), true)]
         public Option<int> LogLevel { get; }
 
-        // BEARWASHERE -- Config this. We will come back to this and make it a tri-state
-        // [JsonProperty("timestamps")]
-        // [JsonConverter(typeof(OptionConverter<bool>), true)]
         [JsonIgnore]
         public Option<bool> IncludeTimestamp { get; set; }
 
