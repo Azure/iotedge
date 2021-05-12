@@ -346,69 +346,6 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
-          "testResultCoordinator": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "Logging:LogLevel:Microsoft": {
-                "value": "Error"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "verificationDelay": {
-                "value": "<TestResultCoordinator.VerificationDelay>"
-              },
-              "sendReportFrequency": {
-                "value": "<SendReportFrequency>"
-              },
-              "eventHubConnectionString": {
-                "value": "<TestResultCoordinator.EventHubConnectionString>"
-              },
-              "ConsumerGroupName": {
-                "value": "<TestResultCoordinator.ConsumerGroupId>"
-              },
-              "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
-              },
-              "logAnalyticsWorkspaceId": {
-                "value": "<LogAnalyticsWorkspaceId>"
-              },
-              "logAnalyticsSharedKey": {
-                "value": "<LogAnalyticsSharedKey>"
-              },
-              "logAnalyticsLogType": {
-                "value": "<TestResultCoordinator.LogAnalyticsLogType>"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "logUploadEnabled": {
-                "value": "<TestResultCoordinator.logUploadEnabled>"
-              },
-              "STORAGE_ACCOUNT_CONNECTION_STRING": {
-                "value": "<TestResultCoordinator.StorageAccountConnectionString>"
-              },
-              "NetworkControllerRunProfile": {
-                "value": "<NetworkController.RunProfile>"
-              },
-              "TEST_INFO": {
-                "value": "<TestInfo>"
-              },
-              "testMode": {
-                "value": "<TestMode>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
-            }
-          },
           "networkController": {
             "version": "1.0",
             "type": "docker",
