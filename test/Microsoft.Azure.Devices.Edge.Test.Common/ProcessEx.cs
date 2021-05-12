@@ -1,4 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
+// Adapted from https://github.com/jamesmanning/RunProcessAsTask
 
 // Copyright (c) 2013 James Manning
 namespace RunProcessAsTask
