@@ -9,14 +9,13 @@ use edgelet_core::{LogOptions, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
 
-pub async fn pull_logs<M, W>(
-    runtime: &M,
+pub async fn pull_logs<W>(
+    runtime: &impl ModuleRuntime,
     id: &str,
     options: &LogOptions,
     writer: &mut W,
 ) -> Result<(), Error>
 where
-    M: ModuleRuntime,
     W: Write + Send,
 {
     // Collect Logs

@@ -10,7 +10,7 @@ failure = "0.1"
 futures = "0.3"
 # tokio = {version = "1", features = ["rt", "macros", "process"]}
 tokio-util = {version = "0.6", features = ["codec"]}
-zip = "0.5.3"
+zip = "0.5"
 
 edgelet-core = {path = "../edgelet-core"}
 
