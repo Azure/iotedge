@@ -123,7 +123,6 @@ stages:
           eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: 'nestededge_bottomLayerBaseDeployment_connectivity_mqtt.template.json'
           upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'
