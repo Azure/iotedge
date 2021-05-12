@@ -5,9 +5,9 @@
 #![allow(clippy::module_name_repetitions)]
 
 mod error;
-mod logs;
+mod runtime_util;
 mod support_bundle;
 
 pub use crate::error::{Error, ErrorKind};
-pub use crate::logs::pull_logs;
-// pub use crate::support_bundle::{make_bundle, OutputLocation};
+pub use crate::runtime_util::write_logs;
+pub use crate::support_bundle::{make_bundle, OutputLocation};
