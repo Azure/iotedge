@@ -62,9 +62,6 @@ if(MSVC)
     #windows needs this define
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-    # Turn off compiler warning C5105 in VS2019+
-    add_compile_options(/wd5105)
-
     # Make warning as error
     add_definitions(/WX)
     if (run_unittests)
