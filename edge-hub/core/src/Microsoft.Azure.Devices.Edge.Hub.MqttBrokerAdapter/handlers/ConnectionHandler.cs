@@ -152,6 +152,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 await this.RemoveConnectionsAsync(identitiesRemoved);
                 await this.AddConnectionsAsync(identitiesAdded);
+
+                // When a device connects indirectly, then disconnects and connects directly again, the following happens:
+                // As we don't have "indirect disconnection", the device proxy instance lingers for a while before gets deleted
+                // by idle-time. Because of that it may show up in the "knownIdentities" list, and the way added connections are
+                // calculated above, it will not be added as a "direct connection" but keeps existing as "indirect connection".
+                // As a result, the device proxy will use mqtt topics for indirect connections which will not be subscribed
+                // by the directly connected device. As a solution, check if the broker sent connection-list and the known
+                // connections match by 'IsDirect' flag. If not, remove the indirect connection and recreate them as direct.
+                // Note, that a (child) $edgeHub is a direct connection but uses indirect dialect, so it has the IsDirect flag
+                // turned off, so ignore those cases from the list.
+                var reconnectedCandidates = new HashSet<IIdentity>(updatedIdentities);
+                var indirectConnections = this.knownConnections.Values.OfType<IDeviceProxy>()
+                                                                      .Where(p => !p.IsDirectClient && !(p.Identity is ModuleIdentity i && string.Equals(i.ModuleId, Constants.EdgeHubModuleId)))
+                                                                      .Select(p => p.Identity);
+                reconnectedCandidates.IntersectWith(indirectConnections);
+                await this.ReplaceConnectionsAsync(reconnectedCandidates);
             }
         }
 
@@ -196,6 +212,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
             foreach (var identity in identitiesAdded)
             {
+                await this.AddConnectionAsync(identity, true, connectionProvider);
+            }
+        }
+
+        async Task ReplaceConnectionsAsync(HashSet<IIdentity> identitiesReplaced)
+        {
+            var connectionProvider = await this.connectionProviderGetter;
+            if (connectionProvider == null)
+            {
+                Events.FailedToObtainConnectionProvider();
+                return;
+            }
+
+            foreach (var identity in identitiesReplaced)
+            {
+                if (this.knownConnections.TryRemove(identity, out var deviceListener))
+                {
+                    // AddConnectionAsync() would do this, but let's avoid the warning
+                    await deviceListener.CloseAsync();
+                }
+
                 await this.AddConnectionAsync(identity, true, connectionProvider);
             }
         }
