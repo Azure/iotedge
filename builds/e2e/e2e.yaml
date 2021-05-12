@@ -60,9 +60,9 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: windows_amd64
+  - job: windows_server
 ################################################################################
-    displayName: Windows amd64
+    displayName: Windows Server 2019 (full)
 
     pool:
       name: $(pool.windows.name)
@@ -73,6 +73,47 @@ jobs:
       os: windows
       arch: amd64
       artifactName: iotedged-windows
+
+    steps:
+    - template: templates/e2e-setup.yaml
+
+    - pwsh: |
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+          -ArgumentList 'Root', 'LocalMachine'
+        $store.Open('ReadWrite')
+        $store.Add($cert)
+      displayName: Install CAB signing root cert
+      env:
+        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+
+    - pwsh: |
+        Write-Output '>>> BEFORE:'
+        netsh interface ipv6 show prefixpolicies
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+        Write-Output '>>> AFTER:'
+        netsh interface ipv6 show prefixpolicies
+      displayName: Prefer IPv4
+
+    - template: templates/e2e-clear-docker-cached-images.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: windows_10ent
+################################################################################
+    displayName: Windows 10 Enterprise (minimal)
+
+    pool:
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-win10-entn2019-test
+
+    variables:
+      os: windows
+      arch: amd64
+      artifactName: iotedged-windows
+      minimal: true
 
     steps:
     - template: templates/e2e-setup.yaml

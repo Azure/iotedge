@@ -11,14 +11,21 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      dotnet vstest $testFile --logger:trx
+      if ($(variables.minimal))
+      {
+        dotnet vstest $testFile --logger:trx --testcasefilter 'TempSensor'
+      }
+      else
+      {
+        dotnet vstest $testFile --logger:trx
+      }
     }
     else
     {
       # Unfortunately CentOs has some failing test that need to be worked on.
       if ('$(Agent.Name)'.Contains('centos'))
       {
-        sudo --preserve-env dotnet test $testFile --logger:trx --filter "TestCategory=CentOsSafe"
+        sudo --preserve-env dotnet test $testFile --logger:trx --filter 'TestCategory=CentOsSafe'
       }
       else
       {
