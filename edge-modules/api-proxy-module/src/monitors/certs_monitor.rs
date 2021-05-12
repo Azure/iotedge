@@ -2,12 +2,15 @@ use std::{env, sync::Arc};
 
 use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Duration, Utc};
-use futures_util::future::Either;
+use futures_util::{
+    future::{self, Either},
+    pin_mut,
+};
 use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle, time};
 
-use super::file;
-use super::shutdown_handle;
+use crate::utils::file;
+use crate::utils::shutdown_handle;
 use edgelet_client::CertificateResponse;
 use shutdown_handle::ShutdownHandle;
 
@@ -51,12 +54,9 @@ pub fn start(
         //Loop until trust bundle is received.
         while !new_trust_bundle {
             let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
-
-            if let Either::Right(_) =
-                futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
-                    .await
-            {
+            let timeout = time::sleep(CERTIFICATE_POLL_INTERVAL);
+            pin_mut!(wait_shutdown, timeout);
+            if let Either::Right(_) = future::select(timeout, wait_shutdown).await {
                 warn!("Shutting down certs monitor!");
                 return Ok(());
             }
@@ -80,7 +80,7 @@ pub fn start(
         }
 
         //Trust bundle just received. Request for a reset of the API proxy.
-        notify_trust_bundle_reload_api_proxy.notify();
+        notify_trust_bundle_reload_api_proxy.notify_one();
 
         info!("Starting certs monitoring loop");
 
@@ -89,12 +89,10 @@ pub fn start(
         //If the system clock gets readjusted while the task is sleeping, the system might wake up after the certificate expiry.
         loop {
             let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
+            let timeout = time::sleep(CERTIFICATE_POLL_INTERVAL);
+            pin_mut!(wait_shutdown, timeout);
 
-            if let Either::Right(_) =
-                futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
-                    .await
-            {
+            if let Either::Right(_) = future::select(timeout, wait_shutdown).await {
                 warn!("Shutting down certs monitor!");
                 return Ok(());
             }
@@ -121,7 +119,7 @@ pub fn start(
             };
 
             if new_server_cert {
-                notify_server_cert_reload_api_proxy.notify();
+                notify_server_cert_reload_api_proxy.notify_one();
             }
         }
     });

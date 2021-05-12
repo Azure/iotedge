@@ -299,6 +299,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
         }
 
         [Theory]
+        [InlineData("l4", "l3;l4", "l3", "l3;l4;l5", true, HttpStatusCode.OK)]
+        [InlineData("l4", "l2;l3;l4", "l2", "l2;l3;l4;l5", true, HttpStatusCode.OK)]
+        [InlineData("l4", "l4", "l4", "l4;l5", true, HttpStatusCode.OK)]
+        [InlineData("l3", "l4", "l4", "l4;l5", true, HttpStatusCode.Unauthorized)]
+        [InlineData("l4", "l3;l4", "l3", null, true, HttpStatusCode.Unauthorized)]
+        [InlineData("l4", "l3;l4", "l3", "l3;l4;l5", false, HttpStatusCode.Unauthorized)]
+        [InlineData("l4", "l3;l3", "l3", "l3;l4;l5", false, HttpStatusCode.Unauthorized)]
+        public async Task ValidateOnBehalfOfCallTest(string actorDeviceId, string authChain, string targetDeviceId, string targetAuthChain, bool authResult, HttpStatusCode expectedResult)
+        {
+            // Setup
+            var identitiesCache = Mock.Of<IDeviceScopeIdentitiesCache>(c => c.GetAuthChain(targetDeviceId) == Task.FromResult(Option.Maybe(targetAuthChain)));
+            var edgeHub = Mock.Of<IEdgeHub>(e => e.GetDeviceScopeIdentitiesCache() == identitiesCache);
+            var httpContext = new DefaultHttpContext();
+            var httpRequestAuthenticator = Mock.Of<IHttpRequestAuthenticator>(a => a.AuthenticateAsync(actorDeviceId, Option.Some(Constants.EdgeHubModuleId), Option.Some(authChain), httpContext) == Task.FromResult(new HttpAuthResult(authResult, string.Empty)));
+
+            // Act
+            Try<string> authChainResult = await RegistryController.AuthorizeOnBehalfOf(actorDeviceId, authChain, "test", httpContext, edgeHub, httpRequestAuthenticator);
+
+            // Verify
+            if (expectedResult == HttpStatusCode.OK)
+            {
+                Assert.True(authChainResult.Success);
+                Assert.Equal(targetAuthChain, authChainResult.Value);
+            }
+            else
+            {
+                Assert.False(authChainResult.Success);
+                Assert.IsType<RegistryController.ValidationException>(authChainResult.Exception);
+                Assert.Equal(expectedResult, ((RegistryController.ValidationException)authChainResult.Exception).StatusCode);
+            }
+        }
+
+        [Theory]
         [MemberData(nameof(GetControllerMethodDelegates))]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Usage",
