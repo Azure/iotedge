@@ -34,7 +34,6 @@ where
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         let runtime = self.runtime.clone();
 
-        // BEARWASHERE -- Rust this?
         let response = params
             .name("name")
             .ok_or_else(|| Error::from(ErrorKind::MissingRequiredParameter("name")))
@@ -85,16 +84,9 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
         .find(|&(ref key, _)| key == "since")
         .map_or_else(|| Ok(0), |(_, val)| parse_since(val))
         .context(ErrorKind::MalformedRequestParameter("since"))?;
-    let timestamps = parse
-        .iter()
-        .find(|&(ref key, _)| key == "timestamps")
-        .map_or_else(|| Ok(false), |(_, val)| val.parse::<bool>())
-        .context(ErrorKind::MalformedRequestParameter("timestamps"))?;
-
     let mut options = LogOptions::new()
         .with_follow(follow)
         .with_tail(tail)
-        .with_timestamps(timestamps)
         .with_since(since);
 
     if let Some(until) = parse

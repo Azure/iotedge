@@ -983,7 +983,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 options.since(),
                 options.until(),
-                options.timestamps(),
+                false,
                 tail,
             )
             .then(|result| match result {
