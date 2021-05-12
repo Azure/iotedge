@@ -2515,10 +2515,10 @@ dependencies = [
  "edgelet-core",
  "edgelet-test-utils",
  "failure",
- "futures 0.1.29",
+ "futures 0.3.14",
  "regex 0.2.11",
  "tempfile",
- "tokio 0.1.22",
+ "tokio-util",
  "zip",
 ]
 

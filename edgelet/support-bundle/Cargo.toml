@@ -7,8 +7,8 @@ edition = "2018"
 [dependencies]
 chrono = "0.4.7"
 failure = "0.1"
-futures = "0.1"
-tokio = "0.1"
+futures = "0.3"
+tokio-util = { version = "0.6", features = ["codec"] }
 zip = "0.5.3"
 
 edgelet-core = { path = "../edgelet-core" }
