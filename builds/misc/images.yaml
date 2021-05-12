@@ -229,6 +229,10 @@ jobs:
         parameters:
           module.path: 'test/modules/generic-mqtt-tester'
           module.name: 'generic-mqtt-tester'
+      - template: templates/rust-test-module-images.yaml
+        parameters:
+          module.path: 'test/modules/obsagent-client'
+          module.name: 'obsagent-client'        
 
 ################################################################################
   - job: manifest
