@@ -1,19 +1,20 @@
 [package]
-name = "support-bundle"
-version = "0.1.0"
 authors = ["Lee Fitchett <lefitche@microsoft.com>"]
 edition = "2018"
+name = "support-bundle"
+version = "0.1.0"
 
 [dependencies]
 chrono = "0.4.7"
 failure = "0.1"
 futures = "0.3"
-tokio-util = { version = "0.6", features = ["codec"] }
+# tokio = {version = "1", features = ["rt", "macros", "process"]}
+tokio-util = {version = "0.6", features = ["codec"]}
 zip = "0.5.3"
 
-edgelet-core = { path = "../edgelet-core" }
+edgelet-core = {path = "../edgelet-core"}
 
 [dev-dependencies]
-edgelet-test-utils = { path = "../edgelet-test-utils" }
+edgelet-test-utils = {path = "../edgelet-test-utils"}
 regex = "0.2"
 tempfile = "3.1.0"
