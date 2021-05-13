@@ -44,14 +44,14 @@ jobs:
 #     - template: templates/e2e-run.yaml
 
 ################################################################################
-  - job: linux_amd64
+  - job: ubuntu_1804_msmoby
 ################################################################################
-    displayName: Linux amd64
+    displayName: Ubuntu 18.04 with iotedge-moby
 
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
 
     variables:
       os: linux
@@ -63,9 +63,68 @@ jobs:
     - template: templates/e2e-run.yaml
 
 ################################################################################
+  - job: ubuntu_1804_docker
+################################################################################
+    displayName: Ubuntu 18.04 with Docker (minimal)
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      minimal: true
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_msmoby
+################################################################################
+    displayName: Ubuntu 20.04 with iotedge-moby
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-msmoby
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
+  - job: ubuntu_2004_docker
+################################################################################
+    displayName: Ubuntu 20.04 with Docker (minimal)
+
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-20.04-docker
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactName: iotedged-ubuntu18.04-amd64
+      minimal: true
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################
   - job: windows_server
 ################################################################################
-    displayName: Windows Server 2019 (full)
+    displayName: Windows Server 2019
 
     pool:
       name: $(pool.windows.name)
