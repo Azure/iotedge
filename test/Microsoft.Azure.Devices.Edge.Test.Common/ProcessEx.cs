@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-// Adapted from https://github.com/jamesmanning/RunProcessAsTask
 
 // Copyright (c) 2013 James Manning
+// Adapted from https://github.com/jamesmanning/RunProcessAsTask
 namespace RunProcessAsTask
 {
     using System;
