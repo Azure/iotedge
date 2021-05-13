@@ -16,6 +16,9 @@ resources:
       - master
       - release/*
 
+variables:
+  minimal: false
+
 jobs:
 
 # ################################################################################
