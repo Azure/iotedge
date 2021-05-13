@@ -13,7 +13,7 @@ steps:
 
       if ('$(minimal)' -eq 'true')
       {
-        dotnet vstest $testFile --logger:trx --testcasefilter 'TempSensor'
+        dotnet vstest $testFile --logger:trx --testcasefilter 'Name~TempSensor'
       }
       else
       {
