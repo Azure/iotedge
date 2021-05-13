@@ -43,6 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [Fact]
         public async Task GetLogsAsTextTest()
         {
+            // Wait
+            Thread.Sleep(50);
+
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev1";
@@ -74,6 +77,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [Fact]
         public async Task GetLogsAsTextWithCompressionTest()
         {
+            // Wait
+            Thread.Sleep(100);
+
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev2";
@@ -197,6 +203,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [Fact]
         public async Task GetLogsStreamTest()
         {
+            // Wait
+            Thread.Sleep(150);
+
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev3";
