@@ -13,11 +13,11 @@ steps:
 
       if ('$(minimal)' -eq 'true')
       {
-        dotnet vstest $testFile --logger:trx --testcasefilter 'Name~TempSensor'
+        dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
       }
       else
       {
-        dotnet vstest $testFile --logger:trx
+        dotnet test $testFile --no-build --logger 'trx'
       }
     }
     else
@@ -25,11 +25,15 @@ steps:
       # Unfortunately CentOs has some failing test that need to be worked on.
       if ('$(Agent.Name)'.Contains('centos'))
       {
-        sudo --preserve-env dotnet test $testFile --logger:trx --filter 'TestCategory=CentOsSafe'
+        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'TestCategory=CentOsSafe'
+      }
+      else if ('$(minimal)' -eq 'true')
+      {
+        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
       }
       else
       {
-        sudo --preserve-env dotnet vstest $testFile --logger:trx
+        sudo --preserve-env dotnet test $testFile --no-build --logger 'trx'
       }
     }
   displayName: Run tests
