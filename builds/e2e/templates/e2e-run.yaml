@@ -11,7 +11,7 @@ steps:
         $(Join-Path $env:ProgramFiles 'iotedge'),
         $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
 
-      if ($(variables.minimal))
+      if ($(minimal))
       {
         dotnet vstest $testFile --logger:trx --testcasefilter 'TempSensor'
       }
