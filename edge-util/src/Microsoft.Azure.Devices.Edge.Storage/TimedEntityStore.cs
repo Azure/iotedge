@@ -130,6 +130,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return iterateWithTimeout.TimeoutAfter(cancellationToken, this.timeout);
         }
 
-        public Task<long> Count() => this.underlyingKeyValueStore.Count();
+        public Task<ulong> Count() => this.underlyingKeyValueStore.Count();
     }
 }

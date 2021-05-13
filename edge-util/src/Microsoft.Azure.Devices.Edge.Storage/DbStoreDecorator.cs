@@ -103,6 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return this.dbStore.Remove(key, cancellationToken);
         }
 
-        public Task<long> Count() => this.dbStore.Count();
+        public Task<ulong> Count() => this.dbStore.Count();
     }
 }

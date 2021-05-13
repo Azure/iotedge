@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public Task<long> Count() => Task.FromResult((long)this.keyValues.Count);
+        public Task<ulong> Count() => Task.FromResult((ulong)this.keyValues.Count);
 
         public void Dispose()
         {

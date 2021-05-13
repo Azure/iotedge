@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
-        private long count;
+        private ulong count;
 
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
-        public Task<long> Count() => Task.FromResult(this.count);
+        public Task<ulong> Count() => Task.FromResult(this.count);
 
         public void Dispose()
         {

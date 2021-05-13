@@ -33,6 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken);
 
-        Task<long> Count();
+        Task<ulong> Count();
     }
 }

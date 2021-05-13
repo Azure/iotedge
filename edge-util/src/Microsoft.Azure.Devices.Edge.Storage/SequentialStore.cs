@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return batch;
         }
 
-        public Task<long> Count() => this.entityStore.Count();
+        public Task<ulong> Count() => this.entityStore.Count();
 
         public void Dispose()
         {
