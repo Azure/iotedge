@@ -73,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         static bool DaemonNotReady(string details) =>
                             details.Contains("Incorrect function", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                            details.Contains("Operation not permitted", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
                         return DaemonNotReady(e.ToString());
