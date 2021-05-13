@@ -27,7 +27,7 @@ steps:
       {
         sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'TestCategory=CentOsSafe'
       }
-      else if ('$(minimal)' -eq 'true')
+      elseif ('$(minimal)' -eq 'true')
       {
         sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter 'Name~TempSensor'
       }
