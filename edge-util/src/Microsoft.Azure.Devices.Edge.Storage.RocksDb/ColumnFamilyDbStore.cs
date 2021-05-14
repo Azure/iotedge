@@ -58,29 +58,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        public async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            Action operation = () =>
-            {
-                this.db.Put(key, value, this.Handle);
-                this.count += 1;
-            };
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            Action operation = () => this.db.Put(key, value, this.Handle);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            this.count += 1;
         }
 
-        public Task Remove(byte[] key, CancellationToken cancellationToken)
+        public async Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
 
-            Action operation = () =>
-            {
-                this.db.Remove(key, this.Handle);
-                this.count -= 1;
-            };
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            Action operation = () => this.db.Remove(key, this.Handle);
+            await  operation.ExecuteUntilCancelled(cancellationToken);
+            this.count -= 1;
         }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
