@@ -43,9 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [Fact]
         public async Task GetLogsAsTextTest()
         {
-            // Wait
-            Thread.Sleep(50);
-
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev1";
@@ -66,6 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
 
             var logOptions = new ModuleLogOptions(LogsContentEncoding.None, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
 
+            // Wait
+            Thread.Sleep(10);
+
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
 
@@ -77,9 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [Fact]
         public async Task GetLogsAsTextWithCompressionTest()
         {
-            // Wait
-            Thread.Sleep(100);
-
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev2";
@@ -99,6 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
             var logsProvider = new LogsProvider(runtimeInfoProvider.Object, logsProcessor);
 
             var logOptions = new ModuleLogOptions(LogsContentEncoding.Gzip, LogsContentType.Text, ModuleLogFilter.Empty, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
+
+            // Wait
+            Thread.Sleep(10);
 
             // Act
             byte[] bytes = await logsProvider.GetLogs(moduleId, logOptions, cancellationToken);
@@ -203,9 +203,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         [Fact]
         public async Task GetLogsStreamTest()
         {
-            // Wait
-            Thread.Sleep(150);
-
             // Arrange
             string iotHub = "foo.azure-devices.net";
             string deviceId = "dev3";
@@ -235,6 +232,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
                 receivedBytes.AddRange(bytes.ToArray());
                 return Task.CompletedTask;
             }
+
+            // Wait
+            Thread.Sleep(10);
 
             // Act
             await logsProvider.GetLogsStream(moduleId, logOptions, Callback, cancellationToken);
