@@ -322,6 +322,7 @@ impl ModuleRuntime for ModuleClient {
                 &id,
                 options.follow(),
                 tail,
+                options.timestamps(),
                 options.since(),
             )
             .then(|logs| match logs {
