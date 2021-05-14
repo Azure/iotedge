@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -26,9 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         public async Task<byte[]> GetLogs(string id, ModuleLogOptions logOptions, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
-
-            // BEARWASHERE -- GetLogs
-            Trace.WriteLine($"BEARWASHERE GetLogs() logOptions : {logOptions}");
 
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, logOptions.Filter.IncludeTimestamp, cancellationToken);
             Events.ReceivedStream(id);
@@ -77,13 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         async Task<byte[]> GetProcessedLogs(string id, Stream logsStream, ModuleLogOptions logOptions)
         {
-            // BEARWASHERE -- GetProcessedLogs
-            Trace.WriteLine($"BEARWASHERE GetProcessedLogs() logOptions : {logOptions}");
-
             byte[] logBytes = await this.ProcessByContentType(id, logsStream, logOptions);
             logBytes = ProcessByContentEncoding(logBytes, logOptions.ContentEncoding);
 
-            Trace.WriteLine($"BEARWASHERE GetProcessedLogs() logBytes : {logBytes}");
             return logBytes;
         }
 
