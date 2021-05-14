@@ -39,11 +39,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         readonly ActorMaterializer materializer;
         readonly ILogMessageParser logMessageParser;
 
+        readonly object locker = new object();
+
         public LogsProcessor(ILogMessageParser logMessageParser)
         {
-            this.logMessageParser = Preconditions.CheckNotNull(logMessageParser, nameof(logMessageParser));
-            this.system = AkkaActor.ActorSystem.Create("LogsProcessor");
-            this.materializer = this.system.Materializer();
+            lock (locker)
+            {
+                this.logMessageParser = Preconditions.CheckNotNull(logMessageParser, nameof(logMessageParser));
+                this.system = AkkaActor.ActorSystem.Create("LogsProcessor");
+                this.materializer = this.system.Materializer();
+            }
         }
 
         // Gzip encoding or output framing don't apply to this method.
