@@ -63,8 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            this.count += 1;
-            Action operation = () => this.db.Put(key, value, this.Handle);
+            Action operation = () => { this.db.Put(key, value, this.Handle); this.count += 1; };
             return operation.ExecuteUntilCancelled(cancellationToken);
         }
 
@@ -72,8 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         {
             Preconditions.CheckNotNull(key, nameof(key));
 
-            this.count -= 1;
-            Action operation = () => this.db.Remove(key, this.Handle);
+            Action operation = () => { this.db.Remove(key, this.Handle); this.count -= 1; };
             return operation.ExecuteUntilCancelled(cancellationToken);
         }
 
