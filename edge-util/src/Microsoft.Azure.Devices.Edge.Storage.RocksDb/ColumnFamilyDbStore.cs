@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
 
             Action operation = () => this.db.Remove(key, this.Handle);
-            await  operation.ExecuteUntilCancelled(cancellationToken);
+            await operation.ExecuteUntilCancelled(cancellationToken);
             this.count -= 1;
         }
 
