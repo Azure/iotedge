@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         public LogsProcessor(ILogMessageParser logMessageParser)
         {
-            lock (locker)
+            lock (this.locker)
             {
                 this.logMessageParser = Preconditions.CheckNotNull(logMessageParser, nameof(logMessageParser));
                 this.system = AkkaActor.ActorSystem.Create("LogsProcessor");
