@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         }
 
         [Fact]
+        [Trait("Category", "GetLogsTests")]
         public async Task GetLogsAsTextTest()
         {
             // Arrange
@@ -72,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         }
 
         [Fact]
+        [Trait("Category", "GetLogsTests")]
         public async Task GetLogsAsTextWithCompressionTest()
         {
             // Arrange
@@ -195,6 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Logs
         }
 
         [Fact]
+        [Trait("Category", "GetLogsTests")]
         public async Task GetLogsStreamTest()
         {
             // Arrange
