@@ -49,7 +49,7 @@ jobs:
           filePath: scripts/linux/runTests.sh
           arguments: '"--filter Category=Unit&Category!=GetLogsTests"'
       - task: Bash@3
-        displayName: Test
+        displayName: Run GetLogsTests Tests
         inputs:
           filePath: scripts/linux/runTests.sh
           arguments: '"--filter Category=GetLogsTests"'
@@ -89,7 +89,7 @@ jobs:
           runSettingsFile: CodeCoverage.runsettings
           publishRunAttachments: true
       - task: VSTest@2
-        displayName: Run unit tests with code coverage
+        displayName: Run GetLogsTests unit tests with code coverage
         inputs:
           testSelector: testAssemblies
           testAssemblyVer2: |
