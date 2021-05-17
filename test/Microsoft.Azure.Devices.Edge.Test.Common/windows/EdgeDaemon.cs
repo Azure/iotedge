@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -105,7 +106,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             {
                 static bool DaemonAlreadyStopped(string details) =>
                     details.Contains("The service has not been started", StringComparison.OrdinalIgnoreCase) ||
-                    details.Contains("The requested control is not valid for this service", StringComparison.OrdinalIgnoreCase);
+                    details.Contains("The requested control is not valid for this service", StringComparison.OrdinalIgnoreCase) ||
+                    new Regex(@"Cannot stop .+ service on computer '\.'").IsMatch(details);
 
                 try
                 {
