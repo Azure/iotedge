@@ -169,8 +169,8 @@ namespace IotEdgeQuickstart.Details
             }
             else
             {
-                commandName = "dpkg";
-                commandArgs = $"--force-confnew -i {this.archivePath}";
+                commandName = "apt-get";
+                commandArgs = $"--yes install {PackageName}";
             }
 
             return Process.RunAsync(
