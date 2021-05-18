@@ -94,7 +94,7 @@ jobs:
         displayName: 'Azure Key Vault'
         inputs:
           azureSubscription: $(azure.subscription)
-          KeyVaultName: $(azure.keyVault)
+          KeyVaultName: 'edgebuildkv'
           SecretsFilter: >-
             edgebuilds-azurecr-io-username,
             edgebuilds-azurecr-io-pwd,
