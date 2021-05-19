@@ -54,7 +54,7 @@ steps:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
-    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
     buildPlatform: $(arch)
   condition: succeededOrFailed()
 
@@ -75,5 +75,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(System.PhaseName)
   condition: succeededOrFailed()
