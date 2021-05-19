@@ -13,9 +13,11 @@
 * Fix edgehub_queue_length metric. [4aab90b](https://github.com/Azure/iotedge/commit/4aab90b0aeab80ee30d1c7984a930e643bf39b65)
 
 
-## Azure Monitor Module
+## Metrics Collector Module
 ### Features
+* Introduce Metrics Collector Module [5fd976c](https://github.com/Azure/iotedge/commit/5fd976c66bbdf0dc10ac491c7c9fabdf59ff15f9#diff-9c7f4d90d736864198fd9d8065c5269cf52e10abfab79c4889396d5f57207d3f)
 * Introducing new option to trasnsform/flatten the Metrics prior to publish as IoT Messages. [df15b62](https://github.com/Azure/iotedge/commit/df15b625b5807bc429329438c81b59d5b6217260)
+### Bug Fixes
 * Fix vulnerability issues in docker images. [b286408](https://github.com/Azure/iotedge/commit/b28640847c7d8efd82244d0628a36c63e20e5473)
 
 
