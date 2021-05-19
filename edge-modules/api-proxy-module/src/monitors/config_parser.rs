@@ -1,7 +1,8 @@
 use std::env;
 
-use anyhow::{Context, Result};
-use regex::Regex;
+use anyhow::{Context, Error, Result};
+use log::error;
+use regex::{Captures, Regex};
 
 use crate::token_service::token_server;
 
@@ -93,17 +94,125 @@ impl ConfigParser {
         let config: String =
             envsubst::substitute(config, &self.context).context("Failed to subst the text")?;
 
+        // Find all regular expressions in if_tag and resolve them
+        let re = Regex::new(r"boolean_expression\[(.*)\]")
+            .context("Failed to match boolean statement in if_tag")?;
+
+        let config = re.replace_all(&config, |caps: &Captures| {
+            parse_boolean_expression(&caps[1])
+        });
+
         //Replace is 0
         let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
             .context("Failed to remove text between #if_tag 0 tags ")?;
         let config = re.replace_all(&config, "").to_string();
 
-        //Or not 1. This allows usage of if ... else ....
-        let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*?\n")
-            .context("Failed to remove text between #if_tag 0 tags ")?;
-        let config = re.replace_all(&config, "").to_string();
-
         Ok(config)
+    }
+}
+enum Expr {
+    Value(bool),
+    Operator(char),
+}
+
+fn parse_boolean_expression(expression: &str) -> String {
+    let expression = replace_env_var_with_boolean(expression);
+    match solve_boolean_expression(&expression) {
+          Ok(x) => x,
+          Err(e) => { 
+              error!("{}", e); 
+              expression 
+            }
+     }    
+}
+
+// Gomma in env var name is forbidden because of that
+// We use this instead of simpler regex because we cannot match overlapping regular expression with regex.
+fn replace_env_var_with_boolean(expression: &str) -> String {
+    let mut fifo: Vec<char> = Vec::new();
+    let mut flush_fifo: Vec<char> = Vec::new();
+
+    for c in expression.chars() {
+        match c {
+            '(' | '!' | '&' | '|' => fifo.push(c),
+            ')' | ',' => {
+                if flush_fifo.len() == 1 && Some('0') == flush_fifo.pop() {
+                    fifo.push('0')
+                } else if flush_fifo.len() > 1 {
+                    fifo.push('1')
+                };
+                fifo.push(c);
+                flush_fifo.clear();
+            }
+            _ => flush_fifo.push(c),
+        }
+    }
+
+    fifo.iter().collect()
+}
+
+// The resolution of the regular expression is done by using a stack.
+// For example: &(!(0),1,1)
+// Stack fills up: Stack = ['&', '(', '!', '(','0']
+// When ")" is encounter, the deepest boolean expression is solved:
+// Stack result Stack = ['&', '(', '1']
+// Stack fills up: Stack = ['&', '(', '1','0','0']
+// When ")" is encounter, the last boolean expression is solved:
+// First all the value are load in temporary stack: tmp_fifo = ['1','0','0']
+// Then the operator '&' is extracted and the expression is solved
+fn solve_boolean_expression(expression: &str) -> Result<String, Error> {
+    let mut fifo: Vec<Expr> = Vec::new();
+
+    for c in expression.chars() {
+        match c {
+            '(' | ',' | ' ' => (),
+            '!' | '|' | '&' => fifo.push(Expr::Operator(c)),
+            '1' => fifo.push(Expr::Value(true)),
+            '0' => fifo.push(Expr::Value(false)),
+            ')' => {
+                let mut tmp_fifo: Vec<bool> = vec![];
+                while let Some(Expr::Value(v)) = fifo.last() {
+                    tmp_fifo.push(*v);
+                    fifo.pop();
+                }
+
+                if let Some(Expr::Operator(val)) = fifo.pop() {
+                    let result = match val {
+                        '!' => {
+                            if tmp_fifo.len() > 1 {
+                                return Err(anyhow::anyhow!("Invalid ! expression {}", expression));
+                            }
+                            !tmp_fifo[0]
+                        }
+                        '|' => tmp_fifo.iter().any(|v| *v),
+                        '&' => tmp_fifo.iter().all(|v| *v),
+                        _ => {
+                            return Err(anyhow::anyhow!("Invalid boolean expression {}", expression));
+                        }
+                    };
+                    fifo.push(Expr::Value(result));
+                } else {
+                    return Err(anyhow::anyhow!("Could not find operator for boolean expression {}", expression));
+                }
+            }
+            _ => {
+                return Err(anyhow::anyhow!("Unrecognized character {} in boolean expression {}", c, expression));
+            }
+        }
+    }
+
+    if fifo.len() > 1 {
+        return Err(anyhow::anyhow!("Error when parsing boolean expression {}", expression));
+    }
+
+    if let Some(Expr::Value(v)) = fifo.last() {
+        if *v {
+            Ok("1".to_string())
+        } else {
+            Ok("0".to_string())
+        }
+    } else {
+        Err(anyhow::anyhow!("Unable to parse boolean expression, {}", expression))
     }
 }
 
@@ -131,6 +240,52 @@ mod tests {
     const RAW_CONFIG_TEXT:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen ${NGINX_DEFAULT_PORT} ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    private_key.pem; \r\n        ssl_client_certificate trustedCA.crt;\r\n        ssl_verify_client on;\r\n\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${DOCKER_REQUEST_ROUTE_ADDRESS}\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGINX_BLOB_MODULE_NAME_ADDRESS}\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_NOT_ROOT}      \r\n        location /{\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"https://${GATEWAY_HOSTNAME}:443\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_NOT_ROOT}\r\n    }\r\n}";
     const PARSED_CONFIG:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen 443 ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    private_key.pem; \r\n        ssl_client_certificate trustedCA.crt;\r\n        ssl_verify_client on;\r\n\r\n\r\n        \r\n\r\n        #if_tag registry:5000\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://registry:5000\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag registry:5000\r\n\r\n        \r\n\r\n        \r\n    }\r\n}";
     use super::*;
+
+    #[test]
+    fn replace_env_var_with_boolean_test() {
+        // Test non 0 variables are correctly replaced by 1.
+        assert_eq!("|(1)", replace_env_var_with_boolean("|(10.1.23.1)"));
+        assert_eq!(
+            "|(1,0,1,1)",
+            replace_env_var_with_boolean("|(myvariable,0,11,00)")
+        );
+        assert_eq!(
+            "|(1,1,1)",
+            replace_env_var_with_boolean("|(myvariable,myvariable,myvariable)")
+        );
+    }
+
+    #[test]
+    fn solve_boolean_expression_test() {
+        // Test or
+        assert_eq!("0", solve_boolean_expression("|(0,0,0 )").unwrap());
+        assert_eq!("1", solve_boolean_expression("|(1,0,0)").unwrap());
+        // Test and
+        assert_eq!("0", solve_boolean_expression("&(1,0,0)").unwrap());
+        assert_eq!("1", solve_boolean_expression("&(1,1,1)").unwrap());
+        // Test !
+        assert_eq!("1", solve_boolean_expression("&(!(0),!(0),!(0))").unwrap());
+
+        // Test error detection
+        assert_eq!(true, solve_boolean_expression("(!(0),!(0),!(0))").is_err()); 
+        assert_eq!(true, solve_boolean_expression("&(!(0),!(0),!(0)").is_err());
+        assert_eq!(true, solve_boolean_expression("&(!(asd),!(0),!(0))").is_err());
+        assert_eq!(true, solve_boolean_expression("!(0,0)").is_err());
+    }
+
+    #[test]
+    fn parse_boolean_expression_test() {
+        // Test or
+        assert_eq!("1", parse_boolean_expression("|(myvariable,0,0)"));
+        // Test and
+        assert_eq!("0", parse_boolean_expression("&(myvariable,0,0)"));
+        assert_eq!("1", parse_boolean_expression("&(myvariable,myvariable,myvariable)"));
+        // Test !
+        assert_eq!(
+            "0",
+            parse_boolean_expression("|(!(myvariable),!(myvariable),!(myvariable))")
+        );
+    }
 
     #[test]
     fn env_var_tests() {
@@ -176,12 +331,15 @@ mod tests {
 
         //************************* Check config between ![^1] get deleted *********************************
         std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
-        let dummy_config = "#if_tag !${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n#if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould not be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}";
+        let dummy_config = "#if_tag boolean_expression[|(!(${DOCKER_REQUEST_ROUTE_ADDRESS}),0,0)]\r\nshould be removed\r\n#endif_tag boolean_expression[|(!(${DOCKER_REQUEST_ROUTE_ADDRESS}),0,0)]\r\n#if_tag boolean_expression[&(${DOCKER_REQUEST_ROUTE_ADDRESS},1,1)]\r\nshould not be removed\r\n#endif_tag boolean_expression[&(${DOCKER_REQUEST_ROUTE_ADDRESS},1,1)]";
 
         let config_parser = ConfigParser::new(RAW_CONFIG_TEXT).unwrap();
         let config = config_parser.get_parsed_config(dummy_config).unwrap();
 
-        assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
+        assert_eq!(
+            "\r\n#if_tag 1\r\nshould not be removed\r\n#endif_tag 1",
+            config
+        );
         std::env::remove_var("DOCKER_REQUEST_ROUTE_ADDRESS");
 
         //*************************** Check IOTEDGE_PARENTAPIPROXYNAME get sanitized *******************
