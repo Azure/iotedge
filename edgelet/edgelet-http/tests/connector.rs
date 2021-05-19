@@ -26,7 +26,7 @@ fn hello_handler(_: Request<Body>) -> impl Future<Item = Response<Body>, Error =
 #[test]
 fn tcp_get() {
     let (server, port) = run_tcp_server("127.0.0.1", hello_handler);
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let url = format!("http://localhost:{}", port);
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
@@ -67,7 +67,7 @@ fn post_handler(
 #[test]
 fn tcp_post() {
     let (server, port) = run_tcp_server("127.0.0.1", post_handler);
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let url = format!("http://localhost:{}", port);
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();

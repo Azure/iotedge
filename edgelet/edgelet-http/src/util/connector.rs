@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn invalid_url_scheme() {
         let err = UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap_err();
-        assert!(failure::Fail::iter_chain(&err).any(|err| err
+        assert!(<dyn failure::Fail>::iter_chain(&err).any(|err| err
             .to_string()
             .contains("URL does not have a recognized scheme")));
     }

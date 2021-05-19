@@ -448,7 +448,7 @@ mod tests {
     {
         match f() {
             Ok(actual) => assert_eq!(expected, &actual),
-            Err(err) => panic!(format!("{:?}", err)),
+            Err(err) => panic!("{:?}", err),
         }
     }
 
@@ -459,7 +459,7 @@ mod tests {
     {
         match f().wait() {
             Ok(actual) => assert_eq!(expected, &actual),
-            Err(err) => panic!(format!("{:?}", err)),
+            Err(err) => panic!("{:?}", err),
         }
     }
 
@@ -470,10 +470,10 @@ mod tests {
         T: PartialEq + Debug,
     {
         match f() {
-            Ok(v) => panic!(format!("Expected error but found value {:?}", v)),
+            Ok(v) => panic!("Expected error but found value {:?}", v),
             Err(err) => {
                 if !validator(&err) {
-                    panic!(format!("Unexpected error encountered {:?}", err));
+                    panic!("Unexpected error encountered {:?}", err);
                 }
             }
         }
@@ -486,10 +486,10 @@ mod tests {
         T: PartialEq + Debug,
     {
         match f().wait() {
-            Ok(v) => panic!(format!("Expected error but found value {:?}", v)),
+            Ok(v) => panic!("Expected error but found value {:?}", v),
             Err(err) => {
                 if !validator(&err) {
-                    panic!(format!("Unexpected error encountered {:?}", err));
+                    panic!("Unexpected error encountered {:?}", err);
                 }
             }
         }

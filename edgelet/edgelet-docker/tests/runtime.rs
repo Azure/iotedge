@@ -219,7 +219,7 @@ fn image_pull_with_invalid_image_name_fails() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -255,7 +255,7 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image name.");
 
-    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+    match (err.kind(), err.cause().and_then(<dyn Fail>::downcast_ref)) {
         (
             edgelet_docker::ErrorKind::RegistryOperation(
                 edgelet_core::RegistryOperation::PullImage(name),
@@ -323,7 +323,7 @@ fn image_pull_with_invalid_image_host_fails() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -359,7 +359,7 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to invalid image host.");
 
-    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+    match (err.kind(), err.cause().and_then(<dyn Fail>::downcast_ref)) {
         (
             edgelet_docker::ErrorKind::RegistryOperation(
                 edgelet_core::RegistryOperation::PullImage(name),
@@ -441,7 +441,7 @@ fn image_pull_with_invalid_creds_fails() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -478,7 +478,7 @@ network = "azure-iot-edge"
         .block_on(task)
         .expect_err("Expected runtime pull method to fail due to unauthentication.");
 
-    match (err.kind(), err.cause().and_then(Fail::downcast_ref)) {
+    match (err.kind(), err.cause().and_then(<dyn Fail>::downcast_ref)) {
         (
             edgelet_docker::ErrorKind::RegistryOperation(
                 edgelet_core::RegistryOperation::PullImage(name),
@@ -543,7 +543,7 @@ fn image_pull_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -632,7 +632,7 @@ fn image_pull_with_creds_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -698,7 +698,7 @@ fn image_remove_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -812,7 +812,7 @@ fn container_create_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -896,7 +896,7 @@ fn container_start_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -934,7 +934,7 @@ fn container_stop_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -974,7 +974,7 @@ fn container_stop_with_timeout_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1013,7 +1013,7 @@ fn container_remove_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1135,7 +1135,7 @@ fn container_list_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1218,7 +1218,7 @@ fn container_logs_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1259,7 +1259,7 @@ network = "azure-iot-edge"
 #[test]
 fn image_remove_with_white_space_name_fails() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1297,7 +1297,7 @@ network = "azure-iot-edge"
 #[test]
 fn create_fails_for_non_docker_type() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1345,7 +1345,7 @@ network = "azure-iot-edge"
 #[test]
 fn start_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1381,7 +1381,7 @@ network = "azure-iot-edge"
 #[test]
 fn start_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1417,7 +1417,7 @@ network = "azure-iot-edge"
 #[test]
 fn stop_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1453,7 +1453,7 @@ network = "azure-iot-edge"
 #[test]
 fn stop_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1489,7 +1489,7 @@ network = "azure-iot-edge"
 #[test]
 fn restart_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1525,7 +1525,7 @@ network = "azure-iot-edge"
 #[test]
 fn restart_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1561,7 +1561,7 @@ network = "azure-iot-edge"
 #[test]
 fn remove_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1597,7 +1597,7 @@ network = "azure-iot-edge"
 #[test]
 fn remove_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1633,7 +1633,7 @@ network = "azure-iot-edge"
 #[test]
 fn get_fails_for_empty_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1669,7 +1669,7 @@ network = "azure-iot-edge"
 #[test]
 fn get_fails_for_white_space_id() {
     let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1724,7 +1724,7 @@ fn runtime_init_network_does_not_exist_create() {
     );
 
     let (server, port) = run_tcp_server("127.0.0.1", network_handler);
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1791,7 +1791,7 @@ fn network_ipv6_create() {
     );
 
     let (server, port) = run_tcp_server("127.0.0.1", network_handler);
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1868,7 +1868,7 @@ fn runtime_init_network_exist_do_not_create() {
     );
 
     let (server, port) = run_tcp_server("127.0.0.1", network_handler);
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1933,7 +1933,7 @@ fn runtime_system_info_succeeds() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"
@@ -1993,7 +1993,7 @@ fn runtime_system_info_none_returns_unkown() {
         "127.0.0.1",
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
     );
-    let server = server.map_err(|err| panic!(err));
+    let server = server.map_err(|err| panic!("{}", err));
 
     let settings = make_settings(&format!(
         r#"

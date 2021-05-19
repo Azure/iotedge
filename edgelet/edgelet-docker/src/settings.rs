@@ -308,8 +308,7 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    use super::ContentTrust;
-    use super::{MobyNetwork, MobyRuntime, RuntimeSettings, Settings, Url};
+    use super::{ContentTrust, MobyNetwork, MobyRuntime, RuntimeSettings, Settings, Url};
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
 
