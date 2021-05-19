@@ -2,10 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
     using System.Net;
     using System.ServiceProcess;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -48,12 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 message,
                 properties);
         }
@@ -126,12 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    string[] output =
-                        await Process.RunAsync("powershell", string.Join(";", commands), token);
-                    Log.Verbose(string.Join("\n", output));
-                },
+                async () => await Process.RunAsync("powershell", string.Join(";", commands), token),
                 "Uninstalled edge daemon");
         }
 
@@ -164,13 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             };
 
             await Profiler.Run(
-                async () =>
-                {
-                    await Process.RunAsync(
-                        "powershell",
-                        string.Join(';', commands),
-                        token);
-                },
+                async () => await Process.RunAsync("powershell", string.Join(';', commands), token),
                 "Downloaded Edge daemon Windows installer from '{Address}'",
                 Address);
 
