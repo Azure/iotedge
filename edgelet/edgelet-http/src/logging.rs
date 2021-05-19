@@ -48,7 +48,7 @@ where
             .headers()
             .get(USER_AGENT)
             .and_then(|ua| ua.to_str().ok())
-            .unwrap_or_else(|| "-")
+            .unwrap_or("-")
             .to_string();
         let auth_id = req
             .extensions()

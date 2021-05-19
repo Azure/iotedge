@@ -162,6 +162,9 @@ where
         Main { settings }
     }
 
+    /// # Panics
+    ///
+    /// Panics if mutex gets poisoned.
     // Allowing cognitive complexity errors for now. TODO: Refactor method later.
     #[allow(clippy::cognitive_complexity)]
     pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>

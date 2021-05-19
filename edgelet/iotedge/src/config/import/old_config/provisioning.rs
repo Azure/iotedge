@@ -289,7 +289,7 @@ where
         where
             E: serde::de::Error,
         {
-            Ok(base64::decode_config(v, base64::STANDARD).map_err(serde::de::Error::custom)?)
+            base64::decode_config(v, base64::STANDARD).map_err(serde::de::Error::custom)
         }
     }
 

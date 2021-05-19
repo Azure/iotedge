@@ -20,7 +20,7 @@ fn create_app() -> App<'static, 'static> {
 
 pub fn init() -> Result<Settings, Error> {
     // Handle `--help` and `--version`
-    let _ = create_app().get_matches();
+    create_app().get_matches();
 
     logging::init();
 

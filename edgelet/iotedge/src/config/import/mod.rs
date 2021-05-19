@@ -430,8 +430,8 @@ fn execute_inner(
                 workload_uri,
             } = connect;
             edgelet_core::Connect {
-                management_uri,
                 workload_uri,
+                management_uri,
             }
         },
         listen: {

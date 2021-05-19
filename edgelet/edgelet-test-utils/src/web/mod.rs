@@ -17,6 +17,9 @@ use hyper::{self, Body, Method, Request, Response};
 #[cfg(unix)]
 use hyperlocal::server::{Http as UdsHttp, Incoming as UdsIncoming};
 
+/// # Panics 
+///
+/// Panics if failed to parse ip.
 pub fn run_tcp_server<F, R>(
     ip: &str,
     handler: F,
@@ -42,6 +45,9 @@ where
     (server, port)
 }
 
+/// # Panics
+///
+/// Panics if failed to bind to socket.
 pub fn run_uds_server<F, R>(path: &str, handler: F) -> impl Future<Item = (), Error = io::Error>
 where
     F: 'static + Fn(Request<Body>) -> R + Clone + Send + Sync,

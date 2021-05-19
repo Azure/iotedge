@@ -15,7 +15,7 @@ impl Checker for UpToDateConfig {
         "configuration up-to-date with config.toml"
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
-        Self::inner_execute(check).unwrap_or_else(CheckResult::Failed)
+        Self::inner_execute(check)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -23,7 +23,7 @@ impl Checker for UpToDateConfig {
 }
 
 impl UpToDateConfig {
-    fn inner_execute(_check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(_check: &mut Check) -> CheckResult {
         let check_result = match check_last_modified(&["edged"]) {
             Ok(()) => CheckResult::Ok,
             Err(LastModifiedError::Ignored) => CheckResult::Ignored,
@@ -33,6 +33,6 @@ impl UpToDateConfig {
             Err(LastModifiedError::Failed(error)) => CheckResult::Failed(error.into()),
         };
 
-        Ok(check_result)
+        check_result
     }
 }

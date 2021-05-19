@@ -52,11 +52,8 @@ const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 
 lazy_static! {
-    static ref LABELS: Vec<&'static str> = {
-        let mut labels = vec![];
-        labels.push("net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent");
-        labels
-    };
+    static ref LABELS: Vec<&'static str> =
+        vec!["net.azure-devices.edge.owner=Microsoft.Azure.Devices.Edge.Agent"];
 }
 
 #[derive(Clone)]
@@ -1175,11 +1172,7 @@ where
     <MR as ModuleRuntime>::ListFuture: 'static,
     MR::Module: DockerModuleTop<Error = Error> + 'static,
 {
-    let pid = req
-        .extensions()
-        .get::<Pid>()
-        .cloned()
-        .unwrap_or_else(|| Pid::None);
+    let pid = req.extensions().get::<Pid>().cloned().unwrap_or(Pid::None);
 
     let expected_module_id = req.extensions().get::<ModuleId>().cloned();
 
@@ -1269,7 +1262,7 @@ fn get_notary_parameters(
     let gun: Arc<str> = gun.into();
     let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
 
-    Some((notary_auth, gun, tag, config_path.to_path_buf()))
+    Some((notary_auth, gun, tag, config_path.clone()))
 }
 
 #[cfg(test)]

@@ -206,9 +206,9 @@ impl<T> ModuleSpec<T> {
         Ok(ModuleSpec {
             name,
             type_,
+            image_pull_policy,
             config,
             env,
-            image_pull_policy,
         })
     }
 

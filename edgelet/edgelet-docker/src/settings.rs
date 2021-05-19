@@ -355,7 +355,7 @@ mod tests {
         let settings = Settings::new().unwrap();
         let moby_runtime = settings.moby_runtime();
         assert_eq!(
-            moby_runtime.uri().to_owned().into_string(),
+            moby_runtime.uri().clone().into_string(),
             "http://localhost:2375/".to_string()
         );
 

@@ -122,7 +122,7 @@ where
             Ok(pid)
         })
         .collect();
-    Ok(pids?)
+    pids
 }
 
 fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
@@ -148,7 +148,7 @@ pub fn runtime_state(
                 "running" => Some(ModuleStatus::Running),
                 _ => Some(ModuleStatus::Unknown),
             })
-            .unwrap_or_else(|| ModuleStatus::Unknown);
+            .unwrap_or(ModuleStatus::Unknown);
         ModuleRuntimeState::default()
             .with_status(status)
             .with_exit_code(state.exit_code())
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn empty_name_fails() {
-        let _ = DockerModule::new(
+        DockerModule::new(
             create_api_client("boo"),
             "".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn white_space_name_fails() {
-        let _ = DockerModule::new(
+        DockerModule::new(
             create_api_client("boo"),
             "     ".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)

@@ -132,7 +132,7 @@ mod tests {
         })
         .to_string();
 
-        let _ = serde_json::from_str::<Container>(&container_json).unwrap_err();
+        serde_json::from_str::<Container>(&container_json).unwrap_err();
     }
 
     #[test]

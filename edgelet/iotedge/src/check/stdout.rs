@@ -100,8 +100,8 @@ fn write_colored<F>(
 where
     F: FnOnce(&mut dyn Write) -> std::io::Result<()>,
 {
-    let _ = stdout.set_color(spec);
+    stdout.set_color(spec)?;
     let result = f(stdout);
-    let _ = stdout.reset();
+    stdout.reset()?;
     result
 }

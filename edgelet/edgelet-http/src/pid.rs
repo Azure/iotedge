@@ -46,12 +46,14 @@ impl cmp::PartialEq for Pid {
 mod tests {
     use super::Pid;
 
+    #[allow(clippy::eq_op)]
     #[test]
     fn test_eq() {
         assert_ne!(Pid::None, Pid::None);
         assert_ne!(Pid::None, Pid::Any);
         assert_ne!(Pid::None, Pid::Value(42));
         assert_ne!(Pid::Any, Pid::None);
+        #[allow(clippy::eq_op)]
         assert_eq!(Pid::Any, Pid::Any);
         assert_eq!(Pid::Any, Pid::Value(42));
         assert_ne!(Pid::Value(42), Pid::None);
@@ -161,7 +163,7 @@ pub mod impl_macos {
     use libc::getpeereid;
     use tokio_uds::UnixStream;
 
-    use super::*;
+    use super::Pid;
 
     pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
         unsafe {

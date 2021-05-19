@@ -39,7 +39,7 @@ where
             req.extensions()
                 .get::<AuthId>()
                 .cloned()
-                .unwrap_or_else(|| AuthId::None),
+                .unwrap_or(AuthId::None),
         );
         let inner = self.inner.clone();
 

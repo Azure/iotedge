@@ -18,7 +18,6 @@ impl Checker for ParentHostname {
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
-            .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -26,26 +25,26 @@ impl Checker for ParentHostname {
 }
 
 impl ParentHostname {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
         let config_parent_hostname =
             if let Some(config_parent_hostname) = check.parent_hostname.as_ref() {
                 config_parent_hostname
             } else {
                 // No parent hostname is a valid config.
-                return Ok(CheckResult::Ignored);
+                return CheckResult::Ignored;
             };
 
-        self.config_parent_hostname = Some(config_parent_hostname.to_owned());
+        self.config_parent_hostname = Some(config_parent_hostname.clone());
 
         if IpAddr::from_str(&config_parent_hostname).is_ok() {
             //We can only check that it is a valid IP
-            return Ok(CheckResult::Ok);
+            return CheckResult::Ok;
         }
 
         // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
         // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
         if !aziotctl_common::is_rfc_1035_valid(config_parent_hostname) {
-            return Ok(CheckResult::Warning(Context::new(format!(
+            return CheckResult::Warning(Context::new(format!(
             "configuration has parent_hostname {} which does not comply with RFC 1035.\n\
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
@@ -56,19 +55,19 @@ impl ParentHostname {
              Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
             config_parent_hostname,
         ))
-        .into()));
+        .into());
         }
 
         if !aziotctl_common::check_length_for_local_issuer(config_parent_hostname) {
-            return Ok(CheckResult::Failed(
+            return CheckResult::Failed(
                 Context::new(format!(
                     "configuration parent_hostname {} is too long to be used as a certificate issuer",
                     config_parent_hostname,
                 ))
                 .into(),
-            ));
+            );
         }
 
-        Ok(CheckResult::Ok)
+        CheckResult::Ok
     }
 }

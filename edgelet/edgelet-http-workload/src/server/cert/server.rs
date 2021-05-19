@@ -31,8 +31,8 @@ impl<W: WorkloadConfig> ServerCertHandler<W> {
         config: W,
     ) -> Self {
         ServerCertHandler {
-            key_client,
             cert_client,
+            key_client,
             config,
         }
     }

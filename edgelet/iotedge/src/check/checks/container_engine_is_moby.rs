@@ -17,7 +17,6 @@ impl Checker for ContainerEngineIsMoby {
     }
     fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
-            .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -25,7 +24,7 @@ impl Checker for ContainerEngineIsMoby {
 }
 
 impl ContainerEngineIsMoby {
-    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> CheckResult {
         const MESSAGE: &str =
             "Device is not using a production-supported container engine (moby-engine).\n\
              Please see https://aka.ms/iotedge-prod-checklist-moby for details.";
@@ -35,7 +34,7 @@ impl ContainerEngineIsMoby {
                 self.docker_server_version = Some(docker_server_version.clone());
                 docker_server_version
             } else {
-                return Ok(CheckResult::Skipped);
+                return CheckResult::Skipped;
             };
 
         let docker_server_major_version = docker_server_version
@@ -45,14 +44,14 @@ impl ContainerEngineIsMoby {
         let docker_server_major_version: u32 = match docker_server_major_version {
             Some(Ok(docker_server_major_version)) => docker_server_major_version,
             Some(Err(_)) | None => {
-                return Ok(CheckResult::Warning(
+                return CheckResult::Warning(
                     Context::new(format!(
                         "Container engine returned malformed version string {:?}",
                         docker_server_version,
                     ))
                     .context(MESSAGE)
                     .into(),
-                ));
+                );
             }
         };
 
@@ -63,9 +62,9 @@ impl ContainerEngineIsMoby {
         //
         // Therefore Docker CE is anything with major version >= 10 but without a "+azure" suffix.
         if docker_server_major_version >= 10 && !docker_server_version.ends_with("+azure") {
-            return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
+            return CheckResult::Warning(Context::new(MESSAGE).into());
         }
 
-        Ok(CheckResult::Ok)
+        CheckResult::Ok
     }
 }

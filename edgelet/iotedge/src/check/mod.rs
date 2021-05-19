@@ -228,6 +228,9 @@ impl Check {
         }
     }
 
+    /// # Panics
+    ///
+    /// Panics if stdout is None. See line #491.
     pub fn execute(&mut self, runtime: &mut tokio::runtime::Runtime) -> Result<(), Error> {
         // heterogeneous type representing the output of a check, regardless of
         // whether or not it is built-in, or parsed from `aziot check`
@@ -484,9 +487,11 @@ impl Check {
 
             match aziot_check.spawn() {
                 Ok(child) => {
-                    for val in
-                        serde_json::Deserializer::from_reader(child.stdout.unwrap()).into_iter()
-                    {
+                    let deserializer = serde_json::Deserializer::from_reader(child.stdout.unwrap());
+                    // Note, for some reason clippy is 'sure' this can drop the into_iter,
+                    // however, that is not true as Deserializer doesn't impl IntoIter...
+                    #[allow(clippy::explicit_into_iter_loop)]
+                    for val in deserializer.into_iter() {
                         let val = val.context(ErrorKind::Aziot)?;
                         match val {
                             CheckOutputSerializableStreaming::Section { name } => {

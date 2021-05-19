@@ -160,9 +160,9 @@ impl<'de> Deserialize<'de> for Protocol {
             where
                 E: serde::de::Error,
             {
-                Ok(v.parse().map_err(|_err| {
+                v.parse().map_err(|_err| {
                     serde::de::Error::invalid_value(serde::de::Unexpected::Str(v), &self)
-                })?)
+                })
             }
         }
 

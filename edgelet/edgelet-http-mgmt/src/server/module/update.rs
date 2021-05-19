@@ -50,7 +50,7 @@ where
                     .and_then(|(_, v)| if v == "false" { None } else { Some(()) })
                     .map(|_| true)
             })
-            .unwrap_or_else(|| false);
+            .unwrap_or(false);
 
         let response = req
             .into_body()

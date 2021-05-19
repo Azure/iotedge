@@ -37,14 +37,14 @@ where
             );
 
             let state = writer.and_then(move |writer| {
-                make_state(
+                Ok(make_state(
                     log_options,
                     include_ms_only,
                     verbose,
                     iothub_hostname,
                     runtime,
                     writer,
-                )
+                ))
             });
 
             let bundle = state.and_then(BundleState::bundle_all);
@@ -66,14 +66,14 @@ where
             let writer = future::ok(Cursor::new(Vec::new()));
 
             let state = writer.and_then(move |writer| {
-                make_state(
+                Ok(make_state(
                     log_options,
                     include_ms_only,
                     verbose,
                     iothub_hostname,
                     runtime,
                     writer,
-                )
+                ))
             });
 
             let bundle = state.and_then(BundleState::bundle_all);
@@ -102,7 +102,7 @@ fn make_state<M, W>(
     iothub_hostname: Option<String>,
     runtime: M,
     writer: W,
-) -> Result<BundleState<M, W>, Error>
+) -> BundleState<M, W>
 where
     W: Write + Seek + Send,
     M: 'static + ModuleRuntime + Clone + Send + Sync,
@@ -110,7 +110,7 @@ where
     let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
     let zip_writer = ZipWriter::new(writer);
 
-    Ok(BundleState {
+    BundleState {
         runtime,
         log_options,
         include_ms_only,
@@ -118,7 +118,7 @@ where
         iothub_hostname,
         file_options,
         zip_writer,
-    })
+    }
 }
 
 struct BundleState<M, W>
@@ -193,14 +193,13 @@ where
     }
 
     fn write_all_network_inspects(self) -> Result<Self, Error> {
-        self.get_docker_networks().and_then(|(names, s2)| {
-            names.into_iter().fold(Ok(s2), |s3, name| {
-                if let Ok(s3) = s3 {
-                    s3.write_docker_network_to_file(&name)
-                } else {
-                    s3
-                }
-            })
+        let (names, s2) = self.get_docker_networks();
+        names.into_iter().fold(Ok(s2), |s3, name| {
+            if let Ok(s3) = s3 {
+                s3.write_docker_network_to_file(&name)
+            } else {
+                s3
+            }
         })
     }
 
@@ -393,7 +392,7 @@ where
         Ok(self)
     }
 
-    fn get_docker_networks(self) -> Result<(Vec<String>, Self), Error> {
+    fn get_docker_networks(self) -> (Vec<String>, Self) {
         let mut inspect = ShellCommand::new("docker");
 
         /***
@@ -421,7 +420,7 @@ where
             "azure-iot-edge".to_owned()
         };
 
-        Ok((result.lines().map(String::from).collect(), self))
+        (result.lines().map(String::from).collect(), self)
     }
 
     fn write_docker_network_to_file(mut self, network_name: &str) -> Result<Self, Error> {
@@ -520,7 +519,7 @@ mod tests {
             .to_owned();
 
         let bundle = make_bundle(
-            OutputLocation::File(OsString::from(file_path.to_owned())),
+            OutputLocation::File(OsString::from(file_path.clone())),
             LogOptions::default(),
             false,
             false,

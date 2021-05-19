@@ -27,8 +27,8 @@ impl<W: WorkloadConfig> IdentityCertHandler<W> {
         config: W,
     ) -> Self {
         IdentityCertHandler {
-            key_client,
             cert_client,
+            key_client,
             config,
         }
     }

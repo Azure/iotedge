@@ -32,7 +32,7 @@ impl Read for StaticStream {
 }
 
 impl Write for StaticStream {
-    fn write<'a>(&mut self, buf: &'a [u8]) -> io::Result<usize> {
+    fn write(&mut self, buf: & [u8]) -> io::Result<usize> {
         self.wrote = true;
         task::current().notify();
         Ok(buf.len())
@@ -56,6 +56,9 @@ pub struct JsonConnector {
 }
 
 impl JsonConnector {
+    /// # Panics
+    ///
+    /// Panics if body cannot be deserialized.
     pub fn new<T: Serialize>(body: &T) -> JsonConnector {
         let body = serde_json::to_string(body).unwrap();
         let body = format!(
