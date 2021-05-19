@@ -4,7 +4,7 @@
 # Set up EdgeAgent to run as a non-root user at runtime, if allowed.
 # 
 # If this script is started as root:
-#  1. It reads the EDGEAGENTUSER_ID environment variable, default UID=1000.
+#  1. It reads the EDGEAGENTUSER_ID environment variable, default UID=13622.
 #  2. If the User ID does not exist as a user, create it.
 #  3. If "StorageFolder" env variable exists, use as basepath, else use /tmp
 #     Do same for backuppath
@@ -17,7 +17,7 @@
 #
 # This preserves backwards compatibility with earlier versions of edgeAgent and
 # allows some flexibility in the assignment of the edgeagent user id. The default 
-# is UID 1000.
+# is UID 13622.
 #
 # A user is created because at this time DotNet Core 2.x and 3.x can only install
 # trust bundles into system stores or user stores.  We choose a user store in
@@ -25,24 +25,11 @@
 ###############################################################################
 echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Agent"
 
-TARGET_UID="${EDGEAGENTUSER_ID:-1000}"
+TARGET_UID="${EDGEAGENTUSER_ID:-13622}"
 cuid=$(id -u)
 
 if [ $cuid -eq 0 ]
 then
-
-  # Create the agent user id if it does not exist
-  if ! getent passwd "${TARGET_UID}" >/dev/null
-  then
-    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating UID ${TARGET_UID} as agent${TARGET_UID}"
-    # Use "useradd" if it is available.
-    if command -v useradd >/dev/null
-    then
-      useradd -ms /bin/bash -u "${TARGET_UID}" "agent${TARGET_UID}"
-    else
-      adduser -Ds /bin/sh -u "${TARGET_UID}" "agent${TARGET_UID}"
-    fi
-  fi
 
   username=$(getent passwd "${TARGET_UID}" | awk -F ':' '{ print $1; }')
 
@@ -64,6 +51,9 @@ then
     echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of backup folder: ${backuppath} to ${TARGET_UID}"
     chown -fR "${TARGET_UID}" "${backuppath}"
   fi
+
+  # add user to iotedge group
+  usermod -aG iotedge "${TARGET_UID}" >/dev/null
 
   # Make sure file specified by IOTEDGE_MANAGEMENTURI is owned by TARGET_UID
   # Strip "unix://" prefix, and if that is a file that exists, change the ownership.
