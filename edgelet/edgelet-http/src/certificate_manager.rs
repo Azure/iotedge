@@ -51,6 +51,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
                 .write()
                 .expect("Locking the certificate for write failed.");
 
+            // Always creates a new certificate
             let created_certificate = cert_manager.create_cert()?;
 
             *cert = Some(created_certificate);
@@ -142,18 +143,15 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
     }
 
     fn create_cert(&self) -> Result<Certificate, Error> {
-        // In some use cases, the CA cert might change - to protect against that,
-        // we will retry once (after attempting to delete) if the cert creation fails.
-        let cert = if let Ok(val) = self.crypto.create_certificate(&self.props) {
-            val
-        } else {
-            self.crypto
-                .destroy_certificate(self.props.alias().to_string())
-                .with_context(|_| ErrorKind::CertificateDeletionError)?;
-            self.crypto
-                .create_certificate(&self.props)
-                .with_context(|_| ErrorKind::CertificateCreationError)?
-        };
+        // remove any certificate with this alias (if it exists),
+        // then create the new certificate.
+        self.crypto
+            .destroy_certificate(self.props.alias().to_string())
+            .with_context(|_| ErrorKind::CertificateDeletionError)?;
+        let cert = self
+            .crypto
+            .create_certificate(&self.props)
+            .with_context(|_| ErrorKind::CertificateCreationError)?;
 
         let cert_pem = cert
             .pem()

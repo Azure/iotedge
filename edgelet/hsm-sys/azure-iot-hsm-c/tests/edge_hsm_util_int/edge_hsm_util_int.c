@@ -54,7 +54,6 @@ static unsigned char NUMERIC[] = {'1', '2', '3', '4'};
 static unsigned char NUMERIC_NEWLINE[] = {'1', '2', '\n', '4', '5', '\n'};
 
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 static char* TEST_TEMP_DIR = NULL;
 static char* TEST_TEMP_DIR_GUID = NULL;
@@ -66,8 +65,8 @@ static char* TEST_TEMP_DIR_GUID = NULL;
 static void test_helper_setup_testdir(void)
 {
     TEST_TEMP_DIR = hsm_test_util_create_temp_dir(&TEST_TEMP_DIR_GUID);
-    ASSERT_IS_NOT_NULL(TEST_TEMP_DIR_GUID, "Line:" TOSTRING(__LINE__));
-    ASSERT_IS_NOT_NULL(TEST_TEMP_DIR, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_TEMP_DIR_GUID, "Line:" MU_TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(TEST_TEMP_DIR, "Line:" MU_TOSTRING(__LINE__));
     printf("Temp dir created: [%s]\r\n", TEST_TEMP_DIR);
 }
 
@@ -128,9 +127,9 @@ static char* prepare_file_path(const char* base_dir, const char* file_name)
 {
     size_t path_size = get_max_file_path_size();
     char *file_path = calloc(path_size, 1);
-    ASSERT_IS_NOT_NULL(file_path, "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_NOT_NULL(file_path, "Line:" MU_TOSTRING(__LINE__));
     int status = snprintf(file_path, path_size, "%s%s", base_dir, file_name);
-    ASSERT_IS_TRUE(((status > 0) || (status < (int)path_size)), "Line:" TOSTRING(__LINE__));
+    ASSERT_IS_TRUE(((status > 0) || (status < (int)path_size)), "Line:" MU_TOSTRING(__LINE__));
 
     return file_path;
 }
@@ -143,7 +142,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
         TEST_SUITE_INITIALIZE(TestClassInitialize)
         {
-            TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
             g_testByTest = TEST_MUTEX_CREATE();
             ASSERT_IS_NOT_NULL(g_testByTest);
 
@@ -186,7 +184,6 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             free(TEST_WRITE_FILE_FOR_DELETE); TEST_WRITE_FILE_FOR_DELETE = NULL;
             test_helper_teardown_testdir();
             TEST_MUTEX_DESTROY(g_testByTest);
-            TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
         }
 
         TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -215,8 +212,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -235,8 +232,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -252,7 +249,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // assert
             ASSERT_IS_NULL(output_string);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -267,7 +264,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // assert
             ASSERT_IS_NULL(output_string);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -282,13 +279,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             output_size = 100;
             output_string = (unsigned char *)read_file_into_cstring(NULL, &output_size);
             ASSERT_IS_NULL(output_string);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // act, assert
             output_size = 100;
             output_string = (unsigned char *)read_file_into_cstring("", &output_size);
             ASSERT_IS_NULL(output_string);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -306,8 +303,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_buffer);
             int cmp_result = memcmp(expected_buffer, output_buffer, expected_buffer_size);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_buffer_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_buffer_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_buffer);
@@ -326,8 +323,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_buffer);
             int cmp_result = memcmp(expected_buffer, output_buffer, expected_buffer_size);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_buffer_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_buffer_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_buffer);
@@ -343,13 +340,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             output_size = 100;
             output_buffer = read_file_into_buffer(NULL, &output_size);
             ASSERT_IS_NULL(output_buffer);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // act, assert
             output_size = 100;
             output_buffer = read_file_into_buffer("", &output_size);
             ASSERT_IS_NULL(output_buffer);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -364,7 +361,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // assert
             ASSERT_IS_NULL(output_buffer);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -379,7 +376,7 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // assert
             ASSERT_IS_NULL(output_buffer);
-            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, 0, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -420,8 +417,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -444,8 +441,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -469,8 +466,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -494,8 +491,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // assert
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -526,13 +523,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             result = is_directory_valid(NULL);
-            ASSERT_IS_FALSE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_FALSE(result, "Line:" MU_TOSTRING(__LINE__));
 
             result = is_directory_valid("");
-            ASSERT_IS_FALSE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_FALSE(result, "Line:" MU_TOSTRING(__LINE__));
 
             result = is_directory_valid("some_bad_dir");
-            ASSERT_IS_FALSE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_FALSE(result, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -543,10 +540,10 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             bool result;
             // act, assert
             result = is_directory_valid(".");
-            ASSERT_IS_TRUE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_TRUE(result, "Line:" MU_TOSTRING(__LINE__));
 
             result = is_directory_valid("..");
-            ASSERT_IS_TRUE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_TRUE(result, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -558,13 +555,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             result = is_file_valid(NULL);
-            ASSERT_IS_FALSE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_FALSE(result, "Line:" MU_TOSTRING(__LINE__));
 
             result = is_file_valid("");
-            ASSERT_IS_FALSE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_FALSE(result, "Line:" MU_TOSTRING(__LINE__));
 
             result = is_file_valid(TEST_FILE_BAD);
-            ASSERT_IS_FALSE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_FALSE(result, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -576,10 +573,10 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             result = is_file_valid(TEST_FILE_ALPHA);
-            ASSERT_IS_TRUE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_TRUE(result, "Line:" MU_TOSTRING(__LINE__));
 
             result = is_file_valid(TEST_FILE_NUMERIC);
-            ASSERT_IS_TRUE(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_TRUE(result, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -598,11 +595,11 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             char *output_string = read_file_into_cstring(TEST_WRITE_FILE, &output_size);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
             ASSERT_IS_NOT_NULL(output_string);
             int cmp_result = strcmp(expected_string, output_string);
-            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, cmp_result, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output_string);
@@ -616,13 +613,13 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             output = write_cstring_to_file(NULL, "abcd");
-            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
 
             output = write_cstring_to_file("", "abcd");
-            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
 
             output = write_cstring_to_file(TEST_WRITE_FILE, NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -641,9 +638,9 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             char *output_string = read_file_into_cstring(TEST_WRITE_FILE, &output_size);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
             ASSERT_IS_NULL(output_string);
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -655,18 +652,18 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             const char *input_string = "abcd";
 
             int status = write_cstring_to_file(TEST_WRITE_FILE_FOR_DELETE, input_string);
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
 
             // act
             int output = delete_file(TEST_WRITE_FILE_FOR_DELETE);
-            ASSERT_ARE_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
             size_t output_size = 10;
             char *output_string = read_file_into_cstring(TEST_WRITE_FILE_FOR_DELETE, &output_size);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
             ASSERT_IS_NULL(output_string);
-            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, expected_string_size, output_size, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -678,10 +675,10 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
 
             // act, assert
             output = delete_file(NULL);
-            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
 
             output = delete_file("");
-            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, output, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }
@@ -695,11 +692,11 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             // act
             status = hsm_get_env(NULL,&output);
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             // act
             status = hsm_get_env("TEST_ENV_1",NULL);
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
             // cleanup
         }
 
@@ -715,9 +712,9 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             status = hsm_get_env("TEST_ENV_1", &output);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(char_ptr, input_data, output, "Line:" TOSTRING(__LINE__));
-            ASSERT_ARE_EQUAL(size_t, strlen(input_data), strlen(output), "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(char_ptr, input_data, output, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(size_t, strlen(input_data), strlen(output), "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
             free(output);
@@ -730,8 +727,8 @@ BEGIN_TEST_SUITE(edge_hsm_util_int_tests)
             status = hsm_get_env("TEST_ENV_1", &output);
 
             // assert
-            ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
-            ASSERT_IS_NULL(output, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
+            ASSERT_IS_NULL(output, "Line:" MU_TOSTRING(__LINE__));
 
             // cleanup
         }

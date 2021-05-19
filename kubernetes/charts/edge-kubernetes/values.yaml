@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta13
+    tag: 0.1.0-beta14
     pullPolicy: Always
   nodeSelector: {}
   # Volumes which support ownership management are modified to be owned and 
@@ -19,6 +19,8 @@ iotedged:
   data:
     enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
+    # set iotedged log level.
+    runtimeLogLevel: "info"
     # Normally the iotedged is running as a host process, and has access to 
     # the host's trusted CA certificates.  Use this options to allow the 
     # iotedged deployment to use the host OS's /etc/ssl/certs 
@@ -139,7 +141,7 @@ iotedged:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta13
+    tag: 0.1.0-beta14
     pullPolicy: Always
   resources:
     requests:
@@ -163,7 +165,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta13
+    tag: 0.1.0-beta14
     pullPolicy: Always
   hostname: "localhost"
   resources:
@@ -218,6 +220,10 @@ edgeAgent:
 
     # Enables RQT data for IoT Edge Agent (disabled until metadata is finalized)
     sendRuntimeQualityTelemetry: false
+
+    # Sets timeout for operators running in Agent. Currently set to 3 minutes to guarantee correct
+    # operation in all clusters.
+    # AgentOperatorTimeoutSeconds: 180
 
     # Configure default pod security context rule. If set true, it will allow kubernetes to run only non-root containers
     # under the user with uid(1000).

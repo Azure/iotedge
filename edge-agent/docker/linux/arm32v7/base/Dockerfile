@@ -1,5 +1,5 @@
-﻿ARG base_tag=3.1.12-bionic-arm32v7
-FROM mcr.microsoft.com/dotnet/core/aspnet:${base_tag}
+﻿ARG base_tag=3.1.13-bionic-arm32v7
+FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
 
 RUN apt-get update && \
     apt-get install -y libsnappy1v5 && \

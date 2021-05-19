@@ -56,6 +56,19 @@ function get_image_architecture_label() {
     esac
 }
 
+function is_system_using_mariner() {
+    
+    if [ -e "/etc/os-release" ]; then
+        if grep -q "ID=mariner" "/etc/os-release"; then
+            is_mariner="true"
+        else
+            is_mariner="false"
+        fi
+    else
+        is_mariner="false"
+    fi
+}
+
 function get_iotedge_quickstart_artifact_file() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
@@ -72,7 +85,11 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
+        if [ "$is_mariner" = "true" ]; then
+            path="$E2E_TEST_DIR/artifacts/iotedged-mariner-amd64"
+        else
+            path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
+        fi
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -109,7 +126,11 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    if [ "$is_mariner" = "true" ]; then
+        declare -a pkg_list=( $iotedged_artifact_folder/*.rpm )
+    else
+        declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    fi
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
 
@@ -1053,7 +1074,7 @@ function usage() {
     echo ' -eventHubConsumerGroupId                       Optional Event Hub Consumer Group ID for the Analyzer module.'
     echo ' -loadGenMessageFrequency                       Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                                Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
-    echo ' -snitchBuildNumber                             Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
+    echo ' -snitchBuildNumber                             Build number for snitcher docker image for long haul and stress test. Default is 1.4.'
     echo ' -snitchReportingIntervalInSecs                 Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
     echo ' -snitchStorageAccount                          Azure blob Storage account for store logs used in status email for long haul and stress test.'
     echo ' -snitchStorageMasterKey                        Master key of snitch storage account for long haul and stress test.'
@@ -1094,7 +1115,7 @@ CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 INITIALIZE_WITH_AGENT_ARTIFACT="${INITIALIZE_WITH_AGENT_ARTIFACT:-false}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
-SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
+SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.4}"
 TRANSPORT_TYPE_1="${TRANSPORT_TYPE_1:-amqp}"
 TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
 TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"
@@ -1136,6 +1157,7 @@ fi
 
 working_folder="$E2E_TEST_DIR/working"
 get_image_architecture_label
+is_system_using_mariner
 optimize_for_performance=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then

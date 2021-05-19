@@ -1,3 +1,33 @@
+# 1.1.2 (2021-04-15)
+## Edge Agent
+### Bug Fixes
+* Fix vulnerability issues in docker images [fdbad67](https://github.com/Azure/iotedge/commit/fdbad674c8b0b30d9d58a2160ad7199818987416)
+
+
+## Edge Hub
+### Bug Fixes
+* Fix vulnerability issues in docker images [fdbad67](https://github.com/Azure/iotedge/commit/fdbad674c8b0b30d9d58a2160ad7199818987416)
+
+
+# 1.1.1 (2021-03-18)
+## Edge Agent
+### Bug Fixes
+* Fix vulnerability issues in docker images [694bc54](https://github.com/Azure/iotedge/commit/694bc5433f9d718f61292d812eb648ffb328b145)
+
+
+## Edge Hub
+### Bug Fixes
+* Sending messages to cloud is blocked when a leaf device is disabled [756b83b](https://github.com/Azure/iotedge/commit/756b83b9062624a3d0c2e55f59a56195cc6704b8)
+* Fix vulnerability issues in docker images [694bc54](https://github.com/Azure/iotedge/commit/694bc5433f9d718f61292d812eb648ffb328b145)
+
+
+## iotedged
+### Changes
+* Make comments in the config.yaml for provisioning and certificates clearer [771be81](https://github.com/Azure/iotedge/commit/771be81fceaf0a585dd9d7158e422dc20a0227b9) [8cb3c2b](https://github.com/Azure/iotedge/commit/8cb3c2b2864dd57e926f08b06a689475717868dc)
+* Upgrade sysinfo package to 0.14.10 [b53cc33](https://github.com/Azure/iotedge/commit/b53cc33a20690008a4f5d84dd448caf14718eefa)
+* Update default agent tag in config.yaml to 1.1 [e4c6eae](https://github.com/Azure/iotedge/commit/e4c6eae4120ac47b3fbecaf173e129520bffacda)
+
+
 # 1.1.0 (2021-02-10)
 ## Change to Supported Systems
 * **Remove support for Ubuntu 16.04**. Ubuntu will soon end their support for 16.04, so we're changing our support to match. Ubuntu 18.04 continues to be supported.

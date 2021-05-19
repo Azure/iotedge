@@ -15,16 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly IRuntimeInfoSource moduleStatusSource;
         readonly IKubernetes client;
         readonly string deviceNamespace;
+        readonly int timeoutSeconds;
         Option<Watcher<V1Pod>> podWatch;
 
         public KubernetesEnvironmentOperator(
             string deviceNamespace,
             IRuntimeInfoSource moduleStatusSource,
-            IKubernetes client)
+            IKubernetes client,
+            int timeoutSeconds)
         {
             this.deviceNamespace = deviceNamespace;
             this.moduleStatusSource = moduleStatusSource;
             this.client = Preconditions.CheckNotNull(client, nameof(client));
+            this.timeoutSeconds = timeoutSeconds;
             this.podWatch = Option.None<Watcher<V1Pod>>();
         }
 
@@ -39,20 +42,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public void Dispose() => this.Stop();
 
         void StartListPods(CancellationTokenSource shutdownCts) =>
-            this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, watch: true)
+            this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, timeoutSeconds: this.timeoutSeconds, watch: true)
                 .ContinueWith(this.OnListPodsCompleted, shutdownCts);
 
         async Task OnListPodsCompleted(Task<HttpOperationResponse<V1PodList>> task, object shutdownCtsObject)
         {
-            HttpOperationResponse<V1PodList> podListResp = await task;
             // The cts object is coming from an external source, check it and put it into an Option for safe handling.
             Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
-            this.podWatch = Option.Some(
-                podListResp.Watch<V1Pod, V1PodList>(
-                    onEvent: (type, item) => this.PodOnEventHandlerAsync(type, item, shutdownCts),
-                    onClosed: () => this.RestartWatch(shutdownCts),
-                    onError: (ex) => this.HandleError(ex, shutdownCts)));
+            HttpOperationResponse<V1PodList> podListResp;
+            try
+            {
+                podListResp = await task;
+            }
+            catch (Exception ex)
+            {
+                Events.ListPodsFailed(ex);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
+
+            try
+            {
+                this.podWatch = Option.Some(
+                    podListResp.Watch<V1Pod, V1PodList>(
+                        onEvent: (type, item) => this.PodOnEventHandlerAsync(type, item, shutdownCts),
+                        onClosed: () => this.RestartWatch(shutdownCts),
+                        onError: (ex) => this.HandleError(ex, shutdownCts)));
+            }
+            catch (Exception watchEx)
+            {
+                Events.ContinueTaskFailed(watchEx);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
         }
 
         internal void PodOnEventHandlerAsync(WatchEventType type, V1Pod item, Option<CancellationTokenSource> shutdownCts)
@@ -146,6 +169,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             PodStatusRemoveError,
             WatchClosed,
             WatchRestartFailed,
+            ListPodsFailed,
+            ContinueTaskFailed,
         }
 
         public static void PodWatchFailed(Exception ex)
@@ -176,6 +201,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public static void PodWatchRestartFailed(Exception ex)
         {
             Log.LogError((int)EventIds.WatchRestartFailed, ex, "Exception caught while attempting Pod Watch restart, requesting shutdown.");
+        }
+
+        public static void ListPodsFailed(Exception ex)
+        {
+            Log.LogError((int)EventIds.ListPodsFailed, ex, "Exception caught on pod list, requesting shutdown.");
+        }
+
+        public static void ContinueTaskFailed(Exception ex)
+        {
+            Log.LogError((int)EventIds.ContinueTaskFailed, ex, "Exception caught while setting up pod watch, requesting shutdown.");
         }
     }
 }

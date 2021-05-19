@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly IEdgeDeploymentController controller;
         readonly ResourceName resourceName;
         readonly string deviceNamespace;
+        readonly int timeoutSeconds;
         readonly JsonSerializerSettings serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
         Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
         ModuleSet currentModules = ModuleSet.Empty;
@@ -31,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             ResourceName resourceName,
             string deviceNamespace,
             IKubernetes client,
-            IEdgeDeploymentController controller)
+            IEdgeDeploymentController controller,
+            int timeoutSeconds)
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
@@ -39,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
             this.controller = Preconditions.CheckNotNull(controller, nameof(controller));
+            this.timeoutSeconds = timeoutSeconds;
         }
 
         public void Start(CancellationTokenSource shutdownCts) => this.StartListEdgeDeployments(shutdownCts);
@@ -52,20 +55,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public void Dispose() => this.Stop();
 
         void StartListEdgeDeployments(CancellationTokenSource shutdownCts) =>
-            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, watch: true)
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, timeoutSeconds: this.timeoutSeconds, watch: true)
                 .ContinueWith(this.OnListEdgeDeploymentsCompleted, shutdownCts);
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task, object shutdownCtsObject)
         {
-            HttpOperationResponse<object> response = await task;
             // The cts object is coming from an external source, check it and put it into an Option for safe handling.
             Option<CancellationTokenSource> shutdownCts = Option.Maybe(shutdownCtsObject as CancellationTokenSource);
 
-            this.operatorWatch = Option.Some(
-                response.Watch<EdgeDeploymentDefinition, object>(
-                    onEvent: async (type, item) => await this.EdgeDeploymentOnEventHandlerAsync(type, item, shutdownCts),
-                    onClosed: () => this.RestartWatch(shutdownCts),
-                    onError: (ex) => this.HandleError(ex, shutdownCts)));
+            HttpOperationResponse<object> response;
+            try
+            {
+                response = await task;
+            }
+            catch (Exception ex)
+            {
+                Events.ListEdgeDeploymentFailed(ex);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
+
+            try
+            {
+                this.operatorWatch = Option.Some(
+                    response.Watch<EdgeDeploymentDefinition, object>(
+                        onEvent: async (type, item) => await this.EdgeDeploymentOnEventHandlerAsync(type, item, shutdownCts),
+                        onClosed: () => this.RestartWatch(shutdownCts),
+                        onError: (ex) => this.HandleError(ex, shutdownCts)));
+            }
+            catch (Exception watchEx)
+            {
+                Events.ContinueTaskFailed(watchEx);
+                shutdownCts.ForEach(cts => cts.Cancel());
+                throw;
+            }
         }
 
         internal async Task EdgeDeploymentOnEventHandlerAsync(WatchEventType type, EdgeDeploymentDefinition item, Option<CancellationTokenSource> shutdownCts)
@@ -205,6 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 DeploymentStatusFailed,
                 WatchClosed,
                 WatchRestartFailed,
+                ListTaskFailed,
+                ContinueTaskFailed,
             }
 
             public static void EdgeDeploymentWatchFailed(Exception ex)
@@ -245,6 +270,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             public static void EdgeDeploymentWatchRestartFailed(Exception ex)
             {
                 Log.LogError((int)EventIds.WatchRestartFailed, ex, "Exception caught while attempting edge deployment watch restart, requesting shutdown.");
+            }
+
+            public static void ListEdgeDeploymentFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.ListTaskFailed, ex, "Exception caught while attempting to list edge deployment, requesting shutdown.");
+            }
+
+            public static void ContinueTaskFailed(Exception ex)
+            {
+                Log.LogError((int)EventIds.ContinueTaskFailed, ex, "Exception caught while setting up edge deployment watch, requesting shutdown.");
             }
         }
     }
