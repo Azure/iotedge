@@ -4,6 +4,7 @@
 * Update GetModuleLogs method when tail + since + until options are provided. [c1dba55](https://github.com/Azure/iotedge/commit/c1dba55ece869932b5a75ae0de658121dd75e54f)
 * Fix vulnerability issues in docker images. [b286408](https://github.com/Azure/iotedge/commit/b28640847c7d8efd82244d0628a36c63e20e5473)
 
+
 ## Edge Hub
 ### Bug Fixes
 * Adds SharedAccessSignature to repo with fix for vulnerability. [4fea6e7](https://github.com/Azure/iotedge/commit/4fea6e7750984e278e20e27635eea223c68c1e3f)
