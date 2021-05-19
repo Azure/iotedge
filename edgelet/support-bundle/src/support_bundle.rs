@@ -566,7 +566,8 @@ mod tests {
                         .unwrap()
                         .to_owned())
                     .any(|f| logfile.is_match(&f)),
-                "Missing log file: {}*.txt", name
+                "Missing log file: {}*.txt",
+                name
             );
         }
 
