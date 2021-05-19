@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 "| Sort-Object @{Expression=\'TimeCreated\';Descending=$false} " +
                 "| Format-Table -AutoSize -HideTableHeaders " +
                 "| Out-String -Width 512";
-            string[] output = await Process.RunAsync("powershell", command, token);
+            string[] output = await Process.RunAsync("powershell", command, token, logVerbose: false);
 
             string daemonLog = $"{filePrefix}-iotedged.log";
             await File.WriteAllLinesAsync(daemonLog, output, token);
