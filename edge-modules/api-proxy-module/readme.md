@@ -199,6 +199,64 @@ These settings are set by default when deploying from the [Azure Marketplace](ht
 
 Lastly, all the module image URIs in **any lower layer** should use the domain name `$upstream` followed by the API Proxy module port number such as `$upstream:8000/azureiotedge-api-proxy:1.0` 
 
+$upstream is supported in several places:
+- In the image name in portal and in the config.yaml
+- In the registy address in portal and in the config.yaml
+- In direct method, see below.
+
+### Boolean expression parsing
+
+API proxy template file supports parsing of nested boolean expression.
+For example:
+```
+#if_tag boolean_expression[&(!(${ENV_VAR1}),${ENV_VAR2})]
+//Hello
+#endif_tag boolean_expression[&(!(${ENV_VAR1}),${ENV_VAR2}) 
+```
+
+Result for:
+
+ENV_VAR1 defined, ENV_VAR2 not defined:
+
+    &(!(1),0) => &(0,0) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 not defined:
+
+    &(!(0),0) => &(1,0) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 defined, ENV_VAR2 defined:
+
+    &(!(1),1) => &(0,1) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 defined:
+
+    &(!(0),1) => &(1,1) => 1   => //Hello appears in the generated config
+Another example:
+
+```
+#if_tag boolean_expression[|(!(${ENV_VAR1}),${ENV_VAR2})]
+//Hello
+#endif_tag boolean_expression[|(!(${ENV_VAR1}),${ENV_VAR2}) 
+```
+
+Result for:
+
+ENV_VAR1 defined, ENV_VAR2 not defined:
+
+    |(!(1),0) => |(0,0) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 not defined:
+
+    |(!(0),0) => |(1,0) => 1   => //Hello appears in the generated config
+
+ENV_VAR1 defined, ENV_VAR2 defined:
+
+    |(!(1),1) => |(0,1) => 1   => //Hello appears in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 defined:
+
+    |(!(0),1) => |(1,1) => 1   => //Hello appears in the generated config
+
 ### Upload blob
 
 This section describes how to use the [blob storage module](https://docs.microsoft.com/en-us/azure/iot-edge/how-to-deploy-blob) to [upload support bundle](https://github.com/Azure/iotedge/blob/master/doc/built-in-logs-pull.md). 
