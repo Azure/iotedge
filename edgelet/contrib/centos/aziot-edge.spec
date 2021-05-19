@@ -5,6 +5,8 @@
 %define iotedge_socketdir %{_localstatedir}/lib/iotedge
 %define aziot_confdir %{_sysconfdir}/aziot
 %define iotedge_confdir %{aziot_confdir}/edged
+%define iotedge_agent_user edgeagentuser
+%define iotedge_agent_uid 13622
 
 Name:           aziot-edge
 Version:        @version@
@@ -87,6 +89,11 @@ fi
 # Add iotedge user to systemd-journal group so it can get system logs
 if /usr/bin/getent group systemd-journal >/dev/null; then
     %{_sbindir}/usermod -aG systemd-journal %{iotedge_user}
+fi
+
+# Create an edgeagentuser and add it to iotedge group
+if ! /usr/bin/getent passwd %{iotedge_agent_user} >/dev/null; then
+    %{_sbindir}/useradd -g %{iotedge_group} -c "edgeAgent user" -ms /bin/bash -u %{iotedge_agent_uid} %{iotedge_agent_user}
 fi
 
 # Add iotedge user to aziot-identity-service groups
