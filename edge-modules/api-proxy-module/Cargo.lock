@@ -27,6 +27,7 @@ dependencies = [
  "env_logger",
  "envsubst",
  "futures-util",
+ "hyper",
  "lazy_static",
  "log",
  "matches",

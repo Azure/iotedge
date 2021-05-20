@@ -270,7 +270,7 @@ fn execute_inner(
                     let mut keys = std::collections::BTreeMap::default();
 
                     let auth = common_config::apply::set_est_auth(
-                        &auth,
+                        auth.as_ref(),
                         &mut certd_config.preloaded_certs,
                         &mut keys,
                         &mut aziotcs_principal,

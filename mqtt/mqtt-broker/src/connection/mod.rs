@@ -325,8 +325,8 @@ where
 fn client_id(client_id: &proto::ClientId) -> ClientId {
     let id = match client_id {
         proto::ClientId::ServerGenerated => Uuid::new_v4().to_string(),
-        proto::ClientId::IdWithCleanSession(ref id) => id.to_owned(),
-        proto::ClientId::IdWithExistingSession(ref id) => id.to_owned(),
+        proto::ClientId::IdWithCleanSession(ref id) => id.clone(),
+        proto::ClientId::IdWithExistingSession(ref id) => id.clone(),
     };
     ClientId::from(id)
 }

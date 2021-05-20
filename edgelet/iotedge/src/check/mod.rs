@@ -237,7 +237,7 @@ impl Check {
             description: String,
             result: CheckResult,
             additional_info: serde_json::Value,
-        };
+        }
 
         let mut checks: BTreeMap<String, CheckOutputSerializable> = Default::default();
 
