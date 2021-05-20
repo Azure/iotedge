@@ -14,7 +14,7 @@ use futures_util::{
 };
 use tracing::{debug, error, info};
 
-use mqtt_bridge::{settings::BridgeSettings, BridgeController};
+use mqtt_bridge::BridgeController;
 use mqtt_broker::{
     auth::Authorizer,
     sidecar::{Sidecar, SidecarShutdownHandle},
@@ -225,9 +225,11 @@ fn make_sidecars(
     let system_address = config.listener().system().addr().to_string();
     let device_id = env::var(DEVICE_ID_ENV).context(DEVICE_ID_ENV)?;
 
-    let settings = BridgeSettings::new()?;
-    let bridge_controller =
-        BridgeController::new(system_address.clone(), device_id.to_owned(), settings);
+    let bridge_controller = BridgeController::new(
+        system_address.clone(),
+        device_id.clone(),
+        config.bridge().clone(),
+    );
     let bridge_controller_handle = bridge_controller.handle();
 
     sidecars.push(Box::new(bridge_controller));

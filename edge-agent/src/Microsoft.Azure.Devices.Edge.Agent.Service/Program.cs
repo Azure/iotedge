@@ -2,8 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -120,6 +122,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<global::Docker.DotNet.Models.AuthConfig>>() ?? new List<global::Docker.DotNet.Models.AuthConfig>();
+
+                NestedEdgeParentUriParser parser = new NestedEdgeParentUriParser();
+                dockerAuthConfig = dockerAuthConfig.Select(c =>
+                {
+                    c.Password = parser.ParseURI(c.Password).GetOrElse(c.Password);
+                    return c;
+                })
+                .ToList();
+
                 configRefreshFrequencySecs = configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             }
             catch (Exception ex)
@@ -149,6 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 string iothubHostname;
                 string deviceId;
                 string apiVersion = "2018-06-28";
+                Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
                 switch (mode.ToLowerInvariant())
                 {
@@ -176,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IEnumerable<X509Certificate2> trustBundle =
                             await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(trustBundle, logger);
+                        manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
 
                         break;
 
@@ -245,6 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                         IEnumerable<X509Certificate2> k8sTrustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
                         CertificateHelper.InstallCertificates(k8sTrustBundle, logger);
+
                         break;
 
                     default:
@@ -265,7 +279,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
                                 enableStreams,
                                 TimeSpan.FromSeconds(requestTimeoutSecs),
-                                experimentalFeatures));
+                                experimentalFeatures,
+                                manifestTrustBundle));
                         break;
 
                     case "local":

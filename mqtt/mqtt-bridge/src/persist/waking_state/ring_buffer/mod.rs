@@ -6,11 +6,10 @@ pub mod test;
 
 use std::{
     collections::VecDeque,
-    fmt::Debug,
     fs::{create_dir_all, File, OpenOptions},
     io::{BufReader, Read, Result as IOResult, Seek, SeekFrom, Write},
     num::NonZeroU64,
-    path::PathBuf,
+    path::Path,
     task::Waker,
     time::{Duration, Instant},
 };
@@ -94,11 +93,10 @@ pub struct RingBuffer {
     // Max size for the file.
     max_file_size: u64,
 
-    // A representation of Mmap with operations built-in.
+    // A file that stores ring buffer data.
     file: File,
 
-    // A collection of data that used for tracking state of the
-    // `RingBuffer`.
+    // A collection of data that used for tracking state of the `RingBuffer`
     metadata: RingBufferMetadata,
 
     // A waker for updating any pending batch after an insert.
@@ -107,14 +105,14 @@ pub struct RingBuffer {
 
 impl RingBuffer {
     pub(crate) fn new(
-        file_path: &PathBuf,
+        file_path: &Path,
         max_file_size: NonZeroU64,
         flush_options: FlushOptions,
     ) -> PersistResult<Self> {
         let mut file = create_file(file_path).map_err(RingBufferError::FileCreate)?;
 
-        // We cannot allow for file truncation if an existing file exists. That will surely
-        // lead to data loss.
+        // We cannot allow for file truncation if an existing file exists.
+        // That will surely lead to data loss.
         let current_file_size = file
             .metadata()
             .map_err(RingBufferError::FileMetadata)?
@@ -200,22 +198,30 @@ impl StreamWakeableState for RingBuffer {
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
         let total_size = block_size + data_size;
-        // Check to see if we might corrupt data if we write, if so, return err of full.
-        // There are two cases for this:
-        // 1. write has wrapped around and is now behind read
-        if write_index < read_index && write_index + total_size > read_index {
-            return Err(PersistError::RingBuffer(RingBufferError::Full));
+
+        // If we have set can_read_from_wrap_around_when_write_full
+        // then we must also be full.
+        if self.metadata.can_read_from_wrap_around_when_write_full {
+            return Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace {
+                    free: 0,
+                    required: total_size,
+                },
+            ));
         }
-        // 2. write has reached the end (or close enough) but read has not moved
-        if read_index == 0 && write_index + total_size > self.max_file_size {
-            return Err(PersistError::RingBuffer(RingBufferError::Full));
+
+        // Check that we have enough space to insert data.
+        let mut free_space = read_index + self.max_file_size - write_index;
+        if write_index < read_index {
+            free_space %= self.max_file_size;
         }
-        // 3. check if write would wrap around end and corrupt
-        if write_index > read_index
-            && write_index + total_size > self.max_file_size
-            && (write_index + total_size) % self.max_file_size > read_index
-        {
-            return Err(PersistError::RingBuffer(RingBufferError::Full));
+        if free_space < total_size {
+            return Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace {
+                    free: free_space,
+                    required: total_size,
+                },
+            ));
         }
 
         let start = write_index;
@@ -255,7 +261,7 @@ impl StreamWakeableState for RingBuffer {
         Ok(Key { offset: key })
     }
 
-    fn batch(&mut self, count: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
+    fn batch(&mut self, size: usize) -> PersistResult<VecDeque<(Key, Publication)>> {
         let write_index = self.metadata.file_pointers.write;
         let read_index = self.metadata.file_pointers.read_begin;
 
@@ -274,7 +280,7 @@ impl StreamWakeableState for RingBuffer {
         let mut start = read_index;
         let mut vdata = VecDeque::new();
         let mut reader = BufReader::with_capacity(page_size::get(), &mut self.file);
-        for _ in 0..count {
+        for _ in 0..size {
             let block = load_block_header(&mut reader, start, block_size, self.max_file_size)?;
 
             // this means we read bytes that don't make a block, this is
@@ -314,26 +320,30 @@ impl StreamWakeableState for RingBuffer {
         Ok(vdata)
     }
 
-    fn remove(&mut self, key: Key) -> PersistResult<()> {
-        if !self.has_read {
-            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead));
-        }
-        let timer = Instant::now();
+    fn pop(&mut self) -> PersistResult<Key> {
         let read_index = self.metadata.file_pointers.read_begin;
-        let key = key.offset;
-        if key != read_index {
-            return Err(PersistError::RingBuffer(RingBufferError::RemovalIndex));
+        let key = Key { offset: read_index };
+
+        if !self.has_read {
+            return Err(PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(
+                key,
+            )));
         }
+
+        let timer = Instant::now();
 
         let block_size = *SERIALIZED_BLOCK_SIZE;
 
-        let start = key;
+        let start = key.offset;
         let mut block = load_block_header(&mut self.file, start, block_size, self.max_file_size)
             .map_err(PersistError::Serialization)?;
 
         let BlockVersion::Version1(inner_block) = block.inner_mut();
         if inner_block.hint() != BLOCK_HINT {
-            return Err(PersistError::RingBuffer(RingBufferError::NonExistantKey));
+            return Err(PersistError::RingBuffer(RingBufferError::UnknownBlock {
+                current: inner_block.hint(),
+                expected: BLOCK_HINT,
+            }));
         }
 
         inner_block.set_should_not_overwrite(false);
@@ -358,7 +368,9 @@ impl StreamWakeableState for RingBuffer {
             self.has_read = false;
         }
 
-        Ok(())
+        self.wake_up_task();
+
+        Ok(key)
     }
 
     fn set_waker(&mut self, waker: &Waker) {
@@ -366,7 +378,7 @@ impl StreamWakeableState for RingBuffer {
     }
 }
 
-fn create_file(file_path: &PathBuf) -> IOResult<File> {
+fn create_file(file_path: &Path) -> IOResult<File> {
     if let Some(parent) = file_path.parent() {
         create_dir_all(parent)?;
     }
@@ -441,19 +453,24 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
 
         // Check next block
         write_updates += 1;
-        order += 1; // We want to start with the next order number.
         start = end + data_size;
         end = start + block_size;
 
         // Found the last write, can stop updating write.
-        if inner.order() < order {
+        if should_update_write && inner.order() < order {
             should_update_write = false;
-            // Update write one last time to point at block
-            // where order is less.
-            write = start % max_file_size;
+
+            // If we haven't found any reads but we have found an order
+            // less than the last one, then we must have read and removed
+            // previous data. So, read should start at write and we
+            // are full.
+            if read_updates == 0 {
+                read = write;
+            }
         }
         if should_update_write {
             write = start % max_file_size;
+            order += 1; // We want to start with the next order number.
         }
 
         if start >= max_file_size {
@@ -655,26 +672,26 @@ where
         let first_half = &bytes[..bytes_split];
         writable
             .seek(SeekFrom::Start(start))
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
         writable
             .write(first_half)
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
 
         let second_half = &bytes[bytes_split..];
         writable
             .seek(SeekFrom::Start(0))
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
         writable
             .write(second_half)
-            .map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
     } else {
         writable
             .seek(SeekFrom::Start(start))
-            .map_err(RingBufferError::FileIO)?;
-        writable.write(bytes).map_err(RingBufferError::FileIO)?;
+            .map_err(RingBufferError::FileIo)?;
+        writable.write(bytes).map_err(RingBufferError::FileIo)?;
     }
     if should_flush {
-        writable.flush().map_err(RingBufferError::FileIO)?;
+        writable.flush().map_err(RingBufferError::FileIo)?;
     }
     Ok(())
 }
@@ -685,7 +702,10 @@ mod tests {
 
     use bytes::Bytes;
     use matches::assert_matches;
+    use tempfile::NamedTempFile;
+
     use mqtt3::proto::QoS;
+    use test_case::test_case;
 
     use super::*;
 
@@ -696,25 +716,31 @@ mod tests {
     const MAX_FILE_SIZE_HALF_NON_ZERO: NonZeroU64 =
         unsafe { NonZeroU64::new_unchecked(MAX_FILE_SIZE_HALF) };
 
-    struct TestRingBuffer(RingBuffer);
+    fn default_ring_buffer() -> RingBuffer {
+        make_ring_buffer(MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS)
+    }
 
-    impl Default for TestRingBuffer {
-        fn default() -> Self {
-            let result = tempfile::NamedTempFile::new();
-            assert_matches!(result, Ok(_));
-            let file = result.unwrap();
-            let file_path = file.path().to_path_buf();
+    fn make_ring_buffer(max_size: NonZeroU64, flush_options: FlushOptions) -> RingBuffer {
+        let file = NamedTempFile::new().expect("file");
+        RingBuffer::new(&file.path(), max_size, flush_options).expect("ring buffer")
+    }
 
-            let result = RingBuffer::new(&file_path, MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
-            assert_matches!(result, Ok(_));
-            Self(result.unwrap())
-        }
+    fn total_size(publication: &Publication) -> u64 {
+        let block_size = *SERIALIZED_BLOCK_SIZE;
+
+        let result = bincode::serialize(&publication);
+        assert_matches!(result, Ok(_));
+        let data = result.unwrap();
+
+        let data_size = data.len() as u64;
+
+        block_size + data_size
     }
 
     #[test]
     fn it_inits_ok_with_no_previous_data() {
         let result = panic::catch_unwind(|| {
-            TestRingBuffer::default();
+            default_ring_buffer();
         });
         assert_matches!(result, Ok(_));
     }
@@ -730,18 +756,14 @@ mod tests {
         let result = panic::catch_unwind(|| {
             let read;
             let write;
-            let result = tempfile::NamedTempFile::new();
+            let result = NamedTempFile::new();
             assert_matches!(result, Ok(_));
             let file = result.unwrap();
 
             let mut keys = vec![];
             // Create ring buffer and perform some operations and then destruct.
             {
-                let result = RingBuffer::new(
-                    &file.path().to_path_buf(),
-                    MAX_FILE_SIZE_NON_ZERO,
-                    FLUSH_OPTIONS,
-                );
+                let result = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
                 assert!(result.is_ok());
                 let mut rb = result.unwrap();
                 for _ in 0..100 {
@@ -759,7 +781,7 @@ mod tests {
                 }
 
                 for key in &keys[..39] {
-                    assert_matches!(rb.remove(*key), Ok(_));
+                    assert_matches!(rb.pop(), Ok(removed) if &removed == key);
                 }
 
                 read = rb.metadata.file_pointers.read_begin;
@@ -768,11 +790,7 @@ mod tests {
             }
             // Create ring buffer again and validate pointers match where they left off.
             {
-                let result = RingBuffer::new(
-                    &file.path().to_path_buf(),
-                    MAX_FILE_SIZE_NON_ZERO,
-                    FLUSH_OPTIONS,
-                );
+                let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
                 assert!(result.is_ok());
                 let mut rb = result.unwrap();
                 let loaded_read = rb.metadata.file_pointers.read_begin;
@@ -785,7 +803,7 @@ mod tests {
                 assert_eq!(batch.len(), 61);
                 for key in &keys[39..] {
                     assert_eq!(batch.pop_front().unwrap().0, *key);
-                    assert_matches!(rb.remove(*key), Ok(_));
+                    assert_matches!(rb.pop(), Ok(removed) if &removed == key);
                 }
                 assert_eq!(rb.metadata.order, 100);
             }
@@ -795,7 +813,7 @@ mod tests {
 
     #[test]
     fn it_inits_ok_with_previous_data_and_write_pointer_before_read_pointer() {
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
@@ -809,11 +827,7 @@ mod tests {
         let read;
         let write;
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -829,8 +843,8 @@ mod tests {
             assert!(!batch.is_empty());
 
             for (key, _) in batch.drain(..) {
-                let result = rb.remove(key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if removed == key);
             }
 
             // write till wrap around
@@ -853,11 +867,7 @@ mod tests {
             write = rb.metadata.file_pointers.write;
         }
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let rb = result.unwrap();
 
@@ -872,6 +882,77 @@ mod tests {
     }
 
     #[test]
+    fn it_inits_ok_with_previous_data_and_write_pointer_is_reaches_read_pointer_after_read() {
+        let file = NamedTempFile::new().unwrap();
+
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let total_size = total_size(&publication);
+        let max_file_size = NonZeroU64::new(total_size * 20).unwrap();
+
+        let read;
+        let mut write;
+        {
+            let mut rb = RingBuffer::new(&file.path(), max_file_size, FLUSH_OPTIONS).unwrap();
+
+            // write some
+            for _ in 0..10 {
+                let result = rb.insert(&publication);
+                assert_matches!(result, Ok(_));
+            }
+
+            let mut batch = rb.batch(10).unwrap();
+            assert!(!batch.is_empty());
+
+            for (key, _) in batch.drain(..) {
+                let removed = rb.pop().expect("unable to pop publication");
+                if removed != key {
+                    panic!(
+                        "invalid publication removed {} but expected {}",
+                        removed, key
+                    );
+                }
+            }
+
+            read = rb.metadata.file_pointers.read_begin;
+
+            // write till wrap around
+            // this will put write at read
+            loop {
+                // ignore err if any here, we just want to be full
+                let _result = rb.insert(&publication);
+
+                write = rb.metadata.file_pointers.write;
+                if write == read {
+                    break;
+                }
+            }
+
+            // Now we simulate a 'crash' and should be able to get
+            // correct pointers and read again.
+        }
+        {
+            let rb = RingBuffer::new(&file.path(), max_file_size, FLUSH_OPTIONS).unwrap();
+
+            let loaded_read = rb.metadata.file_pointers.read_begin;
+            let loaded_write = rb.metadata.file_pointers.write;
+            let loaded_can_read_from_wrap_around_when_write_full =
+                rb.metadata.can_read_from_wrap_around_when_write_full;
+            assert_eq!(write, loaded_write);
+            assert_eq!(read, loaded_read);
+            assert!(loaded_can_read_from_wrap_around_when_write_full);
+            // We would have written 10 + 20 entries, so the next one if there were a write
+            // should be 30. Order starts at 0.
+            assert_eq!(rb.metadata.order, 30);
+        }
+    }
+
+    #[test]
     fn it_inits_err_with_less_max_size_than_previous() {
         let publication = Publication {
             topic_name: "test".to_owned(),
@@ -879,18 +960,14 @@ mod tests {
             retain: true,
             payload: Bytes::new(),
         };
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
         let mut keys = vec![];
         // Create ring buffer and perform some operations and then destruct.
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
             for _ in 0..10 {
@@ -907,30 +984,15 @@ mod tests {
                 assert_eq!(batch.pop_front().unwrap().0, *key);
             }
 
-            {
-                let key = keys[0];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
-
-            {
-                let key = keys[1];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
-
-            {
-                let key = keys[2];
-                assert_matches!(rb.remove(key), Ok(_));
-            }
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[0]);
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[1]);
+            assert_matches!(rb.pop(), Ok(removed) if removed == keys[2]);
 
             assert_eq!(rb.metadata.order, 10);
         }
         // Create ring buffer again and validate pointers match where they left off.
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_HALF_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_HALF_NON_ZERO, FLUSH_OPTIONS);
             assert_matches!(
                 result,
                 Err(PersistError::RingBuffer(RingBufferError::FileTruncation {
@@ -943,20 +1005,20 @@ mod tests {
 
     #[test]
     fn it_inserts_ok_when_not_full() {
-        let mut rb = TestRingBuffer::default();
+        let mut rb = default_ring_buffer();
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
             retain: true,
             payload: Bytes::new(),
         };
-        let result = rb.0.insert(&publication);
+        let result = rb.insert(&publication);
         assert_matches!(result, Ok(_));
     }
 
     #[test]
     fn it_inserts_ok_after_leftover() {
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
@@ -968,11 +1030,7 @@ mod tests {
         };
         let mut keys = vec![];
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
             // write some
@@ -994,17 +1052,13 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(*key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if &removed == key);
             }
             assert_eq!(rb.metadata.order, 5);
         }
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
             assert_eq!(rb.metadata.order, 5);
@@ -1035,7 +1089,7 @@ mod tests {
 
     #[test]
     fn it_inserts_ok_after_leftover_and_wrap_around_is_smaller() {
-        let mut rb = TestRingBuffer::default();
+        let mut rb = default_ring_buffer();
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1043,26 +1097,19 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
-
-        let result = bincode::serialize(&publication);
-        let data = result.unwrap();
-
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
+        let total_size = total_size(&publication);
 
         let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
-            rb.0.insert(&publication)
+            rb.insert(&publication)
                 .expect("Failed to insert into RingBuffer");
         }
 
-        let result = rb.0.batch(2);
+        let result = rb.batch(2);
         let batch = result.unwrap();
-        for entry in batch {
-            rb.0.remove(entry.0)
-                .expect("Failed to remove from RingBuffer");
+        for (key, _) in batch {
+            let removed = rb.pop().expect("Failed to remove from RingBuffer");
+            assert_eq!(removed, key);
         }
 
         let smaller_publication = Publication {
@@ -1072,21 +1119,55 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        rb.0.insert(&smaller_publication)
+        rb.insert(&smaller_publication)
             .expect("Failed to insert into RingBuffer");
 
-        rb.0.insert(&publication)
+        rb.insert(&publication)
             .expect("Failed to insert into RingBuffer");
 
-        assert_eq!(rb.0.metadata.order, inserts + 2);
-        let result = rb.0.insert(&publication);
-        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
-        assert_eq!(rb.0.metadata.order, inserts + 2);
+        assert_eq!(rb.metadata.order, inserts + 2);
+        let result = rb.insert(&publication);
+        assert_matches!(
+            result,
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { .. }
+            ))
+        );
+        assert_eq!(rb.metadata.order, inserts + 2);
+    }
+
+    #[test_case(1; "storage too small to insert even one publication")]
+    #[test_case(5; "fail to insert the last publication")]
+    fn it_errs_on_insert_when_insufficient_space(inserts: u64) {
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+
+        let total_size = total_size(&publication);
+
+        let max_size = NonZeroU64::new((inserts + 1) * total_size - 1).unwrap();
+        let mut rb = make_ring_buffer(max_size, FlushOptions::AfterEachWrite);
+
+        for _ in 0..inserts {
+            let result = rb.insert(&publication);
+            assert_matches!(result, Ok(_));
+        }
+        assert_eq!(rb.metadata.order, inserts);
+        let result = rb.insert(&publication);
+        assert_matches!(
+            result,
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { .. }
+            ))
+        );
+        assert_eq!(rb.metadata.order, inserts);
     }
 
     #[test]
     fn it_errs_on_insert_when_full() {
-        let mut rb = TestRingBuffer::default();
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1094,30 +1175,24 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
+        let max_size = NonZeroU64::new(total_size(&publication)).unwrap();
+        let mut rb = make_ring_buffer(max_size, FlushOptions::AfterEachWrite);
 
-        let result = bincode::serialize(&publication);
-        assert_matches!(result, Ok(_));
-        let data = result.unwrap();
+        // first insert succeeds
+        assert_matches!(rb.insert(&publication), Ok(_));
 
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
-
-        let inserts = MAX_FILE_SIZE / total_size;
-        for _ in 0..inserts {
-            let result = rb.0.insert(&publication);
-            assert_matches!(result, Ok(_));
-        }
-        assert_eq!(rb.0.metadata.order, inserts);
-        let result = rb.0.insert(&publication);
-        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
-        assert_eq!(rb.0.metadata.order, inserts);
+        // second insert fails because storage is full and wrap happened
+        assert_matches!(
+            rb.insert(&publication),
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { free, .. }
+            )) if free == 0
+        )
     }
 
     #[test]
     fn it_errs_on_insert_when_full_and_had_batched_and_removed() {
-        let mut rb = TestRingBuffer::default();
+        let mut rb = default_ring_buffer();
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1125,29 +1200,21 @@ mod tests {
             payload: Bytes::new(),
         };
 
-        let block_size = *SERIALIZED_BLOCK_SIZE;
-
-        let result = bincode::serialize(&publication);
-        assert_matches!(result, Ok(_));
-        let data = result.unwrap();
-
-        let data_size = data.len() as u64;
-
-        let total_size = block_size + data_size;
+        let total_size = total_size(&publication);
 
         let inserts = MAX_FILE_SIZE / total_size;
         for _ in 0..inserts {
-            let result = rb.0.insert(&publication);
+            let result = rb.insert(&publication);
             assert_matches!(result, Ok(_));
         }
-        assert_eq!(rb.0.metadata.order, inserts);
+        assert_eq!(rb.metadata.order, inserts);
 
-        let result = rb.0.batch(1);
+        let result = rb.batch(1);
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
 
-        let result = rb.0.remove(batch[0].0);
-        assert_matches!(result, Ok(_));
+        let result = rb.pop();
+        assert_matches!(result, Ok(removed) if removed == batch[0].0);
 
         // need bigger pub
         let big_publication = Publication {
@@ -1163,14 +1230,19 @@ mod tests {
             ),
         };
 
-        let result = rb.0.insert(&big_publication);
-        assert_matches!(result, Err(PersistError::RingBuffer(RingBufferError::Full)));
-        assert_eq!(rb.0.metadata.order, inserts);
+        let result = rb.insert(&big_publication);
+        assert_matches!(
+            result,
+            Err(PersistError::RingBuffer(
+                RingBufferError::InsufficientSpace { .. }
+            ))
+        );
+        assert_eq!(rb.metadata.order, inserts);
     }
 
     #[test]
     fn it_batches_correctly_after_insert() {
-        let mut rb = TestRingBuffer::default();
+        let mut rb = default_ring_buffer();
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1179,26 +1251,25 @@ mod tests {
         };
 
         // first with 1
-        let result = rb.0.insert(&publication);
+        let result = rb.insert(&publication);
         assert_matches!(result, Ok(_));
         let key = result.unwrap();
-        let result = rb.0.batch(1);
+        let result = rb.batch(1);
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
         assert!(!batch.is_empty());
         assert_eq!(key, batch[0].0);
 
         // now with 9 more
-        let mut keys = vec![];
-        keys.push(key);
+        let mut keys = vec![key];
         for _ in 0..9 {
-            let result = rb.0.insert(&publication);
+            let result = rb.insert(&publication);
             assert_matches!(result, Ok(_));
             let key = result.unwrap();
             keys.push(key)
         }
 
-        let result = rb.0.batch(10);
+        let result = rb.batch(10);
         assert_matches!(result, Ok(_));
         let batch = result.unwrap();
         assert_eq!(10, batch.len());
@@ -1209,14 +1280,14 @@ mod tests {
 
     #[test]
     fn it_batches_ok_when_no_insert() {
-        let mut rb = TestRingBuffer::default();
-        let result = rb.0.batch(1);
+        let mut rb = default_ring_buffer();
+        let result = rb.batch(1);
         assert_matches!(result, Ok(_));
     }
 
     #[test]
     fn it_batches_ok_when_leftover_from_file() {
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
@@ -1228,11 +1299,7 @@ mod tests {
         };
         let mut keys = vec![];
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1255,16 +1322,12 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(*key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(*key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if &removed == key);
             }
         }
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1285,7 +1348,7 @@ mod tests {
 
     #[test]
     fn it_batches_ok_when_leftover_from_file_and_write_only_wrap_around() {
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
@@ -1293,11 +1356,7 @@ mod tests {
 
         let mut entries = vec![];
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1327,8 +1386,8 @@ mod tests {
                 let entry = maybe_entry.unwrap();
                 assert_eq!(key, entry.0);
                 assert_eq!(publication, entry.1);
-                let result = rb.remove(key);
-                assert_matches!(result, Ok(_));
+                let result = rb.pop();
+                assert_matches!(result, Ok(removed) if removed == key);
             }
 
             // write till wrap around
@@ -1359,11 +1418,7 @@ mod tests {
             // correct pointers and read again.
         }
         {
-            let result = RingBuffer::new(
-                &file.path().to_path_buf(),
-                MAX_FILE_SIZE_NON_ZERO,
-                FLUSH_OPTIONS,
-            );
+            let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
             assert!(result.is_ok());
             let mut rb = result.unwrap();
 
@@ -1384,15 +1439,11 @@ mod tests {
 
     #[test]
     fn it_batches_err_when_bad_block_from_file() {
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
-        let result = RingBuffer::new(
-            &file.path().to_path_buf(),
-            MAX_FILE_SIZE_NON_ZERO,
-            FLUSH_OPTIONS,
-        );
+        let result = RingBuffer::new(&file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS);
         assert!(result.is_ok());
         let mut rb = result.unwrap();
         let publication = Publication {
@@ -1429,12 +1480,12 @@ mod tests {
         let data_size = data.len() as u64;
         let file_size = 10 * (block_size + data_size);
 
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
         let result = RingBuffer::new(
-            &file.path().to_path_buf(),
+            &file.path(),
             NonZeroU64::new(file_size).unwrap(),
             FLUSH_OPTIONS,
         );
@@ -1477,14 +1528,14 @@ mod tests {
         let data_size = data.len() as u64;
         let file_size = 10 * (block_size + data_size);
 
-        let result = tempfile::NamedTempFile::new();
+        let result = NamedTempFile::new();
         assert_matches!(result, Ok(_));
         let file = result.unwrap();
 
         let mut keys = vec![];
         {
             let result = RingBuffer::new(
-                &file.path().to_path_buf(),
+                &file.path(),
                 NonZeroU64::new(file_size).unwrap(),
                 FLUSH_OPTIONS,
             );
@@ -1500,7 +1551,7 @@ mod tests {
         }
 
         let result = RingBuffer::new(
-            &file.path().to_path_buf(),
+            &file.path(),
             NonZeroU64::new(file_size).unwrap(),
             FLUSH_OPTIONS,
         );
@@ -1521,77 +1572,18 @@ mod tests {
 
     #[test]
     fn it_errs_on_remove_when_no_read() {
-        let mut rb = TestRingBuffer::default();
-        let result = rb.0.remove(Key { offset: 1 });
+        let mut rb = default_ring_buffer();
+        let result = rb.pop();
         assert_matches!(result, Err(_));
         assert_matches!(
             result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead)
+            PersistError::RingBuffer(RingBufferError::RemoveBeforeRead(_))
         );
-    }
-
-    #[test]
-    fn it_errs_on_remove_with_key_not_equal_to_read() {
-        let mut rb = TestRingBuffer::default();
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        let result = rb.0.insert(&publication);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.0.batch(1);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.0.remove(Key { offset: 1 });
-        assert_matches!(result, Err(_));
-        assert_matches!(
-            result.unwrap_err(),
-            PersistError::RingBuffer(RingBufferError::RemovalIndex)
-        );
-    }
-
-    #[test]
-    fn it_errs_on_remove_with_key_that_does_not_exist() {
-        let result = tempfile::NamedTempFile::new();
-        assert_matches!(result, Ok(_));
-        let file = result.unwrap();
-
-        let result = RingBuffer::new(
-            &file.path().to_path_buf(),
-            MAX_FILE_SIZE_NON_ZERO,
-            FLUSH_OPTIONS,
-        );
-        assert!(result.is_ok());
-        let mut rb = result.unwrap();
-
-        let publication = Publication {
-            topic_name: "test".to_owned(),
-            qos: QoS::AtMostOnce,
-            retain: true,
-            payload: Bytes::new(),
-        };
-
-        let result = rb.insert(&publication);
-        assert_matches!(result, Ok(_));
-
-        let result = rb.batch(1);
-        assert_matches!(result, Ok(_));
-
-        let result = write(file.path(), "garbage");
-        assert_matches!(result, Ok(_));
-
-        let result = rb.remove(Key { offset: 0 });
-        assert_matches!(result, Err(_));
     }
 
     #[test]
     fn it_removes_in_order_of_batch() {
-        let mut rb = TestRingBuffer::default();
+        let mut rb = default_ring_buffer();
         let publication = Publication {
             topic_name: "test".to_owned(),
             qos: QoS::AtMostOnce,
@@ -1601,13 +1593,13 @@ mod tests {
 
         let mut keys = vec![];
         for _ in 0..10_usize {
-            let result = rb.0.insert(&publication);
+            let result = rb.insert(&publication);
             assert_matches!(result, Ok(_));
             let key = result.unwrap();
             keys.push(key)
         }
 
-        let result = rb.0.batch(10);
+        let result = rb.batch(10);
         assert_matches!(result, Ok(_));
         let mut batch = result.unwrap();
 
@@ -1615,8 +1607,8 @@ mod tests {
             let entry = batch.pop_front().unwrap();
             assert_eq!(key, entry.0);
 
-            let result = rb.0.remove(key);
-            assert_matches!(result, Ok(_));
+            let result = rb.pop();
+            assert_matches!(result, Ok(removed) if removed == key);
         }
     }
 }

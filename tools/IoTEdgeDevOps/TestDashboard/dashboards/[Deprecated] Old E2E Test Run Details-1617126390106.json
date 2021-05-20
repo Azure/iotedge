@@ -1,0 +1,676 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": 4,
+  "iteration": 1617126386547,
+  "links": [],
+  "panels": [
+    {
+      "columns": [],
+      "datasource": "MSSQL Server",
+      "fontSize": "100%",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {},
+      "pageSize": null,
+      "showHeader": true,
+      "sort": {
+        "col": 0,
+        "desc": true
+      },
+      "styles": [
+        {
+          "alias": "",
+          "colorMode": "cell",
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "mappingType": 1,
+          "pattern": "Status",
+          "thresholds": [
+            "0.5",
+            " 1"
+          ],
+          "type": "string",
+          "unit": "short",
+          "valueMaps": [
+            {
+              "text": "✓",
+              "value": "1"
+            },
+            {
+              "text": "✗",
+              "value": "0"
+            },
+            {
+              "text": "⦸",
+              "value": "0.5"
+            }
+          ]
+        },
+        {
+          "alias": "",
+          "colorMode": null,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 2,
+          "link": true,
+          "linkTargetBlank": true,
+          "linkTooltip": "Link to Azure DevOps",
+          "linkUrl": "https://dev.azure.com/msazure/One/_releaseProgress?_a=release-environment-logs&releaseId=${ReleaseId}&environmentId=${__cell}",
+          "mappingType": 1,
+          "pattern": "Id",
+          "thresholds": [],
+          "type": "string",
+          "unit": "short"
+        }
+      ],
+      "targets": [
+        {
+          "alias": "",
+          "format": "table",
+          "rawSql": "DECLARE @ReleaseEnvironmentStatus TABLE (Id VARCHAR(50), DefinitionName VARCHAR(50), Status VARCHAR(50))\n\nINSERT INTO @ReleaseEnvironmentStatus\nSELECT Id, DefinitionName, Status FROM VstsReleaseEnvironment\nWHERE ReleaseId = '$ReleaseId'\n\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'PartiallySucceeded', '0')\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'Succeeded', '1')\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'Canceled', '0.5')\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'NotStarted', '0.5')\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'InProgress', '0.5')\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'Failed', '0')\nUPDATE @ReleaseEnvironmentStatus SET Status = REPLACE(Status, 'Rejected', '0')\n\nSELECT * FROM @ReleaseEnvironmentStatus",
+          "refId": "A"
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Old E2E Test Run Details",
+      "transform": "table",
+      "transparent": true,
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 21,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "text": "1627946",
+          "value": "1627946"
+        },
+        "datasource": "MSSQL Server",
+        "definition": "SELECT ReleaseId FROM VstsReleaseEnvironment GROUP BY ReleaseId",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Release Id",
+        "multi": false,
+        "name": "ReleaseId",
+        "options": [
+          {
+            "selected": false,
+            "text": "1627946",
+            "value": "1627946"
+          },
+          {
+            "selected": false,
+            "text": "1634043",
+            "value": "1634043"
+          },
+          {
+            "selected": false,
+            "text": "750229",
+            "value": "750229"
+          },
+          {
+            "selected": false,
+            "text": "737889",
+            "value": "737889"
+          },
+          {
+            "selected": false,
+            "text": "1627931",
+            "value": "1627931"
+          },
+          {
+            "selected": false,
+            "text": "697915",
+            "value": "697915"
+          },
+          {
+            "selected": false,
+            "text": "1621156",
+            "value": "1621156"
+          },
+          {
+            "selected": false,
+            "text": "774540",
+            "value": "774540"
+          },
+          {
+            "selected": false,
+            "text": "762440",
+            "value": "762440"
+          },
+          {
+            "selected": false,
+            "text": "1712531",
+            "value": "1712531"
+          },
+          {
+            "selected": false,
+            "text": "765632",
+            "value": "765632"
+          },
+          {
+            "selected": false,
+            "text": "1632225",
+            "value": "1632225"
+          },
+          {
+            "selected": false,
+            "text": "1772319",
+            "value": "1772319"
+          },
+          {
+            "selected": false,
+            "text": "735118",
+            "value": "735118"
+          },
+          {
+            "selected": false,
+            "text": "700923",
+            "value": "700923"
+          },
+          {
+            "selected": false,
+            "text": "1777875",
+            "value": "1777875"
+          },
+          {
+            "selected": false,
+            "text": "719323",
+            "value": "719323"
+          },
+          {
+            "selected": false,
+            "text": "1616473",
+            "value": "1616473"
+          },
+          {
+            "selected": false,
+            "text": "1633198",
+            "value": "1633198"
+          },
+          {
+            "selected": false,
+            "text": "1621485",
+            "value": "1621485"
+          },
+          {
+            "selected": false,
+            "text": "869267",
+            "value": "869267"
+          },
+          {
+            "selected": false,
+            "text": "1469658",
+            "value": "1469658"
+          },
+          {
+            "selected": false,
+            "text": "1808449",
+            "value": "1808449"
+          },
+          {
+            "selected": false,
+            "text": "767132",
+            "value": "767132"
+          },
+          {
+            "selected": false,
+            "text": "747507",
+            "value": "747507"
+          },
+          {
+            "selected": false,
+            "text": "1774318",
+            "value": "1774318"
+          },
+          {
+            "selected": false,
+            "text": "1787763",
+            "value": "1787763"
+          },
+          {
+            "selected": false,
+            "text": "1788212",
+            "value": "1788212"
+          },
+          {
+            "selected": false,
+            "text": "769978",
+            "value": "769978"
+          },
+          {
+            "selected": false,
+            "text": "734214",
+            "value": "734214"
+          },
+          {
+            "selected": false,
+            "text": "774695",
+            "value": "774695"
+          },
+          {
+            "selected": false,
+            "text": "1620767",
+            "value": "1620767"
+          },
+          {
+            "selected": false,
+            "text": "1632861",
+            "value": "1632861"
+          },
+          {
+            "selected": false,
+            "text": "843005",
+            "value": "843005"
+          },
+          {
+            "selected": false,
+            "text": "742518",
+            "value": "742518"
+          },
+          {
+            "selected": false,
+            "text": "1383387",
+            "value": "1383387"
+          },
+          {
+            "selected": false,
+            "text": "1621958",
+            "value": "1621958"
+          },
+          {
+            "selected": false,
+            "text": "1752486",
+            "value": "1752486"
+          },
+          {
+            "selected": false,
+            "text": "726068",
+            "value": "726068"
+          },
+          {
+            "selected": false,
+            "text": "766929",
+            "value": "766929"
+          },
+          {
+            "selected": false,
+            "text": "773476",
+            "value": "773476"
+          },
+          {
+            "selected": false,
+            "text": "746626",
+            "value": "746626"
+          },
+          {
+            "selected": false,
+            "text": "1626999",
+            "value": "1626999"
+          },
+          {
+            "selected": false,
+            "text": "701671",
+            "value": "701671"
+          },
+          {
+            "selected": false,
+            "text": "1625585",
+            "value": "1625585"
+          },
+          {
+            "selected": false,
+            "text": "718511",
+            "value": "718511"
+          },
+          {
+            "selected": false,
+            "text": "742893",
+            "value": "742893"
+          },
+          {
+            "selected": false,
+            "text": "1451834",
+            "value": "1451834"
+          },
+          {
+            "selected": false,
+            "text": "1772022",
+            "value": "1772022"
+          },
+          {
+            "selected": false,
+            "text": "859355",
+            "value": "859355"
+          },
+          {
+            "selected": false,
+            "text": "1782877",
+            "value": "1782877"
+          },
+          {
+            "selected": false,
+            "text": "487323",
+            "value": "487323"
+          },
+          {
+            "selected": false,
+            "text": "746744",
+            "value": "746744"
+          },
+          {
+            "selected": false,
+            "text": "869469",
+            "value": "869469"
+          },
+          {
+            "selected": false,
+            "text": "1803035",
+            "value": "1803035"
+          },
+          {
+            "selected": false,
+            "text": "770700",
+            "value": "770700"
+          },
+          {
+            "selected": false,
+            "text": "750780",
+            "value": "750780"
+          },
+          {
+            "selected": false,
+            "text": "1790486",
+            "value": "1790486"
+          },
+          {
+            "selected": false,
+            "text": "717873",
+            "value": "717873"
+          },
+          {
+            "selected": false,
+            "text": "875712",
+            "value": "875712"
+          },
+          {
+            "selected": false,
+            "text": "1626215",
+            "value": "1626215"
+          },
+          {
+            "selected": false,
+            "text": "746406",
+            "value": "746406"
+          },
+          {
+            "selected": false,
+            "text": "1765843",
+            "value": "1765843"
+          },
+          {
+            "selected": false,
+            "text": "1772538",
+            "value": "1772538"
+          },
+          {
+            "selected": false,
+            "text": "1799056",
+            "value": "1799056"
+          },
+          {
+            "selected": false,
+            "text": "1768399",
+            "value": "1768399"
+          },
+          {
+            "selected": false,
+            "text": "1620064",
+            "value": "1620064"
+          },
+          {
+            "selected": false,
+            "text": "697192",
+            "value": "697192"
+          },
+          {
+            "selected": false,
+            "text": "1777430",
+            "value": "1777430"
+          },
+          {
+            "selected": false,
+            "text": "1633277",
+            "value": "1633277"
+          },
+          {
+            "selected": false,
+            "text": "697055",
+            "value": "697055"
+          },
+          {
+            "selected": false,
+            "text": "1627867",
+            "value": "1627867"
+          },
+          {
+            "selected": false,
+            "text": "739085",
+            "value": "739085"
+          },
+          {
+            "selected": false,
+            "text": "1626428",
+            "value": "1626428"
+          },
+          {
+            "selected": false,
+            "text": "1464101",
+            "value": "1464101"
+          },
+          {
+            "selected": false,
+            "text": "1710424",
+            "value": "1710424"
+          },
+          {
+            "selected": false,
+            "text": "712659",
+            "value": "712659"
+          },
+          {
+            "selected": false,
+            "text": "1622632",
+            "value": "1622632"
+          },
+          {
+            "selected": false,
+            "text": "1636246",
+            "value": "1636246"
+          },
+          {
+            "selected": false,
+            "text": "1621742",
+            "value": "1621742"
+          },
+          {
+            "selected": false,
+            "text": "774050",
+            "value": "774050"
+          },
+          {
+            "selected": false,
+            "text": "743198",
+            "value": "743198"
+          },
+          {
+            "selected": false,
+            "text": "1768371",
+            "value": "1768371"
+          },
+          {
+            "selected": false,
+            "text": "739646",
+            "value": "739646"
+          },
+          {
+            "selected": false,
+            "text": "1783121",
+            "value": "1783121"
+          },
+          {
+            "selected": false,
+            "text": "750409",
+            "value": "750409"
+          },
+          {
+            "selected": false,
+            "text": "841054",
+            "value": "841054"
+          },
+          {
+            "selected": false,
+            "text": "1768079",
+            "value": "1768079"
+          },
+          {
+            "selected": false,
+            "text": "718020",
+            "value": "718020"
+          },
+          {
+            "selected": false,
+            "text": "1631935",
+            "value": "1631935"
+          },
+          {
+            "selected": false,
+            "text": "1635207",
+            "value": "1635207"
+          },
+          {
+            "selected": false,
+            "text": "630094",
+            "value": "630094"
+          },
+          {
+            "selected": false,
+            "text": "1774016",
+            "value": "1774016"
+          },
+          {
+            "selected": false,
+            "text": "1778238",
+            "value": "1778238"
+          },
+          {
+            "selected": false,
+            "text": "1631683",
+            "value": "1631683"
+          },
+          {
+            "selected": false,
+            "text": "738641",
+            "value": "738641"
+          },
+          {
+            "selected": false,
+            "text": "725342",
+            "value": "725342"
+          },
+          {
+            "selected": false,
+            "text": "1716944",
+            "value": "1716944"
+          },
+          {
+            "selected": false,
+            "text": "739251",
+            "value": "739251"
+          },
+          {
+            "selected": false,
+            "text": "1779200",
+            "value": "1779200"
+          },
+          {
+            "selected": false,
+            "text": "870414",
+            "value": "870414"
+          },
+          {
+            "selected": false,
+            "text": "767234",
+            "value": "767234"
+          }
+        ],
+        "query": "SELECT ReleaseId FROM VstsReleaseEnvironment GROUP BY ReleaseId",
+        "refresh": 0,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "",
+  "title": "[Deprecated] Old E2E Test Run Details",
+  "uid": "TjKlDYwWk",
+  "version": 2
+}

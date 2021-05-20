@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -35,10 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.IotHub,
-                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                this.device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                Context.Current.NestedEdge);
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
 
             string leafDeviceId = DeviceId.Current.Generate();
 
@@ -74,10 +74,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.IotHub,
-                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                this.device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                Context.Current.NestedEdge);
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -103,10 +103,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.IotHub,
-                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                this.device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                Context.Current.NestedEdge);
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             Log.Information("Deploying L3 Edge");
-            await this.runtime.DeployConfigurationAsync(token, Context.Current.NestedEdge);
+            await this.runtime.DeployConfigurationAsync(token, this.device.NestedEdge.IsNestedEdge);
 
             // Disable the parent Edge device
             Log.Information("Disabling Edge device");
@@ -219,10 +219,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 false,
                 this.ca,
                 this.IotHub,
-                Context.Current.Hostname.GetOrElse(Dns.GetHostName().ToLower()),
+                this.device.NestedEdge.DeviceHostname,
                 token,
                 Option.None<string>(),
-                Context.Current.NestedEdge);
+                this.device.NestedEdge.IsNestedEdge);
 
             await TryFinally.DoAsync(
                 async () =>

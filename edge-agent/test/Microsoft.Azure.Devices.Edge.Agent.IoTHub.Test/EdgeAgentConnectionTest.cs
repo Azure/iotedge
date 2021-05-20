@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.Linq;
     using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common.Exceptions;
@@ -247,7 +249,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
-            IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
+            IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
             return edgeAgentConnection;
         }
 
@@ -547,9 +550,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Returns(deploymentConfig);
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
             Option<DeploymentConfigInfo> deploymentConfigInfo = await connection.GetDeploymentConfigInfoAsync();
 
             // Assert
@@ -597,9 +601,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -653,9 +658,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -725,9 +731,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
             deviceManager.Setup(x => x.ReprovisionDeviceAsync()).Returns(Task.CompletedTask);
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -793,9 +800,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -860,9 +868,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -944,9 +953,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1016,7 +1026,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1117,13 +1128,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
                 IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
                 var deviceManager = new Mock<IDeviceManager>();
+                Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
                 // Assert
                 Module edgeAgentModule = await registryManager.GetModuleAsync(edgeDevice.Id, Constants.EdgeAgentModuleIdentityName);
                 Assert.NotNull(edgeAgentModule);
                 Assert.True(edgeAgentModule.ConnectionState == DeviceConnectionState.Disconnected);
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
                 await Task.Delay(TimeSpan.FromSeconds(5));
 
                 edgeAgentModule = await registryManager.GetModuleAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName);
@@ -1217,11 +1229,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
                 IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
                 var deviceManager = new Mock<IDeviceManager>();
+                Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
                 // Assert
                 await Assert.ThrowsAsync<DeviceNotFoundException>(() => serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping")));
 
-                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>());
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
                 await Task.Delay(TimeSpan.FromSeconds(10));
 
                 CloudToDeviceMethodResult methodResult = await serviceClient.InvokeDeviceMethodAsync(edgeDeviceId, Constants.EdgeAgentModuleIdentityName, new CloudToDeviceMethod("ping"));
@@ -1315,9 +1328,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(3), Mock.Of<IDeploymentMetrics>()))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(3), Mock.Of<IDeploymentMetrics>(), manifestTrustBundle))
             {
                 await Task.Delay(TimeSpan.FromSeconds(8));
 
@@ -1393,9 +1407,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>();
             var retryStrategy = new FixedInterval(3, TimeSpan.FromSeconds(2));
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>()))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1506,9 +1521,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>();
             var retryStrategy = new FixedInterval(3, TimeSpan.FromSeconds(2));
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>()))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1539,243 +1555,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 Assert.NotEqual(deploymentConfig, receivedDeploymentConfigInfo.OrDefault().DeploymentConfig);
             }
         }
-
-        [Unit]
-        [Theory]
-        [MemberData(nameof(GetTwinCollectionForTwinSignature))]
-        public void TestCheckTwinSignatureIsValid(bool expectedResult, TwinCollection twinDesiredProperties)
-        {
-            Assert.Equal(expectedResult, EdgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
-        }
-
-        public static IEnumerable<object[]> GetTwinCollectionForTwinSignature()
-        {
-            var integrityWithEcdsaCerts = new
-            {
-                header = new
-                {
-                    signercert = GetEcdsaSignerTestCert(),
-                    intermediatecacert = GetEcdsaIntermediateCATestCert(),
-                },
-                signature = new
-                {
-                    bytes = GetEcdsaTestEdgeAgentSignature(),
-                    algorithm = "ES256"
-                }
-            };
-
-            var integrityWithRsaCerts = new
-            {
-                header = new
-                {
-                    signercert = GetRsaSignerTestCert(),
-                    intermediatecacert = GetRsaIntermediateCATestCert(),
-                },
-                signature = new
-                {
-                    bytes = GetRsaTestEdgeAgentSignature(),
-                    algorithm = "RS256"
-                }
-            };
-            string edgeAgentRightImageName = "mcr.microsoft.com/azureiotedge-agent:1.0";
-            string edgeAgentWrongImageName = "mcr.microsoft.com/azureiotedge-wrong-agent:1.0";
-
-            yield return new object[] { true, GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithEcdsaCerts) };
-            yield return new object[] { false, GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithEcdsaCerts) };
-            yield return new object[] { true, GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithRsaCerts) };
-            yield return new object[] { false, GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithRsaCerts) };
-        }
-
-        [Unit]
-        [Theory]
-        [MemberData(nameof(GetTwinCollectionForIntegrityCheck))]
-        public void TestCheckIfTwinPropertiesAreSigned(bool expectedResult, TwinCollection twinDesiredProperties)
-        {
-            Assert.Equal(expectedResult, EdgeAgentConnection.CheckIfTwinPropertiesAreSigned(twinDesiredProperties));
-        }
-
-        public static IEnumerable<object[]> GetTwinCollectionForIntegrityCheck()
-        {
-            var integrity = new
-            {
-                header = new
-                {
-                    signercert = new string[] { "signercert1", "signercert2" },
-                    intermediatecacert = new string[] { "intermediatecacert1", "intermediatecacert2" }
-                },
-                signature = new
-                {
-                    bytes = "signature",
-                    algorithm = "algo"
-                }
-            };
-            string edgeAgentImageName = "mcr.microsoft.com/azureiotedge-agent:1.0";
-
-            TwinCollection twinDesiredPropertiesWithoutIntegrity = GetTwinDesiredProperties(edgeAgentImageName, null);
-            TwinCollection twinDesiredPropertiesWithIntegrity = GetTwinDesiredProperties(edgeAgentImageName, integrity);
-            yield return new object[] { true, twinDesiredPropertiesWithIntegrity };
-            yield return new object[] { false, twinDesiredPropertiesWithoutIntegrity };
-        }
-
-        static TwinCollection GetTwinDesiredProperties(string edgeAgentImageName, object integrity)
-        {
-            var desiredProperties = new
-            {
-                modules = new { },
-                runtime = new
-                {
-                    settings = new
-                    {
-                        minDockerVersion = "v1.25"
-                    },
-                    type = "docker"
-                },
-                schemaVersion = "1.1",
-                systemModules = new
-                {
-                    edgeAgent = new
-                    {
-                        settings = new
-                        {
-                            image = edgeAgentImageName,
-                            createOptions = string.Empty,
-                        },
-                        type = "docker"
-                    },
-                    edgeHub = new
-                    {
-                        settings = new
-                        {
-                            image = "mcr.microsoft.com/azureiotedge-hub:1.0",
-                            createOptions = "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}",
-                        },
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "always"
-                    }
-                },
-                integrity,
-                version = "10"
-            };
-
-            return new TwinCollection(JsonConvert.SerializeObject(desiredProperties));
-        }
-
-        [Unit]
-        [Theory]
-        [MemberData(nameof(GetTwinForVerifyingSignatures))]
-        public void TestExtractAgentTwinAndVerify(string type, string imageName, string algo, string[] signercert, string[] intermediatecacert, string signature)
-        {
-            var desiredProperties = new
-            {
-                modules = new { },
-                runtime = new
-                {
-                    settings = new
-                    {
-                        minDockerVersion = "v1.25"
-                    },
-                    type = "docker"
-                },
-                schemaVersion = "1.1",
-                systemModules = new
-                {
-                    edgeAgent = new
-                    {
-                        settings = new
-                        {
-                            image = imageName,
-                            createOptions = string.Empty,
-                        },
-                        type = "docker"
-                    },
-                    edgeHub = new
-                    {
-                        settings = new
-                        {
-                            image = "mcr.microsoft.com/azureiotedge-hub:1.0",
-                            createOptions = "{\"HostConfig\":{\"PortBindings\":{\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}]}}}",
-                        },
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "always"
-                    }
-                },
-                integrity = new
-                {
-                    header = new
-                    {
-                        signercert,
-                        intermediatecacert,
-                    },
-                    signature = new
-                    {
-                        bytes = signature,
-                        algorithm = algo
-                    }
-                },
-                version = "10"
-            };
-
-            TwinCollection twinDesiredProperties = new TwinCollection(JsonConvert.SerializeObject(desiredProperties));
-            if (type == "good")
-            {
-                Assert.True(EdgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
-            }
-            else
-            {
-                Assert.False(EdgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
-            }
-        }
-
-        public static IEnumerable<object[]> GetTwinForVerifyingSignatures()
-        {
-            string goodImageName = "mcr.microsoft.com/azureiotedge-agent:1.0";
-            string maliciousImageName = "mcr.microsoft.com/azureiotedge-agent-malicious-image:1.0";
-
-            string[] ecdsaSignerCert = GetEcdsaSignerTestCert();
-            string[] ecdsaIntermediateCACert = GetEcdsaIntermediateCATestCert();
-            string ecdsaSignature = GetEcdsaTestEdgeAgentSignature();
-            string ecdsaAlgo = "ES256";
-
-            string[] rsaSignerCert = GetRsaSignerTestCert();
-            string[] rsaIntermediateCACert = GetRsaIntermediateCATestCert();
-            string rsaSignature = GetRsaTestEdgeAgentSignature();
-            string rsaAlgo = "RS256";
-
-            yield return new object[] { "good", goodImageName, ecdsaAlgo, ecdsaSignerCert, ecdsaIntermediateCACert, ecdsaSignature };
-            yield return new object[] { "good", goodImageName, rsaAlgo, rsaSignerCert, rsaIntermediateCACert, rsaSignature };
-            yield return new object[] { "bad", maliciousImageName, rsaAlgo, rsaSignerCert, rsaIntermediateCACert, rsaSignature };
-            yield return new object[] { "bad", maliciousImageName, ecdsaAlgo, ecdsaSignerCert, ecdsaIntermediateCACert, ecdsaSignature };
-        }
-
-        public static string[] GetEcdsaSignerTestCert() => new string[]
-            {
-                "\rMIICOTCCAd+gAwIBAgICEAAwCgYIKoZIzj0EAwIwVDELMAkGA1UEAwwCc3MxCzAJ\rBgNVBAgMAldBMQswCQYDVQQGEwJVUzERMA8GCSqGSIb3DQEJARYCc3MxCzAJBgNV\rBAoMAnNzMQswCQYDVQQLDAJzczAeFw0xNTA1MDUwMDAwMDBaFw0yNDEyMzEyMzU5\rNTlaMFQxCzAJBgNVBAMMAnNzMQswCQYDVQQIDAJXQTELMAkGA1UEBhMCVVMxETAP\rBgkqhkiG9w0BCQEWAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MwWTATBgcq\rhkjOPQIBBggqhkjOPQMBBwNCAAS7kA6viM5eN1Y/E+1KUOjLEZdhsygtbntGqV",
-                "7s\rMXG5ZEKr+drie2i6lMa8zu/hvHhOdbXiFVOZT045AYaGWBDRo4GgMIGdMAwGA1Ud\rEwEB/wQCMAAwHQYDVR0OBBYEFK0CsUii+1a5RlE+2aQMKrxwlFkeMB8GA1UdIwQY\rMBaAFI3svRm8zDySNcXiJCaqn6phhFtPMAsGA1UdDwQEAwIBpjATBgNVHSUEDDAK\rBggrBgEFBQcDATArBgNVHREEJDAigg9hLmEuZXhhbXBsZS5jb22CD2IuYi5leGFt\rcGxlLmNvbTAKBggqhkjOPQQDAgNIADBFAiBWXuB2+R1lXV3HPmmu7eJc3H2rpr8o\rKwR8wnDdnuYL+AIhAIM5nw1LLtEVKpIOP7DsrlxEQjPw1+nrj4/Ilb47Bqpq\r"
-            };
-
-        public static string[] GetEcdsaIntermediateCATestCert() => new string[]
-            {
-                "\rMIICRTCCAeugAwIBAgICEAAwCgYIKoZIzj0EAwIwYTELMAkGA1UEBhMCVVMxCzAJ\rBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsMAnNz\rMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMTUwNTA1MDAwMDAw\rWhcNMjQxMjMxMjM1OTU5WjBUMQswCQYDVQQDDAJzczELMAkGA1UECAwCV0ExCzAJ\rBgNVBAYTAlVTMREwDwYJKoZIhvcNAQkBFgJzczELMAkGA1UECgwCc3MxCzAJBgNV\rBAsMAnNzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Di5/tzZFOG1KrfoPwBa\rfgjF9I",
-                "DWI7EL5DIeowGfr/MyUmtwULyrLE2bAQUGv9KdH2oPg6aK//WutYqli6MN\rXaOBnzCBnDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSN7L0ZvMw8kjXF4iQm\rqp+qYYRbTzAfBgNVHSMEGDAWgBTNmen1wYUOUouvXOzNt+4Gk2ox1zALBgNVHQ8E\rBAMCAaYwEwYDVR0lBAwwCgYIKwYBBQUHAwEwJwYDVR0RBCAwHoINYS5leGFtcGxl\rLmNvbYINYi5leGFtcGxlLmNvbTAKBggqhkjOPQQDAgNIADBFAiBETS1txVUaZl8E\rWagr5+OFGbHEluKTVD3hltzIjnJ+eAIhAIJbxmhIItZyEYpK6Pwy8eIWWO0u9Eu9\rg4oUYwl08mbk\r"
-            };
-
-        public static string GetEcdsaTestEdgeAgentSignature() => "c9AvfvMrcgv+jgamtd2VcHJbkajpu+7FfweuCt1ld7x4eDkGLDPuNNmEQkM1cZGwW1JXUd/zHLRp9rs1x9Zg3A==";
-
-        public static string[] GetRsaSignerTestCert() => new string[]
-            {
-                "\rMIIFxTCCA62gAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwVDELMAkGA1UEAwwCc3Mx\rCzAJBgNVBAgMAldBMQswCQYDVQQGEwJVUzERMA8GCSqGSIb3DQEJARYCc3MxCzAJ\rBgNVBAoMAnNzMQswCQYDVQQLDAJzczAeFw0xNTA1MDUwMDAwMDBaFw0yNDEyMzEy\rMzU5NTlaMFQxCzAJBgNVBAMMAnNzMQswCQYDVQQIDAJXQTELMAkGA1UEBhMCVVMx\rETAPBgkqhkiG9w0BCQEWAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MwggIi\rMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC/kWLjEMiQnAc7c3JP8PEIEA58\rmIkdQwaRNWhmZW0OsifBHJJvFgyA5CGEazQaFhcrnMjF2T8/eCoIg7/9+6bsX322\rYLLphXW87aohvUYF0VCcomQRuaYHSxKEGXyAoxmvoywuQP3CELnb6PKM71jLYZn4\r+6kvDHcfZ9vY+jlH4sZRc36sauBwxf3voqt4/07PcHKy6WiPElOd+jZsf82lDTp2\rSLad/cZI8fxJqJth7t9g2b99vEUOtSbs9OliAIwTVAHMIWjsP/dbvNe39TlkrRf3\r7XIWD0RoS6apvE/CFfr4gHFJBxYB553y7KOpdURocnTTQNoMmAqm7bZpVUril48/\r7HBx4qaMz+/h7Vbdn+xhIJmHwGAaylzB9p5lpHdAQ/aSYSSwqkqKh0+hCD8wA5Zt\rcpoSBS+rxGgNtWJrAEjMuatIIu055ckf8lqyD7I8AVSUVuZ5IzumVwgMdRdN3L86\rM9JtknGnGIwFeb4l3S/NCxzhTZmgSY1aZ6uXiAJrvjx5i5J8gx8Mw5OCUGsKks/v\redMV3JFUJiJoleDxu7RQMF5Dy2XlKe26/QiM4DdRyCv7GvDO6oMv9Gudl7FEnt/a\roxibOWppmgEI5fHyPwZdiMPpu7qL",
-                "+6AbkFAOQjyTh3Ri5Om9YaXV94zeTrL36ZsR\rA/s29xO/pB437azkcwIDAQABo4GgMIGdMAwGA1UdEwEB/wQCMAAwHQYDVR0OBBYE\rFHoCPM2gglKW8RF8+O/ao3wZMlZsMB8GA1UdIwQYMBaAFLVFJPuERtKpzqIC6fLQ\rZncCpGFaMAsGA1UdDwQEAwIBpjATBgNVHSUEDDAKBggrBgEFBQcDATArBgNVHREE\rJDAigg9hLmEuZXhhbXBsZS5jb22CD2IuYi5leGFtcGxlLmNvbTANBgkqhkiG9w0B\rAQsFAAOCAgEAEiLZpeycdnGWwNUS8LqcLVuJgAJEe10XgKWeUVHBSx3z1thzliXP\rbVsxiiW9V+3lNSaJJSbQkJVPDLV/sKdmSp3dQ/ll3abeSnLzap5FCco1wm2Ru8Vb\rNdJrRLW2hyQ+TFUrWGr9PqK5q6qKuQUywidFZkSvpLOL1eW5jTqUli1GzZio7YD1\rF/Qd4RBbKQTHbtrUMLwJujKIkAh/9dG13WevtdysxaLOYCmckytbE5Af+m1SSERa\r9FjUu22FAwIm9hk64NQgDlML6JKBj03rts51q+FO+D6U6c/VR3rmtZpvqy/Okf4X\rO82+SiTQ1EHLQpIKJhdAfJ7tpDMu0Hz3+qjRX1B8gpK4rnUoPMmmy4cTGjbDzKlL\rcJIP66xbR4tM0O8v1eWu4fJgHlPuYjok/tiIAxZFs8SKomeIEJSNaiOawp5XOshR\r3dggXZey6TDBB4uO2jgGNBQwu4vrFYlZVCcivPbKutjNHB3uhiBrA0yyeD/df1yX\rqwzlSg7cay0WMAbddK0jCFmrXbyRyAuoP/HB1UdQ7LygjsvPdf626xd9w6PihgxD\r9i0AeEqTVdwWfPpiDtRxGhJv/Kz9k17dVFYnJG7oMJrmZJ4kCg+QV/Yy8qRsjiV9\rmPsJeWqhiY5jfO3mC1sEmhb3dzhEW7ntj+xIgCcrlXoU9vkyA/HuPFI=\r"
-            };
-
-        public static string[] GetRsaIntermediateCATestCert() => new string[]
-            {
-                "\rMIIF0TCCA7mgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCVVMx\rCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsM\rAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMTUwNTA1MDAw\rMDAwWhcNMjQxMjMxMjM1OTU5WjBUMQswCQYDVQQDDAJzczELMAkGA1UECAwCV0Ex\rCzAJBgNVBAYTAlVTMREwDwYJKoZIhvcNAQkBFgJzczELMAkGA1UECgwCc3MxCzAJ\rBgNVBAsMAnNzMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA4SGilBtw\rS9iiCka47TzXHEXZuHPKOvZhs+kepLoL/xWWOo/eOcTfnPnD4M0wR0/+Dm3S6zld\rgdojYQPWU48K6mAlNeaTDF16SiTmuMvUvN0c0aifF+YL+9mZuQY30VMXHrjNTQ/e\rTtjEnrp8aOw08eBxFe5zYA+H9a6SnOXuCczH/X9KXlzcYivxPEDc3ImCC7v0DFsB\r7guWp6ZJpU75I5g6hP/tSn/JxaGA1Rp1quZzM0S1Y4eHxqfuhi6mmMFE2TRBRdBn\r5NFtaAmPSqUS51Ie4ryvUlHWCl4jUjKfbjlaFZexPrKAIa293UiJ5J/oywci81Gq\rboAiafB6gCkXFLARy/5aRV+9NGx/+bHPjGn8Q0/1Izhf+qhw8T494IQDkXcSWHNf\r5hw3EFJyrKFsnyMvhcyjNmXaN2JWbnmjw0v4M0xYUjqSyrHAUZVvc3bFQ/5lR2NJ\rbUuopq2f75TT07jvY0LLd5juqjOOntwuVhFpBEow4iT2ELalTI78RiDEcwdyfp9A\rr9Lom94V8yf1ZdJJg4WL4/1uZFOV4dPKxYtd73AISIXusYaI1bdXmPRbJmCZEdN3\rld3bKeuZisdeQmBNl55bnj0IcLQaESbfq77P",
-                "PSppZfU8dy8n4gznMtH9jBqRhU4L\r0hkbeMp6DcLbcC9NBqUImNz9jnCFlxzUEeECAwEAAaOBnzCBnDAPBgNVHRMBAf8E\rBTADAQH/MB0GA1UdDgQWBBS1RST7hEbSqc6iAuny0GZ3AqRhWjAfBgNVHSMEGDAW\rgBQusZAXF6xOrlU/BDkAJLwipDfQszALBgNVHQ8EBAMCAaYwEwYDVR0lBAwwCgYI\rKwYBBQUHAwEwJwYDVR0RBCAwHoINYS5leGFtcGxlLmNvbYINYi5leGFtcGxlLmNv\rbTANBgkqhkiG9w0BAQsFAAOCAgEADhMBwTaOemrA2YfYAz6G5VMKVqoi2buZbaUM\rCWBE4Laj0fjGmBMiDoch5jn4yhvVoLrCf1cWJC/CH2XZqBuxxaayQyeLNJ/z311b\rlrjosRURhmEDgE1SRKfHcN9GdywAsjvmCQkB5j5toBKSzLrRTEoP0fXhaicppHCp\rnUgut2b65Nlj9hYHSkIYujYaFG4vPjJD145yXd+HuwHeMqCunvVm50IsaVoA8OD5\rdg6zPSiecJQFlXIFNGs1kniRmMGOnHMzjM+uUE/uUfrdRiT2e0uq+FPWeYVWlHsO\rRzXYcW5iT23fzp2F6B6tOcACrHt1jMmU7QZVvcAo59aLdSeL+Dbvz8BD8tM5y4mn\rZgH8uIt2VI3uCaj5yVtl58X81//z5w94ihQKpzYZAGklVxCej4npp3g3usQS0ANO\r7bqPN9JVHM5VyxVKyFCSpmwh1cCEoPKJAAm6X/LEgZon6Mq8bBXAiKm06S272umT\rKQ18PjGZWSLJwbhutR2MGCtwbUjIokAWPej6pcmEzxy0wK7xtCMEqiH5hRntHAD8\ry5zTOfJ/XXBb8C56GkDhqjD7lu6gPHZLRYBkRIYHHMQi+xhK9j0k/wRoTiiTwkCw\rctkTDJW4O+im8RrylFeeWTfRsJ7PIDjGp89y+U8aAr5kZEFBT2h6RMDBoSLV9soX\ri4H2KRo=\r"
-            };
-
-        public static string GetRsaTestEdgeAgentSignature() => "h+N0UYSXsVACJYgLNMRMWnBYxWyPc7MO+HFFpIm+MRz71T7Z9lfL7COQW8eo3eDi/QUPCkv4ldXB0SZY0GmBCDj7H+IVh7BW6DmxXcj9zzhCzcZFcypoik14tdiE6JywQw/w4jvJu7w+ljFtrPOnzY+LzGNTPqocsVOl/lj4Vj3HlYPqdMocKfJTN6gEYPZ7iKesRzNjarAH44StdoIzvCYRbiHPcuLXNhsaUFZ6yanopCyiYzAgJkdCNbWnEl2wgIqr/0wBe3baDNuOROWNhR4FjfD0AhUR3urvuVnuU6zCeg6cWgESdxnAUrl3TfeVK724kzkMFANY1CeiUyQQrGmwlWanQhCKcKxeKTM7A6TSbvhVo4vcgb6i0apXiFPsjFp991/Vl71MgYVnepdWNmIS0K+B1fw1gkajPgBZARI7v9CS0TTVd00BuvruQRkliXhVXRAQ9132jh4py1pXqSUGMWDd0yXq36Fppm7CflGfDczzARMsYhA5CYAhJ0zDOz6jHJ0prZtqLQeQnbp00H9uQvvNa+8a35LAjGRle4c3AtKGCa427qRe7JS9n2S4YCsdwfQvclHh0+S6sKlCsWS6pqUsBcTplzrp44HuLx18yTpsnnoYe4srj9r/yuBn1xk2AiThPvc4wXAKccl7xY1U2p27ZFMXQIn2t1gyCus=";
 
         [Theory]
         [Unit]
@@ -1847,9 +1626,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
             var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>());
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1877,6 +1657,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             else
             {
                 EdgeAgentConnection.ValidateSchemaVersion(deployment);
+            }
+        }
+
+        [Unit]
+        [Theory]
+        [MemberData(nameof(GetTwinCollectionToCheckIfManifestSigningIsEnabled))]
+        public void TestCheckIfManifestSigningIsEnabled(bool expectedResult, EdgeAgentConnection edgeAgentConnection, TwinCollection twinDesiredProperties)
+        {
+            Assert.Equal(expectedResult, edgeAgentConnection.CheckIfManifestSigningIsEnabled(twinDesiredProperties));
+        }
+
+        [Unit]
+        [Theory]
+        [MemberData(nameof(GetTwinCollectionToCheckExtractAgentTwinAndVerify))]
+        public void TestExtractAgentTwinAndVerify(bool isExceptionExpected, bool expectedResult, EdgeAgentConnection edgeAgentConnection, TwinCollection twinDesiredProperties)
+        {
+            if (isExceptionExpected)
+            {
+                Assert.Throws<ManifestSigningIsNotEnabledProperly>(() => edgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
+            }
+            else
+            {
+                Assert.Equal(expectedResult, edgeAgentConnection.ExtractAgentTwinAndVerify(twinDesiredProperties));
+            }
+        }
+
+        [Unit]
+        [Theory]
+        [MemberData(nameof(GetTwinCollectionToCheckIfTwinSignatureIsValid))]
+        public void TestCheckTwinSignatureIsValid(bool isExceptionExpected, bool expectedResult, EdgeAgentConnection edgeAgentConnection, TwinCollection twinDesiredProperties)
+        {
+            if (isExceptionExpected)
+            {
+                Assert.Throws<ManifestSigningIsNotEnabledProperly>(() => edgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
+            }
+            else
+            {
+                Assert.Equal(expectedResult, edgeAgentConnection.CheckIfTwinSignatureIsValid(twinDesiredProperties));
             }
         }
 
@@ -2344,6 +2162,238 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 name = moduleName
             };
             return desiredProperties;
+        }
+
+        public static IEnumerable<object[]> GetTwinCollectionToCheckIfManifestSigningIsEnabled()
+        {
+            ISerde<DeploymentConfig> serde = GetSerde();
+            var deploymentConfig1 = GetDefaultDeploymentConfigForManifestSigning("edgeagentimagename", null);
+
+            string deploymentConfigJson1 = serde.Serialize(deploymentConfig1);
+            var twin1 = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson1) });
+
+            var moduleClient1 = new Mock<IModuleClient>();
+            moduleClient1.Setup(m => m.GetTwinAsync())
+                .ReturnsAsync(twin1);
+            moduleClient1.SetupGet(m => m.IsActive).Returns(true);
+
+            var moduleClientProvider1 = new Mock<IModuleClientProvider>();
+            moduleClientProvider1.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>()))
+                .ReturnsAsync(moduleClient1.Object);
+
+            var integrity2 = GetEcdsaManifestIntegrity();
+            var deploymentConfig2 = GetDefaultDeploymentConfigForManifestSigning("edgeagentimagename", integrity2);
+            string deploymentConfigJson2 = serde.Serialize(deploymentConfig2);
+            var twin2 = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson2) });
+
+            var moduleClient2 = new Mock<IModuleClient>();
+            moduleClient2.Setup(m => m.GetTwinAsync())
+                .ReturnsAsync(twin1);
+            moduleClient2.SetupGet(m => m.IsActive).Returns(true);
+
+            var moduleClientProvider2 = new Mock<IModuleClientProvider>();
+            moduleClientProvider2.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>()))
+                .ReturnsAsync(moduleClient2.Object);
+
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>();
+            var retryStrategy = new FixedInterval(3, TimeSpan.FromSeconds(2));
+            var deviceManager = new Mock<IDeviceManager>();
+            Option<X509Certificate2> manifestTrustBundle1 = Option.None<X509Certificate2>();
+            Option<X509Certificate2> manifestTrustBundle2 = GetEcdsaManifestTrustBundle();
+
+            // Case 1: Unsigned Twin with Empty Trust Bundle
+            yield return new object[] { false, new EdgeAgentConnection(moduleClientProvider1.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle1), twin1.Properties.Desired };
+            // Case 2: Unsigned Twin with Non-Empty Trust Bundle
+            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider1.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle2), twin1.Properties.Desired };
+            // Case 3: Signed Twin with Empty Trust Bundle
+            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider2.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle1), twin2.Properties.Desired };
+            // Case 4: Signed Twin with Non-Empty Trust Bundle
+            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider2.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle2), twin2.Properties.Desired };
+        }
+
+        public static IEnumerable<object[]> GetTwinCollectionToCheckIfTwinSignatureIsValid()
+        {
+            ManifestIntegrity integrityWithEcdsaCerts = GetEcdsaManifestIntegrity();
+            ManifestIntegrity integrityWithRsaCerts = GetRsaManifestIntegrity();
+            string edgeAgentRightImageName = GetEdgeAgentRightImageName();
+            string edgeAgentWrongImageName = GetEdgeAgentWrongImageName();
+            TwinCollection unsignedTwinData = GetTwinDesiredProperties(edgeAgentRightImageName, null);
+            TwinCollection goodTwinDataEcdsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithEcdsaCerts);
+            TwinCollection goodTwinDataRsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithRsaCerts);
+            TwinCollection badTwinDataEcdsa = GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithEcdsaCerts);
+            TwinCollection badTwinDataRsa = GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithRsaCerts);
+            // case 1 : Unsigned twin & Empty Manifest Trust bundle
+            yield return new object[] { false, true, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEmptyManifestTrustBundle()), unsignedTwinData };
+            // case 2 : Signed Twin (good & bad twin) Ecdsa and Rsa certs & Non-Empty Manifest Trust Bundle
+            yield return new object[] { false, true, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithEcdsaCerts, GetEcdsaManifestTrustBundle()), goodTwinDataEcdsa };
+            yield return new object[] { false, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentWrongImageName, integrityWithEcdsaCerts, GetEcdsaManifestTrustBundle()), badTwinDataEcdsa };
+            yield return new object[] { false, true, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithRsaCerts, GetRsaManifestTrustBundle()), goodTwinDataRsa };
+            yield return new object[] { false, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentWrongImageName, integrityWithRsaCerts, GetRsaManifestTrustBundle()), badTwinDataRsa };
+            // case 3: Signed Twin and Empty Manifest Trust Bundle - Expect Exception
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEmptyManifestTrustBundle()), goodTwinDataEcdsa };
+            // case 4: Unsigned twin & Non-Empty Manifest Trust bundle - Expect Exception
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEcdsaManifestTrustBundle()), unsignedTwinData };
+        }
+
+        public static IEnumerable<object[]> GetTwinCollectionToCheckExtractAgentTwinAndVerify()
+        {
+            ManifestIntegrity integrityWithEcdsaCerts = GetEcdsaManifestIntegrity();
+            ManifestIntegrity integrityWithRsaCerts = GetRsaManifestIntegrity();
+            string edgeAgentRightImageName = GetEdgeAgentRightImageName();
+            TwinCollection unsignedTwinData = GetTwinDesiredProperties(edgeAgentRightImageName, null);
+            string edgeAgentWrongImageName = GetEdgeAgentWrongImageName();
+            TwinCollection goodTwinDataEcdsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithEcdsaCerts);
+            TwinCollection goodTwinDataRsa = GetTwinDesiredProperties(edgeAgentRightImageName, integrityWithRsaCerts);
+            TwinCollection badTwinDataEcdsa = GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithEcdsaCerts);
+            TwinCollection badTwinDataRsa = GetTwinDesiredProperties(edgeAgentWrongImageName, integrityWithRsaCerts);
+
+            // case 1 : Unsigned twin & Empty Manifest Trust bundle - Expect Expection
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEmptyManifestTrustBundle()), unsignedTwinData };
+            // case 2 : Signed Twin (good & bad twin) Ecdsa and Rsa certs & Non-Empty Manifest Trust Bundle
+            yield return new object[] { false, true, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithEcdsaCerts, GetEcdsaManifestTrustBundle()), goodTwinDataEcdsa };
+            yield return new object[] { false, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithEcdsaCerts, GetEcdsaManifestTrustBundle()), badTwinDataEcdsa };
+            yield return new object[] { false, true, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithRsaCerts, GetRsaManifestTrustBundle()), goodTwinDataRsa };
+            yield return new object[] { false, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithRsaCerts, GetRsaManifestTrustBundle()), badTwinDataRsa };
+            // case 3: Signed Twin and Empty Manifest Trust Bundle - Expect Exception
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, integrityWithEcdsaCerts, GetEmptyManifestTrustBundle()), goodTwinDataEcdsa };
+            // case 4: Unsigned twin & Non-Empty Manifest Trust bundle - Expect Exception
+            yield return new object[] { true, false, GetEdgeAgentConnectionForManifestSigning(edgeAgentRightImageName, null, GetEcdsaManifestTrustBundle()), unsignedTwinData };
+        }
+
+        static ISerde<DeploymentConfig> GetSerde()
+        {
+            var moduleDeserializerTypes = new Dictionary<string, Type>
+            {
+               { DockerType, typeof(DockerDesiredModule) }
+            };
+
+            var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeAgentDockerModule) }
+            };
+
+            var edgeHubDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(EdgeHubDockerModule) }
+            };
+
+            var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+            {
+                { DockerType, typeof(DockerRuntimeInfo) }
+            };
+
+            var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+            {
+                [typeof(IModule)] = moduleDeserializerTypes,
+                [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+            };
+
+            return new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+        }
+
+        static DeploymentConfig GetDefaultDeploymentConfigForManifestSigning(string edgeAgentImageName, ManifestIntegrity integrity)
+        {
+            var runtimeInfo = new DockerRuntimeInfo("docker", new DockerRuntimeConfig("v1.25", null));
+            var edgeAgentDockerModule = new EdgeAgentDockerModule("docker", new DockerConfig(edgeAgentImageName, string.Empty, Option.None<string>()), ImagePullPolicy.OnCreate, null, null);
+            var edgeHubDockerModule = new EdgeHubDockerModule(
+                "docker",
+                ModuleStatus.Running,
+                RestartPolicy.Always,
+                new DockerConfig("mcr.microsoft.com/azureiotedge-hub:1.0", string.Empty, Option.None<string>()),
+                ImagePullPolicy.OnCreate,
+                Constants.DefaultStartupOrder,
+                null,
+                null);
+            return new DeploymentConfig(
+                "1.1",
+                runtimeInfo,
+                new SystemModules(edgeAgentDockerModule, edgeHubDockerModule),
+                new Dictionary<string, IModule>(),
+                integrity);
+        }
+
+        static TwinCollection GetTwinDesiredProperties(string edgeAgentImageName, ManifestIntegrity integrity)
+        {
+            ISerde<DeploymentConfig> serde = GetSerde();
+            DeploymentConfig deploymentConfig = GetDefaultDeploymentConfigForManifestSigning(edgeAgentImageName, integrity);
+            string deploymentConfigJson = serde.Serialize(deploymentConfig);
+            return new TwinCollection(deploymentConfigJson);
+        }
+
+        public static EdgeAgentConnection GetEdgeAgentConnectionForManifestSigning(string edgeAgentImageName, ManifestIntegrity integrity, Option<X509Certificate2> manifestTrustBundle)
+        {
+            ISerde<DeploymentConfig> serde = GetSerde();
+            DeploymentConfig deploymentConfig = GetDefaultDeploymentConfigForManifestSigning(edgeAgentImageName, integrity);
+            string deploymentConfigJson = serde.Serialize(deploymentConfig);
+            var twin = new Twin(new TwinProperties { Desired = new TwinCollection(deploymentConfigJson) });
+
+            var moduleClient = new Mock<IModuleClient>();
+            moduleClient.Setup(m => m.GetTwinAsync())
+                .ReturnsAsync(twin);
+            moduleClient.SetupGet(m => m.IsActive).Returns(true);
+
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            moduleClientProvider.Setup(m => m.Create(It.IsAny<ConnectionStatusChangesHandler>()))
+                .ReturnsAsync(moduleClient.Object);
+
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler>();
+            var retryStrategy = new FixedInterval(3, TimeSpan.FromSeconds(2));
+            var deviceManager = new Mock<IDeviceManager>();
+
+            return new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
+        }
+
+        public static string GetEdgeAgentRightImageName() => "mcr.microsoft.com/azureiotedge-agent:1.0";
+        public static string GetEdgeAgentWrongImageName() => "mcr.microsoft.com/azureiotedge-wrong-agent:1.0";
+
+        public static ManifestIntegrity GetEcdsaManifestIntegrity() => new ManifestIntegrity(new TwinHeader(GetEcdsaSignerTestCert(), GetEcdsaIntermediateCATestCert()), new TwinSignature(GetEcdsaTestEdgeAgentSignature(), "ES256"));
+
+        public static ManifestIntegrity GetRsaManifestIntegrity() => new ManifestIntegrity(new TwinHeader(GetRsaSignerTestCert(), GetRsaIntermediateCATestCert()), new TwinSignature(GetRsaTestEdgeAgentSignature(), "RS256"));
+
+        public static string[] GetEcdsaSignerTestCert() => new string[]
+            {
+                "\rMIICOTCCAd+gAwIBAgICEAAwCgYIKoZIzj0EAwIwVDELMAkGA1UEAwwCc3MxCzAJ\rBgNVBAgMAldBMQswCQYDVQQGEwJVUzERMA8GCSqGSIb3DQEJARYCc3MxCzAJBgNV\rBAoMAnNzMQswCQYDVQQLDAJzczAeFw0xNTA1MDUwMDAwMDBaFw0yNDEyMzEyMzU5\rNTlaMFQxCzAJBgNVBAMMAnNzMQswCQYDVQQIDAJXQTELMAkGA1UEBhMCVVMxETAP\rBgkqhkiG9w0BCQEWAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MwWTATBgcq\rhkjOPQIBBggqhkjOPQMBBwNCAAS7kA6viM5eN1Y/E+1KUOjLEZdhsygtbntGqV",
+                "7s\rMXG5ZEKr+drie2i6lMa8zu/hvHhOdbXiFVOZT045AYaGWBDRo4GgMIGdMAwGA1Ud\rEwEB/wQCMAAwHQYDVR0OBBYEFK0CsUii+1a5RlE+2aQMKrxwlFkeMB8GA1UdIwQY\rMBaAFI3svRm8zDySNcXiJCaqn6phhFtPMAsGA1UdDwQEAwIBpjATBgNVHSUEDDAK\rBggrBgEFBQcDATArBgNVHREEJDAigg9hLmEuZXhhbXBsZS5jb22CD2IuYi5leGFt\rcGxlLmNvbTAKBggqhkjOPQQDAgNIADBFAiBWXuB2+R1lXV3HPmmu7eJc3H2rpr8o\rKwR8wnDdnuYL+AIhAIM5nw1LLtEVKpIOP7DsrlxEQjPw1+nrj4/Ilb47Bqpq\r"
+            };
+
+        public static string[] GetEcdsaIntermediateCATestCert() => new string[]
+            {
+                "\rMIICRTCCAeugAwIBAgICEAAwCgYIKoZIzj0EAwIwYTELMAkGA1UEBhMCVVMxCzAJ\rBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsMAnNz\rMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMTUwNTA1MDAwMDAw\rWhcNMjQxMjMxMjM1OTU5WjBUMQswCQYDVQQDDAJzczELMAkGA1UECAwCV0ExCzAJ\rBgNVBAYTAlVTMREwDwYJKoZIhvcNAQkBFgJzczELMAkGA1UECgwCc3MxCzAJBgNV\rBAsMAnNzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Di5/tzZFOG1KrfoPwBa\rfgjF9I",
+                "DWI7EL5DIeowGfr/MyUmtwULyrLE2bAQUGv9KdH2oPg6aK//WutYqli6MN\rXaOBnzCBnDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSN7L0ZvMw8kjXF4iQm\rqp+qYYRbTzAfBgNVHSMEGDAWgBTNmen1wYUOUouvXOzNt+4Gk2ox1zALBgNVHQ8E\rBAMCAaYwEwYDVR0lBAwwCgYIKwYBBQUHAwEwJwYDVR0RBCAwHoINYS5leGFtcGxl\rLmNvbYINYi5leGFtcGxlLmNvbTAKBggqhkjOPQQDAgNIADBFAiBETS1txVUaZl8E\rWagr5+OFGbHEluKTVD3hltzIjnJ+eAIhAIJbxmhIItZyEYpK6Pwy8eIWWO0u9Eu9\rg4oUYwl08mbk\r"
+            };
+
+        public static string GetEcdsaTestEdgeAgentSignature() => "hFuKaB0Yywlxc0vbK0nVj8QBm5VIYcQJjscD8ltzJJnwUzf/bGlE7aOqsqFLZuAqO5wDvslMmurMx+Anx8ceJQ==";
+
+        public static Option<X509Certificate2> GetEmptyManifestTrustBundle() => Option.None<X509Certificate2>();
+
+        public static Option<X509Certificate2> GetEcdsaManifestTrustBundle()
+        {
+            string ecdsaManifestTrustbundleValue = "MIIFozCCA4ugAwIBAgIUD6luogGDzlhip/mEtJMAAHl0GaAwDQYJKoZIhvcNAQEL\rBQAwYTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkG\rA1UECgwCc3MxCzAJBgNVBAsMAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJ\rARYCc3MwHhcNMjAxMjMwMjMxNjU3WhcNMjMxMDIwMjMxNjU3WjBhMQswCQYDVQQG\rEwJVUzELMAkGA1UECAwCV0ExCzAJBgNVBAcMAnNzMQswCQYDVQQKDAJzczELMAkG\rA1UECwwCc3MxCzAJBgNVBAMMAnNzMREwDwYJKoZIhvcNAQkBFgJzczCCAiIwDQYJ\rKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKc6z0fuCrWaCeZCoF8VlxWQdrNIQS6z\rMwlzOF9mNh+WNZKFD8arPVGpCtiY5zghA0EzXUAIJgMlsrYPMHFH763Al7Ob5mR/\r7DNJqyR8NgZ9pBDGjqQsxxOHFAVaUQLeGzoeDUzUGdNpRWk0X+4JvgHqt0Hmuhzw\rpW00Pj7Cak7fs5VbUdp9k16oA/8vFnbcZ6UUKzxY9aiuN18B/CHOSDGc9yduUysc\r/SOdGU9B8R/OLr1hSjEnmvFmk3KU6kv1APgrFmaOW//gihNZbyXGk5NvNDOIjXfN\r1zc5Owmd6bGUYU2WCHMwIIzNYa3xf3Qfuz/4W1Ke8DBL2BpXokHHhrIXg5TD0Jvj\rqevrAOwRjb7dQV4shCv+jWpPUi4dDXJKZJUcpfZs23Rp7p/dGwMkFOUcw8udv2Ye\rx6j1H/pUxOnBmKd39kUkzY0TetwkQMrAnhMQ7zY0a2neDXk6wDDEK35CyAiM/xZf\rzhh/D8rZBWoK9OezEgdwosw7MJWQSc8mxNl4FaxELMdmGCr+6TI7C2Lg3+iIJooY\rFGDYOj1JxvXKFtaUUPUF6up3jH7FfbMSpLzmq/Yv95DvWV1KGS7LfzJmE7zBL4/1\r7WTjWT6heWKx5GQzck8U4OWt743mVhF13YqQ/U04ChOLDbz07lH4N+v4LcbdzwmR\rW4Wv7m7IY3abAgMBAAGjUzBRMB0GA1UdDgQWBBQusZAXF6xOrlU/BDkAJLwipDfQ\rszAfBgNVHSMEGDAWgBQusZAXF6xOrlU/BDkAJLwipDfQszAPBgNVHRMBAf8EBTAD\rAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQARO5HRzFyffGxmdsU1qmtxq01HUi02+3O8\rbdO2GQ2zwaMnfzi6V2q2VJrmK6g1LiWRcLo+9xX4qdDX7SXtaMtvOK7nQSUixwvz\rEXZVJcxeJ4wb5R6VlffApV9NiSe+HTJUXEjputSPzdP78ubytlKzRVdp4+fdGiax\r41ZVPs21BRENQbH5AnJ7LmqSU7ouzcSPxVFc1UKn+8gSmP2cJsZl0eZhA4KoF3MK\rZ1bp1O44YXwPJSWRQISBci70Qf6AP+PQRPBmhAMpDl5JbX6bxgjBCFODFADlmk+K\r6ruBaH5RlpxfRlP/JzNoz4k5yw8wp8UZkCPrUQwYKfjgCRt38q3twNL8pkOOp6u5\r/oRZxj4PncFbJUQy2cQeZW2zLSze+O8Oxi57WDHXjQqIkB5Hayj24CAY5PcEWMLD\rGoq8dIzVFxWqbqAObAGD13shP9ElH5MnELYqXfyphn0edDN6upDtMWZ3B7JYT8lk\rhnyG4QSDB9fWoxgZkHielqLuNGWB3BgIjMc/apRelxfVACXuTAf9wA5rDSxziJm6\rx9UnmMlmFVN+/t68/Zbn4tn+fM3ryYcMGAEQ+j6fpzoDSV+k2KvYJFg7bVP2V8On\rmWwSDWh+AiHrc4o09vgwsLh6c/XZHxoYSFbpcm8ZvVm2wx3b+q6R2UndQPKS6UP/\rCC+33/Zuew==";
+            X509Certificate2 ecdsaManifestTrustbundle = new X509Certificate2(Convert.FromBase64String(ecdsaManifestTrustbundleValue));
+            return Option.Some(ecdsaManifestTrustbundle);
+        }
+
+        public static string[] GetRsaSignerTestCert() => new string[]
+            {
+                "\rMIIFxTCCA62gAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwVDELMAkGA1UEAwwCc3Mx\rCzAJBgNVBAgMAldBMQswCQYDVQQGEwJVUzERMA8GCSqGSIb3DQEJARYCc3MxCzAJ\rBgNVBAoMAnNzMQswCQYDVQQLDAJzczAeFw0xNTA1MDUwMDAwMDBaFw0yNDEyMzEy\rMzU5NTlaMFQxCzAJBgNVBAMMAnNzMQswCQYDVQQIDAJXQTELMAkGA1UEBhMCVVMx\rETAPBgkqhkiG9w0BCQEWAnNzMQswCQYDVQQKDAJzczELMAkGA1UECwwCc3MwggIi\rMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQC/kWLjEMiQnAc7c3JP8PEIEA58\rmIkdQwaRNWhmZW0OsifBHJJvFgyA5CGEazQaFhcrnMjF2T8/eCoIg7/9+6bsX322\rYLLphXW87aohvUYF0VCcomQRuaYHSxKEGXyAoxmvoywuQP3CELnb6PKM71jLYZn4\r+6kvDHcfZ9vY+jlH4sZRc36sauBwxf3voqt4/07PcHKy6WiPElOd+jZsf82lDTp2\rSLad/cZI8fxJqJth7t9g2b99vEUOtSbs9OliAIwTVAHMIWjsP/dbvNe39TlkrRf3\r7XIWD0RoS6apvE/CFfr4gHFJBxYB553y7KOpdURocnTTQNoMmAqm7bZpVUril48/\r7HBx4qaMz+/h7Vbdn+xhIJmHwGAaylzB9p5lpHdAQ/aSYSSwqkqKh0+hCD8wA5Zt\rcpoSBS+rxGgNtWJrAEjMuatIIu055ckf8lqyD7I8AVSUVuZ5IzumVwgMdRdN3L86\rM9JtknGnGIwFeb4l3S/NCxzhTZmgSY1aZ6uXiAJrvjx5i5J8gx8Mw5OCUGsKks/v\redMV3JFUJiJoleDxu7RQMF5Dy2XlKe26/QiM4DdRyCv7GvDO6oMv9Gudl7FEnt/a\roxibOWppmgEI5fHyPwZdiMPpu7qL",
+                "+6AbkFAOQjyTh3Ri5Om9YaXV94zeTrL36ZsR\rA/s29xO/pB437azkcwIDAQABo4GgMIGdMAwGA1UdEwEB/wQCMAAwHQYDVR0OBBYE\rFHoCPM2gglKW8RF8+O/ao3wZMlZsMB8GA1UdIwQYMBaAFLVFJPuERtKpzqIC6fLQ\rZncCpGFaMAsGA1UdDwQEAwIBpjATBgNVHSUEDDAKBggrBgEFBQcDATArBgNVHREE\rJDAigg9hLmEuZXhhbXBsZS5jb22CD2IuYi5leGFtcGxlLmNvbTANBgkqhkiG9w0B\rAQsFAAOCAgEAEiLZpeycdnGWwNUS8LqcLVuJgAJEe10XgKWeUVHBSx3z1thzliXP\rbVsxiiW9V+3lNSaJJSbQkJVPDLV/sKdmSp3dQ/ll3abeSnLzap5FCco1wm2Ru8Vb\rNdJrRLW2hyQ+TFUrWGr9PqK5q6qKuQUywidFZkSvpLOL1eW5jTqUli1GzZio7YD1\rF/Qd4RBbKQTHbtrUMLwJujKIkAh/9dG13WevtdysxaLOYCmckytbE5Af+m1SSERa\r9FjUu22FAwIm9hk64NQgDlML6JKBj03rts51q+FO+D6U6c/VR3rmtZpvqy/Okf4X\rO82+SiTQ1EHLQpIKJhdAfJ7tpDMu0Hz3+qjRX1B8gpK4rnUoPMmmy4cTGjbDzKlL\rcJIP66xbR4tM0O8v1eWu4fJgHlPuYjok/tiIAxZFs8SKomeIEJSNaiOawp5XOshR\r3dggXZey6TDBB4uO2jgGNBQwu4vrFYlZVCcivPbKutjNHB3uhiBrA0yyeD/df1yX\rqwzlSg7cay0WMAbddK0jCFmrXbyRyAuoP/HB1UdQ7LygjsvPdf626xd9w6PihgxD\r9i0AeEqTVdwWfPpiDtRxGhJv/Kz9k17dVFYnJG7oMJrmZJ4kCg+QV/Yy8qRsjiV9\rmPsJeWqhiY5jfO3mC1sEmhb3dzhEW7ntj+xIgCcrlXoU9vkyA/HuPFI=\r"
+            };
+
+        public static string[] GetRsaIntermediateCATestCert() => new string[]
+            {
+                "\rMIIF0TCCA7mgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCVVMx\rCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UECgwCc3MxCzAJBgNVBAsM\rAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYCc3MwHhcNMTUwNTA1MDAw\rMDAwWhcNMjQxMjMxMjM1OTU5WjBUMQswCQYDVQQDDAJzczELMAkGA1UECAwCV0Ex\rCzAJBgNVBAYTAlVTMREwDwYJKoZIhvcNAQkBFgJzczELMAkGA1UECgwCc3MxCzAJ\rBgNVBAsMAnNzMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA4SGilBtw\rS9iiCka47TzXHEXZuHPKOvZhs+kepLoL/xWWOo/eOcTfnPnD4M0wR0/+Dm3S6zld\rgdojYQPWU48K6mAlNeaTDF16SiTmuMvUvN0c0aifF+YL+9mZuQY30VMXHrjNTQ/e\rTtjEnrp8aOw08eBxFe5zYA+H9a6SnOXuCczH/X9KXlzcYivxPEDc3ImCC7v0DFsB\r7guWp6ZJpU75I5g6hP/tSn/JxaGA1Rp1quZzM0S1Y4eHxqfuhi6mmMFE2TRBRdBn\r5NFtaAmPSqUS51Ie4ryvUlHWCl4jUjKfbjlaFZexPrKAIa293UiJ5J/oywci81Gq\rboAiafB6gCkXFLARy/5aRV+9NGx/+bHPjGn8Q0/1Izhf+qhw8T494IQDkXcSWHNf\r5hw3EFJyrKFsnyMvhcyjNmXaN2JWbnmjw0v4M0xYUjqSyrHAUZVvc3bFQ/5lR2NJ\rbUuopq2f75TT07jvY0LLd5juqjOOntwuVhFpBEow4iT2ELalTI78RiDEcwdyfp9A\rr9Lom94V8yf1ZdJJg4WL4/1uZFOV4dPKxYtd73AISIXusYaI1bdXmPRbJmCZEdN3\rld3bKeuZisdeQmBNl55bnj0IcLQaESbfq77P",
+                "PSppZfU8dy8n4gznMtH9jBqRhU4L\r0hkbeMp6DcLbcC9NBqUImNz9jnCFlxzUEeECAwEAAaOBnzCBnDAPBgNVHRMBAf8E\rBTADAQH/MB0GA1UdDgQWBBS1RST7hEbSqc6iAuny0GZ3AqRhWjAfBgNVHSMEGDAW\rgBQusZAXF6xOrlU/BDkAJLwipDfQszALBgNVHQ8EBAMCAaYwEwYDVR0lBAwwCgYI\rKwYBBQUHAwEwJwYDVR0RBCAwHoINYS5leGFtcGxlLmNvbYINYi5leGFtcGxlLmNv\rbTANBgkqhkiG9w0BAQsFAAOCAgEADhMBwTaOemrA2YfYAz6G5VMKVqoi2buZbaUM\rCWBE4Laj0fjGmBMiDoch5jn4yhvVoLrCf1cWJC/CH2XZqBuxxaayQyeLNJ/z311b\rlrjosRURhmEDgE1SRKfHcN9GdywAsjvmCQkB5j5toBKSzLrRTEoP0fXhaicppHCp\rnUgut2b65Nlj9hYHSkIYujYaFG4vPjJD145yXd+HuwHeMqCunvVm50IsaVoA8OD5\rdg6zPSiecJQFlXIFNGs1kniRmMGOnHMzjM+uUE/uUfrdRiT2e0uq+FPWeYVWlHsO\rRzXYcW5iT23fzp2F6B6tOcACrHt1jMmU7QZVvcAo59aLdSeL+Dbvz8BD8tM5y4mn\rZgH8uIt2VI3uCaj5yVtl58X81//z5w94ihQKpzYZAGklVxCej4npp3g3usQS0ANO\r7bqPN9JVHM5VyxVKyFCSpmwh1cCEoPKJAAm6X/LEgZon6Mq8bBXAiKm06S272umT\rKQ18PjGZWSLJwbhutR2MGCtwbUjIokAWPej6pcmEzxy0wK7xtCMEqiH5hRntHAD8\ry5zTOfJ/XXBb8C56GkDhqjD7lu6gPHZLRYBkRIYHHMQi+xhK9j0k/wRoTiiTwkCw\rctkTDJW4O+im8RrylFeeWTfRsJ7PIDjGp89y+U8aAr5kZEFBT2h6RMDBoSLV9soX\ri4H2KRo=\r"
+            };
+
+        public static string GetRsaTestEdgeAgentSignature() => "CDcHD10TZz41YV2MZ71qKV7lUaLDwkoHYaJ9uOpUz4dpJaZxcnWf/bqlMU49M7RZSxKjo3nhMllQRcdRS+qmwHCbpztupxk0R/24rMQcH58SUu9Rkk5qR3xMslyYDsA38MidvRL0J03IyArCZPn7kqxfaah/ExGFZbxUuAZvTEqsZdHJ2pTb4y1HkY4HyTWp5hBDuLmSXPi1awSpOlIZM91/NIclT1GJfAqPOkt/Nx7WTfVz+i4RaubMpdBSHfU23gbgzTHEZDXdKMmPg3GPDtijcM7OYE0QCuNEOR5UQLDOsw/kTM+WNqKYwipHnvNmSuhFgNNIcLuerCN9+pJlTTZicGK5+CwpVhbyP7PgHyX/gpshUjqELz762gPCM+At6OOEJz/rw8hhMI7iPbywFxQ6HDmAdidUhQF2rlAFOpRJWP8HrvKLJb8FtIIOyuuqdJEgiM6nMRAZxutADlnNai7C9SOojYcAXY52adUTUYB5GbqHs+bJHMCcAp7KQI02MjkvZDHPgqz47rT6kYyXKByJNNaxmauWezoe43HlNmpCa36zf4IoKMAEwvYH8jljxDWpW8JX7xXeahaPUAr3gqDTWyayGYwhoea7PnelqHAtTrxBHAaoVfGP/jJBalUpAgsCk89Pc7+yd3LQNn5ITXyYW6/E4W5YSm7CXkXJNWo=";
+
+        public static Option<X509Certificate2> GetRsaManifestTrustBundle()
+        {
+            string rsaManifestTrustbundleValue = "MIICFzCCAb2gAwIBAgIUeunTAXoXrkkpOhruRo+6yU3TTscwCgYIKoZIzj0EAwIw\rYTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAldBMQswCQYDVQQHDAJzczELMAkGA1UE\rCgwCc3MxCzAJBgNVBAsMAnNzMQswCQYDVQQDDAJzczERMA8GCSqGSIb3DQEJARYC\rc3MwHhcNMjAxMjMwMDMzMzQwWhcNMjMxMDIwMDMzMzQwWjBhMQswCQYDVQQGEwJV\rUzELMAkGA1UECAwCV0ExCzAJBgNVBAcMAnNzMQswCQYDVQQKDAJzczELMAkGA1UE\rCwwCc3MxCzAJBgNVBAMMAnNzMREwDwYJKoZIhvcNAQkBFgJzczBZMBMGByqGSM49\rAgEGCCqGSM49AwEHA0IABLjEK4Bfnn3A+Pfqr8E/w0BY8g6ppaWxYXla1cW+CdfU\rYefgD//xf5oOAn8gmoPa16ExSfoo+0uKE0JV/wIMCmOjUzBRMB0GA1UdDgQWBBTN\rmen1wYUOUouvXOzNt+4Gk2ox1zAfBgNVHSMEGDAWgBTNmen1wYUOUouvXOzNt+4G\rk2ox1zAPBgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0gAMEUCIQCKRR6LREiI\rcBCZd7FzGHytsaS8G+33eGW6v64H8KrBPAIgAar/GQ27aDaAjKzyfcAXnFIkQTeP\rIvWy2IsY58ESRRo=";
+            X509Certificate2 rsaManifestTrustbundle = new X509Certificate2(Convert.FromBase64String(rsaManifestTrustbundleValue));
+            return Option.Some(rsaManifestTrustbundle);
         }
     }
 }

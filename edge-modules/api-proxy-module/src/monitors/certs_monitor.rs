@@ -2,12 +2,15 @@ use std::{env, sync::Arc};
 
 use anyhow::{Context, Error, Result};
 use chrono::{DateTime, Duration, Utc};
-use futures_util::future::Either;
-use log::{error, warn};
+use futures_util::{
+    future::{self, Either},
+    pin_mut,
+};
+use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle, time};
 
-use super::file;
-use super::shutdown_handle;
+use crate::utils::file;
+use crate::utils::shutdown_handle;
 use edgelet_client::CertificateResponse;
 use shutdown_handle::ShutdownHandle;
 
@@ -16,12 +19,14 @@ const PROXY_SERVER_CERT_PATH: &str = "/app/server.crt";
 const PROXY_SERVER_PRIVATE_KEY_PATH: &str = "/app/private_key_server.pem";
 
 const PROXY_SERVER_VALIDITY_DAYS: i64 = 90;
+const CERTIFICATE_POLL_INTERVAL: tokio::time::Duration = tokio::time::Duration::from_secs(1);
 
 //Check for expiry of certificates. If certificates are expired: rotate.
 pub fn start(
-    notify_certs_rotated: Arc<Notify>,
+    notify_server_cert_reload_api_proxy: Arc<Notify>,
+    notify_trust_bundle_reload_api_proxy: Arc<Notify>,
 ) -> Result<(JoinHandle<Result<()>>, ShutdownHandle), Error> {
-    const CERTIFICATE_POLL_INTERVAL: tokio::time::Duration = tokio::time::Duration::from_secs(1);
+    info!("Initializing certs monitoring loop");
 
     let shutdown_signal = Arc::new(Notify::new());
     let shutdown_handle = ShutdownHandle(shutdown_signal.clone());
@@ -49,12 +54,9 @@ pub fn start(
         //Loop until trust bundle is received.
         while !new_trust_bundle {
             let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
-
-            if let Either::Right(_) =
-                futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
-                    .await
-            {
+            let timeout = time::sleep(CERTIFICATE_POLL_INTERVAL);
+            pin_mut!(wait_shutdown, timeout);
+            if let Either::Right(_) = future::select(timeout, wait_shutdown).await {
                 warn!("Shutting down certs monitor!");
                 return Ok(());
             }
@@ -78,19 +80,19 @@ pub fn start(
         }
 
         //Trust bundle just received. Request for a reset of the API proxy.
-        notify_certs_rotated.notify();
+        notify_trust_bundle_reload_api_proxy.notify_one();
+
+        info!("Starting certs monitoring loop");
 
         //Loop to check if server certificate expired.
         //It is implemented as a polling instead of a delay until certificate expiry, because clocks are unreliable.
         //If the system clock gets readjusted while the task is sleeping, the system might wake up after the certificate expiry.
         loop {
             let wait_shutdown = shutdown_signal.notified();
-            futures::pin_mut!(wait_shutdown);
+            let timeout = time::sleep(CERTIFICATE_POLL_INTERVAL);
+            pin_mut!(wait_shutdown, timeout);
 
-            if let Either::Right(_) =
-                futures::future::select(time::delay_for(CERTIFICATE_POLL_INTERVAL), wait_shutdown)
-                    .await
-            {
+            if let Either::Right(_) = future::select(timeout, wait_shutdown).await {
                 warn!("Shutting down certs monitor!");
                 return Ok(());
             }
@@ -117,7 +119,7 @@ pub fn start(
             };
 
             if new_server_cert {
-                notify_certs_rotated.notify();
+                notify_server_cert_reload_api_proxy.notify_one();
             }
         }
     });

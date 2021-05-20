@@ -10,12 +10,14 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::future::{self, BoxFuture};
 use openssl::{ssl::SslConnector, ssl::SslMethod, x509::X509};
-use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::percent_encode;
 use serde::Deserialize;
 use tokio::{io::AsyncRead, io::AsyncWrite, net::TcpStream};
-use tracing::{debug, error};
+use tokio_openssl::SslStream;
+use tracing::error;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
+use edgelet_client::IOTHUB_ENCODE_SET;
 use mqtt3::IoSource;
 
 const DEFAULT_TOKEN_DURATION_MINS: i64 = 60;
@@ -147,7 +149,8 @@ impl ClientIoSource {
                 })?;
             }
 
-            let config = SslConnector::builder(SslMethod::tls())
+            let hostname = address.split(':').next().unwrap_or(&address);
+            let mut ssl = SslConnector::builder(SslMethod::tls())
                 .map(|mut builder| {
                     if let Some(trust_bundle) = server_root_certificate {
                         X509::stack_from_pem(trust_bundle.as_bytes())
@@ -162,19 +165,17 @@ impl ClientIoSource {
                     builder.build()
                 })
                 .and_then(|conn| conn.configure())
+                .and_then(|config| config.into_ssl(hostname))
+                .and_then(|ssl| SslStream::new(ssl, stream))
                 .map_err(|e| Error::new(ErrorKind::NotConnected, e))?;
 
-            let hostname = address.split(':').next().unwrap_or(&address);
+            Pin::new(&mut ssl)
+                .connect()
+                .await
+                .map_err(|e| Error::new(ErrorKind::NotConnected, e))?;
 
-            let io = tokio_openssl::connect(config, &hostname, stream).await;
-
-            debug!("Tls connection {:?} for {:?}", io, address);
-
-            io.map(|io| {
-                let stream: Pin<Box<dyn ClientIo>> = Box::pin(io);
-                Ok((stream, password))
-            })
-            .map_err(|e| Error::new(ErrorKind::NotConnected, e))?
+            let stream: Pin<Box<dyn ClientIo>> = Box::pin(ssl);
+            Ok((stream, password))
         })
     }
 }
@@ -183,10 +184,6 @@ fn validate_length(id: &str) -> Result<(), TryFromIntError> {
     let _: u16 = id.len().try_into()?;
 
     Ok(())
-}
-
-define_encode_set! {
-    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
 }
 
 #[async_trait]
@@ -213,11 +210,11 @@ impl SasTokenSource {
         let audience = format!(
             "{}/devices/{}/modules/{}",
             provider_settings.iothub_hostname(),
-            percent_encode(provider_settings.device_id().as_bytes(), IOTHUB_ENCODE_SET).to_string(),
-            percent_encode(provider_settings.module_id().as_bytes(), IOTHUB_ENCODE_SET).to_string()
-        );
-        let resource_uri =
-            percent_encode(audience.to_lowercase().as_bytes(), IOTHUB_ENCODE_SET).to_string();
+            percent_encode(provider_settings.device_id().as_bytes(), IOTHUB_ENCODE_SET),
+            percent_encode(provider_settings.module_id().as_bytes(), IOTHUB_ENCODE_SET)
+        )
+        .to_lowercase();
+        let resource_uri = percent_encode(audience.as_bytes(), IOTHUB_ENCODE_SET);
         let sig_data = format!("{}\n{}", &resource_uri, expiry);
 
         let client = edgelet_client::workload(provider_settings.workload_uri()).map_err(|e| {
@@ -287,7 +284,7 @@ impl TrustBundleSource {
                     )
                 })?;
                 let cert = trust_bundle.certificate();
-                Some(cert.to_owned())
+                Some(cert.clone())
             }
             Credentials::PlainText(cred_settings) => {
                 cred_settings.trust_bundle().map(str::to_string)
@@ -309,41 +306,30 @@ pub enum Credentials {
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct CredentialProviderSettings {
-    #[serde(rename = "iotedge_iothubhostname")]
     iothub_hostname: String,
-
-    #[serde(rename = "iotedge_gatewayhostname")]
     gateway_hostname: String,
-
-    #[serde(rename = "iotedge_deviceid")]
     device_id: String,
-
-    #[serde(rename = "iotedge_moduleid")]
     module_id: String,
-
-    #[serde(rename = "iotedge_modulegenerationid")]
     generation_id: String,
-
-    #[serde(rename = "iotedge_workloaduri")]
     workload_uri: String,
 }
 
 impl CredentialProviderSettings {
     pub fn new(
-        iothub_hostname: String,
-        gateway_hostname: String,
-        device_id: String,
-        module_id: String,
-        generation_id: String,
-        workload_uri: String,
+        iothub_hostname: impl Into<String>,
+        gateway_hostname: impl Into<String>,
+        device_id: impl Into<String>,
+        module_id: impl Into<String>,
+        generation_id: impl Into<String>,
+        workload_uri: impl Into<String>,
     ) -> Self {
         CredentialProviderSettings {
-            iothub_hostname,
-            gateway_hostname,
-            device_id,
-            module_id,
-            generation_id,
-            workload_uri,
+            iothub_hostname: iothub_hostname.into(),
+            gateway_hostname: gateway_hostname.into(),
+            device_id: device_id.into(),
+            module_id: module_id.into(),
+            generation_id: generation_id.into(),
+            workload_uri: workload_uri.into(),
         }
     }
 
@@ -375,25 +361,22 @@ impl CredentialProviderSettings {
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 pub struct AuthenticationSettings {
     client_id: String,
-
     username: String,
-
     password: String,
-
     trust_bundle: Option<String>,
 }
 
 impl AuthenticationSettings {
     pub fn new(
-        client_id: String,
-        username: String,
-        password: String,
+        client_id: impl Into<String>,
+        username: impl Into<String>,
+        password: impl Into<String>,
         trust_bundle: Option<String>,
     ) -> Self {
         Self {
-            client_id,
-            username,
-            password,
+            client_id: client_id.into(),
+            username: username.into(),
+            password: password.into(),
             trust_bundle,
         }
     }

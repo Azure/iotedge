@@ -1,14 +1,13 @@
+auto_reprovisioning_mode = "Dynamic"
 hostname = "my-device"
 
 [provisioning]
-always_reprovision_on_startup = true
 source = "dps"
 global_endpoint = "https://global.azure-devices-provisioning.net/"
 id_scope = "0ab1234C5D6"
 
 [provisioning.attestation]
 method = "x509"
-registration_id = "my-device"
 identity_cert = "file:///var/secrets/device-id.pem"
 identity_pk = "file:///var/secrets/device-id.key.pem"
 

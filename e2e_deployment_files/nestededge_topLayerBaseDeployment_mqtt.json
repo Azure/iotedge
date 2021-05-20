@@ -24,12 +24,12 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             },
-            "https_proxy": {
-              "value": "<proxyAddress>"
-            },
             "env": {
               "UpstreamProtocol": {
-                "value": "Mqtt"
+                "value": "mqtt"
+              },
+              "https_proxy": {
+                "value": "<proxyAddress>"
               }
             }
           },
@@ -89,7 +89,7 @@
               }
             }
           },
-          "iotedgeApiProxy": {
+          "IoTEdgeAPIProxy": {
             "version": "1.0",
             "type": "docker",
             "status": "running",

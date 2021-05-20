@@ -1,6 +1,9 @@
 trigger: none
 pr: none
 
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 ################################################################################
   - job: linux_arm32

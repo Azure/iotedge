@@ -242,7 +242,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var endpointExecutorConfig = new EndpointExecutorConfig(defaultTimeout, defaultRetryStrategy, defaultRevivePeriod, true);
 
             var cloudProxyDispatcher = new BrokeredCloudProxyDispatcher();
-            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher);
+            var cloudConnectionProvider = new BrokeredCloudConnectionProvider(cloudProxyDispatcher, new NullDeviceScopeIdentitiesCache());
 
             var identityProvider = new IdentityProvider(iotHubName);
             var deviceConnectivityManager = new BrokeredDeviceConnectivityManager(cloudProxyDispatcher);
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter.Test
             var connectionManager = new ConnectionManager(cloudConnectionProvider, Mock.Of<ICredentialsCache>(), new IdentityProvider(iotHubName), deviceConnectivityManager);
 
             var routingMessageConverter = new RoutingMessageConverter();
-            var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10));
+            var routeFactory = new EdgeRouteFactory(new EndpointFactory(connectionManager, routingMessageConverter, edgeDeviceId, 10, 10, true));
             var routesList = new[] { routeFactory.Create("FROM /messages INTO $upstream") };
             var endpoints = routesList.Select(r => r.Endpoint);
             var routerConfig = new RouterConfig(endpoints, routesList);

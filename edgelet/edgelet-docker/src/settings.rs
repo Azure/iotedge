@@ -5,8 +5,8 @@ use std::path::Path;
 
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{
-    Connect, Endpoints, Listen, MobyNetwork, ModuleSpec, RuntimeSettings, Settings as BaseSettings,
-    UrlExt, WatchdogSettings,
+    settings::AutoReprovisioningMode, Connect, Endpoints, Listen, MobyNetwork, ModuleSpec,
+    RuntimeSettings, Settings as BaseSettings, UrlExt, WatchdogSettings,
 };
 use failure::{Context, Fail, ResultExt};
 
@@ -19,7 +19,6 @@ use crate::error::{Error, ErrorKind};
 const EDGE_NETWORKID_KEY: &str = "NetworkId";
 
 const UNIX_SCHEME: &str = "unix";
-pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct MobyRuntime {
@@ -113,10 +112,6 @@ impl RuntimeSettings for Settings {
         self.base.hostname()
     }
 
-    fn parent_hostname(&self) -> Option<&str> {
-        self.base.parent_hostname()
-    }
-
     fn connect(&self) -> &Connect {
         self.base.connect()
     }
@@ -148,6 +143,14 @@ impl RuntimeSettings for Settings {
     fn trust_bundle_cert(&self) -> Option<&str> {
         self.base.trust_bundle_cert()
     }
+
+    fn manifest_trust_bundle_cert(&self) -> Option<&str> {
+        self.base.manifest_trust_bundle_cert()
+    }
+
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
+        self.base.auto_reprovisioning_mode()
+    }
 }
 
 fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
@@ -161,28 +164,6 @@ fn init_agent_spec(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     agent_networking(settings)?;
 
     agent_labels(settings)?;
-
-    // In nested scenario, Agent image can be pulled from its parent.
-    // It is possible to specify the parent address using the keyword $upstream
-    agent_image_resolve(settings)?;
-
-    Ok(())
-}
-
-fn agent_image_resolve(settings: &mut Settings) -> Result<(), LoadSettingsError> {
-    let image = settings.agent().config().image().to_string();
-
-    if let Some(parent_hostname) = settings.parent_hostname() {
-        if image.starts_with(UPSTREAM_PARENT_KEYWORD) {
-            let image_nested = format!(
-                "{}{}",
-                parent_hostname,
-                &image[UPSTREAM_PARENT_KEYWORD.len()..]
-            );
-            let config = settings.agent().config().clone().with_image(image_nested);
-            settings.agent_mut().set_config(config);
-        }
-    }
 
     Ok(())
 }
@@ -327,10 +308,8 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, RuntimeSettings, Settings, Url};
-    use crate::settings::agent_image_resolve;
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};
     use std::cmp::Ordering;
 
@@ -346,8 +325,6 @@ mod tests {
     static GOOD_SETTINGS_CONTENT_TRUST: &str = "test/linux/sample_settings_content_trust.toml";
     #[cfg(unix)]
     static BAD_SETTINGS_CONTENT_TRUST: &str = "test/linux/bad_settings_content_trust.toml";
-    #[cfg(unix)]
-    static GOOD_SETTINGS_IMAGE_RESOLVE: &str = "test/linux/sample_settings_image_resolve.toml";
 
     lazy_static::lazy_static! {
         static ref ENV_LOCK: std::sync::Mutex<()> = Default::default();
@@ -486,19 +463,6 @@ mod tests {
         assert_eq!(
             labels.get("net.azure-devices.edge.env"),
             Some(&"{}".to_string())
-        );
-    }
-
-    #[test]
-    fn agent_image_is_resolved() {
-        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
-        std::env::set_var("AZIOT_EDGED_CONFIG", GOOD_SETTINGS_IMAGE_RESOLVE);
-        let mut settings = Settings::new().unwrap();
-        agent_image_resolve(&mut settings).unwrap();
-
-        assert_eq!(
-            "parent_hostname:443/microsoft/azureiotedge-agent:1.0",
-            settings.agent().config().image()
         );
     }
 

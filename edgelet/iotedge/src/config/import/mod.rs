@@ -12,7 +12,7 @@
 
 mod old_config;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use config::Config;
 
@@ -58,18 +58,32 @@ File {} already exists. Azure IoT Edge has already been configured.
 
 To have the configuration take effect, run:
 
-    iotedge config apply
+    sudo iotedge config apply
 
 To reconfigure IoT Edge, run:
 
-    iotedge config import --force
+    sudo iotedge config import --force
 ",
             new_config_file.display()
         )
         .into());
     }
 
-    let config = execute_inner(old_config_file)?;
+    let old_master_encryption_key_path = {
+        // libiothsm derived the filenames for encryption keys from their alias (see `normalize_alias_file_path`)
+        // so the name of the master encryption key can be hard-coded.
+        const OLD_MASTER_ENCRYPTION_KEY_PATH: &str =
+            "/var/lib/iotedge/hsm/enc_keys/edgelet-masterWt5mT2xpO72EPKlt2Tt0Sq4uJCrMvfl2rzzKRB3pnyo_.enc.key";
+
+        let old_master_encryption_key_path = Path::new(OLD_MASTER_ENCRYPTION_KEY_PATH);
+        if old_master_encryption_key_path.is_file() {
+            Some(old_master_encryption_key_path.to_owned())
+        } else {
+            None
+        }
+    };
+
+    let config = execute_inner(old_config_file, old_master_encryption_key_path)?;
 
     common_config::write_file(new_config_file, &config, &root_user, 0o0600)
         .map_err(|err| format!("{:?}", err))?;
@@ -82,14 +96,17 @@ To reconfigure IoT Edge, run:
     println!("To apply the new configuration to services, run:");
     println!();
     println!(
-        "    iotedge config apply -c '{}'",
+        "    sudo iotedge config apply -c '{}'",
         new_config_file.display()
     );
 
     Ok(())
 }
 
-fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'static, str>> {
+fn execute_inner(
+    old_config_file: &Path,
+    old_master_encryption_key_path: Option<PathBuf>,
+) -> Result<Vec<u8>, std::borrow::Cow<'static, str>> {
     let old_config_file_display = old_config_file.display();
 
     let old_config_contents = match std::fs::read_to_string(old_config_file) {
@@ -141,14 +158,13 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
         moby_runtime,
     } = old_config;
 
-    let provisioning = {
+    let (provisioning, auto_reprovisioning_mode) = {
         let old_config::Provisioning {
             provisioning,
-            // TODO: Migrate this to edged config when support for dynamic reprovisioning is reinstated in edged.
-            dynamic_reprovisioning: _,
+            dynamic_reprovisioning,
         } = provisioning;
 
-        match provisioning {
+        let (provisioning, always_reprovision_on_startup) = match provisioning {
             old_config::ProvisioningType::Manual(old_config::Manual {
                 authentication:
                     old_config::ManualAuthMethod::DeviceConnectionString(
@@ -158,21 +174,24 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                             shared_access_key,
                         },
                     ),
-            }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup: true,
-                provisioning: common_config::super_config::ProvisioningType::Manual {
-                    inner: common_config::super_config::ManualProvisioning::Explicit {
-                        iothub_hostname: hostname,
-                        device_id,
-                        authentication:
-                            common_config::super_config::ManualAuthMethod::SharedPrivateKey {
-                                device_id_pk: common_config::super_config::SymmetricKey::Inline {
-                                    value: shared_access_key,
+            }) => (
+                common_config::super_config::Provisioning {
+                    provisioning: common_config::super_config::ProvisioningType::Manual {
+                        inner: common_config::super_config::ManualProvisioning::Explicit {
+                            iothub_hostname: hostname,
+                            device_id,
+                            authentication:
+                                common_config::super_config::ManualAuthMethod::SharedPrivateKey {
+                                    device_id_pk:
+                                        common_config::super_config::SymmetricKey::Inline {
+                                            value: shared_access_key,
+                                        },
                                 },
-                            },
+                        },
                     },
                 },
-            },
+                false,
+            ),
 
             old_config::ProvisioningType::Manual(old_config::Manual {
                 authentication:
@@ -182,27 +201,29 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         identity_cert,
                         identity_pk,
                     }),
-            }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup: true,
-                provisioning: common_config::super_config::ProvisioningType::Manual {
-                    inner: common_config::super_config::ManualProvisioning::Explicit {
-                        iothub_hostname,
-                        device_id,
-                        authentication: common_config::super_config::ManualAuthMethod::X509 {
-                            identity: common_config::super_config::X509Identity::Preloaded {
-                                identity_cert,
-                                identity_pk: {
-                                    let identity_pk: aziot_keys_common::PreloadedKeyLocation =
+            }) => (
+                common_config::super_config::Provisioning {
+                    provisioning: common_config::super_config::ProvisioningType::Manual {
+                        inner: common_config::super_config::ManualProvisioning::Explicit {
+                            iothub_hostname,
+                            device_id,
+                            authentication: common_config::super_config::ManualAuthMethod::X509 {
+                                identity: common_config::super_config::X509Identity::Preloaded {
+                                    identity_cert,
+                                    identity_pk: {
+                                        let identity_pk: aziot_keys_common::PreloadedKeyLocation =
                                         identity_pk.to_string()
                                         .parse()
                                         .map_err(|err| format!("could not parse provisioning.authentication.identity_pk: {}", err))?;
-                                    identity_pk
+                                        identity_pk
+                                    },
                                 },
                             },
                         },
                     },
                 },
-            },
+                false,
+            ),
 
             old_config::ProvisioningType::Dps(old_config::Dps {
                 global_endpoint,
@@ -215,19 +236,22 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         },
                     ),
                 always_reprovision_on_startup,
-            }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup,
-                provisioning: common_config::super_config::ProvisioningType::Dps {
-                    global_endpoint,
-                    id_scope: scope_id,
-                    attestation: common_config::super_config::DpsAttestationMethod::SymmetricKey {
-                        registration_id,
-                        symmetric_key: common_config::super_config::SymmetricKey::Inline {
-                            value: symmetric_key,
-                        },
+            }) => (
+                common_config::super_config::Provisioning {
+                    provisioning: common_config::super_config::ProvisioningType::Dps {
+                        global_endpoint,
+                        id_scope: scope_id,
+                        attestation:
+                            common_config::super_config::DpsAttestationMethod::SymmetricKey {
+                                registration_id,
+                                symmetric_key: common_config::super_config::SymmetricKey::Inline {
+                                    value: symmetric_key,
+                                },
+                            },
                     },
                 },
-            },
+                always_reprovision_on_startup,
+            ),
 
             old_config::ProvisioningType::Dps(old_config::Dps {
                 global_endpoint,
@@ -239,28 +263,28 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         identity_pk,
                     }),
                 always_reprovision_on_startup,
-            }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup,
-                provisioning: common_config::super_config::ProvisioningType::Dps {
-                    global_endpoint,
-                    id_scope: scope_id,
-                    attestation: common_config::super_config::DpsAttestationMethod::X509 {
-                        // TODO: Remove this when IS supports registration ID being optional for DPS-X509
-                        registration_id: registration_id
-                            .ok_or_else(|| "registration ID is currently required")?,
-                        identity: common_config::super_config::X509Identity::Preloaded {
-                            identity_cert,
-                            identity_pk: {
-                                let identity_pk: aziot_keys_common::PreloadedKeyLocation =
+            }) => (
+                common_config::super_config::Provisioning {
+                    provisioning: common_config::super_config::ProvisioningType::Dps {
+                        global_endpoint,
+                        id_scope: scope_id,
+                        attestation: common_config::super_config::DpsAttestationMethod::X509 {
+                            registration_id,
+                            identity: common_config::super_config::X509Identity::Preloaded {
+                                identity_cert,
+                                identity_pk: {
+                                    let identity_pk: aziot_keys_common::PreloadedKeyLocation =
                                         identity_pk.to_string()
                                         .parse()
                                         .map_err(|err| format!("could not parse provisioning.attestation.identity_pk: {}", err))?;
-                                identity_pk
+                                    identity_pk
+                                },
                             },
                         },
                     },
                 },
-            },
+                always_reprovision_on_startup,
+            ),
 
             old_config::ProvisioningType::Dps(old_config::Dps {
                 global_endpoint,
@@ -270,21 +294,37 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
                         registration_id,
                     }),
                 always_reprovision_on_startup,
-            }) => common_config::super_config::Provisioning {
-                always_reprovision_on_startup,
-                provisioning: common_config::super_config::ProvisioningType::Dps {
-                    global_endpoint,
-                    id_scope: scope_id,
-                    attestation: common_config::super_config::DpsAttestationMethod::Tpm {
-                        registration_id,
+            }) => (
+                common_config::super_config::Provisioning {
+                    provisioning: common_config::super_config::ProvisioningType::Dps {
+                        global_endpoint,
+                        id_scope: scope_id,
+                        attestation: common_config::super_config::DpsAttestationMethod::Tpm {
+                            registration_id,
+                        },
                     },
                 },
-            },
+                always_reprovision_on_startup,
+            ),
 
             old_config::ProvisioningType::External(_) => {
                 return Err("external provisioning is not supported.".into())
             }
-        }
+        };
+
+        // When both 'dynamic reprovisioning' and 'always reprovision on startup' settings
+        // are set in the old configuration, 'dynamic reprovisioning' is prioritized,
+        // since it also triggers a reprovisioning before restarting the daemon.
+
+        let auto_reprovisioning_mode = if dynamic_reprovisioning {
+            edgelet_core::settings::AutoReprovisioningMode::Dynamic
+        } else if always_reprovision_on_startup {
+            edgelet_core::settings::AutoReprovisioningMode::AlwaysOnStartup
+        } else {
+            edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly
+        };
+
+        (provisioning, auto_reprovisioning_mode)
     };
 
     let (edge_ca, trust_bundle_cert) = {
@@ -300,7 +340,7 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
             }) = device_cert
             {
                 (
-                    Some(super_config::EdgeCa::Explicit {
+                    Some(super_config::EdgeCa::Preloaded {
                         cert: device_ca_cert,
                         pk: device_ca_pk,
                     }),
@@ -320,12 +360,17 @@ fn execute_inner(old_config_file: &Path) -> Result<Vec<u8>, std::borrow::Cow<'st
     };
 
     let config = super_config::Config {
-        parent_hostname,
-
         trust_bundle_cert,
+
+        auto_reprovisioning_mode,
+
+        imported_master_encryption_key: old_master_encryption_key_path,
+
+        manifest_trust_bundle_cert: None,
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
+            parent_hostname,
 
             provisioning,
 
@@ -552,9 +597,25 @@ mod tests {
             println!(".\n.\n=========\n.\nRunning test {}", test_name);
 
             let old_config_file = case_directory.join("old-config.yaml");
+            if !old_config_file.exists() {
+                // apply-specific test
+                continue;
+            }
+
             let expected_config = std::fs::read(case_directory.join("super-config.toml")).unwrap();
 
-            let actual_config = super::execute_inner(&old_config_file).unwrap();
+            let old_master_encryption_key_path = {
+                let expected_preloaded_master_encryption_key_path =
+                    case_directory.join("master-encryption-key");
+                if expected_preloaded_master_encryption_key_path.exists() {
+                    Some("/tmp/master-encryption-key".into())
+                } else {
+                    None
+                }
+            };
+
+            let actual_config =
+                super::execute_inner(&old_config_file, old_master_encryption_key_path).unwrap();
 
             // Convert the file contents to bytes::Bytes before asserting, because bytes::Bytes's Debug format
             // prints human-readable strings instead of raw u8s.

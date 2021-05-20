@@ -14,11 +14,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class EdgeHubCertificates
     {
-        EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle)
+        EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle, Option<X509Certificate2> manifestTrustBundle)
         {
             this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.CertificateChain = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain));
             this.TrustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
+            this.ManifestTrustBundle = manifestTrustBundle;
         }
 
         public X509Certificate2 ServerCertificate { get; }
@@ -26,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public IList<X509Certificate2> CertificateChain { get; }
 
         public IList<X509Certificate2> TrustBundle { get; }
+
+        public Option<X509Certificate2> ManifestTrustBundle { get; }
 
         public static async Task<EdgeHubCertificates> LoadAsync(IConfigurationRoot configuration, ILogger logger)
         {
@@ -53,11 +56,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
                 certificates = await CertificateHelper.GetServerCertificatesFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId, edgeHubHostname, expiration);
                 IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
+                Option<X509Certificate2> manifestTrustBundle = await CertificateHelper.GetManifestTrustBundleFromEdgelet(workloadUri, edgeletApiVersion, Constants.WorkloadApiVersion, moduleId, generationId);
 
                 result = new EdgeHubCertificates(
                     certificates.ServerCertificate,
                     certificates.CertificateChain?.ToList(),
-                    trustBundle?.ToList());
+                    trustBundle?.ToList(),
+                    manifestTrustBundle);
             }
             else if (!string.IsNullOrEmpty(edgeHubDevCertPath) &&
                      !string.IsNullOrEmpty(edgeHubDevPrivateKeyPath) &&
@@ -72,14 +77,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 result = new EdgeHubCertificates(
                     certificates.ServerCertificate,
                     certificates.CertificateChain?.ToList(),
-                    trustBundle?.ToList());
+                    trustBundle?.ToList(),
+                    Option.None<X509Certificate2>());
             }
             else if (!string.IsNullOrEmpty(edgeHubDockerCertPFXPath) &&
                      !string.IsNullOrEmpty(edgeHubDockerCaChainCertPath))
             {
                 // If no connection string was set and we use iotedge devdiv style certificates for development
                 List<X509Certificate2> certificateChain = CertificateHelper.GetServerCACertificatesFromFile(edgeHubDockerCaChainCertPath)?.ToList();
-                result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain, new List<X509Certificate2>());
+                result = new EdgeHubCertificates(new X509Certificate2(edgeHubDockerCertPFXPath), certificateChain, new List<X509Certificate2>(), Option.None<X509Certificate2>());
             }
             else
             {

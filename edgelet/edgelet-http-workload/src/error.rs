@@ -164,6 +164,7 @@ pub enum EncryptionOperation {
     Decrypt,
     Encrypt,
     GetTrustBundle,
+    GetManifestTrustBundle,
     Sign,
 }
 
@@ -173,6 +174,9 @@ impl fmt::Display for EncryptionOperation {
             EncryptionOperation::Decrypt => write!(f, "Could not decrypt"),
             EncryptionOperation::Encrypt => write!(f, "Could not encrypt"),
             EncryptionOperation::GetTrustBundle => write!(f, "Could not get trust bundle"),
+            EncryptionOperation::GetManifestTrustBundle => {
+                write!(f, "Could not get manifest trust bundle")
+            }
             EncryptionOperation::Sign => write!(f, "Could not sign"),
         }
     }

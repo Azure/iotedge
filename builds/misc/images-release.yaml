@@ -19,7 +19,6 @@ jobs:
             docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
             docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
         displayName: 'Docker Login'
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       # Build
@@ -29,7 +28,6 @@ jobs:
           args: "-c Release"
           scriptPath: scripts/linux/buildBranch.sh
       - template: templates/build-broker-watchdog.yaml
-      - template: templates/consolidate-build-artifacts.yaml
       # Code Sign
       - template: ../templates/dotnet2-globaljson.yaml # switch to dotnet 2 as primary install for code sign
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
