@@ -1,4 +1,4 @@
-# 1.1.3 (2021-05-21)
+# 1.1.3 (2021-05-24)
 ## Edge Agent
 ### Bug Fixes
 * Update GetModuleLogs method when tail + since + until options are provided. [c1dba55](https://github.com/Azure/iotedge/commit/c1dba55ece869932b5a75ae0de658121dd75e54f)
