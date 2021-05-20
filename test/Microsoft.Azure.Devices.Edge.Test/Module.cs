@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 TempFilterToCloud = $"FROM /messages/modules/{filterName}/outputs/alertOutput INTO $upstream",
                                 TempSensorToTempFilter = $"FROM /messages/modules/{SensorName}/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/{filterName}/inputs/input1')"
                             }
-                        } );
+                        });
                 },
                 token,
                 Context.Current.NestedEdge);
@@ -116,7 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        [Category("Unstable")]
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
