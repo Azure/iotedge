@@ -54,6 +54,8 @@ jobs:
         condition: succeededOrFailed()        
       - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/generic-mqtt-tester"
         displayName: Clippy (Generic MQTT Tester)
+      - bash: scripts/linux/generic-rust/audit.sh --project-root "test/modules/generic-mqtt-tester"
+        displayName: Audit (Generic MQTT Tester)
 
       - bash: scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" --packages "Cargo.toml" --manifest-path
         displayName: Build Observability-Agent Client Module           
@@ -61,3 +63,5 @@ jobs:
         displayName: Format Code (Observability-Agent Client)
       - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/obsagent-client"
         displayName: Clippy (Observability-Agent Client)
+      - bash: scripts/linux/generic-rust/audit.sh --project-root "test/modules/obsagent-client"
+        displayName: Audit (Observability-Agent Client)

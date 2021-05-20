@@ -38,3 +38,5 @@ jobs:
         displayName: Build
       - bash: edge-modules/api-proxy-module/build/linux/test.sh
         displayName: Test
+      - bash: scripts/linux/generic-rust/audit.sh --project-root "edge-modules/api-proxy-module"
+        displayName: Audit

@@ -53,6 +53,8 @@ jobs:
           testResultsFiles: "**/test-results.xml"
           failTaskOnFailedTests: true
         condition: succeededOrFailed()
+      - bash: scripts/linux/generic-rust/audit.sh --project-root "mqtt"
+        displayName: Audit
 
   ################################################################################
   - job: style_check

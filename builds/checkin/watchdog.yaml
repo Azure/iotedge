@@ -41,3 +41,5 @@ jobs:
         displayName: Format Code
       - bash: scripts/linux/generic-rust/clippy.sh --project-root "edge-hub/watchdog"
         displayName: Clippy
+      - bash: scripts/linux/generic-rust/audit.sh --project-root "edge-hub/watchdog"
+        displayName: Audit
