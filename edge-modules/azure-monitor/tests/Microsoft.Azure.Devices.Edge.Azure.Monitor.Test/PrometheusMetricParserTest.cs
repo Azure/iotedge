@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
             Assert.Equal("edgeAgent_command_latency_seconds", metrics.First().Name);
             Assert.Single(metrics.First().Tags);
             Assert.Equal("somevalue.net", metrics.First().Tags["iothub"]);
-            Assert.True(Double.IsNaN(metrics.First().Value));
+            Assert.True(double.IsNaN(metrics.First().Value));
         }
 
         [Fact]
@@ -125,20 +125,23 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
         [Fact]
         public void TestEscapedQuotesInLabelValues()
         {
-            IEnumerable<Metric> metrics = PrometheusMetricsParser.ParseMetrics(testTime, "metricname{edge_device=\"any number of quotes should be fine \\\"\\\"\\\"\\\"\\\"\"} 0");
+            IEnumerable<Metric> metrics =
+                            PrometheusMetricsParser.ParseMetrics(
+                                testTime,
+                                "metricname{edge_device=\"any number of quotes should be fine \\\"\\\"\\\"\\\"\\\"\"} 0");
             Assert.Single(metrics);
             Assert.Equal(0, metrics.First().Value);
             Assert.Equal("metricname", metrics.First().Name);
             Assert.Single(metrics.First().Tags);
-            Assert.Equal("any number of quotes should be fine \\\"\\\"\\\"\\\"\\\"", metrics.First().Tags["edge_device"]);
+            Assert.Equal("any number of quotes should be fine \"\"\"\"\"", metrics.First().Tags["edge_device"]);
 
             metrics = PrometheusMetricsParser.ParseMetrics(testTime, "metricname{metricname=\"this \\\"is a metric\\\" value\",edge_device=\"any number of quotes should be fine \\\"\\\"\\\"\\\"\\\"\"} 0");
             Assert.Single(metrics);
             Assert.Equal(0, metrics.First().Value);
             Assert.Equal("metricname", metrics.First().Name);
             Assert.Equal(2, metrics.First().Tags.Count());
-            Assert.Equal("this \\\"is a metric\\\" value", metrics.First().Tags["metricname"]);
-            Assert.Equal("any number of quotes should be fine \\\"\\\"\\\"\\\"\\\"", metrics.First().Tags["edge_device"]);
+            Assert.Equal("this \"is a metric\" value", metrics.First().Tags["metricname"]);
+            Assert.Equal("any number of quotes should be fine \"\"\"\"\"", metrics.First().Tags["edge_device"]);
 
             metrics = PrometheusMetricsParser.ParseMetrics(testTime, @"edgeAgent_metadata{iothub=""vh2.azure-devices.net"",edge_device=""rer"",instance_number=""eb060182-ecb2-4903-9793-385766a8a951"",edge_agent_version=""1.0.10-rc2.34217022 (029016ef1bf82dec749161d95c6b73aa5ee9baf1)"",experimental_features=""{\""Enabled\"":false,\""DisableCloudSubscriptions\"":false}"",host_information=""{\""OperatingSystemType\"":\""linux\"",\""Architecture\"":\""x86_64\"",\""Version\"":\""1.0.10~rc2\"",\""ServerVersion\"":\""19.03.12+azure\"",\""KernelVersion\"":\""5.4.0-26-generic\"",\""OperatingSystem\"":\""Ubuntu 20.04 LTS\"",\""NumCpus\"":4}"",ms_telemetry=""True""} 0");
             Assert.Single(metrics);
@@ -149,8 +152,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.Test
             Assert.Equal("rer", metrics.First().Tags["edge_device"]);
             Assert.Equal("eb060182-ecb2-4903-9793-385766a8a951", metrics.First().Tags["instance_number"]);
             Assert.Equal("1.0.10-rc2.34217022 (029016ef1bf82dec749161d95c6b73aa5ee9baf1)", metrics.First().Tags["edge_agent_version"]);
-            Assert.Equal("{\\\"Enabled\\\":false,\\\"DisableCloudSubscriptions\\\":false}", metrics.First().Tags["experimental_features"]);
-            Assert.Equal("{\\\"OperatingSystemType\\\":\\\"linux\\\",\\\"Architecture\\\":\\\"x86_64\\\",\\\"Version\\\":\\\"1.0.10~rc2\\\",\\\"ServerVersion\\\":\\\"19.03.12+azure\\\",\\\"KernelVersion\\\":\\\"5.4.0-26-generic\\\",\\\"OperatingSystem\\\":\\\"Ubuntu 20.04 LTS\\\",\\\"NumCpus\\\":4}", metrics.First().Tags["host_information"]);
+            Assert.Equal("{\"Enabled\":false,\"DisableCloudSubscriptions\":false}", metrics.First().Tags["experimental_features"]);
+            Assert.Equal(
+                "{" +
+                    "\"OperatingSystemType\":\"linux\",\"Architecture\":\"x86_64\"," +
+                    "\"Version\":\"1.0.10~rc2\",\"ServerVersion\":\"19.03.12+azure\"," +
+                    "\"KernelVersion\":\"5.4.0-26-generic\",\"OperatingSystem\":\"Ubuntu 20.04 LTS\",\"NumCpus\":4" +
+                "}",
+                metrics.First().Tags["host_information"]);
             Assert.Equal("True", metrics.First().Tags["ms_telemetry"]);
         }
     }
