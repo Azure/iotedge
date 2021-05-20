@@ -72,11 +72,6 @@ jobs:
       - script: "cross test --target armv7-unknown-linux-gnueabihf"
         displayName: armv7-unknown-linux-gnueabihf test
         workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: "cargo install cargo-audit"
-        displayName: "Install audit"
-      - script: "cross audit --target armv7-unknown-linux-gnueabihf"
-        displayName: armv7-unknown-linux-gnueabihf audit
-        workingDirectory: $(Build.SourcesDirectory)/edgelet
 
 ################################################################################
   - job: linux_arm64v8
@@ -105,11 +100,6 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)/edgelet
       - script: "cross test --target aarch64-unknown-linux-gnu"
         displayName: aarch64-unknown-linux-gnu test
-        workingDirectory: $(Build.SourcesDirectory)/edgelet
-      - script: "cargo install cargo-audit"
-        displayName: "Install audit"
-      - script: "cross audit --target arch64-unknown-linux-gnu"
-        displayName: arch64-unknown-linux-gnu audit
         workingDirectory: $(Build.SourcesDirectory)/edgelet
 
 ################################################################################
