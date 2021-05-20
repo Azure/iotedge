@@ -54,7 +54,7 @@ steps:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
     searchFolder: $(Build.SourcesDirectory)/TestResults
-    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(System.JobDisplayName))
     buildPlatform: $(arch)
   condition: succeededOrFailed()
 
@@ -68,6 +68,8 @@ steps:
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
     Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+    $artifactSuffix = '$(Build.BuildNumber)-$(System.PhaseName)' -replace '_','-'
+    Write-Output "##vso[task.setvariable variable=artifactSuffix]$artifactSuffix"
   displayName: Collect Logs
   condition: succeededOrFailed()
 
@@ -75,5 +77,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)-$(artifactName)
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(artifactSuffix)
   condition: succeededOrFailed()
