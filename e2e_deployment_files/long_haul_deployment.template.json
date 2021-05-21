@@ -33,7 +33,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"Memory\":50000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"Memory\":70000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
             }
           },
           "edgeHub": {
@@ -286,7 +286,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":40000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodSender2": {
@@ -343,7 +343,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":40000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "testResultCoordinator": {
@@ -466,7 +466,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":45000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":55000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "moduleRestarter": {
