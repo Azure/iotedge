@@ -82,7 +82,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "loadGen2": {
@@ -112,7 +112,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "relayer1": {
@@ -136,7 +136,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "relayer2": {
@@ -160,7 +160,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "twinTester1": {
@@ -193,7 +193,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":35000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":45000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "twinTester2": {
@@ -229,7 +229,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":35000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":45000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodSender1": {
@@ -265,7 +265,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodReceiver1": {
@@ -286,7 +286,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodSender2": {
@@ -322,7 +322,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -343,7 +343,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":20000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
           "testResultCoordinator": {
@@ -487,7 +487,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":10000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
+              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           }
         }
