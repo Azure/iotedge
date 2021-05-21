@@ -17,7 +17,7 @@
 ### Bug Fixes
 * Fix potential instability in iotedged after UploadSupportBundle fails. [5e3b60f](https://github.com/Azure/iotedge/commit/5e3b60f8cdd47dc1374a040ed3eecef0824b9c04)
 * Fix vulnerability issues in docker images. [b286408](https://github.com/Azure/iotedge/commit/b28640847c7d8efd82244d0628a36c63e20e5473)
-
+* Fix Diagnostics Module's Websocket behind proxy. [6b32f3c](https://github.com/Azure/iotedge/commit/6b32f3c7b3f492aa12e418013844e46540bed9d5)
 
 ## iotedged
 ### Changes
