@@ -196,10 +196,11 @@ where
                 &url,
             )));
 
+            let provisioning_cache = cache_subdir_path.join(EDGE_PROVISIONING_STATE_FILENAME);
+
             match settings.auto_reprovisioning_mode() {
-                AutoReprovisioningMode::AlwaysOnStartup => {
-                    tokio_runtime.block_on(reprovision_device(&client))?
-                }
+                AutoReprovisioningMode::AlwaysOnStartup => tokio_runtime
+                    .block_on(reprovision_device(&client, provisioning_cache.clone()))?,
                 AutoReprovisioningMode::Dynamic | AutoReprovisioningMode::OnErrorOnly => {}
             }
 
@@ -294,7 +295,7 @@ where
                     )?;
 
                     if should_reprovision {
-                        tokio_runtime.block_on(reprovision_device(&client))?;
+                        tokio_runtime.block_on(reprovision_device(&client, provisioning_cache))?;
                     }
 
                     if code != StartApiReturnStatus::Restart {
@@ -318,10 +319,11 @@ where
 
 fn reprovision_device(
     identity_client: &Arc<Mutex<IdentityClient>>,
+    provisioning_cache: std::path::PathBuf,
 ) -> impl Future<Item = (), Error = Error> {
     let id_mgr = identity_client.lock().unwrap();
     id_mgr
-        .reprovision_device()
+        .reprovision_device(provisioning_cache)
         .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
 }
 
