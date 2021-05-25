@@ -15,8 +15,11 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp
 EXPOSE 443/tcp
 
-USER edgehubuser
 ENV OptimizeForPerformance false
 ENV MqttEventsProcessorThreadCount 1
+
+COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
+COPY $EXE_DIR/Microsoft.Azure.Devices.Edge.Hub.Service/hubStart.sh ./
+
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \
-    /usr/local/bin/watchdog
+    exec /app/hubStart.sh
