@@ -305,9 +305,15 @@ where
                 Err(err) => {
                     log_failure(Level::Warn, &err);
 
-                    std::thread::sleep(IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS);
+                    log::warn!("Requesting device reprovision.");
 
-                    log::warn!("Retrying getting edge device provisioning information.");
+                    if let Err(err) =
+                        tokio_runtime.block_on(reprovision_device(&client, provisioning_cache))
+                    {
+                        log::warn!("{}", err);
+                    }
+
+                    std::thread::sleep(IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS);
                 }
             };
         }
