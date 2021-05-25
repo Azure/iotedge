@@ -1,3 +1,30 @@
+# 1.2.1 (2021-06-01)
+## Edge Agent
+### Bug Fixes
+* Update Base Images for Security Patch. ( [513f721](https://github.com/Azure/iotedge/commit/513f721c38381a32ed968bdb1c489ee0d9cfc243) )
+
+
+## Edge Hub
+### Bug Fixes
+* Update bridge config validation. ( [afdc9c2](https://github.com/Azure/iotedge/commit/afdc9c2e8d8fc46c585d7a34376a4e099917e64b) )
+* Device scope cache retry for first initialization. ( [3b903a1](https://github.com/Azure/iotedge/commit/3b903a19dcd2b41105664442335f37b357fddbcb) )
+* Add validation for null props inside objects inside arrays. ( [c25fcb9](https://github.com/Azure/iotedge/commit/c25fcb94729c795d78de802f9e76c6e096050335) )
+* Adds SharedAccessSignature to repo with fix for vulnerability. ( [60d411c](https://github.com/Azure/iotedge/commit/60d411c5d6737564f75469b4ab35a1aee8306dee) )
+* Update GetModuleLogs method when tail + since + until options are provided. ( [2b650a8](https://github.com/Azure/iotedge/commit/2b650a8b90d5b51299ef24c002e5af39c481c253) )
+* Fix edgehub queue len metric ( [4068369](https://github.com/Azure/iotedge/commit/4068369c4e32326809c3d5cfde33a8da0215dcfc) )
+* Update Base Images for Security Patch. ( [513f721](https://github.com/Azure/iotedge/commit/513f721c38381a32ed968bdb1c489ee0d9cfc243) )
+
+
+
+### Features
+* Restore device scopes from older store. ( [c90245b](https://github.com/Azure/iotedge/commit/c90245bec35e7dae06d50e171556961de8e718de) )
+
+
+## aziot-edge
+### Features
+* Introduce Timestamps Option via mgmt.sock. ( [37c661b](https://github.com/Azure/iotedge/commit/37c661bcbae1b2b2506e54d102a14ea1b6f8bb3c) )
+
+
 # 1.2.0 (2021-04-9)
 ## AWARENESS
 This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
