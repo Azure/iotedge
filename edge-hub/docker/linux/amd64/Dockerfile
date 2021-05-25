@@ -29,7 +29,6 @@ WORKDIR /app
 
 COPY Microsoft.Azure.Devices.Edge.Hub.Service/ ./
 COPY $EXE_DIR/Microsoft.Azure.Devices.Edge.Hub.Service/hubStart.sh ./
-RUN ["chmod", "+x", "hubStart.sh"]
 
 # Expose MQTT, AMQP and HTTPS ports	
 EXPOSE 1883/tcp

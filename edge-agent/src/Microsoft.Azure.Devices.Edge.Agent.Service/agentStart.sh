@@ -31,6 +31,19 @@ cuid=$(id -u)
 if [ $cuid -eq 0 ]
 then
 
+  # Create the agent user id if it does not exist
+  if ! getent passwd "${TARGET_UID}" >/dev/null
+  then
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating UID ${TARGET_UID} as agent${TARGET_UID}"
+    # Use "useradd" if it is available.
+    if command -v useradd >/dev/null
+    then
+      useradd -ms /bin/bash -u "${TARGET_UID}" "agent${TARGET_UID}"
+    else
+      adduser -Ds /bin/sh -u "${TARGET_UID}" "agent${TARGET_UID}"
+    fi
+  fi
+
   username=$(getent passwd "${TARGET_UID}" | awk -F ':' '{ print $1; }')
 
   # If "StorageFolder" env variable exists, use as basepath, else use /tmp
@@ -51,9 +64,6 @@ then
     echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Changing ownership of backup folder: ${backuppath} to ${TARGET_UID}"
     chown -fR "${TARGET_UID}" "${backuppath}"
   fi
-
-  # add user to iotedge group
-  usermod -aG iotedge "${TARGET_UID}" >/dev/null
 
   # Make sure file specified by IOTEDGE_MANAGEMENTURI is owned by TARGET_UID
   # Strip "unix://" prefix, and if that is a file that exists, change the ownership.

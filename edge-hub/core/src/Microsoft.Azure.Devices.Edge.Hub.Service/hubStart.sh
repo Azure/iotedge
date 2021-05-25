@@ -29,7 +29,19 @@ cuid=$(id -u)
 
 if [ $cuid -eq 0 ]
 then
-
+  # Create the agent user id if it does not exist
+  if ! getent passwd "${TARGET_UID}" >/dev/null
+  then
+    echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Creating UID ${TARGET_UID} as agent${TARGET_UID}"
+    # Use "useradd" if it is available.
+    if command -v useradd >/dev/null
+    then
+      useradd -ms /bin/bash -u "${TARGET_UID}" "agent${TARGET_UID}"
+    else
+      adduser -Ds /bin/sh -u "${TARGET_UID}" "agent${TARGET_UID}"
+    fi
+  fi
+  
   username=$(getent passwd "${TARGET_UID}" | awk -F ':' '{ print $1; }')
 
   # If "StorageFolder" env variable exists, use as basepath, else use /tmp
