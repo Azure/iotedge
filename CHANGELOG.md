@@ -1,3 +1,32 @@
+# 1.1.3 (2021-05-24)
+## Edge Agent
+### Bug Fixes
+* Update GetModuleLogs method when tail + since + until options are provided. [c1dba55](https://github.com/Azure/iotedge/commit/c1dba55ece869932b5a75ae0de658121dd75e54f)
+* Fix vulnerability issues in docker images. [b286408](https://github.com/Azure/iotedge/commit/b28640847c7d8efd82244d0628a36c63e20e5473)
+
+
+## Edge Hub
+### Bug Fixes
+* Adds SharedAccessSignature to repo with fix for vulnerability. [4fea6e7](https://github.com/Azure/iotedge/commit/4fea6e7750984e278e20e27635eea223c68c1e3f)
+* Close AMQP connection explicitly when no more links (removing links kept tcp level connection). [5be30fb](https://github.com/Azure/iotedge/commit/5be30fb80a69fb36a8de08541568c2d1f161fe2b)
+* Fix vulnerability issues in docker images. [b286408](https://github.com/Azure/iotedge/commit/b28640847c7d8efd82244d0628a36c63e20e5473)
+* Fix edgehub_queue_length metric. [4aab90b](https://github.com/Azure/iotedge/commit/4aab90b0aeab80ee30d1c7984a930e643bf39b65)
+
+
+## Diagnostics Module
+### Bug Fixes
+* Fix potential instability in iotedged after UploadSupportBundle fails. [5e3b60f](https://github.com/Azure/iotedge/commit/5e3b60f8cdd47dc1374a040ed3eecef0824b9c04)
+* Fix vulnerability issues in docker images. [b286408](https://github.com/Azure/iotedge/commit/b28640847c7d8efd82244d0628a36c63e20e5473)
+* Fix Diagnostics Module's Websocket behind proxy. [6b32f3c](https://github.com/Azure/iotedge/commit/6b32f3c7b3f492aa12e418013844e46540bed9d5)
+
+## iotedged
+### Changes
+* Update C SDK submodules to 2020-12-09. [deb2753](https://github.com/Azure/iotedge/commit/deb2753bc2e36bf2355ddb9427262e5d93d96d72)
+* Delete all containers after reprovision. [77ad781](https://github.com/Azure/iotedge/commit/77ad7813b2b5aaaa2f4e96bf7333dcb9dd912766)
+* Update serde-yaml version to 0.8 [22b8d30](https://github.com/Azure/iotedge/commit/22b8d3012a700609ae4b1ab5cca378e68a8899e9)
+* Introduce Timestamps Option via mgmt.sock. [b18d090](https://github.com/Azure/iotedge/commit/b18d09056305a911553f17a9b64cbe316696e208)
+
+
 # 1.1.2 (2021-04-15)
 ## Edge Agent
 ### Bug Fixes
