@@ -116,11 +116,11 @@ steps:
           iotedge_package="${pkg_list[*]}"
 
           echo "  Install library"
-          sudo apt-get --yes --force-yes install ${iotedge_library}
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_library}
           echo;
 
           echo "  Install edgelet"
-          sudo apt-get --yes --force-yes install ${iotedge_package}
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_package}
           echo;
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
