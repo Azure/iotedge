@@ -109,10 +109,10 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
-    $testDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
-    dotnet build $testDir
-    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp3.1"
-    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+    $manifestSigningtestDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
+    dotnet build $manifestSigningtestDir
+    $manifestSigningbinDir = Convert-Path "$manifestSigningtestDir/bin/Debug/netcoreapp3.1"
+    Write-Output "##vso[task.setvariable variable=$manifestSigningbinDir]$manifestSigningbinDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
     $env:ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/root_ca.pem"
