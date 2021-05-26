@@ -32,16 +32,18 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 IEnumerable<ExportMetric> outputMetrics = metrics.Select(m => new ExportMetric(m));
 
                 string outputString = JsonConvert.SerializeObject(outputMetrics);
-                // LoggerUtil.Writer.LogDebug("Metrics selected for upload . . .");
-                // LoggerUtil.Writer.LogDebug(outputString);
+
                 if (Settings.Current.TransformForIoTCentral)
                 {
                     outputString = Transform(outputMetrics);
-                    // LoggerUtil.Writer.LogDebug("Metrics transformed prior to upload . . .");
-                    // LoggerUtil.Writer.LogDebug(outputString);
                 }
 
                 byte[] metricsData = Encoding.UTF8.GetBytes(outputString);
+                if (Settings.Current.CompressForUpload)
+                {
+                    metricsData = Compression.CompressToGzip(metricsData);
+                }
+
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 

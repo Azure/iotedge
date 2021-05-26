@@ -12,11 +12,10 @@ jobs:
 ################################################################################
     displayName: LinuxDotnet
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
@@ -152,10 +151,10 @@ jobs:
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
 
-     # Metrics Collector
+     # Metrics Collector (test-only)
       - template: templates/image-linux.yaml
         parameters:
-          name: Metrics Collector - Tests only
+          name: Metrics Collector (test-only)
           imageName: azureiotedge-test-metrics-collector
           project: MetricsCollector
 
@@ -180,10 +179,10 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
-     # Azure IoT Edge Metrics Collector
+     # Metrics Collector (customer-facing)
       - template: templates/image-linux.yaml
         parameters:
-          name: Azure IoT Edge Metrics Collector
+          name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
 
@@ -217,16 +216,12 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 90
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands:
-        - Build-Image -equals true
-        - win-rs5
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     workspace:
       clean: all
     steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-
       - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
 
@@ -348,10 +343,10 @@ jobs:
           imageName: azureiotedge-relayer
           project: Relayer
 
-     # Metrics Collector
+     # Metrics Collector (test-only)
       - template: templates/image-windows.yaml
         parameters:
-          name: Metrics Collector - Tests only
+          name: Metrics Collector (test-only)
           imageName: azureiotedge-test-metrics-collector
           project: MetricsCollector
 
@@ -383,22 +378,21 @@ jobs:
           imageName: azureiotedge-c2dmessage-tester
           project: CloudToDeviceMessageTester
 
-     # Azure IoT Edge Metrics Collector
+     # Metrics Collector (customer-facing)
       - template: templates/image-windows.yaml
         parameters:
-          name: Azure IoT Edge Metrics Collector
+          name: Metrics Collector (customer-facing)
           imageName: azureiotedge-metrics-collector
           project: Microsoft.Azure.Devices.Edge.Azure.Monitor
-
-      - powershell: docker system prune -a -f
-        displayName: Clean Machine
 
 ################################################################################
   - job: manifest
 ################################################################################
     displayName: Manifest
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn:
       - linux_dotnet_projects
       - linux_rust_amd64

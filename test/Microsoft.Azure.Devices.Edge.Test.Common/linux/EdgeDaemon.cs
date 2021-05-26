@@ -93,9 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
-                    Log.Verbose(string.Join("\n", output));
-
+                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     await this.InternalStopAsync(token);
                 },
                 message,
@@ -132,8 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "start iotedge", token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync("systemctl", "start iotedge", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
         }
 
@@ -143,8 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
@@ -166,8 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 await Profiler.Run(
                     async () =>
                     {
-                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
-                        Log.Verbose(string.Join("\n", output));
+                        await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     },
                     "Uninstalled edge daemon");
             }
@@ -193,7 +188,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     _ => throw new NotImplementedException($"No handler for {desired}"),
                 };
                 string[] output = await Process.RunAsync("systemctl", "-p ActiveState show iotedge", token);
-                Log.Verbose(output.First());
                 if (stateMatchesDesired(output.First().Split("=").Last()))
                 {
                     break;

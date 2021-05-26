@@ -15,7 +15,9 @@ jobs:
 ################################################################################
     displayName: Linux
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     strategy:
       matrix:
         Centos75-amd64:
@@ -64,7 +66,6 @@ jobs:
           target.iotedged: edgelet/target/aarch64-unknown-linux-gnu/release
     steps:
       # Ensure any changes here are replicated in packages.slow.yaml
-
       - bash: |
           BASE_VERSION=`cat $BUILD_SOURCESDIRECTORY/edgelet/version.txt`
           VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
@@ -170,7 +171,9 @@ jobs:
     displayName: Windows amd64
     timeoutInMinutes: 90
     pool:
-      vmImage: 'vs2017-win2016'
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     steps:
       - powershell: |
           $base_version = Get-Content -Path "$(Build.SourcesDirectory)\edgelet\version.txt"
