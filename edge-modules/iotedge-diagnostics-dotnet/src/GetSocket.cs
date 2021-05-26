@@ -27,7 +27,7 @@ namespace Diagnostics
                     socket.ReceiveTimeout = 5000;
                     socket.SendTimeout = 1000;
 
-                    socket.Connect(new UnixDomainSocketEndPoint(uri.LocalPath));
+                    socket.Connect(new UnixDomainSocketEndPoint(server));
 
                     // Send request to the server.
                     socket.Send(bytesSent, bytesSent.Length, 0);
