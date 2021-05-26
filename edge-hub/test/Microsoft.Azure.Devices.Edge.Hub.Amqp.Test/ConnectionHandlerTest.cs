@@ -5,6 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Amqp;
+    using Microsoft.Azure.Amqp.Framing;
+    using Microsoft.Azure.Amqp.Transport;
     using Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
@@ -23,12 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         {
             // Arrange
             var identity = Mock.Of<IIdentity>();
-            var connectionPovider = Mock.Of<IConnectionProvider>();
+            var connectionProvider = Mock.Of<IConnectionProvider>();
+            var amqpConnection = new AmqpTestConnection();
 
             // Act / Assert
-            Assert.NotNull(new ClientConnectionHandler(identity, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(null, connectionPovider));
-            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(identity, null));
+            Assert.NotNull(new ClientConnectionHandler(identity, connectionProvider, amqpConnection));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(null, connectionProvider, amqpConnection));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(identity, null, amqpConnection));
+            Assert.Throws<ArgumentNullException>(() => new ClientConnectionHandler(identity, connectionProvider, null));
         }
 
         [Fact]
@@ -42,7 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener));
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var amqpConnection = new AmqpTestConnection();
+
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             // Act
             var tasks = new List<Task<IDeviceListener>>();
@@ -77,8 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener));
+            var amqpConnection = new AmqpTestConnection();
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var c2DLinkHandler = new Mock<ISendingLinkHandler>();
@@ -113,8 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener));
+            var amqpConnection = new AmqpTestConnection();
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var moduleMessageLinkHandler = new Mock<ISendingLinkHandler>();
@@ -149,8 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener));
+            var amqpConnection = new AmqpTestConnection();
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var methodSendingLinkHandler = new Mock<ISendingLinkHandler>();
@@ -185,8 +195,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
                 .Callback<IDeviceProxy>(d => deviceProxy = d);
 
             var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener));
+            var amqpConnection = new AmqpTestConnection();
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             IMessage receivedMessage = null;
             var twinSendingLinkHandler = new Mock<ISendingLinkHandler>();
@@ -214,11 +225,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
             // Arrange
             var deviceListener = new Mock<IDeviceListener>();
             deviceListener.Setup(d => d.CloseAsync()).Returns(Task.CompletedTask);
-            var identity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
-            var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener.Object));
             deviceListener.Setup(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()));
 
-            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider);
+            var identity = Mock.Of<IIdentity>(i => i.Id == "d1/m1");
+            var connectionProvider = Mock.Of<IConnectionProvider>(c => c.GetDeviceListenerAsync(identity, Option.None<string>()) == Task.FromResult(deviceListener.Object));
+            var amqpConnection = new AmqpTestConnection();
+
+            var connectionHandler = new ClientConnectionHandler(identity, connectionProvider, amqpConnection);
 
             var eventsLinkHandler = Mock.Of<ILinkHandler>(l => l.Type == LinkType.Events);
             string twinCorrelationId = Guid.NewGuid().ToString();
@@ -249,6 +262,70 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
 
             // Assert
             deviceListener.Verify(d => d.CloseAsync(), Times.Once);
+            Assert.True(amqpConnection.CloseCalled);
+
+            // Act
+            await connectionHandler.GetDeviceListener();
+
+            // Assert
+            deviceListener.Verify(d => d.BindDeviceProxy(It.IsAny<IDeviceProxy>()), Times.Exactly(2));
         }
+    }
+
+    class AmqpTestConnection : AmqpConnectionBase
+    {
+        public AmqpTestConnection()
+            : base("test", new TestTransport(), new AmqpConnectionSettings(), false)
+        {
+        }
+
+        public bool CloseCalled { get; private set; }
+
+        protected override void AbortInternal()
+        {
+        }
+
+        protected override bool CloseInternal()
+        {
+            this.CloseCalled = true;
+            return true;
+        }
+
+        protected override void OnFrameBuffer(ByteBuffer buffer)
+        {
+        }
+
+        protected override void OnProtocolHeader(ProtocolHeader header)
+        {
+        }
+
+        protected override bool OpenInternal() => true;
+    }
+
+    class TestTransport : TransportBase
+    {
+        public override string LocalEndPoint => "localhost";
+        public override string RemoteEndPoint => "remotehost";
+
+        public TestTransport()
+            : base("test")
+        {
+        }
+
+        public bool CloseCalled { get; private set; }
+
+        public override bool ReadAsync(TransportAsyncCallbackArgs args) => true;
+
+        public override void SetMonitor(ITransportMonitor usageMeter)
+        {
+        }
+
+        public override bool WriteAsync(TransportAsyncCallbackArgs args) => false;
+
+        protected override void AbortInternal()
+        {
+        }
+
+        protected override bool CloseInternal() => true;
     }
 }
