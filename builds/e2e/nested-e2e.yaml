@@ -10,14 +10,12 @@ resources:
     source: 'Azure-IoT-Edge-Core Build Images'
     trigger:
       branches:
-      - master
-      - release/*
+      - release/1.2
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     trigger:
       branches:
-      - master
-      - release/*
+      - release/1.2
 
 stages:
 - stage: SetupVM
