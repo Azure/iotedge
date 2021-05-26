@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 use std::path::Path;
 use std::time::Duration;
 
@@ -26,8 +28,7 @@ impl<E: Clone + Fail> TestRegistry<E> {
 }
 
 #[async_trait::async_trait]
-impl<E: Clone + Fail> ModuleRegistry for TestRegistry<E>
-{
+impl<E: Clone + Fail> ModuleRegistry for TestRegistry<E> {
     type Error = E;
     type Config = TestConfig;
 
@@ -215,15 +216,13 @@ impl<E: Clone + Fail> Module for TestModule<E> {
 }
 
 #[derive(Clone)]
-pub struct TestRuntime<E: Clone + Fail>
-{
+pub struct TestRuntime<E: Clone + Fail> {
     module: Option<Result<TestModule<E>, E>>,
     registry: TestRegistry<E>,
     settings: TestSettings,
 }
 
-impl<E: Clone + Fail> TestRuntime<E>
-{
+impl<E: Clone + Fail> TestRuntime<E> {
     pub fn with_module(mut self, module: Result<TestModule<E>, E>) -> Self {
         self.module = Some(module);
         self
@@ -236,8 +235,7 @@ impl<E: Clone + Fail> TestRuntime<E>
 }
 
 #[async_trait::async_trait]
-impl<E: Clone + Fail> Authenticator for TestRuntime<E>
-{
+impl<E: Clone + Fail> Authenticator for TestRuntime<E> {
     type Error = E;
     type Request = Request<Body>;
 
@@ -247,8 +245,7 @@ impl<E: Clone + Fail> Authenticator for TestRuntime<E>
 }
 
 #[async_trait::async_trait]
-impl<E: Clone + Fail> MakeModuleRuntime for TestRuntime<E>
-{
+impl<E: Clone + Fail> MakeModuleRuntime for TestRuntime<E> {
     type Config = TestConfig;
     type Settings = TestSettings;
     type ModuleRuntime = Self;
@@ -264,8 +261,7 @@ impl<E: Clone + Fail> MakeModuleRuntime for TestRuntime<E>
 }
 
 #[async_trait::async_trait]
-impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E>
-{
+impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Error = E;
 
     type Config = TestConfig;
@@ -295,7 +291,11 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E>
         }
     }
 
-    async fn stop(&self, _id: &str, _wait_before_kill: Option<Duration>) -> Result<(), Self::Error> {
+    async fn stop(
+        &self,
+        _id: &str,
+        _wait_before_kill: Option<Duration>,
+    ) -> Result<(), Self::Error> {
         match self.module.as_ref().unwrap() {
             Ok(_) => Ok(()),
             Err(e) => Err(e.clone()),
