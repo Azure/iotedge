@@ -223,6 +223,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "edgelet-core",
+ "edgelet-http",
  "failure",
  "futures",
  "http",

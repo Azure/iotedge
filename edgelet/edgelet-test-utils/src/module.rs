@@ -328,7 +328,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
                     always_reprovision_on_startup: true,
                 },
                 cpus: 0,
-                virtualized: "test",
+                virtualized: "test".to_string(),
                 kernel_version: "test".to_string(),
                 operating_system: "test".to_string(),
                 server_version: "test".to_string(),

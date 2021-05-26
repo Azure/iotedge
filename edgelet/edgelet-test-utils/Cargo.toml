@@ -20,4 +20,5 @@ tokio = { version = "1", features = ["rt"] }
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-http = { path = "../edgelet-http" }
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }

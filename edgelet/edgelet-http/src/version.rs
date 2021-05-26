@@ -9,6 +9,7 @@ pub enum ApiVersion {
     V2019_11_05,
     V2020_07_07,
     V2020_10_10,
+    Latest,
 }
 
 impl std::fmt::Display for ApiVersion {
@@ -19,7 +20,7 @@ impl std::fmt::Display for ApiVersion {
             ApiVersion::V2019_10_22 => "2019-10-22",
             ApiVersion::V2019_11_05 => "2019-11-05",
             ApiVersion::V2020_07_07 => "2020-07-07",
-            ApiVersion::V2020_10_10 => "2020-10-10",
+            ApiVersion::V2020_10_10 | ApiVersion::Latest => "2020-10-10",
         })
     }
 }
