@@ -7,7 +7,7 @@ pub struct Service {}
 
 http_common::make_service! {
     service: Service,
-    api_version: crate::ApiVersion,
+    api_version: edgelet_http::ApiVersion,
     routes: [
         system_info::get::Route,
     ],

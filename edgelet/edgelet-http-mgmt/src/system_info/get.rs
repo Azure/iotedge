@@ -4,12 +4,12 @@ pub(crate) struct Route {}
 
 #[async_trait::async_trait]
 impl http_common::server::Route for Route {
-    type ApiVersion = crate::ApiVersion;
+    type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
-        &((crate::ApiVersion::V2018_06_28)..)
+        &((edgelet_http::ApiVersion::V2018_06_28)..)
     }
 
-    type Service = crate::mgmt::Service;
+    type Service = crate::Service;
     fn from_uri(
         service: &Self::Service,
         path: &str,
@@ -40,7 +40,7 @@ impl http_common::server::Route for Route {
 
 #[cfg(test)]
 mod tests {
-    use crate::mgmt::Service as ManagementService;
+    use crate::Service as ManagementService;
 
     #[tokio::test]
     async fn system_info_success() {
