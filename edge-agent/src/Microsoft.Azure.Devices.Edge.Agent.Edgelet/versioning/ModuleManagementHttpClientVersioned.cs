@@ -91,9 +91,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
-                tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
                 since.ForEach(s => logsUrl.AppendFormat($"&{LogsUrlSinceParameter}={Uri.EscapeUriString(s)}"));
                 until.ForEach(u => logsUrl.AppendFormat($"&{LogsUrlUntilParameter}={Uri.EscapeUriString(u)}"));
+
+                if (!(tail.HasValue && since.HasValue && until.HasValue))
+                {
+                    tail.ForEach(t => logsUrl.AppendFormat($"&{LogsUrlTailParameter}={t}"));
+                }
+
                 var logsUri = new Uri(logsUrl.ToString());
                 var httpRequest = new HttpRequestMessage(HttpMethod.Get, logsUri);
                 Stream stream = await this.Execute(
