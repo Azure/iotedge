@@ -169,10 +169,10 @@ steps:
 
     if ('$(manifestSigningFlag)' -eq 'true')
     {
-      $testManifestSigningRootCaPath = Convert-Path "$manifestSigningCertDir/root_ca.pem";
-      $testManifestSigningIntermediateCaPath = Convert-Path "$manifestSigningCertDir/intermediate_ca.crt";
-      $testManifestSigningSignerCertPath = Convert-Path "$manifestSigningCertDir/signer_cert.crt";
-      $testManifestSigningSignerKeyPath = Convert-Path "$manifestSigningCertDir/signer_key.key";
+      $testManifestSigningRootCaPath = Convert-Path "$(manifestSigningCertDir)/root_ca.pem";
+      $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
+      $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
+      $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -227,10 +227,10 @@ steps:
 
     if ('$(manifestSigningFlag)' -eq 'true')
     {
-      $context['testManifestSigningRootCaPath'] = '$($testManifestSigningRootCaPath)'
+      $context['testManifestSigningRootCaPath'] = '$(testManifestSigningRootCaPath)'
       $context['testManifestSigningIntermediateCaPath'] = '$(testManifestSigningIntermediateCaPath)'
       $context['testManifestSigningSignerCertPath'] = '$(testManifestSigningSignerCertPath)'
-      $context['testManifestSigningSignerKeyPath'] = '$testManifestSigningSignerKeyPath'
+      $context['testManifestSigningSignerKeyPath'] = '$(testManifestSigningSignerKeyPath)'
       $context['testManifestSigningSignerAlgorithm'] = $env:ALGORITHM
     }
 
