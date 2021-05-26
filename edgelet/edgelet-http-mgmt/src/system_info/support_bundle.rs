@@ -6,7 +6,7 @@ pub(crate) struct Route {}
 impl http_common::server::Route for Route {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
-        &((edgelet_http::ApiVersion::V2018_06_28)..)
+        &((edgelet_http::ApiVersion::V2020_07_07)..)
     }
 
     type Service = crate::Service;
@@ -16,7 +16,7 @@ impl http_common::server::Route for Route {
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         _extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != "/systeminfo" {
+        if path != "/systeminfo/supportbundle" {
             return None;
         }
 
@@ -26,12 +26,9 @@ impl http_common::server::Route for Route {
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
 
-    type GetResponse = edgelet_core::module::SystemInfo;
+    type GetResponse = ();
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
-        Ok((
-            http::StatusCode::OK,
-            edgelet_core::module::SystemInfo::default(),
-        ))
+        todo!()
     }
 
     type PostBody = serde::de::IgnoredAny;

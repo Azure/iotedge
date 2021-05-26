@@ -10,5 +10,7 @@ http_common::make_service! {
     api_version: edgelet_http::ApiVersion,
     routes: [
         system_info::get::Route,
+        system_info::resources::Route,
+        system_info::support_bundle::Route,
     ],
 }
