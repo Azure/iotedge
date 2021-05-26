@@ -12,14 +12,15 @@ namespace Microsoft.Azure.Devices.Edge.Util
         const string HttpsScheme = "https";
         const string UnixScheme = "unix";
 
+        static Lazy<HttpClient> client = new Lazy<HttpClient>(() => new HttpClient(), isThreadSafe: true);
+
         public static HttpClient GetHttpClient(Uri serverUri)
         {
             HttpClient client;
 
             if (serverUri.Scheme.Equals(HttpScheme, StringComparison.OrdinalIgnoreCase) || serverUri.Scheme.Equals(HttpsScheme, StringComparison.OrdinalIgnoreCase))
             {
-                client = new HttpClient();
-                return client;
+                return HttpClientHelper.client.Value;
             }
 
             if (serverUri.Scheme.Equals(UnixScheme, StringComparison.OrdinalIgnoreCase))
