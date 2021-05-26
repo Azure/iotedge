@@ -227,10 +227,10 @@ steps:
 
     if ('$(manifestSigningFlag)' -eq 'true')
     {
-      $context['testManifestSigningRootCaPath'] = '$(testManifestSigningRootCaPath)'
-      $context['testManifestSigningIntermediateCaPath'] = '$(testManifestSigningIntermediateCaPath)'
-      $context['testManifestSigningSignerCertPath'] = '$(testManifestSigningSignerCertPath)'
-      $context['testManifestSigningSignerKeyPath'] = '$(testManifestSigningSignerKeyPath)'
+      $context['testManifestSigningRootCaPath'] = "$testManifestSigningRootCaPath"
+      $context['testManifestSigningIntermediateCaPath'] = "$testManifestSigningIntermediateCaPath"
+      $context['testManifestSigningSignerCertPath'] = "$testManifestSigningSignerCertPath"
+      $context['testManifestSigningSignerKeyPath'] = "$testManifestSigningSignerKeyPath"
       $context['testManifestSigningSignerAlgorithm'] = $env:ALGORITHM
     }
 
