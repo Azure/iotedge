@@ -34,12 +34,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Option.Maybe(moduleId);
             this.DeviceScope = Option.Maybe(deviceScope);
-            this.ParentScopes = new List<string>(Preconditions.CheckNotNull(parentScopes, nameof(parentScopes)));
             this.Capabilities = Preconditions.CheckNotNull(capabilities, nameof(capabilities));
             this.Authentication = Preconditions.CheckNotNull(authentication, nameof(authentication));
             this.Id = this.ModuleId.Map(m => $"{deviceId}/{moduleId}").GetOrElse(deviceId);
             this.GenerationId = Preconditions.CheckNonWhiteSpace(generationId, nameof(generationId));
             this.Status = status;
+
+            this.ParentScopes = parentScopes != null
+                ? new List<string>(parentScopes)
+                : !this.IsEdgeDevice && !string.IsNullOrWhiteSpace(deviceScope) ? new List<string> { deviceScope } : new List<string>();
         }
 
         [JsonIgnore]
@@ -95,10 +98,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
                 int hashCode = this.Id != null ? this.Id.GetHashCode() : 0;
                 hashCode = (hashCode * 397) ^ (this.DeviceId != null ? this.DeviceId.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ this.ModuleId.GetHashCode();
-                hashCode = (hashCode * 397) ^ (this.Capabilities != null ? this.Capabilities.GetHashCode() : 0);
+                hashCode = this.Capabilities != null ? this.Capabilities.Aggregate(hashCode, (acc, item) => acc * 397 ^ item.GetHashCode()) : hashCode;
                 hashCode = (hashCode * 397) ^ (this.Authentication != null ? this.Authentication.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (int)this.Status;
                 hashCode = (hashCode * 397) ^ (this.GenerationId != null ? this.GenerationId.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ EqualityComparer<Option<string>>.Default.GetHashCode(this.DeviceScope);
+                hashCode = this.ParentScopes != null ? this.ParentScopes.Aggregate(hashCode, (acc, item) => acc * 397 ^ item.GetHashCode()) : hashCode;
                 return hashCode;
             }
         }
@@ -112,10 +117,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Identity.Service
             return string.Equals(this.Id, other.Id)
                 && string.Equals(this.DeviceId, other.DeviceId)
                 && this.ModuleId.Equals(other.ModuleId)
-                && this.Capabilities.SequenceEqual(other.Capabilities)
+                && ((this.Capabilities != null && other.Capabilities != null && Enumerable.SequenceEqual(this.Capabilities, other.Capabilities)) || (this.Capabilities == null && other.Capabilities == null))
                 && Equals(this.Authentication, other.Authentication)
                 && this.Status == other.Status
-                && string.Equals(this.GenerationId, other.GenerationId);
+                && string.Equals(this.GenerationId, other.GenerationId)
+                && this.DeviceScope.Equals(other.DeviceScope)
+                && ((this.ParentScopes != null && other.ParentScopes != null && Enumerable.SequenceEqual(this.ParentScopes, other.ParentScopes)) || (this.ParentScopes == null && other.ParentScopes == null));
         }
     }
 }

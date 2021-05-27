@@ -246,7 +246,7 @@ mod tests {
     proptest! {
         #[test]
         fn it_does_not_panic(input in "\\PC*") {
-            let _ = input.parse::<HumanSize>();
+            drop(input.parse::<HumanSize>());
         }
 
         #[test]
