@@ -10,7 +10,6 @@
 #     Do same for backuppath
 #  4. If basepath/edgehub exists, make sure all files are owned by EDGEHUBUSER_ID
 #     Do same for backuppath/edgehub_backup
-#  5. Make sure /app/backup.json is writeable.
 #  6. Set user id as EDGEHUBUSER_ID.
 # then start Edge Hub.
 #
