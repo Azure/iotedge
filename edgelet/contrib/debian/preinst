@@ -12,6 +12,11 @@ add_groups()
     fi
     mkdir -p /var/lib/aziot/edged
 
+    # Create an edgeagentuser and add it to iotedge group
+    if ! getent passwd edgeagentuser >/dev/null; then
+        useradd -g iotedge -c "edgeAgent user" -ms /sbin/nologin -u 13622 edgeagentuser
+    fi
+
     # add iotedge user to docker group so that it can talk to the docker socket
     if getent group docker >/dev/null; then
         usermod -aG docker iotedge
