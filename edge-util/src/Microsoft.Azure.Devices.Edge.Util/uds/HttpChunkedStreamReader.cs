@@ -122,5 +122,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Uds
         public override void SetLength(long value) => throw new NotImplementedException();
 
         public override void Write(byte[] buffer, int offset, int count) => throw new NotImplementedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            this.stream.Dispose();
+        }
     }
 }

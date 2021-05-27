@@ -4,7 +4,7 @@
 # Set up EdgeAgent to run as a non-root user at runtime, if allowed.
 # 
 # If this script is started as root:
-#  1. It reads the EDGEAGENTUSER_ID environment variable, default UID=1000.
+#  1. It reads the EDGEAGENTUSER_ID environment variable, default UID=13622.
 #  2. If the User ID does not exist as a user, create it.
 #  3. If "StorageFolder" env variable exists, use as basepath, else use /tmp
 #     Do same for backuppath
@@ -17,7 +17,7 @@
 #
 # This preserves backwards compatibility with earlier versions of edgeAgent and
 # allows some flexibility in the assignment of the edgeagent user id. The default 
-# is UID 1000.
+# is UID 13622.
 #
 # A user is created because at this time DotNet Core 2.x and 3.x can only install
 # trust bundles into system stores or user stores.  We choose a user store in
@@ -25,7 +25,7 @@
 ###############################################################################
 echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Agent"
 
-TARGET_UID="${EDGEAGENTUSER_ID:-1000}"
+TARGET_UID="${EDGEAGENTUSER_ID:-13622}"
 cuid=$(id -u)
 
 if [ $cuid -eq 0 ]
