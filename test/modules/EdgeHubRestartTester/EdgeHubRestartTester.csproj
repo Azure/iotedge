@@ -9,6 +9,10 @@
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+  </PropertyGroup>
+
   <!--
     Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
     See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.

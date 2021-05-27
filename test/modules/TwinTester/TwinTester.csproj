@@ -9,6 +9,10 @@
     <Configurations>Debug;Release;CheckInBuild</Configurations>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+  </PropertyGroup>
+
   <ItemGroup>
     <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always" />
   </ItemGroup>

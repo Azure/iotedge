@@ -8,6 +8,10 @@
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+  </PropertyGroup>
   
   <ItemGroup>
     <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always" />
