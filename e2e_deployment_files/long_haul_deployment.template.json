@@ -258,6 +258,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -312,6 +315,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
