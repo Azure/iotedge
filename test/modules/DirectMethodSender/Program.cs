@@ -56,7 +56,7 @@ namespace DirectMethodSender
                         await reportClient.SendTestResultAsync(testResult);
                     }
 
-                    await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
+                    await Task.Delay(Settings.Current.DirectMethodFrequency, cts.Token);
                 }
 
                 await cts.Token.WhenCanceled();
