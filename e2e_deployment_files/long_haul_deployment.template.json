@@ -28,7 +28,7 @@
                 "value": "true"
               },
               "RuntimeLogLevel": {
-                "value": "debug"
+                "value": "info"
               }
             },
             "settings": {
@@ -46,6 +46,9 @@
               },
               "NestedEdgeEnabled": {
                 "value": "false"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
