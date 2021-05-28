@@ -376,8 +376,13 @@ case "$PACKAGE_OS" in
         ;;
 
     *)
+        BUILD_DIST=
         case "$PACKAGE_ARCH" in
             amd64)
+                # only need to create the vendor package once
+                if [ "$PACKAGE_OS" -eq "ubuntu18.04" ]; then
+                    BUILD_DIST="dist"
+                fi
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
@@ -391,7 +396,7 @@ case "$PACKAGE_OS" in
                 ;;
         esac
 
-        MAKE_COMMAND="make deb 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        MAKE_COMMAND="make deb $BUILD_DIST 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
         ;;
 esac
 
