@@ -843,8 +843,6 @@ impl ModuleRuntime for DockerModuleRuntime {
             .as_ref()
             .lock()
             .expect("Could not acquire system resources lock");
-        system_resources.refresh_system();
-        system_resources.refresh_disks();
 
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -861,11 +859,12 @@ impl ModuleRuntime for DockerModuleRuntime {
             })
             .unwrap_or_default();
 
+        system_resources.refresh_system();
         let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
-
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
 
+        system_resources.refresh_disks();
         let disks = system_resources
             .get_disks()
             .iter()
