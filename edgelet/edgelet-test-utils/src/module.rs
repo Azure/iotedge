@@ -317,7 +317,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     }
 
     async fn system_info(&self) -> Result<SystemInfo, Self::Error> {
-        match self.module.as_ref().unwrap() {
+        /*match self.module.as_ref().unwrap() {
             Ok(_) => Ok(SystemInfo {
                 os_type: "os_type_sample".to_string(),
                 architecture: "architecture_sample".to_string(),
@@ -334,7 +334,23 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
                 server_version: "test".to_string(),
             }),
             Err(e) => Err(e.clone()),
-        }
+        }*/
+
+        Ok(SystemInfo {
+            os_type: "os_type_sample".to_string(),
+            architecture: "architecture_sample".to_string(),
+            version: edgelet_core::version_with_source_version(),
+            provisioning: ProvisioningInfo {
+                r#type: "test".to_string(),
+                dynamic_reprovisioning: false,
+                always_reprovision_on_startup: true,
+            },
+            cpus: 0,
+            virtualized: "test".to_string(),
+            kernel_version: "test".to_string(),
+            operating_system: "test".to_string(),
+            server_version: "test".to_string(),
+        })
     }
 
     async fn system_resources(&self) -> Result<SystemResources, Self::Error> {
