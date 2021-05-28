@@ -336,8 +336,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     })
                     .join(notary_registries)
                     .map(move |(client, (notary_registries, _))| {
-                        let mut system_resources = System::new_all();
-                        system_resources.refresh_all();
+                        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
+                        sysinfo::set_open_files_limit(0);
+                        let system_resources = System::new_all();
                         info!("Successfully initialized module runtime");
                         let notary_lock = tokio::sync::lock::Lock::new(BTreeMap::new());
                         DockerModuleRuntime {
