@@ -211,6 +211,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
     sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
+    sed -i -e "s@<LogRotationMaxFileEdgeHub>@$log_rotation_max_file_edgehub@g" "$deployment_working_file"
 
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
@@ -859,6 +860,7 @@ if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
     log_upload_enabled=true
     log_rotation_max_file="125"
+    log_rotation_max_file_edgehub="400"
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -869,6 +871,7 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     optimize_for_performance=false
     log_upload_enabled=false
     log_rotation_max_file="7"
+    log_rotation_max_file_edgehub="30"
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"
