@@ -380,9 +380,11 @@ case "$PACKAGE_OS" in
         case "$PACKAGE_ARCH" in
             amd64)
                 # only need to create the vendor package once
-                if [ "$PACKAGE_OS" -eq "ubuntu18.04" ]; then
-                    BUILD_DIST="dist"
-                fi
+                case "$PACKAGE_OS" in
+                    ubuntu18.04)
+                       BUILD_DIST=dist
+                       ;;
+                esac
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
