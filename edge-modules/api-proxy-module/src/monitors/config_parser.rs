@@ -11,6 +11,9 @@ const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "4
 pub struct ConfigParser {
     default_values: HashMap<String, String>,
     reserved_values: HashMap<String, String>,
+    regex_get_variables: Regex,
+    regex_get_boolean_expr: Regex,
+    regex_get_if_tag: Regex,
 }
 
 impl ConfigParser {
@@ -36,18 +39,31 @@ impl ConfigParser {
             token_server::TOKEN_SERVER_PORT.to_string(),
         );
 
+        // Define regex here so regex is not compiled everytime a config is received.
+        let regex_get_variables =
+            Regex::new(r"\$\{(.*?)\}").context("Failed to match variables")?;
+
+        // Find all regular expressions in if_tag and resolve them
+        let regex_get_boolean_expr = Regex::new(r"boolean_expression\[(.*)\]")
+            .context("Failed to match boolean statement in if_tag")?;
+
+        // Find all $ifdef_tag 0
+        let regex_get_if_tag = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
+            .context("Failed to remove text between #if_tag 0 tags ")?;
+
         Ok(ConfigParser {
             default_values,
             reserved_values,
+            regex_get_variables,
+            regex_get_boolean_expr,
+            regex_get_if_tag,
         })
     }
 
     pub fn load_config(&self, config: &str) -> Result<HashMap<String, String>, anyhow::Error> {
         let mut context = HashMap::new();
 
-        let re = Regex::new(r"\$\{(.*?)\}").context("Failed to match variables")?;
-
-        for key in re.captures_iter(config) {
+        for key in self.regex_get_variables.captures_iter(config) {
             let new_key = key[1].to_string();
 
             // This priority could be coded as a nested if else statement but it is hard to read.
@@ -57,25 +73,19 @@ impl ConfigParser {
             // 3. load value from customer if it has.
             // 4. load reserved value.
             // Load 0
-            context.insert(new_key, "0".to_string());
+            let new_value = self
+                .reserved_values
+                .get(&new_key)
+                .map(std::string::ToString::to_string)
+                .or_else(|| std::env::var(&new_key).ok())
+                .or_else(|| {
+                    self.default_values
+                        .get(&new_key)
+                        .map(std::string::ToString::to_string)
+                })
+                .unwrap_or_else(|| String::from("0"));
 
-            // Check default value
-            let new_key = key[1].to_string();
-            if let Some(val) = self.default_values.get(&new_key) {
-                context.insert(new_key, (*val).to_string());
-            }
-
-            // Env var:
-            let new_key = key[1].to_string();
-            if let Ok(val) = std::env::var(key[1].to_string()) {
-                context.insert(new_key, (*val).to_string());
-            };
-
-            // Hardcode values
-            let new_key = key[1].to_string();
-            if let Some(val) = self.reserved_values.get(&new_key) {
-                context.insert(new_key, (*val).to_string());
-            }
+            context.insert(new_key, new_value);
         }
 
         Ok(context)
@@ -94,17 +104,14 @@ impl ConfigParser {
             envsubst::substitute(config, &context).context("Failed to subst the text")?;
 
         // Find all regular expressions in if_tag and resolve them
-        let re = Regex::new(r"boolean_expression\[(.*)\]")
-            .context("Failed to match boolean statement in if_tag")?;
-
-        let config = re.replace_all(&config, |caps: &Captures| {
-            parse_boolean_expression(&caps[1])
-        });
+        let config = self
+            .regex_get_boolean_expr
+            .replace_all(&config, |caps: &Captures| {
+                parse_boolean_expression(&caps[1])
+            });
 
         //Replace is 0
-        let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
-            .context("Failed to remove text between #if_tag 0 tags ")?;
-        let config = re.replace_all(&config, "").to_string();
+        let config = self.regex_get_if_tag.replace_all(&config, "").to_string();
 
         Ok(config)
     }
