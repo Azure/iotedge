@@ -14,7 +14,6 @@ parameters:
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   upstream.protocol: ''
-  loadGen.message.frequency: ''
   networkController.description: ''
   networkController.frequencies: ''
   networkController.runProfile: ''
@@ -122,7 +121,6 @@ steps:
           -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
           -testDuration "${{ parameters['testDuration'] }}" \
           -testStartDelay "${{ parameters['testStartDelay'] }}" \
-          -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
           -networkControllerRunProfile "${{ parameters['networkController.runProfile'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalyticsWorkspaceId'] }}" \
