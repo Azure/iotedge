@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -165,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return Retry.Do(
                 () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, method, token),
                 result => result.Status == 200,
-                e => true,
+                e => !(e is DeviceNotFoundException) || ((DeviceNotFoundException)e).IsTransient,
                 TimeSpan.FromSeconds(5),
                 token);
         }
