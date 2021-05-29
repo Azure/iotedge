@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -35,84 +34,50 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // We can also skip if the user has provided a public image from mcr.microsoft.com that requires no auth
             if (!Context.Current.NestedEdge || diagnosticImageName.Contains("mcr.microsoft.com"))
             {
-                Registry diagnosticsRegistry = Context.Current.Registries.First();
-                foreach (var registry in Context.Current.Registries)
+                Registry registry = Context.Current.Registries.First();
+                foreach (var reg in Context.Current.Registries)
                 {
-                    if (diagnosticImageName.Contains(registry.Address))
+                    if (diagnosticImageName.Contains(reg.Address))
                     {
                         // Get the registry that corresponds to the diagnosticImageName in case there are multiple registries.
-                        diagnosticsRegistry = registry;
+                        registry = reg;
                     }
                 }
 
-                var dockerLoginProcess = new System.Diagnostics.Process
+                await Process.RunAsync(
+                    "docker",
+                    $"login --username {registry.Username} --password {registry.Password} {registry.Address}",
+                    token);
+            }
+
+            string args = $"check --diagnostics-image-name {diagnosticImageName} --verbose";
+            if (Context.Current.EdgeProxy.HasValue)
+            {
+                args += string.Join(" ", new[]
                 {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "sudo",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        ArgumentList =
-                        {
-                            "docker",
-                            "login",
-                            "--username",
-                            diagnosticsRegistry.Username,
-                            "--password",
-                            diagnosticsRegistry.Password,
-                            diagnosticsRegistry.Address
-                        }
-                    }
-                };
-                dockerLoginProcess.Start();
-                await Task.Run(() =>
-                {
-                    while (!dockerLoginProcess.StandardOutput.EndOfStream)
-                    {
-                        string line = dockerLoginProcess.StandardOutput.ReadLine();
-                        Log.Information(line);
-                    }
+                    "--dont-run",
+                    "container-connect-upstream-mqtt",
+                    "container-connect-upstream-amqp",
+                    "container-default-connect-upstream-mqtt",
+                    "container-default-connect-upstream-amqp",
+                    "host-connect-iothub-mqtt",
+                    "host-connect-iothub-amqp"
                 });
             }
 
-            var iotedgeCheckProcess = new System.Diagnostics.Process
+            string errors_number = string.Empty;
+            Action<string> onStdout = (string o) =>
             {
-                StartInfo = new ProcessStartInfo
+                Log.Verbose(o);
+                if (o.Contains("check(s) raised errors"))
                 {
-                    FileName = "sudo",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    ArgumentList = { "iotedge", "check", "--diagnostics-image-name", diagnosticImageName, "--verbose" }
+                    // Extract the number of errors
+                    errors_number = o;
                 }
             };
+            Action<string> onStderr = (string e) => Log.Verbose(e);
 
-            if (Context.Current.EdgeProxy.HasValue)
-            {
-                // When test runs behind proxy, skip MQTT and AMQP checks which legitimately fail
-                new List<string>
-                {
-                    "--dont-run",
-                    "container-connect-upstream-mqtt", "container-connect-upstream-amqp",
-                    "container-default-connect-upstream-mqtt", "container-default-connect-upstream-amqp",
-                    "host-connect-iothub-mqtt", "host-connect-iothub-amqp"
-                }.ForEach(arg => iotedgeCheckProcess.StartInfo.ArgumentList.Add(arg));
-            }
-
-            string errors_number = string.Empty;
-            iotedgeCheckProcess.Start();
-            await Task.Run(() =>
-            {
-                while (!iotedgeCheckProcess.StandardOutput.EndOfStream)
-                {
-                    string line = iotedgeCheckProcess.StandardOutput.ReadLine();
-                    Log.Information(line);
-                    if (line.Contains("check(s) raised errors"))
-                    {
-                        // Extract the number of errors
-                        errors_number = line;
-                    }
-                }
-            });
+            await Process.RunAsync("iotedge", args, onStdout, onStderr, token);
 
             Assert.AreEqual(string.Empty, errors_number);
         }

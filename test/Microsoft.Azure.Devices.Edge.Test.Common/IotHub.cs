@@ -84,13 +84,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public async Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, Option<string> parentDeviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
-            Log.Information($"Creating edge device {deviceId} with parentId: {parentDeviceId.GetOrElse("NO PARENT")}");
             Device edge = await parentDeviceId.Match(
             async p =>
             {
                 Device parentDevice = await this.GetDeviceIdentityAsync(p, token);
                 string parentDeviceScope = parentDevice == null ? string.Empty : parentDevice.Scope;
-                Log.Information($"Parent scope: {parentDeviceScope}");
+                Log.Verbose($"Parent scope: {parentDeviceScope}");
                 return new Device(deviceId)
             {
                 Authentication = new AuthenticationMechanism()
@@ -240,8 +239,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             edge.Status = enabled ? DeviceStatus.Enabled : DeviceStatus.Disabled;
             var updated = await this.RegistryManager.UpdateDeviceAsync(edge);
-            Log.Information($"Updated enabled status for {deviceId}, enabled: {enabled}");
-            Log.Information($"{updated.Id}, enabled: {updated.Status}");
+            Log.Verbose($"Updated enabled status for {deviceId}, enabled: {enabled}");
+            Log.Verbose($"{updated.Id}, enabled: {updated.Status}");
         }
     }
 }

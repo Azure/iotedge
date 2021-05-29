@@ -48,8 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                        Log.Verbose(string.Join("\n", output));
-
                         return output
                             .Where(
                                 ln =>
@@ -145,7 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     if (e is KeyNotFoundException)
                     {
-                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
+                        Log.Verbose("The device has not yet reported all the keys, retrying:" + e);
                         return true;
                     }
                     else
