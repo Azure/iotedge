@@ -62,6 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
             finally
             {
+                Log.Verbose("===== EDGE AGENT LOGS =====");
+                await Process.RunAsync("iotedge", $"logs edgeAgent", token);
+                Log.Verbose("===========================");
                 await NUnitLogs.CollectAsync(startTime, token);
             }
         }
