@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
+    using Serilog;
     using NestedEdgeConfig = Microsoft.Azure.Devices.Edge.Test.Common.EdgeDevice.NestedEdgeConfig;
 
     // NUnit's [Timeout] attribute isn't supported in .NET Standard
