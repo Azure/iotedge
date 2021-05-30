@@ -74,7 +74,7 @@
                 "value": "<TrackingId>"
               },
               "transportType": {
-                "value": "Amqp"
+                "value": "Mqtt"
               },
               "outputName": {
                 "value": "output1"
@@ -95,7 +95,7 @@
             "restartPolicy": "always",
             "env": {
               "transportType": {
-                "value": "Amqp"
+                "value": "Mqtt"
               },
               "inputName": {
                 "value": "input1"
@@ -188,7 +188,7 @@
             "restartPolicy": "always",
             "env": {
               "ClientTransportType": {
-                "value": "Amqp"
+                "value": "Mqtt"
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
