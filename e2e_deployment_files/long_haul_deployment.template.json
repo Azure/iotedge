@@ -88,36 +88,6 @@
               "createOptions": "{\"HostConfig\":{\"Memory\":40000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
             }
           },
-          "loadGen2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "messageFrequency": {
-                "value": "<LoadGen.MessageFrequency>"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "outputName": {
-                "value": "output2"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":40000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
-            }
-          },
           "relayer1": {
             "version": "1.0",
             "type": "docker",
@@ -132,30 +102,6 @@
               },
               "outputName": {
                 "value": "output1"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
-            }
-          },
-          "relayer2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "transportType": {
-                "value": "Mqtt"
-              },
-              "inputName": {
-                "value": "input2"
-              },
-              "outputName": {
-                "value": "output2"
               },
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
@@ -183,42 +129,6 @@
               },
               "ServiceClientConnectionString": {
                 "value": "<IoTHubConnectionString>"
-              },
-              "TwinUpdateSize": {
-                "value": "<TwinUpdateSize>"
-              },
-              "TwinUpdateFrequency": {
-                "value": "<TwinUpdateFrequency>"
-              },
-              "EdgeHubRestartFailureTolerance": {
-                "value": "<EdgeHubRestartFailureTolerance>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":70000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
-            }
-          },
-          "twinTester2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TransportType": {
-                "value": "Mqtt"
               },
               "TwinUpdateSize": {
                 "value": "<TwinUpdateSize>"
@@ -279,63 +189,6 @@
             "env": {
               "ClientTransportType": {
                 "value": "Amqp"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":40000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
-            }
-          },
-          "directMethodSender2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "DirectMethodResultType": {
-                "value": "DirectMethodTestResult"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
-              "IOT_HUB_CONNECTION_STRING": {
-                "value": "<IoTHubConnectionString>"
-              },
-              "TargetModuleId": {
-                "value": "directMethodReceiver2"
-              },
-              "testStartDelay": {
-                "value": "<TestStartDelay>"
-              },
-              "ReportingEndpointUrl": {
-                "value": "http://testResultCoordinator:5001"
-              },
-              "trackingId": {
-                "value": "<TrackingId>"
-              },
-              "DirectMethodFrequency": {
-                "value": "<DirectMethodFrequency>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Memory\":30000000, \"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}}}"
-            }
-          },
-          "directMethodReceiver2": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "ClientTransportType": {
-                "value": "Mqtt"
               },
               "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
