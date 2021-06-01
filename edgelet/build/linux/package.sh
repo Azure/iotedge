@@ -17,6 +17,7 @@ CMAKE_ARGS='-DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
 DOCKER_VOLUME_MOUNTS=''
+BUILD_DIST=''
 
 case "$PACKAGE_OS" in
     'centos7')
@@ -376,15 +377,13 @@ case "$PACKAGE_OS" in
         ;;
 
     *)
-        BUILD_DIST=
         case "$PACKAGE_ARCH" in
             amd64)
                 # only need to create the vendor package once
                 case "$PACKAGE_OS" in
                     ubuntu18.04)
-                       BUILD_DIST=dist
+                       BUILD_DIST="make dist VERSION=$DEFAULT_VERSION"
                        ;;
-                esac
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
@@ -398,7 +397,7 @@ case "$PACKAGE_OS" in
                 ;;
         esac
 
-        MAKE_COMMAND="make deb $BUILD_DIST 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
+        MAKE_COMMAND="make deb 'VERSION=$VERSION' 'REVISION=$REVISION' $MAKE_FLAGS"
         ;;
 esac
 
@@ -432,6 +431,7 @@ docker run --rm \
         cd /project/edgelet &&
         $RUST_TARGET_COMMAND
         $MAKE_COMMAND
+        $BUILD_DIST
     "
 
 # Some images use old CPACK which produces non-standard package filenames. This renames them.
@@ -482,3 +482,4 @@ esac
 
 find "$PROJECT_ROOT" -name '*.deb'
 find "$PROJECT_ROOT" -name '*.rpm'
+find "$PROJECT_ROOT" -name '*.tar.gz'
