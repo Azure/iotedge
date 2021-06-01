@@ -18,6 +18,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long receiverSuccesses,
             long statusCodeZero,
             long deviceNotFound,
+            long transientError,
             Dictionary<HttpStatusCode, long> other)
             : base(testDescription, trackingId, resultType)
         {
@@ -27,6 +28,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.ReceiverSuccesses = receiverSuccesses;
             this.StatusCodeZero = statusCodeZero;
             this.DeviceNotFound = deviceNotFound;
+            this.TransientError = transientError;
             this.Other = other;
         }
 
@@ -36,6 +38,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         public long ReceiverSuccesses { get; }
         public long StatusCodeZero { get; }
         public long DeviceNotFound { get; }
+        public long TransientError { get; }
         public Dictionary<HttpStatusCode, long> Other { get; }
 
         public override string Title => $"DirectMethod LongHaul Report for [{this.SenderSource}] and [{this.ReceiverSource}] ({this.ResultType})";
@@ -58,9 +61,10 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long allStatusCount = this.SenderSuccesses + this.StatusCodeZero + this.Other.Sum(x => x.Value);
             bool statusCodeZeroBelowThreshold = (this.StatusCodeZero == 0) || (this.StatusCodeZero < ((double)allStatusCount / 1000));
             bool deviceNotFoundBelowThreshold = (this.DeviceNotFound == 0) || (this.DeviceNotFound < ((double)allStatusCount / 100));
+            bool transientErrorBelowThreshold = (this.DeviceNotFound == 0) || (this.DeviceNotFound < ((double)allStatusCount / 100));
 
             // Pass if status code zero is below the threshold, and sender and receiver got same amount of successess (or receiver has no results)
-            return statusCodeZeroBelowThreshold && deviceNotFoundBelowThreshold && senderAndReceiverSuccessesPass;
+            return statusCodeZeroBelowThreshold && deviceNotFoundBelowThreshold && transientErrorBelowThreshold && senderAndReceiverSuccessesPass;
         }
     }
 }

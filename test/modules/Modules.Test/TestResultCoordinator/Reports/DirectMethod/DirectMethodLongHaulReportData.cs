@@ -107,8 +107,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    2L, 1L, 1L,
-                    new Dictionary<HttpStatusCode, long> { { HttpStatusCode.InternalServerError, 2 }, { HttpStatusCode.ServiceUnavailable, 1 } }
+                    2L, 1L, 1L, 1L,
+                    new Dictionary<HttpStatusCode, long> { { HttpStatusCode.InternalServerError, 2 } }
                 };
     }
 }
