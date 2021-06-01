@@ -384,6 +384,7 @@ case "$PACKAGE_OS" in
                     ubuntu18.04)
                        BUILD_DIST="make dist VERSION=$DEFAULT_VERSION"
                        ;;
+                esac
                 ;;
             arm32v7)
                 MAKE_FLAGS="'CARGOFLAGS=--target armv7-unknown-linux-gnueabihf'"
