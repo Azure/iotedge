@@ -12,7 +12,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Debug, Fail)]
+#[derive(Debug, Fail)]
 pub enum ErrorKind {
     // Only used by edgelet-test-utils
     #[cfg(test)]
