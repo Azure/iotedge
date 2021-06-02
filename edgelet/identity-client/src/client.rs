@@ -45,13 +45,25 @@ impl IdentityClient {
         Box::new(identity)
     }
 
-    pub fn reprovision_device(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+    pub fn reprovision_device(
+        &self,
+        provisioning_cache: std::path::PathBuf,
+    ) -> Box<dyn Future<Item = (), Error = Error> + Send> {
         let client = self.client.clone();
         let uri = format!(
             "/identities/device/reprovision?api-version={}",
             self.api_version
         );
         let body = serde_json::json! {{ "type": "aziot" }};
+
+        if let Err(err) = std::fs::remove_file(provisioning_cache) {
+            if err.kind() != std::io::ErrorKind::NotFound {
+                log::warn!(
+                    "Failed to clear provisioning cache before reprovisioning: {}",
+                    err
+                );
+            }
+        }
 
         let res = build_request_uri(&self.host, &uri)
             .into_future()
