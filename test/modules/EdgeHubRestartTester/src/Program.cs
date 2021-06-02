@@ -43,6 +43,7 @@ namespace EdgeHubRestartTester
                     {
                         ModuleClient msgModuleClient = await ModuleUtil.CreateModuleClientAsync(
                             eachConfig.TransportType,
+                            new ClientOptions(),
                             ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                             ModuleUtil.DefaultTransientRetryStrategy,
                             Logger);
@@ -62,6 +63,7 @@ namespace EdgeHubRestartTester
                     {
                         ModuleClient dmModuleClient = await ModuleUtil.CreateModuleClientAsync(
                             eachConfig.TransportType,
+                            new ClientOptions(),
                             ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                             ModuleUtil.DefaultTransientRetryStrategy,
                             Logger);

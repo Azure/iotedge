@@ -1,0 +1,21 @@
+[package]
+name = "mqtt-policy"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+description = "This crate contains MQTT specific plugins for authorization policy engine. See 'policy' crate."
+
+[dependencies]
+lazy_static = "1.4"
+tracing = "0.1"
+thiserror = "1.0"
+
+mqtt-broker = { path = "../mqtt-broker" }
+mqtt3 = { path = "../mqtt3" }
+policy = { path = "../policy" }
+
+[dev-dependencies]
+assert_matches = "1.5"
+bytes = "1.0"
+proptest = "1.0"
+test-case = "1.1"

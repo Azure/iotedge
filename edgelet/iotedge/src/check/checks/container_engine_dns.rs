@@ -17,7 +17,7 @@ impl Checker for ContainerEngineDns {
     fn description(&self) -> &'static str {
         "DNS server"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }
@@ -64,7 +64,7 @@ impl ContainerEngineDns {
             .context(MESSAGE)?;
         self.dns = daemon_config.dns.clone();
 
-        if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
+        if daemon_config.dns.map_or(true, |e| e.is_empty()) {
             return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
         }
 

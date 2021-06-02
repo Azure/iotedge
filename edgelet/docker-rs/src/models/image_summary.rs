@@ -49,16 +49,16 @@ impl ImageSummary {
         containers: i32,
     ) -> Self {
         ImageSummary {
-            id: id,
-            parent_id: parent_id,
-            repo_tags: repo_tags,
-            repo_digests: repo_digests,
-            created: created,
-            size: size,
-            shared_size: shared_size,
-            virtual_size: virtual_size,
-            labels: labels,
-            containers: containers,
+            id,
+            parent_id,
+            repo_tags,
+            repo_digests,
+            created,
+            size,
+            shared_size,
+            virtual_size,
+            labels,
+            containers,
         }
     }
 

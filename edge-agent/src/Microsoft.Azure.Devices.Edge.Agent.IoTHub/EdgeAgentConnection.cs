@@ -2,30 +2,38 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Security.Cryptography;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
+
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
-        internal static readonly Version ExpectedSchemaVersion = new Version("1.0");
+        internal static readonly Version ExpectedSchemaVersion = new Version("1.1.0");
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
 
         static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(5, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
+            new ExponentialBackoff(3, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(4));
 
         readonly AsyncLock twinLock = new AsyncLock();
         readonly ISerde<DeploymentConfig> desiredPropertiesSerDe;
@@ -35,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IModuleConnection moduleConnection;
         readonly bool pullOnReconnect;
         readonly IDeviceManager deviceManager;
+        readonly IDeploymentMetrics deploymentMetrics;
+        readonly Option<X509Certificate2> manifestTrustBundle;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -44,8 +54,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
-            IDeviceManager deviceManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
+            IDeviceManager deviceManager,
+            IDeploymentMetrics deploymentMetrics,
+            Option<X509Certificate2> manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
         {
         }
 
@@ -55,8 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IRequestManager requestManager,
             IDeviceManager deviceManager,
             bool enableSubscriptions,
-            TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
+            TimeSpan configRefreshFrequency,
+            IDeploymentMetrics deploymentMetrics,
+            Option<X509Certificate2> manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
         {
         }
 
@@ -67,7 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
-            RetryStrategy retryStrategy)
+            RetryStrategy retryStrategy,
+            IDeploymentMetrics deploymentMetrics,
+            Option<X509Certificate2> manifestTrustBundle)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -75,10 +91,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.moduleConnection = new ModuleConnection(moduleClientProvider, requestManager, this.OnConnectionStatusChanged, this.OnDesiredPropertiesUpdated, enableSubscriptions);
             this.retryStrategy = Preconditions.CheckNotNull(retryStrategy, nameof(retryStrategy));
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
-            this.initTask = this.ForceRefreshTwin();
             this.pullOnReconnect = enableSubscriptions;
             this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
+            this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
+            this.initTask = this.ForceRefreshTwin();
+            this.manifestTrustBundle = manifestTrustBundle;
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
@@ -110,14 +128,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 }
 
                 await moduleClient.ForEachAsync(d => d.UpdateReportedPropertiesAsync(patch));
+                this.deploymentMetrics.ReportIotHubSync(true);
                 Events.UpdatedReportedProperties();
             }
             catch (Exception e)
             {
                 Events.ErrorUpdatingReportedProperties(e);
+                this.deploymentMetrics.ReportIotHubSync(false);
                 throw;
             }
         }
+
+        //// public async Task SendEventBatchAsync(IEnumerable<Message> messages)
+        //// {
+        ////    Events.UpdatingReportedProperties();
+        ////    try
+        ////    {
+        ////        Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
+        ////        if (!moduleClient.HasValue)
+        ////        {
+        ////            Events.SendEventClientEmpty();
+        ////            return;
+        ////        }
+
+        ////        await moduleClient.ForEachAsync(d => d.SendEventBatchAsync(messages));
+        ////        Events.SendEvent();
+        ////    }
+        ////    catch (Exception e)
+        ////    {
+        ////        Events.ErrorSendingEvent(e);
+        ////        throw;
+        ////    }
+        //// }
 
         public async Task SendEventAsync(Message message)
         {
@@ -141,11 +183,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        internal static void ValidateSchemaVersion(string schemaVersion)
+        internal static void ValidateSchemaVersion(DeploymentConfig config)
         {
-            if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
+            string schemaVersion = config.SchemaVersion;
+
+            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version actualSchemaVersion))
             {
-                Events.MismatchedMinorVersions(schemaVersion, ExpectedSchemaVersion);
+                throw new InvalidSchemaVersionException($"Invalid desired properties schema version {schemaVersion}");
+            }
+
+            // Check major version and upper bound
+            if (actualSchemaVersion.Major != ExpectedSchemaVersion.Major ||
+                actualSchemaVersion > ExpectedSchemaVersion)
+            {
+                throw new InvalidSchemaVersionException($"The desired properties schema version {schemaVersion} is not compatible with the expected version {ExpectedSchemaVersion}");
             }
         }
 
@@ -222,10 +273,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 {
                     try
                     {
-                        this.desiredProperties = Option.Some(twin.Properties.Desired);
-                        this.reportedProperties = Option.Some(twin.Properties.Reported);
-                        await this.UpdateDeploymentConfig(twin.Properties.Desired);
-                        Events.TwinRefreshSuccess();
+                        Events.LogDesiredPropertiesAfterFullTwin(twin.Properties.Desired);
+                        if (this.CheckIfTwinSignatureIsValid(twin.Properties.Desired))
+                        {
+                            this.desiredProperties = Option.Some(twin.Properties.Desired);
+                            await this.UpdateDeploymentConfig(twin.Properties.Desired);
+                            this.reportedProperties = Option.Some(twin.Properties.Reported);
+                            Events.TwinRefreshSuccess();
+                        }
                     }
                     catch (Exception ex) when (!ex.IsFatal())
                     {
@@ -235,14 +290,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 });
         }
 
-        async Task<Option<Twin>> GetTwinFromIoTHub()
+        async Task<Option<Twin>> GetTwinFromIoTHub(bool retrying = false)
         {
+            IModuleClient moduleClient = null;
+
             try
             {
                 async Task<Twin> GetTwinFunc()
                 {
-                    Events.GettingModuleClient();
-                    IModuleClient moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
+                    Events.GettingModuleClient(retrying);
+                    moduleClient = await this.moduleConnection.GetOrCreateModuleClient();
                     Events.GotModuleClient();
                     return await moduleClient.GetTwinAsync();
                 }
@@ -256,11 +313,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 retryPolicy.Retrying += (_, args) => Events.RetryingGetTwin(args);
                 Twin twin = await retryPolicy.ExecuteAsync(GetTwinFunc);
                 Events.GotTwin(twin);
+                this.deploymentMetrics.ReportIotHubSync(true);
                 return Option.Some(twin);
             }
             catch (Exception e)
             {
                 Events.ErrorGettingTwin(e);
+                this.deploymentMetrics.ReportIotHubSync(false);
+
+                if (!retrying && moduleClient != null)
+                {
+                    try
+                    {
+                        await moduleClient.CloseAsync();
+                    }
+                    catch (Exception e2)
+                    {
+                        Events.ErrorClosingModuleClientForRetry(e2);
+                    }
+
+                    return await this.GetTwinFromIoTHub(true);
+                }
+
                 return Option.None<Twin>();
             }
         }
@@ -272,9 +346,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 string mergedJson = JsonEx.Merge(desiredProperties, patch, true);
                 desiredProperties = new TwinCollection(mergedJson);
-                this.desiredProperties = Option.Some(desiredProperties);
-                await this.UpdateDeploymentConfig(desiredProperties);
-                Events.DesiredPropertiesPatchApplied();
+                Events.LogDesiredPropertiesAfterPatch(desiredProperties);
+                if (this.CheckIfTwinSignatureIsValid(desiredProperties))
+                {
+                    this.desiredProperties = Option.Some(desiredProperties);
+                    await this.UpdateDeploymentConfig(desiredProperties);
+                    Events.DesiredPropertiesPatchApplied();
+                }
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
@@ -315,7 +393,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 // Do any validation on deploymentConfig if necessary
-                ValidateSchemaVersion(deploymentConfig.SchemaVersion);
+                ValidateSchemaVersion(deploymentConfig);
                 this.deploymentConfigInfo = Option.Some(new DeploymentConfigInfo(desiredProperties.Version, deploymentConfig));
                 Events.UpdatedDeploymentConfig();
             }
@@ -330,6 +408,111 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         async Task<bool> WaitForDeviceClientInitialization() =>
             await Task.WhenAny(this.initTask, Task.Delay(DeviceClientInitializationWaitTime)) == this.initTask;
+
+        internal bool CheckIfTwinSignatureIsValid(TwinCollection twinDesiredProperties)
+        {
+            // This function call returns false only when the signature verification fails
+            // It returns true when there is no signature data or when the signature is verified
+            if (!this.CheckIfManifestSigningIsEnabled(twinDesiredProperties))
+            {
+                Events.ManifestSigningIsNotEnabled();
+            }
+            else
+            {
+                Events.ManifestSigningIsEnabled();
+                if (this.ExtractAgentTwinAndVerify(twinDesiredProperties))
+                {
+                    Events.VerifyTwinSignatureSuceeded();
+                }
+                else
+                {
+                    Events.VerifyTwinSignatureFailed();
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        internal bool CheckIfManifestSigningIsEnabled(TwinCollection twinDesiredProperties)
+        {
+            // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
+            // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
+            JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
+            return this.manifestTrustBundle.HasValue || (integrity != null && integrity.HasValues);
+        }
+
+        internal bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
+        {
+            try
+            {
+                // Extract Desired properties
+                JObject desiredProperties = new JObject();
+                JObject twinJobject = JObject.Parse(twinDesiredProperties.ToString());
+                desiredProperties["modules"] = twinJobject["modules"];
+                desiredProperties["runtime"] = twinJobject["runtime"];
+                desiredProperties["schemaVersion"] = twinJobject["schemaVersion"];
+                desiredProperties["systemModules"] = twinJobject["systemModules"];
+
+                // Check if Manifest Trust Bundle is configured
+                X509Certificate2 manifestTrustBundleRootCertificate;
+                if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
+                {
+                    // Actual code path would never get here as we check enablement before this. Added for Unit test purpose only.
+                    Events.ManifestSigningIsNotEnabled();
+                    throw new ManifestSigningIsNotEnabledProperly("Manifest Signing is Disabled.");
+                }
+                else if (!this.manifestTrustBundle.HasValue && twinJobject["integrity"] != null)
+                {
+                    Events.ManifestTrustBundleIsNotConfigured();
+                    throw new ManifestSigningIsNotEnabledProperly("Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+                }
+                else if (this.manifestTrustBundle.HasValue && twinJobject["integrity"] == null)
+                {
+                    Events.DeploymentManifestIsNotSigned();
+                    throw new ManifestSigningIsNotEnabledProperly("Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+                }
+                else
+                {
+                    // deployment manifest is signed and also the manifest trust bundle is configured
+                    manifestTrustBundleRootCertificate = this.manifestTrustBundle.OrDefault();
+                }
+
+                // Extract Integrity header section
+                JToken integrity = twinJobject["integrity"];
+                JToken header = integrity["header"];
+
+                // Extract Signer Cert section
+                JToken signerCertJtoken = integrity["header"]["signercert"];
+                string signerCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 signerCert = new X509Certificate2(Convert.FromBase64String(signerCombinedCert));
+
+                // Extract Intermediate CA Cert section
+                JToken intermediatecacertJtoken = integrity["header"]["intermediatecacert"];
+                string intermediatecacertCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
+                X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
+
+                // Extract the manifest trust bundle certificate and verify chaining
+                if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                {
+                    throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                }
+
+                // Extract Signature bytes and algorithm section
+                JToken signature = integrity["signature"]["bytes"];
+                byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
+                JToken algo = integrity["signature"]["algorithm"];
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
+                Events.ExtractAgentTwinSucceeded();
+
+                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+            }
+            catch (Exception ex)
+            {
+                Events.ExtractAgentTwinAndVerifyFailed(ex);
+                throw ex;
+            }
+        }
 
         static class Events
         {
@@ -362,6 +545,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 SendEvent,
                 SendEventClientEmpty,
                 ErrorSendingEvent,
+                ErrorClosingModuleClient,
+                LogDesiredPropertiesAfterPatch,
+                LogDesiredPropertiesAfterFullTwin,
+                ExtractAgentTwinAndVerifyFailed,
+                ExtractAgentTwinSucceeded,
+                VerifyTwinSignatureFailed,
+                VerifyTwinSignatureSuceeded,
+                VerifyTwinSignatureException,
+                ManifestSigningIsEnabled,
+                ManifestSigningIsNotEnabled,
+                ManifestTrustBundleIsNotConfigured,
+                DeploymentManifestIsNotSigned
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -372,13 +567,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ConnectionStatusChanged(ConnectionStatus status, ConnectionStatusChangeReason reason)
             {
                 Log.LogDebug((int)EventIds.ConnectionStatusChanged, $"Connection status changed to {status} with reason {reason}");
-            }
-
-            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
-            {
-                Log.LogWarning(
-                    (int)EventIds.MismatchedSchemaVersion,
-                    $"Desired properties schema version {receivedVersion} does not match expected schema version {expectedVersion}. Some settings may not be supported.");
             }
 
             public static void GotTwin(Twin twin)
@@ -408,9 +596,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Log.LogDebug((int)EventIds.ErrorUpdatingReportedProperties, ex, "Error updating reported properties in IoT Hub");
             }
 
-            public static void GettingModuleClient()
+            public static void GettingModuleClient(bool retrying)
             {
-                Log.LogDebug((int)EventIds.GettingModuleClient, "Getting module client to refresh the twin");
+                Log.LogDebug((int)EventIds.GettingModuleClient, $"Getting module client to refresh the twin with retrying set to {retrying}");
             }
 
             public static void GotModuleClient()
@@ -491,6 +679,66 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             public static void ErrorSendingEvent(Exception ex)
             {
                 Log.LogDebug((int)EventIds.ErrorSendingEvent, ex, "Error sending event");
+            }
+
+            public static void ErrorClosingModuleClientForRetry(Exception e)
+            {
+                Log.LogWarning((int)EventIds.ErrorClosingModuleClient, e, "Error closing module client for retry");
+            }
+
+            internal static void LogDesiredPropertiesAfterPatch(TwinCollection twinCollection)
+            {
+                Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterPatch, $"Obtained desired properties after apply patch: {twinCollection}");
+            }
+
+            internal static void LogDesiredPropertiesAfterFullTwin(TwinCollection twinCollection)
+            {
+                Log.LogTrace((int)EventIds.LogDesiredPropertiesAfterFullTwin, $"Obtained desired properites after processing full twin: {twinCollection}");
+            }
+
+            internal static void ExtractAgentTwinAndVerifyFailed(Exception exception)
+            {
+                Log.LogError((int)EventIds.ExtractAgentTwinAndVerifyFailed, exception, "Extract Edge agent twin and verify failed");
+            }
+
+            internal static void ExtractAgentTwinSucceeded()
+            {
+                Log.LogDebug((int)EventIds.ExtractAgentTwinSucceeded, "Successfully Extracted twin for signature verification");
+            }
+
+            internal static void VerifyTwinSignatureException(Exception exception)
+            {
+                Log.LogError((int)EventIds.VerifyTwinSignatureException, exception, "Verify Twin Signature Failed Exception");
+            }
+
+            internal static void VerifyTwinSignatureFailed()
+            {
+                Log.LogError((int)EventIds.VerifyTwinSignatureFailed, "Twin Signature is not verified");
+            }
+
+            internal static void VerifyTwinSignatureSuceeded()
+            {
+                Log.LogInformation((int)EventIds.VerifyTwinSignatureSuceeded, "Twin Signature is verified");
+            }
+
+            internal static void ManifestSigningIsEnabled()
+            {
+                Log.LogDebug((int)EventIds.ManifestSigningIsEnabled, $"Manifest Signing is enabled");
+            }
+
+            internal static void ManifestSigningIsNotEnabled()
+            {
+                Log.LogDebug((int)EventIds.ManifestSigningIsNotEnabled, $"Manifest Signing is not enabled. To enable, sign the deployment manifest and also enable manifest trust bundle in certificate client");
+            }
+
+            internal static void ManifestTrustBundleIsNotConfigured()
+            {
+                Log.LogWarning((int)EventIds.ManifestTrustBundleIsNotConfigured, $"Deployment manifest is signed but the Manifest Trust bundle is not configured. Please configure in config.toml");
+            }
+
+            internal static void DeploymentManifestIsNotSigned()
+            {
+                Log.LogWarning((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
             }
         }
     }

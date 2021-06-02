@@ -59,14 +59,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                 if (!moduleSet.Modules.TryGetValue(dockerRuntimeInfo.Name, out IModule configModule) || !(configModule is DockerModule dockerModule))
                 {
-                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters(), Option.None<NotaryContentTrust>()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
+                    dockerModule = new DockerModule(dockerRuntimeInfo.Name, string.Empty, ModuleStatus.Unknown, Core.RestartPolicy.Unknown, new DockerConfig(Constants.UnknownImage, new CreateContainerParameters(), Option.None<string>()), ImagePullPolicy.OnCreate, Core.Constants.HighestPriority, new ConfigurationInfo(), null);
                 }
 
                 Option<ModuleState> moduleStateOption = await this.moduleStateStore.Get(moduleRuntimeInfo.Name);
                 ModuleState moduleState = moduleStateOption.GetOrElse(new ModuleState(0, moduleRuntimeInfo.ExitTime.GetOrElse(DateTime.MinValue)));
 
                 string image = !string.IsNullOrWhiteSpace(dockerRuntimeInfo.Config.Image) ? dockerRuntimeInfo.Config.Image : dockerModule.Config.Image;
-                var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerModule.Config.NotaryContentTrust);
+                var dockerReportedConfig = new DockerReportedConfig(image, dockerModule.Config.CreateOptions, dockerRuntimeInfo.Config.ImageHash, dockerModule.Config.Digest);
                 IModule module;
                 switch (moduleRuntimeInfo.Name)
                 {
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeInfo.ModuleStatus,
                             dockerModule.ImagePullPolicy,
-                            dockerModule.Priority,
+                            dockerModule.StartupOrder,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             moduleState.LastRestartTimeUtc,
                             moduleRuntimeInfo.ModuleStatus,
                             dockerModule.ImagePullPolicy,
-                            dockerModule.Priority,
+                            dockerModule.StartupOrder,
                             dockerModule.ConfigurationInfo,
                             dockerModule.Env);
                         break;

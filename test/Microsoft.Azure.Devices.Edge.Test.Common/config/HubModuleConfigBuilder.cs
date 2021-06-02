@@ -10,12 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         const string HubCreateOptions = "{\"HostConfig\":{\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}],\"5671/tcp\":[{\"HostPort\":\"5671\"}]}}}";
 
         public HubModuleConfigBuilder(Option<string> image, bool optimizeForPerformance)
-            : base(ModuleName.EdgeHub, image.GetOrElse(DefaultImage), Option.Some(HubCreateOptions))
+            : base(ModuleName.EdgeHub, image.GetOrElse(DefaultImage), Option.Some(HubCreateOptions), true)
         {
             this.WithDesiredProperties(
                 new Dictionary<string, object>
                 {
-                    ["schemaVersion"] = "1.1",
+                    ["schemaVersion"] = "1.2",
                     ["routes"] = new { route1 = "from /* INTO $upstream" },
                     ["storeAndForwardConfiguration"] = new { timeToLiveSecs = 7200 }
                 });

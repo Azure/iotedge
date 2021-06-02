@@ -1,0 +1,12 @@
+[package]
+name = "watchdog"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
+[dependencies]
+nix = "0.20"
+signal-hook = "0.3"
+tracing = "0.1"
+tracing-subscriber = "0.2"
+anyhow = "1.0"

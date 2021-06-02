@@ -19,10 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     {
         const string IothubHostName = "test.azure-devices.net";
         const string DeviceId = "edgeDevice1";
-        const string GatewayHostName = "edgedevicehost";
         static readonly Uri EdgeletUri = new Uri("http://localhost");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId, GatewayHostName);
+        static readonly ModuleIdentityProviderServiceBuilder ModuleIdentityProviderServiceBuilder = new ModuleIdentityProviderServiceBuilder(IothubHostName, DeviceId);
 
         [Fact]
         public async Task TestGetModulesIdentity_WithEmptyDiff_ShouldReturnEmptyIdentities()
@@ -48,10 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
 
-            var module1 = new TestModule("mod1", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module2 = new TestModule("mod2", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module3 = new TestModule("mod3", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module4 = new TestModule("$edgeHub", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
+            var module1 = new TestModule("mod1", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module2 = new TestModule("mod2", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module3 = new TestModule("mod3", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module4 = new TestModule("$edgeHub", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             ModuleSet desired = ModuleSet.Create(module1, module4);
             ModuleSet current = ModuleSet.Create(module2, module3, module4);
 
@@ -80,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
                     m.CreateIdentityAsync(Name, Constants.ModuleIdentityEdgeManagedByValue) == Task.FromResult(identity));
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
-            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, new Dictionary<string, EnvVal>());
+            var module = new TestModule(Name, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, new Dictionary<string, EnvVal>());
 
             // Act
             IImmutableDictionary<string, IModuleIdentity> modulesIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(
@@ -128,11 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
-            var module1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module4 = new TestModule(Module4, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var module5 = new TestModule(Module5, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
+            var module1 = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module2 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module3 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module4 = new TestModule(Module4, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var module5 = new TestModule(Module5, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             ModuleSet desired = ModuleSet.Create(module1, module2.CloneWithImage("image2"), module3.CloneWithImage("image2"), module4.CloneWithImage("image2"), module5.CloneWithImage("image2"));
             ModuleSet current = ModuleSet.Create(module2, module3, module4, module5);
 
@@ -175,9 +174,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
-            var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var currentModule2 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
+            var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var currentModule2 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             ModuleSet desired = ModuleSet.Create(new IModule[] { desiredModule });
             ModuleSet current = ModuleSet.Create(new IModule[] { currentModule1, currentModule2 });
 
@@ -217,9 +216,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
             var envVar = new Dictionary<string, EnvVal>();
-            var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
-            var currentModule2 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, envVar);
+            var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
+            var currentModule2 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, envVar);
             ModuleSet desired = ModuleSet.Create(new IModule[] { currentModule1, desiredModule });
             ModuleSet current = ModuleSet.Create(new IModule[] { currentModule1, currentModule2 });
 

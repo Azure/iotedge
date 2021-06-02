@@ -15,13 +15,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         const string NameFormat = "{0}_{1}";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
+        readonly TimeSpan maxAge;
 
-        public MetricsProvider(string namePrefix, string iotHubName, string deviceId)
+        public MetricsProvider(string namePrefix, string iotHubName, string deviceId, TimeSpan maxAge)
         {
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.defaultLabelNames = new List<string> { iotHubName, deviceId, Guid.NewGuid().ToString() };
+            this.maxAge = Preconditions.CheckNotNull(maxAge, nameof(maxAge));
 
             // TODO:
             // By default, the Prometheus.Net library emits some default metrics.
@@ -42,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             => new MetricsTimer(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
 
         public IMetricsHistogram CreateHistogram(string name, string description, List<string> labelNames)
-            => new MetricsHistogram(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);
+            => new MetricsHistogram(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames, this.maxAge);
 
         public IMetricsDuration CreateDuration(string name, string description, List<string> labelNames)
             => new MetricsDuration(this.GetName(name), description, this.GetLabelNames(labelNames), this.defaultLabelNames);

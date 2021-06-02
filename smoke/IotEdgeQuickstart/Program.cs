@@ -59,11 +59,14 @@ Defaults:
   --runtime-log-level                   debug
   --clean_up_existing_device            false
   --proxy                               no proxy is used
+  --parent-hostname                     no parent hostname is used
+  --parent-edge-device                  no parent edge device is used
+  --overwrite-packages                  program will terminate instead of modifying installed packages
 ")]
     [HelpOption]
     class Program
     {
-        [Option("-a|--bootstrapper-archive <path>", Description = "Path to bootstrapper archive")]
+        [Option("-a|--bootstrapper-archive <path>", Description = "Path to directory containing packages to install")]
         public string BootstrapperArchivePath { get; } = Environment.GetEnvironmentVariable("bootstrapperArchivePath");
 
         [Option("-b|--bootstrapper=<iotedged/iotedgectl>", CommandOptionType.SingleValue, Description = "Which bootstrapper to use")]
@@ -83,6 +86,18 @@ Defaults:
 
         [Option("-h|--use-http=<hostname>", Description = "Modules talk to iotedged via tcp instead of unix domain socket")]
         public (bool useHttp, string hostname) UseHttp { get; } = (false, string.Empty);
+
+        [Option("--use-connect-management-uri=<connect_management_uri>", Description = "Modules talk to a custom connect management socket (default is unix:///var/run/iotedge/mgmt.sock)")]
+        public string ConnectManagementUri { get; } = string.Empty;
+
+        [Option("--use-connect-workload-uri=<connect_workload_uri>", Description = "Modules talk to a custom connect workload socket (default is unix:///var/run/iotedge/workload.sock)")]
+        public string ConnectWorkloadUri { get; } = string.Empty;
+
+        [Option("--use-listen-management-uri=<listen_management_uri>", Description = "Modules talk to a custom listen management socket (default is fd://iotedge.mgmt.socket)")]
+        public string ListenManagementUri { get; } = string.Empty;
+
+        [Option("--use-listen-workload-uri=<listen_workload_uri>", Description = "Modules talk to a custom listen workload socket (default is fd://iotedge.socket)")]
+        public string ListenWorkloadUri { get; } = string.Empty;
 
         [Option("-n|--edge-hostname", Description = "Edge device's hostname")]
         public string EdgeHostname { get; } = "quickstart";
@@ -162,6 +177,15 @@ Defaults:
         [Option("--device_identity_pk", Description = "Optional path to the device identity private key file. Used for either DPS or manual provisioning flows")]
         public string DeviceIdentityPk { get; } = string.Empty;
 
+        [Option("--parent-hostname", Description = "Optional input to specify parent hostname for nested edge scenario")]
+        public string ParentHostname { get; } = string.Empty;
+
+        [Option("--parent-edge-device", Description = "Optional input to specify parent edge device id for nested edge scenario")]
+        public string ParentEdgeDevice { get; } = string.Empty;
+
+        [Option("--overwrite-packages", Description = "Overwrite existing aziot packages with those specified in the bootstrapper")]
+        public bool OverwritePackages { get; } = false;
+
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -199,8 +223,7 @@ Defaults:
                     case BootstrapperType.Iotedged:
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            string offlineInstallationPath = string.IsNullOrEmpty(this.OfflineInstallationPath) ? this.BootstrapperArchivePath : this.OfflineInstallationPath;
-                            bootstrapper = new IotedgedWindows(offlineInstallationPath, credentials, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation);
+                            throw new NotImplementedException("Windows support is not available");
                         }
                         else
                         {
@@ -209,7 +232,9 @@ Defaults:
                                 ? Option.Some(string.IsNullOrEmpty(hostname) ? new HttpUris() : new HttpUris(hostname))
                                 : Option.None<HttpUris>();
 
-                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, proxy, upstreamProtocolOption);
+                            UriSocks socks = new UriSocks(this.ConnectManagementUri, this.ConnectWorkloadUri, this.ListenManagementUri, this.ListenWorkloadUri);
+
+                            bootstrapper = new IotedgedLinux(this.BootstrapperArchivePath, credentials, uris, socks, proxy, upstreamProtocolOption, !this.BypassEdgeInstallation, this.OverwritePackages);
                         }
 
                         break;
@@ -273,6 +298,8 @@ Defaults:
                     tag,
                     this.DeviceId,
                     this.EdgeHostname,
+                    string.IsNullOrWhiteSpace(this.ParentHostname) ? Option.None<string>() : Option.Some(this.ParentHostname),
+                    string.IsNullOrWhiteSpace(this.ParentEdgeDevice) ? Option.None<string>() : Option.Some(this.ParentEdgeDevice),
                     this.LeaveRunning,
                     this.NoVerify,
                     this.BypassEdgeInstallation,

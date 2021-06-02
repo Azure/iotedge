@@ -1,68 +1,44 @@
-use std::time::Duration;
+#![cfg(any(test, feature = "proptest"))]
+use std::{net::IpAddr, net::SocketAddr, time::Duration};
 
 use bytes::Bytes;
-use mqtt3::proto;
+use chrono::Utc;
 use proptest::{
     bool,
-    collection::{hash_map, hash_set, vec, vec_deque},
+    collection::{hash_map, vec, vec_deque},
     num,
     prelude::*,
 };
 
+use mqtt3::proto;
+
 use crate::{
-    session::{IdentifiersInUse, PacketIdentifiers},
-    BrokerState, ClientId, Publish, Segment, SessionState, Subscription, TopicFilter,
+    AuthId, BrokerSnapshot, ClientId, ClientInfo, Publish, Segment, SessionSnapshot, Subscription,
+    TopicFilter,
 };
 
 prop_compose! {
-    pub fn arb_broker_state()(
-        retained in hash_map(arb_topic(), arb_publication(), 0..20),
-        sessions in vec(arb_session_state(), 0..10),
-    ) -> BrokerState {
-        BrokerState::new(retained, sessions)
+    pub fn arb_broker_snapshot()(
+        retained in hash_map(arb_topic(), arb_publication(), 0..5),
+        sessions in vec(arb_session_snapshot(), 0..5),
+    ) -> BrokerSnapshot {
+        BrokerSnapshot::new(retained, sessions)
     }
 }
 
 prop_compose! {
-    pub(crate) fn arb_packet_identifiers()(
-        in_use in arb_identifiers_in_use(),
-        previous in arb_packet_identifier(),
-    ) -> PacketIdentifiers {
-        PacketIdentifiers::new(in_use, previous)
-    }
-}
-
-pub(crate) fn arb_identifiers_in_use() -> impl Strategy<Value = IdentifiersInUse> {
-    vec(num::usize::ANY, PacketIdentifiers::SIZE).prop_map(|v| {
-        let mut array = [0; PacketIdentifiers::SIZE];
-        let nums = &v[..array.len()];
-        array.copy_from_slice(nums);
-        IdentifiersInUse(Box::new(array))
-    })
-}
-
-prop_compose! {
-    pub fn arb_session_state()(
-        client_id in arb_clientid(),
-        subscriptions in hash_map(arb_topic(), arb_subscription(), 0..10),
-        packet_identifiers in arb_packet_identifiers(),
-        packet_identifiers_qos0 in arb_packet_identifiers(),
-        waiting_to_be_sent in vec_deque(arb_publication(), 0..10),
-        waiting_to_be_released in hash_map(arb_packet_identifier(), arb_proto_publish(), 0..10),
-        waiting_to_be_acked in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-        waiting_to_be_acked_qos0 in hash_map(arb_packet_identifier(), arb_publish(), 0..10),
-        waiting_to_be_completed in hash_set(arb_packet_identifier(), 0..10),
-    ) -> SessionState {
-        SessionState::from_state_parts(
-            client_id,
+    pub fn arb_session_snapshot()(
+        client_info in arb_client_info(),
+        subscriptions in hash_map(arb_topic(), arb_subscription(), 0..5),
+        waiting_to_be_sent in vec_deque(arb_publication(), 0..3),
+        waiting_to_be_acked in vec_deque(arb_proto_publish(), 0..3),
+    ) -> SessionSnapshot {
+        SessionSnapshot::from_parts(
+            client_info,
             subscriptions,
-            packet_identifiers,
-            packet_identifiers_qos0,
             waiting_to_be_sent,
-            waiting_to_be_released,
             waiting_to_be_acked,
-            waiting_to_be_acked_qos0,
-            waiting_to_be_completed,
+            Utc::now()
         )
     }
 }
@@ -87,7 +63,7 @@ prop_compose! {
 prop_compose! {
     pub fn arb_subscribe()(
         packet_identifier in arb_packet_identifier(),
-        subscribe_to in proptest::collection::vec(arb_subscribe_to(), 1..10)
+        subscribe_to in proptest::collection::vec(arb_subscribe_to(), 1..5)
     ) -> proto::Subscribe {
         proto::Subscribe {
             packet_identifier,
@@ -111,12 +87,28 @@ prop_compose! {
 prop_compose! {
     pub fn arb_unsubscribe()(
         packet_identifier in arb_packet_identifier(),
-        unsubscribe_from in proptest::collection::vec(arb_topic_filter_weighted(), 1..10)
+        unsubscribe_from in proptest::collection::vec(arb_topic_filter_weighted(), 1..5)
     ) -> proto::Unsubscribe {
         proto::Unsubscribe {
             packet_identifier,
             unsubscribe_from
         }
+    }
+}
+
+prop_compose! {
+    pub fn arb_client_info()(
+        client_id in arb_clientid(),
+        auth_id in arb_auth_id(),
+        ip in arb_ip(),
+        port in arb_port(),
+    ) -> ClientInfo {
+        // Unfortunately we can't just call SocketAddr::arbitrary() because when serde occurs on SocketAddr,
+        // we lose the flowid and scope_id. They get set to 0 by default.
+        // This workaround manually sets them to 0 but uses arbitrary values for ip and port
+        // Issue opened: https://github.com/serde-rs/serde/issues/1896
+        let socket = SocketAddr::new(ip, port);
+        ClientInfo::new(client_id, socket, auth_id)
     }
 }
 
@@ -144,7 +136,23 @@ pub fn arb_client_id() -> impl Strategy<Value = proto::ClientId> {
     ]
 }
 pub fn arb_clientid() -> impl Strategy<Value = ClientId> {
-    "[a-zA-Z0-9]{1,23}".prop_map(Into::into)
+    // TODO: Add in # and + once the broker can handle them
+    "[a-zA-Z0-9_()!@%,'=\\*\\$\\?\\-]{1,23}".prop_map(Into::into)
+}
+
+pub fn arb_auth_id() -> impl Strategy<Value = AuthId> {
+    prop_oneof![
+        "[a-zA-Z0-9]{1,23}".prop_map(AuthId::from),
+        Just(AuthId::Anonymous)
+    ]
+}
+
+pub fn arb_ip() -> impl Strategy<Value = IpAddr> {
+    IpAddr::arbitrary()
+}
+
+pub fn arb_port() -> impl Strategy<Value = u16> {
+    proptest::num::u16::ANY
 }
 
 pub fn arb_client_id_weighted() -> impl Strategy<Value = proto::ClientId> {
@@ -168,7 +176,7 @@ pub fn arb_topic() -> impl Strategy<Value = String> {
 }
 
 pub fn arb_payload() -> impl Strategy<Value = Bytes> {
-    vec(num::u8::ANY, 0..1024).prop_map(Bytes::from)
+    vec(num::u8::ANY, 0..128).prop_map(Bytes::from)
 }
 
 prop_compose! {

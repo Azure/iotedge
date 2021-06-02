@@ -316,27 +316,32 @@ where
                         std::task::Poll::Ready(Err(err)) => {
                             if err.is_user_error() {
                                 break Some(err);
-                            } else {
-                                log::warn!("client will reconnect because of error: {}", err);
+                            }
+                            log::warn!("client will reconnect because of error: {}", err);
 
-                                if !err.session_is_resumable() {
-                                    // Ensure clean session if the error is such that the session is not resumable.
-                                    //
-                                    // DEVNOTE: subscriptions::State relies on the fact that the session is reset here.
-                                    // Update that if this ever changes.
-                                    *client_id = match std::mem::replace(
-                                        client_id,
-                                        crate::proto::ClientId::ServerGenerated,
-                                    ) {
-                                        id @ crate::proto::ClientId::ServerGenerated
-                                        | id @ crate::proto::ClientId::IdWithCleanSession(_) => id,
-                                        crate::proto::ClientId::IdWithExistingSession(id) => {
-                                            crate::proto::ClientId::IdWithCleanSession(id)
-                                        }
-                                    };
-                                }
+                            if !err.session_is_resumable() {
+                                // Ensure clean session if the error is such that the session is not resumable.
+                                //
+                                // DEVNOTE: subscriptions::State relies on the fact that the session is reset here.
+                                // Update that if this ever changes.
+                                *client_id = match std::mem::replace(
+                                    client_id,
+                                    crate::proto::ClientId::ServerGenerated,
+                                ) {
+                                    id @ crate::proto::ClientId::ServerGenerated
+                                    | id @ crate::proto::ClientId::IdWithCleanSession(_) => id,
+                                    crate::proto::ClientId::IdWithExistingSession(id) => {
+                                        crate::proto::ClientId::IdWithCleanSession(id)
+                                    }
+                                };
+                            }
 
-                                connect.reconnect();
+                            connect.reconnect();
+
+                            if err.is_connection_error() {
+                                return std::task::Poll::Ready(Some(Ok(Event::Disconnected(
+                                    err.into(),
+                                ))));
                             }
                         }
 
@@ -394,34 +399,33 @@ where
 
                                 std::task::Poll::Pending => return std::task::Poll::Pending,
                             }
-                        } else {
-                            match std::pin::Pin::new(&mut framed).poll_ready(cx) {
-                                std::task::Poll::Ready(Ok(())) => {
-                                    let packet =
-                                        crate::proto::Packet::Disconnect(crate::proto::Disconnect);
-                                    match std::pin::Pin::new(&mut framed).start_send(packet) {
-                                        Ok(()) => *sent_disconnect = true,
+                        }
+                        match std::pin::Pin::new(&mut framed).poll_ready(cx) {
+                            std::task::Poll::Ready(Ok(())) => {
+                                let packet =
+                                    crate::proto::Packet::Disconnect(crate::proto::Disconnect);
+                                match std::pin::Pin::new(&mut framed).start_send(packet) {
+                                    Ok(()) => *sent_disconnect = true,
 
-                                        Err(err) => {
-                                            log::warn!("couldn't send DISCONNECT: {}", err);
-                                            self.0 = ClientState::ShutDown {
-                                                reason: reason.take(),
-                                            };
-                                            break;
-                                        }
+                                    Err(err) => {
+                                        log::warn!("couldn't send DISCONNECT: {}", err);
+                                        self.0 = ClientState::ShutDown {
+                                            reason: reason.take(),
+                                        };
+                                        break;
                                     }
                                 }
-
-                                std::task::Poll::Ready(Err(err)) => {
-                                    log::warn!("couldn't send DISCONNECT: {}", err);
-                                    self.0 = ClientState::ShutDown {
-                                        reason: reason.take(),
-                                    };
-                                    break;
-                                }
-
-                                std::task::Poll::Pending => return std::task::Poll::Pending,
                             }
+
+                            std::task::Poll::Ready(Err(err)) => {
+                                log::warn!("couldn't send DISCONNECT: {}", err);
+                                self.0 = ClientState::ShutDown {
+                                    reason: reason.take(),
+                                };
+                                break;
+                            }
+
+                            std::task::Poll::Pending => return std::task::Poll::Pending,
                         }
                     }
                 }
@@ -508,6 +512,8 @@ pub enum Event {
         reset_session: bool,
     },
 
+    Disconnected(ConnectionError),
+
     /// A publication received from the server
     Publication(ReceivedPublication),
 
@@ -520,6 +526,7 @@ pub enum Event {
 pub enum SubscriptionUpdateEvent {
     Subscribe(crate::proto::SubscribeTo),
     Unsubscribe(String),
+    RejectedByServer(crate::proto::SubscribeTo),
 }
 
 /// A message that was received from the server
@@ -770,11 +777,9 @@ pub enum Error {
     DuplicateExactlyOncePublishPacketNotMarkedDuplicate(crate::proto::PacketIdentifier),
     EncodePacket(crate::proto::EncodeError),
     PacketIdentifiersExhausted,
-    PingTimer(tokio::time::Error),
     ServerClosedConnection,
     SubAckDoesNotContainEnoughQoS(crate::proto::PacketIdentifier, usize, usize),
     SubscriptionDowngraded(String, crate::proto::QoS, crate::proto::QoS),
-    SubscriptionRejectedByServer,
     UnexpectedSubAck(crate::proto::PacketIdentifier, UnexpectedSubUnsubAckReason),
     UnexpectedUnsubAck(crate::proto::PacketIdentifier, UnexpectedSubUnsubAckReason),
 }
@@ -797,17 +802,25 @@ impl Error {
 
     fn session_is_resumable(&self) -> bool {
         match self {
-            Error::DecodePacket(crate::proto::DecodeError::Io(err)) => match err.kind() {
-                std::io::ErrorKind::TimedOut => true,
-                _ => false,
-            },
-            Error::EncodePacket(crate::proto::EncodeError::Io(err)) => match err.kind() {
-                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WriteZero => true,
-                _ => false,
-            },
+            Error::DecodePacket(crate::proto::DecodeError::Io(err)) => {
+                matches!(err.kind(), std::io::ErrorKind::TimedOut)
+            }
+            Error::EncodePacket(crate::proto::EncodeError::Io(err)) => matches!(
+                err.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WriteZero
+            ),
             Error::ServerClosedConnection => true,
             _ => false,
         }
+    }
+
+    fn is_connection_error(&self) -> bool {
+        matches!(
+            self,
+            Error::DecodePacket(crate::proto::DecodeError::Io(_))
+                | Error::EncodePacket(crate::proto::EncodeError::Io(_))
+                | Error::ServerClosedConnection
+        )
     }
 }
 
@@ -830,9 +843,6 @@ impl std::fmt::Display for Error {
 			Error::PacketIdentifiersExhausted =>
 				write!(f, "all packet identifiers exhausted"),
 
-			Error::PingTimer(err) =>
-				write!(f, "ping timer failed: {}", err),
-
 			Error::ServerClosedConnection =>
 				write!(f, "connection closed by server"),
 
@@ -841,9 +851,6 @@ impl std::fmt::Display for Error {
 
 			Error::SubscriptionDowngraded(topic_name, expected, actual) =>
 				write!(f, "Server downgraded subscription for topic filter {:?} with QoS {:?} to {:?}", topic_name, expected, actual),
-
-			Error::SubscriptionRejectedByServer =>
-				write!(f, "Server rejected one or more subscriptions"),
 
 			Error::UnexpectedSubAck(packet_identifier, reason) =>
 				write!(f, "received SUBACK {} but {}", packet_identifier, reason),
@@ -862,11 +869,9 @@ impl std::error::Error for Error {
             Error::DuplicateExactlyOncePublishPacketNotMarkedDuplicate(_) => None,
             Error::EncodePacket(err) => Some(err),
             Error::PacketIdentifiersExhausted => None,
-            Error::PingTimer(err) => Some(err),
             Error::ServerClosedConnection => None,
             Error::SubAckDoesNotContainEnoughQoS(_, _, _) => None,
             Error::SubscriptionDowngraded(_, _, _) => None,
-            Error::SubscriptionRejectedByServer => None,
             Error::UnexpectedSubAck(_, _) => None,
             Error::UnexpectedUnsubAck(_, _) => None,
         }
@@ -886,6 +891,39 @@ impl std::fmt::Display for UnexpectedSubUnsubAckReason {
             UnexpectedSubUnsubAckReason::ExpectedUnsubAck(packet_identifier) => {
                 write!(f, "expected UNSUBACK {}", packet_identifier)
             }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum ConnectionError {
+    Io(std::io::Error),
+    ServerClosedConnection,
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectionError::Io(err) => write!(f, "connection closed because I/O error: {}", err),
+            ConnectionError::ServerClosedConnection => write!(f, "connection closed by server"),
+        }
+    }
+}
+
+impl PartialEq for ConnectionError {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_string() == other.to_string()
+    }
+}
+
+impl Eq for ConnectionError {}
+
+impl From<Error> for ConnectionError {
+    fn from(state: Error) -> Self {
+        match state {
+            Error::EncodePacket(crate::proto::EncodeError::Io(io))
+            | Error::DecodePacket(crate::proto::DecodeError::Io(io)) => ConnectionError::Io(io),
+            _ => ConnectionError::ServerClosedConnection,
         }
     }
 }

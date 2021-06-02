@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Edged
 {
     using System;
+    using System.Net.Sockets;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
@@ -11,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
         static readonly TimeSpan DefaultOperationTimeout = TimeSpan.FromMinutes(5);
 
         static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: 2, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
+            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(1), maxBackoff: TimeSpan.FromSeconds(3), deltaBackoff: TimeSpan.FromSeconds(2));
 
         readonly ITransientErrorDetectionStrategy transientErrorDetectionStrategy;
         readonly TimeSpan operationTimeout;
@@ -44,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
         public abstract Task<string> GetTrustBundleAsync();
 
+        public abstract Task<string> GetManifestTrustBundleAsync();
+
         public abstract Task<string> EncryptAsync(string initializationVector, string plainText);
 
         public abstract Task<string> DecryptAsync(string initializationVector, string encryptedText);
@@ -55,15 +58,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             try
             {
                 Events.ExecutingOperation(operation, this.WorkloadUri.ToString());
-                T result = await ExecuteWithRetry(func, r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r), this.transientErrorDetectionStrategy)
+                T result = await ExecuteWithRetry(
+                    func,
+                    r => Events.RetryingOperation(operation, this.WorkloadUri.ToString(), r),
+                    this.transientErrorDetectionStrategy)
                     .TimeoutAfter(this.operationTimeout);
                 Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return result;
             }
+            catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+            {
+                Events.StaleSocketShutdown(ex, operation, this.WorkloadUri.ToString());
+                Environment.Exit(ex.ErrorCode);
+                return default(T);
+            }
             catch (Exception ex)
             {
+                Events.ErrorExecutingOperation(ex, operation, this.WorkloadUri.ToString());
                 this.HandleException(ex, operation);
-                Events.SuccessfullyExecutedOperation(operation, this.WorkloadUri.ToString());
                 return default(T);
             }
         }
@@ -86,7 +98,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
             {
                 ExecutingOperation = IdStart,
                 SuccessfullyExecutedOperation,
-                RetryingOperation
+                RetryingOperation,
+                ErrorExecutingOperation,
+                StaleSocketShutdown
+            }
+
+            public static void StaleSocketShutdown(Exception ex, string operation, string url)
+            {
+                Log.LogError((int)EventIds.StaleSocketShutdown, ex, $"Shutting down because no response from {url} for {operation}");
+            }
+
+            public static void ErrorExecutingOperation(Exception ex, string operation, string url)
+            {
+                Log.LogDebug((int)EventIds.ErrorExecutingOperation, ex, $"Error when getting an Http response from {url} for {operation}");
             }
 
             internal static void RetryingOperation(string operation, string url, RetryingEventArgs r)

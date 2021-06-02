@@ -1,29 +1,31 @@
-use std::cmp;
-use std::collections::HashMap;
-use std::fs::{self, OpenOptions};
-use std::io::{Read, Write};
-use std::iter::FromIterator;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;
 #[cfg(windows)]
 use std::os::windows::fs::symlink_file;
-use std::path::PathBuf;
+use std::{
+    cmp,
+    collections::{HashMap, VecDeque},
+    error::Error as StdError,
+    fs::{self, OpenOptions},
+    io::{Read, Write},
+    path::PathBuf,
+};
 
 use async_trait::async_trait;
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
 use fail::fail_point;
-use flate2::read::GzDecoder;
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use mqtt3::proto::Publication;
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use tracing::{debug, info, span, Level};
+use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use serde::{ser::SerializeMap, Deserialize, Deserializer, Serialize, Serializer};
+use tracing::{debug, info, info_span};
 
-use crate::session::SessionState;
-use crate::subscription::Subscription;
-use crate::BrokerState;
-use crate::ClientId;
+use mqtt3::proto::{Publication, Publish};
+
+use crate::{
+    proto::{PacketIdentifierDupQoS, QoS},
+    subscription::Subscription,
+    BrokerSnapshot, ClientInfo, SessionSnapshot,
+};
 
 /// sets the number of past states to save - 2 means we save the current and the pervious
 const STATE_DEFAULT_PREVIOUS_COUNT: usize = 2;
@@ -32,11 +34,11 @@ static STATE_EXTENSION: &str = "dat";
 
 #[async_trait]
 pub trait Persist {
-    type Error: std::error::Error;
+    type Error: StdError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error>;
+    async fn load(&mut self) -> Result<Option<BrokerSnapshot>, Self::Error>;
 
-    async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error>;
+    async fn store(&mut self, state: BrokerSnapshot) -> Result<(), Self::Error>;
 }
 
 /// A persistor that does nothing.
@@ -47,24 +49,24 @@ pub struct NullPersistor;
 impl Persist for NullPersistor {
     type Error = PersistError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+    async fn load(&mut self) -> Result<Option<BrokerSnapshot>, Self::Error> {
         Ok(None)
     }
 
-    async fn store(&mut self, _: BrokerState) -> Result<(), Self::Error> {
+    async fn store(&mut self, _: BrokerSnapshot) -> Result<(), Self::Error> {
         Ok(())
     }
 }
 
 /// An abstraction over the broker state's file format.
 pub trait FileFormat {
-    type Error: std::error::Error;
+    type Error: StdError;
 
     /// Load `BrokerState` from a reader.
-    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error>;
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerSnapshot, Self::Error>;
 
     /// Store `BrokerState` to a writer.
-    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error>;
+    fn store<W: Write>(&self, writer: W, state: BrokerSnapshot) -> Result<(), Self::Error>;
 }
 
 /// Loads/stores the broker state to a file defined by `FileFormat`.
@@ -108,18 +110,22 @@ impl<F> FilePersistor<F> {
     }
 }
 
+/// Root structure that is being serialized/deserialized.
+/// Used to support versioning of persisted state.
+///
+/// Every inner data structure must implement Into/From `BrokerSnapshot` in back-compat manner.
 #[derive(Deserialize, Serialize)]
 enum VersionedState {
     V1(ConsolidatedState),
 }
 
-impl From<BrokerState> for VersionedState {
-    fn from(state: BrokerState) -> Self {
+impl From<BrokerSnapshot> for VersionedState {
+    fn from(state: BrokerSnapshot) -> Self {
         VersionedState::V1(state.into())
     }
 }
 
-impl From<VersionedState> for BrokerState {
+impl From<VersionedState> for BrokerSnapshot {
     fn from(state: VersionedState) -> Self {
         match state {
             VersionedState::V1(state) => state.into(),
@@ -133,7 +139,7 @@ pub struct VersionedFileFormat;
 impl FileFormat for VersionedFileFormat {
     type Error = PersistError;
 
-    fn load<R: Read>(&self, reader: R) -> Result<BrokerState, Self::Error> {
+    fn load<R: Read>(&self, reader: R) -> Result<BrokerSnapshot, Self::Error> {
         let decoder = GzDecoder::new(reader);
         fail_point!("bincodeformat.load.deserialize_from", |_| {
             Err(PersistError::Deserialize(None))
@@ -145,7 +151,7 @@ impl FileFormat for VersionedFileFormat {
         Ok(state.into())
     }
 
-    fn store<W: Write>(&self, writer: W, state: BrokerState) -> Result<(), Self::Error> {
+    fn store<W: Write>(&self, writer: W, state: BrokerSnapshot) -> Result<(), Self::Error> {
         let state: VersionedState = state.into();
 
         let encoder = GzEncoder::new(writer, Compression::default());
@@ -156,46 +162,59 @@ impl FileFormat for VersionedFileFormat {
     }
 }
 
-impl From<BrokerState> for ConsolidatedState {
-    fn from(state: BrokerState) -> Self {
+/// Actual representation of broker state data that is saved to disk.
+#[derive(Deserialize, Serialize)]
+struct ConsolidatedState {
+    #[serde(serialize_with = "serialize_payloads")]
+    #[serde(deserialize_with = "deserialize_payloads")]
+    payloads: HashMap<u64, Bytes>,
+    retained: HashMap<String, PublicationRef>,
+    sessions: Vec<ConsolidatedSession>,
+}
+
+/// In case a single message being delivered to multiple subscribers,
+/// we don't want to duplicate the payload for every session.
+/// So, when we convert from `BrokerSnapshot` to `ConsolidatedState` we
+/// store all the payloads separate, and reference them in `PublicationRef`
+impl From<BrokerSnapshot> for ConsolidatedState {
+    fn from(state: BrokerSnapshot) -> Self {
         let (retained, sessions) = state.into_parts();
 
         #[allow(clippy::mutable_key_type)]
         let mut payloads = HashMap::new();
 
-        let mut shrink_payload = |publication: Publication| {
-            let next_id = payloads.len() as u64;
-
-            let id = *payloads.entry(publication.payload).or_insert(next_id);
-
-            SimplifiedPublication {
-                topic_name: publication.topic_name,
-                qos: publication.qos,
-                retain: publication.retain,
-                payload: id,
-            }
-        };
-
         let retained = retained
             .into_iter()
-            .map(|(topic, publication)| (topic, shrink_payload(publication)))
+            .map(|(topic, publication)| (topic, shrink_payload(publication, &mut payloads)))
             .collect();
 
         let sessions = sessions
             .into_iter()
             .map(|session| {
-                let (client_id, subscriptions, waiting_to_be_sent) = session.into_parts();
+                let (
+                    client_info,
+                    subscriptions,
+                    waiting_to_be_sent,
+                    waiting_to_be_acked,
+                    last_active,
+                ) = session.into_parts();
 
-                #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
                 let waiting_to_be_sent = waiting_to_be_sent
                     .into_iter()
-                    .map(|publication| shrink_payload(publication))
+                    .map(|publication| shrink_payload(publication, &mut payloads))
+                    .collect();
+
+                let waiting_to_be_acked = waiting_to_be_acked
+                    .into_iter()
+                    .map(|publication| shrink_in_flight(publication, &mut payloads))
                     .collect();
 
                 ConsolidatedSession {
-                    client_id,
+                    client_info,
                     subscriptions,
                     waiting_to_be_sent,
+                    waiting_to_be_acked,
+                    last_active,
                 }
             })
             .collect();
@@ -215,7 +234,7 @@ impl From<BrokerState> for ConsolidatedState {
     }
 }
 
-impl From<ConsolidatedState> for BrokerState {
+impl From<ConsolidatedState> for BrokerSnapshot {
     fn from(state: ConsolidatedState) -> Self {
         let ConsolidatedState {
             payloads,
@@ -223,9 +242,19 @@ impl From<ConsolidatedState> for BrokerState {
             sessions,
         } = state;
 
-        let expand_payload = |publication: SimplifiedPublication| Publication {
+        let expand_payload = |publication: PublicationRef| Publication {
             topic_name: publication.topic_name,
             qos: publication.qos,
+            retain: publication.retain,
+            payload: payloads
+                .get(&publication.payload)
+                .expect("corrupted data")
+                .clone(),
+        };
+
+        let expand_in_flight = |publication: InFlightPublicationRef| Publish {
+            topic_name: publication.topic_name,
+            packet_identifier_dup_qos: publication.packet_identifier_dup_qos,
             retain: publication.retain,
             payload: payloads
                 .get(&publication.payload)
@@ -238,49 +267,93 @@ impl From<ConsolidatedState> for BrokerState {
             .map(|(topic, publication)| (topic, expand_payload(publication)))
             .collect();
 
-        #[allow(clippy::redundant_closure)] // removing closure leads to borrow error
         let sessions = sessions
             .into_iter()
             .map(|session| {
                 let waiting_to_be_sent = session
                     .waiting_to_be_sent
                     .into_iter()
-                    .map(|publication| expand_payload(publication))
+                    .map(expand_payload)
                     .collect();
-                SessionState::from_parts(
-                    session.client_id,
+                let waiting_to_be_acked = session
+                    .waiting_to_be_acked
+                    .into_iter()
+                    .map(expand_in_flight)
+                    .collect();
+                SessionSnapshot::from_parts(
+                    session.client_info,
                     session.subscriptions,
                     waiting_to_be_sent,
+                    waiting_to_be_acked,
+                    session.last_active,
                 )
             })
             .collect();
 
-        BrokerState::new(retained, sessions)
+        BrokerSnapshot::new(retained, sessions)
     }
 }
 
-#[derive(Deserialize, Serialize)]
-struct ConsolidatedState {
-    #[serde(serialize_with = "serialize_payloads")]
-    #[serde(deserialize_with = "deserialize_payloads")]
-    payloads: HashMap<u64, Bytes>,
-    retained: HashMap<String, SimplifiedPublication>,
-    sessions: Vec<ConsolidatedSession>,
-}
-
+/// Actual representation of session state data that is saved to disk.
 #[derive(Deserialize, Serialize)]
 struct ConsolidatedSession {
-    client_id: ClientId,
+    client_info: ClientInfo,
     subscriptions: HashMap<String, Subscription>,
-    waiting_to_be_sent: Vec<SimplifiedPublication>,
+    waiting_to_be_sent: VecDeque<PublicationRef>,
+    waiting_to_be_acked: VecDeque<InFlightPublicationRef>,
+    last_active: DateTime<Utc>,
 }
 
+/// Represents a queued publication
+/// that has a reference to a payload in `ConsolidatedState`
+/// but not yet in-flight.
 #[derive(Deserialize, Serialize)]
-struct SimplifiedPublication {
+struct PublicationRef {
     topic_name: String,
-    qos: crate::proto::QoS,
+    qos: QoS,
     retain: bool,
     payload: u64,
+}
+
+/// Represents an in-flight publication (has packet id)
+/// and a reference to a payload in `ConsolidatedState`.
+#[derive(Deserialize, Serialize)]
+struct InFlightPublicationRef {
+    topic_name: String,
+    packet_identifier_dup_qos: PacketIdentifierDupQoS,
+    retain: bool,
+    payload: u64,
+}
+
+#[allow(clippy::mutable_key_type)]
+fn shrink_payload(publication: Publication, payloads: &mut HashMap<Bytes, u64>) -> PublicationRef {
+    let next_id = payloads.len() as u64;
+
+    let id = payloads.entry(publication.payload).or_insert(next_id);
+
+    PublicationRef {
+        topic_name: publication.topic_name,
+        qos: publication.qos,
+        retain: publication.retain,
+        payload: *id,
+    }
+}
+
+#[allow(clippy::mutable_key_type)]
+fn shrink_in_flight(
+    publication: Publish,
+    payloads: &mut HashMap<Bytes, u64>,
+) -> InFlightPublicationRef {
+    let next_id = payloads.len() as u64;
+
+    let id = payloads.entry(publication.payload).or_insert(next_id);
+
+    InFlightPublicationRef {
+        topic_name: publication.topic_name,
+        packet_identifier_dup_qos: publication.packet_identifier_dup_qos,
+        retain: publication.retain,
+        payload: *id,
+    }
 }
 
 fn serialize_payloads<S>(payloads: &HashMap<u64, Bytes>, serializer: S) -> Result<S::Ok, S::Error>
@@ -301,8 +374,8 @@ where
 {
     let payloads = HashMap::<u64, Vec<u8>>::deserialize(deserializer)?
         .into_iter()
-        .map(|(k, v)| (k, Bytes::from(v)));
-    let payloads = HashMap::from_iter(payloads);
+        .map(|(k, v)| (k, Bytes::from(v)))
+        .collect();
     Ok(payloads)
 }
 
@@ -313,7 +386,7 @@ where
 {
     type Error = PersistError;
 
-    async fn load(&mut self) -> Result<Option<BrokerState>, Self::Error> {
+    async fn load(&mut self) -> Result<Option<BrokerSnapshot>, Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
 
@@ -349,7 +422,7 @@ where
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn store(&mut self, state: BrokerState) -> Result<(), Self::Error> {
+    async fn store(&mut self, state: BrokerSnapshot) -> Result<(), Self::Error> {
         let dir = self.dir.clone();
         let format = self.format.clone();
         let previous_count = self.previous_count;
@@ -358,7 +431,7 @@ where
         let seq = self.seq;
 
         let res = tokio::task::spawn_blocking(move || {
-            let span = span!(Level::INFO, "persistor", dir = %dir.display());
+            let span = info_span!("persistor", dir = %dir.display());
             let _guard = span.enter();
 
             if !dir.exists() {
@@ -535,40 +608,22 @@ pub enum PersistError {
     TaskJoin(#[source] Option<tokio::task::JoinError>),
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
+#[cfg(all(test, target_arch = "x86_64"))]
+mod tests {
     use std::io::Cursor;
 
     use proptest::prelude::*;
     use tempfile::TempDir;
 
     use crate::{
-        persist::{ConsolidatedState, FileFormat, FilePersistor, Persist, VersionedFileFormat},
-        proptest::arb_broker_state,
-        BrokerState,
+        persist::{FileFormat, FilePersistor, Persist, VersionedFileFormat},
+        proptest::arb_broker_snapshot,
+        BrokerSnapshot,
     };
 
     proptest! {
         #[test]
-        fn consolidate_simple(state in arb_broker_state()) {
-            let (expected_retained, expected_sessions) = state.clone().into_parts();
-
-            let consolidated: ConsolidatedState = state.into();
-            prop_assert_eq!(expected_retained.len(), consolidated.retained.len());
-            prop_assert_eq!(expected_sessions.len(), consolidated.sessions.len());
-
-            let state: BrokerState = consolidated.into();
-            let (result_retained, result_sessions) = state.into_parts();
-
-            prop_assert_eq!(expected_retained, result_retained);
-            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
-            for i in 0..expected_sessions.len(){
-                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
-            }
-        }
-
-        #[test]
-        fn consolidate_roundtrip(state in arb_broker_state()) {
+        fn broker_state_versioned_file_format_persistance_test(state in arb_broker_snapshot()) {
             let (expected_retained, expected_sessions) = state.clone().into_parts();
             let format = VersionedFileFormat;
             let mut buffer = vec![0_u8; 10 * 1024 * 1024];
@@ -580,10 +635,7 @@ pub(crate) mod tests {
             let (result_retained, result_sessions) = state.into_parts();
 
             prop_assert_eq!(expected_retained, result_retained);
-            prop_assert_eq!(expected_sessions.len(), result_sessions.len());
-            for i in 0..expected_sessions.len(){
-                prop_assert_eq!(expected_sessions[i].clone().into_parts(), result_sessions[i].clone().into_parts());
-            }
+            prop_assert_eq!(expected_sessions, result_sessions);
         }
     }
 
@@ -593,8 +645,8 @@ pub(crate) mod tests {
         let path = tmp_dir.path().to_owned();
         let mut persistor = FilePersistor::new(path, VersionedFileFormat::default());
 
-        persistor.store(BrokerState::default()).await.unwrap();
+        persistor.store(BrokerSnapshot::default()).await.unwrap();
         let state = persistor.load().await.unwrap().unwrap();
-        assert_eq!(BrokerState::default(), state);
+        assert_eq!(BrokerSnapshot::default(), state);
     }
 }

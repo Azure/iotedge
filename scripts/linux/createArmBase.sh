@@ -4,8 +4,6 @@
 # This script creates an ARM docker image as a base for the edgeHub module.
 # then pushes it to the appropriate registries.
 # It assumes that the caller is logged into registries:
-# edgebuilds.azurecr.io
-# edgerelease.azurecr.io
 # hub.docker.com
 ###############################################################################
 
@@ -48,8 +46,12 @@ usage()
     echo "Note: You might have to run this as root or sudo."
     echo "Note: This script is only applicable on ARM architectures."
     echo ""
+    echo "Note: When pushing base images, please familiarize yourself with the versioning semantics."
+    echo "Note: All base images in a branch should have the same version."
+    echo "Note: This means that if one base-image gets updated, the others should get retagged/pushed also."
+    echo ""
     echo " -a, --arch           Architecture of the Docker image; either 'armv7l' or 'aarch64'. Defaults to 'uname -m'"
-    echo " -i, --image-name     Image name (azureiotedge-module-base, azureiotedge-agent-base, or azureiotedge-hub-base)"
+    echo " -i, --image-name     Image name (azureiotedge-module-base, azureiotedge-module-base-full, azureiotedge-hub-base, azureiotedge-agent-base, azureiotedge-iotedged-base, or azureiotedge-proxy-base)"
     echo " -d, --project-dir    Project directory (required)."
     echo "                      Directory which contains docker/linux/arm32v7/base/Dockerfile or docker/linux/arm64v8/base/Dockerfile"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
@@ -115,8 +117,8 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-iotedged-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-proxy-base" != ${DOCKER_IMAGENAME} ]]; then
-        echo "Docker image name must be one of azureiotedge-module-base, azureiotedge-hub-base, azureiotedge-agent-base, azureiotedge-iotedged-base or azureiotedge-proxy-base"
+    if [[ "azureiotedge-module-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-hub-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-agent-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-iotedged-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-proxy-base" != ${DOCKER_IMAGENAME} ]] && [[ "azureiotedge-module-base-full" != ${DOCKER_IMAGENAME} ]]; then
+        echo "Docker image name must be one of azureiotedge-module-base, azureiotedge-module-base-full, azureiotedge-hub-base, azureiotedge-agent-base, azureiotedge-iotedged-base, or azureiotedge-proxy-base"
         print_help_and_exit
     fi
 
@@ -142,7 +144,7 @@ process_args()
         print_help_and_exit
     fi
 
-    registries=("edgebuilds.azurecr.io/" "edgerelease.azurecr.io/" "")
+    registries=("")
     DOCKER_IMAGE_TAGS=("${registries[@]/%/$DOCKER_NAMESPACE/$DOCKER_IMAGENAME:$DOCKER_IMAGEVERSION-linux-$ARCH}")
 }
 

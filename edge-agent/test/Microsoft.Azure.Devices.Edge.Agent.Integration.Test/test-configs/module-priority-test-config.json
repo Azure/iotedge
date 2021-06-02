@@ -40,7 +40,7 @@
             "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
             "createOptions": ""
           },
-          "priority": 2,
+          "startupOrder": 2,
           "status": "running",
           "restartPolicy": "always"
         }
@@ -53,7 +53,7 @@
           "runtimeStatus": "running",
           "status": "running",
           "restartPolicy": "always",
-          "priority": 2,
+          "startupOrder": 2,
           "type": "docker",
           "settings": {
             "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
@@ -65,7 +65,7 @@
           "runtimeStatus": "running",
           "status": "running",
           "restartPolicy": "always",
-          "priority": 1,
+          "startupOrder": 1,
           "type": "docker",
           "settings": {
             "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",
@@ -131,7 +131,7 @@
             "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
             "createOptions": "{}"
           },
-          "priority": 2,
+          "startupOrder": 2,
           "env": {
           }
         },
@@ -143,7 +143,7 @@
           },
           "env": {
           },
-          "priority": 0,
+          "startupOrder": 0,
           "status": "running",
           "restartPolicy": "always"
         }
@@ -155,7 +155,7 @@
             "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
             "createOptions": ""
           },
-          "priority": 1,
+          "startupOrder": 1,
           "status": "running",
           "restartPolicy": "always"
         },
@@ -177,7 +177,7 @@
           "runtimeStatus": "running",
           "status": "running",
           "restartPolicy": "always",
-          "priority": 2,
+          "startupOrder": 2,
           "type": "docker",
           "settings": {
             "image": "mcr.microsoft.com/azureiotedge-agent:2.0",
@@ -189,7 +189,7 @@
           "runtimeStatus": "running",
           "status": "running",
           "restartPolicy": "always",
-          "priority": 4,
+          "startupOrder": 4,
           "type": "docker",
           "settings": {
             "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.7-linux-amd64",
@@ -201,7 +201,7 @@
           "runtimeStatus": "running",
           "status": "running",
           "restartPolicy": "always",
-          "priority": 3,
+          "startupOrder": 3,
           "type": "docker",
           "settings": {
             "image": "edgebuilds.azurecr.io/microsoft/azureiotedge-simulated-temperature-sensor:20191106.8-linux-amd64",

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void RocksDbOptionsProviderCreateTest()
         {
-            Assert.Throws<ArgumentNullException>(() => new RocksDbOptionsProvider(null, true, Option.None<ulong>(), Option.None<StorageLogLevel>()));
+            Assert.Throws<ArgumentNullException>(() => new RocksDbOptionsProvider(null, true, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>()));
         }
 
         [Fact]
@@ -29,8 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             env64.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => false);
-            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<StorageLogLevel>());
-            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<StorageLogLevel>());
+            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>());
+            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>());
 
             // act
             DbOptions newOptions32 = provider32.GetDbOptions();
@@ -52,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             env64.SetupGet(s => s.Is32BitProcess)
                             .Returns(() => false);
-            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<StorageLogLevel>());
-            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<StorageLogLevel>());
+            var provider32 = new RocksDbOptionsProvider(env32.Object, true, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>());
+            var provider64 = new RocksDbOptionsProvider(env64.Object, true, Option.None<ulong>(), Option.None<int>(), Option.None<StorageLogLevel>());
 
             // act
             ColumnFamilyOptions newOptions32 = provider32.GetColumnFamilyOptions();

@@ -47,6 +47,10 @@ jakkDyV11Q==
 -----END CERTIFICATE-----
 ";
 
+        public const string CertificateThumbprintSha1 = "4b763ae53da1f86112acb008cac657b8dd259e76";
+        public const string CertificateThumbprintSha256 = "1826331953f481879eec6730c565e8849360a9d3b9d230071da29e3fe9751071";
+
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic key used in tests")]
         public const string PrivateKeyPem = @"-----BEGIN PRIVATE KEY-----
 MIIJQgIBADANBgkqhkiG9w0BAQEFAASCCSwwggkoAgEAAoICAQDaDQIZm/VDDbUf
 5/qmO6IQiKPteetPdonYo0hYOyfkK+9n99jQWO65ue5f2lU5RubjL8ewL8AtnHqQ
@@ -99,6 +103,26 @@ dAW3OsRJkgl7OWgnzxnyaysZzP3ULjM7rhHQIBhpgGh1kVIFUyv2GdHqS/BpF8cK
 dfjGFy1v/NqzATNcHpZVmqDT9CsZutBEwjdJyA+BcTfqkmb+alItJU8OsZu6c9nO
 U7JoTvzy0x7VG98T0+y68IcyjsSIPQ==
 -----END PRIVATE KEY-----
+";
+
+        public const string ECCCertificatePem = @"-----BEGIN CERTIFICATE-----
+MIIBejCCASACCQD758oFRTpGozAKBggqhkjOPQQDAjBFMQswCQYDVQQGEwJBVTET
+MBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50ZXJuZXQgV2lkZ2l0cyBQ
+dHkgTHRkMB4XDTIwMDgxODIyMDIzMFoXDTIxMDgxODIyMDIzMFowRTELMAkGA1UE
+BhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdp
+ZGdpdHMgUHR5IEx0ZDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABL8DMFmDTOmF
+pcCzDqRMWBaG8VVEFXZoBFwO752RBXb8yr6zXoHPh0ET08t0PZasT4jiWci5Pc6F
++u3Gdb65PYAwCgYIKoZIzj0EAwIDSAAwRQIgIMsSviG0HTcQtz0EC5/2+mKoUn+d
+x0DnmhDakf0O/kICIQC0DzYCSXsk0Yce1+Bi7zmwjp320U7o0sCs7O8ZhUgy+g==
+-----END CERTIFICATE-----
+";
+
+        // [SuppressMessage("Microsoft.Security", "CS002:SecretInNextLine", Justification="Synthetic key used in tests")]
+        public const string ECCPrivateKeyPem = @"-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIP+wX2mlEdZCqURmTFq05cV0XE6VefkqCshhc88q8mxMoAoGCCqGSM49
+AwEHoUQDQgAEvwMwWYNM6YWlwLMOpExYFobxVUQVdmgEXA7vnZEFdvzKvrNegc+H
+QRPTy3Q9lqxPiOJZyLk9zoX67cZ1vrk9gB==
+-----END EC PRIVATE KEY-----
 ";
 
         public enum ExtKeyUsage

@@ -20,7 +20,7 @@ impl Checker for EdgeAgentStorageMounted {
     fn description(&self) -> &'static str {
         "production readiness: Edge Agent's storage directory is persisted on the host filesystem"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         storage_mounted_from_host(
             check,
             "edgeAgent",
@@ -48,7 +48,7 @@ impl Checker for EdgeHubStorageMounted {
     fn description(&self) -> &'static str {
         "production readiness: Edge Hub's storage directory is persisted on the host filesystem"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         storage_mounted_from_host(
             check,
             "edgeHub",
@@ -95,15 +95,9 @@ fn storage_mounted_from_host(
                 .and_then(|capture| capture.get(1))
                 .map(|match_| match_.as_str())
         })
-        .unwrap_or(
-            // Hard-code the value here rather than using the tempfile crate. It needs to match .Net Core's implementation,
-            // and needs to be in the context of the container user instead of the host running `iotedge check`.
-            if cfg!(windows) {
-                r"C:\Windows\Temp"
-            } else {
-                "/tmp"
-            },
-        );
+        // Hard-code the value here rather than using the tempfile crate. It needs to match .Net Core's implementation,
+        // and needs to be in the context of the container user instead of the host running `iotedge check`.
+        .unwrap_or("/tmp");
 
     let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
     *storage_directory_out = Some(storage_directory.clone());

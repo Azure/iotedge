@@ -1,0 +1,53 @@
+{
+    "listener": {
+        "tcp": {
+            "address": "0.0.0.0:1883"
+        },
+        "tls": {
+            "address": "0.0.0.0:8883"
+        },
+        "system": {
+            "address": "0.0.0.0:1882"
+        }
+    },
+    "auth": {
+        "port": 7120,
+        "base_url": "/authenticate/"
+    },
+    "broker": {
+        "retained_messages": {
+            "max_count": 1000,
+            "expiration": "60d"
+        },
+        "session": {
+            "expiration": "60d",
+            "cleanup_interval": "1d",
+            "max_message_size": "256kb",
+            "max_inflight_messages": 16,
+            "max_queued_messages": 1000,
+            "max_queued_size": 0,
+            "when_full": "drop_new"
+        },
+        "persistence": {
+            "folder_path": "/tmp/mqttd/",
+            "time_interval": "5m"
+        }
+    },
+    "bridge": {
+        "upstream": {
+            "keep_alive": "1m",
+            "clean_session": false,
+            "subscriptions": [],
+            "forwards": []
+        },
+        "remotes": [],
+        "storage": {
+            "type": "ring_buffer",
+            "max_file_size": 33554432,
+            "directory": "/tmp/mqttd/",
+            "flush_options": "aftereachwrite",
+            "max_size": 1000
+        },
+        "messages": {}
+    }
+}

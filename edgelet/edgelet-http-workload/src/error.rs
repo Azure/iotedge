@@ -28,6 +28,27 @@ pub enum ErrorKind {
     #[fail(display = "{}", _0)]
     EncryptionOperation(EncryptionOperation),
 
+    #[fail(display = "Failed to get identity")]
+    GetIdentity,
+
+    #[fail(display = "Failed to load master encryption key")]
+    LoadMasterEncKey,
+
+    #[fail(display = "Invalid certificate type")]
+    InvalidCertificateType,
+
+    #[fail(display = "Invalid Identity auth type")]
+    InvalidIdentityAuthType,
+
+    #[fail(display = "Invalid Identity type")]
+    InvalidIdentityType,
+
+    #[fail(display = "Key Client error")]
+    KeyClient,
+
+    #[fail(display = "Failed to load OpenSSL engine")]
+    LoadKeyOpensslEngine,
+
     #[fail(display = "Request body is malformed")]
     MalformedRequestBody,
 
@@ -143,6 +164,7 @@ pub enum EncryptionOperation {
     Decrypt,
     Encrypt,
     GetTrustBundle,
+    GetManifestTrustBundle,
     Sign,
 }
 
@@ -152,6 +174,9 @@ impl fmt::Display for EncryptionOperation {
             EncryptionOperation::Decrypt => write!(f, "Could not decrypt"),
             EncryptionOperation::Encrypt => write!(f, "Could not encrypt"),
             EncryptionOperation::GetTrustBundle => write!(f, "Could not get trust bundle"),
+            EncryptionOperation::GetManifestTrustBundle => {
+                write!(f, "Could not get manifest trust bundle")
+            }
             EncryptionOperation::Sign => write!(f, "Could not sign"),
         }
     }

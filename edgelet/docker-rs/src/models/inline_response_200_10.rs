@@ -24,7 +24,7 @@ pub struct InlineResponse20010 {
 impl InlineResponse20010 {
     pub fn new(status: String) -> Self {
         InlineResponse20010 {
-            status: status,
+            status,
             identity_token: None,
         }
     }

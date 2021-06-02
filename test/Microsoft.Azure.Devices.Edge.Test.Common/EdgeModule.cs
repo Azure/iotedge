@@ -5,12 +5,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
     using Serilog;
 
     public enum EdgeModuleStatus
@@ -71,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         // Retry if iotedged's management endpoint is still starting up,
                         // and therefore isn't responding to `iotedge list` yet
-                        bool DaemonNotReady(string details) =>
+                        static bool DaemonNotReady(string details) =>
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
@@ -108,7 +110,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         resultBody = Encoding.UTF8.GetString(data.Body);
                         Log.Verbose($"Received event for '{devId}/{modId}' with body '{resultBody}'");
-
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                                 && modId != null && modId.ToString().Equals(this.Id)
                                                 && requiredProperties.All(data.Properties.ContainsKey);
@@ -135,11 +136,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Retry.Do(
                 async () =>
                 {
-                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
+                    Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, Option.Some(this.Id), token);
                     return twin.Properties.Reported;
                 },
                 reported => JsonEquals((expected, "properties.reported"), (reported, string.Empty)),
-                null,
+                // Ignore key not found Exception. There can be a delay between deployement on device and reported state, especially in nested configuration
+                e =>
+                {
+                    if (e is KeyNotFoundException)
+                    {
+                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                },
                 TimeSpan.FromSeconds(5),
                 token);
 
@@ -152,26 +165,65 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             Dictionary<string, JValue> ProcessJson(object obj, string rootPath)
             {
-                // return all json values under root path, with their relative
-                // paths as keys
-                return JObject
+                // return all json values under root path, with their relative paths as keys
+                Dictionary<string, JValue> result = JObject
                     .FromObject(obj)
                     .SelectToken(rootPath)
                     .Cast<JContainer>()
                     .DescendantsAndSelf()
                     .OfType<JValue>()
-                    .Select(
-                        v =>
-                        {
-                            if (v.Path.EndsWith("settings.createOptions"))
-                            {
-                                // normalize stringized JSON inside "createOptions"
-                                v.Value = JObject.Parse((string)v.Value).ToString(Formatting.None);
-                            }
-
-                            return v;
-                        })
                     .ToDictionary(v => v.Path.Substring(rootPath.Length).TrimStart('.'));
+
+                var agentKeys = result.Keys
+                    .Where(k => k.EndsWith("edgeAgent.settings.createOptions"));
+                var otherKeys = result.Keys
+                    .Where(k => k.EndsWith("settings.createOptions"))
+                    .Except(agentKeys);
+
+                // normalize stringized JSON inside "createOptions"
+                foreach (var key in otherKeys)
+                {
+                    result[key].Value = JObject
+                        .Parse((string)result[key].Value)
+                        .ToString(Formatting.None);
+                }
+
+                // Do some additional processing for edge agent's createOptions...
+                // Remove "net.azure-devices.edge.*" labels because they can be deeply nested
+                // stringized JSON, making them difficult to compare. Besides, they're created by
+                // edge agent and iotedged for internal use; they're not related to the deployment.
+                foreach (var key in agentKeys)
+                {
+                    JObject createOptions = JObject.Parse((string)result[key].Value);
+                    if (createOptions.TryGetValue("Labels", out JToken labels))
+                    {
+                        string[] remove = labels
+                            .Children<JProperty>()
+                            .Where(label => label.Name.StartsWith("net.azure-devices.edge."))
+                            .Select(label => label.Name)
+                            .ToArray();
+                        foreach (var name in remove)
+                        {
+                            labels.Value<JObject>().Remove(name);
+                        }
+
+                        if (!labels.HasValues)
+                        {
+                            createOptions.Remove("Labels");
+                        }
+                    }
+
+                    result[key].Value = createOptions.ToString(Formatting.None);
+                }
+
+                var imagesKeys = result.Keys
+                    .Where(k => k.EndsWith("settings.image"));
+                foreach (var imageKeys in imagesKeys)
+                {
+                    result[imageKeys].Value = Regex.Replace((string)result[imageKeys].Value, ".*?/(.*)", m => m.Groups[1].Value);
+                }
+
+                return result;
             }
 
             Dictionary<string, JValue> referenceValues = ProcessJson(reference.obj, reference.rootPath);
@@ -180,8 +232,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             // comparand equals reference if, for each json value in reference:
             // - comparand has a json value with the same path
             // - the json values match
-            bool match = referenceValues.All(kvp => comparandValues.ContainsKey(kvp.Key) &&
-                kvp.Value.Equals(comparandValues[kvp.Key]));
+            bool match = referenceValues.All(
+                kvp =>
+                {
+                    return comparandValues.ContainsKey(kvp.Key) &&
+                        kvp.Value.Equals(comparandValues[kvp.Key]);
+                });
 
             if (!match)
             {

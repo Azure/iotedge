@@ -9,7 +9,7 @@ The built-in troubleshooting functionality in the `iotedge` CLI, "iotedge check"
 
 The troubleshooting tool is focused on
 
-* Surfacing potential problems that prevent the edge device from connecting to the cloud.
+* Surfacing potential problems that prevent the edge device from connecting to the cloud/upstream.
 
 * Surfacing potential configuration deviations from recommended production best-practices.
 
@@ -22,7 +22,7 @@ Checks that would involve parsing IoT Edge module logs or metrics are also out o
 
 Results from checks are characterized as either **errors** or **warnings**.
 
-Errors have a high likelihood of preventing the IoT Edge runtime or the modules from connecting to the cloud.
+Errors have a high likelihood of preventing the IoT Edge runtime or the modules from connecting to the cloud/upstream.
 
 Warnings might not affect immediate connectivity but are potential deviations from best practices, and may affect long term stability, offline operation or supportability of the edge device.
 
@@ -57,6 +57,20 @@ This check validates that the value of the `hostname` field in the `config.yaml`
 
 It also validates that the value complies with RFC 1035, since some modules and downstream devices have difficulty connecting to a domain name that doesn't comply with that RFC.
 
+If the hostname if longer than 64 characters it issues a warning. Hostname longer than 64 charaters cannot be used as local issuer in certificates.
+
+## config.yaml has correct parent hostname
+
+This check validates if the parent hostname exist. Parent hostname is only used when the IoT Edge device is nested.
+
+If it exists:
+It validates that the value complies with RFC 1035, since some modules and downstream devices have difficulty connecting to a domain name that doesn't comply with that RFC.
+It validates that parent hostname is not longer than 64 characters.
+
+## Resolve parent hostname inside container
+When in nested configuration, this check validates that parent hostname can be resolved fom inside a container.
+The extra hosts property added to edge Agent are added to the diagnostic image for name resolution.
+
 ## config.yaml has correct URIs for daemon mgmt endpoint
 
 This check validates that the value of the `connect.management_uri` field in the `config.yaml` is valid, and that the IoT Edge daemon's management endpoint can be queried through it.
@@ -65,13 +79,15 @@ This check validates that the value of the `connect.management_uri` field in the
 
 This check validates that the version of the IoT Edge daemon is the same as the value specified in <https://aka.ms/latest-iotedge-stable>
 
-You can override the expected version using the `--expected-iotedged-version` switch, in which case the tool will not query that URL.
+You can override the expected version using the `--expected-aziot-edged-version` switch, in which case the tool will not query that URL.
 
 Note that the tool does *not* validate the versions of the Edge Agent and Edge Hub modules.
 
 ## host time is close to real time
-
 This check validates that the device's local time is close to the time reported by an NTP server. `pool.ntp.org:123` is used by default, and can be overridden with the `--ntp-server` parameter.
+
+When in nested configuration pool.ntp.org:123 might not be available and IoTedge will connect to a parent IoTedge and not to IoT Hub.
+The time is the checked directly against the parent IoT edge.
 
 ## container time is close to host time
 
@@ -103,6 +119,9 @@ If the certificate has already expired, it is reported as an error. If the certi
 
 This check validates that the container engine is the Moby container engine. Any other container engine, such as Docker CE, is not supported in production.  See <https://aka.ms/iotedge-prod-checklist-moby> for details.
 
+## EdgeAgent module can be pulled from upstream
+Try to download edge agent image using image name specified in config.yaml
+
 ## production readiness: logs policy (*warning*)
 
 This check validates that the container engine is configured to rotate module logs, by specifying log options and limits in the container engine's `daemon.json`. Log management best practices are documented at <https://aka.ms/iotedge-prod-checklist-logs>
@@ -117,34 +136,35 @@ These checks require the Edge Agent and Edge Hub containers to have been created
 
 
 # Connectivity check details
+Note: When in nested configuration, tests try to connect to parent instead of IoThub.
 
 ## host can connect to and perform TLS handshake with DPS endpoint
 
 If the device is set up to use DPS provisioning, the tool connects to the DPS endpoint and completes a TLS handshake with it.
 
-## host can connect to and perform TLS handshake with IoT Hub AMQP / HTTPS / MQTT port
+## host can connect to and perform TLS handshake with IoT Hub/Upstream AMQP / HTTPS / MQTT port
 
-The tool connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883), and completes a TLS handshake for each. This verifies that the IoT Hub is reachable from the device, and that the device is configured to accept its TLS certificate.
+The tool connects to the IoT Hub/upstream's AMQP port (5671), HTTPS port (443) and MQTT port (8883), and completes a TLS handshake for each. This verifies that the IoT Hub/upstream is reachable from the device, and that the device is configured to accept its TLS certificate.
 
-When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
+For nested edge scenario, the FQDN of the upstream is taken from parent hostname. When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-The IoT Edge daemon only uses the HTTPS protocol to connect to the IoT Hub, but connectivity from the host for the AMQP and MQTT protocols can be useful when investigating issues.
+The IoT Edge daemon only uses the HTTPS protocol to connect to the IoT Hub/upstream, but connectivity from the host for the AMQP and MQTT protocols can be useful when investigating issues.
 
 ## container on the default network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
-The tool launches a diagnostics container on the default (`bridge`) container network. This container connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the default container network.
+The tool launches a diagnostics container on the default (`bridge`) container network. This container connects to the IoT Hub/upstream's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the default container network.
 
-When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
+For nested edge scenario, the FQDN of the upstream is taken from parent hostname. When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
+Note that these checks do not perform a TLS handshake with the IoT Hub/upstream. They only test that a TCP connection can be established to the respective port.
 
 Note that these checks do not run for Windows containers since they are redundant with the following checks.
 
 ## container on the IoT Edge module network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
-The tool launches a diagnostics container on the IoT Edge container network specified by the `moby_runtime.network` field (defaults to `azure-iot-edge` on Linux and `nat` on Windows). This container connects to the IoT Hub's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the IoT Edge container network.
+The tool launches a diagnostics container on the IoT Edge container network specified by the `moby_runtime.network` field (defaults to `azure-iot-edge` on Linux and `nat` on Windows). This container connects to the IoT Hub/upstream's AMQP port (5671), HTTPS port (443) and MQTT port (8883). This verifies that the IoT Hub is reachable from containers on the IoT Edge container network.
 
-When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
+For nested edge scenario, the FQDN of the upstream is taken from parent hostname. When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
 Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
 

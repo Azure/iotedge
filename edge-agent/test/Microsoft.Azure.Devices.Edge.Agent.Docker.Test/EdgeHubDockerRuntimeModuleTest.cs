@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.Never,
-                Constants.DefaultPriority,
+                Constants.DefaultStartupOrder,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.Never,
-                Constants.DefaultPriority,
+                Constants.DefaultStartupOrder,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RestartPolicy.Always,
                 new DockerConfig(image),
                 ImagePullPolicy.OnCreate,
-                Constants.DefaultPriority,
+                Constants.DefaultStartupOrder,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.OnCreate,
-                Constants.DefaultPriority,
+                Constants.DefaultStartupOrder,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.OnCreate,
-                Constants.DefaultPriority,
+                Constants.DefaultStartupOrder,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);
@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
   ""imagePullPolicy"": ""never"",
-  ""priority"": 10,
+  ""startupOrder"": 10,
   ""exitCode"": 0,
   ""statusDescription"": """",
   ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",
@@ -235,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
   ""status"": ""running"",
   ""restartPolicy"": ""always"",
   ""imagePullPolicy"": ""never"",
-  ""priority"": 10,
+  ""startupOrder"": 10,
   ""exitCode"": 0,
   ""statusDescription"": """",
   ""lastStartTimeUtc"": ""0001-01-01T00:00:00"",

@@ -36,6 +36,8 @@ RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
     $HOME/.cargo/bin/cargo build --release --target aarch64-unknown-linux-gnu
     
 # Build real container
+# [7/23/2020] Snitcher is on its way to be depricated. The base image is not migrated over to docker.io/azureiotedge
+#   To whomever wants to update this base image will need to manually build & port over the base image
 FROM edgebuilds.azurecr.io/microsoft/snitcher-base:1.0-linux-arm64v8
 COPY --from=builder /snitcher/target/aarch64-unknown-linux-gnu/release/snitcher \
      /usr/local/bin/

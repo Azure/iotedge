@@ -57,6 +57,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return entityDbStore;
         }
 
+        public Option<IDbStore> GetIfExistsDbStore(string partitionName)
+        {
+            Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
+            this.entityDbStoreDictionary.TryGetValue(partitionName, out IDbStore entityDbStore);
+            return Option.Maybe(entityDbStore);
+        }
+
         public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
 
         public void RemoveDbStore(string partitionName)

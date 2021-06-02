@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 {
-    using System.Threading;
+    using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,7 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         public WrappingSdkModuleClient(ModuleClient sdkModuleClient)
             => this.sdkModuleClient = Preconditions.CheckNotNull(sdkModuleClient, nameof(sdkModuleClient));
 
-        public Task OpenAsync() => this.sdkModuleClient.OpenAsync();
+        public Task OpenAsync()
+        {
+            try
+            {
+                return this.sdkModuleClient.OpenAsync();
+            }
+            catch (Exception)
+            {
+                this.sdkModuleClient?.Dispose();
+                throw;
+            }
+        }
 
         public void SetConnectionStatusChangesHandler(ConnectionStatusChangesHandler statusChangesHandler)
             => this.sdkModuleClient.SetConnectionStatusChangesHandler(statusChangesHandler);
@@ -38,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
             => this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties);
 
+        //// public Task SendEventBatchAsync(IEnumerable<Message> messages) => this.sdkModuleClient.SendEventBatchAsync(messages);
+
         public Task SendEventAsync(Message message) => this.sdkModuleClient.SendEventAsync(message);
 
         ////public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
@@ -49,6 +63,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         ////    return await EdgeClientWebSocket.Connect(deviceStreamRequest.Url, deviceStreamRequest.AuthorizationToken, cancellationToken);
         ////}
 
-        public Task CloseAsync() => this.sdkModuleClient.CloseAsync();
+        public Task CloseAsync()
+        {
+            this.sdkModuleClient.Dispose();
+            return Task.CompletedTask;
+        }
     }
 }

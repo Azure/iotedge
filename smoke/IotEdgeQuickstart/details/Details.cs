@@ -57,6 +57,9 @@ namespace IotEdgeQuickstart.Details
 		    ""env"": {
 				""OptimizeForPerformance"": {
 					""value"": ""<optimized-for-performance>""
+				},
+				""NestedEdgeEnabled"": {
+					""value"": ""false""
 				}
 			},
           }
@@ -120,6 +123,10 @@ namespace IotEdgeQuickstart.Details
 
         readonly string hostname;
 
+        readonly Option<string> parentHostname;
+
+        readonly Option<string> parentEdgeDevice;
+
         readonly string deviceCaCert;
 
         readonly string deviceCaPk;
@@ -148,6 +155,8 @@ namespace IotEdgeQuickstart.Details
             string imageTag,
             string deviceId,
             string hostname,
+            Option<string> parentHostname,
+            Option<string> parentEdgeDevice,
             Option<string> deploymentFileName,
             Option<string> twinTestFileName,
             string deviceCaCert,
@@ -186,6 +195,8 @@ namespace IotEdgeQuickstart.Details
             this.imageTag = imageTag;
             this.deviceId = deviceId;
             this.hostname = hostname;
+            this.parentHostname = parentHostname;
+            this.parentEdgeDevice = parentEdgeDevice;
             this.DeploymentFileName = deploymentFileName;
             this.TwinTestFileName = twinTestFileName;
             this.deviceCaCert = deviceCaCert;
@@ -198,10 +209,10 @@ namespace IotEdgeQuickstart.Details
             this.proxy = proxy.Map(p => new WebProxy(p) as IWebProxy);
         }
 
-        protected Task VerifyEdgeIsNotAlreadyActive()
+        protected Task UpdatePackageState()
         {
-            Console.WriteLine("Verifying if edge is not already active.");
-            return this.bootstrapper.VerifyNotActive();
+            Console.WriteLine("Checking if aziot-edge and aziot-identity-service are installed.");
+            return this.bootstrapper.UpdatePackageState();
         }
 
         protected Task VerifyBootstrapperDependencies()
@@ -270,7 +281,7 @@ namespace IotEdgeQuickstart.Details
                 agentImage = Option.Some<string>(this.EdgeAgentImage());
             }
 
-            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
+            return this.bootstrapper.Configure(method, agentImage, this.hostname, this.parentHostname, this.deviceCaCert, this.deviceCaPk, this.deviceCaCerts, this.runtimeLogLevel);
         }
 
         protected Task StartBootstrapper()
@@ -287,7 +298,7 @@ namespace IotEdgeQuickstart.Details
 
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
-            Console.WriteLine("Verifying if edge is connected to IoThub");
+            Console.WriteLine("Verifying if edge is connected to IoT Hub.");
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(600))) // Long timeout is needed because registry manager takes a while for the device identity to be usable
             {
                 Exception savedException = null;
@@ -513,6 +524,12 @@ namespace IotEdgeQuickstart.Details
                 Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas },
                 Capabilities = new DeviceCapabilities() { IotEdge = true }
             };
+
+            await this.parentEdgeDevice.ForEachAsync(async p =>
+            {
+                var parentDevice = await rm.GetDeviceAsync(p);
+                device.ParentScopes = new[] { parentDevice.Scope };
+            });
 
             IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
             Console.WriteLine($"Registering device '{device.Id}' on IoT hub '{builder.HostName}'");

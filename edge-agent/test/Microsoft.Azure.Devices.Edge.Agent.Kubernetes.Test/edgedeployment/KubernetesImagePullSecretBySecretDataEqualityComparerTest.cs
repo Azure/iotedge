@@ -39,7 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                     Labels = new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     },
                     Name = "object1"
                 },
@@ -59,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                     Labels = new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     },
                     Name = "object1"
                 },
@@ -97,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                     Labels = new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     },
                     Name = "object1",
                     OwnerReferences = new List<V1OwnerReference>
@@ -117,7 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment
                     Labels = new Dictionary<string, string>
                     {
                         [KubernetesConstants.K8sEdgeDeviceLabel] = "device1",
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = "hostname"
                     },
                     Name = "object1"
                 }

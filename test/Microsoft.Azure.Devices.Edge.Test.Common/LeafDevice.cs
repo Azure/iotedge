@@ -41,15 +41,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             bool useSecondaryCertificate,
             CertificateAuthority ca,
             IotHub iotHub,
-            CancellationToken token)
+            string edgeHostname,
+            CancellationToken token,
+            Option<string> modelId,
+            bool nestedEdge)
         {
+            ClientOptions options = new ClientOptions();
+            modelId.ForEach(m => options.ModelId = m);
             return Profiler.Run(
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
                     OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates, transport);
-
-                    string edgeHostname = Dns.GetHostName().ToLower();
 
                     switch (auth)
                     {
@@ -60,7 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 iotHub,
                                 transport,
                                 edgeHostname,
-                                token);
+                                token,
+                                options,
+                                nestedEdge);
 
                         case AuthenticationType.CertificateAuthority:
                             {
@@ -72,7 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     iotHub,
                                     transport,
                                     edgeHostname,
-                                    token);
+                                    token,
+                                    options);
                             }
 
                         case AuthenticationType.SelfSigned:
@@ -86,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     iotHub,
                                     transport,
                                     edgeHostname,
-                                    token);
+                                    token,
+                                    options);
                             }
 
                         default:
@@ -104,7 +111,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
-            CancellationToken token)
+            CancellationToken token,
+            ClientOptions options,
+            bool nestedEdge)
         {
             Device leaf = new Device(leafDeviceId)
             {
@@ -121,6 +130,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     leaf.Scope = edge.Scope;
                 });
 
+            // @To Remove this is a hack to be able to create lea. See PBI: 9171870
+            string hostname = iotHub.Hostname;
+            if (nestedEdge)
+            {
+                hostname = edgeHostname;
+            }
+
             leaf = await iotHub.CreateDeviceIdentityAsync(leaf, token);
 
             return await DeleteIdentityIfFailedAsync(
@@ -130,14 +146,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 () =>
                 {
                     string connectionString =
-                        $"HostName={iotHub.Hostname};" +
+                        $"HostName={hostname};" +
                         $"DeviceId={leaf.Id};" +
                         $"SharedAccessKey={leaf.Authentication.SymmetricKey.PrimaryKey};" +
                         $"GatewayHostName={edgeHostname}";
 
                     return CreateLeafDeviceAsync(
                         leaf,
-                        () => DeviceClient.CreateFromConnectionString(connectionString, new[] { transport }),
+                        () => DeviceClient.CreateFromConnectionString(connectionString, new[] { transport }, options),
                         iotHub,
                         token);
                 });
@@ -150,7 +166,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
-            CancellationToken token)
+            CancellationToken token,
+            ClientOptions options)
         {
             Device edge = await GetEdgeDeviceIdentityAsync(parentId, iotHub, token);
 
@@ -185,7 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             iotHub.Hostname,
                             edgeHostname,
                             new DeviceAuthenticationWithX509Certificate(leaf.Id, leafCert),
-                            new[] { transport }),
+                            new[] { transport },
+                            options),
                         iotHub,
                         token);
                 });
@@ -199,7 +217,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             IotHub iotHub,
             ITransportSettings transport,
             string edgeHostname,
-            CancellationToken token)
+            CancellationToken token,
+            ClientOptions options)
         {
             IdCertificates primary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-1", token);
             IdCertificates secondary = await ca.GenerateIdentityCertificatesAsync($"{leafDeviceId}-2", token);
@@ -257,7 +276,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                             iotHub.Hostname,
                             edgeHostname,
                             new DeviceAuthenticationWithX509Certificate(leaf.Id, leafCert),
-                            new[] { transport }),
+                            new[] { transport },
+                            options),
                         iotHub,
                         token);
                 });
@@ -293,6 +313,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             await client.SetMethodHandlerAsync(nameof(DirectMethod), DirectMethod, null, token);
             return new LeafDevice(device, client, iotHub);
         }
+
+        public Task Close() => this.client.CloseAsync();
 
         public Task SendEventAsync(CancellationToken token)
         {

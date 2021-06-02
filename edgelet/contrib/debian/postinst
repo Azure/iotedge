@@ -7,51 +7,60 @@ GROUP=iotedge
 case "$1" in
     configure)
         if id -u $USER > /dev/null 2>&1; then
-            if [ ! -d /var/lib/iotedge ]; then
-                mkdir -p /var/lib/iotedge
+            if [ ! -d /var/lib/aziot/edged ]; then
+                mkdir -p /var/lib/aziot/edged
             fi
-            if [ ! -d /var/log/iotedge ]; then
-                mkdir -p /var/log/iotedge
+            if [ ! -d /var/log/aziot/edged ]; then
+                mkdir -p /var/log/aziot/edged
             fi
-            chown ${USER}:${GROUP} /var/lib/iotedge
-            chown ${USER}:${GROUP} /var/log/iotedge
-            chown ${USER}:${GROUP} /etc/iotedge/config.yaml.template
-            if [ ! -f /etc/iotedge/config.yaml ]; then
-                cp -a /etc/iotedge/config.yaml.template /etc/iotedge/config.yaml
-            fi
+            chown ${USER}:${GROUP} /var/lib/aziot/edged
+            chown ${USER}:${GROUP} /var/log/aziot/edged
+            chown root:root /etc/aziot/config.toml.edge.template
+            chown ${USER}:${GROUP} /etc/aziot/edged/config.toml.default
+            chown ${USER}:${GROUP} /etc/aziot/edged/config.d
 
-            chmod 755 /var/lib/iotedge
-            chmod 755 /var/log/iotedge
-            chmod 400 /etc/iotedge/config.yaml.template
-            chmod 400 /etc/iotedge/config.yaml
+            chmod 755 /var/lib/aziot/edged
+            chmod 755 /var/log/aziot/edged
+            chmod 600 /etc/aziot/config.toml.edge.template
+            chmod 400 /etc/aziot/edged/config.toml.default
+            chmod 700 /etc/aziot/edged/config.d
 
         fi
 
-        # Set the hostname
-        sed -i "s/hostname: \"<ADD HOSTNAME HERE>\"/hostname: \"$(hostname)\"/g" /etc/iotedge/config.yaml
+        if [ ! -f '/etc/aziot/config.toml' ]; then
+            echo "==============================================================================="
+            echo ""
+            echo "                              Azure IoT Edge"
+            echo ""
+            echo "  IMPORTANT: Please configure the device with provisioning information."
+            echo ""
 
-        echo "==============================================================================="
-        echo ""
-        echo "                              Azure IoT Edge"
-        echo ""
-        echo "  IMPORTANT: Please update the configuration file located at:"
-        echo ""
-        echo "    /etc/iotedge/config.yaml"
-        echo ""
-        echo "  with your device's provisioning information. You will need to restart the"
-        echo "  'iotedge' service for these changes to take effect."
-        echo ""
-        echo "  To restart the 'iotedge' service, use:"
-        echo ""
-        echo "    'systemctl restart iotedge'"
-        echo ""
-        echo "    - OR -"
-        echo ""
-        echo "    /etc/init.d/iotedge restart"
-        echo ""
-        echo "  These commands may need to be run with sudo depending on your environment."
-        echo ""
-        echo "==============================================================================="
+            if [ -f '/etc/iotedge/config.yaml' ]; then
+                echo "  Detected /etc/iotedge/config.yaml from a previously installed version"
+                echo "  of IoT Edge. You can import its configuration using:"
+                echo ""
+                echo "    sudo iotedge config import"
+                echo ""
+                echo "  Otherwise, please create a new system configuration."
+            else
+                echo "  Please create a new system configuration."
+            fi
+
+            echo ""
+            echo "  You can quickly configure the device for manual provisioning with"
+            echo "   a connection string using:"
+            echo ""
+            echo "    sudo iotedge config mp --connection-string '...'"
+            echo ""
+            echo "  For other provisioning options, copy the template file "
+            echo "  at /etc/aziot/config.toml.edge.template to /etc/aziot/config.toml,"
+            echo "  update it with your device information, then apply the configuration to"
+            echo "  the IoT Edge services with:"
+            echo ""
+            echo "    sudo iotedge config apply"
+            echo ""
+            echo "==============================================================================="
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

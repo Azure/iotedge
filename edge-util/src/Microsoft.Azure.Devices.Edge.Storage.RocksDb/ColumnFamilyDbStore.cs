@@ -12,11 +12,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
+        private ulong count;
 
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
+
+            var iterator = db.NewIterator(this.Handle);
+            this.count = 0;
+            while (iterator.Valid())
+            {
+                this.count += 1;
+                iterator = iterator.Next();
+            }
         }
 
         internal ColumnFamilyHandle Handle { get; }
@@ -42,33 +51,30 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
 
             Option<byte[]> returnValue;
-            using (MetricsV0.DbGetLatency("all"))
-            {
-                Func<byte[]> operation = () => this.db.Get(key, this.Handle);
-                byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
-                returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
-            }
+            Func<byte[]> operation = () => this.db.Get(key, this.Handle);
+            byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
+            returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
 
             return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        public async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            using (MetricsV0.DbPutLatency("all"))
-            {
-                Action operation = () => this.db.Put(key, value, this.Handle);
-                return operation.ExecuteUntilCancelled(cancellationToken);
-            }
+            Action operation = () => this.db.Put(key, value, this.Handle);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            this.count += 1;
         }
 
-        public Task Remove(byte[] key, CancellationToken cancellationToken)
+        public async Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
+
             Action operation = () => this.db.Remove(key, this.Handle);
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            this.count -= 1;
         }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
@@ -134,6 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
 
+        public Task<ulong> Count() => Task.FromResult(this.count);
+
         public void Dispose()
         {
             this.Dispose(true);
@@ -165,34 +173,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     byte[] value = iterator.Value();
                     await callback(key, value);
                 }
-            }
-        }
-
-        static class MetricsV0
-        {
-            static readonly TimerOptions DbPutLatencyOptions = new TimerOptions
-            {
-                Name = "DbPutLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            static readonly TimerOptions DbGetLatencyOptions = new TimerOptions
-            {
-                Name = "DbGetLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            public static IDisposable DbPutLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), DbPutLatencyOptions);
-
-            public static IDisposable DbGetLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), DbGetLatencyOptions);
-
-            static MetricTags GetTags(string id)
-            {
-                return new MetricTags("EndpointId", id);
             }
         }
     }

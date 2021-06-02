@@ -1,5 +1,7 @@
-use std::fmt;
-use std::str::FromStr;
+use std::{
+    fmt::{Display, Formatter, Result as FmtResult},
+    str::FromStr,
+};
 
 use mqtt3::proto;
 use serde::{Deserialize, Serialize};
@@ -31,7 +33,7 @@ impl Subscription {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TopicFilter {
     segments: Vec<Segment>,
     multilevel: bool,
@@ -100,8 +102,8 @@ impl Segment {
     }
 }
 
-impl fmt::Display for TopicFilter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for TopicFilter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         let len = self.segments.len();
         for (i, segment) in self.segments.iter().enumerate() {
             match segment {
@@ -160,7 +162,7 @@ impl FromStr for TopicFilter {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use std::str::FromStr;
 
     use proptest::prelude::*;
@@ -248,7 +250,7 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_topics() {
+    fn test_topic_matching() {
         let cases = vec![
             ("#", "blah", true),
             ("blah/#", "blah", true),
@@ -267,7 +269,35 @@ pub(crate) mod tests {
             assert_eq!(
                 *expected,
                 parsed.matches(topic),
-                "filter \"{}\" matches \"{}\"",
+                "filter \"{}\" matches topic \"{}\"",
+                filter,
+                topic
+            );
+        }
+    }
+
+    #[test]
+    fn test_topic_filter_matching() {
+        let cases = vec![
+            ("#", "#", true),
+            ("#", "+", true),
+            ("blah/#", "blah/+", true),
+            ("blah/blah2/#", "blah/#", false),
+            ("blah/+/blah2", "blah/blah1/#", false),
+            ("blah/+/blah2", "blah/+/blah1", false),
+            ("blah/+", "blah/blah1/#", false),
+            ("blah/blah1", "blah/blah1/+", false),
+            ("blah/blah1/blah2", "blah/blah/+", false),
+            ("#", "$SYS/#", false),
+            ("+", "$SYS/+", false),
+        ];
+
+        for (filter, topic, expected) in &cases {
+            let parsed = TopicFilter::from_str(filter).unwrap();
+            assert_eq!(
+                *expected,
+                parsed.matches(topic),
+                "filter \"{}\" matches topic filter \"{}\"",
                 filter,
                 topic
             );

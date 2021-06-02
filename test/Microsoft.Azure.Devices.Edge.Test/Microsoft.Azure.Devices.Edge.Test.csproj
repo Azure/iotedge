@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Core\Microsoft.Azure.Devices.Edge.Agent.Core.csproj" />
     <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj" />

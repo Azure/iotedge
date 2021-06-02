@@ -18,9 +18,9 @@ impl Checker for ConnectManagementUri {
         "connect-management-uri"
     }
     fn description(&self) -> &'static str {
-        "config.yaml has correct URIs for daemon mgmt endpoint"
+        "configuration has correct URIs for daemon mgmt endpoint"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }
@@ -41,6 +41,18 @@ impl ConnectManagementUri {
             docker_host_arg
         } else {
             return Ok(CheckResult::Skipped);
+        };
+
+        let diagnostics_image_name = if check
+            .diagnostics_image_name
+            .starts_with("/azureiotedge-diagnostics:")
+        {
+            check.parent_hostname.as_ref().map_or_else(
+                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
+                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+            )
+        } else {
+            check.diagnostics_image_name.clone()
         };
 
         let connect_management_uri = settings.connect().management_uri();
@@ -69,12 +81,6 @@ impl ConnectManagementUri {
                 connect_management_uri.to_uds_file_path()
                 .context("Could not parse connect.management_uri: does not represent a valid file path")?;
 
-            // On Windows we mount the parent folder because we can't mount the socket files directly
-            #[cfg(windows)]
-            let socket_path =
-                socket_path.parent()
-                .ok_or_else(|| Context::new("Could not parse connect.management_uri: does not have a parent directory"))?;
-
             let socket_path =
                 socket_path.to_str()
                 .ok_or_else(|| Context::new("Could not parse connect.management_uri: file path is not valid utf-8"))?;
@@ -84,7 +90,7 @@ impl ConnectManagementUri {
 
         (scheme1, scheme2) if scheme1 != scheme2 => return Err(Context::new(
             format!(
-                "config.yaml has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
+                "configuration has invalid combination of schemes for connect.management_uri ({:?}) and listen.management_uri ({:?})",
                 scheme1, scheme2,
             ))
             .into()),
@@ -95,8 +101,9 @@ impl ConnectManagementUri {
     }
 
         args.extend(vec![
-            Cow::Borrowed(OsStr::new(&check.diagnostics_image_name)),
-            Cow::Borrowed(OsStr::new("/iotedge-diagnostics")),
+            Cow::Borrowed(OsStr::new(&diagnostics_image_name)),
+            Cow::Borrowed(OsStr::new("dotnet")),
+            Cow::Borrowed(OsStr::new("IotedgeDiagnosticsDotnet.dll")),
             Cow::Borrowed(OsStr::new("edge-agent")),
             Cow::Borrowed(OsStr::new("--management-uri")),
             Cow::Owned(OsString::from(connect_management_uri.to_string())),

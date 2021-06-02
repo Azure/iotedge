@@ -15,14 +15,14 @@ hyper-proxy = "0.5"
 hyper-tls = "0.3"
 log = "0.4"
 openssl = "0.10"
-percent-encoding = "1.0"
+percent-encoding = "2"
 regex = "0.2"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
 tokio = "0.1.11"
 typed-headers = "0.1"
-url = "1.7"
+url = "2"
 native-tls = "0.2"
 tokio-tls = "0.2"
 
@@ -37,20 +37,11 @@ nix = "0.14"
 scopeguard = "0.3.3"
 tokio-uds = "0.2"
 
-[target.'cfg(windows)'.dependencies]
-hyper-named-pipe = { path = "../hyper-named-pipe" }
-hyperlocal-windows = { git = "https://github.com/Azure/hyperlocal-windows" }
-mio-uds-windows = { git = "https://github.com/Azure/mio-uds-windows.git" }
-tokio-named-pipe = { path = "../tokio-named-pipe" }
-tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git" }
-winapi = { version = "0.3.5", features = ["winsock2"] }
-
 [dev-dependencies]
 lazy_static = "1.0"
 tempfile = "3"
 tempdir = "0.3.7"
 
-edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 
 [target.'cfg(windows)'.dev-dependencies]

@@ -6,48 +6,48 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
-bincode = "1.2"
-bytes = "0.5"
-chrono = "0.4"
-config = { version = "0.10", default-features = false, features = ["json"] }
+bincode = "1.3"
+bytes = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
 criterion = { version = "0.3", optional = true }
-fail = "0.3"
+fail = "0.4"
 flate2 = "1.0"
-futures = "0.3"
 futures-util = { version = "0.3", features = ["sink"] }
-humantime = "2.0"
+humantime = "2.1"
 humantime-serde = "1.0"
 lazy_static = "1.4"
-native-tls = "0.2"
-proptest = { version = "0.9", optional = true }
-rand = { version = "0.7", optional = true }
-regex = "1"
+openssl = "0.10"
+pin-project = "1.0"
+proptest = { version = "1.0", optional = true }
+rand = { version = "0.8", optional = true }
+regex = "1.4"
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp"] }
-tokio-io-timeout = "0.4"
-tokio-util = { version = "0.2", features = ["codec"] }
-tokio-native-tls = "0.1"
+tokio = { version = "1", features = ["sync", "net", "io-util"] }
+tokio-io-timeout = "1.1"
+tokio-openssl = "0.6"
+tokio-stream = "0.1"
+tokio-util = { version = "0.6", features = ["codec"] }
 tracing = "0.1"
 tracing-futures = "0.2"
 uuid = { version = "0.8", features = ["v4"] }
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
-mqtt-edgehub = { path = "../mqtt-edgehub" }
 
 [dev-dependencies]
 atty = "0.2"
-bytes = "0.5"
-fail = { version = "0.3", features = ["failpoints"] }
-itertools = "0.9"
+bytes = "1.0"
+fail = { version = "0.4", features = ["failpoints"] }
+itertools = "0.10"
 matches = "0.1"
-proptest = "0.9"
-serde_json = "1.0"
-tempfile = "3"
-test-case = "1.0"
-tokio = { version = "0.2", features = ["dns", "macros"] }
-tracing-subscriber = "0.1"
+proptest = "1.0"
+tempfile = "3.2"
+test-case = "1.1"
+tokio = { version = "1", features = ["net", "macros", "io-util"] }
+tracing-subscriber = "0.2"
+
+mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 
 [[test]]
 name = "persist_failpoints"
@@ -61,17 +61,16 @@ required-features = ["proptest"]
 [[bench]]
 name = "persist_broker_state"
 harness = false
-required-features = ["tokio/rt-threaded"]
+required-features = ["criterion", "tokio/rt-multi-thread"]
 
 [[bench]]
 name = "dispatch_messages"
 harness = false
-required-features = ["__internal_broker_callbacks", "tokio/rt-threaded"]
+required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-multi-thread"]
 
 [features]
-default = []
+benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-multi-thread"]
 
-benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 # Internal (PRIVATE!) features used to aid testing.
 # Don't rely on these whatsoever. They may disappear at anytime.
 

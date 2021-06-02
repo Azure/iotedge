@@ -4,7 +4,6 @@ pr:
     include:
       - master
       - release/*
-      - iiot
 jobs:
 
 ################################################################################
@@ -12,7 +11,7 @@ jobs:
 ################################################################################
     displayName: Check pipeline preconditions (changes ARE NOT in either edgelet, docs, or mqtt folder)
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
       - bash: |
           git log -m -1 --name-only --first-parent --pretty="" | egrep -i -v '^(edgelet|doc|mqtt)'
@@ -30,9 +29,8 @@ jobs:
     dependsOn: check_run_pipeline
     condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
@@ -48,34 +46,6 @@ jobs:
         inputs:
           filePath: scripts/linux/runTests.sh
           arguments: '"--filter Category=Unit"'
-      - task: PublishTestResults@2
-        displayName: Publish Test Results
-        inputs:
-          testRunner: VSTest
-          testResultsFiles: "**/TestResults/*.trx"
-        condition: succeededOrFailed()
-
-################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    dependsOn: check_run_pipeline
-    condition: eq(dependencies.check_run_pipeline.outputs['check_files.RUN_PIPELINE'], 'true')
-    pool:
-      vmImage: "vs2017-win2016"
-    steps:
-      - template: ../templates/install-dotnet2.yaml
-      - template: ../templates/install-dotnet3.yaml
-      - task: PowerShell@2
-        displayName: Build
-        inputs:
-          filePath: scripts/windows/build/Publish-Branch.ps1
-          arguments: -Configuration:"$(configuration)" -UpdateVersion
-      - task: PowerShell@2
-        displayName: Test
-        inputs:
-          filePath: scripts/windows/test/Test-Branch.ps1
-          arguments: -Filter Category=Unit
       - task: PublishTestResults@2
         displayName: Publish Test Results
         inputs:

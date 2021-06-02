@@ -24,10 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
 
         static readonly Dictionary<string, DockerEmptyStruct> ExposedPorts = new Dictionary<string, DockerEmptyStruct>
-            {
-                ["80/tcp"] = default(DockerEmptyStruct),
-                ["5000/udp"] = default(DockerEmptyStruct)
-            };
+        {
+            ["80/tcp"] = default(DockerEmptyStruct),
+            ["5000/udp"] = default(DockerEmptyStruct)
+        };
 
         static readonly HostConfig HostPorts = new HostConfig
         {
@@ -47,15 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
         static readonly Dictionary<string, string> DefaultLabels = new Dictionary<string, string>
         {
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
-            [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
         };
 
-        static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "gateway", "device1", "Module1", new ConnectionStringCredentials("connection string"));
+        static readonly ModuleIdentity CreateIdentity = new ModuleIdentity("hostname", "device1", "Module1", new ConnectionStringCredentials("connection string"));
 
         static KubernetesModule CreateKubernetesModule(CreatePodParameters podParameters)
         {
             var config = new KubernetesConfig("image", podParameters, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVarsDict);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultStartupOrder, DefaultConfigurationInfo, EnvVarsDict);
             var owner = new KubernetesModuleOwner("v1", "Owner", "an-owner", "a-uid");
             return new KubernetesModule(docker, config, owner);
         }
@@ -78,6 +77,66 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             Assert.True(result.HasValue);
             var service = result.OrDefault();
             Assert.Equal(PortMapServiceType.ClusterIP.ToString(), service.Spec.Type);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptions()
+        {
+            var serviceOptions = new KubernetesServiceOptions("loadBalancerIP", "nodeport");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.NodePort.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsOverridesSetDefault()
+        {
+            var serviceOptions = new KubernetesServiceOptions("loadBalancerIP", "clusterIP");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(hostConfig: HostPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.ClusterIP.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsNoIPOnNullLoadBalancerIP()
+        {
+            var serviceOptions = new KubernetesServiceOptions(null, "loadBalancer");
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
+            Assert.Null(service.Spec.LoadBalancerIP);
+        }
+
+        [Fact]
+        public void CreateServiceSetsServiceOptionsSetDefaultOnNullType()
+        {
+            var serviceOptions = new KubernetesServiceOptions("loadBalancerIP", null);
+            var module = CreateKubernetesModule(CreatePodParameters.Create(hostConfig: HostPorts, serviceOptions: serviceOptions));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
+            Assert.Equal("loadBalancerIP", service.Spec.LoadBalancerIP);
         }
 
         [Fact]

@@ -52,7 +52,7 @@ usage()
     echo ""
     echo "options"
     echo " -i, --image-name     Image name (e.g. edge-agent)"
-    echo " -P, --project        Project to build image for (e.g. iotedged)"
+    echo " -P, --project        Project to build image for (e.g. aziot-edged)"
     echo " -t, --target-arch    Target architecture (default: uname -m)"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -c, --configuration  Build configuration (default: release)"
@@ -118,7 +118,7 @@ process_args()
         fi
     done
 
-    if [[ ${PROJECT,,} == "iotedged" ]]; then
+    if [[ ${PROJECT,,} == "aziot-edged" ]]; then
         LIBC="glibc"
     else
         LIBC="musl"
@@ -177,7 +177,7 @@ build_project()
     # build project with cross
     cd "$EDGELET_DIR"
 
-    execute cross build -p "$PROJECT" --manifest-path=iotedged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TARGET"
+    execute cross build -p "$PROJECT" --manifest-path=aziot-edged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TARGET"
     execute "$STRIP" "$EDGELET_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT"
 
     # prepare docker folder
@@ -191,7 +191,7 @@ build_project()
     # copy binaries to publish folder
     execute cp "$EDGELET_DIR/target/$TARGET/$BUILD_CONFIGURATION/$PROJECT" "$EXE_DOCKER_DIR/"
 
-    if [[ ${PROJECT,,} == "iotedged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
+    if [[ ${PROJECT,,} == "aziot-edged" ]] && [[ ${BUILD_CONFIGURATION} == "release" ]]; then
         execute cp "$EDGELET_DIR"/target/"$TARGET"/"$BUILD_CONFIGURATION"/build/hsm-sys-*/out/lib/*.so* "$EXE_DOCKER_DIR/"
     fi
 }

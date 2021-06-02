@@ -54,6 +54,7 @@ namespace TwinTester
                 case TwinTestMode.TwinEdgeOperations:
                     ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
+                        new ClientOptions(),
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
@@ -67,6 +68,7 @@ namespace TwinTester
         {
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 Settings.Current.TransportType,
+                new ClientOptions(),
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 Logger);

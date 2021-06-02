@@ -4,8 +4,11 @@ trigger:
     include:
       - master
       - release/*
-      - iiot
 pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
 jobs:
 
 ################################################################################
@@ -13,14 +16,15 @@ jobs:
 ################################################################################
     displayName: Linux amd64
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     steps:
       - script: echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
         displayName: Set env variables
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - task: Bash@3
         displayName: Check submodules
         inputs:
@@ -28,7 +32,8 @@ jobs:
       - task: Bash@3
         displayName: Build
         inputs:
-          filePath: edgelet/build/linux/build.sh
+          filePath: scripts/linux/generic-rust/build.sh
+          arguments: --project-root "edgelet" --packages "iotedge;aziot-edged" --reduced-linker
       - task: Bash@3
         displayName: Test
         inputs:
@@ -40,7 +45,7 @@ jobs:
     displayName: Linux arm32v7
     timeoutInMinutes: 90
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     steps:
       - script: |
           echo "##vso[task.setvariable variable=RUSTUP_HOME;]$VSTS_WORK/rustup"
@@ -50,7 +55,8 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - script: cargo install --git https://github.com/arsing/cross.git --branch set-path
         displayName: Install cross (fork with docker fix)
       - task: Bash@3
@@ -65,37 +71,11 @@ jobs:
           arguments: --target armv7-unknown-linux-gnueabihf --release true
 
 ################################################################################
-  - job: windows_amd64
-################################################################################
-    displayName: Windows amd64
-    pool:
-      vmImage: 'vs2017-win2016'
-    steps:
-      - powershell: Write-Host ("##vso[task.setvariable variable=NO_VALGRIND;]true")
-        displayName: Set env variables
-      - task: PowerShell@2
-        displayName: Install Rust
-        inputs:
-          filePath: edgelet/build/windows/install.ps1
-      - task: PowerShell@2
-        displayName: Clippy
-        inputs:
-          filePath: edgelet/build/windows/clippy.ps1
-      - task: PowerShell@2
-        displayName: Build
-        inputs:
-          filePath: edgelet/build/windows/build.ps1
-      - task: PowerShell@2
-        displayName: Test
-        inputs:
-          filePath: edgelet/build/windows/test.ps1
-
-################################################################################
   - job: style_check
 ################################################################################
     displayName: Style Check
     pool:
-      vmImage: 'ubuntu-16.04'
+      vmImage: 'ubuntu-18.04'
     steps:
       - script: |
           echo "##vso[task.setvariable variable=NO_VALGRIND;]true"
@@ -103,11 +83,13 @@ jobs:
       - task: Bash@3
         displayName: Install Rust
         inputs:
-          filePath: edgelet/build/linux/install.sh
+          filePath: scripts/linux/generic-rust/install.sh
+          arguments: --project-root "edgelet"
       - task: Bash@3
         displayName: Format Code
         inputs:
-          filePath: edgelet/build/linux/format.sh
+          filePath: scripts/linux/generic-rust/format.sh
+          arguments: --project-root "edgelet"
       - task: Bash@3
         displayName: Clippy
         inputs:

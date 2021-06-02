@@ -30,6 +30,9 @@ pub enum ErrorKind {
     )]
     FetchLatestVersions(FetchLatestVersionsReason),
 
+    #[fail(display = "Command failed: {}", _0)]
+    Config(std::borrow::Cow<'static, str>),
+
     #[fail(display = "Could not initialize tokio runtime")]
     InitializeTokio,
 
@@ -53,6 +56,12 @@ pub enum ErrorKind {
 
     #[fail(display = "Unable to call docker inspect")]
     Docker,
+
+    #[fail(display = "Error communicating with 'aziotctl' binary")]
+    Aziot,
+
+    #[fail(display = "Error running system command")]
+    System,
 }
 
 impl Fail for Error {

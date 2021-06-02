@@ -37,12 +37,12 @@ impl InlineResponse2007 {
         comment: String,
     ) -> Self {
         InlineResponse2007 {
-            id: id,
-            created: created,
-            created_by: created_by,
-            tags: tags,
-            size: size,
-            comment: comment,
+            id,
+            created,
+            created_by,
+            tags,
+            size,
+            comment,
         }
     }
 

@@ -25,7 +25,7 @@ use serde_json::Value;
 //
 // To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
 //
-// Note: We're using BTreeMap instead of HashMap because iotedged stores a hash of its local config (whose object representation uses this struct)
+// Note: We're using BTreeMap instead of HashMap because aziot-edged stores a hash of its local config (whose object representation uses this struct)
 // to detect changes. Since different HashMaps with the same keys aren't guaranteed to serialize in the same order (and thus won't compare equal),
 // we need to use another map type that can provide that guarantee.
 //
@@ -184,8 +184,8 @@ pub struct HostConfig {
     // #[serde(rename = "DnsSearch", skip_serializing_if = "Option::is_none")]
     // dns_search: Option<Vec<String>>,
     // /// A list of hostnames/IP mappings to add to the container's `/etc/hosts` file. Specified in the form `[\"hostname:IP\"]`.
-    // #[serde(rename = "ExtraHosts", skip_serializing_if = "Option::is_none")]
-    // extra_hosts: Option<Vec<String>>,
+    #[serde(rename = "ExtraHosts", skip_serializing_if = "Option::is_none")]
+    extra_hosts: Option<Vec<String>>,
     // /// A list of additional groups that the container process will run as.
     // #[serde(rename = "GroupAdd", skip_serializing_if = "Option::is_none")]
     // group_add: Option<Vec<String>>,
@@ -296,7 +296,7 @@ impl HostConfig {
             // dns: None,
             // dns_options: None,
             // dns_search: None,
-            // extra_hosts: None,
+            extra_hosts: None,
             // group_add: None,
             // ipc_mode: None,
             // cgroup: None,
@@ -1130,22 +1130,22 @@ impl HostConfig {
     //     self.dns_search = None;
     // }
 
-    // pub fn set_extra_hosts(&mut self, extra_hosts: Vec<String>) {
-    //     self.extra_hosts = Some(extra_hosts);
-    // }
+    pub fn set_extra_hosts(&mut self, extra_hosts: Vec<String>) {
+        self.extra_hosts = Some(extra_hosts);
+    }
 
-    // pub fn with_extra_hosts(mut self, extra_hosts: Vec<String>) -> Self {
-    //     self.extra_hosts = Some(extra_hosts);
-    //     self
-    // }
+    pub fn with_extra_hosts(mut self, extra_hosts: Vec<String>) -> Self {
+        self.extra_hosts = Some(extra_hosts);
+        self
+    }
 
-    // pub fn extra_hosts(&self) -> Option<&[String]> {
-    //     self.extra_hosts.as_ref().map(AsRef::as_ref)
-    // }
+    pub fn extra_hosts(&self) -> Option<&[String]> {
+        self.extra_hosts.as_ref().map(AsRef::as_ref)
+    }
 
-    // pub fn reset_extra_hosts(&mut self) {
-    //     self.extra_hosts = None;
-    // }
+    pub fn reset_extra_hosts(&mut self) {
+        self.extra_hosts = None;
+    }
 
     // pub fn set_group_add(&mut self, group_add: Vec<String>) {
     //     self.group_add = Some(group_add);

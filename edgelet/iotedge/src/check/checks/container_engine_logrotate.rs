@@ -16,7 +16,7 @@ impl Checker for ContainerEngineLogrotate {
     fn description(&self) -> &'static str {
         "production readiness: logs policy"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }

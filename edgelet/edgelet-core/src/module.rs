@@ -11,12 +11,12 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
+use serde_derive::Serialize;
 
 use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
-use crate::GetTrustBundle;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -139,15 +139,15 @@ impl ModuleRuntimeState {
 
 #[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
 pub struct ModuleSpec<T> {
-    name: String,
+    pub name: String,
     #[serde(rename = "type")]
-    type_: String,
-    config: T,
-    #[serde(default = "BTreeMap::new")]
-    env: BTreeMap<String, String>,
+    pub type_: String,
     #[serde(default)]
     #[serde(rename = "imagePullPolicy")]
-    image_pull_policy: ImagePullPolicy,
+    pub image_pull_policy: ImagePullPolicy,
+    pub config: T,
+    #[serde(default)]
+    pub env: BTreeMap<String, String>,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -162,6 +162,33 @@ where
             env: self.env.clone(),
             image_pull_policy: self.image_pull_policy,
         }
+    }
+}
+
+/// In nested scenario, Agent image can be pulled from its parent.
+/// It is possible to specify the parent address using the keyword $upstream
+///
+/// Unfortunately, due to the particularly runtime-independent and generic
+/// nature of configurations, it's very difficult to do "late binding" of
+/// runtime specific configuration values, such as the the $upstream
+/// `parent_hostname` resolution, which can only be done _after_ fetching the
+/// `parent_hostname` value from the underlying aziot identity service.
+///
+/// As the name implies, this trait is a bodge that enables this functionality,
+/// and was added in the lead-up to 1.2 GA.
+///
+/// A proper rework of settings loading should be undertaken when there is more
+/// time, but for now, this will have to do...
+pub trait NestedEdgeBodge {
+    fn parent_hostname_resolve(&mut self, parent_hostname: &str);
+}
+
+impl<T> ModuleSpec<T>
+where
+    T: NestedEdgeBodge,
+{
+    pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
+        self.config.parent_hostname_resolve(parent_hostname);
     }
 }
 
@@ -285,6 +312,7 @@ pub struct LogOptions {
     follow: bool,
     tail: LogTail,
     since: i32,
+    until: Option<i32>,
 }
 
 impl LogOptions {
@@ -293,6 +321,7 @@ impl LogOptions {
             follow: false,
             tail: LogTail::All,
             since: 0,
+            until: None,
         }
     }
 
@@ -311,6 +340,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_until(mut self, until: i32) -> Self {
+        self.until = Some(until);
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -321,6 +355,10 @@ impl LogOptions {
 
     pub fn since(&self) -> i32 {
         self.since
+    }
+
+    pub fn until(&self) -> Option<i32> {
+        self.until
     }
 }
 
@@ -345,36 +383,31 @@ pub trait ModuleRegistry {
     fn remove(&self, name: &str) -> Self::RemoveFuture;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
-    os_type: String,
+    #[serde(rename = "osType")]
+    pub os_type: String,
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
-    architecture: String,
+    pub architecture: String,
     /// iotedge version string
-    version: &'static str,
+    pub version: &'static str,
+    pub provisioning: ProvisioningInfo,
+    pub server_version: String,
+    pub kernel_version: String,
+    pub operating_system: String,
+    pub cpus: i32,
+    pub virtualized: &'static str,
 }
 
-impl SystemInfo {
-    pub fn new(os_type: String, architecture: String) -> Self {
-        SystemInfo {
-            os_type,
-            architecture,
-            version: super::version_with_source_version(),
-        }
-    }
-
-    pub fn os_type(&self) -> &str {
-        &self.os_type
-    }
-
-    pub fn architecture(&self) -> &str {
-        &self.architecture
-    }
-
-    pub fn version(&self) -> &str {
-        self.version
-    }
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct ProvisioningInfo {
+    /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
+    pub r#type: String,
+    #[serde(rename = "dynamicReprovisioning")]
+    pub dynamic_reprovisioning: bool,
+    #[serde(rename = "alwaysReprovisionOnStartup")]
+    pub always_reprovision_on_startup: bool,
 }
 
 #[derive(Debug, serde_derive::Serialize)]
@@ -467,16 +500,11 @@ pub trait ProvisioningResult {
 pub trait MakeModuleRuntime {
     type Config: Clone + Send;
     type Settings: RuntimeSettings<Config = Self::Config>;
-    type ProvisioningResult: ProvisioningResult;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
     type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
 
-    fn make_runtime(
-        settings: Self::Settings,
-        provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + Send + 'static,
-    ) -> Self::Future;
+    fn make_runtime(settings: Self::Settings) -> Self::Future;
 }
 
 pub trait ModuleRuntime: Sized {
@@ -501,6 +529,7 @@ pub trait ModuleRuntime: Sized {
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
+    type StopAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
@@ -515,6 +544,7 @@ pub trait ModuleRuntime: Sized {
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
     fn registry(&self) -> &Self::ModuleRegistry;
     fn remove_all(&self) -> Self::RemoveAllFuture;
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -559,6 +589,7 @@ pub enum RuntimeOperation {
     CreateModule(String),
     GetModule(String),
     GetModuleLogs(String),
+    GetSupportBundle,
     Init,
     ListModules,
     RemoveModule(String),
@@ -578,6 +609,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::GetModuleLogs(name) => {
                 write!(f, "Could not get logs for module {}", name)
             }
+            RuntimeOperation::GetSupportBundle => write!(f, "Could not get support bundle"),
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
             RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
@@ -621,7 +653,7 @@ impl FromStr for ImagePullPolicy {
 
 #[cfg(test)]
 mod tests {
-    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec, SystemInfo};
+    use super::{BTreeMap, Default, ImagePullPolicy, ModuleSpec};
 
     use std::str::FromStr;
     use std::string::ToString;
@@ -736,27 +768,5 @@ mod tests {
                 }
             }
         }
-    }
-
-    #[test]
-    fn system_info_new_and_access_succeed() {
-        //arrange
-        let system_info = SystemInfo::new(
-            "testValueOsType".to_string(),
-            "testArchitectureType".to_string(),
-        );
-        let expected_value_os_type = "testValueOsType";
-        let expected_test_architecture_type = "testArchitectureType";
-
-        //act
-        let current_value_os_type = system_info.os_type();
-        let current_value_architecture_type = system_info.architecture();
-
-        //assert
-        assert_eq!(expected_value_os_type, current_value_os_type);
-        assert_eq!(
-            expected_test_architecture_type,
-            current_value_architecture_type
-        );
     }
 }

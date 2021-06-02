@@ -119,7 +119,28 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.Equal(getUpdatedValue.OrDefault(), updatedValue);
         }
 
+        [Fact]
+        [Unit]
+        public void BackwardCompatibleStoreName_ShouldReturnOlderEntityStore()
+        {
+            this.GetEntityStore<string, string>("olderTestEntity");
+            IEntityStore<string, string> entityStore = this.GetEntityStore<string, string>("olderTestEntity", "TestEntity");
+
+            Assert.Equal("olderTestEntity", entityStore.EntityName);
+        }
+
+        [Fact]
+        [Unit]
+        public void BackwardCompatibleStoreName_ShouldReturnNewEntity()
+        {
+            IEntityStore<string, string> entityStore = this.GetEntityStore<string, string>("underlyingTestEntity", "newTestEntity");
+
+            Assert.Equal("newTestEntity", entityStore.EntityName);
+        }
+
         protected abstract IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName);
+
+        protected abstract IEntityStore<TK, TV> GetEntityStore<TK, TV>(string backwardCompatibilityEntityName, string entityName);
 
         public class Key
         {

@@ -29,12 +29,12 @@
 
 use std::{
     collections::HashSet,
-    iter::FromIterator,
+    fmt::{Display, Formatter, Result as FmtResult},
+    net::SocketAddr,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use bytes::Bytes;
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BenchmarkGroup, Criterion,
 };
@@ -48,8 +48,8 @@ use tracing::{info, warn};
 
 use mqtt3::{proto, PROTOCOL_LEVEL, PROTOCOL_NAME};
 use mqtt_broker::{
-    AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq, ConnectionHandle, Message,
-    Publish, SystemEvent,
+    auth::AllowAll, Auth, AuthId, BrokerBuilder, BrokerHandle, ClientEvent, ClientId, ConnReq,
+    ConnectionHandle, Message, Publish, SystemEvent,
 };
 
 criterion_group!(
@@ -118,7 +118,7 @@ fn scenarios() -> (Vec<(proto::QoS, Size)>, Vec<usize>) {
     let qoses = vec![proto::QoS::AtMostOnce, proto::QoS::AtLeastOnce];
     let clients = vec![1, 10, 50, 100];
 
-    (Vec::from_iter(iproduct!(qoses, sizes)), clients)
+    (iproduct!(qoses, sizes).collect(), clients)
 }
 
 fn dispatch_messages(
@@ -130,15 +130,12 @@ fn dispatch_messages(
 ) {
     let mut runtime = Runtime::new().expect("runtime");
 
-    let mut broker = BrokerBuilder::default()
-        .authenticator(|_| Ok(Some(AuthId::Anonymous)))
-        .authorizer(|_| Ok(true))
-        .build();
+    let mut broker = BrokerBuilder::default().with_authorizer(AllowAll).build();
 
     let (on_publish_tx, mut on_publish_rx) = mpsc::unbounded_channel();
     broker.on_publish = Some(on_publish_tx);
 
-    let mut broker_handle = broker.handle();
+    let broker_handle = broker.handle();
 
     let broker_task = runtime.spawn(broker.run());
 
@@ -172,17 +169,15 @@ fn dispatch_messages(
             let mut total_execution_time = Duration::from_millis(0);
 
             for _i in 0..iters {
-                criterion::black_box({
+                criterion::black_box(|| {
                     let topic = strategy.pub_topic(&publish_handle.id);
                     let publish = publish_handle.publish(qos, topic, size);
 
                     let message = Message::Client(
                         publish_handle.id.as_client_id(),
-                        ClientEvent::PublishFrom(publish),
+                        ClientEvent::PublishFrom(publish, None),
                     );
-                    runtime
-                        .block_on(broker_handle.send(message))
-                        .expect("publish");
+                    broker_handle.send(message).expect("publish");
                 });
 
                 runtime.block_on(async {
@@ -198,7 +193,6 @@ fn dispatch_messages(
     runtime.block_on(async move {
         broker_handle
             .send(Message::System(SystemEvent::Shutdown))
-            .await
             .expect("broker shutdown event");
 
         futures_util::future::join_all(subscriber_tasks).await;
@@ -228,7 +222,7 @@ impl Client {
     async fn connect(client_id: Id, broker_handle: BrokerHandle) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
 
-        let mut client = Self {
+        let client = Self {
             id: client_id,
             broker_handle,
             rx,
@@ -245,9 +239,15 @@ impl Client {
             protocol_name: PROTOCOL_NAME.into(),
             protocol_level: PROTOCOL_LEVEL,
         };
-        let connreq = ConnReq::new(client.id.as_client_id(), connect, None, connection_handle);
+        let connreq = ConnReq::new(
+            client.id.as_client_id(),
+            peer_addr(),
+            connect,
+            Auth::Identity(AuthId::Anonymous),
+            connection_handle,
+        );
         let message = Message::Client(client.id.as_client_id(), ClientEvent::ConnReq(connreq));
-        client.broker_handle.send(message).await.expect("connect");
+        client.broker_handle.send(message).expect("connect");
 
         client
     }
@@ -261,7 +261,7 @@ impl Client {
             }],
         };
         let message = Message::Client(self.id.as_client_id(), ClientEvent::Subscribe(subscribe));
-        self.broker_handle.send(message).await.expect("subscribe");
+        self.broker_handle.send(message).expect("subscribe");
     }
 
     fn publish_handle(&self) -> PublishHandle {
@@ -322,7 +322,7 @@ impl Client {
 
                     if let Some(event) = event_out {
                         let message = Message::Client(client_id.clone(), event);
-                        if let Err(e) = self.broker_handle.send(message).await {
+                        if let Err(e) = self.broker_handle.send(message) {
                             warn!("{}: Broker closed connection. {:?}", client_id, e);
                             stop = true;
                         }
@@ -367,7 +367,9 @@ impl PublishHandle {
             packet_identifier_dup_qos: packet_id,
             retain: false,
             topic_name,
-            payload: Bytes::from_iter((0..payload_size.into()).map(|_| rand::random::<u8>())),
+            payload: (0..payload_size.into())
+                .map(|_| rand::random::<u8>())
+                .collect(),
         }
     }
 }
@@ -389,8 +391,8 @@ impl From<Size> for usize {
     }
 }
 
-impl std::fmt::Display for Size {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for Size {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         match self {
             Size::B(value) => write!(f, "{}b", value),
             Size::Kb(value) => write!(f, "{}kb", value),
@@ -424,8 +426,8 @@ impl Id {
     }
 }
 
-impl std::fmt::Display for Id {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Display for Id {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{}", self.1)
     }
 }
@@ -456,4 +458,8 @@ impl Strategy {
             Self::SharedTopic => PREFIX.into(),
         }
     }
+}
+
+fn peer_addr() -> SocketAddr {
+    "127.0.0.1:12345".parse().unwrap()
 }

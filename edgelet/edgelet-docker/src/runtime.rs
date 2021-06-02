@@ -2,6 +2,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
+use std::path::{Path, PathBuf};
+use std::str;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -18,13 +20,13 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
+    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
+    SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
-use provisioning::ProvisioningResult;
 
 use crate::client::DockerClient;
 use crate::config::DockerConfig;
@@ -32,7 +34,8 @@ use crate::error::{Error, ErrorKind, Result};
 use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
-use crate::settings::Settings;
+use crate::notary;
+use crate::settings::{ContentTrust, Settings};
 
 use edgelet_core::DiskInfo;
 use std::convert::TryInto;
@@ -44,8 +47,9 @@ use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
-static LABEL_KEY: &str = "net.azure-devices.edge.owner";
-static LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
+const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
+const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
+const ORIGINAL_IMAGE_LABEL_KEY: &str = "net.azure-devices.edge.original-image";
 
 lazy_static! {
     static ref LABELS: Vec<&'static str> = {
@@ -59,6 +63,8 @@ lazy_static! {
 pub struct DockerModuleRuntime {
     client: DockerClient<UrlConnector>,
     system_resources: Arc<Mutex<System>>,
+    notary_registries: BTreeMap<String, PathBuf>,
+    notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
 }
 
 impl DockerModuleRuntime {
@@ -91,6 +97,17 @@ impl std::fmt::Debug for DockerModuleRuntime {
     }
 }
 
+struct MutexFuture<T>(tokio::sync::lock::Lock<T>);
+
+impl<T> Future for MutexFuture<T> {
+    type Item = tokio::sync::lock::LockGuard<T>;
+    type Error = Error;
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        Ok(self.0.poll_lock())
+    }
+}
+
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
     type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
@@ -98,23 +115,62 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        let image = config.image().to_string();
+        let image_with_tag = config.image().to_string();
 
-        info!("Pulling image {}...", image);
+        let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
+            get_notary_parameters(config, &self.notary_registries, &image_with_tag)
+        {
+            let lock = self.notary_lock.clone();
+            let mutex = MutexFuture(lock);
+            future::Either::A(
+                mutex
+                    .and_then({
+                        let gun = gun.clone();
+                        move |lock| {
+                            notary::notary_lookup(
+                                notary_auth.as_deref(),
+                                &gun,
+                                &tag,
+                                &config_path,
+                                lock,
+                            )
+                        }
+                    })
+                    .map(move |(digest, mut lock)| {
+                        debug!("Digest from notary lookup {}", digest);
+                        let image_with_digest = format!("{}@{}", gun, digest);
+                        lock.insert(image_with_tag, digest);
+                        (image_with_digest, true)
+                    }),
+            )
+        } else {
+            future::Either::B(futures::future::ok((image_with_tag, false)))
+        };
 
-        let creds: Result<String> = config.auth().map_or_else(
-            || Ok("".to_string()),
-            |a| {
-                let json = serde_json::to_string(a).with_context(|_| {
-                    ErrorKind::RegistryOperation(RegistryOperation::PullImage(image.clone()))
-                })?;
-                Ok(base64::encode(&json))
-            },
-        );
-
-        let response = creds
-            .map(|creds| {
-                self.client
+        let creds = config.auth().cloned();
+        let client_copy = self.client.clone();
+        let response = image_by_notary
+            .and_then(|(image, is_content_trust_enabled)| {
+                let creds = match creds {
+                    Some(a) => {
+                        let json = serde_json::to_string(&a).with_context(|_| {
+                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(
+                                image.clone(),
+                            ))
+                        })?;
+                        base64::encode_config(&json, base64::URL_SAFE)
+                    }
+                    None => String::new(),
+                };
+                Ok((image, is_content_trust_enabled, creds))
+            })
+            .and_then(move |(image, is_content_trust_enabled, creds)| {
+                if is_content_trust_enabled {
+                    info!("Pulling image via digest {}...", image);
+                } else {
+                    info!("Pulling image via tag {}...", image);
+                }
+                client_copy
                     .image_api()
                     .image_create(&image, "", "", "", "", &creds, "")
                     .then(|result| match result {
@@ -125,8 +181,6 @@ impl ModuleRegistry for DockerModuleRuntime {
                         )),
                     })
             })
-            .into_future()
-            .flatten()
             .then(move |result| match result {
                 Ok(image) => {
                     info!("Successfully pulled image {}", image);
@@ -188,26 +242,64 @@ where
 impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Settings = Settings;
-    type ProvisioningResult = ProvisioningResult;
     type ModuleRuntime = Self;
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(
-        settings: Settings,
-        _: ProvisioningResult,
-        _: impl GetTrustBundle,
-    ) -> Self::Future {
+    fn make_runtime(settings: Settings) -> Self::Future {
         info!("Initializing module runtime...");
 
-        // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
-        // with `.ok().map_or_else`. This is incorrect because `.ok()` will result in the error being dropped.
-        // So we suppress this lint. There's an open issue for this on the Clippy repo:
-        //      https://github.com/rust-lang/rust-clippy/issues/3730
-        #[allow(clippy::result_map_unwrap_or_else)]
-        let created = init_client(settings.moby_runtime().uri())
-            .map(|client| {
+        let created = match init_client(settings.moby_runtime().uri()) {
+            Ok(client) => {
+                let home_dir: Arc<Path> = settings.homedir().into();
                 let network_id = settings.moby_runtime().network().name().to_string();
+                let notary_registries = BTreeMap::new();
+                let certd_url = settings.endpoints().aziot_certd_url().clone();
+                let cert_client = cert_client::CertificateClient::new(
+                    aziot_cert_common_http::ApiVersion::V2020_09_01,
+                    &certd_url,
+                );
+
+                let notary_registries = if let Some(content_trust_map) = settings
+                    .moby_runtime()
+                    .content_trust()
+                    .and_then(ContentTrust::ca_certs)
+                {
+                    debug!("Notary Content Trust is enabled");
+                    future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
+                        (notary_registries, cert_client),
+                        move |(mut notary_registries, cert_client),
+                              (registry_server_hostname, cert_id)| {
+                            let home_dir = home_dir.clone();
+                            cert_client
+                                .get_cert(&cert_id)
+                                .then(move |cert_output| -> Result<_> {
+                                    match cert_output {
+                                        Ok(cert_buf) => {
+                                            let config_path = notary::notary_init(
+                                                &home_dir,
+                                                &registry_server_hostname,
+                                                &cert_buf,
+                                            )
+                                            .context(ErrorKind::Initialization)?;
+                                            notary_registries.insert(
+                                                registry_server_hostname.clone(),
+                                                config_path,
+                                            );
+                                            Ok((notary_registries, cert_client))
+                                        }
+                                        Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
+                                            "Notary root CA read error".to_owned(),
+                                        )
+                                        .into()),
+                                    }
+                                })
+                        },
+                    ))
+                } else {
+                    debug!("Notary Content Trust is disabled");
+                    future::Either::B(future::ok((notary_registries, cert_client)))
+                };
                 let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
                 info!("Using runtime network id {}", network_id);
 
@@ -242,23 +334,27 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                         log_failure(Level::Warn, &e);
                         e
                     })
-                    .map(|client| {
-                        let mut system_resources = System::new_all();
-                        system_resources.refresh_all();
+                    .join(notary_registries)
+                    .map(move |(client, (notary_registries, _))| {
+                        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
+                        sysinfo::set_open_files_limit(0);
+                        let system_resources = System::new_all();
                         info!("Successfully initialized module runtime");
+                        let notary_lock = tokio::sync::lock::Lock::new(BTreeMap::new());
                         DockerModuleRuntime {
                             client,
                             system_resources: Arc::new(Mutex::new(system_resources)),
+                            notary_registries,
+                            notary_lock,
                         }
                     });
-
                 future::Either::A(fut)
-            })
-            .unwrap_or_else(|err| {
+            }
+            Err(err) => {
                 log_failure(Level::Warn, &err);
                 future::Either::B(Err(err).into_future())
-            });
-
+            }
+        };
         Box::new(created)
     }
 }
@@ -320,6 +416,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type SystemResourcesFuture =
         Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
@@ -331,48 +428,111 @@ impl ModuleRuntime for DockerModuleRuntime {
             ))));
         }
 
-        let result = module
-            .config()
-            .clone_create_options()
-            .and_then(|create_options| {
-                // merge environment variables
-                let merged_env = DockerModuleRuntime::merge_env(create_options.env(), module.env());
+        let image_with_tag = module.config().image().to_string();
+        let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
-                let mut labels = create_options
-                    .labels()
-                    .cloned()
-                    .unwrap_or_else(BTreeMap::new);
-                labels.insert(LABEL_KEY.to_string(), LABEL_VALUE.to_string());
+        let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
+            get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
+        {
+            let lock = self.notary_lock.clone();
+            let mutex = MutexFuture(lock);
+            future::Either::A(
+                mutex
+                    .and_then({
+                        let gun = gun.clone();
+                        let image_with_tag = image_with_tag.clone();
+                        move |lock| {
+                            let digest_from_notary = lock.get(&image_with_tag);
+                            #[allow(clippy::option_if_let_else)]
+                            if let Some(digest_from_notary) = digest_from_notary {
+                                future::Either::A(future::ok((digest_from_notary.clone(), lock)))
+                            }
+                            else {
+                                future::Either::B(notary::notary_lookup(
+                                    notary_auth.as_deref(),
+                                    &gun,
+                                    &tag,
+                                    &config_path,
+                                    lock,
+                                ))
+                            }
+                        }
+                    })
+                    .and_then(move |(digest_from_notary, mut lock)| {
+                        lock.insert(image_with_tag, digest_from_notary.clone());
+                        let image_with_digest = format!("{}@{}", gun, digest_from_notary);
+                        if let Some(digest_from_manifest_str) = digest_from_manifest {
+                            if digest_from_manifest_str == digest_from_notary {
+                                info!("Digest from notary and Digest from manifest does match");
+                                debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
+                                Ok((image_with_digest, true))
+                            }
+                            else {
+                                info!("Digest from notary and Digest from manifest does not match");
+                                debug!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
+                                Err(Error::from(ErrorKind::NotaryDigestMismatch(
+                                        "notary digest mismatch with the manifest".to_owned(),
+                                )))
+                            }
+                        }
+                        else {
+                            info!("No Digest from the manifest");
+                            Ok((image_with_digest, true))
+                        }
+                    }),
+            )
+        } else {
+            future::Either::B(futures::future::ok((image_with_tag, false)))
+        };
 
-                debug!(
-                    "Creating container {} with image {}",
-                    module.name(),
-                    module.config().image()
-                );
+        let client = self.client.clone();
+        let result = image_by_notary
+            .and_then(|(image, is_content_trust_enabled)| {
+                if is_content_trust_enabled {
+                    info!("Creating image via digest {}...", image);
+                } else {
+                    info!("Creating image via tag {}...", image);
+                }
+                module
+                    .config()
+                    .clone_create_options()
+                    .map(move |create_options| {
+                        let merged_env =
+                            DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
-                let create_options = create_options
-                    .with_image(module.config().image().to_string())
-                    .with_env(merged_env)
-                    .with_labels(labels);
+                        let mut labels = create_options
+                            .labels()
+                            .cloned()
+                            .unwrap_or_else(BTreeMap::new);
+                        labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
+                        labels.insert(
+                            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
+                            module.config().image().to_string(),
+                        );
 
-                // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
-                // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+                        debug!("Creating container {} with image {}", module.name(), image);
 
-                Ok(self
-                    .client
-                    .container_api()
-                    .container_create(create_options, module.name())
-                    .then(|result| match result {
-                        Ok(_) => Ok(module),
-                        Err(err) => Err(Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                module.name().to_string(),
-                            )),
-                        )),
-                    }))
+                        let create_options = create_options
+                            .with_image(image)
+                            .with_env(merged_env)
+                            .with_labels(labels);
+
+                        // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
+                        // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+                        client
+                            .container_api()
+                            .container_create(create_options, module.name())
+                            .then(|result| match result {
+                                Ok(_) => Ok(module),
+                                Err(err) => Err(Error::from_docker_error(
+                                    err,
+                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                                        module.name().to_string(),
+                                    )),
+                                )),
+                            })
+                    })
             })
-            .into_future()
             .flatten()
             .then(|result| match result {
                 Ok(module) => {
@@ -411,7 +571,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                 ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
                             })?;
                         let config =
-                            DockerConfig::new(name.clone(), ContainerCreateBody::new(), None)
+                            DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
                                 .with_context(|_| {
                                     ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
                                         id.clone(),
@@ -478,9 +638,9 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let wait_timeout = wait_before_kill.and_then(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => Some(i32::max_value()),
-            s => Some(s as i32),
+        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => i32::max_value(),
+            s => s as i32,
         });
 
         Box::new(
@@ -573,22 +733,50 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_info(&self) -> Self::SystemInfoFuture {
         info!("Querying system info...");
 
+        // Provisioning information is no longer available in aziot-edged. This information should
+        // be emitted from Identity Service
+        let provisioning = ProvisioningInfo {
+            r#type: "ProvisioningType".into(),
+            dynamic_reprovisioning: false,
+            always_reprovision_on_startup: false,
+        };
+
         Box::new(
             self.client
                 .system_api()
                 .system_info()
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(system_info) => {
-                        let system_info = CoreSystemInfo::new(
-                            system_info
+                        let system_info = CoreSystemInfo {
+                            os_type: system_info
                                 .os_type()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                            system_info
+                            architecture: system_info
                                 .architecture()
                                 .unwrap_or(&String::from("Unknown"))
                                 .to_string(),
-                        );
+                            version: edgelet_core::version_with_source_version(),
+                            provisioning,
+                            cpus: system_info.NCPU().unwrap_or_default(),
+                            virtualized: match edgelet_core::is_virtualized_env() {
+                                Ok(Some(true)) => "yes",
+                                Ok(Some(false)) => "no",
+                                Ok(None) | Err(_) => "unknown",
+                            },
+                            kernel_version: system_info
+                                .kernel_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            operating_system: system_info
+                                .operating_system()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                            server_version: system_info
+                                .server_version()
+                                .map(std::string::ToString::to_string)
+                                .unwrap_or_default(),
+                        };
                         info!("Successfully queried system info");
                         Ok(system_info)
                     }
@@ -650,15 +838,11 @@ impl ModuleRuntime for DockerModuleRuntime {
             }
         };
 
-        #[cfg(windows)]
-        let uptime: u64 = unsafe { winapi::um::sysinfoapi::GetTickCount64() / 1000 };
-
         let mut system_resources = self
             .system_resources
             .as_ref()
             .lock()
             .expect("Could not acquire system resources lock");
-        system_resources.refresh_all();
 
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -667,6 +851,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let start_time = process::id()
             .try_into()
             .map(|id| {
+                system_resources.refresh_process(id);
                 system_resources
                     .get_process(id)
                     .map(|p| p.start_time())
@@ -674,11 +859,12 @@ impl ModuleRuntime for DockerModuleRuntime {
             })
             .unwrap_or_default();
 
+        system_resources.refresh_system();
         let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
-
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
 
+        system_resources.refresh_disks();
         let disks = system_resources
             .get_disks()
             .iter()
@@ -736,6 +922,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                                             .map(|(k, v)| (k.to_string(), v.to_string()))
                                             .collect(),
                                     ),
+                                    None,
                                     None,
                                 )
                                 .map(|config| {
@@ -797,6 +984,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 true,
                 true,
                 options.since(),
+                options.until(),
                 false,
                 tail,
             )
@@ -826,6 +1014,26 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(self.list().and_then(move |list| {
             let n = list.into_iter().map(move |c| {
                 <DockerModuleRuntime as ModuleRuntime>::remove(&self_for_remove, c.name())
+            });
+            future::join_all(n).map(|_| ())
+        }))
+    }
+
+    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
+        let self_for_stop = self.clone();
+        Box::new(self.list().and_then(move |list| {
+            let n = list.into_iter().map(move |c| {
+                <DockerModuleRuntime as ModuleRuntime>::stop(
+                    &self_for_stop,
+                    c.name(),
+                    wait_before_kill,
+                )
+                .or_else(|err| {
+                    match Fail::find_root_cause(&err).downcast_ref::<ErrorKind>() {
+                        Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
+                        _ => Err(err),
+                    }
+                })
             });
             future::join_all(n).map(|_| ())
         }))
@@ -1029,117 +1237,62 @@ where
     })
 }
 
+fn get_notary_parameters(
+    config: &DockerConfig,
+    notary_registries: &BTreeMap<String, PathBuf>,
+    image_with_tag: &str,
+) -> Option<(Option<String>, Arc<str>, String, PathBuf)> {
+    // check if the serveraddress exists & check if it exists in notary_registries
+    let registry_auth = config.auth();
+    let (registry_hostname, registry_username, registry_password) = match registry_auth {
+        Some(a) => (a.serveraddress(), a.username(), a.password()),
+        None => (None, None, None),
+    };
+    let hostname = registry_hostname?;
+    let config_path = notary_registries.get(hostname)?;
+    info!("{} is enabled for notary content trust", hostname);
+    let notary_auth = match (registry_username, registry_password) {
+        (None, None) => None,
+        (username, password) => {
+            let notary_auth = format!(
+                "{}:{}",
+                username.unwrap_or_default(),
+                password.unwrap_or_default()
+            );
+            let notary_auth = base64::encode(&notary_auth);
+            Some(notary_auth)
+        }
+    };
+    let mut image_with_tag_parts = image_with_tag.split(':');
+    let gun = image_with_tag_parts
+        .next()
+        .expect("split always returns atleast one element")
+        .to_owned();
+    let gun: Arc<str> = gun.into();
+    let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
+
+    Some((notary_auth, gun, tag, config_path.to_path_buf()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
-        MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
-        ProvisioningResult, Request, Settings, Stream, SystemResources,
+        Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
+        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
+        SystemResources,
     };
 
     use std::path::Path;
 
-    use config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
-    use json_patch::merge;
-    use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
-        WatchdogSettings,
+        settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
+        RuntimeSettings, WatchdogSettings,
     };
-    use edgelet_test_utils::crypto::TestHsm;
-    use provisioning::ReprovisioningStatus;
-
-    fn provisioning_result() -> ProvisioningResult {
-        ProvisioningResult::new(
-            "d1",
-            "h1",
-            None,
-            ReprovisioningStatus::DeviceDataNotUpdated,
-            None,
-        )
-    }
-
-    fn crypto() -> impl GetTrustBundle {
-        TestHsm::default()
-    }
-
-    fn make_settings(merge_json: Option<JsonValue>) -> Settings {
-        let mut config = Config::default();
-        let mut config_json = json!({
-            "provisioning": {
-                "source": "manual",
-                "device_connection_string": "HostName=moo.azure-devices.net;DeviceId=boo;SharedAccessKey=boo"
-            },
-            "agent": {
-                "name": "edgeAgent",
-                "type": "docker",
-                "env": {},
-                "config": {
-                    "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
-                    "auth": {}
-                }
-            },
-            "hostname": "zoo",
-            "connect": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
-            },
-            "listen": {
-                "management_uri": "unix:///var/run/iotedge/mgmt.sock",
-                "workload_uri": "unix:///var/run/iotedge/workload.sock"
-            },
-            "homedir": "/var/lib/iotedge",
-            "moby_runtime": {
-                "uri": "unix:///var/run/docker.sock",
-                "network": "azure-iot-edge"
-            }
-        });
-
-        if let Some(merge_json) = merge_json {
-            merge(&mut config_json, &merge_json);
-        }
-
-        config
-            .merge(File::from_str(&config_json.to_string(), FileFormat::Json))
-            .unwrap();
-
-        config.try_into().unwrap()
-    }
-
-    #[test]
-    fn invalid_uri_prefix_fails() {
-        let settings = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "foo:///this/is/not/valid"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err).any(|err| err
-            .to_string()
-            .contains("URL does not have a recognized scheme")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn invalid_uds_path_fails() {
-        let settings = make_settings(Some(json!({
-            "moby_runtime": {
-                "uri": "unix:///this/file/does/not/exist"
-            }
-        })));
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-            .wait()
-            .unwrap_err();
-        assert!(failure::Fail::iter_chain(&err)
-            .any(|err| err.to_string().contains("Socket file could not be found")));
-    }
 
     #[test]
     fn merge_env_empty() {
@@ -1331,10 +1484,6 @@ mod tests {
     impl RuntimeSettings for TestSettings {
         type Config = TestConfig;
 
-        fn provisioning(&self) -> &Provisioning {
-            unimplemented!()
-        }
-
         fn agent(&self) -> &ModuleSpec<Self::Config> {
             unimplemented!()
         }
@@ -1359,11 +1508,31 @@ mod tests {
             unimplemented!()
         }
 
-        fn certificates(&self) -> &Certificates {
+        fn watchdog(&self) -> &WatchdogSettings {
             unimplemented!()
         }
 
-        fn watchdog(&self) -> &WatchdogSettings {
+        fn endpoints(&self) -> &Endpoints {
+            unimplemented!()
+        }
+
+        fn edge_ca_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn edge_ca_key(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn trust_bundle_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn manifest_trust_bundle_cert(&self) -> Option<&str> {
+            unimplemented!()
+        }
+
+        fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
             unimplemented!()
         }
     }
@@ -1449,17 +1618,12 @@ mod tests {
 
     impl MakeModuleRuntime for TestModuleList {
         type Config = TestConfig;
-        type ProvisioningResult = ProvisioningResult;
         type ModuleRuntime = Self;
         type Settings = TestSettings;
         type Error = Error;
         type Future = FutureResult<Self, Self::Error>;
 
-        fn make_runtime(
-            _settings: Self::Settings,
-            _provisioning_result: Self::ProvisioningResult,
-            _crypto: impl GetTrustBundle,
-        ) -> Self::Future {
+        fn make_runtime(_settings: Self::Settings) -> Self::Future {
             unimplemented!()
         }
     }
@@ -1486,6 +1650,7 @@ mod tests {
         type SystemResourcesFuture =
             Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
+        type StopAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
             unimplemented!()
@@ -1536,6 +1701,10 @@ mod tests {
         }
 
         fn remove_all(&self) -> Self::RemoveAllFuture {
+            unimplemented!()
+        }
+
+        fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
             unimplemented!()
         }
     }

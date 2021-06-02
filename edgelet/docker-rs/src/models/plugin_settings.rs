@@ -34,10 +34,10 @@ impl PluginSettings {
         devices: Vec<crate::models::PluginDevice>,
     ) -> Self {
         PluginSettings {
-            mounts: mounts,
-            env: env,
-            args: args,
-            devices: devices,
+            mounts,
+            env,
+            args,
+            devices,
         }
     }
 

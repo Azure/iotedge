@@ -39,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Json
             }
         }
 
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) => throw new NotSupportedException();
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            => throw new NotSupportedException();
 
         public override bool CanConvert(Type type) => type.IsGenericType && typeof(Option<T>) == type.GetGenericTypeDefinition();
     }

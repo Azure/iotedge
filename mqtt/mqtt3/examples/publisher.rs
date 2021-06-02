@@ -2,7 +2,7 @@
 //
 //     cargo run --example publisher -- --server 127.0.0.1:1883 --client-id 'example-publisher' --publish-frequency 1000 --topic foo --qos 1 --payload 'hello, world'
 
-#![allow(clippy::let_unit_value)]
+use futures_util::StreamExt;
 
 mod common;
 
@@ -63,7 +63,8 @@ struct Options {
     payload: String,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::Builder::from_env(env_logger::Env::new().filter_or(
         "MQTT3_LOG",
         "mqtt3=debug,mqtt3::logging=trace,publisher=info",
@@ -83,9 +84,6 @@ fn main() {
         payload,
     } = structopt::StructOpt::from_args();
 
-    let mut runtime = tokio::runtime::Runtime::new().expect("couldn't initialize tokio runtime");
-    let runtime_handle = runtime.handle().clone();
-
     let mut client = mqtt3::Client::new(
         client_id,
         username,
@@ -104,7 +102,7 @@ fn main() {
     let mut shutdown_handle = client
         .shutdown_handle()
         .expect("couldn't get shutdown handle");
-    runtime.spawn(async move {
+    tokio::spawn(async move {
         let () = tokio::signal::ctrl_c()
             .await
             .expect("couldn't get Ctrl-C notification");
@@ -117,17 +115,18 @@ fn main() {
     let publish_handle = client
         .publish_handle()
         .expect("couldn't get publish handle");
-    runtime_handle.clone().spawn(async move {
-        use futures_util::StreamExt;
-
+    tokio::spawn(async move {
         let mut interval = tokio::time::interval(publish_frequency);
-        while let Some(_) = interval.next().await {
+        loop {
+            interval.tick().await;
+
             let topic = topic.clone();
             log::info!("Publishing to {} ...", topic);
 
             let mut publish_handle = publish_handle.clone();
             let payload = payload.clone();
-            runtime_handle.spawn(async move {
+
+            tokio::spawn(async move {
                 let result = publish_handle
                     .publish(mqtt3::proto::Publication {
                         topic_name: topic.clone(),
@@ -143,13 +142,9 @@ fn main() {
         }
     });
 
-    let () = runtime.block_on(async {
-        use futures_util::StreamExt;
-
-        while let Some(event) = client.next().await {
-            let _ = event.unwrap();
-        }
-    });
+    while let Some(event) = client.next().await {
+        let _ = event.unwrap();
+    }
 }
 
 fn duration_from_millis_str(

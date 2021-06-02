@@ -7,8 +7,6 @@ use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
-#[cfg(windows)]
-use tokio_uds_windows::UnixStream;
 
 #[derive(Clone, Copy, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub enum Pid {
@@ -34,10 +32,7 @@ impl cmp::PartialEq for Pid {
     fn eq(&self, other: &Pid) -> bool {
         match *self {
             Pid::None => false,
-            Pid::Any => match *other {
-                Pid::None => false,
-                _ => true,
-            },
+            Pid::Any => !matches!(*other, Pid::None),
             Pid::Value(pid1) => match *other {
                 Pid::None => false,
                 Pid::Any => true,
@@ -183,42 +178,6 @@ pub mod impl_macos {
             } else {
                 Err(io::Error::last_os_error())
             }
-        }
-    }
-}
-
-#[cfg(windows)]
-use self::impl_windows::get_pid;
-
-#[cfg(windows)]
-mod impl_windows {
-    use std::io;
-    use std::os::windows::io::AsRawSocket;
-
-    use winapi::ctypes::c_long;
-    use winapi::um::winsock2::{ioctlsocket, WSAGetLastError, SOCKET_ERROR};
-
-    use super::{Pid, UnixStream};
-
-    // SIO_AF_UNIX_GETPEERPID is defined in the Windows header afunix.h.
-    const SIO_AF_UNIX_GETPEERPID: c_long = 0x5800_0100;
-
-    pub fn get_pid(sock: &UnixStream) -> io::Result<Pid> {
-        let raw_socket = sock.as_raw_socket();
-        let mut pid = 0_u32;
-        let ret = unsafe {
-            #[allow(clippy::cast_possible_truncation)]
-            ioctlsocket(
-                raw_socket as _,
-                SIO_AF_UNIX_GETPEERPID,
-                &mut pid as *mut u32,
-            )
-        };
-        if ret == SOCKET_ERROR {
-            Err(io::Error::from_raw_os_error(unsafe { WSAGetLastError() }))
-        } else {
-            #[allow(clippy::cast_possible_wrap)]
-            Ok(Pid::Value(pid as _))
         }
     }
 }

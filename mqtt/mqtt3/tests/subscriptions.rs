@@ -1,15 +1,7 @@
-#![allow(clippy::let_unit_value)]
-
 mod common;
 
-#[test]
-fn server_generated_id_must_always_resubscribe() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn server_generated_id_must_always_resubscribe() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -145,7 +137,6 @@ fn server_generated_id_must_always_resubscribe() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -165,6 +156,7 @@ fn server_generated_id_must_always_resubscribe() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
@@ -182,6 +174,7 @@ fn server_generated_id_must_always_resubscribe() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
@@ -199,22 +192,16 @@ fn server_generated_id_must_always_resubscribe() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn client_id_should_not_resubscribe_when_session_is_present() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn client_id_should_not_resubscribe_when_session_is_present() {
     let (io_source, done) = common::IoSource::new(vec![
         vec![
             common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
@@ -384,7 +371,6 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
         .unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -404,6 +390,7 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: true,
             },
@@ -421,25 +408,20 @@ fn client_id_should_not_resubscribe_when_session_is_present() {
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
             ]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
             mqtt3::Event::NewConnection {
                 reset_session: false,
             },
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 
-#[test]
-fn should_combine_pending_subscription_updates() {
-    let mut runtime = tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_time()
-        .build()
-        .expect("couldn't initialize tokio runtime");
-
+#[tokio::test]
+async fn should_combine_pending_subscription_updates() {
     let (io_source, done) = common::IoSource::new(vec![vec![
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
             mqtt3::proto::Connect {
@@ -468,7 +450,17 @@ fn should_combine_pending_subscription_updates() {
                         topic_filter: "topic3".to_string(),
                         qos: mqtt3::proto::QoS::ExactlyOnce,
                     },
+                    mqtt3::proto::SubscribeTo {
+                        topic_filter: "topic4".to_string(),
+                        qos: mqtt3::proto::QoS::ExactlyOnce,
+                    },
                 ],
+            },
+        )),
+        common::TestConnectionStep::Receives(mqtt3::proto::Packet::Unsubscribe(
+            mqtt3::proto::Unsubscribe {
+                packet_identifier: mqtt3::proto::PacketIdentifier::new(2).unwrap(),
+                unsubscribe_from: vec!["topic5".to_string()],
             },
         )),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::SubAck(mqtt3::proto::SubAck {
@@ -476,7 +468,11 @@ fn should_combine_pending_subscription_updates() {
             qos: vec![
                 mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::AtLeastOnce),
                 mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::ExactlyOnce),
+                mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::ExactlyOnce),
             ],
+        })),
+        common::TestConnectionStep::Sends(mqtt3::proto::Packet::UnsubAck(mqtt3::proto::UnsubAck {
+            packet_identifier: mqtt3::proto::PacketIdentifier::new(2).unwrap(),
         })),
         common::TestConnectionStep::Receives(mqtt3::proto::Packet::PingReq(mqtt3::proto::PingReq)),
         common::TestConnectionStep::Sends(mqtt3::proto::Packet::PingResp(mqtt3::proto::PingResp)),
@@ -502,9 +498,17 @@ fn should_combine_pending_subscription_updates() {
             qos: mqtt3::proto::QoS::AtLeastOnce,
         })
         .unwrap();
+
     client
         .subscribe(mqtt3::proto::SubscribeTo {
             topic_filter: "topic3".to_string(),
+            qos: mqtt3::proto::QoS::ExactlyOnce,
+        })
+        .unwrap();
+    client.unsubscribe("topic4".to_string()).unwrap();
+    client
+        .subscribe(mqtt3::proto::SubscribeTo {
+            topic_filter: "topic4".to_string(),
             qos: mqtt3::proto::QoS::ExactlyOnce,
         })
         .unwrap();
@@ -515,9 +519,9 @@ fn should_combine_pending_subscription_updates() {
         })
         .unwrap();
     client.unsubscribe("topic2".to_string()).unwrap();
+    client.unsubscribe("topic5".to_string()).unwrap();
 
     common::verify_client_events(
-        &mut runtime,
         client,
         vec![
             mqtt3::Event::NewConnection {
@@ -532,12 +536,107 @@ fn should_combine_pending_subscription_updates() {
                     topic_filter: "topic3".to_string(),
                     qos: mqtt3::proto::QoS::ExactlyOnce,
                 }),
+                mqtt3::SubscriptionUpdateEvent::Subscribe(mqtt3::proto::SubscribeTo {
+                    topic_filter: "topic4".to_string(),
+                    qos: mqtt3::proto::QoS::ExactlyOnce,
+                }),
+            ]),
+            mqtt3::Event::SubscriptionUpdates(vec![mqtt3::SubscriptionUpdateEvent::Unsubscribe(
+                "topic5".to_string(),
+            )]),
+            mqtt3::Event::Disconnected(mqtt3::ConnectionError::ServerClosedConnection),
+        ],
+    );
+
+    done.await
+        .expect("connection broken while there were still steps remaining on the server");
+}
+
+#[tokio::test]
+async fn should_send_reject_event() {
+    let (io_source, done) = common::IoSource::new(vec![vec![
+        common::TestConnectionStep::Receives(mqtt3::proto::Packet::Connect(
+            mqtt3::proto::Connect {
+                username: None,
+                password: None,
+                will: None,
+                client_id: mqtt3::proto::ClientId::ServerGenerated,
+                keep_alive: std::time::Duration::from_secs(4),
+                protocol_name: mqtt3::PROTOCOL_NAME.to_string(),
+                protocol_level: mqtt3::PROTOCOL_LEVEL,
+            },
+        )),
+        common::TestConnectionStep::Sends(mqtt3::proto::Packet::ConnAck(mqtt3::proto::ConnAck {
+            session_present: false,
+            return_code: mqtt3::proto::ConnectReturnCode::Accepted,
+        })),
+        common::TestConnectionStep::Receives(mqtt3::proto::Packet::Subscribe(
+            mqtt3::proto::Subscribe {
+                packet_identifier: mqtt3::proto::PacketIdentifier::new(1).unwrap(),
+                subscribe_to: vec![
+                    mqtt3::proto::SubscribeTo {
+                        topic_filter: "topic1".to_string(),
+                        qos: mqtt3::proto::QoS::AtLeastOnce,
+                    },
+                    mqtt3::proto::SubscribeTo {
+                        topic_filter: "topic2".to_string(),
+                        qos: mqtt3::proto::QoS::AtLeastOnce,
+                    },
+                ],
+            },
+        )),
+        common::TestConnectionStep::Sends(mqtt3::proto::Packet::SubAck(mqtt3::proto::SubAck {
+            packet_identifier: mqtt3::proto::PacketIdentifier::new(1).unwrap(),
+            qos: vec![
+                mqtt3::proto::SubAckQos::Success(mqtt3::proto::QoS::AtLeastOnce),
+                mqtt3::proto::SubAckQos::Failure,
+            ],
+        })),
+        common::TestConnectionStep::Receives(mqtt3::proto::Packet::PingReq(mqtt3::proto::PingReq)),
+        common::TestConnectionStep::Sends(mqtt3::proto::Packet::PingResp(mqtt3::proto::PingResp)),
+    ]]);
+
+    let mut client = mqtt3::Client::new(
+        None,
+        None,
+        None,
+        io_source,
+        std::time::Duration::from_secs(0),
+        std::time::Duration::from_secs(4),
+    );
+    client
+        .subscribe(mqtt3::proto::SubscribeTo {
+            topic_filter: "topic1".to_string(),
+            qos: mqtt3::proto::QoS::AtLeastOnce,
+        })
+        .unwrap();
+    client
+        .subscribe(mqtt3::proto::SubscribeTo {
+            topic_filter: "topic2".to_string(),
+            qos: mqtt3::proto::QoS::AtLeastOnce,
+        })
+        .unwrap();
+
+    common::verify_client_events(
+        client,
+        vec![
+            mqtt3::Event::NewConnection {
+                reset_session: true,
+            },
+            mqtt3::Event::SubscriptionUpdates(vec![
+                mqtt3::SubscriptionUpdateEvent::Subscribe(mqtt3::proto::SubscribeTo {
+                    topic_filter: "topic1".to_string(),
+                    qos: mqtt3::proto::QoS::AtLeastOnce,
+                }),
+                mqtt3::SubscriptionUpdateEvent::RejectedByServer(mqtt3::proto::SubscribeTo {
+                    topic_filter: "topic2".to_string(),
+                    qos: mqtt3::proto::QoS::AtLeastOnce,
+                }),
             ]),
         ],
     );
 
-    let () = runtime
-        .block_on(done)
+    done.await
         .expect("connection broken while there were still steps remaining on the server");
 }
 

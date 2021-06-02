@@ -1,14 +1,11 @@
-// Copyright (c) Microsoft. All rights reserved.
-
 use std::marker::PhantomData;
 use std::path::Path;
 use std::time::Duration;
 
 use edgelet_core::{
-    AuthId, Authenticator, Certificates, Connect, DiskInfo, GetTrustBundle, Listen, LogOptions,
-    MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    Provisioning, ProvisioningResult, RuntimeSettings, SystemInfo, SystemResources,
-    WatchdogSettings,
+    settings::AutoReprovisioningMode, AuthId, Authenticator, Connect, DiskInfo, Endpoints, Listen,
+    LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, ProvisioningInfo, RuntimeSettings, SystemInfo, SystemResources, WatchdogSettings,
 };
 use failure::Fail;
 use futures::future::{self, FutureResult};
@@ -83,10 +80,6 @@ impl TestSettings {
 impl RuntimeSettings for TestSettings {
     type Config = TestConfig;
 
-    fn provisioning(&self) -> &Provisioning {
-        unimplemented!()
-    }
-
     fn agent(&self) -> &ModuleSpec<Self::Config> {
         unimplemented!()
     }
@@ -111,11 +104,31 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
-    fn certificates(&self) -> &Certificates {
+    fn watchdog(&self) -> &WatchdogSettings {
         unimplemented!()
     }
 
-    fn watchdog(&self) -> &WatchdogSettings {
+    fn endpoints(&self) -> &Endpoints {
+        unimplemented!()
+    }
+
+    fn edge_ca_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn edge_ca_key(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn trust_bundle_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn manifest_trust_bundle_cert(&self) -> Option<&str> {
+        unimplemented!()
+    }
+
+    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
         unimplemented!()
     }
 }
@@ -273,25 +286,6 @@ impl<E> From<TestBody<E>> for Body {
     }
 }
 
-#[derive(Default)]
-pub struct TestProvisioningResult;
-
-impl TestProvisioningResult {
-    pub fn new() -> Self {
-        TestProvisioningResult {}
-    }
-}
-
-impl ProvisioningResult for TestProvisioningResult {
-    fn device_id(&self) -> &str {
-        unimplemented!()
-    }
-
-    fn hub_name(&self) -> &str {
-        unimplemented!()
-    }
-}
-
 impl<E, S> MakeModuleRuntime for TestRuntime<E, S>
 where
     E: Clone + Fail,
@@ -300,16 +294,11 @@ where
 {
     type Config = S::Config;
     type Settings = S;
-    type ProvisioningResult = TestProvisioningResult;
     type ModuleRuntime = Self;
     type Error = E;
     type Future = FutureResult<Self, Self::Error>;
 
-    fn make_runtime(
-        settings: Self::Settings,
-        _: Self::ProvisioningResult,
-        _: impl GetTrustBundle,
-    ) -> Self::Future {
+    fn make_runtime(settings: Self::Settings) -> Self::Future {
         future::ok(TestRuntime {
             module: None,
             registry: TestRegistry::new(None),
@@ -344,6 +333,7 @@ where
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
     type SystemResourcesFuture = FutureResult<SystemResources, Self::Error>;
     type RemoveAllFuture = FutureResult<(), Self::Error>;
+    type StopAllFuture = FutureResult<(), Self::Error>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         match self.module.as_ref().unwrap() {
@@ -389,10 +379,21 @@ where
 
     fn system_info(&self) -> Self::SystemInfoFuture {
         match self.module.as_ref().unwrap() {
-            Ok(_) => future::ok(SystemInfo::new(
-                "os_type_sample".to_string(),
-                "architecture_sample".to_string(),
-            )),
+            Ok(_) => future::ok(SystemInfo {
+                os_type: "os_type_sample".to_string(),
+                architecture: "architecture_sample".to_string(),
+                version: edgelet_core::version_with_source_version(),
+                provisioning: ProvisioningInfo {
+                    r#type: "test".to_string(),
+                    dynamic_reprovisioning: false,
+                    always_reprovision_on_startup: true,
+                },
+                cpus: 0,
+                virtualized: "test",
+                kernel_version: "test".to_string(),
+                operating_system: "test".to_string(),
+                server_version: "test".to_string(),
+            }),
             Err(ref e) => future::err(e.clone()),
         }
     }
@@ -447,6 +448,10 @@ where
     }
 
     fn remove_all(&self) -> Self::RemoveAllFuture {
+        future::ok(())
+    }
+
+    fn stop_all(&self, _wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
         future::ok(())
     }
 }

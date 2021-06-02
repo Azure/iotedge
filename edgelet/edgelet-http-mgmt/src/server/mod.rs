@@ -3,6 +3,7 @@
 use failure::{Compat, Fail, ResultExt};
 use futures::sync::mpsc::UnboundedSender;
 use futures::{future, Future};
+use std::sync::{Arc, Mutex};
 
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
@@ -10,14 +11,13 @@ use lazy_static::lazy_static;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use edgelet_core::{
-    Authenticator, IdentityManager, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy,
-};
+use edgelet_core::{Authenticator, Module, ModuleRuntime, ModuleRuntimeErrorReason, Policy};
 use edgelet_http::authentication::Authentication;
 use edgelet_http::authorization::Authorization;
 use edgelet_http::route::{Builder, RegexRecognizer, Router, RouterService};
 use edgelet_http::router;
 use edgelet_http::Version;
+use identity_client::client::IdentityClient;
 
 mod device_actions;
 mod identity;
@@ -27,7 +27,7 @@ mod system_info;
 use self::device_actions::ReprovisionDevice;
 use self::identity::{CreateIdentity, DeleteIdentity, ListIdentities, UpdateIdentity};
 pub use self::module::*;
-use self::system_info::{GetSystemInfo, GetSystemResources};
+use self::system_info::{GetSupportBundle, GetSystemInfo, GetSystemResources};
 use crate::error::{Error, ErrorKind};
 
 lazy_static! {
@@ -40,9 +40,9 @@ pub struct ManagementService {
 }
 
 impl ManagementService {
-    pub fn new<M, I>(
+    pub fn new<M>(
         runtime: &M,
-        identity: &I,
+        identity_client: Arc<Mutex<IdentityClient>>,
         initiate_shutdown_and_reprovision: UnboundedSender<()>,
     ) -> impl Future<Item = Self, Error = Error>
     where
@@ -50,8 +50,6 @@ impl ManagementService {
         for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         <M::Module as Module>::Config: DeserializeOwned + Serialize,
         M::Logs: Into<Body>,
-        I: IdentityManager + Clone + Send + Sync + 'static,
-        I::Identity: Serialize,
         <M::AuthenticateFuture as Future>::Error: Fail,
     {
         let router = router!(
@@ -66,13 +64,14 @@ impl ManagementService {
             post    Version2018_06_28 runtime Policy::Anonymous             => "/modules/(?P<name>[^/]+)/restart"   => RestartModule::new(runtime.clone()),
             get     Version2018_06_28 runtime Policy::Anonymous             => "/modules/(?P<name>[^/]+)/logs"      => ModuleLogs::new(runtime.clone()),
 
-            get     Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities"                        => ListIdentities::new(identity.clone()),
-            post    Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities"                        => CreateIdentity::new(identity.clone()),
-            put     Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => UpdateIdentity::new(identity.clone()),
-            delete  Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => DeleteIdentity::new(identity.clone()),
+            get     Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities"                        => ListIdentities::new(identity_client.clone()),
+            post    Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities"                        => CreateIdentity::new(identity_client.clone()),
+            put     Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => UpdateIdentity::new(identity_client.clone()),
+            delete  Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => DeleteIdentity::new(identity_client),
 
             get     Version2018_06_28 runtime Policy::Anonymous             => "/systeminfo"                        => GetSystemInfo::new(runtime.clone()),
             get     Version2019_11_05 runtime Policy::Anonymous             => "/systeminfo/resources"              => GetSystemResources::new(runtime.clone()),
+            get     Version2020_07_07 runtime Policy::Anonymous             => "/systeminfo/supportbundle"          => GetSupportBundle::new(runtime.clone()),
 
             post    Version2019_10_22 runtime Policy::Module(&*AGENT_NAME)  => "/device/reprovision"                => ReprovisionDevice::new(initiate_shutdown_and_reprovision),
         );

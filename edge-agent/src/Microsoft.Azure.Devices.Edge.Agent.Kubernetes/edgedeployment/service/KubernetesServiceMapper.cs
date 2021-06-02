@@ -75,14 +75,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
                 //
                 // If the user wants to expose the ClusterIPs port externally, they should manually create a service to expose it.
                 // This gives the user more control as to how they want this to work.
-                var serviceType = onlyExposedPorts
-                    ? PortMapServiceType.ClusterIP
-                    : this.defaultMapServiceType;
+                var serviceType = this.GetServiceType(module, onlyExposedPorts);
+                var loadBalancerIP = module.Config.CreateOptions.ServiceOptions.FlatMap(so => so.LoadBalancerIP).OrDefault();
 
-                return Option.Some(new V1Service(metadata: serviceMeta, spec: new V1ServiceSpec(type: serviceType.ToString(), ports: servicePorts.Values.ToList(), selector: labels)));
+                return Option.Some(new V1Service(metadata: serviceMeta, spec: new V1ServiceSpec(type: serviceType.ToString(), loadBalancerIP: loadBalancerIP, ports: servicePorts.Values.ToList(), selector: labels)));
             }
 
             return Option.None<V1Service>();
+        }
+
+        PortMapServiceType GetServiceType(KubernetesModule module, bool onlyExposedPorts)
+        {
+            var serviceType = module.Config.CreateOptions.ServiceOptions.FlatMap(so => so.Type);
+            return serviceType.GetOrElse(() => onlyExposedPorts
+                    ? PortMapServiceType.ClusterIP
+                    : this.defaultMapServiceType);
         }
     }
 }

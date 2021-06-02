@@ -1,0 +1,83 @@
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
+
+stages:
+- stage: SetupVMs
+  jobs:
+  - template: templates/nested-parent-vm-setup.yaml
+    parameters:
+      upstream.protocol: amqp
+  - template: templates/nested-longhaul-deploy-amd64.yaml
+    parameters:
+      upstream.protocol: amqp
+      testInfo.testName: 'longhaul (nested-non-broker)'
+  - template: templates/nested-parent-vm-setup.yaml
+    parameters:
+      upstream.protocol: mqtt
+  - template: templates/nested-longhaul-deploy-amd64.yaml
+    parameters:
+      upstream.protocol: mqtt
+      testInfo.testName: 'longhaul (nested-broker)'
+
+  - job:  Clean_up      
+    dependsOn:
+      - SetupVM_level5_amqp
+      - SetupVM_level5_mqtt
+      - SetupVM_level4_amqp
+      - SetupVM_level4_mqtt
+      - Deploy_Longhaul_Linux_Amd64_amqp
+      - Deploy_Longhaul_Linux_Amd64_mqtt
+    condition: eq(variables['test.pipeline'], 'true')
+    displayName: Clean up identities and unlock agents
+    variables:    
+      deviceLvl5AmqpAgentName: $[ dependencies.SetupVM_level5_amqp.outputs['lock_test_agent.agentName'] ]
+      deviceLvl5MqttAgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]
+      deviceLvl4AmqpAgentName: $[ dependencies.SetupVM_level4_amqp.outputs['lock_test_agent.agentName'] ]
+      deviceLvl4MqttAgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]
+      amd64AmqpAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_amqp.outputs['lock_test_agent.agentName'] ]
+      amd64MqttAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_mqtt.outputs['lock_test_agent.agentName'] ]
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - status -equals unlocked_$(Build.BuildId)  
+    steps:
+      - template: templates/nested-get-secrets.yaml     
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl5AmqpAgentName)
+          lvl: 5  
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl5MqttAgentName)
+          lvl: 5  
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl4AmqpAgentName)
+          lvl: 4     
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(deviceLvl4MqttAgentName)
+          lvl: 4     
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(amd64AmqpAgentName)
+          lvl: 3  
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(amd64MqttAgentName)
+          lvl: 3

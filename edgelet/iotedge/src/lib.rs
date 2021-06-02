@@ -4,9 +4,12 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::default_trait_access,
+    clippy::let_and_return,
+    clippy::let_unit_value,
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
     clippy::must_use_candidate,
+    clippy::similar_names,
     clippy::too_many_arguments,
     clippy::too_many_lines,
     clippy::type_complexity,
@@ -17,11 +20,13 @@ use futures::Future;
 use serde_derive::Deserialize;
 
 mod check;
+pub mod config;
 mod error;
 mod list;
 mod logs;
 mod restart;
 mod support_bundle;
+mod system;
 mod unknown;
 mod version;
 
@@ -30,7 +35,8 @@ pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
-pub use crate::support_bundle::{OutputLocation, SupportBundle};
+pub use crate::support_bundle::SupportBundleCommand;
+pub use crate::system::System;
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 
@@ -42,5 +48,6 @@ pub trait Command {
 
 #[derive(Debug, Deserialize)]
 pub struct LatestVersions {
-    pub iotedged: String,
+    #[serde(rename = "aziot-edge")]
+    pub aziot_edge: String,
 }

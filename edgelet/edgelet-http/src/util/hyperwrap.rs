@@ -8,8 +8,8 @@ use hyper_proxy::{Intercept, Proxy, ProxyConnector};
 use hyper_tls::HttpsConnector;
 use native_tls::{Certificate as TlsCertificate, TlsConnector};
 use openssl::x509::X509;
+use percent_encoding::percent_decode;
 use typed_headers::Credentials;
-use url::percent_encoding::percent_decode;
 use url::Url;
 
 use crate::client::ClientImpl;
@@ -166,18 +166,12 @@ impl Client {
 
     #[cfg(test)]
     pub fn is_null(&self) -> bool {
-        match *self {
-            Client::Null => true,
-            _ => false,
-        }
+        matches!(*self, Client::Null)
     }
 
     #[cfg(test)]
     pub fn has_proxy(&self) -> bool {
-        match *self {
-            Client::Proxy(_) => true,
-            _ => false,
-        }
+        matches!(*self, Client::Proxy(_))
     }
 }
 

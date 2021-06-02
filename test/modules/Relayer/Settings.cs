@@ -20,6 +20,8 @@ namespace Relayer
             Uri testResultCoordinatorUrl,
             string moduleId,
             bool receiveOnly,
+            int messageDuplicateTolerance,
+            bool enableTrcReporting,
             Option<int> uniqueResultsExpected)
         {
             this.InputName = Preconditions.CheckNonWhiteSpace(inputName, nameof(inputName));
@@ -28,6 +30,8 @@ namespace Relayer
             this.TestResultCoordinatorUrl = Preconditions.CheckNotNull(testResultCoordinatorUrl, nameof(testResultCoordinatorUrl));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.ReceiveOnly = receiveOnly;
+            this.MessageDuplicateTolerance = messageDuplicateTolerance;
+            this.EnableTrcReporting = enableTrcReporting;
             this.UniqueResultsExpected = uniqueResultsExpected;
         }
 
@@ -49,6 +53,8 @@ namespace Relayer
                 configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
                 configuration.GetValue<string>("IOTEDGE_MODULEID"),
                 configuration.GetValue<bool>("receiveOnly", false),
+                configuration.GetValue<int>("messageDuplicateTolerance", 2),
+                configuration.GetValue<bool>("enableTrcReporting", true),
                 uniqueResultsExpected);
         }
 
@@ -58,11 +64,15 @@ namespace Relayer
 
         public string OutputName { get; }
 
+        public bool EnableTrcReporting { get; }
+
         public Uri TestResultCoordinatorUrl { get; }
 
         public string ModuleId { get; }
 
         public bool ReceiveOnly { get; }
+
+        public int MessageDuplicateTolerance { get; }
 
         public Option<int> UniqueResultsExpected { get; }
 
@@ -76,7 +86,9 @@ namespace Relayer
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
-                { nameof(this.ReceiveOnly), this.ReceiveOnly.ToString() }
+                { nameof(this.ReceiveOnly), this.ReceiveOnly.ToString() },
+                { nameof(this.MessageDuplicateTolerance), this.MessageDuplicateTolerance.ToString() },
+                { nameof(this.EnableTrcReporting), this.EnableTrcReporting.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

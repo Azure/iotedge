@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 
             string id = "m1";
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<string>(), It.IsAny<CancellationToken>()))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<string>(), Option.None<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MemoryStream(buffer));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new ModuleRuntimeInfo(id, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Stream
 
             string id = "m1";
             var runtimeInfoProvider = new Mock<IRuntimeInfoProvider>();
-            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<string>(), It.IsAny<CancellationToken>()))
+            runtimeInfoProvider.Setup(r => r.GetModuleLogs(id, true, Option.None<int>(), Option.None<string>(), Option.None<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MemoryStream(buffer));
             runtimeInfoProvider.Setup(r => r.GetModules(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new ModuleRuntimeInfo(id, "docker", ModuleStatus.Running, "foo", 0, Option.None<DateTime>(), Option.None<DateTime>()) });

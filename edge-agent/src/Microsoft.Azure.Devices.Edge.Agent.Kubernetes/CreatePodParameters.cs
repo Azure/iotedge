@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEnumerable<string> cmd,
             IEnumerable<string> entrypoint,
             string workingDir)
-            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, cmd?.ToList(), entrypoint?.ToList(), workingDir, null, null, null, null, null)
+            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, cmd?.ToList(), entrypoint?.ToList(), workingDir, null, null, null, null, null, null)
         {
         }
 
@@ -39,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             V1ResourceRequirements resources,
             IReadOnlyList<KubernetesModuleVolumeSpec> volumes,
             V1PodSecurityContext securityContext,
+            KubernetesServiceOptions serviceOptions,
             V1DeploymentStrategy strategy)
         {
             this.Env = Option.Maybe(env);
@@ -53,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Resources = Option.Maybe(resources);
             this.Volumes = Option.Maybe(volumes);
             this.SecurityContext = Option.Maybe(securityContext);
+            this.ServiceOptions = Option.Maybe(serviceOptions);
             this.DeploymentStrategy = Option.Maybe(strategy);
         }
 
@@ -69,8 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             V1ResourceRequirements resources = null,
             IReadOnlyList<KubernetesModuleVolumeSpec> volumes = null,
             V1PodSecurityContext securityContext = null,
+            KubernetesServiceOptions serviceOptions = null,
             V1DeploymentStrategy deploymentStrategy = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, cmd, entrypoint, workingDir, nodeSelector, resources, volumes, securityContext, deploymentStrategy);
+            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, cmd, entrypoint, workingDir, nodeSelector, resources, volumes, securityContext, serviceOptions, deploymentStrategy);
 
         [JsonProperty("env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
@@ -107,6 +111,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty("securityContext", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<V1PodSecurityContext>))]
         public Option<V1PodSecurityContext> SecurityContext { get; set; }
+
+        [JsonProperty("serviceOptions", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<KubernetesServiceOptions>))]
+        public Option<KubernetesServiceOptions> ServiceOptions { get; set; }
 
         [JsonProperty("strategy", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<V1DeploymentStrategy>))]

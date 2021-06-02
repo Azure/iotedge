@@ -90,6 +90,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             Assert.Equal(expected, result);
         }
 
+        [Fact]
+        public void TestCondenseTimeSeries0Value()
+        {
+            DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
+
+            Metric[] testMetrics = new Metric[]
+            {
+                new Metric(baseTime, "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(1), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(2), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(3), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(4), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(5), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(6), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(7), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(8), "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(9), "Test", 0, tags),
+            };
+
+            Metric[] expected = new Metric[]
+            {
+                new Metric(baseTime, "Test", 0, tags),
+                new Metric(baseTime.AddMinutes(9), "Test", 0, tags),
+            };
+
+            Metric[] result = testMetrics.CondenseTimeSeries().ToArray();
+            Assert.Equal(expected, result);
+        }
+
         static Dictionary<string, string> tags = new Dictionary<string, string>() { { "Tag1", "foo" } };
     }
 }

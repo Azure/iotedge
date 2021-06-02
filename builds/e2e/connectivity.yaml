@@ -2,8 +2,18 @@ trigger: none
 pr: none
 
 variables:
+  NugetSecurityAnalysisWarningLevel: warn
   images.artifact.name.linux: 'core-linux'
   vsts.project: $(System.TeamProjectId)
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Build Images'
+    branch: master
+  - pipeline: packages
+    source: 'Azure-IoT-Edge-Core Edgelet Packages'
+    branch: master
 
 jobs:
 ################################################################################
@@ -70,7 +80,9 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-connectivity -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
+      aziotis.artifact.name: 'packages_ubuntu-18.04_amd64'
+      aziotis.package.filter: 'aziot-identity-service_*_amd64.deb'
     steps:
       - task: Bash@3
         name: Print_test_parameters
@@ -84,16 +96,34 @@ jobs:
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
+            echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.flag'], 1)
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeConnectivityStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -105,6 +135,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
@@ -116,12 +147,26 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
+          allowPartiallySucceededBuilds: true
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/connectivityTest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
+            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+      - task: PowerShell@2
+        condition: and(succeeded(), eq(variables['run.flag'], 1))
+        displayName: 'Download aziot-identity-service'
+        inputs:
+          filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+        env:
+          GITHUB_TOKEN: $(GitHubAccessToken)
+          ARTIFACT_NAME: $(aziotis.artifact.name)
+          PACKAGE_FILTER: $(aziotis.package.filter)
+          DOWNLOAD_PATH: $(Build.StagingDirectory)
+          IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
@@ -129,6 +174,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
@@ -136,11 +182,10 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
-          eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'
@@ -160,6 +205,9 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          testInfo.testName: '$(testInfo.testName)'
+
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -240,16 +288,34 @@ jobs:
             echo "testrun.network.runProfile=$(testrun.network.runProfile)"
             echo "testrun.duration=$(testrun.duration)"
             echo "deploymentFileName=$(deploymentFileName)"
+            echo "test.runtimeLogLevel=$(test.runtimeLogLevel)"
       - template: templates/set-run-flag.yaml
-      - checkout: none
+      - checkout: self
+        clean: true
+        fetchDepth: 100
+        submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Azure Key Vault'
+        condition: eq(variables['run.flag'], 1)
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeConnectivityStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubARM32ConnString,EdgeConnectivityEventHubARM32ConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -261,6 +327,7 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
+          allowPartiallySucceededBuilds: true
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Images Artifacts'
@@ -272,12 +339,14 @@ jobs:
           buildVersionToDownload: latestFromBranch
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
+          allowPartiallySucceededBuilds: true
           itemPattern: |
             $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
             $(images.artifact.name.linux)/e2e_deployment_files/$(deploymentFileName)
-            $(images.artifact.name.linux)/scripts/connectivityTest.sh
-            $(images.artifact.name.linux)/scripts/testHelper.sh
+            $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
             $(images.artifact.name.linux)/artifactInfo.txt
+            $(images.artifact.name.linux)/CACertificates/certGen.sh
+            $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
       # Deploy connectivity test
       - template: templates/connectivity-deploy.yaml
         parameters:
@@ -285,6 +354,7 @@ jobs:
           test.buildNumber: '$(Build.BuildNumber)'
           test.buildId: '$(Build.BuildId)'
           build.source.branch: '$(Build.SourceBranchName)'
+          build.repo.path: '$(Build.SourcesDirectory)'
           edgelet.source.branch: '$(edgelet.package.branchName)'
           images.source.branch: '$(images.branchName)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
@@ -296,7 +366,6 @@ jobs:
           eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'
@@ -316,3 +385,6 @@ jobs:
           edgeRuntime.buildNumber: '$(edgeRuntime.buildNumber)'
           customEdgeAgent.image: '$(customEdgeAgent.image)'
           customEdgeHub.image: '$(customEdgeHub.image)'
+          test.runtimeLogLevel: '$(test.runtimeLogLevel)'
+          connectivity.nested: 'false'
+          testInfo.testName: '$(testInfo.testName)'

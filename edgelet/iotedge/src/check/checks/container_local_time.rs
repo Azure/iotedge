@@ -17,7 +17,7 @@ impl Checker for ContainerLocalTime {
     fn description(&self) -> &'static str {
         "container time is close to host time"
     }
-    fn execute(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check, _: &mut tokio::runtime::Runtime) -> CheckResult {
         self.inner_execute(check)
             .unwrap_or_else(CheckResult::Failed)
     }
@@ -34,13 +34,26 @@ impl ContainerLocalTime {
             return Ok(CheckResult::Skipped);
         };
 
+        let diagnostics_image_name = if check
+            .diagnostics_image_name
+            .starts_with("/azureiotedge-diagnostics:")
+        {
+            check.parent_hostname.as_ref().map_or_else(
+                || "mcr.microsoft.com".to_string() + &check.diagnostics_image_name,
+                |upstream_hostname| upstream_hostname.to_string() + &check.diagnostics_image_name,
+            )
+        } else {
+            check.diagnostics_image_name.clone()
+        };
+
         let output = super::docker(
             docker_host_arg,
             vec![
                 "run",
                 "--rm",
-                &check.diagnostics_image_name,
-                "/iotedge-diagnostics",
+                &diagnostics_image_name,
+                "dotnet",
+                "IotedgeDiagnosticsDotnet.dll",
                 "local-time",
             ],
         )

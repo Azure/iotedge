@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetJsonLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.None;
             LogsContentType contentType = LogsContentType.Json;
 
@@ -64,17 +64,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 .ReturnsAsync(mod1Logs.ToBytes());
 
             // Act
-            var logsRequestHandler = new LogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
+            var logsRequestHandler = new ModuleLogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
             Option<string> response = await logsRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
             Assert.True(response.HasValue);
             logsProvider.VerifyAll();
             runtimeInfoProvider.VerifyAll();
-            var logsResponseList = response.OrDefault().FromJson<List<LogsResponse>>();
+            var logsResponseList = response.OrDefault().FromJson<List<ModuleLogsResponse>>();
             Assert.NotNull(logsResponseList);
             Assert.Single(logsResponseList);
-            LogsResponse logsResponse = logsResponseList[0];
+            ModuleLogsResponse logsResponse = logsResponseList[0];
             Assert.Equal(mod1, logsResponse.Id);
             Assert.True(logsResponse.Payload.HasValue);
             Assert.False(logsResponse.PayloadBytes.HasValue);
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetTextLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.None;
             LogsContentType contentType = LogsContentType.Text;
 
@@ -127,17 +127,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 .ReturnsAsync(mod1Logs.ToBytes());
 
             // Act
-            var logsRequestHandler = new LogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
+            var logsRequestHandler = new ModuleLogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
             Option<string> response = await logsRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
             Assert.True(response.HasValue);
             logsProvider.VerifyAll();
             runtimeInfoProvider.VerifyAll();
-            var logsResponseList = response.OrDefault().FromJson<List<LogsResponse>>();
+            var logsResponseList = response.OrDefault().FromJson<List<ModuleLogsResponse>>();
             Assert.NotNull(logsResponseList);
             Assert.Single(logsResponseList);
-            LogsResponse logsResponse = logsResponseList[0];
+            ModuleLogsResponse logsResponse = logsResponseList[0];
             Assert.Equal(mod1, logsResponse.Id);
             Assert.True(logsResponse.Payload.HasValue);
             Assert.False(logsResponse.PayloadBytes.HasValue);
@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetJsonGzipLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.Gzip;
             LogsContentType contentType = LogsContentType.Json;
 
@@ -192,17 +192,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 .ReturnsAsync(mod1LogBytes);
 
             // Act
-            var logsRequestHandler = new LogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
+            var logsRequestHandler = new ModuleLogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
             Option<string> response = await logsRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
             Assert.True(response.HasValue);
             logsProvider.VerifyAll();
             runtimeInfoProvider.VerifyAll();
-            var logsResponseList = response.OrDefault().FromJson<List<LogsResponse>>();
+            var logsResponseList = response.OrDefault().FromJson<List<ModuleLogsResponse>>();
             Assert.NotNull(logsResponseList);
             Assert.Single(logsResponseList);
-            LogsResponse logsResponse = logsResponseList[0];
+            ModuleLogsResponse logsResponse = logsResponseList[0];
             Assert.Equal(mod1, logsResponse.Id);
             Assert.False(logsResponse.Payload.HasValue);
             Assert.True(logsResponse.PayloadBytes.HasValue);
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetTextGzipLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.Gzip;
             LogsContentType contentType = LogsContentType.Text;
 
@@ -255,17 +255,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 .ReturnsAsync(mod1LogBytes);
 
             // Act
-            var logsRequestHandler = new LogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
+            var logsRequestHandler = new ModuleLogsRequestHandler(logsProvider.Object, runtimeInfoProvider.Object);
             Option<string> response = await logsRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
             Assert.True(response.HasValue);
             logsProvider.VerifyAll();
             runtimeInfoProvider.VerifyAll();
-            var logsResponseList = response.OrDefault().FromJson<List<LogsResponse>>();
+            var logsResponseList = response.OrDefault().FromJson<List<ModuleLogsResponse>>();
             Assert.NotNull(logsResponseList);
             Assert.Single(logsResponseList);
-            LogsResponse logsResponse = logsResponseList[0];
+            ModuleLogsResponse logsResponse = logsResponseList[0];
             Assert.Equal(mod1, logsResponse.Id);
             Assert.False(logsResponse.Payload.HasValue);
             Assert.True(logsResponse.PayloadBytes.HasValue);
@@ -275,15 +275,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public void InvalidCtorTest()
         {
-            Assert.Throws<ArgumentNullException>(() => new LogsRequestHandler(null, Mock.Of<IRuntimeInfoProvider>()));
+            Assert.Throws<ArgumentNullException>(() => new ModuleLogsRequestHandler(null, Mock.Of<IRuntimeInfoProvider>()));
 
-            Assert.Throws<ArgumentNullException>(() => new LogsRequestHandler(Mock.Of<ILogsProvider>(), null));
+            Assert.Throws<ArgumentNullException>(() => new ModuleLogsRequestHandler(Mock.Of<ILogsProvider>(), null));
         }
 
         [Fact]
         public async Task InvalidInputsTest()
         {
-            var logsRequestHandler = new LogsRequestHandler(Mock.Of<ILogsProvider>(), Mock.Of<IRuntimeInfoProvider>());
+            var logsRequestHandler = new ModuleLogsRequestHandler(Mock.Of<ILogsProvider>(), Mock.Of<IRuntimeInfoProvider>());
             await Assert.ThrowsAsync<ArgumentException>(() => logsRequestHandler.HandleRequest(Option.None<string>(), CancellationToken.None));
 
             string payload = @"{

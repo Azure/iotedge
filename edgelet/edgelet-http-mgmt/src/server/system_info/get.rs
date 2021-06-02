@@ -10,7 +10,6 @@ use serde::Serialize;
 use edgelet_core::{Module, ModuleRuntime, RuntimeOperation};
 use edgelet_http::route::{Handler, Parameters};
 use edgelet_http::Error as HttpError;
-use management::models::SystemInfo;
 
 use crate::error::{Error, ErrorKind};
 use crate::IntoResponse;
@@ -44,20 +43,14 @@ where
                 let system_info = system_info
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
-                let body = SystemInfo::new(
-                    system_info.os_type().to_string(),
-                    system_info.architecture().to_string(),
-                    system_info.version().to_string(),
-                );
-
-                let b = serde_json::to_string(&body)
+                let body = serde_json::to_string(&system_info)
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
 
                 let response = Response::builder()
                     .status(StatusCode::OK)
                     .header(CONTENT_TYPE, "application/json")
-                    .header(CONTENT_LENGTH, b.len().to_string().as_str())
-                    .body(b.into())
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
                     .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
                 Ok(response)
             })
@@ -71,10 +64,7 @@ where
 mod tests {
     use edgelet_core::{self, MakeModuleRuntime, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
-    use edgelet_test_utils::crypto::TestHsm;
-    use edgelet_test_utils::module::{
-        TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
-    };
+    use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime, TestSettings};
     use futures::Stream;
     use management::models::SystemInfo;
 
@@ -88,14 +78,10 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+        let runtime = TestRuntime::make_runtime(TestSettings::new())
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/info")
             .body(Body::default())
@@ -129,14 +115,10 @@ mod tests {
     #[test]
     fn system_info_failed() {
         // arrange
-        let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(TestSettings::new())
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())

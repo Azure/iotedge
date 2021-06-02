@@ -120,6 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 
+        bool? IsHostIpc(CreatePodParameters config) =>
+            config.HostConfig.FlatMap(h => Option.Maybe(h.IpcMode).Map(ipcMode => string.Compare(ipcMode, KubernetesConstants.HostIPC, true) == 0))
+                             .Match(i => i, () => default(bool?));
+
         V1PodTemplateSpec GetPod(string name, IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
@@ -130,6 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var (proxyContainer, proxyVolumes) = this.PrepareProxyContainer(module);
             var (moduleContainer, moduleVolumes) = this.PrepareModuleContainer(name, identity, module);
+            bool? hostIpc = this.IsHostIpc(module.Config.CreateOptions);
 
             var imagePullSecrets = new List<Option<string>> { this.proxyImagePullSecretName, module.Config.AuthConfig.Map(auth => auth.Name) }
                 .FilterMap()
@@ -157,7 +162,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     ImagePullSecrets = imagePullSecrets.Any() ? imagePullSecrets : null,
                     SecurityContext = securityContext,
                     ServiceAccountName = name,
-                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault()
+                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault(),
+                    HostIPC = hostIpc,
                 }
             };
         }

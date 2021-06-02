@@ -9,15 +9,15 @@ function clean_up() {
     print_highlighted_message 'Clean up'
 
     echo 'Stop IoT Edge services'
-    systemctl stop iotedge.socket iotedge.mgmt.socket || true
-    systemctl kill iotedge || true
-    systemctl stop iotedge || true
+    systemctl stop aziot-edged.workload.socket aziot-edged.mgmt.socket || true
+    systemctl kill aziot-edged || true
+    systemctl stop aziot-edged || true
 
     echo 'Remove IoT Edge and config file'
-    apt-get purge libiothsm-std --yes || true
+    rm -rf /var/lib/aziot/
     rm -rf /var/lib/iotedge/
-    rm -rf /var/run/iotedge/
-    rm -rf /etc/iotedge/config.yaml
+    rm -rf /etc/aziot/
+    rm -rf /etc/systemd/system/aziot-*.service.d/
 
     echo 'Remove docker containers'
     docker rm -f $(docker ps -aq) || true
@@ -33,9 +33,9 @@ function clean_up() {
 
 function create_iotedge_service_config {
     print_highlighted_message 'Create IoT Edge service config'
-    mkdir /etc/systemd/system/iotedge.service.d/ || true
+    mkdir /etc/systemd/system/aziot-edged.service.d/ || true
     bash -c "echo '[Service]
-Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/iotedge.service.d/override.conf"
+Environment=IOTEDGE_LOG=edgelet=debug' > /etc/systemd/system/aziot-edged.service.d/override.conf"
 }
 
 function set_certificate_generation_tools_dir() {
@@ -72,7 +72,7 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-amd64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
         path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
@@ -98,6 +98,12 @@ function get_leafdevice_artifact_file() {
 function get_long_haul_deployment_artifact_file() {
     local path
     path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/long_haul_deployment.template.json"
+
+    local nestedEdgeTest=$(printenv E2E_nestedEdgeTest)
+
+    if [[ ! -z "$nestedEdgeTest" ]]; then
+      path="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployment_files/nestededge_bottomLayerBaseDeployment_long_haul_amqp.template.json"
+    fi
 
     echo "$path"
 }
@@ -242,7 +248,7 @@ function print_logs() {
 
     print_highlighted_message 'Print logs'
     print_highlighted_message 'LOGS FROM IOTEDGED'
-    journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
+    journalctl -u aziot-edged -u docker --since "$test_start_time" --no-pager || true
 
     print_highlighted_message 'EDGE AGENT LOGS'
     docker logs edgeAgent || true
@@ -277,6 +283,11 @@ function print_logs() {
 function process_args() {
     print_highlighted_message 'Process arguments'
     saveNextArg=0
+    BYPASS_EDGE_INSTALLATION=""
+    CONNECT_MANAGEMENT_URI=""
+    CONNECT_WORKLOAD_URI=""
+    LISTEN_MANAGEMENT_URI=""
+    LISTEN_WORKLOAD_URI=""
     for arg in "$@"
     do
         if [ $saveNextArg -eq 1 ]; then
@@ -414,6 +425,18 @@ function process_args() {
         elif [ $saveNextArg -eq 44 ]; then
             RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 45 ]; then
+            CONNECT_MANAGEMENT_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 46 ]; then
+            CONNECT_WORKLOAD_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 47 ]; then
+            LISTEN_MANAGEMENT_URI="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 48 ]; then
+            LISTEN_WORKLOAD_URI="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -461,6 +484,11 @@ function process_args() {
                 '-testInfo' ) saveNextArg=42;;
                 '-testStartDelay' ) saveNextArg=43;;
                 '-runtimeLogLevel' ) saveNextArg=44;;
+                '-connectManagementUri' ) saveNextArg=45;;
+                '-connectWorkloadUri' ) saveNextArg=46;;
+                '-listenManagementUri' ) saveNextArg=47;;
+                '-listenWorkloadUri' ) saveNextArg=48;;
+                '-bypassEdgeInstallation' ) BYPASS_EDGE_INSTALLATION="--bypass-edge-installation";;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -480,7 +508,6 @@ function process_args() {
 }
 
 function get_hash() {
-    # TODO: testHelper.sh needs to be shared across build pipelines
     local length=$1
     local hash=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c $length)
 
@@ -562,6 +589,11 @@ function run_directmethod_test()
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --verify-data-from-module "DirectMethodSender" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -691,6 +723,11 @@ function run_dps_provisioning_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         $dps_command_flags \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
@@ -712,22 +749,70 @@ function run_longhaul_test() {
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
     SECONDS=0
+    NESTED_EDGE_TEST=$(printenv E2E_nestedEdgeTest)
+    echo "Nested edge test=$NESTED_EDGE_TEST"
     local ret=0
-    "$quickstart_working_folder/IotEdgeQuickstart" \
-        -d "$device_id" \
-        -a "$iotedge_package" \
-        -c "$IOTHUB_CONNECTION_STRING" \
-        -e "$EVENTHUB_CONNECTION_STRING" \
-        -r "$CONTAINER_REGISTRY" \
-        -u "$CONTAINER_REGISTRY_USERNAME" \
-        -p "$CONTAINER_REGISTRY_PASSWORD" \
-        -n "$(hostname)" \
-        -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
-        --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
-        --leave-running=All \
-        -l "$deployment_working_file" \
-        --runtime-log-level "$RUNTIME_LOG_LEVEL" \
-        --no-verify && ret=$? || ret=$?
+
+    if [[ ! -z "$NESTED_EDGE_TEST" ]]; then
+        PARENT_HOSTNAME=$(printenv E2E_parentHostname)
+        PARENT_EDGE_DEVICE=$(printenv E2E_parentEdgeDevice)
+        DEVICE_CA_CERT=$(printenv E2E_deviceCaCert)
+        DEVICE_CA_PRIVATE_KEY=$(printenv E2E_deviceCaPrivateKey)
+        TRUSTED_CA_CERTS=$(printenv E2E_trustedCaCerts)
+
+        echo "Parent hostname=$PARENT_HOSTNAME"
+        echo "Parent Edge Device=$PARENT_EDGE_DEVICE"
+        echo "Device CA cert=$DEVICE_CA_CERT"
+        echo "Device CA private key=$DEVICE_CA_PRIVATE_KEY"
+        echo "Trusted CA certs=$TRUSTED_CA_CERTS"
+
+        "$quickstart_working_folder/IotEdgeQuickstart" \
+            -d "$device_id" \
+            -a "$iotedge_package" \
+            -c "$IOTHUB_CONNECTION_STRING" \
+            -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+            -u "$CONTAINER_REGISTRY_USERNAME" \
+            -p "$CONTAINER_REGISTRY_PASSWORD" \
+            -n "$(hostname)" \
+            --parent-hostname "$PARENT_HOSTNAME" \
+            --parent-edge-device "$PARENT_EDGE_DEVICE" \
+            --device_ca_cert "$DEVICE_CA_CERT" \
+            --device_ca_pk "$DEVICE_CA_PRIVATE_KEY" \
+            --trusted_ca_certs "$TRUSTED_CA_CERTS" \
+            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+            --initialize-with-agent-artifact "true" \
+            --leave-running=All \
+            -l "$deployment_working_file" \
+            --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+            --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+            --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+            --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+            --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+            $BYPASS_EDGE_INSTALLATION \
+            --no-verify && ret=$? || ret=$?
+    else
+        "$quickstart_working_folder/IotEdgeQuickstart" \
+            -d "$device_id" \
+            -a "$iotedge_package" \
+            -c "$IOTHUB_CONNECTION_STRING" \
+            -e "$EVENTHUB_CONNECTION_STRING" \
+            -r "$CONTAINER_REGISTRY" \
+            -u "$CONTAINER_REGISTRY_USERNAME" \
+            -p "$CONTAINER_REGISTRY_PASSWORD" \
+            -n "$(hostname)" \
+            -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
+            --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+            --leave-running=All \
+            -l "$deployment_working_file" \
+            --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+            --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+            --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+            --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+            --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+            $BYPASS_EDGE_INSTALLATION \
+            --no-verify && ret=$? || ret=$?
+    fi
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -759,9 +844,14 @@ function run_quickstartcerts_test() {
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
         --leave-running=Core \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
-    declare -a certs=( /var/lib/iotedge/hsm/certs/edge_owner_ca*.pem )
+    declare -a certs=( /var/lib/aziot/edged/hsm/certs/edge_owner_ca*.pem )
     echo "cert: ${certs[0]}"
     # Workaround for multiple certificates in the x509store - remove this after quick start certs have Authority Key Identifier
     rm -rf ~/.dotnet/corefx/cryptography/x509stores/root/
@@ -772,6 +862,7 @@ function run_quickstartcerts_test() {
         -d "$device_id-leaf" \
         -ct "${certs[0]}" \
         -ed "$(hostname)" && ret=$? || ret=$?
+        -ed-id "$device_id"
 
     local elapsed_seconds=$SECONDS
     test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -805,6 +896,11 @@ function run_stress_test() {
         --leave-running=All \
         -l "$deployment_working_file" \
         --runtime-log-level "$RUNTIME_LOG_LEVEL" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -836,6 +932,11 @@ function run_tempfilter_test() {
         --verify-data-from-module "tempFilter" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -867,6 +968,11 @@ function run_tempfilterfunctions_test() {
         --verify-data-from-module "tempFilterFunctions" \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -l "$deployment_working_file" && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -897,6 +1003,11 @@ function run_tempsensor_test() {
         -n "$(hostname)" \
         -tw "$E2E_TEST_DIR/artifacts/core-linux/e2e_test_files/twin_test_tempSensor.json" \
         --optimize_for_performance="$optimize_for_performance" \
+        --use-connect-management-uri="$CONNECT_MANAGEMENT_URI" \
+        --use-connect-workload-uri="$CONNECT_WORKLOAD_URI" \
+        --use-listen-management-uri="$LISTEN_MANAGEMENT_URI" \
+        --use-listen-workload-uri="$LISTEN_WORKLOAD_URI" \
+        $BYPASS_EDGE_INSTALLATION \
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" && ret=$? || ret=$? \
         --initialize-with-agent-artifact "$INITIALIZE_WITH_AGENT_ARTIFACT"
 
@@ -943,7 +1054,10 @@ function run_test()
 
 function test_setup() {
     validate_test_parameters
-    clean_up
+
+    if [ -z $BYPASS_EDGE_INSTALLATION ]; then
+        clean_up
+    fi
     prepare_test_from_artifacts
     create_iotedge_service_config
 }
@@ -1009,7 +1123,7 @@ function validate_test_parameters() {
             print_error "Required snitch storage master key."
             ((error++))
         fi
-        
+
         if [[ -z "$TEST_INFO" ]]; then
             print_error "Required test info."
             ((error++))
@@ -1081,9 +1195,14 @@ function usage() {
     echo ' -metricsScrapeFrequencyInSecs                  Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget                           Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     echo ' -initializeWithAgentArtifact                   Boolean specifying if the iotedge installation should initialize edge agent with the official 1.0 image or the desired artifact. If false, the deployment after installation will start the desired agent artifact.'
-    echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.' 
+    echo ' -testInfo                                      Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -testStartDelay                                Tests start after delay for applicable modules'
     echo ' -runtimeLogLevel                               Value of RuntimeLogLevel envivronment variable for EdgeAgent in Long Haul and Stress tests [Default: debug] (EdgeHub RuntimeLogLevel is set implicitly set to be the same with edgeAgent)'
+    echo ' -connectManagementUri                          Customize connect management socket'
+    echo ' -connectWorkloadUri                            Customize connect workload socket'
+    echo ' -listenManagementUri                           Customize listen management socket'
+    echo ' -listenWorkloadUri                             Customize listen workload socket'
+    echo ' -bypassEdgeInstallation                        Skip installing iotedge (if already preinstalled)'
     exit 1;
 }
 
@@ -1118,6 +1237,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
     TEST_START_DELAY="${TEST_START_DELAY:-00:00:00}"
+    EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"

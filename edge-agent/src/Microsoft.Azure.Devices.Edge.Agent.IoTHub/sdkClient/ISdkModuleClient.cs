@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
 {
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -25,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         Task<Twin> GetTwinAsync();
 
         Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties);
+
+        //// Task SendEventBatchAsync(IEnumerable<Message> messages);
 
         Task SendEventAsync(Message message);
 

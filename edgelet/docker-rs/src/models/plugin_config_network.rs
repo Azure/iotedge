@@ -19,7 +19,7 @@ pub struct PluginConfigNetwork {
 
 impl PluginConfigNetwork {
     pub fn new(_type: String) -> Self {
-        PluginConfigNetwork { _type: _type }
+        PluginConfigNetwork { _type }
     }
 
     pub fn set__type(&mut self, _type: String) {

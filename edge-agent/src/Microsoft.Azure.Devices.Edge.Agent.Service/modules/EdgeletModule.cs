@@ -32,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     {
         readonly string deviceId;
         readonly string iotHubHostName;
-        readonly string gatewayHostName;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly string apiVersion;
@@ -48,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         public EdgeletModule(
             string iotHubHostname,
-            string gatewayHostName,
             string deviceId,
             Uri managementUri,
             Uri workloadUri,
@@ -64,7 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string backupConfigFilePath)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.gatewayHostName = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -103,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId, this.gatewayHostName);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostName, this.deviceId);
             builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
@@ -129,7 +126,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         IConfigSource configSource = await configSourceTask;
                         ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
-                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(moduleManager, configSource, combinedDockerConfigProvider);
+                        ICommandFactory factory = new EdgeletCommandFactory<CombinedDockerConfig>(
+                            moduleManager,
+                            configSource,
+                            combinedDockerConfigProvider);
                         factory = new MetricsCommandFactory(factory, metricsProvider);
                         return new LoggingCommandFactory(factory, loggerFactory) as ICommandFactory;
                     })

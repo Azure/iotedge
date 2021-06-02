@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah:latest", string.Empty, "someSha", Option.None<NotaryContentTrust>()),
+                new DockerReportedConfig("booyah:latest", string.Empty, "someSha", Option.None<string>()),
                 ModuleStatus.Running,
                 0,
                 string.Empty,
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     statusDescription = string.Empty,
                     type = "docker",
                     imagePullPolicy = "on-create",
-                    priority = Constants.HighestPriority,
+                    startupOrder = Constants.HighestPriority,
                     settings = new
                     {
                         image = "booyah:latest",
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal(lastStartTimeUtc, edgeAgent.LastStartTimeUtc);
-            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.StartupOrder);
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
-            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.StartupOrder);
         }
 
         [Fact]
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     {
                         id = "bing"
                     },
-                    priority = 10
+                    startupOrder = 10
                 });
 
             // Act
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             // TODO - Change Config for Runtime to DockerReportedConfig.
             // Assert.Equal("someSha", (edgeAgent.Config as DockerReportedConfig)?.ImageHash);
             Assert.Equal("bing", edgeAgent.ConfigurationInfo.Id);
-            Assert.Equal(Constants.HighestPriority, edgeAgent.Priority);
+            Assert.Equal(Constants.HighestPriority, edgeAgent.StartupOrder);
         }
 
         [Fact]
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             DateTime lastStartTimeUtc = DateTime.Parse("2017-11-13T23:44:35.127381Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTimeUtc = DateTime.Parse("2017-11-13T23:49:35.127381Z", null, DateTimeStyles.RoundtripKind);
             var module = new EdgeAgentDockerRuntimeModule(
-                new DockerReportedConfig("booyah", string.Empty, "someSha", Option.None<NotaryContentTrust>()),
+                new DockerReportedConfig("booyah", string.Empty, "someSha", Option.None<string>()),
                 ModuleStatus.Running,
                 0,
                 string.Empty,

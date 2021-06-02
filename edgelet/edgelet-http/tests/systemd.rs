@@ -12,8 +12,7 @@
 use std::sync::{Mutex, MutexGuard};
 use std::{env, io};
 
-use edgelet_hsm::Crypto;
-use edgelet_http::{HyperExt, TlsAcceptorParams};
+use edgelet_http::HyperExt;
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::service::Service;
@@ -85,7 +84,7 @@ fn test_fd_ok() {
         // it's not possible to work around it by telling `Http` to bind to `fd://1/` - it'll just complain that `fd://0/` (ie fd 3)
         // isn't a valid fd.
         //
-        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the iotedged service, so we can just pretend
+        // On local builds, fd 3 *does* seem to be available, and E2E tests also use fds for the aziot-edged service, so we can just pretend
         // the test succeeded without losing coverage.
 
         unistd::close(fd).unwrap();
@@ -97,17 +96,13 @@ fn test_fd_ok() {
     env::set_var(ENV_FDS, format!("{}", fd - LISTEN_FDS_START + 1));
 
     let url = Url::parse(&format!("fd://{}", fd - LISTEN_FDS_START)).unwrap();
-    let run = Http::new().bind_url(
-        url,
-        move || {
-            let service = TestService {
-                status_code: StatusCode::OK,
-                error: false,
-            };
-            Ok::<_, io::Error>(service)
-        },
-        None::<TlsAcceptorParams<'_, Crypto>>,
-    );
+    let run = Http::new().bind_url(url, move || {
+        let service = TestService {
+            status_code: StatusCode::OK,
+            error: false,
+        };
+        Ok::<_, io::Error>(service)
+    });
     if let Err(err) = run {
         unistd::close(fd).unwrap();
         panic!("{:?}", err);
@@ -130,17 +125,13 @@ fn test_fd_err() {
     env::set_var(ENV_FDS, format!("{}", fd - listen_fds_start + 1));
 
     let url = Url::parse("fd://100").unwrap();
-    let run = Http::new().bind_url(
-        url,
-        move || {
-            let service = TestService {
-                status_code: StatusCode::OK,
-                error: false,
-            };
-            Ok::<_, io::Error>(service)
-        },
-        None::<TlsAcceptorParams<'_, Crypto>>,
-    );
+    let run = Http::new().bind_url(url, move || {
+        let service = TestService {
+            status_code: StatusCode::OK,
+            error: false,
+        };
+        Ok::<_, io::Error>(service)
+    });
 
     unistd::close(fd).unwrap();
     assert!(run.is_err());

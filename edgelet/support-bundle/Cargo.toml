@@ -1,0 +1,19 @@
+[package]
+name = "support-bundle"
+version = "0.1.0"
+authors = ["Lee Fitchett <lefitche@microsoft.com>"]
+edition = "2018"
+
+[dependencies]
+chrono = "0.4.7"
+failure = "0.1"
+futures = "0.1"
+tokio = "0.1"
+zip = "0.5.3"
+
+edgelet-core = { path = "../edgelet-core" }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }
+regex = "0.2"
+tempfile = "3.1.0"

@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Concurrency
 
         public long Increment() => Interlocked.Increment(ref this.underlying);
 
+        public long Decrement() => Interlocked.Decrement(ref this.underlying);
+
         public long CompareAndSet(long expected, long result)
         {
             return Interlocked.CompareExchange(ref this.underlying, result, expected);

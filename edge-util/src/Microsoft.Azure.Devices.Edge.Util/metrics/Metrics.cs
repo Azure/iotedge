@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
 
         public static IMetricsListener Listener { get; private set; } = new NullMetricsListener();
 
-        public static void Init(IMetricsProvider metricsProvider, IMetricsListener metricsListener, ILogger logger)
+        public static void InitWithServer(IMetricsProvider metricsProvider, IMetricsListener metricsListener, ILogger logger)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             Preconditions.CheckNotNull(metricsListener, nameof(metricsListener));
@@ -22,6 +22,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics
                 Instance = metricsProvider;
                 Listener = metricsListener;
                 Listener.Start(logger);
+            }
+        }
+
+        // Note this requires the prometheus-net library to have been initilized using App.UseMetricServer()
+        public static void InitWithAspNet(IMetricsProvider metricsProvider, ILogger logger)
+        {
+            Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
+
+            lock (StateLock)
+            {
+                logger.LogInformation("Using Asp Net server for metrics");
+                Instance = metricsProvider;
             }
         }
     }

@@ -11,9 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
 
     class WorkloadClient : WorkloadClientVersioned
     {
-        static readonly RetryStrategy TransientRetryStrategy =
-            new ExponentialBackoff(retryCount: 3, minBackoff: TimeSpan.FromSeconds(2), maxBackoff: TimeSpan.FromSeconds(30), deltaBackoff: TimeSpan.FromSeconds(3));
-
         public WorkloadClient(Uri serverUri, ApiVersion apiVersion, string moduleId, string moduleGenerationId)
             : this(serverUri, apiVersion, moduleId, moduleGenerationId, Option.None<TimeSpan>())
         {
@@ -53,6 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
                 return result.Certificate;
             }
         }
+
+        public override Task<string> GetManifestTrustBundleAsync() => Task.FromResult(string.Empty);
 
         public override async Task<string> EncryptAsync(string initializationVector, string plainText)
         {

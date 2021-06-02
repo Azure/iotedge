@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return await Task.FromResult(moduleRuntimeInfoList);
         }
 
-        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, CancellationToken cancellationToken)
+        public Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken)
         {
             return Task.FromResult(Stream.Null);
         }

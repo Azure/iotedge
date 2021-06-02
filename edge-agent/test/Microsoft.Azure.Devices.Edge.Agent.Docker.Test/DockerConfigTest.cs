@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -21,20 +22,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly DockerConfig Config4 = new DockerConfig("image1:43");
         static readonly DockerConfig ConfigWithWhitespace = new DockerConfig(" image1:42 ");
 
-        static readonly DockerConfig Config5 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config6 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config7 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config8 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config9 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<NotaryContentTrust>());
+        static readonly DockerConfig Config5 = new DockerConfig("image1:42", @"{""HostConfig"": {""PortBindings"": {""42/udp"": [{""HostPort"": ""42""}]}}}", Option.None<string>());
+        static readonly DockerConfig Config6 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<string>());
+        static readonly DockerConfig Config7 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<string>());
+        static readonly DockerConfig Config8 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<string>());
+        static readonly DockerConfig Config9 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.None<string>());
 
-        static readonly DockerConfig Config10 = new DockerConfig("image1:42", @"{""Env"": [""k11=v11"", ""k22=v22""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config11 = new DockerConfig("image1:42", @"{""Env"": [""k33=v33"", ""k44=v44""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config12 = new DockerConfig("image1:42", string.Empty, Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config13 = new DockerConfig("image1:42", "{}", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config14 = new DockerConfig("image1:42", "null", Option.None<NotaryContentTrust>());
-        static readonly DockerConfig Config15 = new DockerConfig("image1:42", "  ", Option.None<NotaryContentTrust>());
+        static readonly DockerConfig Config10 = new DockerConfig("image1:42", @"{""Env"": [""k11=v11"", ""k22=v22""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<string>());
+        static readonly DockerConfig Config11 = new DockerConfig("image1:42", @"{""Env"": [""k33=v33"", ""k44=v44""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}]}}}", Option.None<string>());
+        static readonly DockerConfig Config12 = new DockerConfig("image1:42", string.Empty, Option.None<string>());
+        static readonly DockerConfig Config13 = new DockerConfig("image1:42", "{}", Option.None<string>());
+        static readonly DockerConfig Config14 = new DockerConfig("image1:42", "null", Option.None<string>());
+        static readonly DockerConfig Config15 = new DockerConfig("image1:42", "  ", Option.None<string>());
+        static readonly DockerConfig Config16 = new DockerConfig("image1:42", @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [{""HostPort"": ""43""}], ""42/tcp"": [{""HostPort"": ""42""}]}}}", Option.Some("4562124545"));
         static readonly DockerConfig ConfigUnknown = new DockerConfig("unknown");
         static readonly DockerConfig ConfigUnknownExpected = new DockerConfig("unknown:latest");
+
+        public class MockNestedEdgeParentUriParser : INestedEdgeParentUriParser
+        {
+            public Option<string> ParseURI(string uri)
+            {
+                return Option.None<string>();
+            }
+        }
 
         static readonly string Extended9 = @"
         {
@@ -50,6 +60,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             'createOptions01': "": {'PortBindings': {'43/udp': [{'HostPort': '4"",
             'createOptions02': ""3'}], '42/tcp': [{'HostPort': '42'}]}}}"",
             'createOptions': ""{'Env': ['k1=v1', 'k2=v2', 'k3=v3'], 'HostConfig'""
+        }";
+
+        static readonly string Extended9Digest = @"
+        {
+            'image': 'image1:42',
+            'createOptions': ""{'Env': ['k1=v1', 'k2=v2', 'k3=v3'], 'HostConfig'"",
+            'createOptions01': "": {'PortBindings': {'43/udp': [{'HostPort': '4"",
+            'createOptions02': ""3'}], '42/tcp': [{'HostPort': '42'}]}}}"",
+            'digest': '4562124545'
         }";
 
         static readonly string Extended9Error1 = @"
@@ -122,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         {
             Assert.Equal(Config9, JsonConvert.DeserializeObject<DockerConfig>(Extended9));
             Assert.Equal(Config9, JsonConvert.DeserializeObject<DockerConfig>(Extended9Order));
+            Assert.Equal(Config16, JsonConvert.DeserializeObject<DockerConfig>(Extended9Digest));
         }
 
         [Fact]
@@ -147,81 +167,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                                 string.Join(", ", Enumerable.Repeat(@"{""HostPort"": ""43""}", 50)) +
                                 @"], ""42/tcp"": [{""HostPort"": ""42""}]}}}";
             string expected = "{\"image\":\"image1:42\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\"}";
-            DockerConfig config = new DockerConfig("image1:42", createOptions, Option.None<NotaryContentTrust>());
+            DockerConfig config = new DockerConfig("image1:42", createOptions, Option.None<string>());
             string json = JsonConvert.SerializeObject(config);
 
             Assert.Equal(expected, json);
         }
 
         [Fact]
-        public void TestSerializationForNotaryContentTrustDefaultValue()
+        public void TestSerializationDigest()
         {
-            DockerConfig config = new DockerConfig("image1:42", "{}", Option.Maybe(new NotaryContentTrust()));
+            string createOptions = @"{""Env"": [""k1=v1"", ""k2=v2"", ""k3=v3""], ""HostConfig"": {""PortBindings"": {""43/udp"": [" +
+                                string.Join(", ", Enumerable.Repeat(@"{""HostPort"": ""43""}", 50)) +
+                                @"], ""42/tcp"": [{""HostPort"": ""42""}]}}}";
+            string expected = "{\"image\":\"image1:42\",\"createOptions\":\"{\\\"Env\\\":[\\\"k1=v1\\\",\\\"k2=v2\\\",\\\"k3=v3\\\"],\\\"HostConfig\\\":{\\\"PortBindings\\\":{\\\"43/udp\\\":[{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostP\",\"createOptions01\":\"ort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"},{\\\"HostPort\\\":\\\"43\\\"}],\\\"42/tcp\\\":[{\\\"HostPort\\\":\\\"42\\\"}]}}}\",\"digest\":\"4562124545\"}";
+            DockerConfig config = new DockerConfig("image1:42", createOptions, Option.Some("4562124545"));
             string json = JsonConvert.SerializeObject(config);
-            string expected = "{\"image\":\"image1:42\",\"createOptions\":\"{}\",\"notaryContentTrust\":{\"disableTOFU\":false}}";
 
             Assert.Equal(expected, json);
-        }
-
-        [Fact]
-        public void TestSerializationForNotaryContentTrust()
-        {
-            NotaryContentTrust notaryContentTrust = new NotaryContentTrust
-            {
-                RootJsonPath = "/home/path/module/rootjson",
-                RootID = "45634232423523232423423525253252532523432333",
-                RootCertificatePath = "/home/path/module/rootca",
-                DisableTOFU = true
-            };
-
-            DockerConfig config = new DockerConfig("image1:42", "{}", Option.Maybe(notaryContentTrust));
-            string json = JsonConvert.SerializeObject(config);
-            string expected = "{\"image\":\"image1:42\",\"createOptions\":\"{}\",\"notaryContentTrust\":{\"rootJsonPath\":\"/home/path/module/rootjson\",\"rootID\":\"45634232423523232423423525253252532523432333\",\"rootCertificatePath\":\"/home/path/module/rootca\",\"disableTOFU\":true}}";
-
-            Assert.Equal(expected, json);
-        }
-
-        [Fact]
-        public void TestDeserializationForNotaryContentTrustDefaultValue()
-        {
-            string testConfig = @"
-            {
-                'image': 'image1:42',
-                'createOptions' : ""{}"",
-                'notaryContentTrust' : {}
-            }";
-            NotaryContentTrust notaryContentTrust = new NotaryContentTrust
-            {
-                DisableTOFU = false
-            };
-
-            DockerConfig config = new DockerConfig("image1:42", "{}", Option.Maybe(notaryContentTrust));
-            DockerConfig expectedConfig = JsonConvert.DeserializeObject<DockerConfig>(testConfig);
-
-            Assert.Equal(expectedConfig, config);
-        }
-
-        [Fact]
-        public void TestDeserializationForNotaryContentTrust()
-        {
-            string testConfig = @"
-            {
-                'image': 'image1:42',
-                'createOptions' : ""{}"",
-                'notaryContentTrust' : { 'rootJsonPath' : '/home/path/module/rootjson', 'rootID' : '45634232423523232423423525253252532523432333', 'rootCertificatePath' : '/home/path/module/rootca', 'disableTOFU': 'true'}
-            }";
-            NotaryContentTrust notaryContentTrust = new NotaryContentTrust
-            {
-                RootJsonPath = "/home/path/module/rootjson",
-                RootID = "45634232423523232423423525253252532523432333",
-                RootCertificatePath = "/home/path/module/rootca",
-                DisableTOFU = true
-            };
-
-            DockerConfig config = new DockerConfig("image1:42", "{}", Option.Maybe(notaryContentTrust));
-            DockerConfig expectedConfig = JsonConvert.DeserializeObject<DockerConfig>(testConfig);
-
-            Assert.Equal(expectedConfig, config);
         }
 
         [Theory]
@@ -250,6 +212,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string updatedImage = DockerConfig.ValidateAndGetImage(image);
                 Assert.Equal(result, updatedImage);
             }
+        }
+
+        [Fact]
+        public void TestValidateAndGetImageFailedParsing()
+        {
+            string image = "$failToParse:543/dummy/test";
+            Type expectedException = typeof(ArgumentException);
+
+            Assert.Throws(expectedException, () => DockerConfig.ValidateAndGetImage(image, new MockNestedEdgeParentUriParser()));
         }
 
         [Theory]

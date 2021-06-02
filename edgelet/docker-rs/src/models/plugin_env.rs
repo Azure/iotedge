@@ -26,10 +26,10 @@ pub struct PluginEnv {
 impl PluginEnv {
     pub fn new(name: String, description: String, settable: Vec<String>, value: String) -> Self {
         PluginEnv {
-            name: name,
-            description: description,
-            settable: settable,
-            value: value,
+            name,
+            description,
+            settable,
+            value,
         }
     }
 

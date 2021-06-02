@@ -23,10 +23,7 @@ pub struct InlineResponse201 {
 
 impl InlineResponse201 {
     pub fn new(id: String) -> Self {
-        InlineResponse201 {
-            id: id,
-            warnings: None,
-        }
+        InlineResponse201 { id, warnings: None }
     }
 
     pub fn set_id(&mut self, id: String) {

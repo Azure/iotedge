@@ -3703,7 +3703,7 @@ definitions:
           - ["Role", "primary"]
           - ["State", "Healthy"]
           - ["Strategy", "spread"]
-          - ["Filters", "health, port, containerslots, dependency, affinity, constraint, whitelist"]
+          - ["Filters", "health, port, containerslots, dependency, affinity, constraint"]
           - ["Nodes", "2"]
           - [" swarm-agent-00", "192.168.99.102:2376"]
           - ["  └ ID", "5CT6:FBGO:RVGO:CZL4:PB2K:WCYN:2JSV:KSHH:GGFW:QOPG:6J5Q:IOZ2|192.168.99.102:2376"]

@@ -8,23 +8,23 @@ If you are a developer working on API endpoint changes, you will definitely want
 3. Make sure to get the latest version of [IoT Edge source code](https://github.com/Azure/iotedge).
 
 ### Steps
-Below are steps used to test API endpoints of iotedged running on Linux; and I will use [list_modules](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#list_modules) as an example.
+Below are steps used to test API endpoints of aziot-edged running on Linux; and I will use [list_modules](https://github.com/Azure/iotedge/blob/master/edgelet/management/docs/ModuleApi.md#list_modules) as an example.
 
 1. Create your IoT Edge device in Azure Portal.
 2. Prepare config.yaml file.
-	- Create config.yaml by cloning from `<iotedge repo local path>`/edgelet/contrib/config/linux to anywhere; e.g. /etc/iotedge/.
+	- Create config.yaml by cloning from `<iotedge repo local path>`/edgelet/contrib/config/linux to anywhere; e.g. /etc/aziot/edged/.
 	- Open it by `sudo nano <config.yaml file path>`.
 	- Update `hostname` in config.yaml.
 	- Copy connection string from your IoT Edge device in Azure Portal created in step 1; and update `device_connection_string` in config.yaml.
     - You need to change to use http instead of unix socket for management and workload URI in config.yaml.  The reason using http is because API request will be validated to ensure it is coming from edgeAgent module by process id (pid) if it is run under unix socket; however for http, this validation is skipped.
 	- Update `managment_uri` and `workload_uri` to `http://172.17.0.1:8080` and `http://172.17.0.1:8081` respectively in both "connect" and "listen" sections.  By default, docker bridge network will use 172.17.0.1.
-3. Create folder for home directory (`homedir`) defined in config.yaml; default home directory path is `/var/lib/iotedge`.
-4. Run iotedged by `cargo run -p iotedged -- -c <config.yaml file path>`.
+3. Create folder for home directory (`homedir`) defined in config.yaml; default home directory path is `/var/lib/aziot/edged`.
+4. Run aziot-edged by `cargo run -p aziot-edged -- -c <config.yaml file path>`.
 5. If you see any exception complaining about permission denied for workload socket/management socket, you need to run `chmod 666` on that socket file.
 
-**Permssion denied when start iotedged:**
+**Permssion denied when start aziot-edged:**
 ```
-Unhandled Exception: System.AggregateException: One or more errors occurred. (Permission denied /var/lib/iotedge/workload.sock) ---> System.Net.Internals.SocketExceptionFactory+ExtendedSocketException: Permission denied /var/lib/iotedge/workload.sock
+Unhandled Exception: System.AggregateException: One or more errors occurred. (Permission denied /var/lib/aziot/edged/aziot-edged.workload.sock) ---> System.Net.Internals.SocketExceptionFactory+ExtendedSocketException: Permission denied /var/lib/aziot/edged/aziot-edged.workload.sock
    at System.Net.Sockets.Socket.DoConnect(EndPoint endPointSnapshot, SocketAddress socketAddress)
    at System.Net.Sockets.Socket.Connect(EndPoint remoteEP)
    at System.Net.Sockets.Socket.UnsafeBeginConnect(EndPoint remoteEP, AsyncCallback callback, Object state, Boolean flowContext)
@@ -42,20 +42,20 @@ Unhandled Exception: System.AggregateException: One or more errors occurred. (Pe
    at System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)
    at Microsoft.Azure.Devices.Edge.Hub.Service.Program.Main() in /home/vsts/work/1/s/edge-hub/src/Microsoft.Azure.Devices.Edge.Hub.Service/Program.cs:line 32
 ```
- 
-6. Once iotedged can successfully start, you should see similar output as below.
 
-**Output from iotedged:**
+6. Once aziot-edged can successfully start, you should see similar output as below.
+
+**Output from aziot-edged:**
 ```
     Finished dev [unoptimized + debuginfo] target(s) in 0.21s
-     Running `/home/iotedgeuser/git/iotedge/edgelet/target/debug/iotedged -c /etc/iotedge/config.yaml`
+     Running `/home/iotedgeuser/git/iotedge/edgelet/target/debug/aziot-edged -c /etc/aziot/edged/config.yaml`
 2018-10-11T16:29:01Z [INFO] - Starting Azure IoT Edge Security Daemon
 2018-10-11T16:29:01Z [INFO] - Version - 0.1.0
-2018-10-11T16:29:01Z [INFO] - Using config file: /etc/iotedge/config.yaml
+2018-10-11T16:29:01Z [INFO] - Using config file: /etc/aziot/edged/config.yaml
 2018-10-11T16:29:01Z [INFO] - Using runtime network id azure-iot-edge
 2018-10-11T16:29:01Z [INFO] - Initializing the module runtime...
 2018-10-11T16:29:01Z [INFO] - Finished initializing the module runtime.
-2018-10-11T16:29:01Z [INFO] - Configuring /var/lib/iotedge as the home directory.
+2018-10-11T16:29:01Z [INFO] - Configuring /var/lib/aziot/edged as the home directory.
 2018-10-11T16:29:01Z [INFO] - Configuring certificates...
 2018-10-11T16:29:01Z [INFO] - Transparent gateway certificates not found, operating in quick start mode...
 2018-10-11T16:29:01Z [INFO] - Finished configuring certificates.
