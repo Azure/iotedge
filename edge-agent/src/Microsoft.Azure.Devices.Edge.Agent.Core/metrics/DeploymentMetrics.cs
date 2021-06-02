@@ -210,11 +210,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             return Task.CompletedTask;
         }
 
-        public void ReportManifestIntegrity(bool manifestCaPresent, bool integrtySectionPresent)
+        public void ReportManifestIntegrity(bool manifestCaPresent, bool integritySectionPresent)
         {
-            int manifestFlag = (manifestCaPresent || integrtySectionPresent) ? 1 : 0;
-            string[] tags = { manifestCaPresent.ToString(), integrtySectionPresent.ToString(), true.ToString() };
-            this.manifestIntegrityFlag.Set(manifestFlag, tags);
+            PresenceGauge manifestFlag = (manifestCaPresent || integritySectionPresent) ? PresenceGauge.Present : PresenceGauge.NotPresent;
+            string[] tags = { manifestCaPresent.ToString(), integritySectionPresent.ToString(), true.ToString() };
+            this.manifestIntegrityFlag.Set((int)manifestFlag, tags);
         }
 
         public void ReportTwinSignatureResult(bool success, string algorithm = "unknown")
