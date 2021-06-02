@@ -63,7 +63,7 @@ namespace TestResultCoordinator.Reports
                             actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
-                            Settings.Current.UnmatchedResultsMaxSize,
+                            Settings.Current.EnumeratedResultsMaxSize,
                             metadata.LongHaulEventHubMode);
                     }
 
@@ -82,7 +82,7 @@ namespace TestResultCoordinator.Reports
                             actualTestResults.GetAsyncEnumerator(),
                             testReportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer(),
-                            Settings.Current.UnmatchedResultsMaxSize);
+                            Settings.Current.EnumeratedResultsMaxSize);
                     }
 
                 case TestReportType.LegacyTwinReport:
@@ -111,7 +111,7 @@ namespace TestResultCoordinator.Reports
                             expectedTestResults.GetAsyncEnumerator(),
                             metadata.ActualSource,
                             actualTestResults.GetAsyncEnumerator(),
-                            Settings.Current.UnmatchedResultsMaxSize);
+                            Settings.Current.EnumeratedResultsMaxSize);
                     }
 
                 case TestReportType.DirectMethodConnectivityReport:
