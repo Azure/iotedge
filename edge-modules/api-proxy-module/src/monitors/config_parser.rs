@@ -1,166 +1,238 @@
-use std::env;
+use std::collections::HashMap;
 
-use anyhow::{Context, Result};
-use regex::Regex;
+use anyhow::{anyhow, Context, Error, Result};
+use log::error;
+use regex::{Captures, Regex};
 
-const PROXY_CONFIG_ENV_VAR_LIST: &str = "NGINX_CONFIG_ENV_VAR_LIST";
-const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,BLOB_UPLOAD_ROUTE_ADDRESS,DOCKER_REQUEST_ROUTE_ADDRESS,IOTEDGE_PARENTHOSTNAME,IOTEDGE_PARENTAPIPROXYNAME,SAS_TOKEN";
+use crate::token_service::token_server;
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[
-    ("NGINX_DEFAULT_PORT", "443"),
-    ("IOTEDGE_PARENTAPIPROXYNAME", "IOTEDGE_MODULEID"),
-];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
 
 pub struct ConfigParser {
-    context: std::collections::HashMap<String, String>,
+    default_values: HashMap<String, String>,
+    reserved_values: HashMap<String, String>,
+    regex_get_variables: Regex,
+    regex_get_boolean_expr: Regex,
+    regex_get_if_tag: Regex,
 }
 
 impl ConfigParser {
-    pub fn new() -> Self {
-        let mut context = std::collections::HashMap::new();
+    pub fn new() -> Result<Self, anyhow::Error> {
+        //Default values will be used if user didn't provide any value through environment variable
+        let mut default_values = HashMap::new();
+        //reserved value cannot be changed by the user.
+        let mut reserved_values = HashMap::new();
 
         //Set default config values
         for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            match std::env::var(key) {
-                //If env variable is already declared, do nothing
-                Ok(_) => continue,
-                //Else add the default value
-                Err(_) => context.insert((*key).to_string(), (*value).to_string()),
-            };
-        }
-
-        //Parse user variables
-        let vars = get_var_list();
-        let vars = vars.split(',');
-
-        for key in vars {
-            match std::env::var(key) {
-                Ok(val) => {
-                    context.insert(key.to_string(), val);
-                }
-                Err(_) => {
-                    if None == context.get_key_value(key) {
-                        context.insert(key.to_string(), "0".to_string());
-                    }
-                }
-            };
-        }
-
-        //See doc about dereferencing
-        let vars = get_var_list();
-        let vars_list = vars.split(',');
-
-        for key in vars_list {
-            let value = derefence_var(&context, key);
-
-            if let Some(value) = value {
-                context.insert(key.to_string(), value.to_string());
-            }
+            default_values.insert((*key).to_string(), (*value).to_string());
         }
 
         //Harded coded keys
-        if let Ok(moduleid) = env::var("IOTEDGE_PARENTAPIPROXYNAME") {
-            context.insert(
-                "IOTEDGE_PARENTAPIPROXYNAME".to_string(),
-                sanitize_dns_label(&moduleid),
-            );
+        // Tokens are cached by nginx. Current duration is 30mn. Make sure the the validity is not lower than the caching time.
+        reserved_values.insert(
+            "TOKEN_VALIDITY_MINUTES".to_string(),
+            (token_server::TOKEN_VALIDITY_SECONDS / 60 / 2).to_string(),
+        );
+        reserved_values.insert(
+            "TOKEN_SERVER_PORT".to_string(),
+            token_server::TOKEN_SERVER_PORT.to_string(),
+        );
+
+        // Define regex here so regex is not compiled everytime a config is received.
+        let regex_get_variables =
+            Regex::new(r"\$\{(.*?)\}").context("Failed to match variables")?;
+
+        // Find all regular expressions in if_tag and resolve them
+        let regex_get_boolean_expr = Regex::new(r"boolean_expression\[(.*)\]")
+            .context("Failed to match boolean statement in if_tag")?;
+
+        // Find all $ifdef_tag 0
+        let regex_get_if_tag = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
+            .context("Failed to remove text between #if_tag 0 tags ")?;
+
+        Ok(ConfigParser {
+            default_values,
+            reserved_values,
+            regex_get_variables,
+            regex_get_boolean_expr,
+            regex_get_if_tag,
+        })
+    }
+
+    pub fn load_config(&self, config: &str) -> Result<HashMap<String, String>, anyhow::Error> {
+        let mut context = HashMap::new();
+
+        for key in self.regex_get_variables.captures_iter(config) {
+            let new_key = key[1].to_string();
+
+            // This priority could be coded as a nested if else statement but it is hard to read.
+            // Instead value are load from lowest priority to highest. Higher priority will overwrite lower.
+            // 1. Load 0
+            // 2. load default value if it has
+            // 3. load value from customer if it has.
+            // 4. load reserved value.
+            // Load 0
+            let new_value = self
+                .reserved_values
+                .get(&new_key)
+                .map(std::string::ToString::to_string)
+                .or_else(|| std::env::var(&new_key).ok())
+                .or_else(|| {
+                    self.default_values
+                        .get(&new_key)
+                        .map(std::string::ToString::to_string)
+                })
+                .unwrap_or_else(|| String::from("0"));
+
+            context.insert(new_key, new_value);
         }
 
-        ConfigParser { context }
-    }
-
-    pub fn get_key_value(&self, key: &str) -> Option<(String, String)> {
-        if let Some(key_pair) = self.context.get_key_value(key) {
-            return Some((key_pair.0.to_string(), key_pair.1.to_string()));
-        }
-
-        None
-    }
-
-    pub fn add_new_key(&mut self, key: &str, val: &str) {
-        self.context.insert(key.to_string(), val.to_string());
-    }
-
-    pub fn remove_key(&mut self, key: &str) {
-        self.context.remove(key);
-    }
-
-    pub fn clear(&mut self) {
-        self.context.clear();
+        Ok(context)
     }
 
     //Check readme for details of how parsing is done.
-    //First all the environment variables are replaced by their value.
-    //Only environment variables in the list NGINX_CONFIG_ENV_VAR_LIST are replaced.
+    //Get all env variables from config file and set their value to the default value or 0
+    //all the environment variables are replaced by their value.
     //A second pass of replacing happens. This is to allow one level of indirection.
     //Then everything that is between #if_tag 0 and #endif_tag 0 or between  #if_tag !1 and #endif_tag !1 is removed.
     pub fn get_parsed_config(&self, config: &str) -> Result<String, anyhow::Error> {
+        let context = self.load_config(config)?;
+
         //Do 2 passes of subst to allow one level of indirection
         let config: String =
-            envsubst::substitute(config, &self.context).context("Failed to subst the text")?;
+            envsubst::substitute(config, &context).context("Failed to subst the text")?;
+
+        // Find all regular expressions in if_tag and resolve them
+        let config = self
+            .regex_get_boolean_expr
+            .replace_all(&config, |caps: &Captures| {
+                parse_boolean_expression(&caps[1])
+            });
 
         //Replace is 0
-        let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0")
-            .context("Failed to remove text between #if_tag 0 tags ")?;
-        let config = re.replace_all(&config, "").to_string();
-
-        //Or not 1. This allows usage of if ... else ....
-        let re = Regex::new(r"#if_tag ![^0]((.|\n)*?)#endif_tag [^0].*?\n")
-            .context("Failed to remove text between #if_tag 0 tags ")?;
-        let config = re.replace_all(&config, "").to_string();
+        let config = self.regex_get_if_tag.replace_all(&config, "").to_string();
 
         Ok(config)
     }
 }
+enum Expr {
+    Value(bool),
+    Operator(char),
+}
 
-impl Default for ConfigParser {
-    fn default() -> Self {
-        Self::new()
+fn parse_boolean_expression(expression: &str) -> String {
+    let expression = replace_env_var_with_boolean(expression);
+    match solve_boolean_expression(&expression) {
+        Ok(x) => x,
+        Err(e) => {
+            error!("{}", e);
+            expression
+        }
     }
 }
 
-fn derefence_var(context: &std::collections::HashMap<String, String>, key: &str) -> Option<String> {
-    let key_pair = context.get_key_value(key);
-    match key_pair {
-        //If env variable is already declared, check if the value points to another env var
-        Some(env_var_candidate) => {
-            //try to dereference again from an existing environment variable
-            match std::env::var(env_var_candidate.1) {
-                //If the candidate exist, replace the existing variable value
-                Ok(value) => Some(value),
-                Err(_) => None,
+// Comma in env var name is forbidden because of that
+// We use this instead of simpler regex because we cannot match overlapping regular expression with regex.
+fn replace_env_var_with_boolean(expression: &str) -> String {
+    let mut fifo = Vec::new();
+    let mut flush_fifo = Vec::new();
+
+    for c in expression.chars() {
+        match c {
+            '(' | '!' | '&' | '|' => fifo.push(c),
+            ')' | ',' => {
+                if flush_fifo.len() == 1 && Some('0') == flush_fifo.pop() {
+                    fifo.push('0')
+                } else if flush_fifo.len() > 1 {
+                    fifo.push('1')
+                };
+                fifo.push(c);
+                flush_fifo.clear();
+            }
+            _ => flush_fifo.push(c),
+        }
+    }
+
+    fifo.iter().collect()
+}
+
+// The resolution of the regular expression is done by using a stack.
+// For example: &(!(0),1,1)
+// Stack fills up: Stack = ['&', '(', '!', '(','0']
+// When ")" is encounter, the deepest boolean expression is solved:
+// Stack result Stack = ['&', '(', '1']
+// Stack fills up: Stack = ['&', '(', '1','0','0']
+// When ")" is encounter, the last boolean expression is solved:
+// First all the value are load in temporary stack: tmp_fifo = ['1','0','0']
+// Then the operator '&' is extracted and the expression is solved
+fn solve_boolean_expression(expression: &str) -> Result<String, Error> {
+    let mut fifo = Vec::new();
+
+    for c in expression.chars() {
+        match c {
+            '(' | ',' | ' ' => (),
+            '!' | '|' | '&' => fifo.push(Expr::Operator(c)),
+            '1' => fifo.push(Expr::Value(true)),
+            '0' => fifo.push(Expr::Value(false)),
+            ')' => {
+                let mut tmp_fifo = vec![];
+                while let Some(Expr::Value(v)) = fifo.last() {
+                    tmp_fifo.push(*v);
+                    fifo.pop();
+                }
+
+                if let Some(Expr::Operator(val)) = fifo.pop() {
+                    let result = match val {
+                        '!' => {
+                            if tmp_fifo.len() > 1 {
+                                return Err(anyhow!("Invalid ! expression {}", expression));
+                            }
+                            !tmp_fifo[0]
+                        }
+                        '|' => tmp_fifo.iter().any(|v| *v),
+                        '&' => tmp_fifo.iter().all(|v| *v),
+                        _ => {
+                            return Err(anyhow!("Invalid boolean expression {}", expression));
+                        }
+                    };
+                    fifo.push(Expr::Value(result));
+                } else {
+                    return Err(anyhow!(
+                        "Could not find operator for boolean expression {}",
+                        expression
+                    ));
+                }
+            }
+            _ => {
+                return Err(anyhow!(
+                    "Unrecognized character {} in boolean expression {}",
+                    c,
+                    expression
+                ));
             }
         }
-        //Else add the default value
-        None => None,
     }
-}
 
-fn get_var_list() -> String {
-    //Check if user passed their own env variable list.
-    match std::env::var(PROXY_CONFIG_ENV_VAR_LIST) {
-        Ok(vars) => vars,
-        //@TO CHECK It copies the string, is that ok?
-        Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(),
+    if fifo.len() > 1 {
+        return Err(anyhow!(
+            "Error when parsing boolean expression {}",
+            expression
+        ));
     }
-}
 
-const ALLOWED_CHAR_DNS: char = '-';
-const DNS_MAX_SIZE: usize = 63;
-
-// The name returned from here must conform to following rules (as per RFC 1035):
-//  - length must be <= 63 characters
-//  - must be all lower case alphanumeric characters or '-'
-//  - must start with an alphabet
-//  - must end with an alphanumeric character
-pub fn sanitize_dns_label(name: &str) -> String {
-    name.trim_start_matches(|c: char| !c.is_ascii_alphabetic())
-        .trim_end_matches(|c: char| !c.is_ascii_alphanumeric())
-        .to_lowercase()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || c == &ALLOWED_CHAR_DNS)
-        .take(DNS_MAX_SIZE)
-        .collect::<String>()
+    if let Some(Expr::Value(v)) = fifo.last() {
+        if *v {
+            Ok("1".to_string())
+        } else {
+            Ok("0".to_string())
+        }
+    } else {
+        Err(anyhow!(
+            "Unable to parse boolean expression, {}",
+            expression
+        ))
+    }
 }
 
 #[cfg(test)]
@@ -171,14 +243,59 @@ mod tests {
     use super::*;
 
     #[test]
-    fn env_var_tests() {
-        //unset all variables
-        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "NGINX_DEFAULT_PORT,DOCKER_REQUEST_ROUTE_ADDRESS,NGINX_HAS_BLOB_MODULE,GATEWAY_HOSTNAME,NGINX_NOT_ROOT,IOTEDGE_PARENTAPIPROXYNAME,IOTEDGE_PARENTHOSTNAME");
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
+    fn replace_env_var_with_boolean_test() {
+        // Test non 0 variables are correctly replaced by 1.
+        assert_eq!("|(1)", replace_env_var_with_boolean("|(10.1.23.1)"));
+        assert_eq!(
+            "|(1,0,1,1)",
+            replace_env_var_with_boolean("|(myvariable,0,11,00)")
+        );
+        assert_eq!(
+            "|(1,1,1)",
+            replace_env_var_with_boolean("|(myvariable,myvariable,myvariable)")
+        );
+    }
 
+    #[test]
+    fn solve_boolean_expression_test() {
+        // Test or
+        assert_eq!("0", solve_boolean_expression("|(0,0,0 )").unwrap());
+        assert_eq!("1", solve_boolean_expression("|(1,0,0)").unwrap());
+        // Test and
+        assert_eq!("0", solve_boolean_expression("&(1,0,0)").unwrap());
+        assert_eq!("1", solve_boolean_expression("&(1,1,1)").unwrap());
+        // Test !
+        assert_eq!("1", solve_boolean_expression("&(!(0),!(0),!(0))").unwrap());
+
+        // Test error detection
+        assert_eq!(true, solve_boolean_expression("(!(0),!(0),!(0))").is_err());
+        assert_eq!(true, solve_boolean_expression("&(!(0),!(0),!(0)").is_err());
+        assert_eq!(
+            true,
+            solve_boolean_expression("&(!(asd),!(0),!(0))").is_err()
+        );
+        assert_eq!(true, solve_boolean_expression("!(0,0)").is_err());
+    }
+
+    #[test]
+    fn parse_boolean_expression_test() {
+        // Test or
+        assert_eq!("1", parse_boolean_expression("|(myvariable,0,0)"));
+        // Test and
+        assert_eq!("0", parse_boolean_expression("&(myvariable,0,0)"));
+        assert_eq!(
+            "1",
+            parse_boolean_expression("&(myvariable,myvariable,myvariable)")
+        );
+        // Test !
+        assert_eq!(
+            "0",
+            parse_boolean_expression("|(!(myvariable),!(myvariable),!(myvariable))")
+        );
+    }
+
+    #[test]
+    fn env_var_tests() {
         //All environment variable tests are grouped in one test.
         //The reason is concurrency. Rust test are multi threaded by default
         //And environment variable are globals, so race condition happens.
@@ -186,7 +303,7 @@ mod tests {
         //**************************Check config***************************************
         std::env::set_var("NGINX_DEFAULT_PORT", "443");
         std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "registry:5000");
-        let config_parser = ConfigParser::new();
+        let config_parser = ConfigParser::new().unwrap();
 
         let byte_str = base64::decode(RAW_CONFIG_BASE64).unwrap();
         let config = std::str::from_utf8(&byte_str).unwrap();
@@ -196,86 +313,63 @@ mod tests {
 
         assert_eq!(&config, PARSED_CONFIG);
 
-        //**************************Check defaults variables set***************************************
-        for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            std::env::remove_var(*key);
-        }
-        let config_parser = ConfigParser::new();
-
-        for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter() {
-            let var = config_parser.get_key_value(key).unwrap().1;
-            assert_eq!(*value, &var);
-        }
-
-        //******************Check the the default function doesn't override user variable***************
-        //put dummy value in a an env var that has a default;
-        std::env::set_var("NGINX_DEFAULT_PORT", "Dummy value");
-        let config_parser = ConfigParser::new();
-
-        let var = config_parser.get_key_value("NGINX_DEFAULT_PORT").unwrap().1;
-        //Check the value is still equal to dummy value
-        assert_eq!("Dummy value", &var);
-
-        //************************* Check 1 level of indirection works *********************************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-        std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
-        std::env::set_var("IOTEDGE_PARENTHOSTNAME", "127.0.0.1");
-
-        let config_parser = ConfigParser::new();
-
-        let dummy_config = "${DOCKER_REQUEST_ROUTE_ADDRESS}";
-
-        let config = config_parser.get_parsed_config(dummy_config).unwrap();
-
-        assert_eq!("127.0.0.1", config);
+        std::env::remove_var("NGINX_DEFAULT_PORT");
+        std::env::remove_var("DOCKER_REQUEST_ROUTE_ADDRESS");
 
         //************************* Check config between ![^1] get deleted *********************************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-
         std::env::set_var("DOCKER_REQUEST_ROUTE_ADDRESS", "IOTEDGE_PARENTHOSTNAME");
-        let dummy_config = "#if_tag !${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\n\r\n#if_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}\r\nshould not be removed\r\n#endif_tag ${DOCKER_REQUEST_ROUTE_ADDRESS}";
+        let dummy_config = "#if_tag boolean_expression[|(!(${DOCKER_REQUEST_ROUTE_ADDRESS}),0,0)]\r\nshould be removed\r\n#endif_tag boolean_expression[|(!(${DOCKER_REQUEST_ROUTE_ADDRESS}),0,0)]\r\n#if_tag boolean_expression[&(${DOCKER_REQUEST_ROUTE_ADDRESS},1,1)]\r\nshould not be removed\r\n#endif_tag boolean_expression[&(${DOCKER_REQUEST_ROUTE_ADDRESS},1,1)]";
 
-        let config_parser = ConfigParser::new();
+        let config_parser = ConfigParser::new().unwrap();
         let config = config_parser.get_parsed_config(dummy_config).unwrap();
 
-        assert_eq!("\r\n#if_tag IOTEDGE_PARENTHOSTNAME\r\nshould not be removed\r\n#endif_tag IOTEDGE_PARENTHOSTNAME", config);
+        assert_eq!(
+            "\r\n#if_tag 1\r\nshould not be removed\r\n#endif_tag 1",
+            config
+        );
+        std::env::remove_var("DOCKER_REQUEST_ROUTE_ADDRESS");
 
-        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME defaults to module id if omitted *******************
-        std::env::set_var(PROXY_CONFIG_ENV_VAR_LIST, "IOTEDGE_PARENTAPIPROXYNAME");
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
-        std::env::set_var("IOTEDGE_MODULEID", "apiproxy");
+        //********************************* Check priorities *************************************************
+        // *** Lowest priority => 0
+        let config_parser = ConfigParser::new().unwrap();
+        let config = config_parser
+            .get_parsed_config("${DUMMY_VARIABLE}")
+            .unwrap();
 
-        let config_parser = ConfigParser::new();
+        //Check the value is still equal to dummy value
+        assert_eq!("0", config);
 
-        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
+        // *** Default value
+        let config = config_parser
+            .get_parsed_config("${NGINX_DEFAULT_PORT}")
+            .unwrap();
 
-        let config = config_parser.get_parsed_config(dummy_config).unwrap();
+        //Check the value is still equal to dummy value
+        assert_eq!("443", config);
 
-        assert_eq!("apiproxy", config);
+        // *** Environment variable
+        std::env::set_var("NGINX_DEFAULT_PORT", "Dummy value");
+        let config_parser = ConfigParser::new().unwrap();
+        let config = config_parser
+            .get_parsed_config("${NGINX_DEFAULT_PORT}")
+            .unwrap();
 
-        //*************************** Check IOTEDGE_PARENTAPIPROXYNAME get sanitized *******************
-        let vars_list = PROXY_CONFIG_DEFAULT_VARS_LIST.split(',');
-        for key in vars_list {
-            std::env::remove_var(key);
-        }
+        //Check the value is still equal to dummy value
+        assert_eq!("Dummy value", config);
 
-        std::env::set_var("IOTEDGE_PARENTAPIPROXYNAME", "iotedge_api_proxy");
+        std::env::remove_var("NGINX_DEFAULT_PORT");
 
-        let config_parser = ConfigParser::new();
+        // *** Hard coded value
+        // Try to overrided hardcode value
+        std::env::set_var("TOKEN_SERVER_PORT", "123");
+        let config_parser = ConfigParser::new().unwrap();
+        let config = config_parser
+            .get_parsed_config("${TOKEN_SERVER_PORT}")
+            .unwrap();
 
-        let dummy_config = "${IOTEDGE_PARENTAPIPROXYNAME}";
+        //Check the value is still equal to dummy value
+        assert_eq!(token_server::TOKEN_SERVER_PORT.to_string(), config);
 
-        let config = config_parser.get_parsed_config(dummy_config).unwrap();
-
-        assert_eq!("iotedgeapiproxy", config);
+        std::env::remove_var("TOKEN_SERVER_PORT");
     }
 }

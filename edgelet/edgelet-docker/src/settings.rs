@@ -308,7 +308,6 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_os = "linux")]
     use super::ContentTrust;
     use super::{MobyNetwork, MobyRuntime, RuntimeSettings, Settings, Url};
     use edgelet_core::{IpamConfig, DEFAULT_NETWORKID};

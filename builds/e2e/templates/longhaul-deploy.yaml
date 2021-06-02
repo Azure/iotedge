@@ -18,7 +18,6 @@ parameters:
   snitch.alert.url: ''
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
-  loadGen.message.frequency: ''
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   longHaul.sendReportFrequency: ''
@@ -27,7 +26,6 @@ parameters:
   logAnalytics.sharedKey: ''
   logAnalytics.logType: ''
   twinTester.twinUpdateSize: ''
-  twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
   twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
@@ -104,7 +102,6 @@ steps:
             -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
             -testStartDelay "${{ parameters['test.startDelay'] }}" \
             -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
-            -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
             -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
             -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
             -logAnalyticsLogType "${{ parameters['logAnalytics.logType'] }}" \
@@ -116,7 +113,6 @@ steps:
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
-            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -edgeHubRestartFailureTolerance "${{ parameters['twinTester.edgeHubRestartFailureTolerance'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
