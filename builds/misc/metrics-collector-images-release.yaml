@@ -19,7 +19,6 @@ jobs:
       - template: ../templates/install-dotnet3.yaml
 
       - bash: |
-            # Need to login to EdgeBuilds Container Registry for base images.
             docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
         displayName: 'Docker Login'
 
