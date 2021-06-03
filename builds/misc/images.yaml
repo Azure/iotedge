@@ -394,6 +394,10 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
+    # Helm tool installer
+    - task: HelmInstaller@1
+      inputs:
+        helmVersionToInstall: 3.6.0
     - template: templates/helm-chart-linux.yaml
       parameters:
         chart: edge-kubernetes-crd
