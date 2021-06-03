@@ -5,6 +5,10 @@ parameters:
   version: ''
 
 steps:
+  # Helm tool installer
+  - task: HelmInstaller@1
+    inputs:
+      helmVersionToInstall: 3.6.0
   - task: Bash@3
     displayName: Build Helm Chart - ${{ parameters.chart }}
     inputs:
