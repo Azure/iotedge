@@ -26,6 +26,9 @@ pub async fn get_modules(
     Ok(runtime_modules)
 }
 
+/// # Errors
+///
+/// Will return `Err` if docker is unablew to fetch logs
 pub async fn write_logs(
     runtime: &impl ModuleRuntime,
     module_name: &str,

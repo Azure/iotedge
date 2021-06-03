@@ -27,6 +27,9 @@ const SYSTEM_MODULES: &[(&str, &str)] = &[
     ("docker", "docker"),
 ];
 
+/// # Errors
+///
+/// Will return `Err` if unable to collect support bundle
 pub async fn make_bundle<M>(
     output_location: OutputLocation,
     log_options: LogOptions,

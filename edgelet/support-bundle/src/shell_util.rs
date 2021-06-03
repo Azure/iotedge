@@ -1,15 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use chrono::DateTime;
-use chrono::NaiveDateTime;
-use chrono::Utc;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use std::env;
 use std::io::{Seek, Write};
 use tokio::process::Command;
 
 use failure::Fail;
-use zip::write::FileOptions;
-use zip::ZipWriter;
+use zip::{write::FileOptions, ZipWriter};
 
 use crate::error::{Error, ErrorKind};
 use edgelet_core::LogOptions;
