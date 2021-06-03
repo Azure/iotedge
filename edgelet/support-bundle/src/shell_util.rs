@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use std::env;
 use std::io::{Seek, Write};
 use tokio::process::Command;
 
@@ -18,13 +17,13 @@ pub async fn write_check(
 ) -> Result<(), Error> {
     print_verbose("Calling iotedge check", verbose);
 
-    let mut iotedge = env::args().next().unwrap();
-    if iotedge.contains("aziot-edged") {
+    let mut iotedge = std::env::current_exe().unwrap();
+    if iotedge.to_string_lossy().contains("aziot-edged") {
         print_verbose(
             "Calling iotedge check from edgelet, using iotedge from path",
             verbose,
         );
-        iotedge = "iotedge".to_string();
+        iotedge = "iotedge".into();
     }
 
     let mut check = Command::new(iotedge);
@@ -137,12 +136,6 @@ where
         verbose,
     );
     let mut inspect = Command::new("docker");
-
-    /***
-     * Note: just like inspect, this assumes using windows containers on a windows machine.
-     */
-    #[cfg(windows)]
-    inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
 
     inspect.args(&["network", "inspect", &network_name, "-v"]);
     let inspect = inspect.output().await;
