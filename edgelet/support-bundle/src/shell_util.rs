@@ -3,11 +3,9 @@
 use chrono::DateTime;
 use chrono::NaiveDateTime;
 use chrono::Utc;
-use std::io::{Seek, Write};
 use std::env;
-
-// TODO: make tokio
-use std::process::Command as ShellCommand;
+use std::io::{Seek, Write};
+use tokio::process::Command;
 
 use failure::Fail;
 use zip::write::FileOptions;
@@ -28,7 +26,7 @@ pub async fn write_check(
         iotedge = "iotedge".to_string();
     }
 
-    let mut check = ShellCommand::new(iotedge);
+    let mut check = Command::new(iotedge);
     check.arg("check").args(&["-o", "json"]);
 
     if let Some(host_name) = iothub_hostname {
@@ -36,6 +34,7 @@ pub async fn write_check(
     }
     let check = check
         .output()
+        .await
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
     writer
@@ -59,9 +58,9 @@ where
 {
     print_verbose(&format!("Running docker inspect for {}", module_name));
 
-    let mut inspect = ShellCommand::new("docker");
+    let mut inspect = Command::new("docker");
     inspect.arg("inspect").arg(&module_name);
-    let inspect = inspect.output();
+    let inspect = inspect.output().await;
 
     let (file_name, output) = if let Ok(result) = inspect {
         if result.status.success() {
@@ -95,10 +94,10 @@ where
 }
 
 pub async fn get_docker_networks() -> Result<Vec<String>, Error> {
-    let mut inspect = ShellCommand::new("docker");
+    let mut inspect = Command::new("docker");
     inspect.args(&["network", "ls"]);
     inspect.args(&["--format", "{{.Name}}"]);
-    let inspect = inspect.output();
+    let inspect = inspect.output().await;
 
     let result = if let Ok(result) = inspect {
         if result.status.success() {
@@ -131,7 +130,7 @@ where
         "Running docker network inspect for {}",
         network_name
     ));
-    let mut inspect = ShellCommand::new("docker");
+    let mut inspect = Command::new("docker");
 
     /***
      * Note: just like inspect, this assumes using windows containers on a windows machine.
@@ -140,7 +139,7 @@ where
     inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
 
     inspect.args(&["network", "inspect", &network_name, "-v"]);
-    let inspect = inspect.output();
+    let inspect = inspect.output().await;
 
     let (file_name, output) = if let Ok(result) = inspect {
         if result.status.success() {
@@ -193,7 +192,7 @@ where
 
     #[cfg(unix)]
     let command = {
-        let mut command = ShellCommand::new("journalctl");
+        let mut command = Command::new("journalctl");
         command
             .arg("-a")
             .args(&["-u", unit])
@@ -203,7 +202,7 @@ where
             command.args(&["-U", &until.format("%F %T").to_string()]);
         }
 
-        command.output()
+        command.output().await
     };
 
     let (file_name, output) = if let Ok(result) = command {
