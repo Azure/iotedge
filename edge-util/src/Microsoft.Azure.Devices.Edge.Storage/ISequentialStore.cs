@@ -32,5 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken);
 
         Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken);
+
+        Task<ulong> Count();
     }
 }

@@ -1,32 +1,23 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
-#![allow(
-    clippy::missing_errors_doc,
-    clippy::module_name_repetitions,
-    clippy::must_use_candidate,
-    clippy::too_many_lines,
-    clippy::use_self
-)]
+mod system_info;
 
-use hyper::{Body, Response};
-
-mod client;
-mod error;
-mod server;
-
-pub use client::ModuleClient;
-pub use error::{Error, ErrorKind};
-pub use server::ListModules;
-pub use server::ManagementService;
-
-pub trait IntoResponse {
-    fn into_response(self) -> Response<Body>;
+#[derive(Clone)]
+pub struct Service<M>
+where
+    M: edgelet_core::ModuleRuntime,
+{
+    pub runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
-impl IntoResponse for Response<Body> {
-    fn into_response(self) -> Response<Body> {
-        self
-    }
+http_common::make_service! {
+    service: Service<M>,
+    { <M> }
+    { M: edgelet_core::ModuleRuntime + Send + Sync + 'static }
+    api_version: edgelet_http::ApiVersion,
+    routes: [
+        system_info::get::Route<M>,
+        system_info::resources::Route<M>,
+        system_info::support_bundle::Route<M>,
+    ],
 }

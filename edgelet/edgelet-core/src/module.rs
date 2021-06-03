@@ -11,14 +11,14 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::Stream;
-use serde_derive::Serialize;
+use serde::{Deserialize, Serialize};
 
 use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::error::{Error, ErrorKind, Result as EdgeletResult};
 use crate::settings::RuntimeSettings;
 
-#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -47,7 +47,7 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(serde_derive::Serialize, serde_derive::Deserialize, Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
@@ -137,7 +137,7 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ModuleSpec<T> {
     pub name: String,
     #[serde(rename = "type")]
@@ -180,15 +180,15 @@ where
 /// A proper rework of settings loading should be undertaken when there is more
 /// time, but for now, this will have to do...
 pub trait NestedEdgeBodge {
-    fn parent_hostname_resolve_image(&mut self, parent_hostname: &str);
+    fn parent_hostname_resolve(&mut self, parent_hostname: &str);
 }
 
 impl<T> ModuleSpec<T>
 where
     T: NestedEdgeBodge,
 {
-    pub fn parent_hostname_resolve_image(&mut self, parent_hostname: &str) {
-        self.config.parent_hostname_resolve_image(parent_hostname)
+    pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
+        self.config.parent_hostname_resolve(parent_hostname);
     }
 }
 
@@ -382,7 +382,7 @@ pub trait ModuleRegistry {
     async fn remove(&self, name: &str) -> Result<(), Self::Error>;
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct SystemInfo {
     /// OS Type of the Host. Example of value expected: \"linux\" and \"windows\".
     #[serde(rename = "osType")]
@@ -390,16 +390,16 @@ pub struct SystemInfo {
     /// Hardware architecture of the host. Example of value expected: arm32, x86, amd64
     pub architecture: String,
     /// iotedge version string
-    pub version: &'static str,
+    pub version: String,
     pub provisioning: ProvisioningInfo,
     pub server_version: String,
     pub kernel_version: String,
     pub operating_system: String,
     pub cpus: i32,
-    pub virtualized: &'static str,
+    pub virtualized: String,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct ProvisioningInfo {
     /// IoT Edge provisioning type, examples: manual.device_connection_string, dps.x509
     pub r#type: String,
@@ -409,7 +409,7 @@ pub struct ProvisioningInfo {
     pub always_reprovision_on_startup: bool,
 }
 
-#[derive(Debug, serde_derive::Serialize)]
+#[derive(Debug, Serialize)]
 pub struct SystemResources {
     host_uptime: u64,
     process_uptime: u64,
@@ -442,7 +442,7 @@ impl SystemResources {
     }
 }
 
-#[derive(Debug, serde_derive::Serialize)]
+#[derive(Debug, Serialize)]
 pub struct DiskInfo {
     name: String,
     available_space: u64,

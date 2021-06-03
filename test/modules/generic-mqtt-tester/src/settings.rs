@@ -77,13 +77,10 @@ impl Settings {
     }
 
     pub fn batch_id(&self) -> Option<Uuid> {
-        match self.batch_id.clone() {
-            Some(batch_id) => Some(
-                Uuid::from_str(&batch_id)
-                    .expect("should be valid uuid as it cannot be changed once created"),
-            ),
-            None => None,
-        }
+        self.batch_id.as_ref().map(|batch_id| {
+            Uuid::from_str(batch_id)
+                .expect("should be valid uuid as it cannot be changed once created")
+        })
     }
 
     pub fn message_frequency(&self) -> Duration {

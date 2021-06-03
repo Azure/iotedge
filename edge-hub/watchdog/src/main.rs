@@ -20,7 +20,10 @@ use std::{
 
 use anyhow::{Context, Result};
 use child::run;
-use signal_hook::{iterator::Signals, SIGINT, SIGTERM};
+use signal_hook::{
+    consts::{SIGINT, SIGTERM},
+    iterator::Signals,
+};
 use tracing::{error, info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
@@ -97,7 +100,7 @@ fn register_shutdown_listener() -> Result<Arc<AtomicBool>, Error> {
     info!("Registering shutdown signal listener");
     let shutdown_listener = Arc::new(AtomicBool::new(false));
     let should_shutdown = shutdown_listener.clone();
-    let signals = Signals::new(&[SIGTERM, SIGINT])?;
+    let mut signals = Signals::new(&[SIGTERM, SIGINT])?;
     thread::spawn(move || {
         for signal in signals.forever().filter_map(|signal| match signal {
             SIGTERM => Some("SIGTERM"),
