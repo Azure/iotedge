@@ -17,12 +17,16 @@ use edgelet_core::LogOptions;
 pub async fn write_check(
     writer: &mut impl Write,
     iothub_hostname: Option<String>,
+    verbose: bool,
 ) -> Result<(), Error> {
-    print_verbose("Calling iotedge check");
+    print_verbose("Calling iotedge check", verbose);
 
     let mut iotedge = env::args().next().unwrap();
     if iotedge.contains("aziot-edged") {
-        print_verbose("Calling iotedge check from edgelet, using iotedge from path");
+        print_verbose(
+            "Calling iotedge check from edgelet, using iotedge from path",
+            verbose,
+        );
         iotedge = "iotedge".to_string();
     }
 
@@ -44,7 +48,7 @@ pub async fn write_check(
         .write_all(&check.stderr)
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-    print_verbose("Wrote check output to file");
+    print_verbose("Wrote check output to file", verbose);
     Ok(())
 }
 
@@ -52,11 +56,15 @@ pub async fn write_inspect<W>(
     module_name: &str,
     zip_writer: &mut ZipWriter<W>,
     file_options: &FileOptions,
+    verbose: bool,
 ) -> Result<(), Error>
 where
     W: Write + Seek,
 {
-    print_verbose(&format!("Running docker inspect for {}", module_name));
+    print_verbose(
+        &format!("Running docker inspect for {}", module_name),
+        verbose,
+    );
 
     let mut inspect = Command::new("docker");
     inspect.arg("inspect").arg(&module_name);
@@ -88,7 +96,7 @@ where
         .write_all(&output)
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-    print_verbose(&format!("Got docker inspect for {}", module_name));
+    print_verbose(&format!("Got docker inspect for {}", module_name), verbose);
 
     Ok(())
 }
@@ -122,14 +130,15 @@ pub async fn write_network_inspect<W>(
     network_name: &str,
     zip_writer: &mut ZipWriter<W>,
     file_options: &FileOptions,
+    verbose: bool,
 ) -> Result<(), Error>
 where
     W: Write + Seek,
 {
-    print_verbose(&format!(
-        "Running docker network inspect for {}",
-        network_name
-    ));
+    print_verbose(
+        &format!("Running docker network inspect for {}", network_name),
+        verbose,
+    );
     let mut inspect = Command::new("docker");
 
     /***
@@ -167,7 +176,10 @@ where
         .write_all(&output)
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-    print_verbose(&format!("Got docker network inspect for {}", network_name));
+    print_verbose(
+        &format!("Got docker network inspect for {}", network_name),
+        verbose,
+    );
     Ok(())
 }
 
@@ -177,11 +189,15 @@ pub async fn write_system_log<W>(
     log_options: &LogOptions,
     zip_writer: &mut ZipWriter<W>,
     file_options: &FileOptions,
+    verbose: bool,
 ) -> Result<(), Error>
 where
     W: Write + Seek,
 {
-    print_verbose(format!("Getting system logs for {}", name).as_str());
+    print_verbose(
+        format!("Getting system logs for {}", name).as_str(),
+        verbose,
+    );
     let since_time: DateTime<Utc> = DateTime::from_utc(
         NaiveDateTime::from_timestamp(log_options.since().into(), 0),
         Utc,
@@ -231,15 +247,15 @@ where
         .write_all(&output)
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-    print_verbose(format!("Got logs for {}", name).as_str());
+    print_verbose(format!("Got logs for {}", name).as_str(), verbose);
     Ok(())
 }
 
-fn print_verbose<S>(message: S)
+fn print_verbose<S>(message: S, verbose: bool)
 where
     S: std::fmt::Display,
 {
-    if true {
+    if verbose {
         println!("{}", message);
     }
 }
