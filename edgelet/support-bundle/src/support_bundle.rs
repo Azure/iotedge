@@ -15,7 +15,7 @@ use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
 use crate::runtime_util::{get_modules, write_check, write_logs};
-use crate::shell_util::write_inspect;
+use crate::shell_util::{get_docker_networks, write_inspect, write_network_inspect};
 
 pub async fn make_bundle<M>(
     output_location: OutputLocation,
@@ -54,7 +54,10 @@ where
             write_inspect(&module_name, &mut zip_writer, &file_options).await?;
         }
 
-        
+        // Get all docker network inspects
+        for network_name in get_docker_networks().await? {
+            write_network_inspect(&network_name, &mut zip_writer, &file_options).await?;
+        }
     }
 
     // Finilize buffer and set cursur to 0 for reading.
