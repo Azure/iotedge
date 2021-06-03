@@ -42,17 +42,23 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         public bool Empty => matchers.Count == 0;
         private readonly List<SingleMetricMatcher> matchers = new List<SingleMetricMatcher>();
 
+        private String metricList;
+
         // Breaks apart a list of matchers into individual matchers and capture each component. 
         private readonly static Regex matcherSplitter = new Regex(@"(?<name>[a-zA-Z0-9_:\*\?]+)(\s*(?<labels>{([^{}""]*|""[^""]+"")*}))?(?n:[\s]*\[[\s]*(?<endpoint>[^\s]+)[\s]*\])?", RegexOptions.Compiled);
 
-        public MetricFilter(string metricList) {
+        public MetricFilter(string metricList)
+        {
             Contract.Requires(metricList != null);
+
+            this.metricList = metricList;
 
             // make sure all of input was consumed by the regex
             if (matcherSplitter.Replace(metricList, "").Replace(",", "").Trim() != "")
                 throw new ArgumentException("invalid metric matcher in " + metricList);
 
-            foreach (Match match in matcherSplitter.Matches(metricList)) {
+            foreach (Match match in matcherSplitter.Matches(metricList))
+            {
                 string name = match.Groups["name"].Value;
                 string labels = match.Groups["labels"].Value;
                 string endpoint = match.Groups["endpoint"].Value;
@@ -65,12 +71,19 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         /// Returns true if the passed metric matches a selector in this filter.
         /// Returns false if no metrics are in this filter.
         /// </summary>
-        public bool Matches(Metric testMetric) {
-            foreach (SingleMetricMatcher matcher in this.matchers) {
+        public bool Matches(Metric testMetric)
+        {
+            foreach (SingleMetricMatcher matcher in this.matchers)
+            {
                 if (matcher.Matches(testMetric))
                     return true;
             }
             return false;
+        }
+
+        public override string ToString()
+        {
+            return this.metricList;
         }
 
         private class SingleMetricMatcher
@@ -85,7 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             // inverting passed regex strings is hard, so store if the comparator has a not in it (!= and !~)
             private readonly Dictionary<string, bool> tagMatcherInvert = new Dictionary<string, bool>();
             private readonly string endpoint;
-            public SingleMetricMatcher(string metricName, string labelsString, string endpoint) {
+            public SingleMetricMatcher(string metricName, string labelsString, string endpoint)
+            {
                 Contract.Requires(metricName != null);
                 Contract.Requires(labelsString != null);
                 Contract.Requires(endpoint != null);
@@ -99,7 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 metricNameMatcher = new Regex("^" + metricName.Replace("*", "[a-zA-Z0-9_:]*").Replace("?", "[a-zA-Z0-9_:]") + "$", RegexOptions.Compiled);
 
                 // Parse the labels
-                if (labelsString != "" && labelsString != "{}") {
+                if (labelsString != "" && labelsString != "{}")
+                {
                     Debug.Assert(labelsString[0] == '{');
                     Debug.Assert(labelsString.Last() == '}');
 
@@ -109,7 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     if (labelSplitterRegex.Replace(labelsString, "").Trim() != "")
                         throw new ArgumentException("Invalid label in metric matcher " + labelsString);
 
-                    foreach (Match label in labelSplitterRegex.Matches(labelsString)) {
+                    foreach (Match label in labelSplitterRegex.Matches(labelsString))
+                    {
                         string labelName = label.Groups["name"].Value;
                         string comparator = label.Groups["comparator"].Value;
                         string value = label.Groups["value"].Value;
@@ -117,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         Regex valueSelector = null;
                         bool invertValueSelector;
 
-                        if(comparator == "=" || comparator == "!=")
+                        if (comparator == "=" || comparator == "!=")
                             valueSelector = new Regex("^" + Regex.Escape(value) + "$", RegexOptions.Compiled);
                         else if (comparator == "=~" || comparator == "!~")
                             valueSelector = new Regex("^" + value + "$", RegexOptions.Compiled);
@@ -131,18 +147,21 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         else
                             throw new ArgumentException("not a valid metric selector label: " + label.Groups["label"].Value);
 
-                        try {
+                        try
+                        {
                             tagMatchers.Add(labelName, valueSelector);
                             tagMatcherInvert.Add(labelName, invertValueSelector);
                         }
-                        catch (ArgumentException) {
+                        catch (ArgumentException)
+                        {
                             throw new ArgumentException("error parsing metric matcher, is there a duplicate label?");
                         }
                     }
                 }
             }
 
-            public bool Matches(Metric testMetric) {
+            public bool Matches(Metric testMetric)
+            {
                 // endpoint is easy to test (since it doesn't involve regexes), do it first
                 if (this.endpoint != "" && testMetric.Endpoint != this.endpoint)
                     return false;
@@ -152,11 +171,13 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     return false;
 
                 // now do tags
-                foreach (var labelRegexPair in tagMatchers) {
+                foreach (var labelRegexPair in tagMatchers)
+                {
                     string name = labelRegexPair.Key;
                     Regex matcher = labelRegexPair.Value;
 
-                    if (testMetric.Tags.TryGetValue(name, out string labelVal)) {
+                    if (testMetric.Tags.TryGetValue(name, out string labelVal))
+                    {
                         int numMatches = matcher.Matches(labelVal).Count;
                         bool shouldInvert = tagMatcherInvert[name];
                         if (numMatches == 1 && shouldInvert)
@@ -164,7 +185,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                         if (numMatches == 0 && !shouldInvert)
                             return false;  // the label does not have the right value and = or =~ were used
                     }
-                    else {
+                    else
+                    {
                         return false;  // testMetric does not contain a required label
                     }
                 }

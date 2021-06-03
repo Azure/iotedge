@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
 
                         if (contentLength > 1024 * 1024 )
                         {
-                            LoggerUtil.Writer.LogDebug( 
+                            LoggerUtil.Writer.LogDebug(
                                 "HTTP post content greater than 1mb" + " " +
                                 "Length - " + contentLength.ToString());
                         }
@@ -112,19 +112,17 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                         LoggerUtil.Writer.LogDebug(
                             ((int)response.StatusCode).ToString() + " " +
                             response.ReasonPhrase + " " +
-                        responseMsg);
+                            responseMsg);
 
                         if ((int)response.StatusCode != 200) {
                             failurecount += 1;
 
                             if (DateTime.Now - lastFailureReportedTime > TimeSpan.FromMinutes(1)) {
-                                LoggerUtil.Writer.LogDebug(                                
+                                LoggerUtil.Writer.LogDebug(
                                     "abnormal HTTP response code - " +
                                     "responsecode: " + ((int)response.StatusCode).ToString() + " " +
                                     "reasonphrase: " + response.ReasonPhrase + " " +
                                     "responsemsg: " + responseMsg + " " +
-                                    "requestheaders: " + client.DefaultRequestHeaders.ToString() + contentMsg.Headers  + " " +
-                                    "requestcontent: " + contentMsg.ReadAsStringAsync().Result + " " +
                                     "count: " + failurecount);
                                 failurecount = 0;
                                 lastFailureReportedTime = DateTime.Now;
@@ -158,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
         {
             // TODO: test
 
-            // "Deflate" compression often instead refers to a Zlib format which requies a 2 byte header and checksum (RFC 1950). 
+            // "Deflate" compression often instead refers to a Zlib format which requies a 2 byte header and checksum (RFC 1950).
             // The C# built in deflate stream doesn't support this, so use an external library.
             // Hopefully a built-in Zlib stream will be included in .net 5 (https://github.com/dotnet/runtime/issues/2236)
             var deflater = new Deflater(5, false);
