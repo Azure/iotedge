@@ -15,7 +15,17 @@ use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
 use crate::runtime_util::{get_modules, write_check, write_logs};
-use crate::shell_util::{get_docker_networks, write_inspect, write_network_inspect};
+use crate::shell_util::{
+    get_docker_networks, write_inspect, write_network_inspect, write_system_log,
+};
+
+const SYSTEM_MODULES: &[(&str, &str)] = &[
+    ("aziot-keyd", "aziot-keyd"),
+    ("aziot-certd", "aziot-certd"),
+    ("aziot-identityd", "aziot-identityd"),
+    ("aziot-edged", "aziot-edged"),
+    ("docker", "docker"),
+];
 
 pub async fn make_bundle<M>(
     output_location: OutputLocation,
@@ -57,6 +67,11 @@ where
         // Get all docker network inspects
         for network_name in get_docker_networks().await? {
             write_network_inspect(&network_name, &mut zip_writer, &file_options).await?;
+        }
+
+        // Get logs for system modules
+        for (name, unit) in SYSTEM_MODULES {
+            write_system_log(name, unit, &log_options, &mut zip_writer, &file_options).await?;
         }
     }
 

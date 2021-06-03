@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use chrono::DateTime;
+use chrono::NaiveDateTime;
+use chrono::Utc;
 use std::io::{Seek, Write};
 
 // TODO: make tokio
@@ -10,6 +13,7 @@ use zip::write::FileOptions;
 use zip::ZipWriter;
 
 use crate::error::{Error, ErrorKind};
+use edgelet_core::LogOptions;
 
 pub async fn write_inspect<W>(
     module_name: &str,
@@ -131,6 +135,70 @@ where
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
     print_verbose(&format!("Got docker network inspect for {}", network_name));
+    Ok(())
+}
+
+pub async fn write_system_log<W>(
+    name: &str,
+    unit: &str,
+    log_options: &LogOptions,
+    zip_writer: &mut ZipWriter<W>,
+    file_options: &FileOptions,
+) -> Result<(), Error>
+where
+    W: Write + Seek,
+{
+    print_verbose(format!("Getting system logs for {}", name).as_str());
+    let since_time: DateTime<Utc> = DateTime::from_utc(
+        NaiveDateTime::from_timestamp(log_options.since().into(), 0),
+        Utc,
+    );
+    let until_time: Option<DateTime<Utc>> = log_options
+        .until()
+        .map(|until| DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc));
+
+    #[cfg(unix)]
+    let command = {
+        let mut command = ShellCommand::new("journalctl");
+        command
+            .arg("-a")
+            .args(&["-u", unit])
+            .args(&["-S", &since_time.format("%F %T").to_string()])
+            .arg("--no-pager");
+        if let Some(until) = until_time {
+            command.args(&["-U", &until.format("%F %T").to_string()]);
+        }
+
+        command.output()
+    };
+
+    let (file_name, output) = if let Ok(result) = command {
+        if result.status.success() {
+            (format!("logs/{}.txt", name), result.stdout)
+        } else {
+            (format!("logs/{}_err.txt", name), result.stderr)
+        }
+    } else {
+        let err_message = command.err().unwrap().to_string();
+        println!(
+            "Could not find system logs for {}. Including error in bundle.\nError message: {}",
+            name, err_message
+        );
+        (
+            format!("logs/{}_err.txt", name),
+            err_message.as_bytes().to_vec(),
+        )
+    };
+
+    zip_writer
+        .start_file(file_name, *file_options)
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+    zip_writer
+        .write_all(&output)
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+    print_verbose(format!("Got logs for {}", name).as_str());
     Ok(())
 }
 
