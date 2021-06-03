@@ -46,25 +46,54 @@ where
             .lock()
             .expect("cert client lock failed")
             .get_cert(config.manifest_trust_bundle_cert())
-            .map_err(|_| Error::from(ErrorKind::GetIdentity))
-            .and_then(|cert| -> Result<_, Error> {
-                let cert = str::from_utf8(cert.as_ref())
-                    .context(ErrorKind::EncryptionOperation(
-                        EncryptionOperation::GetManifestTrustBundle,
-                    ))?
-                    .to_string();
-                let body = serde_json::to_string(&ManifestTrustBundleResponse::new(cert)).context(
-                    ErrorKind::EncryptionOperation(EncryptionOperation::GetManifestTrustBundle),
-                )?;
-                let response = Response::builder()
-                    .status(StatusCode::OK)
-                    .header(CONTENT_TYPE, "application/json")
-                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                    .body(body.into())
-                    .context(ErrorKind::EncryptionOperation(
-                        EncryptionOperation::GetManifestTrustBundle,
-                    ))?;
-                Ok(response)
+            .then(|cert| -> Result<_, Error> {
+                match cert {
+                    Ok(cert) => {
+                        let cert = str::from_utf8(cert.as_ref())
+                            .context(ErrorKind::EncryptionOperation(
+                                EncryptionOperation::GetManifestTrustBundle,
+                            ))?
+                            .to_string();
+                        let body = serde_json::to_string(&ManifestTrustBundleResponse::new(cert))
+                            .context(ErrorKind::EncryptionOperation(
+                            EncryptionOperation::GetManifestTrustBundle,
+                        ))?;
+                        let response = Response::builder()
+                            .status(StatusCode::OK)
+                            .header(CONTENT_TYPE, "application/json")
+                            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                            .body(body.into())
+                            .context(ErrorKind::EncryptionOperation(
+                                EncryptionOperation::GetManifestTrustBundle,
+                            ))?;
+                        Ok(response)
+                    }
+                    Err(err) => {
+                        if let cert_client::ErrorKind::Response(hyper::StatusCode::NOT_FOUND, _) =
+                            err.kind()
+                        {
+                            let body = serde_json::to_string(&ManifestTrustBundleResponse::new(
+                                String::new(),
+                            ))
+                            .context(
+                                ErrorKind::EncryptionOperation(
+                                    EncryptionOperation::GetManifestTrustBundle,
+                                ),
+                            )?;
+                            let response = Response::builder()
+                                .status(StatusCode::OK)
+                                .header(CONTENT_TYPE, "application/json")
+                                .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                                .body(body.into())
+                                .context(ErrorKind::EncryptionOperation(
+                                    EncryptionOperation::GetManifestTrustBundle,
+                                ))?;
+                            Ok(response)
+                        } else {
+                            Err(Error::from(ErrorKind::GetIdentity))
+                        }
+                    }
+                }
             })
             .or_else(|e| Ok(e.into_response()))
             .into_future();
