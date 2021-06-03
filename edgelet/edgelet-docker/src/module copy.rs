@@ -170,10 +170,11 @@ pub fn runtime_state(
     })
 }
 
-#[async_trait::async_trait]
 impl<C: 'static + Connect> Module for DockerModule<C> {
     type Config = DockerConfig;
     type Error = Error;
+    type RuntimeStateFuture =
+        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
 
     fn name(&self) -> &str {
         &self.name
@@ -187,20 +188,19 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
         &self.config
     }
 
-    async fn runtime_state(&self) -> Result<ModuleRuntimeState, Self::Error> {
-        Ok(ModuleRuntimeState::default())
-        // Box::new(
-        //     self.client
-        //         .container_api()
-        //         .container_inspect(&self.name, false)
-        //         .map(|resp| runtime_state(resp.id(), resp.state()))
-        //         .map_err(|err| {
-        //             Error::from_docker_error(
-        //                 err,
-        //                 ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
-        //             )
-        //         }),
-        // )
+    fn runtime_state(&self) -> Self::RuntimeStateFuture {
+        Box::new(
+            self.client
+                .container_api()
+                .container_inspect(&self.name, false)
+                .map(|resp| runtime_state(resp.id(), resp.state()))
+                .map_err(|err| {
+                    Error::from_docker_error(
+                        err,
+                        ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
+                    )
+                }),
+        )
     }
 }
 

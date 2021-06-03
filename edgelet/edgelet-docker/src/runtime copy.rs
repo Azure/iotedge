@@ -25,6 +25,7 @@ use edgelet_core::{
     RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
     SystemResources, UrlExt,
 };
+use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use crate::client::DockerClient;

@@ -6,6 +6,7 @@ publish = false
 edition = "2018"
 
 [dependencies]
+async-trait = "0.1"
 base64 = "0.9"
 chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1"
