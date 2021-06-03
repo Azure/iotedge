@@ -1,7 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::ffi::OsString;
+use std::fs::File;
+use std::io::Seek;
+use std::io::SeekFrom;
+use std::io::Write;
 use std::io::{Cursor, Read};
+use std::path::Path;
 
 use failure::Fail;
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
@@ -33,7 +38,7 @@ pub async fn make_bundle<M>(
 where
     M: ModuleRuntime + Clone + Send + Sync,
 {
-    let buffer = Cursor::new(Vec::new());
+    let buffer = get_buffer(output_location)?;
 
     // Wrap buffer in zip_writer
     let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
@@ -74,11 +79,27 @@ where
     let mut buffer = zip_writer
         .finish()
         .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
-    let len = buffer.position();
-    buffer.set_position(0);
+    let len = buffer
+        .seek(SeekFrom::Current(0))
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+    buffer
+        .seek(SeekFrom::Start(0))
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
     let result = (buffer, len);
     Ok(result)
+}
+
+fn get_buffer(output_location: OutputLocation) -> Result<Box<impl Read + Write + Seek>, Error> {
+    // let location = "";
+    match output_location {
+        OutputLocation::File(location) => {
+            let file = File::create(Path::new(&location))
+                .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+            Ok(Box::new(file))
+        }
+        OutputLocation::Memory => Ok(Box::new(Cursor::new(Vec::new()))),
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
