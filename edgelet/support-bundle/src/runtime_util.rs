@@ -65,13 +65,13 @@ pub async fn write_check(
 
 pub async fn write_logs(
     runtime: &impl ModuleRuntime,
-    module_id: &str,
+    module_name: &str,
     options: &LogOptions,
     writer: &mut (impl Write + Send),
 ) -> Result<(), Error> {
     // Collect Logs
     let logs = runtime
-        .logs(module_id, options)
+        .logs(module_name, options)
         .await
         .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
 

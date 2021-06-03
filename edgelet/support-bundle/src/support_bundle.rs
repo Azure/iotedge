@@ -15,6 +15,7 @@ use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
 use crate::runtime_util::{get_modules, write_check, write_logs};
+use crate::shell_util::write_inspect;
 
 pub async fn make_bundle<M>(
     output_location: OutputLocation,
@@ -41,14 +42,21 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
         write_check(&mut zip_writer, iothub_hostname).await?;
 
+        // Get all modules
         for module_name in get_modules(&runtime, include_ms_only).await? {
-            // Get all logs
+            // Write module logs
             zip_writer
                 .start_file(format!("logs/{}_log.txt", module_name), file_options)
                 .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
             write_logs(&runtime, &module_name, &log_options, &mut zip_writer).await?;
+
+            // write module inspect
+            write_inspect(&module_name, &mut zip_writer, &file_options).await?;
         }
+
+        
     }
+
     // Finilize buffer and set cursur to 0 for reading.
     let mut buffer = zip_writer
         .finish()
