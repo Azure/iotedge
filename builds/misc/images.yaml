@@ -12,7 +12,9 @@ jobs:
 ################################################################################
     displayName: LinuxDotnet
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -217,10 +219,9 @@ jobs:
     displayName: Windows
     timeoutInMinutes: 90
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.windows.name)
       demands:
-        - Build-Image -equals true
-        - win-rs5
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
     workspace:
       clean: all
     steps:
@@ -398,7 +399,9 @@ jobs:
 ################################################################################
     displayName: Helm Charts
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
     - template: templates/helm-chart-linux.yaml
       parameters:
@@ -414,7 +417,9 @@ jobs:
 ################################################################################
     displayName: Manifest
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     dependsOn:
       - linux_dotnet_projects
       - linux_rust_amd64
