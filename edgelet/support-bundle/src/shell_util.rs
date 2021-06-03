@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::NaiveDateTime;
 use chrono::Utc;
 use std::io::{Seek, Write};
+use std::env;
 
 // TODO: make tokio
 use std::process::Command as ShellCommand;
@@ -14,6 +15,39 @@ use zip::ZipWriter;
 
 use crate::error::{Error, ErrorKind};
 use edgelet_core::LogOptions;
+
+pub async fn write_check(
+    writer: &mut impl Write,
+    iothub_hostname: Option<String>,
+) -> Result<(), Error> {
+    print_verbose("Calling iotedge check");
+
+    let mut iotedge = env::args().next().unwrap();
+    if iotedge.contains("aziot-edged") {
+        print_verbose("Calling iotedge check from edgelet, using iotedge from path");
+        iotedge = "iotedge".to_string();
+    }
+
+    let mut check = ShellCommand::new(iotedge);
+    check.arg("check").args(&["-o", "json"]);
+
+    if let Some(host_name) = iothub_hostname {
+        check.args(&["--iothub-hostname", &host_name]);
+    }
+    let check = check
+        .output()
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+    writer
+        .write_all(&check.stdout)
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+    writer
+        .write_all(&check.stderr)
+        .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+    print_verbose("Wrote check output to file");
+    Ok(())
+}
 
 pub async fn write_inspect<W>(
     module_name: &str,

@@ -1,22 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::env;
 use std::ffi::OsString;
-use std::fs::File;
-use std::io::{Cursor, Read, Seek, Write};
-use std::path::Path;
+use std::io::{Cursor, Read};
 
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use failure::Fail;
-use futures::{Future, Stream};
 use zip::{write::FileOptions, CompressionMethod, ZipWriter};
 
-use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
+use edgelet_core::{LogOptions, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
-use crate::runtime_util::{get_modules, write_check, write_logs};
+use crate::runtime_util::{get_modules, write_logs};
 use crate::shell_util::{
-    get_docker_networks, write_inspect, write_network_inspect, write_system_log,
+    get_docker_networks, write_check, write_inspect, write_network_inspect, write_system_log,
 };
 
 const SYSTEM_MODULES: &[(&str, &str)] = &[
