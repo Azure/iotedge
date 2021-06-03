@@ -69,15 +69,15 @@ namespace TwinTester
                 {
                     if (hasTwinUpdate && !isCallbackValidated)
                     {
-                        status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
+                        status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update for '{desiredPropertyUpdate.Key}' in callback";
                     }
                     else if (!hasTwinUpdate && isCallbackValidated)
                     {
-                        status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
+                        status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update for '{desiredPropertyUpdate.Key}' in twin";
                     }
                     else
                     {
-                        status = $"{(int)StatusCode.DesiredPropertyUpdateTotalFailure}: Failure receiving desired property update in both twin and callback";
+                        status = $"{(int)StatusCode.DesiredPropertyUpdateTotalFailure}: Failure receiving desired property update for '{desiredPropertyUpdate.Key}' in both twin and callback";
                     }
 
                     Logger.LogError($"{status} for update #{desiredPropertyUpdate.Key}");
