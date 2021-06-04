@@ -70,11 +70,8 @@ jobs:
           - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
             displayName: Docker Login
 
-          - task: Bash@3
+          - script: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1 -FromImage "$(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64" -ToImage "$(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64"'
             displayName: 'Publish Metrics Collector - Windows amd64'
-            inputs:
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'
 ################################################################################
   - deployment: manifest
 ################################################################################
