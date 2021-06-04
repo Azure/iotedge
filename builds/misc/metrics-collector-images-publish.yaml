@@ -73,7 +73,7 @@ jobs:
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'
 ################################################################################
-  - job: manifest
+  - deployment: manifest
 ################################################################################
     displayName: Publish Manifest
     pool:
@@ -84,10 +84,13 @@ jobs:
     dependsOn:
       - publishImagesLinux
       - publishImagesWindows
-    steps:
-      - task: Bash@3
-        displayName: 'Publish Metrics Collector Manifest'
-        inputs:
-          targetType: filePath
-          filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-          arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Bash@3
+            displayName: 'Publish Metrics Collector Manifest'
+            inputs:
+              targetType: filePath
+              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
+              arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
