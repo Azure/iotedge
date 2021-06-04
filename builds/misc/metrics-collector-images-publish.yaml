@@ -77,9 +77,10 @@ jobs:
 ################################################################################
     displayName: Publish Manifest
     pool:
-      name: ubuntu-18.04
-      demands:
-        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+      vmImage: ubuntu-18.04
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
     dependsOn:
       - publishImagesLinux
       - publishImagesWindows
