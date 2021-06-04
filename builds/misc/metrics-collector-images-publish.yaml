@@ -53,10 +53,9 @@ jobs:
     displayName: Publish Images Windows
     pool:
       name: Azure-IoT-Edge-Core
-      demands: 
-        - Build-Image -equals true
-        - win-rs5
-        - DotNetFramework
+      demands:
+      - Build-Image -equals true
+      - agent-os-name -equals WinPro_x64
     workspace:
       clean: all
     environment: 'Azure-IoT-Edge-Core Release Env'
