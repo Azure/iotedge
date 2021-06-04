@@ -64,6 +64,10 @@ jobs:
       runOnce:
         deploy:
           steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
           - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
             displayName: Docker Login
 
@@ -88,6 +92,13 @@ jobs:
       runOnce:
         deploy:
           steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
+          - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
+            displayName: Docker Login
+
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'
             inputs:
