@@ -49,6 +49,9 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
+              },
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -195,6 +198,9 @@
               },
               "TwinUpdateFailureThreshold": {
                 "value": "<TwinUpdateFailureThreshold>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -234,6 +240,9 @@
               },
               "TwinUpdateFailureThreshold": {
                 "value": "<TwinUpdateFailureThreshold>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -380,7 +389,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"

@@ -37,6 +37,7 @@ parameters:
   test.useTRC: ''
   test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
+  clientModuleTransportType: ''
 
 steps:
   - task: CopyFiles@2
@@ -119,6 +120,7 @@ steps:
             -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
             -repoPath "${{ parameters['build.repo.path'] }}" \
+            -clientModuleTransportType "${{ parameters['clientModuleTransportType'] }}" \
             -waitForTestComplete \
             -cleanAll
         else
