@@ -58,6 +58,12 @@ The configuration of the proxy is done via the following complementing mechanism
 2. A new configuration can be passed down to the module from the cloud via its [module twin](https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-module-twins)
 3. Environment variables can be passed down at deployment time to turn configuration settings on or off
 
+Variables in the proxy configuration are identified as the following:${variable_name}
+Variables are replace according to the following rules:
+1. Default is 0 unless that variable has a default value (see below for the list)
+2. Value can be changed by passing an environment variable with the same name at deployment
+3. (2) works only if that variable is not in the list of hardcode variables (see below for the list). Those variables cannot be changed through environment variables.
+
 ### Understand the use of environment variables to edit a proxy configuration
 
 Environment variables provide an easy way to turn settings on or off depending on the data that the API Proxy should route. The default proxy configuration implements the most commonly used features like downloading container images or uploading blobs that can turned on just by setting environment variables.
@@ -113,8 +119,8 @@ For easiness of use, the API proxy module comes with a default configuration tha
 Some variables are also usable in the configuration but not editable:
 | Variables  | comments |
 | ------------- |  ------------- |
-| TOKEN_VALIDITY_MINUTES | How long tokens are cached  |
-| TOKEN_SERVER_PORT | Port on which the token server is listening  |
+| TOKEN_VALIDITY_MINUTES | How long tokens are cached. Reserved value  |
+| TOKEN_SERVER_PORT | Port on which the token server is listening. Reserved value  |
 
 ### Update the proxy configuration dynamically
 
@@ -198,6 +204,64 @@ The configuration of the API Proxy module at **any lower layer** for this scenar
 These settings are set by default when deploying from the [Azure Marketplace](http://aka.ms/iot-edge-marketplace).
 
 Lastly, all the module image URIs in **any lower layer** should use the domain name `$upstream` followed by the API Proxy module port number such as `$upstream:8000/azureiotedge-api-proxy:1.0` 
+
+$upstream is supported in several places:
+- In the image name in portal and in the config.yaml
+- In the registy address in portal and in the config.yaml
+- In direct method, see below.
+
+### Boolean expression parsing
+
+API proxy template file supports parsing of nested boolean expression.
+For example:
+```
+#if_tag boolean_expression[&(!(${ENV_VAR1}),${ENV_VAR2})]
+//Hello
+#endif_tag boolean_expression[&(!(${ENV_VAR1}),${ENV_VAR2}) 
+```
+
+Result for:
+
+ENV_VAR1 defined, ENV_VAR2 not defined:
+
+    &(!(1),0) => &(0,0) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 not defined:
+
+    &(!(0),0) => &(1,0) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 defined, ENV_VAR2 defined:
+
+    &(!(1),1) => &(0,1) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 defined:
+
+    &(!(0),1) => &(1,1) => 1   => //Hello appears in the generated config
+Another example:
+
+```
+#if_tag boolean_expression[|(!(${ENV_VAR1}),${ENV_VAR2})]
+//Hello
+#endif_tag boolean_expression[|(!(${ENV_VAR1}),${ENV_VAR2}) 
+```
+
+Result for:
+
+ENV_VAR1 defined, ENV_VAR2 not defined:
+
+    |(!(1),0) => |(0,0) => 0   => //Hello does not appear in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 not defined:
+
+    |(!(0),0) => |(1,0) => 1   => //Hello appears in the generated config
+
+ENV_VAR1 defined, ENV_VAR2 defined:
+
+    |(!(1),1) => |(0,1) => 1   => //Hello appears in the generated config
+
+ENV_VAR1 not defined, ENV_VAR2 defined:
+
+    |(!(0),1) => |(1,1) => 1   => //Hello appears in the generated config
 
 ### Upload blob
 
