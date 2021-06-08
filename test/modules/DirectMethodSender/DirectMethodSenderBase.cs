@@ -52,6 +52,11 @@ namespace DirectMethodSender
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 return new Tuple<HttpStatusCode, ulong>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
+            catch (UnauthorizedException e)
+            {
+                logger.LogInformation(e, $"Unauthorized exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.Unauthorized, this.directMethodCount);
+            }
             catch (DeviceNotFoundException e)
             {
                 logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
