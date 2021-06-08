@@ -1,0 +1,73 @@
+parameters:
+  edgelet.artifact.name: ''
+  aziotis.artifact.name: ''
+  aziotis.package.filter: ''
+  test.deploymentFileName: ''
+  quickstart.artifactName: ''
+
+steps:
+  - checkout: self
+    clean: true
+    fetchDepth: 100
+    submodules: recursive
+  - task: AzureKeyVault@1
+    displayName: 'Azure Key Vault: EdgeBuildkv'
+    inputs:
+      azureSubscription: $(azure.subscription)
+      KeyVaultName: 'edgebuildkv'
+      SecretsFilter: >- 
+        edgebuilds-azurecr-io-username,
+        edgebuilds-azurecr-io-pwd,
+        StorageAccountMasterKeyStress,
+        SnitchLongHaulAlertUrl,
+        kvLogAnalyticWorkspaceId,
+        kvLogAnalyticSharedKey,
+        EdgeLonghaulStorageAccountConnString,
+        GitHubAccessToken
+  - task: AzureKeyVault@1
+    displayName: 'Azure Key Vault: $(azure.keyVault)'
+    inputs:
+      azureSubscription: $(azure.subscription)
+      KeyVaultName: $(azure.keyVault)
+      SecretsFilter: >- 
+        IotHub-ConnStr,
+        IotHub-EventHubConnStr
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Edgelet Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(edgelet.package.build)
+      branchName: $(edgelet.package.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(edgelet.artifact.name)
+      allowPartiallySucceededBuilds: true
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Images Artifacts'
+    inputs:
+      buildType: specific
+      project: $(vsts.project)
+      pipeline: $(images.build)
+      branchName: $(images.branchName)
+      buildVersionToDownload: latestFromBranch
+      downloadPath: '$(Build.StagingDirectory)'
+      artifactName: $(images.artifact.name.linux)
+      allowPartiallySucceededBuilds: true
+      itemPattern: |
+        $(images.artifact.name.linux)/$(quickstart.artifactName)
+        $(images.artifact.name.linux)/scripts/linux/runE2ETest.sh
+        $(images.artifact.name.linux)/scripts/linux/trcE2ETest.sh
+        $(images.artifact.name.linux)/artifactInfo.txt
+        $(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+        $(images.artifact.name.linux)/CACertificates/certGen.sh
+        $(images.artifact.name.linux)/CACertificates/openssl_root_ca.cnf
+  - task: PowerShell@2
+    displayName: 'Download aziot-identity-service'
+    inputs:
+      filePath: $(Build.StagingDirectory)/$(images.artifact.name.linux)/scripts/local/test/DownloadIdentityService.ps1
+    env:
+      GITHUB_TOKEN: $(GitHubAccessToken)
+      ARTIFACT_NAME: $(aziotis.artifact.name)
+      PACKAGE_FILTER: $(aziotis.package.filter)
+      DOWNLOAD_PATH: $(Build.StagingDirectory)
