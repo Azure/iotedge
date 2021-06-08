@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Threading;
     using System.Threading.Channels;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -93,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 }
 
                 Events.CouldNotConnect();
-                throw new Exception("Failed to start MQTT broker connector");
+                throw new EdgeHubConnectionException("Failed to start MQTT broker connector");
             }
 
             client.ConnectionClosed += this.TriggerReconnect;
@@ -295,6 +296,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                         }
 
                         client.ConnectionClosed += this.TriggerReconnect;
+                    }
+                    catch (Exception)
+                    {
+                        Events.NoMqttClientWhenReconnecting();
+                        return;
                     }
                     finally
                     {
@@ -550,7 +556,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 MessageNotForwarded,
                 FailedToForward,
                 CouldNotConnect,
-                TimeoutReceivingSubAcks
+                TimeoutReceivingSubAcks,
+                NoMqttClientWhenReconnecting
             }
 
             public static void Starting() => Log.LogInformation((int)EventIds.Starting, "Starting mqtt-bridge connector");
@@ -574,6 +581,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void FailedToForwardDownstream(Exception e) => Log.LogError((int)EventIds.FailedToForwardDownstream, e, "Failed to forward message from downstream.");
             public static void CouldNotConnect() => Log.LogInformation((int)EventIds.CouldNotConnect, "Could not connect to MQTT Broker, possibly it is not running. To disable MQTT Broker Connector, please set 'mqttBrokerSettings__enabled' environment variable to 'false'");
             public static void TimeoutReceivingSubAcks(Exception e) => Log.LogError((int)EventIds.TimeoutReceivingSubAcks, e, "MQTT Broker has not acknowledged subscriptions in time");
+            public static void NoMqttClientWhenReconnecting() => Log.LogError((int)EventIds.NoMqttClientWhenReconnecting, "No Mqtt client instance when trying to reconnect - stopped trying.");
         }
     }
 }
