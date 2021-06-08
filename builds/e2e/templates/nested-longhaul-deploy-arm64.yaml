@@ -54,8 +54,6 @@ jobs:
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
-          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
-          twinTester.edgeHubRestartFailureTolerance: '$(twinTester.edgeHubRestartFailureTolerance)'
           metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
