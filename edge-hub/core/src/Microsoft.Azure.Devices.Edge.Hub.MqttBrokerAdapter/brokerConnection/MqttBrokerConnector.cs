@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Channels;
@@ -166,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
         public async Task<bool> SendAsync(string topic, byte[] payload, bool retain = false)
         {
-            var client = this.mqttClient.Expect(() => new Exception("No mqtt-bridge connector instance found to send messages."));
+            var client = this.mqttClient.Expect(() => new IOException("No mqtt-bridge connector instance found to send messages."));
 
             var added = default(bool);
             var tcs = new TaskCompletionSource<bool>();
@@ -185,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
                 // if this happens it means that previously a message was sent out with the same message id but
                 // then it wasn't deleted from the penging acks. that is either we went around with all the message ids
                 // or some program error didn't delete it. not much to do either way.
-                new Exception("Could not store message id to monitor Mqtt ACK");
+                new IOException("Could not store message id to monitor Mqtt ACK");
             }
 
             bool result;
