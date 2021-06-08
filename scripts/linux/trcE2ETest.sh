@@ -230,7 +230,7 @@ function prepare_test_from_artifacts() {
             sed -i -e "s@<DirectMethodSenderMemoryThreshold>@$DIRECT_METHOD_SENDER_MEMORY_THRESHOLD@g" "$deployment_working_file"
             sed -i -e "s@<DirectMethodReceiverMemoryThreshold>@$DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD@g" "$deployment_working_file"
             sed -i -e "s@<TrcMemoryThreshold>@$TRC_MEMORY_THRESHOLD@g" "$deployment_working_file"
-            sed -i -e "s@<NetworkControllerMemoryThreshold>@$NETWORK_CONTROLLER_MEMORY_THRESHOLd@g" "$deployment_working_file"
+            sed -i -e "s@<NetworkControllerMemoryThreshold>@$NETWORK_CONTROLLER_MEMORY_THRESHOLD@g" "$deployment_working_file"
             sed -i -e "s@<MetricsCollectorMemoryThreshold>@$METRICS_COLLECTOR_MEMORY_THRESHOLD@g" "$deployment_working_file"
             sed -i -e "s@<ModuleRestarterMemoryThreshold>@$MODULE_RESTARTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
 
