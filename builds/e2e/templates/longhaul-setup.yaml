@@ -1,5 +1,6 @@
 parameters:
   edgelet.artifact.name: ''
+  images.artifact.name: ''
   aziotis.artifact.name: ''
   aziotis.package.filter: ''
   quickstart.artifactName: ''
@@ -70,3 +71,20 @@ steps:
       ARTIFACT_NAME: ${{ parameters['aziotis.artifact.name'] }}
       PACKAGE_FILTER: ${{ parameters['aziotis.package.filter'] }}
       DOWNLOAD_PATH: $(Build.StagingDirectory)
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+  - task: CopyFiles@2
+    displayName: 'Copy aziot-identity-service'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)"
+      Contents: "$(aziotis.package.filter)"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
