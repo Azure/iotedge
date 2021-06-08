@@ -220,20 +220,23 @@ function prepare_test_from_artifacts() {
         sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
         sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
 
-        sed -i -e "s@<EdgeAgentMemoryThreshold>@$EDGE_AGENT_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<EdgeHubMemoryThreshold>@$EDGE_HUB_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<LoadGenMemoryThreshold>@$LOAD_GEN_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<RelayerMemoryThreshold>@$RELAYER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<TwinTesterMemoryThreshold>@$TWIN_TESTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<DirectMethodSenderMemoryThreshold>@$DIRECT_METHOD_SENDER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<DirectMethodReceiverMemoryThreshold>@$DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<TrcMemoryThreshold>@$TRC_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<NetworkControllerMemoryThreshold>@$NETWORK_CONTROLLER_MEMORY_THRESHOLd@g" "$deployment_working_file"
-        sed -i -e "s@<MetricsCollectorMemoryThreshold>@$METRICS_COLLECTOR_MEMORY_THRESHOLD@g" "$deployment_working_file"
-        sed -i -e "s@<ModuleRestarterMemoryThreshold>@$MODULE_RESTARTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+        if [ "$image_architecture_label" = 'arm32v7' ] ||
+            [ "$image_architecture_label" = 'arm64v8' ]; then
+            sed -i -e "s@<EdgeAgentMemoryThreshold>@$EDGE_AGENT_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<EdgeHubMemoryThreshold>@$EDGE_HUB_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<LoadGenMemoryThreshold>@$LOAD_GEN_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<RelayerMemoryThreshold>@$RELAYER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<TwinTesterMemoryThreshold>@$TWIN_TESTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<DirectMethodSenderMemoryThreshold>@$DIRECT_METHOD_SENDER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<DirectMethodReceiverMemoryThreshold>@$DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<TrcMemoryThreshold>@$TRC_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<NetworkControllerMemoryThreshold>@$NETWORK_CONTROLLER_MEMORY_THRESHOLd@g" "$deployment_working_file"
+            sed -i -e "s@<MetricsCollectorMemoryThreshold>@$METRICS_COLLECTOR_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<ModuleRestarterMemoryThreshold>@$MODULE_RESTARTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
 
-        sed -i -e "s@<EdgeHubMqttEnabled>@$EDGE_HUB_MQTT_ENABLED@g" "$deployment_working_file"
-        sed -i -e "s@<EdgeHubAmqpEnabled>@$EDGE_HUB_AMQP_ENABLED@g" "$deployment_working_file"
+            sed -i -e "s@<EdgeHubMqttEnabled>@$EDGE_HUB_MQTT_ENABLED@g" "$deployment_working_file"
+            sed -i -e "s@<EdgeHubAmqpEnabled>@$EDGE_HUB_AMQP_ENABLED@g" "$deployment_working_file"
+        fi
     fi
 
     if [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
