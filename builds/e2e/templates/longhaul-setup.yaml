@@ -86,5 +86,5 @@ steps:
     displayName: 'Copy aziot-identity-service'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "aziot-identity-service_1.2.0-1_amd64.deb"
+      Contents: "aziot-identity-service*.deb"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
