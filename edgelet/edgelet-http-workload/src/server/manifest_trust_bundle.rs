@@ -68,30 +68,21 @@ where
                             ))?;
                         Ok(response)
                     }
-                    Err(err) => {
-                        if let cert_client::ErrorKind::Response(hyper::StatusCode::NOT_FOUND, _) =
-                            err.kind()
-                        {
-                            let body = serde_json::to_string(&ManifestTrustBundleResponse::new(
-                                String::new(),
-                            ))
-                            .context(
-                                ErrorKind::EncryptionOperation(
-                                    EncryptionOperation::GetManifestTrustBundle,
-                                ),
-                            )?;
-                            let response = Response::builder()
-                                .status(StatusCode::OK)
-                                .header(CONTENT_TYPE, "application/json")
-                                .header(CONTENT_LENGTH, body.len().to_string().as_str())
-                                .body(body.into())
+                    Err(_err) => {
+                        let body =
+                            serde_json::to_string(&ManifestTrustBundleResponse::new(String::new()))
                                 .context(ErrorKind::EncryptionOperation(
                                     EncryptionOperation::GetManifestTrustBundle,
                                 ))?;
-                            Ok(response)
-                        } else {
-                            Err(Error::from(ErrorKind::GetIdentity))
-                        }
+                        let response = Response::builder()
+                            .status(StatusCode::OK)
+                            .header(CONTENT_TYPE, "application/json")
+                            .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                            .body(body.into())
+                            .context(ErrorKind::EncryptionOperation(
+                                EncryptionOperation::GetManifestTrustBundle,
+                            ))?;
+                        Ok(response)
                     }
                 }
             })
