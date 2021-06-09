@@ -18,6 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         readonly IMetricsCounter unsuccessfulSyncs;
         readonly IMetricsCounter totalSyncs;
         readonly IMetricsHistogram deploymentTime;
+        readonly IMetricsGauge manifestIntegrityFlag;
+        readonly IMetricsCounter twinSignatureChecks;
+        readonly IMetricsTimer twinSignatureTime;
 
         readonly ISystemTime systemTime;
         readonly ILogger log = Logger.Factory.CreateLogger<DeploymentMetrics>();
@@ -60,6 +63,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.deploymentTime = metricsProvider.CreateHistogram(
                 "deployment_time_seconds",
                 "The amount of time it took to complete a new deployment",
+                new List<string> { MetricsConstants.MsTelemetry });
+
+            this.manifestIntegrityFlag = metricsProvider.CreateGauge(
+                "manifest_integrity_flag",
+                "The value is 1 if manifest integrity is present or 0 if not present, tags indicate which integrity components are present",
+                new List<string> { "signing_with_ca_enabled", "signing_with_integrity_enabled", MetricsConstants.MsTelemetry });
+
+            this.twinSignatureChecks = metricsProvider.CreateCounter(
+                "twin_signature_check_count",
+                "The number of twin signature checks, both successful and unsuccessful",
+                new List<string> { "result", "algorithm", MetricsConstants.MsTelemetry });
+
+            this.twinSignatureTime = metricsProvider.CreateTimer(
+                "twin_signature_check_seconds",
+                "The amount of time it took to verify twin signature",
                 new List<string> { MetricsConstants.MsTelemetry });
 
             string storageDirectory = Path.Combine(Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder)), "availability");
@@ -191,5 +209,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             File.WriteAllText(this.checkpointFile, this.systemTime.UtcNow.Ticks.ToString());
             return Task.CompletedTask;
         }
+
+        public void ReportManifestIntegrity(bool manifestCaPresent, bool integritySectionPresent)
+        {
+            PresenceGauge manifestFlag = (manifestCaPresent || integritySectionPresent) ? PresenceGauge.Present : PresenceGauge.NotPresent;
+            string[] tags = { manifestCaPresent.ToString(), integritySectionPresent.ToString(), true.ToString() };
+            this.manifestIntegrityFlag.Set((int)manifestFlag, tags);
+        }
+
+        public void ReportTwinSignatureResult(bool success, string algorithm = "unknown")
+        {
+            string result = success ? "Success" : "Failure";
+            string[] tags = { result, algorithm, true.ToString() };
+            this.twinSignatureChecks.Increment(1, tags);
+        }
+
+        public IDisposable StartTwinSignatureTimer() => this.twinSignatureTime.GetTimer(new string[1] { true.ToString() });
     }
 }
