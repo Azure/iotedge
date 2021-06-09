@@ -211,6 +211,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
     sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
+    sed -i -e "s@<LogRotationMaxFileEdgeHub>@$log_rotation_max_file_edgehub@g" "$deployment_working_file"
 
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
@@ -310,6 +311,9 @@ function print_test_run_logs() {
     print_highlighted_message 'directMethodReceiver2 LOGS'
     docker logs directMethodReceiver2 || true
 
+    print_highlighted_message 'directMethodSender3 LOGS'
+    docker logs directMethodSender3 || true
+
     print_highlighted_message 'twinTester1 LOGS'
     docker logs twinTester1 || true
 
@@ -321,6 +325,25 @@ function print_test_run_logs() {
 
     print_highlighted_message 'twinTester4 LOGS'
     docker logs twinTester4 || true
+
+    print_highlighted_message 'deploymentTester1 LOGS'
+    docker logs deploymentTester1 || true
+
+    print_highlighted_message 'deploymentTester2 LOGS'
+    docker logs deploymentTester2 || true
+
+    print_highlighted_message 'cloudToDeviceMessageSender1 LOGS'
+    docker logs cloudToDeviceMessageSender1 || true
+
+    print_highlighted_message 'cloudToDeviceMessageReceiver1 LOGS'
+    docker logs cloudToDeviceMessageReceiver1 || true
+
+    print_highlighted_message 'cloudToDeviceMessageSender2 LOGS'
+    docker logs cloudToDeviceMessageSender2 || true
+
+    print_highlighted_message 'cloudToDeviceMessageReceiver2 LOGS'
+    docker logs cloudToDeviceMessageReceiver2 || true
+
 
     print_highlighted_message 'networkController LOGS'
     docker logs networkController || true
@@ -859,6 +882,7 @@ if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
     log_upload_enabled=true
     log_rotation_max_file="125"
+    log_rotation_max_file_edgehub="400"
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -869,6 +893,7 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     optimize_for_performance=false
     log_upload_enabled=false
     log_rotation_max_file="7"
+    log_rotation_max_file_edgehub="30"
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"
