@@ -181,7 +181,6 @@ steps:
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
-            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
