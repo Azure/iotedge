@@ -311,6 +311,9 @@ function print_test_run_logs() {
     print_highlighted_message 'directMethodReceiver2 LOGS'
     docker logs directMethodReceiver2 || true
 
+    print_highlighted_message 'directMethodSender3 LOGS'
+    docker logs directMethodSender3 || true
+
     print_highlighted_message 'twinTester1 LOGS'
     docker logs twinTester1 || true
 
@@ -322,6 +325,25 @@ function print_test_run_logs() {
 
     print_highlighted_message 'twinTester4 LOGS'
     docker logs twinTester4 || true
+
+    print_highlighted_message 'deploymentTester1 LOGS'
+    docker logs deploymentTester1 || true
+
+    print_highlighted_message 'deploymentTester2 LOGS'
+    docker logs deploymentTester2 || true
+
+    print_highlighted_message 'cloudToDeviceMessageSender1 LOGS'
+    docker logs cloudToDeviceMessageSender1 || true
+
+    print_highlighted_message 'cloudToDeviceMessageReceiver1 LOGS'
+    docker logs cloudToDeviceMessageReceiver1 || true
+
+    print_highlighted_message 'cloudToDeviceMessageSender2 LOGS'
+    docker logs cloudToDeviceMessageSender2 || true
+
+    print_highlighted_message 'cloudToDeviceMessageReceiver2 LOGS'
+    docker logs cloudToDeviceMessageReceiver2 || true
+
 
     print_highlighted_message 'networkController LOGS'
     docker logs networkController || true
