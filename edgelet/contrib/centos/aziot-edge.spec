@@ -51,7 +51,7 @@ make \
     unitdir=%{_unitdir} \
     presetdir=%{_presetdir} \
     docdir=%{_docdir}/%{name} \
-    install
+    install-rpm
 
 %clean
 rm -rf $RPM_BUILD_ROOT
