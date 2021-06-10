@@ -135,7 +135,7 @@ deb: release
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
 rpm:
-	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SPECS
+	cp $(srcdir)/contrib/centos/00-aziot-edged.preset $(rpmbuilddir)/SOURCES
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
 	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
@@ -193,7 +193,7 @@ install: release
 	$(GZIP) $(DESTDIR)$(docdir)/ThirdPartyNotices
 
 install-rpm: install
-	$(INSTALL_DATA) -D ../../SOURCES/00-aziot-edged.preset $(DESTDIR)$(presetdir)/00-aziot-edged.preset
+	$(INSTALL_DATA) -D $(rpmbuilddir)/SOURCES/00-aziot-edged.preset $(DESTDIR)$(presetdir)/00-aziot-edged.preset
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/aziot-edged
