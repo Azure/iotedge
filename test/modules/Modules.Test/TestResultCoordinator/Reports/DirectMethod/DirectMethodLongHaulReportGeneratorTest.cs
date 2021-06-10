@@ -173,7 +173,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             bool expectedIsPassed,
             long expectedOk,
             long expectedStatusCodeZero,
-            long expectedStatusCodeNotFound,
+            long expectedDeviceNotFound,
+            long expectedTransientError,
+            long expectedResourceError,
             long expectedOther)
         {
             string senderSource = "senderSource";
@@ -214,7 +216,9 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
-            Assert.Equal(expectedStatusCodeNotFound, report.DeviceNotFound);
+            Assert.Equal(expectedDeviceNotFound, report.DeviceNotFound);
+            Assert.Equal(expectedTransientError, report.TransientError);
+            Assert.Equal(expectedResourceError, report.ResourceError);
             Assert.Equal(expectedOther, report.Other.Sum(x => x.Value));
         }
 
@@ -232,7 +236,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             long expectedStatusCodeZero = (long)x[7];
             long expectedDeviceNotFound = (long)x[8];
             long expectedTransientError = (long)x[9];
-            Dictionary<HttpStatusCode, long> expectedOtherDict = (Dictionary<HttpStatusCode, long>)x[10];
+            long expectedResourceError = (long)x[10];
+            Dictionary<HttpStatusCode, long> expectedOtherDict = (Dictionary<HttpStatusCode, long>)x[11];
 
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
@@ -274,6 +279,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
             Assert.Equal(expectedDeviceNotFound, report.DeviceNotFound);
             Assert.Equal(expectedTransientError, report.TransientError);
+            Assert.Equal(expectedResourceError, report.ResourceError);
             Assert.Equal(expectedOtherDict.Sum(x => x.Value), report.Other.Sum(x => x.Value));
             Assert.Equal(expectedOtherDict[HttpStatusCode.InternalServerError], report.Other[HttpStatusCode.InternalServerError]);
         }
