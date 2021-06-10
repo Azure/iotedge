@@ -33,6 +33,7 @@ man1=$(mandir)/man1
 man8=$(mandir)/man8
 srcdir?=.
 unitdir?=/lib/systemd/system
+presetdir?=/usr/lib/systemd/system-preset
 
 rpmbuilddir?=$(HOME)/rpmbuild
 vendordir?=vendor
@@ -134,6 +135,7 @@ deb: release
 	cd $(TARGET)/$(PACKAGE) && dpkg-buildpackage $(DPKGFLAGS)
 
 rpm:
+	$(INSTALL_DATA) -D $(srcdir)/contrib/centos/00-aziot-edged.preset $(presetdir)/00-aziot-edged.preset
 	$(SED) "s/@version@/${RPM_VERSION}/g; s/@release@/${RPM_RELEASE}/g;" $(srcdir)/contrib/centos/aziot-edge.spec > $(rpmbuilddir)/SPECS/aziot-edge.spec
 	rpmbuild $(RPMBUILDFLAGS) $(rpmbuilddir)/SPECS/aziot-edge.spec
 
