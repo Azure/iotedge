@@ -21,7 +21,7 @@ jobs:
       - template: ../templates/install-dotnet3.yaml
 
       - task: Docker@2
-        displayName: Docker login
+        displayName: Docker login edgebuilds
         inputs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
@@ -197,7 +197,7 @@ jobs:
       vmImage: 'ubuntu-18.04'
     steps:
       - task: Docker@2
-        displayName: Docker login
+        displayName: Docker login edgebuilds
         inputs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
@@ -249,7 +249,7 @@ jobs:
       tags: "['latest']"
     steps:
     - task: Docker@2
-      displayName: Docker login
+      displayName: Docker login edgebuilds
       inputs:
         command: login
         containerRegistry: iotedge-edgebuilds-acr

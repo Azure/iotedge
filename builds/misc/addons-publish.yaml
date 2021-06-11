@@ -23,13 +23,13 @@ jobs:
 
           # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
           - task: Docker@2
-            displayName: Docker login
+            displayName: Docker login edgebuilds
             inputs:
               command: login
               containerRegistry: iotedge-edgebuilds-acr
 
           - task: Docker@2
-            displayName: Docker login
+            displayName: Docker login edgerelease
             inputs:
               command: login
               containerRegistry: iotedge-release-acr,
