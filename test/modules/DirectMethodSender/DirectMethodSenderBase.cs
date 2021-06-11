@@ -53,9 +53,14 @@ namespace DirectMethodSender
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 return new Tuple<HttpStatusCode, ulong>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
-            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is SocketException || e is IotHubCommunicationException)
+            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is IotHubCommunicationException)
             {
                 logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.FailedDependency, this.directMethodCount);
+            }
+            catch (SocketException e)
+            {
+                logger.LogInformation(e, $"Resource exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.ServiceUnavailable, this.directMethodCount);
             }
             catch (UnauthorizedException e)
