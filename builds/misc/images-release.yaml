@@ -20,6 +20,8 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr,
+      # Dotnet 2 needed for codesign
+      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - template: ../templates/dotnet3-globaljson.yaml # use dotnet 3 as primary install for build
       # Build
