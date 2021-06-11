@@ -6,8 +6,10 @@ variables:
   NugetSecurityAnalysisWarningLevel: warn
   
 jobs:
-  - deployment: publishImages
-    displayName: Publish Images
+################################################################################
+  - deployment: publishImagesLinux
+################################################################################
+    displayName: Publish Images Linux
     pool:
       vmImage: ubuntu-18.04
     workspace:
@@ -45,13 +47,58 @@ jobs:
             inputs:
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8'
+################################################################################
+  - deployment: publishImagesWindows
+################################################################################
+    displayName: Publish Images Windows
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+      - Build-Image -equals true
+      - agent-os-name -equals WinPro_x64
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
 
-          - task: Bash@3
-            displayName: 'Publish Metrics Collector - Windows amd64'
+          - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
+            displayName: Docker Login
+
+          - task: PowerShell@2
+            displayName: "Publish Metrics Collector - Windows amd64"
             inputs:
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'
-      
+              arguments: "-FromImage '$(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64' -ToImage '$(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'"
+              filePath: ./scripts/windows/build/Move-Image.ps1
+              targetType: filePath
+################################################################################
+  - deployment: manifest
+################################################################################
+    displayName: Publish Manifest
+    pool:
+      vmImage: ubuntu-18.04
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    dependsOn:
+      - publishImagesLinux
+      - publishImagesWindows
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
+          - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
+            displayName: Docker Login
+
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'
             inputs:

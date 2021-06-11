@@ -91,6 +91,7 @@ jobs:
           Contents: |
             *.deb
             *.rpm
+            *.tar.gz
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: PublishBuildArtifacts@1
         displayName: Publish Artifacts
