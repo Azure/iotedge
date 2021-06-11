@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Runtime.InteropServices;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -161,7 +162,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // Add capabilities to remove
             if (createOptions.HostConfig.CapDrop != null)
             {
-                createOptions.HostConfig.CapDrop.AddRange(capabilitiesToRemove);
+                foreach (String capability in createOptions.HostConfig.CapAdd)
+                {
+                    createOptions.HostConfig.CapDrop.Add(capability);
+                }
             }
             else
             {
