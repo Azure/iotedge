@@ -99,16 +99,6 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ -z ${DOCKER_USERNAME} ]]; then
-        echo "Docker Username Parameter Invalid"
-        print_help_and_exit
-    fi
-
-    if [[ -z ${DOCKER_PASSWORD} ]]; then
-        echo "Docker Password Parameter Invalid"
-        print_help_and_exit
-    fi
-
     if [[ -z ${DOCKER_IMAGEVERSION} ]]; then
         echo "Docker image version not found."
         print_help_and_exit
