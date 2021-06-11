@@ -87,8 +87,11 @@ impl System {
             .expect("hard-coded URI should parse");
         let client = IdentityClient::new(ApiVersion::V2020_09_01, &uri);
 
+        let provisioning_cache =
+            std::path::Path::new("/var/lib/aziot/edged/cache/provisioning_state").to_path_buf();
+
         runtime
-            .block_on(client.reprovision_device())
+            .block_on(client.reprovision_device(provisioning_cache))
             .map_err(|err| {
                 eprintln!("Failed to reprovision: {}", err);
                 Error::from(ErrorKind::System)
