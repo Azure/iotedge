@@ -39,6 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             this.MountSockets(module, createOptions);
             this.InjectNetworkAliases(module, createOptions);
 
+            // Set default capabilities
+            this.SetCapabilities(createOptions);
+
             return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.Digest, combinedConfig.AuthConfig);
         }
 
@@ -137,6 +140,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 && module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
                 SetMountOptions(createOptions, managementUri);
+            }
+        }
+
+        void SetCapabilities(CreateContainerParameters createOptions)
+        {
+            // These capabilities are provided by default and can be used to gain root access: 
+            // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+            HashSet<String> capabilitiesToRemove = new HashSet<string> { "CAP_CHOWN", "CAP_SETUID" };
+
+            // If customer manually adds the capabilites, don't drop them.
+            if (createOptions.HostConfig.CapAdd != null)
+            {
+                foreach (String capability in createOptions.HostConfig.CapAdd)
+                {
+                    capabilitiesToRemove.Remove(capability);
+                }
+            }
+
+            // Add capabilities to remove
+            if (createOptions.HostConfig.CapDrop != null)
+            {
+                createOptions.HostConfig.CapDrop.AddRange(capabilitiesToRemove);
+            }
+            else
+            {
+                createOptions.HostConfig.CapDrop = capabilitiesToRemove.ToList();
             }
         }
     }
