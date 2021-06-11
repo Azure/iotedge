@@ -144,7 +144,7 @@ namespace TestResultCoordinator
             return GetContainerSasUri(container);
         }
 
-        internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, ILogger logger)
+        internal static async Task UploadLogsAsync(string iotHubConnectionString, Uri blobContainerWriteUri, TimeSpan logUploadDuration, ILogger logger)
         {
             Preconditions.CheckNonWhiteSpace(iotHubConnectionString, nameof(iotHubConnectionString));
             Preconditions.CheckNotNull(blobContainerWriteUri, nameof(blobContainerWriteUri));
@@ -156,7 +156,7 @@ namespace TestResultCoordinator
             ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
             CloudToDeviceMethod uploadLogRequest =
                 new CloudToDeviceMethod("UploadModuleLogs")
-                .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+                .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logUploadDuration.ToString()}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
 
             CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
 
