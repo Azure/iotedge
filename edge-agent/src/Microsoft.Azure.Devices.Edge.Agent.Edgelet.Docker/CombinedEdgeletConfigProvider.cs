@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // Add capabilities to remove
             if (createOptions.HostConfig.CapDrop != null)
             {
-                foreach (String capability in createOptions.HostConfig.CapAdd)
+                foreach (String capability in capabilitiesToRemove)
                 {
                     createOptions.HostConfig.CapDrop.Add(capability);
                 }
