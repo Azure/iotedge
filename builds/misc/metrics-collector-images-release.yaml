@@ -19,7 +19,6 @@ jobs:
       - template: ../templates/install-dotnet3.yaml
 
       - bash: |
-            # Need to login to EdgeBuilds Container Registry for base images.
             docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
         displayName: 'Docker Login'
 
@@ -55,7 +54,7 @@ jobs:
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
 
-      - script: echo $(registry.password)|docker login "edgebuilds.azurecr.io" -u "$(registry.user)" --password-stdin
+      - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
         displayName: Docker Login
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
