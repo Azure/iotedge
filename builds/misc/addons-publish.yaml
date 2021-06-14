@@ -32,7 +32,7 @@ jobs:
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr,
+              containerRegistry: iotedge-release-acr
         
           - task: Bash@3
             displayName: 'Publish Api Proxy - Linux amd64'
