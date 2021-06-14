@@ -28,7 +28,7 @@ jobs:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr,
+          containerRegistry: iotedge-release-acr
 
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
@@ -72,7 +72,7 @@ jobs:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr,
+          containerRegistry: iotedge-release-acr
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
@@ -110,6 +110,6 @@ jobs:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr,
+          containerRegistry: iotedge-release-acr
     - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish Metrics Collector Manifest'

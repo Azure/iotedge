@@ -33,7 +33,7 @@ jobs:
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr,
+              containerRegistry: iotedge-release-acr
         
           - task: Bash@3
             displayName: 'Publish Metrics Collector - Linux amd64'
@@ -82,7 +82,7 @@ jobs:
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr,
+              containerRegistry: iotedge-release-acr
 
           - task: PowerShell@2
             displayName: "Publish Metrics Collector - Windows amd64"
@@ -120,7 +120,7 @@ jobs:
             displayName: Docker login edgerelease
             inputs:
               command: login
-              containerRegistry: iotedge-release-acr,
+              containerRegistry: iotedge-release-acr
 
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'

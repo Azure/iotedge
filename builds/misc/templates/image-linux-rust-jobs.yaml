@@ -18,7 +18,7 @@ jobs:
           displayName: Docker login edgebuilds
           inputs:
             command: login
-            containerRegistry: iotedge-edgebuilds-acr,
+            containerRegistry: iotedge-edgebuilds-acr
 
       - script: edgelet/build/linux/install.sh --package-arm
         displayName: Install Rust
