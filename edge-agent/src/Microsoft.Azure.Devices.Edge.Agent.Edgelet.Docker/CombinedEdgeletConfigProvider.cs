@@ -146,14 +146,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
         void SetCapabilities(CreateContainerParameters createOptions)
         {
-            // These capabilities are provided by default and can be used to gain root access: 
+            // These capabilities are provided by default and can be used to gain root access:
             // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
-            HashSet<String> capabilitiesToRemove = new HashSet<string> { "CAP_CHOWN", "CAP_SETUID" };
+            HashSet<string> capabilitiesToRemove = new HashSet<string> { "CAP_CHOWN", "CAP_SETUID" };
 
             // If customer manually adds the capabilites, don't drop them.
             if (createOptions.HostConfig.CapAdd != null)
             {
-                foreach (String capability in createOptions.HostConfig.CapAdd)
+                foreach (string capability in createOptions.HostConfig.CapAdd)
                 {
                     capabilitiesToRemove.Remove(capability);
                 }
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             // Add capabilities to remove
             if (createOptions.HostConfig.CapDrop != null)
             {
-                foreach (String capability in capabilitiesToRemove)
+                foreach (string capability in capabilitiesToRemove)
                 {
                     createOptions.HostConfig.CapDrop.Add(capability);
                 }
