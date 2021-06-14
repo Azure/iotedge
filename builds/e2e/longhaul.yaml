@@ -94,7 +94,7 @@ jobs:
 ################################################################################
   - job: linux_arm32v7_moby_amqp
 ################################################################################
-    displayName: Linux ARM32v7 Moby
+    displayName: Linux ARM32v7 Moby (Amqp Client-Protocol)
     condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
@@ -157,7 +157,7 @@ jobs:
 ################################################################################
   - job: linux_arm32v7_moby_mqtt
 ################################################################################
-    displayName: Linux ARM32v7 Moby
+    displayName: Linux ARM32v7 Moby (Mqtt Client-Protocol)
     condition: eq(variables['run.linux.arm32v7.moby'], 'true')
     pool:
       name: $(pool.name)
@@ -218,7 +218,7 @@ jobs:
 ################################################################################
   - job: linux_arm64v8_docker_amqp
 ################################################################################
-    displayName: Linux ARM64v8 Docker
+    displayName: Linux ARM64v8 Docker (Amqp Client-Protocol)
     condition: eq(variables['run.linux.arm64v8.docker'], 'true')
     pool:
       name: $(pool.name)
@@ -280,7 +280,7 @@ jobs:
 ################################################################################
   - job: linux_arm64v8_docker_mqtt
 ################################################################################
-    displayName: Linux ARM64v8 Docker
+    displayName: Linux ARM64v8 Docker (Mqtt Client-Protocol)
     condition: eq(variables['run.linux.arm64v8.docker'], 'true')
     pool:
       name: $(pool.name)
