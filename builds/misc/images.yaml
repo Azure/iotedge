@@ -229,7 +229,7 @@ jobs:
         displayName: Docker login edgebuilds
         inputs:
           command: login
-          containerRegistry: iotedge-edgebuilds-acr,
+          containerRegistry: iotedge-edgebuilds-acr
 
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
         name: build
