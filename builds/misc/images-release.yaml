@@ -392,10 +392,17 @@ jobs:
         - win-rs5
         - DotNetFramework
     steps: 
-      - script: |
-            docker login $(build.registry.address) -u $(build.registry.user) -p $(build.registry.password)
-            docker login $(registry.address) -u $(registry.user) -p $(registry.password)
-        displayName: 'docker login'
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr,
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr,
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - powershell: "scripts/windows/build/Publish-Branch.ps1 -Configuration:\"$(configuration)\" -PublishTests:$False -UpdateVersion"
