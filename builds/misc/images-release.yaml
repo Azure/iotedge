@@ -19,12 +19,12 @@ jobs:
         displayName: Docker login edgebuilds
         inputs:
           command: login
-          containerRegistry: iotedge-edgebuilds-acr,
+          containerRegistry: iotedge-edgebuilds-acr
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr,
+          containerRegistry: iotedge-release-acr
       # Dotnet 2 needed for codesign
       - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
@@ -344,7 +344,7 @@ jobs:
       displayName: Docker login edgerelease
       inputs:
         command: login
-        containerRegistry: iotedge-release-acr,
+        containerRegistry: iotedge-release-acr
     - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'
       displayName: 'Publish azureiotedge-diagnostics Manifest'
     - script: scripts/linux/buildManifest.sh -r '$(registry.address)' -v '$(version)' -t '$(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template' -n '$(namespace)' --tags '$(tags)'

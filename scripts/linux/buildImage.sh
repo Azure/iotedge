@@ -53,8 +53,6 @@ usage()
     echo " -i, --image-name     Image name (e.g. edge-agent)"
     echo " -P, --project        Project to build image for (e.g. Microsoft.Azure.Devices.Edge.Agent.Service)"
     echo " -r, --registry       Docker registry required to build, tag and run the module"
-    echo " -u, --username       Docker Registry Username"
-    echo " -p, --password       Docker Username's password"
     echo " -n, --namespace      Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -v, --image-version  Docker Image Version. Either use this option or set env variable BUILD_BUILDNUMBER"
     echo " -t, --target-arch    Target architecture (default: uname -m)"

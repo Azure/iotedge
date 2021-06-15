@@ -36,8 +36,6 @@ usage()
     echo ""
     echo "options"
     echo " -r, --registry                 Docker registry required to build, tag and run the module"
-    echo " -u, --username                 Docker Registry Username"
-    echo " -p, --password                 Docker Username's password"
     echo " -n, --namespace                Docker namespace (default: $DEFAULT_DOCKER_NAMESPACE)"
     echo " -i, --image-name               Docker image name (Optional if specified in template yaml)"
     echo " -v, --image-version            Docker Image Version."

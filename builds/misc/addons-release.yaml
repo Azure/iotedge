@@ -35,7 +35,7 @@ jobs:
         displayName: Docker login edgerelease
         inputs:
           command: login
-          containerRegistry: iotedge-release-acr,
+          containerRegistry: iotedge-release-acr
       # Build API Proxy executable
       - template: templates/build-api-proxy.yaml
       # Build API Proxy Image
@@ -70,7 +70,7 @@ jobs:
       displayName: Docker login edgerelease
       inputs:
         command: login
-        containerRegistry: iotedge-release-acr,
+        containerRegistry: iotedge-release-acr
     - bash: |
           if [ -z '$(version)' ]; then
             echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
