@@ -25,11 +25,17 @@ jobs:
             docker buildx use mbuilder
             docker -v
         displayName: 'Set build version'
-      - bash: |
-            # Need to login to EdgeBuilds Container Registry for base images.
-            docker login '$(build.registry.address)' --username '$(build.registry.user)' --password '$(build.registry.password)'
-            docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
-        displayName: 'Docker Login'
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
       # Build API Proxy executable
       - template: templates/build-api-proxy.yaml
       # Build API Proxy Image
@@ -54,6 +60,17 @@ jobs:
     dependsOn:
       - linux_API_proxy_module
     steps:
+    # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+    - task: Docker@2
+      displayName: Docker login edgebuilds
+      inputs:
+        command: login
+        containerRegistry: iotedge-edgebuilds-acr
+    - task: Docker@2
+      displayName: Docker login edgerelease
+      inputs:
+        command: login
+        containerRegistry: iotedge-release-acr
     - bash: |
           if [ -z '$(version)' ]; then
             echo '##vso[task.setvariable variable=buildVersion]$(Build.BuildNumber)'
@@ -61,5 +78,5 @@ jobs:
             echo '##vso[task.setvariable variable=buildVersion]$(version)'
           fi
       displayName: 'Set build version'
-    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(buildVersion) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -v $(buildVersion) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
       displayName: 'Publish azureiotedge-api-proxy Manifest'
