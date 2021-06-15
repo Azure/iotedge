@@ -176,20 +176,32 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
         .unwrap_or_else(HostConfig::new);
     let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
 
+    let home_dir = settings
+        .homedir()
+        .to_str()
+        .ok_or_else(|| ErrorKind::InvalidHomeDirPath)?;
+
+    let workload_uri_listen = settings
+        .listen()
+        .workload_dir_uri(home_dir, settings.agent().name())
+        .map_err(|err| err.context(ErrorKind::InvalidHomeDirPath))?;
+
+    let workload_uri_connect = settings.connect().workload_dir_uri();
+
     // if the url is a domain socket URL then vol mount it into the container
-    for uri in &[
-        settings.connect().management_uri(),
-        settings.connect().workload_uri(),
+    for (source_uri, target_uri) in &[
+        (
+            settings.connect().management_uri(),
+            settings.connect().management_uri(),
+        ),
+        // for workload URI, the source depends on the module name. The target is a folder, vs the mgmt socket which is a socket file
+        (&workload_uri_listen, &workload_uri_connect),
     ] {
-        if uri.scheme() == UNIX_SCHEME {
-            let path = uri
-                .to_uds_file_path()
-                .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
-            let path = path
-                .to_str()
-                .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
-                .to_string();
-            let bind = format!("{}:{}", &path, &path);
+        if target_uri.scheme() == UNIX_SCHEME {
+            let source_path = get_path_from_uri(source_uri)?;
+            let target_path = get_path_from_uri(target_uri)?;
+
+            let bind = format!("{}:{}", &source_path, &target_path);
             if !binds.contains(&bind) {
                 binds.push(bind);
             }
@@ -207,6 +219,16 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     }
 
     Ok(())
+}
+
+fn get_path_from_uri(uri: &&Url) -> Result<String, LoadSettingsError> {
+    let path = uri
+        .to_uds_file_path()
+        .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
+    Ok(path
+        .to_str()
+        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
+        .to_string())
 }
 
 fn agent_env(settings: &mut Settings) {

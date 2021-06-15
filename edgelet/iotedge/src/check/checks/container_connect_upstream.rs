@@ -116,8 +116,8 @@ impl ContainerConnectUpstream {
 
         self.upstream_hostname = Some(upstream_hostname.clone());
 
-        let workload_uri = settings.connect().workload_uri().to_string();
-        let workload_uri_path = settings.connect().workload_uri().path().to_string();
+        let workload_uri = settings.connect().legacy_workload_uri().to_string();
+        let workload_uri_path = settings.connect().legacy_workload_uri().path().to_string();
         let map_volume = format!("{}:{}", workload_uri_path, workload_uri_path);
 
         let network_name = settings.moby_runtime().network().name();

@@ -11,11 +11,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using Microsoft.Extensions.Logging;
     using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
     public class CombinedEdgeletConfigProvider : CombinedDockerConfigProvider
     {
         readonly IConfigSource configSource;
+
+        static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
 
         public CombinedEdgeletConfigProvider(
             IEnumerable<AuthConfig> authConfigs,
@@ -47,12 +50,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 ? JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions))
                 : new CreateContainerParameters();
 
-        static void SetMountOptions(CreateContainerParameters createOptions, Uri uri)
+        static void SetMountOptions(CreateContainerParameters createOptions, Uri uri, Option<Uri> hostPath)
         {
             HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
             IList<string> binds = hostConfig.Binds ?? new List<string>();
-            string path = BindPath(uri);
-            binds.Add($"{path}:{path}");
+            string targetPath = BindPath(uri);
+            string sourcePath = BindPath(hostPath.GetOrElse(uri));
+
+            binds.Add($"{sourcePath}:{targetPath}");
 
             hostConfig.Binds = binds;
             createOptions.HostConfig = hostConfig;
@@ -65,6 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Path.GetDirectoryName(uri.LocalPath)
                 : uri.AbsolutePath;
+        }
+
+        static Uri GetParentUri(Uri uri)
+        {
+            return new Uri(uri.AbsoluteUri.Remove(uri.AbsoluteUri.Length - uri.Segments[uri.Segments.Length -1].Length).TrimEnd('/'));
         }
 
         static void InjectEdgeAgentLabels(IModule module, CreateContainerParameters createOptions)
@@ -125,10 +135,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
         void MountSockets(IModule module, CreateContainerParameters createOptions)
         {
-            var workloadUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
+            var workloadUriString = this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
+            var workloadUri = new Uri(workloadUriString);
+
+
             if (workloadUri.Scheme == "unix")
             {
-                SetMountOptions(createOptions, workloadUri);
+                var workloadUriDir = this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadMntUriVariableName);
+
+                if (workloadUriDir != null)
+                {
+                    var hostPath = Option.Some(new Uri(workloadUriDir + "/" + module.Name));
+                    //If there is a workload directory, the mount the workload socket through the directory, not directly.
+                    var modulePath = GetParentUri(workloadUri);
+                    SetMountOptions(createOptions, modulePath, hostPath);
+                }
+                else
+                {
+                    SetMountOptions(createOptions, workloadUri, Option.None<Uri>());
+                }    
             }
 
             // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it into the container.
@@ -136,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             if (managementUri.Scheme == "unix"
                 && module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
-                SetMountOptions(createOptions, managementUri);
+                SetMountOptions(createOptions, managementUri, Option.None<Uri>());
             }
         }
     }

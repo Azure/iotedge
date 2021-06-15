@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use url::Url;
+use url::{ParseError, Url};
 
 use crate::module::ModuleSpec;
 
@@ -18,8 +18,20 @@ pub struct Connect {
 }
 
 impl Connect {
-    pub fn workload_uri(&self) -> &Url {
+    pub fn legacy_workload_uri(&self) -> &Url {
         &self.workload_uri
+    }
+
+    pub fn workload_dir_uri(&self) -> Url {
+        const DEFAULT_WORKLOAD_DIR_URI: &str = "unix:///var/run/iotedge/mnt";
+
+        Url::parse(DEFAULT_WORKLOAD_DIR_URI).expect("hard-coded url::Url must parse successfully")
+    }
+
+    pub fn workload_socket_uri(&self) -> Url {
+        const DEFAULT_WORKLOAD_DIR_URI: &str = "unix:///var/run/iotedge/mnt/workload.sock";
+
+        Url::parse(DEFAULT_WORKLOAD_DIR_URI).expect("hard-coded url::Url must parse successfully")
     }
 
     pub fn management_uri(&self) -> &Url {
@@ -64,8 +76,20 @@ pub struct Listen {
 }
 
 impl Listen {
-    pub fn workload_uri(&self) -> &Url {
+    pub fn legacy_workload_uri(&self) -> &Url {
         &self.workload_uri
+    }
+
+    pub fn workload_dir_uri(&self, home_dir: &str, module_id: &str) -> Result<Url, ParseError> {
+        Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id))
+    }
+
+    pub fn workload_mnt_uri(&self, home_dir: &str) -> String {
+        "unix://".to_string() + home_dir + "/mnt"
+    }
+
+    pub fn workload_uri(&self, home_dir: &str, module_id: &str) -> Result<Url, ParseError> {
+        Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + "/workload.sock"))
     }
 
     pub fn management_uri(&self) -> &Url {
@@ -369,7 +393,6 @@ pub struct Settings<T> {
     pub endpoints: Endpoints,
 }
 
-// Serde default requires a function: https://github.com/serde-rs/serde/issues/1030
 fn true_func() -> bool {
     true
 }
