@@ -195,6 +195,9 @@
               },
               "EdgeHubRestartFailureTolerance": {
                 "value": "<EdgeHubRestartFailureTolerance>"
+              },
+              "TwinUpdateFailureThreshold": {
+                "value": "<TwinUpdateFailureThreshold>"
               }
             },
             "settings": {
@@ -231,6 +234,9 @@
               },
               "EdgeHubRestartFailureTolerance": {
                 "value": "<EdgeHubRestartFailureTolerance>"
+              },
+              "TwinUpdateFailureThreshold": {
+                "value": "<TwinUpdateFailureThreshold>"
               }
             },
             "settings": {
