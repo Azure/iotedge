@@ -7,8 +7,6 @@ parameters:
   build.repo.path: ''
   edgelet.source.branch: ''
   images.source.branch: ''
-  edgelet.artifact.name: ''
-  images.artifact.name: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -35,25 +33,9 @@ parameters:
   test.useTRC: ''
   test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
+  clientModuleTransportType: ''
 
 steps:
-  - task: CopyFiles@2
-    displayName: 'Copy Edgelet Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
-    displayName: 'Copy Images Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
-  - task: CopyFiles@2
-    displayName: 'Copy aziot-identity-service'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)"
-      Contents: "$(aziotis.package.filter)"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/"
   - task: Bash@3
     displayName: 'Generate device certificates'
     inputs:
@@ -116,6 +98,7 @@ steps:
             -testMode "${{ parameters['test.testMode'] }}" \
             -testName "$testName" \
             -repoPath "${{ parameters['build.repo.path'] }}" \
+            -clientModuleTransportType "${{ parameters['clientModuleTransportType'] }}" \
             -waitForTestComplete \
             -cleanAll
         else

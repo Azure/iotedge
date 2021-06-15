@@ -51,6 +51,7 @@ function usage() {
     echo ' -sendReportFrequency                     Value for long haul specifying how often TRC will send reports to LogAnalytics.'
     echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
     echo " -repoPath                                Path of the checked-out iotedge repository for getting the deployment file."
+    echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
@@ -186,7 +187,7 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
+    sed -i -e "s@<OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.StorageAccountConnectionString>@$STORAGE_ACCOUNT_CONNECTION_STRING@g" "$deployment_working_file"
@@ -217,6 +218,25 @@ function prepare_test_from_artifacts() {
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
         sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
+        sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
+
+        if [ "$image_architecture_label" = 'arm32v7' ] ||
+            [ "$image_architecture_label" = 'arm64v8' ]; then
+            sed -i -e "s@<EdgeAgentMemoryThreshold>@$EDGE_AGENT_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<EdgeHubMemoryThreshold>@$EDGE_HUB_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<LoadGenMemoryThreshold>@$LOAD_GEN_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<RelayerMemoryThreshold>@$RELAYER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<TwinTesterMemoryThreshold>@$TWIN_TESTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<DirectMethodSenderMemoryThreshold>@$DIRECT_METHOD_SENDER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<DirectMethodReceiverMemoryThreshold>@$DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<TrcMemoryThreshold>@$TRC_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<NetworkControllerMemoryThreshold>@$NETWORK_CONTROLLER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<MetricsCollectorMemoryThreshold>@$METRICS_COLLECTOR_MEMORY_THRESHOLD@g" "$deployment_working_file"
+            sed -i -e "s@<ModuleRestarterMemoryThreshold>@$MODULE_RESTARTER_MEMORY_THRESHOLD@g" "$deployment_working_file"
+
+            sed -i -e "s@<EdgeHubMqttEnabled>@$EDGE_HUB_MQTT_ENABLED@g" "$deployment_working_file"
+            sed -i -e "s@<EdgeHubAmqpEnabled>@$EDGE_HUB_AMQP_ENABLED@g" "$deployment_working_file"
+        fi
     fi
 
     if [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
@@ -489,6 +509,9 @@ function process_args() {
         elif [ $saveNextArg -eq 45 ]; then
             REPO_PATH="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 46 ]; then
+            CLIENT_MODULE_TRANSPORT_TYPE="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -537,6 +560,10 @@ function process_args() {
                 '-sendReportFrequency' ) saveNextArg=43;;
                 '-testMode' ) saveNextArg=44;;
                 '-repoPath' ) saveNextArg=45;;
+<<<<<<< HEAD
+                '-clientModuleTransportType' ) saveNextArg=46;;
+=======
+>>>>>>> fc0ba35db57444d1dfdfb01cffab5ae1ac1bee8f
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -566,6 +593,7 @@ function process_args() {
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
     [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
+    [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -847,6 +875,51 @@ function run_longhaul_test() {
     return $ret
 }
 
+function configure_longhaul_settings() {
+    DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
+    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
+    NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
+
+    if [ "$image_architecture_label" = 'amd64' ]; then
+        log_rotation_max_file="125"
+        log_rotation_max_file_edgehub="400"
+    fi
+    if [ "$image_architecture_label" = 'arm32v7' ] ||
+        [ "$image_architecture_label" = 'arm64v8' ]; then
+        log_rotation_max_file="7"
+        log_rotation_max_file_edgehub="30"
+
+        MB_CONSTANT=1000000
+        EDGE_AGENT_MEMORY_THRESHOLD=$((70 * $MB_CONSTANT))
+        EDGE_HUB_MEMORY_THRESHOLD=$((140 * $MB_CONSTANT))
+        LOAD_GEN_MEMORY_THRESHOLD=$((40 * $MB_CONSTANT))
+        RELAYER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
+        TWIN_TESTER_MEMORY_THRESHOLD=$((70 * $MB_CONSTANT))
+        DIRECT_METHOD_SENDER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
+        DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD=$((40 * $MB_CONSTANT))
+        TRC_MEMORY_THRESHOLD=$((180 * $MB_CONSTANT))
+        NETWORK_CONTROLLER_MEMORY_THRESHOLD=$((10 * $MB_CONSTANT))
+        METRICS_COLLECTOR_MEMORY_THRESHOLD=$((55 * $MB_CONSTANT))
+        MODULE_RESTARTER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
+
+        if [ "${CLIENT_MODULE_TRANSPORT_TYPE,,}" = 'amqp' ]; then
+            EDGE_HUB_MQTT_ENABLED="false"
+            EDGE_HUB_AMQP_ENABLED="true"
+        else
+            EDGE_HUB_MQTT_ENABLED="true"
+            EDGE_HUB_AMQP_ENABLED="false"
+        fi
+    fi
+}
+
+function configure_connectivity_settings() {
+    NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
+    TEST_DURATION="${TEST_DURATION:-01:00:00}"
+    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
+
+    TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
+}
+
 LONGHAUL_TEST_NAME="LongHaul"
 CONNECTIVITY_TEST_NAME="Connectivity"
 
@@ -856,6 +929,7 @@ if [ "$is_build_canceled" -eq '1' ]; then
     exit 3
 fi
 
+image_architecture_label=$(get_image_architecture_label)
 process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
@@ -873,13 +947,10 @@ NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
-image_architecture_label=$(get_image_architecture_label)
 
 if [ "$image_architecture_label" = 'amd64' ]; then
     optimize_for_performance=true
     log_upload_enabled=true
-    log_rotation_max_file="125"
-    log_rotation_max_file_edgehub="400"
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:01"
     TWIN_UPDATE_FREQUENCY="00:00:15"
@@ -889,8 +960,6 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
     [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
     log_upload_enabled=false
-    log_rotation_max_file="7"
-    log_rotation_max_file_edgehub="30"
 
     LOADGEN_MESSAGE_FREQUENCY="00:00:10"
     TWIN_UPDATE_FREQUENCY="00:01:00"
@@ -908,17 +977,11 @@ TEST_INFO="$TEST_INFO,NetworkControllerRunsCount=${NETWORK_CONTROLLER_FREQUENCIE
 
 testRet=0
 if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
-    DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
-    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-240}"
-    NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Online}
+    configure_longhaul_settings
 
     run_longhaul_test && testRet=$? || testRet=$?
 elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
-    NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
-    TEST_DURATION="${TEST_DURATION:-01:00:00}"
-    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
-
-    TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
+    configure_connectivity_settings
 
     is_build_canceled=$(is_cancel_build_requested $DEVOPS_ACCESS_TOKEN $DEVOPS_BUILDID)
     if [ "$is_build_canceled" -eq '1' ]; then
