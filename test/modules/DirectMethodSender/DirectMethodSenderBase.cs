@@ -53,10 +53,10 @@ namespace DirectMethodSender
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 return new Tuple<HttpStatusCode, ulong>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
-            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is IotHubCommunicationException)
+            catch (DeviceNotFoundException e)
             {
-                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
-                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.FailedDependency, this.directMethodCount);
+                logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
             }
             catch (SocketException e)
             {
@@ -68,10 +68,10 @@ namespace DirectMethodSender
                 logger.LogInformation(e, $"Unauthorized exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.Unauthorized, this.directMethodCount);
             }
-            catch (DeviceNotFoundException e)
+            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is IotHubCommunicationException)
             {
-                logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
-                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
+                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.FailedDependency, this.directMethodCount);
             }
             catch (Exception e)
             {

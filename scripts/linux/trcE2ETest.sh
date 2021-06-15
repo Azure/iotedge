@@ -560,7 +560,10 @@ function process_args() {
                 '-sendReportFrequency' ) saveNextArg=43;;
                 '-testMode' ) saveNextArg=44;;
                 '-repoPath' ) saveNextArg=45;;
+<<<<<<< HEAD
                 '-clientModuleTransportType' ) saveNextArg=46;;
+=======
+>>>>>>> fc0ba35db57444d1dfdfb01cffab5ae1ac1bee8f
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
