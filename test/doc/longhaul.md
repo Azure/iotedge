@@ -15,7 +15,7 @@ Longhaul tests have the goal of successfully operating all the edge primitives a
 Below I have diagramed some of the specific scenarios.
 
 ## General Scenario
-The general scenario is that one deploys an edge instance with the TestResultCoordinator (TRC) and some amount of dummy modules. The dummy modules will take some action and report to the TRC that it happened. The TRC then uses all the context from the reports to generate a success or failure from that test run.
+The general scenario is that one deploys an edge instance with the TestResultCoordinator (TRC) and some amount of test modules. The test modules will take some action and report to the TRC that it happened. The TRC then uses all the context from the reports to generate a success or failure from that test run.
 
 ![Longhaul General Scenario](./images/LonghaulTest_General.png)
 
