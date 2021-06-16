@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             HashSet<string> capabilitiesToRemove = new HashSet<string> { "CAP_CHOWN", "CAP_SETUID" };
 
             // If customer manually adds the capabilites, don't drop them.
-            if (createOptions.HostConfig.CapAdd != null)
+            if (createOptions.HostConfig?.CapAdd != null)
             {
                 foreach (string capability in createOptions.HostConfig.CapAdd)
                 {
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
 
             // Add capabilities to remove
-            if (createOptions.HostConfig.CapDrop != null)
+            if (createOptions?.HostConfig?.CapDrop != null)
             {
                 foreach (string capability in capabilitiesToRemove)
                 {
@@ -169,7 +169,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             }
             else
             {
-                createOptions.HostConfig.CapDrop = capabilitiesToRemove.ToList();
+                if (createOptions.HostConfig == null)
+                {
+                    createOptions.HostConfig = new HostConfig
+                    {
+                        CapDrop = capabilitiesToRemove.ToList()
+                    };
+                }
+                else
+                {
+                    createOptions.HostConfig.CapDrop = capabilitiesToRemove.ToList();
+                }
             }
         }
     }

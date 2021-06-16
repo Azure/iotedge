@@ -97,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
 
             // Assert
             Assert.NotNull(config.CreateOptions);
-            Assert.Null(config.CreateOptions.HostConfig);
+            Assert.Null(config.CreateOptions.HostConfig.VolumeDriver);
+            Assert.Null(config.CreateOptions.HostConfig.VolumesFrom);
         }
 
         [Fact]
@@ -243,13 +244,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Assert.Equal(
-                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"Devices\":[],\"CapDrop\":[\"CAP_CHOWN\",\"CAP_SETUID\"],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
             else
             {
                 Assert.Equal(
-                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"CapDrop\":[\"CAP_CHOWN\",\"CAP_SETUID\"],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
         }
@@ -293,15 +294,79 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Assert.Equal(
-                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"CapDrop\":[\"CAP_CHOWN\",\"CAP_SETUID\"],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
             else
             {
                 Assert.Equal(
-                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"PortBindings\":{\"8883/tcp\":[{\"HostPort\":\"8883\"}]},\"Devices\":[],\"Runtime\":\"nvidia\",\"CapDrop\":[\"CAP_CHOWN\",\"CAP_SETUID\"],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
                     reserializedHostConfig);
             }
+        }
+
+        [Fact]
+        public void TestOverwriteDefaultCapDrops()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            // capabilities will remain lowercase because there is no backward compatibility issue for those properties supported after 1.0.9
+            var createOptions = new CreateContainerParameters
+            {
+                HostConfig = new HostConfig
+                {
+                    CapAdd = new List<string> { "CAP_CHOWN", "CAP_SETUID" }
+                }
+            };
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", JsonConvert.SerializeObject(createOptions), Option.None<string>()));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "http://localhost:2375/" },
+                    { Constants.EdgeletManagementUriVariableName, "http://localhost:2376/" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.Empty(config.CreateOptions.HostConfig.CapDrop);
+        }
+
+        [Fact]
+        public void TestDefaultCapDrops()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
+            module.SetupGet(m => m.Name).Returns(Constants.EdgeAgentModuleName);
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "http://localhost:2375/" },
+                    { Constants.EdgeletManagementUriVariableName, "http://localhost:2376/" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.Equal(config.CreateOptions.HostConfig.CapDrop, new List<string> { "CAP_CHOWN", "CAP_SETUID" });
         }
 
         static (IDictionary<string, EnvVal>, string) CreateEnv(params (string key, string value)[] pairs)
