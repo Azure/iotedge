@@ -28,7 +28,7 @@
                 "value": "true"
               },
               "RuntimeLogLevel": {
-                "value": "debug"
+                "value": "info"
               }
             },
             "settings": {
@@ -56,7 +56,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFileEdgeHub>\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             }
           }
         },
@@ -195,6 +195,9 @@
               },
               "EdgeHubRestartFailureTolerance": {
                 "value": "<EdgeHubRestartFailureTolerance>"
+              },
+              "TwinUpdateFailureThreshold": {
+                "value": "<TwinUpdateFailureThreshold>"
               }
             },
             "settings": {
@@ -231,6 +234,9 @@
               },
               "EdgeHubRestartFailureTolerance": {
                 "value": "<EdgeHubRestartFailureTolerance>"
+              },
+              "TwinUpdateFailureThreshold": {
+                "value": "<TwinUpdateFailureThreshold>"
               }
             },
             "settings": {
@@ -497,7 +503,7 @@
             "restartPolicy": "always",
             "env": {
               "TEST_SCENARIO": {
-                "value": "InitiateAndRelayReceived"
+                "value": "InitiateAndReceiveRelayed"
               },
               "TRACKING_ID": {
                 "value": "<TrackingId>"
