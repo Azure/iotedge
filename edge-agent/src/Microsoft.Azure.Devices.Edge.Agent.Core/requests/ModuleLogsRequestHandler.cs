@@ -55,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             IEnumerable<Task<ModuleLogsResponse>> uploadLogsTasks = logOptionsList.Select(
                 async l =>
                 {
+                    // BEARWASHERE -- GetModuleLogs
                     byte[] moduleLogs = await this.logsProvider.GetLogs(l.id, l.logOptions, cancellationToken);
 
                     Events.ReceivedModuleLogs(moduleLogs, l.id);
