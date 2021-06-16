@@ -154,9 +154,10 @@ namespace TestResultCoordinator
             logger.LogInformation("Send upload logs request to edgeAgent.");
 
             ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
+            DateTime logStart = DateTime.UtcNow - logUploadDuration;
             CloudToDeviceMethod uploadLogRequest =
                 new CloudToDeviceMethod("UploadModuleLogs")
-                .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logUploadDuration.ToString()}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
+                .SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logStart.ToString("O")}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
 
             CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
 
