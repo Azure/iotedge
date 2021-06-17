@@ -434,8 +434,8 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         // Disallow adding privileged and other capabilities if allow_privileged is false
         if let Some(config) = module.config.create_options.host_config() {
-            if self.allow_privileged
-                && (*config.privileged().unwrap_or(&false) || config.cap_add().is_some())
+            if !self.allow_privileged
+                && (config.privileged() == Some(&true) || config.cap_add().is_some())
             {
                 warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged` to `true` in the config.toml and restart the service.");
                 let mut config = config.clone();
