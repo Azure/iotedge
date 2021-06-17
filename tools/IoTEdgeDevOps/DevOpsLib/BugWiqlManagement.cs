@@ -8,13 +8,13 @@ namespace DevOpsLib
     using Flurl.Http;
     using Newtonsoft.Json.Linq;
 
-    public class BugManagement
+    public class BugWiqlManagement
     {
         const string WorkItemPathSegmentFormat = "{0}/{1}/{2}/{3}/_apis/wit/wiql";
 
         readonly DevOpsAccessSetting accessSetting;
 
-        public BugManagement(DevOpsAccessSetting accessSetting)
+        public BugWiqlManagement(DevOpsAccessSetting accessSetting)
         {
             this.accessSetting = accessSetting;
         }

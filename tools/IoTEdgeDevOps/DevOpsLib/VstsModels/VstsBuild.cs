@@ -9,7 +9,6 @@ namespace DevOpsLib.VstsModels
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsBuild : IEquatable<VstsBuild>
     {
-
         [JsonProperty("id")]
         public String BuildId { get; set; }
 
