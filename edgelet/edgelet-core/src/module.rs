@@ -286,6 +286,7 @@ impl ToString for LogTail {
 pub struct LogOptions {
     follow: bool,
     tail: LogTail,
+    timestamps: bool,
     since: i32,
     until: Option<i32>,
 }
@@ -295,6 +296,7 @@ impl LogOptions {
         LogOptions {
             follow: false,
             tail: LogTail::All,
+            timestamps: false,
             since: 0,
             until: None,
         }
@@ -320,6 +322,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_timestamps(mut self, timestamps: bool) -> Self {
+        self.timestamps = timestamps;
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -334,6 +341,10 @@ impl LogOptions {
 
     pub fn until(&self) -> Option<i32> {
         self.until
+    }
+
+    pub fn timestamps(&self) -> bool {
+        self.timestamps
     }
 }
 

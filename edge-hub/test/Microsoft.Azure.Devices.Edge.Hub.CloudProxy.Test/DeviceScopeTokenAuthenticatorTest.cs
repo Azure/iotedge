@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;

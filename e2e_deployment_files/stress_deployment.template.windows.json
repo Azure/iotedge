@@ -350,7 +350,7 @@
                 }
             },
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+                "image": "<Container_Registry>/microsoft/azureiotedge-test-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
                 "createOptions": ""
             }
           }

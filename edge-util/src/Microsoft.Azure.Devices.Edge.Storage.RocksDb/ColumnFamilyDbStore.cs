@@ -12,11 +12,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     class ColumnFamilyDbStore : IDbStore
     {
         readonly IRocksDb db;
+        private ulong count;
 
         public ColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle)
         {
             this.db = Preconditions.CheckNotNull(db, nameof(db));
             this.Handle = Preconditions.CheckNotNull(handle, nameof(handle));
+
+            var iterator = db.NewIterator(this.Handle);
+            this.count = 0;
+            while (iterator.Valid())
+            {
+                this.count += 1;
+                iterator = iterator.Next();
+            }
         }
 
         internal ColumnFamilyHandle Handle { get; }
@@ -49,20 +58,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return returnValue;
         }
 
-        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        public async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
             Action operation = () => this.db.Put(key, value, this.Handle);
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            this.count += 1;
         }
 
-        public Task Remove(byte[] key, CancellationToken cancellationToken)
+        public async Task Remove(byte[] key, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(key, nameof(key));
+
             Action operation = () => this.db.Remove(key, this.Handle);
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            await operation.ExecuteUntilCancelled(cancellationToken);
+            this.count -= 1;
         }
 
         public async Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
@@ -127,6 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
             return this.IterateBatch(iterator => iterator.SeekToFirst(), batchSize, callback, cancellationToken);
         }
+
+        public Task<ulong> Count() => Task.FromResult(this.count);
 
         public void Dispose()
         {

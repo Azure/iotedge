@@ -402,6 +402,14 @@ where
 
                         tokio_runtime.block_on(reprovision)?;
 
+                        // After reprovisioning, previous module keys may no longer be valid.
+                        // Delete all containers to allow module keys to be updated on the next run.
+                        tokio_runtime
+                            .block_on(runtime.remove_all())
+                            .context(ErrorKind::Initialize(
+                                InitializeErrorReason::RemoveExistingModules,
+                            ))?;
+
                         // Return an error here to let the daemon exit with an error code.
                         // This will make `systemd` restart the daemon which will re-execute the
                         // provisioning flow and if the device has been re-provisioned, the daemon

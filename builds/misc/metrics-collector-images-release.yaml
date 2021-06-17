@@ -1,0 +1,87 @@
+name: $(version)
+trigger: none
+pr: none
+
+variables:
+  NugetSecurityAnalysisWarningLevel: warn
+  Build.Configuration: release
+  
+jobs:
+################################################################################
+  - job: MetricsCollector_Linux
+################################################################################
+    displayName: Metrics Collector Linux Build
+    timeoutInMinutes: 30
+    pool:
+      vmImage: 'ubuntu-18.04'
+    steps:
+      - template: ../templates/install-dotnet2.yaml
+      - template: ../templates/install-dotnet3.yaml
+
+      - bash: |
+            docker login '$(registry.address)' --username '$(registry.user)' --password '$(registry.password)'
+        displayName: 'Docker Login'
+
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+        name: build
+        displayName: Build ($(Build.Configuration))
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-linux'
+
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Collector (customer-facing)
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+
+################################################################################
+  - job: MetricsCollector_Windows
+################################################################################
+    displayName: Metrics Collector Windows Build
+    timeoutInMinutes: 30
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+        - Build-Image -equals true
+        - win-rs5
+    workspace:
+      clean: all
+    steps:
+      - template: ../templates/install-dotnet2.yaml
+      - template: ../templates/install-dotnet3.yaml
+
+      - script: echo $(registry.password)|docker login "$(registry.address)" -u "$(registry.user)" --password-stdin
+        displayName: Docker Login
+
+      - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration:"$(Build.Configuration)" -PublishTests:$False -UpdateVersion
+        name: build
+        displayName: Build ($(Build.Configuration))
+
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish Artifacts'
+        inputs:
+          PathtoPublish: '$(Build.BinariesDirectory)/publish'
+          ArtifactName: 'core-windows'
+
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Metrics Collector (customer-facing)
+          imageName: azureiotedge-metrics-collector
+          project: Microsoft.Azure.Devices.Edge.Azure.Monitor
+
+################################################################################
+  - job: manifest
+################################################################################
+    displayName: Publish Manifest Images
+    pool:
+      vmImage: 'ubuntu-18.04'
+    dependsOn:
+      - MetricsCollector_Linux
+      - MetricsCollector_Windows
+    steps:
+    - script: scripts/linux/buildManifest.sh -r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n microsoft --tags "$(tags)"
+      displayName: 'Publish Metrics Collector Manifest'
