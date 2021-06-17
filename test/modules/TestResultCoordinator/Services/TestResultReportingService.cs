@@ -47,10 +47,10 @@ namespace TestResultCoordinator.Services
                 case TestMode.LongHaul:
                     {
                         // In long haul mode, wait 1 report frequency before starting
-                        this.delayBeforeWork = this.sendReportFrequency;
                         this.sendReportFrequency = Settings.Current.LongHaulSpecificSettings
                             .Expect(() => new ArgumentException("LongHaulSpecificSettings must be supplied."))
                             .SendReportFrequency;
+                        this.delayBeforeWork = this.sendReportFrequency;
                         // Add 10 minute buffer to duration to ensure we capture all logs
                         this.logUploadDuration = Option.Some(this.sendReportFrequency + TimeSpan.FromMinutes(10));
                         break;
