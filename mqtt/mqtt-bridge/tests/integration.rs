@@ -59,13 +59,13 @@ async fn send_message_upstream_downstream() {
     let subs = vec![
         Direction::Out(TopicRule::new(
             "temp/#",
-            Some("to".into()),
-            Some("upstream".into()),
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
             "filter/#",
-            Some("to".into()),
-            Some("downstream".into()),
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -150,8 +150,8 @@ async fn send_message_upstream_downstream() {
 async fn send_message_upstream_with_crash_is_lossless() {
     let subs = vec![Direction::Out(TopicRule::new(
         "temp/#",
-        Some("to".into()),
-        Some("upstream".into()),
+        Some("to/".into()),
+        Some("upstream/".into()),
     ))];
 
     let (mut local_server_handle, _, mut upstream_server_handle, _) =
@@ -308,13 +308,13 @@ async fn bridge_settings_update() {
 
     let subs = vec![TopicRule::new(
         "filter/#",
-        Some("to".into()),
-        Some("downstream".into()),
+        Some("to/".into()),
+        Some("downstream/".into()),
     )];
     let forwards = vec![TopicRule::new(
         "temp/#",
-        Some("to".into()),
-        Some("upstream".into()),
+        Some("to/".into()),
+        Some("upstream/".into()),
     )];
 
     controller_handle
@@ -325,8 +325,9 @@ async fn bridge_settings_update() {
         ))
         .unwrap();
 
+    // TODO expose an event from the bridge controller when update is processed
     // delay to propagate the update
-    tokio::time::delay_for(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     // send upstream
     local_client
@@ -374,13 +375,13 @@ async fn subscribe_to_upstream_rejected_should_retry() {
     let subs = vec![
         Direction::Out(TopicRule::new(
             "temp/#",
-            Some("to".into()),
-            Some("upstream".into()),
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
             "filter/#",
-            Some("to".into()),
-            Some("downstream".into()),
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -423,8 +424,9 @@ async fn subscribe_to_upstream_rejected_should_retry() {
         ))
         .unwrap();
 
+    // TODO expose an event from the command handler when update is processed
     // delay to have authorizer updated
-    tokio::time::delay_for(Duration::from_secs(2)).await;
+    tokio::time::sleep(Duration::from_secs(2)).await;
 
     // send upstream
     upstream_client
@@ -463,13 +465,13 @@ async fn connect_to_upstream_failure_should_retry() {
     let subs = vec![
         Direction::Out(TopicRule::new(
             "temp/#",
-            Some("to".into()),
-            Some("upstream".into()),
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
             "filter/#",
-            Some("to".into()),
-            Some("downstream".into()),
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
     let upstream_tcp_address = "localhost:8801".to_string();
@@ -549,13 +551,13 @@ async fn bridge_forwards_messages_after_restart() {
     let subs = vec![
         Direction::Out(TopicRule::new(
             "temp/#",
-            Some("to".into()),
-            Some("upstream".into()),
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
             "filter/#",
-            Some("to".into()),
-            Some("downstream".into()),
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 
@@ -636,8 +638,9 @@ async fn bridge_forwards_messages_after_restart() {
     )
     .await;
 
+    // TODO expose an event from the bridge controller when all bridges up and running
     // wait until the bridges up and running
-    tokio::time::delay_for(Duration::from_secs(1)).await;
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     // send upstream
     local_client
@@ -682,13 +685,13 @@ async fn recreate_upstream_bridge_when_fails() {
     let subs = vec![
         Direction::Out(TopicRule::new(
             "temp/#",
-            Some("to".into()),
-            Some("upstream".into()),
+            Some("to/".into()),
+            Some("upstream/".into()),
         )),
         Direction::In(TopicRule::new(
             "filter/#",
-            Some("to".into()),
-            Some("downstream".into()),
+            Some("to/".into()),
+            Some("downstream/".into()),
         )),
     ];
 

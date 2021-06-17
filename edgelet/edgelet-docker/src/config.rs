@@ -94,13 +94,23 @@ impl DockerConfig {
 pub const UPSTREAM_PARENT_KEYWORD: &str = "$upstream";
 
 impl NestedEdgeBodge for DockerConfig {
-    fn parent_hostname_resolve_image(&mut self, parent_hostname: &str) {
-        if self.image.starts_with(UPSTREAM_PARENT_KEYWORD) {
-            self.image = format!(
-                "{}{}",
-                parent_hostname,
-                &self.image[UPSTREAM_PARENT_KEYWORD.len()..]
-            );
+    fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
+        if let Some(rest) = self.image.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
+            self.image = format!("{}{}", parent_hostname, rest);
+        }
+
+        let auth = match &self.auth {
+            Some(auth) => auth,
+            _ => return,
+        };
+
+        if let Some(serveraddress) = auth.serveraddress() {
+            if let Some(rest) = serveraddress.strip_prefix(UPSTREAM_PARENT_KEYWORD) {
+                let url = rest.to_string();
+                if let Some(auth) = &mut self.auth {
+                    auth.set_serveraddress(format!("{}{}", parent_hostname, url))
+                }
+            }
         }
     }
 }

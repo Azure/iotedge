@@ -51,6 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged.Version_2018_06_28
             }
         }
 
+        public override Task<string> GetManifestTrustBundleAsync() => Task.FromResult(string.Empty);
+
         public override async Task<string> EncryptAsync(string initializationVector, string plainText)
         {
             var request = new EncryptRequest

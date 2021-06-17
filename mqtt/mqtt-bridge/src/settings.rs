@@ -201,11 +201,7 @@ impl TopicRule {
     pub fn subscribe_to(&self) -> String {
         match &self.in_prefix {
             Some(local) => {
-                if local.is_empty() {
-                    self.topic.clone()
-                } else {
-                    format!("{}/{}", local, self.topic)
-                }
+                format!("{}{}", local, self.topic)
             }
             None => self.topic.clone(),
         }
@@ -306,12 +302,12 @@ where
             ))
         }
     };
-    Ok(NonZeroU64::new(value).ok_or_else(|| {
+    NonZeroU64::new(value).ok_or_else(|| {
         serde::de::Error::custom(format!(
             "Cannot parse numeric value {} into NonZeroU64",
             value
         ))
-    })?)
+    })
 }
 
 fn deserialize_nonzerouusize<'de, D>(deserializer: D) -> Result<NonZeroUsize, D::Error>
@@ -332,10 +328,10 @@ where
             ))
         }
     };
-    Ok(NonZeroUsize::new(value).ok_or_else(|| {
+    NonZeroUsize::new(value).ok_or_else(|| {
         serde::de::Error::custom(format!(
             "Cannot parse numeric value {} into NonZeroUsize",
             value
         ))
-    })?)
+    })
 }

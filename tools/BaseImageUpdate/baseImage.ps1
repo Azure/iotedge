@@ -46,7 +46,7 @@ function Update-ARM-BaseImages
     Setup-BaseImage-Script
 
     # Get all the Dockerfile file location
-    $fileLocale = $(Get-ChildItem -Recurse -Filter "Dockerfile" )
+    $fileLocale = $(Get-ChildItem -Recurse -Filter "Dockerfile" | Where {$_.FullName -notlike "*generic-mqtt-tester*"})
 
     # Replace the underlying ASP .Net Core to the new version
     # Assuming the ARM64 & ARM32 both use the same *-bionic-arm* ASP .Net Core image tag

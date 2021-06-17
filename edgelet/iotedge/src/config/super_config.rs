@@ -4,36 +4,53 @@ use std::collections::BTreeMap;
 
 use url::Url;
 
+use aziotctl_common::config as common_config;
+
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub(super) struct Config {
+pub struct Config {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) trust_bundle_cert: Option<Url>,
+    pub trust_bundle_cert: Option<Url>,
 
     #[serde(default = "edgelet_core::settings::AutoReprovisioningMode::default")]
-    pub(super) auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
+    pub auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,
 
-    #[serde(flatten)]
-    pub(super) aziot: aziotctl_common::config::super_config::Config,
-
-    #[serde(default = "default_agent")]
-    pub(super) agent: edgelet_core::ModuleSpec<edgelet_docker::DockerConfig>,
-
-    #[serde(default)]
-    pub(super) connect: edgelet_core::Connect,
-    #[serde(default)]
-    pub(super) listen: edgelet_core::Listen,
-
-    #[serde(default)]
-    pub(super) watchdog: edgelet_core::WatchdogSettings,
+    /// This property only exists to be able to import IoT Edge 1.1 and earlier's master encryption key
+    /// so that Edge modules that used the workload encrypt/decrypt API can continue to decrypt secrets
+    /// that they encrypted with 1.1.
+    ///
+    /// It has to exist here in the super-config because the super-config is the only way
+    /// that `iotedge config import` can affect the preloaded keys in the final keyd config
+    /// created by `iotedge config apply`, We don't expect users to set this property, or even know about it,
+    /// for clean installs; the only thing that sets it is `iotedge config import` and it's not documented
+    /// in the super-config template.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imported_master_encryption_key: Option<std::path::PathBuf>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) edge_ca: Option<EdgeCa>,
+    pub manifest_trust_bundle_cert: Option<Url>,
+
+    #[serde(flatten)]
+    pub aziot: aziotctl_common::config::super_config::Config,
+
+    #[serde(default = "default_agent")]
+    pub agent: edgelet_core::ModuleSpec<edgelet_docker::DockerConfig>,
 
     #[serde(default)]
-    pub(super) moby_runtime: MobyRuntime,
+    pub connect: edgelet_core::Connect,
+    #[serde(default)]
+    pub listen: edgelet_core::Listen,
+
+    #[serde(default)]
+    pub watchdog: edgelet_core::WatchdogSettings,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub edge_ca: Option<EdgeCa>,
+
+    #[serde(default)]
+    pub moby_runtime: MobyRuntime,
 }
 
-pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig> {
+pub fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::DockerConfig> {
     edgelet_core::ModuleSpec {
         name: "edgeAgent".to_owned(),
         type_: "docker".to_owned(),
@@ -51,8 +68,12 @@ pub(super) fn default_agent() -> edgelet_core::ModuleSpec<edgelet_docker::Docker
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
-pub(super) enum EdgeCa {
-    Explicit {
+pub enum EdgeCa {
+    Issued {
+        #[serde(flatten)]
+        cert: common_config::super_config::CertIssuanceOptions,
+    },
+    Preloaded {
         cert: Url,
         pk: Url,
     },
@@ -62,11 +83,11 @@ pub(super) enum EdgeCa {
 }
 
 #[derive(Debug, serde_derive::Deserialize, serde_derive::Serialize)]
-pub(super) struct MobyRuntime {
-    pub(super) uri: Url,
-    pub(super) network: edgelet_core::MobyNetwork,
+pub struct MobyRuntime {
+    pub uri: Url,
+    pub network: edgelet_core::MobyNetwork,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(super) content_trust: Option<ContentTrust>,
+    pub content_trust: Option<ContentTrust>,
 }
 
 impl Default for MobyRuntime {

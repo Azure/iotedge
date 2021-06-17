@@ -26,6 +26,9 @@
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
@@ -348,9 +351,6 @@
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
-              },
-              "verificationDelay": {
-                "value": "<TestResultCoordinator.VerificationDelay>"
               },
               "sendReportFrequency": {
                 "value": "<SendReportFrequency>"

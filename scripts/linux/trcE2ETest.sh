@@ -9,7 +9,7 @@ function usage() {
     echo "trcE2ETest.sh [options]"
     echo ''
     echo 'options'
-    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -testDir                                 Path of E2E test directory which contains artifacts and certs folders; defaults to current directory.'
     echo ' -releaseLabel                            Release label is used as part of Edge device id to make it unique.'
     echo ' -artifactImageBuildNumber                Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
     echo " -containerRegistry                       Host address of container registry."
@@ -20,7 +20,6 @@ function usage() {
     echo ' -eventHubConsumerGroupId                 Event hub consumer group for receive D2C messages.'
     echo ' -testDuration                            Connectivity test duration'
     echo ' -testStartDelay                          Tests start after delay for applicable modules'
-    echo ' -loadGenMessageFrequency                 Message frequency sent by load gen'
     echo ' -networkControllerFrequency              Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"'
     echo ' -networkControllerRunProfile             Online, Offline, SatelliteGood or Cellular3G'
     echo ' -logAnalyticsWorkspaceId                 Log Analytics Workspace Id'
@@ -42,7 +41,6 @@ function usage() {
     echo ' -testRuntimeLogLevel                     RuntimeLogLevel given to Quickstart, which is given to edgeAgent and edgeHub.'
     echo ' -testInfo                                Contains comma delimiter test information, e.g. build number and id, source branches of build, edgelet and images.'
     echo ' -twinUpdateSize                          Specifies the char count (i.e. size) of each twin update.'
-    echo ' -twinUpdateFrequency                     Frequency to make twin updates. This should be specified in DateTime format.'
     echo ' -edgeHubRestartFailureTolerance          Specifies how close to an edgehub restart desired property callback tests will be ignored. This should be specified in DateTime format. Default is 00:01:00'
     echo " -testName                                Name of test to run. Either 'LongHaul' or 'Connectivity'"
     echo ' -connectManagementUri                    Customize connect management socket'
@@ -189,7 +187,6 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<TestResultCoordinator.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-    sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.logUploadEnabled>@$log_upload_enabled@g" "$deployment_working_file"
@@ -205,6 +202,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
     sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
     sed -i -e "s@<EdgeHubRestartFailureTolerance>@$EDGEHUB_RESTART_FAILURE_TOLERANCE@g" "$deployment_working_file"
+    sed -i -e "s@<DirectMethodFrequency>@$DIRECT_METHOD_FREQUENCY@g" "$deployment_working_file"
 
     sed -i -e "s@<NetworkController.OfflineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[0]}@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@${NETWORK_CONTROLLER_FREQUENCIES[1]}@g" "$deployment_working_file"
@@ -212,11 +210,12 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<TestMode>@$TEST_MODE@g" "$deployment_working_file"
 
+    sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
+
     if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
         sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
-        sed -i -e "s@<LogRotationMaxFile>@$log_rotation_max_file@g" "$deployment_working_file"
     fi
 
     if [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
@@ -224,6 +223,7 @@ function prepare_test_from_artifacts() {
         sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
         sed -i -e "s@<EdgeHubRestartTest.RestartPeriod>@$RESTART_TEST_RESTART_PERIOD@g" "$deployment_working_file"
         sed -i -e "s@<EdgeHubRestartTest.SdkOperationTimeout>@$RESTART_TEST_SDK_OPERATION_TIMEOUT@g" "$deployment_working_file"
+        sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     fi
 }
 
@@ -365,114 +365,108 @@ function process_args() {
             TEST_START_DELAY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 12 ]; then
-            LOADGEN_MESSAGE_FREQUENCY="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 13 ]; then
             NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
-        elif [ $saveNextArg -eq 14 ]; then
+        elif [ $saveNextArg -eq 13 ]; then
             NETWORK_CONTROLLER_RUNPROFILE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 15 ]; then
+        elif [ $saveNextArg -eq 14 ]; then
             LOG_ANALYTICS_WORKSPACEID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 16 ]; then
+        elif [ $saveNextArg -eq 15 ]; then
             LOG_ANALYTICS_SHAREDKEY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 17 ]; then
+        elif [ $saveNextArg -eq 16 ]; then
             LOG_ANALYTICS_LOGTYPE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 18 ]; then
+        elif [ $saveNextArg -eq 17 ]; then
             VERIFICATION_DELAY="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 19 ]; then
+        elif [ $saveNextArg -eq 18 ]; then
             UPSTREAM_PROTOCOL="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 20 ]; then
+        elif [ $saveNextArg -eq 19 ]; then
             DEPLOYMENT_TEST_UPDATE_PERIOD="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 21 ]; then
+        elif [ $saveNextArg -eq 20 ]; then
             TIME_FOR_REPORT_GENERATION="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 22 ]; then
+        elif [ $saveNextArg -eq 21 ]; then
             METRICS_ENDPOINTS_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 23 ]; then
+        elif [ $saveNextArg -eq 22 ]; then
             METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 24 ]; then
+        elif [ $saveNextArg -eq 23 ]; then
             METRICS_UPLOAD_TARGET="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 25 ]; then
+        elif [ $saveNextArg -eq 24 ]; then
             STORAGE_ACCOUNT_CONNECTION_STRING="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 26 ]; then
+        elif [ $saveNextArg -eq 25 ]; then
             DEVOPS_ACCESS_TOKEN="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 27 ]; then
+        elif [ $saveNextArg -eq 26 ]; then
             DEVOPS_BUILDID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 28 ]; then
+        elif [ $saveNextArg -eq 27 ]; then
             DEPLOYMENT_FILE_NAME="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 29 ]; then
+        elif [ $saveNextArg -eq 28 ]; then
             RESTART_TEST_RESTART_PERIOD="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 30 ]; then
+        elif [ $saveNextArg -eq 29 ]; then
             RESTART_TEST_SDK_OPERATION_TIMEOUT="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 31 ]; then
+        elif [ $saveNextArg -eq 30 ]; then
             EDGE_RUNTIME_BUILD_NUMBER="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 32 ]; then
+        elif [ $saveNextArg -eq 31 ]; then
             CUSTOM_EDGE_AGENT_IMAGE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 33 ]; then
+        elif [ $saveNextArg -eq 32 ]; then
             CUSTOM_EDGE_HUB_IMAGE="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 34 ]; then
+        elif [ $saveNextArg -eq 33 ]; then
             TEST_RUNTIME_LOG_LEVEL="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 35 ]; then
+        elif [ $saveNextArg -eq 34 ]; then
             TEST_INFO="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 36 ]; then
+        elif [ $saveNextArg -eq 35 ]; then
             TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 37 ]; then
-            TWIN_UPDATE_FREQUENCY="$arg"
-            saveNextArg=0;
-        elif [ $saveNextArg -eq 38 ]; then
+        elif [ $saveNextArg -eq 36 ]; then
             EDGEHUB_RESTART_FAILURE_TOLERANCE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 39 ]; then
+        elif [ $saveNextArg -eq 37 ]; then
             TEST_NAME="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 40 ]; then
+        elif [ $saveNextArg -eq 38 ]; then
             CONNECT_MANAGEMENT_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 41 ]; then
+        elif [ $saveNextArg -eq 39 ]; then
             CONNECT_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 42 ]; then
+        elif [ $saveNextArg -eq 40 ]; then
             LISTEN_MANAGEMENT_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 43 ]; then
+        elif [ $saveNextArg -eq 41 ]; then
             LISTEN_WORKLOAD_URI="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 44 ]; then
+        elif [ $saveNextArg -eq 42 ]; then
             DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 45 ]; then
+        elif [ $saveNextArg -eq 43 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 46 ]; then
+        elif [ $saveNextArg -eq 44 ]; then
             SEND_REPORT_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 47 ]; then
+        elif [ $saveNextArg -eq 45 ]; then
             TEST_MODE="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 48 ]; then
+        elif [ $saveNextArg -eq 46 ]; then
             REPO_PATH="$arg"
             saveNextArg=0;
         else
@@ -489,43 +483,41 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=9;;
                 '-testDuration' ) saveNextArg=10;;
                 '-testStartDelay' ) saveNextArg=11;;
-                '-loadGenMessageFrequency' ) saveNextArg=12;;
-                '-networkControllerFrequency' ) saveNextArg=13;;
-                '-networkControllerRunProfile' ) saveNextArg=14;;
-                '-logAnalyticsWorkspaceId' ) saveNextArg=15;;
-                '-logAnalyticsSharedKey' ) saveNextArg=16;;
-                '-logAnalyticsLogType' ) saveNextArg=17;;
-                '-verificationDelay' ) saveNextArg=18;;
-                '-upstreamProtocol' ) saveNextArg=19;;
-                '-deploymentTestUpdatePeriod' ) saveNextArg=20;;
-                '-timeForReportingGeneration' ) saveNextArg=21;;
-                '-metricsEndpointsCSV' ) saveNextArg=22;;
-                '-metricsScrapeFrequencyInSecs' ) saveNextArg=23;;
-                '-metricsUploadTarget' ) saveNextArg=24;;
-                '-storageAccountConnectionString' ) saveNextArg=25;;
-                '-devOpsAccessToken' ) saveNextArg=26;;
-                '-devOpsBuildId' ) saveNextArg=27;;
-                '-deploymentFileName' ) saveNextArg=28;;
-                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=29;;
-                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=30;;
-                '-edgeRuntimeBuildNumber' ) saveNextArg=31;;
-                '-customEdgeAgentImage' ) saveNextArg=32;;
-                '-customEdgeHubImage' ) saveNextArg=33;;
-                '-testRuntimeLogLevel' ) saveNextArg=34;;
-                '-testInfo' ) saveNextArg=35;;
-                '-twinUpdateSize' ) saveNextArg=36;;
-                '-twinUpdateFrequency' ) saveNextArg=37;;
-                '-edgeHubRestartFailureTolerance' ) saveNextArg=38;;
-                '-testName' ) saveNextArg=39;;
-                '-connectManagementUri' ) saveNextArg=40;;
-                '-connectWorkloadUri' ) saveNextArg=41;;
-                '-listenManagementUri' ) saveNextArg=42;;
-                '-listenWorkloadUri' ) saveNextArg=43;;
-                '-desiredModulesToRestartCSV' ) saveNextArg=44;;
-                '-restartIntervalInMins' ) saveNextArg=45;;
-                '-sendReportFrequency' ) saveNextArg=46;;
-                '-testMode' ) saveNextArg=47;;
-                '-repoPath' ) saveNextArg=48;;
+                '-networkControllerFrequency' ) saveNextArg=12;;
+                '-networkControllerRunProfile' ) saveNextArg=13;;
+                '-logAnalyticsWorkspaceId' ) saveNextArg=14;;
+                '-logAnalyticsSharedKey' ) saveNextArg=15;;
+                '-logAnalyticsLogType' ) saveNextArg=16;;
+                '-verificationDelay' ) saveNextArg=17;;
+                '-upstreamProtocol' ) saveNextArg=18;;
+                '-deploymentTestUpdatePeriod' ) saveNextArg=19;;
+                '-timeForReportingGeneration' ) saveNextArg=20;;
+                '-metricsEndpointsCSV' ) saveNextArg=21;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=22;;
+                '-metricsUploadTarget' ) saveNextArg=23;;
+                '-storageAccountConnectionString' ) saveNextArg=24;;
+                '-devOpsAccessToken' ) saveNextArg=25;;
+                '-devOpsBuildId' ) saveNextArg=26;;
+                '-deploymentFileName' ) saveNextArg=27;;
+                '-EdgeHubRestartTestRestartPeriod' ) saveNextArg=28;;
+                '-EdgeHubRestartTestSdkOperationTimeout' ) saveNextArg=29;;
+                '-edgeRuntimeBuildNumber' ) saveNextArg=30;;
+                '-customEdgeAgentImage' ) saveNextArg=31;;
+                '-customEdgeHubImage' ) saveNextArg=32;;
+                '-testRuntimeLogLevel' ) saveNextArg=33;;
+                '-testInfo' ) saveNextArg=34;;
+                '-twinUpdateSize' ) saveNextArg=35;;
+                '-edgeHubRestartFailureTolerance' ) saveNextArg=36;;
+                '-testName' ) saveNextArg=37;;
+                '-connectManagementUri' ) saveNextArg=38;;
+                '-connectWorkloadUri' ) saveNextArg=39;;
+                '-listenManagementUri' ) saveNextArg=40;;
+                '-listenWorkloadUri' ) saveNextArg=41;;
+                '-desiredModulesToRestartCSV' ) saveNextArg=42;;
+                '-restartIntervalInMins' ) saveNextArg=43;;
+                '-sendReportFrequency' ) saveNextArg=44;;
+                '-testMode' ) saveNextArg=45;;
+                '-repoPath' ) saveNextArg=46;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -852,27 +844,35 @@ E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 DEPLOYMENT_TEST_UPDATE_PERIOD="${DEPLOYMENT_TEST_UPDATE_PERIOD:-00:03:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 EDGE_RUNTIME_BUILD_NUMBER=${EDGE_RUNTIME_BUILD_NUMBER:-$ARTIFACT_IMAGE_BUILD_NUMBER}
-LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
-VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
 TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
-TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
 EDGEHUB_RESTART_FAILURE_TOLERANCE="${EDGEHUB_RESTART_FAILURE_TOLERANCE:-00:01:00}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
 image_architecture_label=$(get_image_architecture_label)
-optimize_for_performance=true
-log_upload_enabled=true
-log_rotation_max_file="125"
+
+if [ "$image_architecture_label" = 'amd64' ]; then
+    optimize_for_performance=true
+    log_upload_enabled=true
+    log_rotation_max_file="125"
+
+    LOADGEN_MESSAGE_FREQUENCY="00:00:01"
+    TWIN_UPDATE_FREQUENCY="00:00:15"
+    DIRECT_METHOD_FREQUENCY="00:00:10"
+fi
 if [ "$image_architecture_label" = 'arm32v7' ] ||
     [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
     log_upload_enabled=false
     log_rotation_max_file="7"
+
+    LOADGEN_MESSAGE_FREQUENCY="00:00:10"
+    TWIN_UPDATE_FREQUENCY="00:01:00"
+    DIRECT_METHOD_FREQUENCY="00:01:00"
 fi
 
 deployment_working_file="$working_folder/deployment.json"
@@ -894,6 +894,7 @@ if [[ "${TEST_NAME,,}" == "${LONGHAUL_TEST_NAME,,}" ]]; then
 elif [[ "${TEST_NAME,,}" == "${CONNECTIVITY_TEST_NAME,,}" ]]; then
     NETWORK_CONTROLLER_RUNPROFILE=${NETWORK_CONTROLLER_RUNPROFILE:-Offline}
     TEST_DURATION="${TEST_DURATION:-01:00:00}"
+    VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 
     TEST_INFO="$TEST_INFO,TestDuration=${TEST_DURATION}"
 

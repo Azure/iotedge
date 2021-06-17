@@ -26,6 +26,9 @@
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
@@ -358,9 +361,6 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "verificationDelay": {
-                "value": "<TestResultCoordinator.VerificationDelay>"
-              },
               "sendReportFrequency": {
                 "value": "<SendReportFrequency>"
               },
@@ -497,13 +497,13 @@
             "restartPolicy": "always",
             "env": {
               "TEST_SCENARIO": {
-                "value": "Initiate"
+                "value": "InitiateAndReceiveRelayed"
               },
               "TRACKING_ID": {
                 "value": "<TrackingId>"
               },
               "TEST_START_DELAY": {
-                "value": "10s"
+                "value": "120s"
               }
             },
             "settings": {

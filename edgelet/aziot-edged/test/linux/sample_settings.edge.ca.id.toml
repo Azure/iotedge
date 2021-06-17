@@ -4,6 +4,7 @@ homedir = "/tmp"
 edge_ca_cert = "iotedge-test-ca"
 edge_ca_key = "iotedge-test-ca"
 trust_bundle_cert = "aziot-edged-trust-bundle"
+manifest_trust_bundle_cert = "aziot-edged-manifest-trust-bundle"
 
 [agent]
 name = "edgeAgent"

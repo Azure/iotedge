@@ -26,6 +26,9 @@
               },
               "experimentalfeatures__enabled": {
                 "value": "true"
+              },
+              "RuntimeLogLevel": {
+                "value": "debug"
               }
             },
             "settings": {
@@ -255,6 +258,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -309,6 +315,9 @@
               },
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "DirectMethodFrequency": {
+                "value": "<DirectMethodFrequency>"
               }
             },
             "settings": {
@@ -351,9 +360,6 @@
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
-              },
-              "verificationDelay": {
-                "value": "<TestResultCoordinator.VerificationDelay>"
               },
               "sendReportFrequency": {
                 "value": "<SendReportFrequency>"

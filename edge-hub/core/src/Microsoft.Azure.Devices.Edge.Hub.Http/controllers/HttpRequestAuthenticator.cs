@@ -3,35 +3,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Net;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
-    using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Primitives;
-    using Microsoft.Net.Http.Headers;
 
     public class HttpRequestAuthenticator : IHttpRequestAuthenticator
     {
         readonly IAuthenticator authenticator;
         readonly IClientCredentialsFactory identityFactory;
         readonly string iotHubName;
+        readonly IHttpProxiedCertificateExtractor httpProxiedCertificateExtractor;
 
         public HttpRequestAuthenticator(
             IAuthenticator authenticator,
             IClientCredentialsFactory identityFactory,
-            string iotHubName)
+            string iotHubName,
+            IHttpProxiedCertificateExtractor httpProxiedCertificateExtractor)
         {
             this.authenticator = Preconditions.CheckNotNull(authenticator, nameof(authenticator));
             this.identityFactory = Preconditions.CheckNotNull(identityFactory, nameof(identityFactory));
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
+            this.httpProxiedCertificateExtractor = Preconditions.CheckNotNull(httpProxiedCertificateExtractor, nameof(httpProxiedCertificateExtractor));
         }
 
         public async Task<HttpAuthResult> AuthenticateAsync(string actorDeviceId, Option<string> actorModuleId, Option<string> authChain, HttpContext context)
@@ -40,83 +38,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             Preconditions.CheckNotNull(context, nameof(context));
 
             IClientCredentials clientCredentials;
-            X509Certificate2 clientCertificate = await context.Connection.GetClientCertificateAsync();
-
-            if (clientCertificate == null)
+            try
             {
-                // If the connection came through the API proxy, the client cert
-                // would have been forwarded in a custom header. But since TLS
-                // termination occurs at the proxy, we can only trust this custom
-                // header if the request came through port 8080, which an internal
-                // port only accessible within the local Docker vNet.
-                if (context.Connection.LocalPort == Constants.ApiProxyPort)
+                Option<X509Certificate2> clientCertificate = await this.GetClientCertificate(context, actorDeviceId, actorModuleId);
+
+                clientCredentials = clientCertificate.Match(
+                cert =>
                 {
-                    if (context.Request.Headers.TryGetValue(Constants.ClientCertificateHeaderKey, out StringValues clientCertHeader) && clientCertHeader.Count > 0)
-                    {
-                        Events.AuthenticationApiProxy(context.Connection.RemoteIpAddress.ToString());
-
-                        string clientCertString = WebUtility.UrlDecode(clientCertHeader.First());
-
-                        try
-                        {
-                            var clientCertificateBytes = Encoding.UTF8.GetBytes(clientCertString);
-                            clientCertificate = new X509Certificate2(clientCertificateBytes);
-                        }
-                        catch (Exception ex)
-                        {
-                            return new HttpAuthResult(false, Events.AuthenticationFailed($"Invalid client certificate: {ex.Message}"));
-                        }
-                    }
-                }
+                    IList<X509Certificate2> certChain = context.GetClientCertificateChain();
+                    return this.identityFactory.GetWithX509Cert(actorDeviceId, actorModuleId.OrDefault(), string.Empty, cert, certChain, Option.None<string>(), authChain);
+                },
+                () =>
+                {
+                    string authHeader = this.GetAuthHeader(context);
+                    return this.identityFactory.GetWithSasToken(actorDeviceId, actorModuleId.OrDefault(), string.Empty, authHeader, false, Option.None<string>(), authChain);
+                });
             }
-
-            if (clientCertificate != null)
+            catch (AuthenticationException ex)
             {
-                IList<X509Certificate2> certChain = context.GetClientCertificateChain();
-                clientCredentials = this.identityFactory.GetWithX509Cert(actorDeviceId, actorModuleId.OrDefault(), string.Empty, clientCertificate, certChain, Option.None<string>(), authChain);
-            }
-            else
-            {
-                // Authorization header may be present in the QueryNameValuePairs as per Azure standards,
-                // So check in the query parameters first.
-                List<string> authorizationQueryParameters = context.Request.Query
-                    .Where(p => p.Key.Equals(HeaderNames.Authorization, StringComparison.OrdinalIgnoreCase))
-                    .SelectMany(p => p.Value)
-                    .ToList();
-
-                if (!(context.Request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValues)
-                      && authorizationQueryParameters.Count == 0))
-                {
-                    return new HttpAuthResult(false, Events.AuthenticationFailed("Authorization header missing"));
-                }
-                else if (authorizationQueryParameters.Count != 1 && authorizationHeaderValues.Count != 1)
-                {
-                    return new HttpAuthResult(false, Events.AuthenticationFailed("Invalid authorization header count"));
-                }
-
-                string authHeader = authorizationQueryParameters.Count == 1
-                    ? authorizationQueryParameters.First()
-                    : authorizationHeaderValues.First();
-
-                if (!authHeader.StartsWith("SharedAccessSignature", StringComparison.OrdinalIgnoreCase))
-                {
-                    return new HttpAuthResult(false, Events.AuthenticationFailed("Invalid Authorization header. Only SharedAccessSignature is supported."));
-                }
-
-                try
-                {
-                    SharedAccessSignature sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);
-                    if (sharedAccessSignature.IsExpired())
-                    {
-                        return new HttpAuthResult(false, Events.AuthenticationFailed("SharedAccessSignature is expired"));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return new HttpAuthResult(false, Events.AuthenticationFailed($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}"));
-                }
-
-                clientCredentials = this.identityFactory.GetWithSasToken(actorDeviceId, actorModuleId.OrDefault(), string.Empty, authHeader, false, Option.None<string>(), authChain);
+                Events.AuthenticationFailed($"Failed to authenticate - {ex.Message}");
+                return new HttpAuthResult(false, ex.Message);
             }
 
             IIdentity identity = clientCredentials.Identity;
@@ -128,6 +69,43 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             Events.AuthenticationSucceeded(identity);
             return new HttpAuthResult(true, string.Empty);
+        }
+
+        string GetAuthHeader(HttpContext context)
+        {
+            string authHeader = context.GetAuthHeader();
+
+            SharedAccessSignature sharedAccessSignature;
+            try
+            {
+                sharedAccessSignature = SharedAccessSignature.Parse(this.iotHubName, authHeader);
+            }
+            catch (Exception ex)
+            {
+                throw new AuthenticationException($"Cannot parse SharedAccessSignature because of the following error - {ex.Message}", ex);
+            }
+
+            return authHeader;
+        }
+
+        async Task<Option<X509Certificate2>> GetClientCertificate(HttpContext context, string actorDeviceId, Option<string> actorModuleId)
+        {
+            X509Certificate2 clientCertificate = await context.Connection.GetClientCertificateAsync();
+
+            string actorId = actorModuleId.Match(mid => $"{actorDeviceId}/{mid}", () => actorDeviceId);
+            try
+            {
+                if (clientCertificate == null)
+                {
+                    return await this.httpProxiedCertificateExtractor.GetClientCertificate(context);
+                }
+            }
+            catch (Exception e)
+            {
+                throw new AuthenticationException($"Unable to authenticate device with Id {actorId} - {e.Message}", e);
+            }
+
+            return Option.Maybe(clientCertificate);
         }
 
         static class Events
@@ -144,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             public static string AuthenticationFailed(string message)
             {
-                Log.LogWarning((int)EventIds.AuthenticationFailed, $"Http Authentication failed due to following issue - {message}");
+                Log.LogError((int)EventIds.AuthenticationFailed, $"Http Authentication failed due to following issue - {message}");
                 return message;
             }
 
@@ -155,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             public static void AuthenticationApiProxy(string remoteAddress)
             {
-                Log.LogInformation((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
+                Log.LogDebug((int)EventIds.AuthenticationApiProxy, $"Received authentication attempt through ApiProxy for {remoteAddress}");
             }
         }
     }

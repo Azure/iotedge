@@ -54,6 +54,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="hubStart.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="scripts\linux\generate-cert.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

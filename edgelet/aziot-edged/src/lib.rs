@@ -26,24 +26,14 @@ pub mod unix;
 
 use futures::sync::mpsc;
 use identity_client::IdentityClient;
-use std::collections::BTreeMap;
 use std::fs::DirBuilder;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-
-use failure::{Fail, ResultExt};
-use futures::future::Either;
-use futures::sync::oneshot::{self, Receiver};
-use futures::{future, Future, Stream};
-use hyper::server::conn::Http;
-use hyper::{Body, Request};
-use log::{debug, error, info, Level};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use std::{collections::BTreeMap, fs::OpenOptions, io::Read};
 
 use edgelet_core::{
-    crypto::{AZIOT_EDGED_CA_ALIAS, TRUST_BUNDLE_ALIAS},
+    crypto::{AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS},
     settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
@@ -56,6 +46,16 @@ use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
+use failure::{Context, Fail, ResultExt};
+use futures::future::Either;
+use futures::sync::oneshot::{self, Receiver};
+use futures::{future, Future, Stream};
+use hyper::server::conn::Http;
+use hyper::{Body, Request};
+use log::{debug, error, info, Level};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use sha2::{Digest, Sha256};
 
 use crate::watchdog::Watchdog;
 use crate::workload::WorkloadData;
@@ -114,6 +114,9 @@ const API_VERSION_KEY: &str = "IOTEDGE_APIVERSION";
 /// This is the name of the cache subdirectory for settings state
 const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
+/// This is the name of the settings backup file
+const EDGE_PROVISIONING_STATE_FILENAME: &str = "provisioning_state";
+
 // 2 hours
 const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 // 90 days
@@ -128,6 +131,13 @@ const IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS: Duration = Duration::from_secs(5);
 enum StartApiReturnStatus {
     Restart,
     Shutdown,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
+pub struct ProvisioningResult {
+    device_id: String,
+    gateway_host_name: String,
+    hub_name: String,
 }
 
 pub struct Main<M>
@@ -207,7 +217,11 @@ where
                         .and_then(|identity| match identity {
                             aziot_identity_common::Identity::Aziot(spec) => {
                                 debug!("{}:{}", spec.hub_name, spec.device_id.0);
-                                Ok((spec.hub_name, spec.gateway_host, spec.device_id.0))
+                                Ok(ProvisioningResult {
+                                    device_id: spec.device_id.0,
+                                    gateway_host_name: spec.gateway_host,
+                                    hub_name: spec.hub_name,
+                                })
                             }
                             aziot_identity_common::Identity::Local(_) => Err(Error::from(
                                 ErrorKind::Initialize(InitializeErrorReason::InvalidIdentityType),
@@ -216,7 +230,7 @@ where
                 );
 
             match result {
-                Ok((hub, gateway_hostname, device_id)) => {
+                Ok(provisioning_result) => {
                     info!("Finished provisioning edge device.");
 
                     // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
@@ -234,19 +248,22 @@ where
                         ))?;
                     info!("Finished stopping modules.");
 
-                    tokio_runtime
-                        .block_on(runtime.remove_all())
-                        .context(ErrorKind::Initialize(
-                            InitializeErrorReason::RemoveExistingModules,
-                        ))?;
+                    // Detect if the device was changed and if the device needs to be reconfigured
+                    check_device_reconfigure::<M>(
+                        &cache_subdir_path,
+                        EDGE_PROVISIONING_STATE_FILENAME,
+                        &provisioning_result,
+                        &runtime,
+                        &mut tokio_runtime,
+                    )?;
 
                     settings
                         .agent_mut()
-                        .parent_hostname_resolve_image(&gateway_hostname);
+                        .parent_hostname_resolve(&provisioning_result.gateway_host_name);
 
                     let cfg = WorkloadData::new(
-                        hub,
-                        device_id,
+                        provisioning_result.hub_name,
+                        provisioning_result.device_id,
                         settings
                             .edge_ca_cert()
                             .unwrap_or(AZIOT_EDGED_CA_ALIAS)
@@ -259,13 +276,17 @@ where
                             .trust_bundle_cert()
                             .unwrap_or(TRUST_BUNDLE_ALIAS)
                             .to_string(),
+                        settings
+                            .manifest_trust_bundle_cert()
+                            .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
+                            .to_string(),
                         AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
                         AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
                     );
 
                     let (code, should_reprovision) = start_api::<_, _, M>(
                         &settings,
-                        &gateway_hostname,
+                        &provisioning_result.gateway_host_name,
                         &runtime,
                         cfg.clone(),
                         make_shutdown_signal(),
@@ -302,6 +323,117 @@ fn reprovision_device(
     id_mgr
         .reprovision_device()
         .map_err(|err| Error::from(err.context(ErrorKind::ReprovisionFailure)))
+}
+
+fn check_device_reconfigure<M>(
+    subdir: &Path,
+    filename: &str,
+    provisioning_result: &ProvisioningResult,
+    runtime: &M::ModuleRuntime,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(), Error>
+where
+    M: MakeModuleRuntime + 'static,
+{
+    info!("Detecting if device information has changed...");
+    let path = subdir.join(filename);
+
+    let diff = diff_with_cached(provisioning_result, &path);
+    if diff {
+        info!("Change to provisioning state detected.");
+        reconfigure::<M>(
+            subdir,
+            filename,
+            provisioning_result,
+            runtime,
+            tokio_runtime,
+        )?;
+    }
+
+    Ok(())
+}
+
+fn compute_provisioning_result_digest(
+    provisioning_result: &ProvisioningResult,
+) -> Result<String, DiffError> {
+    let s = serde_json::to_string(provisioning_result)?;
+    Ok(base64::encode(&Sha256::digest_str(&s)))
+}
+
+fn diff_with_cached(provisioning_result: &ProvisioningResult, path: &Path) -> bool {
+    fn diff_with_cached_inner(
+        provisioning_result: &ProvisioningResult,
+        path: &Path,
+    ) -> Result<bool, DiffError> {
+        let mut file = OpenOptions::new().read(true).open(path)?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer)?;
+        let encoded = compute_provisioning_result_digest(provisioning_result)?;
+        if encoded == buffer {
+            debug!("Provisioning state matches supplied provisioning result.");
+            Ok(false)
+        } else {
+            Ok(true)
+        }
+    }
+
+    match diff_with_cached_inner(provisioning_result, path) {
+        Ok(result) => result,
+
+        Err(err) => {
+            log_failure(Level::Debug, &err);
+            debug!("Error reading config backup.");
+            true
+        }
+    }
+}
+
+#[derive(Debug, Fail)]
+#[fail(display = "Could not load provisioning result")]
+pub struct DiffError(#[cause] Context<Box<dyn std::fmt::Display + Send + Sync>>);
+
+impl From<std::io::Error> for DiffError {
+    fn from(err: std::io::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+impl From<serde_json::Error> for DiffError {
+    fn from(err: serde_json::Error) -> Self {
+        DiffError(Context::new(Box::new(err)))
+    }
+}
+
+fn reconfigure<M>(
+    subdir: &Path,
+    filename: &str,
+    provisioning_result: &ProvisioningResult,
+    runtime: &M::ModuleRuntime,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(), Error>
+where
+    M: MakeModuleRuntime + 'static,
+{
+    info!("Removing all modules...");
+    tokio_runtime
+        .block_on(runtime.remove_all())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::RemoveExistingModules,
+        ))?;
+    info!("Finished removing modules.");
+
+    let path = subdir.join(filename);
+
+    // store provisioning result
+    let digest = compute_provisioning_result_digest(provisioning_result).context(
+        ErrorKind::Initialize(InitializeErrorReason::SaveProvisioning),
+    )?;
+
+    std::fs::write(path, digest.into_bytes()).context(ErrorKind::Initialize(
+        InitializeErrorReason::SaveProvisioning,
+    ))?;
+
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]

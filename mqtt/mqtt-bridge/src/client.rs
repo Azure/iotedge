@@ -1,10 +1,12 @@
-#![allow(clippy::default_trait_access)] // Needed because mock! macro violates
+// Needed because mock! macro violates
+#![allow(clippy::default_trait_access)]
+
 use core::{convert::TryInto, num::TryFromIntError};
 use std::{fmt::Display, str, time::Duration};
 
 use async_trait::async_trait;
-use mockall::automock;
-use tokio::stream::StreamExt;
+use futures_util::TryStreamExt;
+use mockall::{automock, mock};
 use tracing::{debug, error, info};
 
 use mqtt3::{
@@ -301,12 +303,12 @@ impl PublishHandle {
     }
 }
 
-mockall::mock! {
+mock! {
     pub PublishHandle {
-        async fn publish(&mut self, publication: Publication) -> Result<(), ClientError>;
+        pub async fn publish(&mut self, publication: Publication) -> Result<(), ClientError>;
     }
 
-    pub trait Clone {
+    impl Clone for PublishHandle {
         fn clone(&self) -> Self;
     }
 }
