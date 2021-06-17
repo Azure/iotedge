@@ -13,7 +13,7 @@ use futures::prelude::*;
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
-use log::{debug, info, Level};
+use log::{debug, info, warn, Level};
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -417,7 +417,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
-    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+    fn create(&self, mut module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -429,6 +429,23 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
+
+        // TODO: From config.toml
+        let privleged_allowed = false;
+
+        if let Some(config) = module.config.create_options.host_config() {
+            if privleged_allowed
+                && (*config.privileged().unwrap_or(&false) || config.cap_add().is_some())
+            {
+                warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged` to `true` in the config.toml and restart the service.");
+                let mut config = config.clone();
+
+                config.set_privileged(false);
+                config.reset_cap_add();
+
+                module.config.create_options.set_host_config(config);
+            }
+        }
 
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
