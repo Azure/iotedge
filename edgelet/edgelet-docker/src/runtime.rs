@@ -346,7 +346,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
-                            allow_privileged_docker_containers: settings.base.allow_privileged_docker_containers,
+                            allow_privileged_docker_containers: settings
+                                .base
+                                .allow_privileged_docker_containers,
                         }
                     });
                 future::Either::A(fut)
@@ -432,7 +434,10 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
-        unset_privileged(self.allow_privileged_docker_containers, &mut module.config.create_options);
+        unset_privileged(
+            self.allow_privileged_docker_containers,
+            &mut module.config.create_options,
+        );
         drop_unsafe_privileges(&mut module.config.create_options);
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
@@ -1277,9 +1282,13 @@ fn get_notary_parameters(
 }
 
 // Disallow adding privileged and other capabilities if allow_privileged_docker_containers is false
-fn unset_privileged(allow_privileged_docker_containers: bool, create_options: &mut ContainerCreateBody) {
+fn unset_privileged(
+    allow_privileged_docker_containers: bool,
+    create_options: &mut ContainerCreateBody,
+) {
     if let Some(config) = create_options.host_config() {
-        if !allow_privileged_docker_containers && (config.privileged() == Some(&true) || !config.cap_add().is_empty())
+        if !allow_privileged_docker_containers
+            && (config.privileged() == Some(&true) || !config.cap_add().is_empty())
         {
             warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged_docker_containers` to `true` in the config.toml and restart the service.");
             let mut config = config.clone();
