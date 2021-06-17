@@ -73,6 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             {
                 new ModuleRuntimeInfo(id, "docker", ModuleStatus.Running, string.Empty, 0, Option.None<DateTime>(), Option.None<DateTime>())
             };
+
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetModules(It.IsAny<CancellationToken>()) == Task.FromResult(moduleRuntimeInfoList));
 
             // Act

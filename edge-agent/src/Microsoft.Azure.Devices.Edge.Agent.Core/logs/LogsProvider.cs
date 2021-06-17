@@ -26,10 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
 
-            if (logOptions.ContentType == LogsContentType.Json)
-            {
-                logOptions.Filter.IncludeTimestamp = Option.Some(true);
-            }
+            // BEARWASHERE -- GetLogs
+            // if (logOptions.ContentType == LogsContentType.Json)
+            // {
+            //     logOptions.Filter.IncludeTimestamp = Option.Some(true);
+            // }
 
             Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, logOptions.Filter.IncludeTimestamp, cancellationToken);
             Events.ReceivedStream(id);
