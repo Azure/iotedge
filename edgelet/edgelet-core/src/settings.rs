@@ -360,6 +360,9 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
+
+    #[serde(default)]
+    pub allow_privileged: bool,
 }
 
 impl<T> RuntimeSettings for Settings<T>

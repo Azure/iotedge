@@ -65,6 +65,7 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
+    allow_privileged: bool,
 }
 
 impl DockerModuleRuntime {
@@ -345,6 +346,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
+                            allow_privileged: settings.base.allow_privileged,
                         }
                     });
                 future::Either::A(fut)
@@ -430,11 +432,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
-        // TODO: From config.toml
-        let privleged_allowed = false;
-
         if let Some(config) = module.config.create_options.host_config() {
-            if privleged_allowed
+            if self.allow_privileged
                 && (*config.privileged().unwrap_or(&false) || config.cap_add().is_some())
             {
                 warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged` to `true` in the config.toml and restart the service.");

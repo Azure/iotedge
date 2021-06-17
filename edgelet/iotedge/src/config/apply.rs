@@ -286,6 +286,8 @@ fn execute_inner(
             watchdog,
 
             endpoints: Default::default(),
+
+            allow_privileged: false,
         },
 
         moby_runtime: {
