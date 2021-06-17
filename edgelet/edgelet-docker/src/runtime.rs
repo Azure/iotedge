@@ -432,6 +432,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
+        // Disallow adding privileged and other capabilities if appow_priviliged is false
         if let Some(config) = module.config.create_options.host_config() {
             if self.allow_privileged
                 && (*config.privileged().unwrap_or(&false) || config.cap_add().is_some())
@@ -445,6 +446,27 @@ impl ModuleRuntime for DockerModuleRuntime {
                 module.config.create_options.set_host_config(config);
             }
         }
+
+        // These capabilities are provided by default and can be used to gain root access:
+        // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+        // They must be explicitly enabled
+        let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+        let host_config = if let Some(config) = module.config.create_options.host_config() {
+            // Don't drop if customer specifies explicitly
+            if let Some(cap_adds) = config.cap_add() {
+                caps_to_drop.retain(|cap_drop| !cap_adds.contains(cap_drop))
+            }
+
+            // Add customer specified cap_drops
+            if let Some(cap_drop) = config.cap_drop() {
+                caps_to_drop.extend_from_slice(cap_drop);
+            }
+
+            config.clone().with_cap_drop(caps_to_drop)
+        } else {
+            docker::models::HostConfig::new().with_cap_drop(caps_to_drop)
+        };
+        module.config.create_options.set_host_config(host_config);
 
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
