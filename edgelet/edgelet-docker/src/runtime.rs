@@ -18,7 +18,7 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
     ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
@@ -1312,7 +1312,7 @@ fn drop_unsafe_privileges(create_options: &mut ContainerCreateBody) {
 
         config.clone().with_cap_drop(caps_to_drop)
     } else {
-        docker::models::HostConfig::new().with_cap_drop(caps_to_drop)
+        HostConfig::new().with_cap_drop(caps_to_drop)
     };
 
     create_options.set_host_config(host_config);
@@ -1321,10 +1321,11 @@ fn drop_unsafe_privileges(create_options: &mut ContainerCreateBody) {
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
-        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
-        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
+        authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
+        unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
+        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        ErrorKind, Future, HostConfig, InlineResponse200, LogOptions, MakeModuleRuntime, Module,
+        ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
         SystemResources,
     };
 
@@ -1518,6 +1519,56 @@ mod tests {
         let name = parse_get_response::<Deserializer>(&response);
         assert!(name.is_err());
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
+    }
+
+    #[test]
+    fn unset_privileged_works() {
+        let mut create_options =
+            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+
+        // Doesn't remove privileged
+        unset_privileged(true, &mut create_options);
+        assert!(create_options.host_config().unwrap().privileged().unwrap());
+
+        // Removes privileged
+        unset_privileged(false, &mut create_options);
+        assert!(!create_options.host_config().unwrap().privileged().unwrap());
+
+        create_options.set_host_config(
+            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        );
+
+        // Doesn't remove caps
+        unset_privileged(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_add().unwrap(),
+            vec!["CAP1".to_owned(), "CAP2".to_owned()]
+        );
+
+        // Removes caps
+        unset_privileged(false, &mut create_options);
+        assert!(create_options.host_config().unwrap().cap_add().is_none());
+    }
+
+    #[test]
+    fn drop_unsafe_privileges_works() {
+        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+
+        // Drops privileges by default
+        drop_unsafe_privileges(&mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop().unwrap(),
+            vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
+        );
+
+        // Doesn't drop caps if specified
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        drop_unsafe_privileges(&mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop().unwrap(),
+            vec!["CAP_SETUID".to_owned()]
+        );
     }
 
     #[derive(Clone)]
