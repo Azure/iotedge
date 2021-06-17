@@ -432,7 +432,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
-        // Disallow adding privileged and other capabilities if appow_priviliged is false
+        // Disallow adding privileged and other capabilities if allow_privileged is false
         if let Some(config) = module.config.create_options.host_config() {
             if self.allow_privileged
                 && (*config.privileged().unwrap_or(&false) || config.cap_add().is_some())
@@ -451,6 +451,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
         // They must be explicitly enabled
         let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+        #[allow(clippy::option_if_let_else)] // the suggested `Option::map_or_else` requires cloning `caps_to_drop`.
         let host_config = if let Some(config) = module.config.create_options.host_config() {
             // Don't drop if customer specifies explicitly
             if let Some(cap_adds) = config.cap_add() {
