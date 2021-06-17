@@ -287,7 +287,7 @@ fn execute_inner(
 
             endpoints: Default::default(),
 
-            allow_privileged: false,
+            allow_privileged: true,
         },
 
         moby_runtime: {

@@ -361,8 +361,13 @@ pub struct Settings<T> {
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
 
-    #[serde(default)]
+    #[serde(default = "true_func")]
     pub allow_privileged: bool,
+}
+
+// Serde default requires a function: https://github.com/serde-rs/serde/issues/1030
+fn true_func() -> bool {
+    true
 }
 
 impl<T> RuntimeSettings for Settings<T>
