@@ -432,45 +432,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         let image_with_tag = module.config().image().to_string();
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
-        // Disallow adding privileged and other capabilities if allow_privileged is false
-        if let Some(config) = module.config.create_options.host_config() {
-            if !self.allow_privileged
-                && (config.privileged() == Some(&true) || config.cap_add().is_some())
-            {
-                warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged` to `true` in the config.toml and restart the service.");
-                let mut config = config.clone();
-
-                config.set_privileged(false);
-                config.reset_cap_add();
-
-                module.config.create_options.set_host_config(config);
-            }
-        }
-
-        // These capabilities are provided by default and can be used to gain root access:
-        // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
-        // They must be explicitly enabled
-        let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
-
-        // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
-        #[allow(clippy::option_if_let_else)]
-        let host_config = if let Some(config) = module.config.create_options.host_config() {
-            // Don't drop if customer specifies explicitly
-            if let Some(cap_adds) = config.cap_add() {
-                caps_to_drop.retain(|cap_drop| !cap_adds.contains(cap_drop))
-            }
-
-            // Add customer specified cap_drops
-            if let Some(cap_drop) = config.cap_drop() {
-                caps_to_drop.extend_from_slice(cap_drop);
-            }
-
-            config.clone().with_cap_drop(caps_to_drop)
-        } else {
-            docker::models::HostConfig::new().with_cap_drop(caps_to_drop)
-        };
-        module.config.create_options.set_host_config(host_config);
-
+        unset_privileged(self.allow_privileged, &mut module.config.create_options);
+        drop_unsafe_privileges(&mut module.config.create_options);
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
         {
@@ -1311,6 +1274,48 @@ fn get_notary_parameters(
     let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
 
     Some((notary_auth, gun, tag, config_path.to_path_buf()))
+}
+
+// Disallow adding privileged and other capabilities if allow_privileged is false
+fn unset_privileged(allow_privileged: bool, create_options: &mut ContainerCreateBody) {
+    if let Some(config) = create_options.host_config() {
+        if !allow_privileged && (config.privileged() == Some(&true) || config.cap_add().is_some()) {
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged` to `true` in the config.toml and restart the service.");
+            let mut config = config.clone();
+
+            config.set_privileged(false);
+            config.reset_cap_add();
+
+            create_options.set_host_config(config);
+        }
+    }
+}
+
+fn drop_unsafe_privileges(create_options: &mut ContainerCreateBody) {
+    // These capabilities are provided by default and can be used to gain root access:
+    // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+    // They must be explicitly enabled
+    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+    #[allow(clippy::option_if_let_else)]
+    let host_config = if let Some(config) = create_options.host_config() {
+        // Don't drop if customer specifies explicitly
+        if let Some(cap_adds) = config.cap_add() {
+            caps_to_drop.retain(|cap_drop| !cap_adds.contains(cap_drop))
+        }
+
+        // Add customer specified cap_drops
+        if let Some(cap_drop) = config.cap_drop() {
+            caps_to_drop.extend_from_slice(cap_drop);
+        }
+
+        config.clone().with_cap_drop(caps_to_drop)
+    } else {
+        docker::models::HostConfig::new().with_cap_drop(caps_to_drop)
+    };
+
+    create_options.set_host_config(host_config);
 }
 
 #[cfg(test)]
