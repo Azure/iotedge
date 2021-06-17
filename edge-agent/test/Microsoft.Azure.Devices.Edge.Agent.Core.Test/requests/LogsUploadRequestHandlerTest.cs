@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             }
             else
             {
-                logsProvider.Setup(l => l.GetLogs(id, moduleLogOptions, It.IsAny<CancellationToken>()))
+                logsProvider.Setup(l => l.GetLogs(id, It.IsAny<ModuleLogOptions>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(uploadBytes);
                 logsUploader.Setup(l => l.UploadLogs(sasUrl, id, uploadBytes, contentEncoding, contentType))
                     .Returns(Task.CompletedTask);
@@ -136,21 +136,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
 
             var module1LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var mod1LogBytes = new byte[100];
-            logsProvider.Setup(l => l.GetLogs(mod1, module1LogOptions, It.IsAny<CancellationToken>()))
+            logsProvider.Setup(l => l.GetLogs(mod1, It.IsAny<ModuleLogOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod1LogBytes);
             logsUploader.Setup(l => l.UploadLogs(sasUrl, mod1, mod1LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
             var module2LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var mod2LogBytes = new byte[80];
-            logsProvider.Setup(l => l.GetLogs(mod2, module2LogOptions, It.IsAny<CancellationToken>()))
+            logsProvider.Setup(l => l.GetLogs(mod2, It.IsAny<ModuleLogOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod2LogBytes);
             logsUploader.Setup(l => l.UploadLogs(sasUrl, mod2, mod2LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);
 
             var module3LogOptions = new ModuleLogOptions(contentEncoding, contentType, filter, LogOutputFraming.None, Option.None<LogsOutputGroupingConfig>(), false);
             var mod3LogBytes = new byte[120];
-            logsProvider.Setup(l => l.GetLogs(mod3, module3LogOptions, It.IsAny<CancellationToken>()))
+            logsProvider.Setup(l => l.GetLogs(mod3, It.IsAny<ModuleLogOptions>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(mod3LogBytes);
             logsUploader.Setup(l => l.UploadLogs(sasUrl, mod3, mod3LogBytes, contentEncoding, contentType))
                 .Returns(Task.CompletedTask);

@@ -55,11 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             IEnumerable<Task<ModuleLogsResponse>> uploadLogsTasks = logOptionsList.Select(
                 async l =>
                 {
-                    if (l.logOptions.ContentType == LogsContentType.Json)
-                    {
-                        l.logOptions.Filter.IncludeTimestamp = Option.Some(true);
-                    }
-
                     byte[] moduleLogs = await this.logsProvider.GetLogs(l.id, l.logOptions, cancellationToken);
 
                     Events.ReceivedModuleLogs(moduleLogs, l.id);
