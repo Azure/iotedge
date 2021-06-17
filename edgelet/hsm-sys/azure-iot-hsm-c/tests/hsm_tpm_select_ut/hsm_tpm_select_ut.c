@@ -36,7 +36,6 @@ MOCKABLE_FUNCTION(, const HSM_CLIENT_TPM_INTERFACE*, hsm_client_tpm_store_interf
 // Test defines and data
 //#############################################################################
 static TEST_MUTEX_HANDLE g_testByTest;
-static TEST_MUTEX_HANDLE g_dllByDll;
 
 MU_DEFINE_ENUM_STRINGS(UMOCK_C_ERROR_CODE, UMOCK_C_ERROR_CODE_VALUES)
 
@@ -113,13 +112,12 @@ const HSM_CLIENT_TPM_INTERFACE* test_hook_hsm_client_tpm_interface(void)
 BEGIN_TEST_SUITE(hsm_tpm_select_ut)
     TEST_SUITE_INITIALIZE(TestClassInitialize)
     {
-        TEST_INITIALIZE_MEMORY_DEBUG(g_dllByDll);
         g_testByTest = TEST_MUTEX_CREATE();
         ASSERT_IS_NOT_NULL(g_testByTest);
 
         umock_c_init(test_hook_on_umock_c_error);
 
-        REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_TPM_INTERFACE, void*);
+        REGISTER_UMOCK_ALIAS_TYPE(HSM_CLIENT_TPM_INTERFACE*, void*);
 
         ASSERT_ARE_EQUAL(int, 0, umocktypes_charptr_register_types() );
 
@@ -144,7 +142,6 @@ BEGIN_TEST_SUITE(hsm_tpm_select_ut)
     {
         umock_c_deinit();
         TEST_MUTEX_DESTROY(g_testByTest);
-        TEST_DEINITIALIZE_MEMORY_DEBUG(g_dllByDll);
     }
 
     TEST_FUNCTION_INITIALIZE(TestMethodInitialize)
@@ -170,7 +167,7 @@ BEGIN_TEST_SUITE(hsm_tpm_select_ut)
         int result = hsm_client_tpm_init();
 
         // assert
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
         ASSERT_ARE_EQUAL(char_ptr, umock_c_get_expected_calls(), umock_c_get_actual_calls());
 
         // cleanup
@@ -196,7 +193,7 @@ BEGIN_TEST_SUITE(hsm_tpm_select_ut)
             status = hsm_client_tpm_init();
 
             // assert
-            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
+            ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" MU_TOSTRING(__LINE__));
         }
 
         // cleanup
@@ -207,7 +204,7 @@ BEGIN_TEST_SUITE(hsm_tpm_select_ut)
     {
         // arrange
         int result = hsm_client_tpm_init();
-        ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
+        ASSERT_ARE_EQUAL(int, 0, result, "Line:" MU_TOSTRING(__LINE__));
         setup_callstack_hsm_client_tpm_deinit();
 
         // act
@@ -253,7 +250,7 @@ BEGIN_TEST_SUITE(hsm_tpm_select_ut)
             const HSM_CLIENT_TPM_INTERFACE* result = hsm_client_tpm_interface();
 
             // assert
-            ASSERT_IS_NULL(result, "Line:" TOSTRING(__LINE__));
+            ASSERT_IS_NULL(result, "Line:" MU_TOSTRING(__LINE__));
         }
 
         // cleanup
