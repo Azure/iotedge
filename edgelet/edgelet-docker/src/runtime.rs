@@ -452,7 +452,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         // They must be explicitly enabled
         let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
 
-        #[allow(clippy::option_if_let_else)] // the suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+        // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+        #[allow(clippy::option_if_let_else)]
         let host_config = if let Some(config) = module.config.create_options.host_config() {
             // Don't drop if customer specifies explicitly
             if let Some(cap_adds) = config.cap_add() {
