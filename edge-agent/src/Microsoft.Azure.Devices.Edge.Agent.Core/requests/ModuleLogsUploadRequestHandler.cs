@@ -68,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             if (moduleLogOptions.ContentType == LogsContentType.Json)
             {
-                // BEARWASHERE -- UploadLogs
                 byte[] logBytes = await this.logsProvider.GetLogs(id, moduleLogOptions, token);
                 await this.requestsUploader.UploadLogs(sasUrl, id, logBytes, moduleLogOptions.ContentEncoding, moduleLogOptions.ContentType);
             }

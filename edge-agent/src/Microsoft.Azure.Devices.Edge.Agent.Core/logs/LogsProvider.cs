@@ -26,7 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
 
-            // BEARWASHERE -- GetLogs
             if (logOptions.ContentType == LogsContentType.Json)
             {
                 logOptions.Filter.IncludeTimestamp = Option.Some(true);
