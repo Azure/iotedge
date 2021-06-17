@@ -278,6 +278,8 @@ fn execute_inner(
 
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
+            allow_privileged_docker_containers: true,
+
             agent,
 
             connect,
@@ -286,8 +288,6 @@ fn execute_inner(
             watchdog,
 
             endpoints: Default::default(),
-
-            allow_privileged: true,
         },
 
         moby_runtime: {
