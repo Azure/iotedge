@@ -43,6 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
             return new Kubernetes(KubernetesClientConfiguration.BuildConfigFromConfigFile(path));
         }
 
-        static Command BashCommand(string command) => Cli.Wrap("/bin/bash").WithArguments(new[] {"-c", command});
+        static Command BashCommand(string command) => Cli.Wrap("/bin/bash").WithArguments(new[] { "-c", command });
     }
 }
