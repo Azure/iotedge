@@ -167,6 +167,7 @@ namespace VstsPipelineSync
                 CommandText = "UpsertVstsBuild"
             };
 
+            cmd.Parameters.Add(new SqlParameter("@BuildId", build.BuildId));
             cmd.Parameters.Add(new SqlParameter("@BuildNumber", build.BuildNumber));
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", build.DefinitionId));
             cmd.Parameters.Add(new SqlParameter("@DefinitionName", build.DefinitionId.DisplayName()));
