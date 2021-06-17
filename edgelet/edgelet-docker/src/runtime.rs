@@ -438,7 +438,10 @@ impl ModuleRuntime for DockerModuleRuntime {
             self.allow_privileged_docker_containers,
             &mut module.config.create_options,
         );
-        drop_unsafe_privileges(&mut module.config.create_options);
+        drop_unsafe_privileges(
+            self.allow_privileged_docker_containers,
+            &mut module.config.create_options,
+        );
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
         {
@@ -1301,7 +1304,15 @@ fn unset_privileged(
     }
 }
 
-fn drop_unsafe_privileges(create_options: &mut ContainerCreateBody) {
+fn drop_unsafe_privileges(
+    allow_privileged_docker_containers: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    // Don't change default behavior unless privileged containers are disallowed
+    if allow_privileged_docker_containers {
+        return;
+    }
+
     // These capabilities are provided by default and can be used to gain root access:
     // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
     // They must be explicitly enabled
@@ -1560,8 +1571,15 @@ mod tests {
     fn drop_unsafe_privileges_works() {
         let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
 
-        // Drops privileges by default
-        drop_unsafe_privileges(&mut create_options);
+        // Do nothing if privileged is allowed
+        drop_unsafe_privileges(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &Vec::<String>::new()
+        );
+
+        // Drops privileges by if privileged is false
+        drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
             &vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
@@ -1570,7 +1588,7 @@ mod tests {
         // Doesn't drop caps if specified
         create_options
             .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
-        drop_unsafe_privileges(&mut create_options);
+        drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
             &vec!["CAP_SETUID".to_owned()]
