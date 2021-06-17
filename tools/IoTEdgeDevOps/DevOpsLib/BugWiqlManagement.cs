@@ -26,7 +26,7 @@ namespace DevOpsLib
         /// </summary>
         /// <param name="bugQuery">Bug query object representing vsts shared queries</param>
         /// <returns>Number of bugs output by query</returns>
-        public async Task<int> GetBugsCountAsync(BugQuery bugQuery)
+        public async Task<int> GetBugsCountAsync(BugWiqlQuery bugQuery)
         {
             // TODO: need to think about how to handle unexpected exception during REST API call
             string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team);
