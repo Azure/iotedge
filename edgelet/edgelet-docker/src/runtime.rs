@@ -1279,7 +1279,8 @@ fn get_notary_parameters(
 // Disallow adding privileged and other capabilities if allow_privileged is false
 fn unset_privileged(allow_privileged: bool, create_options: &mut ContainerCreateBody) {
     if let Some(config) = create_options.host_config() {
-        if !allow_privileged && (config.privileged() == Some(&true) || config.cap_add().is_some()) {
+        if !allow_privileged && (config.privileged() == Some(&true) || !config.cap_add().is_empty())
+        {
             warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged` to `true` in the config.toml and restart the service.");
             let mut config = config.clone();
 
@@ -1301,14 +1302,10 @@ fn drop_unsafe_privileges(create_options: &mut ContainerCreateBody) {
     #[allow(clippy::option_if_let_else)]
     let host_config = if let Some(config) = create_options.host_config() {
         // Don't drop if customer specifies explicitly
-        if let Some(cap_adds) = config.cap_add() {
-            caps_to_drop.retain(|cap_drop| !cap_adds.contains(cap_drop))
-        }
+        caps_to_drop.retain(|cap_drop| !config.cap_add().contains(cap_drop));
 
         // Add customer specified cap_drops
-        if let Some(cap_drop) = config.cap_drop() {
-            caps_to_drop.extend_from_slice(cap_drop);
-        }
+        caps_to_drop.extend_from_slice(config.cap_drop());
 
         config.clone().with_cap_drop(caps_to_drop)
     } else {
@@ -1541,13 +1538,13 @@ mod tests {
         // Doesn't remove caps
         unset_privileged(true, &mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_add().unwrap(),
-            vec!["CAP1".to_owned(), "CAP2".to_owned()]
+            create_options.host_config().unwrap().cap_add(),
+            &vec!["CAP1".to_owned(), "CAP2".to_owned()]
         );
 
         // Removes caps
         unset_privileged(false, &mut create_options);
-        assert!(create_options.host_config().unwrap().cap_add().is_none());
+        assert!(create_options.host_config().unwrap().cap_add().is_empty());
     }
 
     #[test]
@@ -1557,8 +1554,8 @@ mod tests {
         // Drops privileges by default
         drop_unsafe_privileges(&mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_drop().unwrap(),
-            vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
+            create_options.host_config().unwrap().cap_drop(),
+            &vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
         );
 
         // Doesn't drop caps if specified
@@ -1566,8 +1563,8 @@ mod tests {
             .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
         drop_unsafe_privileges(&mut create_options);
         assert_eq!(
-            create_options.host_config().unwrap().cap_drop().unwrap(),
-            vec!["CAP_SETUID".to_owned()]
+            create_options.host_config().unwrap().cap_drop(),
+            &vec!["CAP_SETUID".to_owned()]
         );
     }
 
