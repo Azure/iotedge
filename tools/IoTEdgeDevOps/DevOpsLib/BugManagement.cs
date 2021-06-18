@@ -72,6 +72,7 @@ namespace DevOpsLib
                     .PostJsonAsync(jsonBody);
 
                 result = await response.GetJsonAsync<JObject>();
+                Console.WriteLine(result.ToString());
             }
             catch (FlurlHttpException e)
             {

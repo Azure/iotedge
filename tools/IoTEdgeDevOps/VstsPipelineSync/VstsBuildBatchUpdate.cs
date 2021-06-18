@@ -65,7 +65,10 @@ namespace VstsPipelineSync
         async Task OpenBugsForFailingBuilds(BugManagement bugManagement, IList<VstsBuild> builds, string branch, BuildDefinitionId buildDefinitionId)
         {
             // Filter out the builds for which we have already made bugs
+            builds = FilterBuildsByDate(builds);
             builds = FilterBuildsByExistingBugs(builds);
+
+            Console.WriteLine($"Making bugs for {builds.Count} failed builds");
 
             // Create the bugs
             Dictionary<string, string> buildIdToBugId = new Dictionary<string, string>();
@@ -88,7 +91,7 @@ namespace VstsPipelineSync
                 }
             }
 
-            Console.WriteLine($"Created {buildIdToBugId.Count} bugs for {buildDefinitionId.ToString()} on {branch} branch");
+            Console.WriteLine($"Successfully created {buildIdToBugId.Count} bugs for {buildDefinitionId.ToString()} on {branch} branch");
 
             // Add the created bugs to the db for tracking
             SqlConnection sqlConnection = null;
@@ -205,15 +208,32 @@ namespace VstsPipelineSync
 
             cmd.ExecuteNonQuery();
         }
-
-        // We don't expect to call this in a loop so no need to pass in sql connection
         IList<VstsBuild> FilterBuildsByExistingBugs(IList<VstsBuild> builds)
         {
+            IList<VstsBuild> filteredBuilds = new List<VstsBuild>();
             SqlConnection sqlConnection = null;
             try
             {
                 sqlConnection = new SqlConnection(this.dbConnectionString);
                 sqlConnection.Open();
+
+                foreach (VstsBuild build in builds)
+                {
+                    var cmd = new SqlCommand
+                    {
+                        Connection = sqlConnection,
+                        CommandType = CommandType.StoredProcedure,
+                        CommandText = "QueryVstsBugsForMatchingBuild"
+                    };
+
+                    cmd.Parameters.Add(new SqlParameter("@BuildId", build.BuildId));
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+                    if (!reader.HasRows)
+                    {
+                        filteredBuilds.Add(build);
+                    }
+                }
             }
             catch (Exception)
             {
@@ -224,7 +244,23 @@ namespace VstsPipelineSync
                 sqlConnection?.Close();
             }
 
-            return builds;
+            return filteredBuilds;
+        }
+
+        // We don't want to spam making bugs.
+        // Given this logic runs at least every few minutes, only make a bug for builds in the past 1 hour.
+        IList<VstsBuild> FilterBuildsByDate(IList<VstsBuild> builds)
+        {
+            IList<VstsBuild> filteredBuilds = new List<VstsBuild>();
+            foreach (VstsBuild build in builds)
+            {
+                if (build.QueueTime > DateTime.UtcNow - TimeSpan.FromHours(1))
+                {
+                    filteredBuilds.Add(build);
+                }
+            }
+
+            return filteredBuilds;
         }
 
         void UpsertVstsBugCountToDb(SqlConnection sqlConnection, BugWiqlQuery bugQuery, int bugCount)
@@ -233,7 +269,7 @@ namespace VstsPipelineSync
             {
                 Connection = sqlConnection,
                 CommandType = CommandType.StoredProcedure,
-                CommandText = "UpsertVstsBugCount"
+                CommandText = "UpsertVstsBugCounts"
             };
 
             cmd.Parameters.Add(new SqlParameter("@Title", bugQuery.Title));

@@ -1,21 +1,21 @@
 CREATE PROCEDURE [dbo].[UpsertVstsBug]
-    @BugId varchar(20),
-    @BuildId varchar(20)
+    @BuildId varchar(20),
+    @BugId varchar(20)
 AS
     DECLARE @now datetime2;
     SET @now = SYSDATETIME();
 
-    IF EXISTS (SELECT 1 FROM dbo.VstsBug WHERE BugId = @BugId)
+    IF EXISTS (SELECT 1 FROM dbo.VstsBug WHERE BuildId = @BuildId)
     BEGIN
         UPDATE dbo.VstsBug
-        SET BugId = @BugId,
-            BuildId = @BuildId,
+        SET BuildId = @BuildId,
+            BugId = @BugId,
             UpdatedAt = @now
         WHERE BugId = @BugId
     END
     ELSE
     BEGIN
-        INSERT INTO dbo.VstsBug(BugId, BuildId, InsertedAt, UpdatedAt)
+        INSERT INTO dbo.VstsBug(BuildId, BugId, InsertedAt, UpdatedAt)
         VALUES (@BuildId, @BugId, @now, @now)
     END
 GO
