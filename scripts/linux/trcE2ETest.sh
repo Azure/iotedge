@@ -590,7 +590,7 @@ function process_args() {
     [[ -z "$TEST_INFO" ]] && { print_error 'Test info is required'; exit 1; }
     [[ -z "$REPO_PATH" ]] && { print_error 'Repo path is required'; exit 1; }
     [[ (-z "${TEST_NAME,,}") || ("${TEST_NAME,,}" != "${LONGHAUL_TEST_NAME,,}" && "${TEST_NAME,,}" != "${CONNECTIVITY_TEST_NAME,,}") ]] && { print_error 'Invalid test name'; exit 1; }
-    [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
+    [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7" || "${image_architecture_label,,}" == "arm64v8") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
 
     echo 'Required parameters are provided'
 }
