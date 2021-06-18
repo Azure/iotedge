@@ -67,8 +67,7 @@ namespace VstsPipelineSync
             // Filter out the builds for which we have already made bugs
             builds = FilterBuildsByDate(builds);
             builds = FilterBuildsByExistingBugs(builds);
-
-            Console.WriteLine($"Making bugs for {builds.Count} failed builds");
+            Console.WriteLine($"Filtering builds. {builds.Count} left for bug analysis after filtering");
 
             // Create the bugs
             Dictionary<string, string> buildIdToBugId = new Dictionary<string, string>();
@@ -89,6 +88,11 @@ namespace VstsPipelineSync
 
                     Console.ReadLine();
                 }
+            }
+
+            if (buildIdToBugId.Count == 0)
+            {
+                return;
             }
 
             Console.WriteLine($"Successfully created {buildIdToBugId.Count} bugs for {buildDefinitionId.ToString()} on {branch} branch");
@@ -233,6 +237,8 @@ namespace VstsPipelineSync
                     {
                         filteredBuilds.Add(build);
                     }
+
+                    reader.Close();
                 }
             }
             catch (Exception)
