@@ -642,6 +642,27 @@
               "image": "$upstream:443/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
+          },
+          "genericMqttTester": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TEST_SCENARIO": {
+                "value": "InitiateAndReceiveRelayed"
+              },
+              "TRACKING_ID": {
+                "value": "<TrackingId>"
+              },
+              "TEST_START_DELAY": {
+                "value": "120s"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+            }
           }
         }
       }
