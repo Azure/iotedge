@@ -31,6 +31,7 @@
 
 ### Features
 * Enable aziot-edged in CentOS package. ( [0539cdb](https://github.com/Azure/iotedge/commit/0539cdb31f4e6f53c20245cf3290b4095dd50435) )
+* Update IoT Identity Service to version 1.2.1 ( [572de56](https://github.com/Azure/iotedge/commit/572de564ed48f43492d589d63c8bf3d43cd2160c) )
 
 
 # 1.2.1 (2021-06-01)
