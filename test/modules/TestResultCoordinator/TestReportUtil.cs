@@ -161,13 +161,11 @@ namespace TestResultCoordinator
             (TimeSpan logUploadDuration) =>
             {
                 DateTime logStart = DateTime.UtcNow - logUploadDuration;
-                uploadLogRequest = uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logStart.ToString("O")}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
-                return uploadLogRequest;
+                return uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{\"since\": \"{logStart.ToString("O")}\"}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
             },
             () =>
             {
-                uploadLogRequest = uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
-                return uploadLogRequest;
+                return uploadLogRequest.SetPayloadJson($"{{ \"schemaVersion\": \"1.0\", \"sasUrl\": \"{blobContainerWriteUri.AbsoluteUri}\", \"items\": [{{ \"id\": \".*\", \"filter\": {{}} }}], \"encoding\": \"gzip\", \"contentType\": \"json\" }}");
             });
 
             CloudToDeviceMethodResult uploadLogResponse = await serviceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", uploadLogRequest);
