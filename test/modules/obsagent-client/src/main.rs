@@ -18,10 +18,13 @@
 
 use std::error::Error;
 
+use futures::future::join_all;
 use tracing::{info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
-use obsagent_client::{config, otel_client};
+use obsagent_client::config;
+#[cfg(feature = "otel")]
+use obsagent_client::otel_client;
 
 fn init_logging() {
     let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
@@ -37,5 +40,13 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         config
     );
 
-    otel_client::run(config).await
+    let mut futures_vec = Vec::new();
+
+    #[cfg(feature = "otel")]
+    futures_vec.push(otel_client::run(config));
+
+
+    join_all(futures_vec).await;
+
+    Ok(())
 }
