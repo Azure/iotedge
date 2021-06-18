@@ -57,8 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
 
-        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, Option<string> until, CancellationToken cancellationToken) =>
-            this.inner.GetModuleLogs(name, follow, tail, since, until, cancellationToken);
+        public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<string> since, Option<string> until, Option<bool> includeTimestamp, CancellationToken cancellationToken) =>
+            this.inner.GetModuleLogs(name, follow, tail, since, until, includeTimestamp, cancellationToken);
 
         public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
             this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token);
