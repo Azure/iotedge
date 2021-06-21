@@ -1291,10 +1291,11 @@ fn unset_privileged(
     allow_privileged_docker_containers: bool,
     create_options: &mut ContainerCreateBody,
 ) {
+    if allow_privileged_docker_containers {
+        return;
+    }
     if let Some(config) = create_options.host_config() {
-        if !allow_privileged_docker_containers
-            && (config.privileged() == Some(&true) || !config.cap_add().is_empty())
-        {
+        if config.privileged() == Some(&true) || !config.cap_add().is_empty() {
             warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged_docker_containers` to `true` in the config.toml and restart the service.");
             let mut config = config.clone();
 
@@ -1323,7 +1324,7 @@ fn drop_unsafe_privileges(
     // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
     #[allow(clippy::option_if_let_else)]
     let host_config = if let Some(config) = create_options.host_config() {
-        // Don't drop if customer specifies explicitly
+        // Don't drop caps that the user added explicitly
         caps_to_drop.retain(|cap_drop| !config.cap_add().contains(cap_drop));
 
         // Add customer specified cap_drops
