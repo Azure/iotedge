@@ -80,7 +80,7 @@ namespace DevOpsLib
             Url requestUri = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("definitions", string.Join(",", buildDefinitionIds.Select(b => b.IdString())))
-                .SetQueryParam("queryOrder", "finishTimeDescending")                
+                .SetQueryParam("queryOrder", "finishTimeDescending")
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("branchName", branchName);
 
