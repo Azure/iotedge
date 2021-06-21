@@ -33,6 +33,8 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
+        allow_privileged_docker_containers: None,
+
         trust_bundle_cert: None,
 
         auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
