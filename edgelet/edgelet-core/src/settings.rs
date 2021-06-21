@@ -348,7 +348,7 @@ pub struct Settings<T> {
     pub homedir: PathBuf,
 
     #[serde(default = "true_func")]
-    pub allow_privileged_docker_containers: bool,
+    pub allow_elevated_docker_permissions: bool,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<String>,

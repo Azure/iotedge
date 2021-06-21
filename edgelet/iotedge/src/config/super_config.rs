@@ -12,7 +12,7 @@ pub struct Config {
     pub trust_bundle_cert: Option<Url>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allow_privileged_docker_containers: Option<bool>,
+    pub allow_elevated_docker_permissions: Option<bool>,
 
     #[serde(default = "edgelet_core::settings::AutoReprovisioningMode::default")]
     pub auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode,

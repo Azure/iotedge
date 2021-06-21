@@ -177,7 +177,7 @@ fn execute_inner(
 
     let super_config::Config {
         trust_bundle_cert,
-        allow_privileged_docker_containers,
+        allow_elevated_docker_permissions,
         auto_reprovisioning_mode,
         imported_master_encryption_key,
         manifest_trust_bundle_cert,
@@ -407,7 +407,7 @@ fn execute_inner(
 
             homedir: AZIOT_EDGED_HOMEDIR_PATH.into(),
 
-            allow_privileged_docker_containers: allow_privileged_docker_containers.unwrap_or(true),
+            allow_elevated_docker_permissions: allow_elevated_docker_permissions.unwrap_or(true),
 
             agent,
 

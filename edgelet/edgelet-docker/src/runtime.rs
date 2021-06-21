@@ -65,7 +65,7 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
-    allow_privileged_docker_containers: bool,
+    allow_elevated_docker_permissions: bool,
 }
 
 impl DockerModuleRuntime {
@@ -347,9 +347,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             notary_registries,
                             notary_lock,
-                            allow_privileged_docker_containers: settings
+                            allow_elevated_docker_permissions: settings
                                 .base
-                                .allow_privileged_docker_containers,
+                                .allow_elevated_docker_permissions,
                         }
                     });
                 future::Either::A(fut)
@@ -436,11 +436,11 @@ impl ModuleRuntime for DockerModuleRuntime {
         let digest_from_manifest = module.config().digest().map(&str::to_owned);
 
         unset_privileged(
-            self.allow_privileged_docker_containers,
+            self.allow_elevated_docker_permissions,
             &mut module.config.create_options,
         );
         drop_unsafe_privileges(
-            self.allow_privileged_docker_containers,
+            self.allow_elevated_docker_permissions,
             &mut module.config.create_options,
         );
         let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
@@ -1286,17 +1286,17 @@ fn get_notary_parameters(
     Some((notary_auth, gun, tag, config_path.to_path_buf()))
 }
 
-// Disallow adding privileged and other capabilities if allow_privileged_docker_containers is false
+// Disallow adding privileged and other capabilities if allow_elevated_docker_permissions is false
 fn unset_privileged(
-    allow_privileged_docker_containers: bool,
+    allow_elevated_docker_permissions: bool,
     create_options: &mut ContainerCreateBody,
 ) {
-    if allow_privileged_docker_containers {
+    if allow_elevated_docker_permissions {
         return;
     }
     if let Some(config) = create_options.host_config() {
         if config.privileged() == Some(&true) || !config.cap_add().is_empty() {
-            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_privileged_docker_containers` to `true` in the config.toml and restart the service.");
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
             let mut config = config.clone();
 
             config.set_privileged(false);
@@ -1308,11 +1308,11 @@ fn unset_privileged(
 }
 
 fn drop_unsafe_privileges(
-    allow_privileged_docker_containers: bool,
+    allow_elevated_docker_permissions: bool,
     create_options: &mut ContainerCreateBody,
 ) {
     // Don't change default behavior unless privileged containers are disallowed
-    if allow_privileged_docker_containers {
+    if allow_elevated_docker_permissions {
         return;
     }
 
