@@ -519,7 +519,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#e699e410f0163dc208e36f627768ca368e0f4fdf"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#6accb4a869e5c4c25f39a56d8c17ce9c6a651ba9"
 dependencies = [
  "async-trait",
  "base64",
