@@ -16,7 +16,7 @@ steps:
   displayName: Check for Docker
 
 - task: Docker@2
-  displayName: Docker login
+  displayName: Docker login edgebuilds
   condition: and(succeeded(), ne(variables['hasDocker'], 'No'))
   inputs:
     command: login
