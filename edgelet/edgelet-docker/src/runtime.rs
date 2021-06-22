@@ -11,13 +11,13 @@ use edgelet_core::module::ModuleAction;
 use failure::ResultExt;
 use futures::{stream, StreamExt};
 use hyper::{Body, Client, Uri};
-use log::{debug, error, info, Level};
+use log::{debug, error, info, warn, Level};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
 use tokio::sync::Mutex;
 use url::Url;
 
 use docker::apis::{Configuration, DockerApi, DockerApiClient};
-use docker::models::{ContainerCreateBody, InlineResponse2001, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, HostConfig, InlineResponse2001, Ipam, NetworkConfig};
 use edgelet_core::{
     DiskInfo, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
@@ -49,6 +49,7 @@ pub struct DockerModuleRuntime {
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
     create_socket_channel: UnboundedSender<ModuleAction>,
+    allow_elevated_docker_permissions: bool,
 }
 
 impl DockerModuleRuntime {
@@ -286,6 +287,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             notary_registries,
             notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
             create_socket_channel,
+            allow_elevated_docker_permissions: settings.allow_elevated_docker_permissions(),
         };
 
         Ok(runtime)
@@ -396,7 +398,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Module = DockerModule;
     type ModuleRegistry = Self;
 
-    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
+    async fn create(&self, mut module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -405,6 +407,15 @@ impl ModuleRuntime for DockerModuleRuntime {
                 module.r#type().to_string(),
             )));
         }
+
+        unset_privileged(
+            self.allow_elevated_docker_permissions,
+            &mut module.config_mut().create_options_mut(),
+        );
+        drop_unsafe_privileges(
+            self.allow_elevated_docker_permissions,
+            &mut module.config_mut().create_options_mut(),
+        );
 
         let (image, is_content_trust_enabled) =
             self.check_for_notary_image(module.config()).await?;
@@ -476,10 +487,14 @@ impl ModuleRuntime for DockerModuleRuntime {
                 ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
             })?
             .to_owned();
-        let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
-            .map_err(|_| {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
-            })?;
+        let config = DockerConfig::new(
+            name.clone(),
+            ContainerCreateBody::new(),
+            None,
+            None,
+            self.allow_elevated_docker_permissions,
+        )
+        .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string())))?;
         let module = DockerModule::new(self.client.clone(), name, config).with_context(|_| {
             ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_string()))
         })?;
@@ -779,6 +794,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                     ),
                     None,
                     None,
+                    self.allow_elevated_docker_permissions,
                 )
                 .map(|config| {
                     (
@@ -924,6 +940,58 @@ where
         .collect();
 
     pids
+}
+
+// Disallow adding privileged and other capabilities if allow_elevated_docker_permissions is false
+fn unset_privileged(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    if allow_elevated_docker_permissions {
+        return;
+    }
+    if let Some(config) = create_options.host_config() {
+        if config.privileged() == Some(&true) || !config.cap_add().is_empty() {
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            let mut config = config.clone();
+
+            config.set_privileged(false);
+            config.reset_cap_add();
+
+            create_options.set_host_config(config);
+        }
+    }
+}
+
+fn drop_unsafe_privileges(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    // Don't change default behavior unless privileged containers are disallowed
+    if allow_elevated_docker_permissions {
+        return;
+    }
+
+    // These capabilities are provided by default and can be used to gain root access:
+    // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+    // They must be explicitly enabled
+    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+    #[allow(clippy::option_if_let_else)]
+    let host_config = if let Some(config) = create_options.host_config() {
+        // Don't drop caps that the user added explicitly
+        caps_to_drop.retain(|cap_drop| !config.cap_add().contains(cap_drop));
+
+        // Add customer specified cap_drops
+        caps_to_drop.extend_from_slice(config.cap_drop());
+
+        config.clone().with_cap_drop(caps_to_drop)
+    } else {
+        HostConfig::new().with_cap_drop(caps_to_drop)
+    };
+
+    create_options.set_host_config(host_config);
 }
 
 #[cfg(test)]
