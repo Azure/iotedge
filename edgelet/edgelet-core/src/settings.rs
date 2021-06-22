@@ -735,6 +735,7 @@ pub trait RuntimeSettings {
     fn agent(&self) -> &ModuleSpec<Self::Config>;
     fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config>;
     fn hostname(&self) -> &str;
+    fn allow_elevated_docker_permissions(&self) -> bool;
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
@@ -747,6 +748,7 @@ pub struct Settings<T> {
     provisioning: Provisioning,
     agent: ModuleSpec<T>,
     hostname: String,
+    allow_elevated_docker_permissions: bool,
     connect: Connect,
     listen: Listen,
     homedir: PathBuf,
@@ -775,6 +777,10 @@ where
 
     fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    fn allow_elevated_docker_permissions(&self) -> bool {
+        self.allow_elevated_docker_permissions
     }
 
     fn connect(&self) -> &Connect {

@@ -14,12 +14,12 @@ use futures::sync::oneshot::{Receiver, Sender};
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
-use log::{debug, error, info, Level};
+use log::{debug, error, info, warn, Level};
 use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
@@ -65,6 +65,7 @@ pub struct DockerModuleRuntime {
     system_resources: Arc<Mutex<System>>,
     provisioning_info: ProvisioningInfo,
     create_socket_channel: UnboundedSender<ModuleAction>,
+    allow_elevated_docker_permissions: bool,
 }
 
 impl DockerModuleRuntime {
@@ -257,6 +258,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             system_resources: Arc::new(Mutex::new(system_resources)),
                             provisioning_info: ProvisioningInfo::new(settings.provisioning()),
                             create_socket_channel,
+                            allow_elevated_docker_permissions: settings
+                                .allow_elevated_docker_permissions(),
                         }
                     });
 
@@ -327,7 +330,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
-    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+    fn create(&self, mut module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -336,6 +339,15 @@ impl ModuleRuntime for DockerModuleRuntime {
                 module.type_().to_string(),
             ))));
         }
+
+        unset_privileged(
+            self.allow_elevated_docker_permissions,
+            module.config_mut().create_options_mut(),
+        );
+        drop_unsafe_privileges(
+            self.allow_elevated_docker_permissions,
+            module.config_mut().create_options_mut(),
+        );
 
         let id = module.name().to_string();
 
@@ -1146,12 +1158,65 @@ where
     })
 }
 
+// Disallow adding privileged and other capabilities if allow_elevated_docker_permissions is false
+fn unset_privileged(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    if allow_elevated_docker_permissions {
+        return;
+    }
+    if let Some(config) = create_options.host_config() {
+        if config.privileged() == Some(&true) || !config.cap_add().is_empty() {
+            warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
+            let mut config = config.clone();
+
+            config.set_privileged(false);
+            config.reset_cap_add();
+
+            create_options.set_host_config(config);
+        }
+    }
+}
+
+fn drop_unsafe_privileges(
+    allow_elevated_docker_permissions: bool,
+    create_options: &mut ContainerCreateBody,
+) {
+    // Don't change default behavior unless privileged containers are disallowed
+    if allow_elevated_docker_permissions {
+        return;
+    }
+
+    // These capabilities are provided by default and can be used to gain root access:
+    // https://labs.f-secure.com/blog/helping-root-out-of-the-container/
+    // They must be explicitly enabled
+    let mut caps_to_drop = vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()];
+
+    // The suggested `Option::map_or_else` requires cloning `caps_to_drop`.
+    #[allow(clippy::option_if_let_else)]
+    let host_config = if let Some(config) = create_options.host_config() {
+        // Don't drop caps that the user added explicitly
+        caps_to_drop.retain(|cap_drop| !config.cap_add().contains(cap_drop));
+
+        // Add customer specified cap_drops
+        caps_to_drop.extend_from_slice(config.cap_drop());
+
+        config.clone().with_cap_drop(caps_to_drop)
+    } else {
+        HostConfig::new().with_cap_drop(caps_to_drop)
+    };
+
+    create_options.set_host_config(host_config);
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
-        BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
-        Duration, Error, ErrorKind, Future, GetTrustBundle, InlineResponse200, LogOptions,
+        authenticate, drop_unsafe_privileges, future, list_with_details, parse_get_response,
+        unset_privileged, AuthId, Authenticator, BTreeMap, Body, ContainerCreateBody,
+        CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop, Duration, Error,
+        ErrorKind, Future, GetTrustBundle, HostConfig, InlineResponse200, LogOptions,
         MakeModuleRuntime, Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid,
         ProvisioningResult, Request, Settings, Stream, SystemResources,
     };
@@ -1204,6 +1269,7 @@ mod tests {
                 }
             },
             "hostname": "zoo",
+            "allow_elevated_docker_permissions": true,
             "connect": {
                 "management_uri": "unix:///var/run/iotedge/mgmt.sock",
                 "workload_uri": "unix:///var/run/iotedge/workload.sock"
@@ -1458,6 +1524,63 @@ mod tests {
         assert_eq!("missing field `Name`", format!("{}", name.unwrap_err()));
     }
 
+    #[test]
+    fn unset_privileged_works() {
+        let mut create_options =
+            ContainerCreateBody::new().with_host_config(HostConfig::new().with_privileged(true));
+
+        // Doesn't remove privileged
+        unset_privileged(true, &mut create_options);
+        assert!(create_options.host_config().unwrap().privileged().unwrap());
+
+        // Removes privileged
+        unset_privileged(false, &mut create_options);
+        assert!(!create_options.host_config().unwrap().privileged().unwrap());
+
+        create_options.set_host_config(
+            HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
+        );
+
+        // Doesn't remove caps
+        unset_privileged(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_add(),
+            &vec!["CAP1".to_owned(), "CAP2".to_owned()]
+        );
+
+        // Removes caps
+        unset_privileged(false, &mut create_options);
+        assert!(create_options.host_config().unwrap().cap_add().is_empty());
+    }
+
+    #[test]
+    fn drop_unsafe_privileges_works() {
+        let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
+
+        // Do nothing if privileged is allowed
+        drop_unsafe_privileges(true, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &Vec::<String>::new()
+        );
+
+        // Drops privileges by if privileged is false
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
+        );
+
+        // Doesn't drop caps if specified
+        create_options
+            .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
+        drop_unsafe_privileges(false, &mut create_options);
+        assert_eq!(
+            create_options.host_config().unwrap().cap_drop(),
+            &vec!["CAP_SETUID".to_owned()]
+        );
+    }
+
     #[derive(Clone)]
     struct TestConfig;
 
@@ -1479,6 +1602,10 @@ mod tests {
         }
 
         fn hostname(&self) -> &str {
+            unimplemented!()
+        }
+
+        fn allow_elevated_docker_permissions(&self) -> bool {
             unimplemented!()
         }
 
