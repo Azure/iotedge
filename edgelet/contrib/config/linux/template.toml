@@ -46,12 +46,15 @@
 #
 # Some docker capabilities capabilities can be used to gain root access. 
 # By default, the --privileged flag and all capabilities listed in the CapAdd
-# field of the docker HostConfig will be ignored.
+# field of the docker HostConfig are allowed.
 #
-# If a module needs to run as privileged, and you are aware of the consequences,
-# uncomment the next line.
+# In a future release, this will be disabled by default and the flag will be required 
+# run as privileged.
 #
-# allow_elevated_docker_permissions = true
+# If no modules require privileged or additional capabilities, uncomment the following
+# line to improve the security of the device.
+#
+# allow_elevated_docker_permissions = false
 
 # ==============================================================================
 # Provisioning
