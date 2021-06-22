@@ -18,13 +18,14 @@
 
 use std::error::Error;
 
-use futures::future::join_all;
 use tracing::{info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
 use obsagent_client::config;
 #[cfg(feature = "otel")]
 use obsagent_client::otel_client;
+#[cfg(feature = "prom")]
+use obsagent_client::prometheus_server;
 
 fn init_logging() {
     let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
@@ -40,13 +41,22 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
         config
     );
 
-    let mut futures_vec = Vec::new();
-
     #[cfg(feature = "otel")]
-    futures_vec.push(otel_client::run(config));
+    let otel_fut = otel_client::run(config);
+    #[cfg(feature = "prom")]
+    let prom_fut = prometheus_server::run();
 
-
-    join_all(futures_vec).await;
+    cfg_if::cfg_if! {
+        if #[cfg(all(feature="otel", feature = "prom"))] {
+            let (otel_result, prom_result) = futures::join!(otel_fut, prom_fut);
+            otel_result?;
+            prom_result?;
+        } else if #[cfg(feature = "otel")] {
+            otel_fut.await?;
+        } else if #[cfg(feature = "prom")] {
+            prom_fut.await?;
+        }
+    }
 
     Ok(())
 }

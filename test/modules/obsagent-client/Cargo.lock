@@ -546,11 +546,14 @@ dependencies = [
 name = "obsagent-client"
 version = "0.1.0"
 dependencies = [
+ "cfg-if",
  "clap",
  "futures",
+ "hyper",
  "lazy_static",
  "opentelemetry",
  "opentelemetry-otlp",
+ "prometheus",
  "rand",
  "serde_json",
  "signal-hook",
@@ -706,6 +709,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "prometheus"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5986aa8d62380092d2f50f8b1cdba9cb9b6731ffd4b25b51fd126b6c3e05b99c"
+dependencies = [
+ "cfg-if",
+ "fnv",
+ "lazy_static",
+ "memchr",
+ "parking_lot",
+ "protobuf",
+ "thiserror",
+]
+
+[[package]]
 name = "prost"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -755,6 +773,12 @@ dependencies = [
  "bytes",
  "prost",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db50e77ae196458ccd3dc58a31ea1a90b0698ab1b7928d89f644c25d72070267"
 
 [[package]]
 name = "quote"
