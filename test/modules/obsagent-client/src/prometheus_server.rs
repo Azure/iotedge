@@ -1,19 +1,16 @@
-use std::{
-    error::Error,
-    time::Duration,
-};
+use std::{error::Error, sync::Arc, time::Duration};
 
 use hyper::{
     header::CONTENT_TYPE,
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
 };
-use prometheus::{
-    Encoder,
-    opts, register_int_counter,
-    TextEncoder,
+use prometheus::{opts, register_histogram, register_int_counter, register_int_gauge, Encoder, TextEncoder};
+use rand::random;
+use tracing::{error, info};
 
-};
+use crate::config::Config;
+
 
 async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     let encoder = TextEncoder::new();
@@ -28,27 +25,35 @@ async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> 
     Ok(response)
 }
 
-async fn metrics_loop() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+async fn metrics_loop(update_rate: f64) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let counter = register_int_counter!(opts!("u64_counter_example", "Example of a u64 counter."))?;
+    let gauge = register_int_gauge!(opts!("i64_gauge_example", "Example of a i64 gauge."))?;
+    let histogram = register_histogram!(
+        "f64_histogram_example",
+        "Example of a f64 histogram.",
+        vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,]
+    )?;
     loop {
         counter.inc();
+        gauge.inc();
+        histogram.observe(random::<f64>());
         // TODO: Replace '10000' w/ config.update_rate
-        tokio::time::sleep(Duration::from_secs_f64(1.0/10000.0f64)).await;
+        tokio::time::sleep(Duration::from_secs_f64(1.0 / update_rate)).await;
     }
 }
 
-pub async fn run() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+pub async fn run(config: Arc<Config>) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     let addr = ([127, 0, 0, 1], 9600).into();
-    println!("Listening on http://{}", addr);
+    info!("Listening on http://{}", addr);
 
     let serve_future = Server::bind(&addr).serve(make_service_fn(|_| async {
         Ok::<_, hyper::Error>(service_fn(serve_req))
     }));
 
-    tokio::spawn(async { metrics_loop().await });
+    tokio::spawn(async move { metrics_loop(config.update_rate).await });
 
     if let Err(err) = serve_future.await {
-        eprintln!("server error: {}", err);
+        error!("server error: {}", err);
     }
 
     Ok(())

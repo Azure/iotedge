@@ -16,7 +16,7 @@
 //!     3. OTLP_ENDPOINT (--otlp-endpoint/-e) - Endpoint to which OTLP messages
 //!             will be sent.
 
-use std::error::Error;
+use std::{error::Error, sync::Arc};
 
 use tracing::{info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
@@ -35,16 +35,16 @@ fn init_logging() {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     init_logging();
-    let config = config::init_config()?;
+    let config = Arc::new(config::init_config()?);
     info!(
         "Starting Observability Agent Client with configuration: {:?}",
         config
     );
 
     #[cfg(feature = "otel")]
-    let otel_fut = otel_client::run(config);
+    let otel_fut = otel_client::run(config.clone());
     #[cfg(feature = "prom")]
-    let prom_fut = prometheus_server::run();
+    let prom_fut = prometheus_server::run(config.clone());
 
     cfg_if::cfg_if! {
         if #[cfg(all(feature="otel", feature = "prom"))] {
