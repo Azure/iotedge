@@ -1,4 +1,4 @@
-# 1.2.2 (2021-06-21)
+# 1.2.2 (2021-06-23)
 ## Edge Agent
 ### Bug Fixes
 * Properly dispose UDS for Workload Client. ( [472cee5](https://github.com/Azure/iotedge/commit/472cee580101cfd5999492ef3760d5038679680e), [f9cdb59](https://github.com/Azure/iotedge/commit/f9cdb5902a8e13b80bbd8040323fb0729f085dc3) )
@@ -11,6 +11,7 @@
 ## Edge Hub
 ### Bug Fixes
 * Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+* Propagate back error code from edgeHub ( [421347d](https://github.com/Azure/iotedge/commit/421347dff842eff6e552462b967f6c84e1982b29) )
 
 
 ## Diagnostic Module
