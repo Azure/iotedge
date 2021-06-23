@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub(super) mod create_or_list;
+pub(super) mod delete_or_update;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Identity {

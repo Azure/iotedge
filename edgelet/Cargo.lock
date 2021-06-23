@@ -323,6 +323,8 @@ dependencies = [
  "hyper",
  "libc",
  "log",
+ "percent-encoding",
+ "regex",
  "serde",
  "serde_json",
  "tokio",
