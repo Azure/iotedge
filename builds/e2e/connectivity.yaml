@@ -132,7 +132,7 @@ jobs:
           project: $(vsts.project)
           pipeline: $(edgelet.package.build)
           branchName: $(edgelet.package.branchName)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: $(az.pipeline.packages.buildId)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(edgelet.artifact.name)
           allowPartiallySucceededBuilds: true
@@ -144,7 +144,7 @@ jobs:
           project: $(vsts.project)
           pipeline: $(images.build)
           branchName: $(images.branchName)
-          buildVersionToDownload: latestFromBranch
+          buildVersionToDownload: $(az.pipeline.images.buildId)
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
