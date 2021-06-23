@@ -5,6 +5,7 @@ hostname = "my-device"
 trust_bundle_cert = "aziot-edged-trust-bundle"
 auto_reprovisioning_mode = "OnErrorOnly"
 homedir = "/var/lib/aziot/edged"
+allow_elevated_docker_permissions = true
 
 [agent]
 name = "edgeAgent"
