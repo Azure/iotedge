@@ -167,6 +167,7 @@ namespace VstsPipelineSync
                 CommandText = "UpsertVstsBuild"
             };
 
+            cmd.Parameters.Add(new SqlParameter("@BuildId", build.BuildId));
             cmd.Parameters.Add(new SqlParameter("@BuildNumber", build.BuildNumber));
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", build.DefinitionId));
             cmd.Parameters.Add(new SqlParameter("@DefinitionName", build.DefinitionId.DisplayName()));
@@ -178,6 +179,7 @@ namespace VstsPipelineSync
             cmd.Parameters.Add(new SqlParameter("@QueueTime", SqlDbType.DateTime2) { Value = build.QueueTime });
             cmd.Parameters.Add(new SqlParameter("@StartTime", SqlDbType.DateTime2) { Value = build.StartTime });
             cmd.Parameters.Add(new SqlParameter("@FinishTime", SqlDbType.DateTime2) { Value = build.FinishTime });
+            cmd.Parameters.Add(new SqlParameter("@WasScheduled", build.WasScheduled().ToString()));
 
             cmd.ExecuteNonQuery();
         }
