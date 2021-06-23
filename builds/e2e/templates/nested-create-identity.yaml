@@ -29,7 +29,7 @@ steps:
         else
             echo "Attaching device Id to parent device Id: $(parentDeviceId)"
 
-            az iot hub device-identity create -n ${iotHubName} -d ${deviceId} --ee --pd $(parentDeviceId) --output none
+            az iot hub device-identity parent set --device-id ${deviceId} --hub-name ${iotHubName}  --ee --pd $(parentDeviceId)
         fi
         connectionString=$(az iot hub device-identity connection-string show -d ${deviceId} -n ${iotHubName} --query 'connectionString' -o tsv)
 
