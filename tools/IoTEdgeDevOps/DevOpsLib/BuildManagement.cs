@@ -72,7 +72,9 @@ namespace DevOpsLib
                 return buildDefinitionIds.Select(i => VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
             }
 
-            return JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
+            IList<VstsBuild> builds = JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
+
+            return builds;
         }
 
         private static Url GetBuildsRequestUri(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, string requestPath, DateTime? minTime, int? maxBuildsPerDefinition)
