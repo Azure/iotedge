@@ -48,6 +48,67 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
+name = "aziot-cert-common-http"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#6accb4a869e5c4c25f39a56d8c17ce9c6a651ba9"
+dependencies = [
+ "aziot-key-common",
+ "serde",
+]
+
+[[package]]
+name = "aziot-edged"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
+name = "aziot-identity-client-async"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#6accb4a869e5c4c25f39a56d8c17ce9c6a651ba9"
+dependencies = [
+ "aziot-cert-common-http",
+ "aziot-identity-common",
+ "aziot-identity-common-http",
+ "http",
+ "http-common",
+ "hyper",
+ "percent-encoding",
+]
+
+[[package]]
+name = "aziot-identity-common"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#6accb4a869e5c4c25f39a56d8c17ce9c6a651ba9"
+dependencies = [
+ "aziot-key-common",
+ "http-common",
+ "serde",
+]
+
+[[package]]
+name = "aziot-identity-common-http"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#6accb4a869e5c4c25f39a56d8c17ce9c6a651ba9"
+dependencies = [
+ "aziot-cert-common-http",
+ "aziot-identity-common",
+ "aziot-key-common",
+ "http-common",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "aziot-key-common"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#6accb4a869e5c4c25f39a56d8c17ce9c6a651ba9"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -196,12 +257,19 @@ dependencies = [
 [[package]]
 name = "edgelet-http"
 version = "0.1.0"
+dependencies = [
+ "http",
+ "http-common",
+ "libc",
+ "log",
+]
 
 [[package]]
 name = "edgelet-http-mgmt"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "aziot-identity-client-async",
  "edgelet-core",
  "edgelet-http",
  "edgelet-test-utils",
