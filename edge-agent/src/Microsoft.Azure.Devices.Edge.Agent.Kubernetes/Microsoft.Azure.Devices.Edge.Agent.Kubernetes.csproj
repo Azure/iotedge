@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="KubernetesClient" Version="1.6.10" />
+    <PackageReference Include="KubernetesClient" Version="1.6.35" />
   </ItemGroup>
 
   <ItemGroup>
