@@ -11,6 +11,11 @@ steps:
     # Filter out unstable tests.
     $filter = 'Category!=Unstable'
 
+    if ('$(minimal)' -eq 'true')
+    {
+      $filter += '&Name~TempSensor'
+    }
+
     if ('$(Agent.Name)'.Contains('centos'))
     {
       $filter += '&Category=CentOsSafe'
@@ -53,9 +58,9 @@ steps:
     else
     {
       $filter += '&Category!=NestedEdgeOnly'
-    } 
+    }
 
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
+    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
   displayName: Run tests ${{ parameters.test_type }}
   env:

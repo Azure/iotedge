@@ -48,8 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         string[] output = await Process.RunAsync("iotedge", "list", token);
 
-                        Log.Verbose(string.Join("\n", output));
-
                         return output
                             .Where(
                                 ln =>
@@ -74,7 +72,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         // Retry if iotedged's management endpoint is still starting up,
                         // and therefore isn't responding to `iotedge list` yet
                         static bool DaemonNotReady(string details) =>
+                            details.Contains("Incorrect function", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Could not list modules", StringComparison.OrdinalIgnoreCase) ||
+                            details.Contains("Operation not permitted", StringComparison.OrdinalIgnoreCase) ||
                             details.Contains("Socket file could not be found", StringComparison.OrdinalIgnoreCase);
 
                         return DaemonNotReady(e.ToString());
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 {
                     if (e is KeyNotFoundException)
                     {
-                        Log.Information("The device has not yet repported all the keys, retrying:" + e);
+                        Log.Verbose("The device has not yet reported all the keys, retrying:" + e);
                         return true;
                     }
                     else
