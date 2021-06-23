@@ -9,7 +9,10 @@ edition = "2018"
 clap = "2.33"
 log = "0.4"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
 logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

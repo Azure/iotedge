@@ -82,9 +82,12 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "edgelet-core",
+ "edgelet-http-mgmt",
+ "http-common",
  "log",
  "logger",
  "tokio",
+ "url",
 ]
 
 [[package]]
@@ -309,6 +312,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-identity-client-async",
+ "aziot-identity-common-http",
  "edgelet-core",
  "edgelet-http",
  "edgelet-test-utils",
