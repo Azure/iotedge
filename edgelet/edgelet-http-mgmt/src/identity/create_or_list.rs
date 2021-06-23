@@ -7,6 +7,15 @@ pub(crate) struct Route {
     pid: libc::pid_t,
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub(crate) struct CreateIdentityRequest {
+    #[serde(rename = "moduleId")]
+    module_id: String,
+
+    #[serde(rename = "managedBy", default = "super::default_managed_by")]
+    managed_by: String,
+}
+
 #[derive(Debug, serde::Serialize)]
 pub(crate) struct ListIdentitiesResponse {
     identities: Vec<crate::identity::Identity>,
@@ -62,15 +71,50 @@ impl http_common::server::Route for Route {
                 return Err(http_common::server::Error {
                     status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     message: format!("{}", err).into(),
-                })
+                });
             }
         };
 
         Ok((http::StatusCode::OK, ListIdentitiesResponse { identities }))
     }
 
-    type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
+    type PostBody = CreateIdentityRequest;
+    type PostResponse = crate::identity::Identity;
+    async fn post(
+        self,
+        body: Option<Self::PostBody>,
+    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+        edgelet_http::auth_agent(self.pid)?;
+
+        let body = match body {
+            Some(body) => body,
+            None => {
+                return Err(http_common::server::Error {
+                    status_code: http::StatusCode::BAD_REQUEST,
+                    message: "missing request body".into(),
+                });
+            }
+        };
+
+        let client = self.client.lock().await;
+
+        let identity = match client.create_module_identity(&body.module_id).await {
+            Ok(identity) => {
+                let mut identity = crate::identity::Identity::try_from(identity)?;
+                identity.managed_by = body.managed_by;
+
+                identity
+            }
+            Err(err) => {
+                return Err(http_common::server::Error {
+                    status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("{}", err).into(),
+                });
+            }
+        };
+
+        Ok((http::StatusCode::OK, Some(identity)))
+    }
 
     type PutBody = serde::de::IgnoredAny;
     type PutResponse = ();

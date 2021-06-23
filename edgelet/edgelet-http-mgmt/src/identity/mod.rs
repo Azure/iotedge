@@ -6,10 +6,13 @@ pub(super) mod create_or_list;
 pub struct Identity {
     #[serde(rename = "moduleId")]
     pub module_id: String,
+
     #[serde(rename = "managedBy")]
     pub managed_by: String,
+
     #[serde(rename = "generationId")]
     pub generation_id: String,
+
     #[serde(rename = "authType")]
     pub auth_type: String,
 }
@@ -42,7 +45,7 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
 
                 Ok(Identity {
                     module_id,
-                    managed_by: "iotedge".to_string(),
+                    managed_by: default_managed_by(),
                     generation_id,
                     auth_type: "sas".to_string(),
                 })
@@ -53,4 +56,8 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
             }),
         }
     }
+}
+
+fn default_managed_by() -> String {
+    "iotedge".to_string()
 }
