@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
     using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Common.Exceptions;
@@ -747,6 +748,96 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             // Assert
             // Whether the ReprovisionDeviceAsync API has been called based on the appropriate protocol and connection status change reason.
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Exactly(shouldReprovision ? 1 : 0));
+        }
+
+        [Fact]
+        [Unit]
+        public async Task FrequentTwinPullsOnConnectionAreThrottledAsync()
+        {
+            // Arrange
+            var deviceClient = new Mock<IModuleClient>();
+            deviceClient.Setup(x => x.UpstreamProtocol).Returns(UpstreamProtocol.Amqp);
+            deviceClient.Setup(x => x.IsActive).Returns(true);
+            var serde = new Mock<ISerde<DeploymentConfig>>();
+            ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
+            var twin = new Twin
+            {
+                Properties = new TwinProperties
+                {
+                    Desired = new TwinCollection(
+                        JObject.FromObject(
+                            new Dictionary<string, object>
+                            {
+                                { "$version", 10 },
+                                { "MoreStuff", "MoreStuffHereToo" }
+                            }).ToString()),
+                    Reported = new TwinCollection()
+                }
+            };
+
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            moduleClientProvider.Setup(d => d.Create(It.IsAny<ConnectionStatusChangesHandler>()))
+                .Callback<ConnectionStatusChangesHandler>(statusChanges => connectionStatusChangesHandler = statusChanges)
+                .ReturnsAsync(deviceClient.Object);
+
+            var counter = 0;
+            var milestone = new SemaphoreSlim(0, 1);
+
+            deviceClient.Setup(d => d.GetTwinAsync())
+                .ReturnsAsync(
+                    () =>
+                    {
+                        counter++;
+                        milestone.Release();
+
+                        return twin;
+                    });
+
+            serde.Setup(s => s.Deserialize(It.IsAny<string>())).Returns(() => DeploymentConfig.Empty);
+
+            IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+            var deviceManager = new Mock<IDeviceManager>();
+            deviceManager.Setup(x => x.ReprovisionDeviceAsync()).Returns(Task.CompletedTask);
+            Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
+
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
+            connection.TwinPullOnConnectThrottleTime = TimeSpan.FromSeconds(3);
+
+            // There is a twin pull during init, wait for that
+            await milestone.WaitAsync(TimeSpan.FromSeconds(3));
+
+            // A first time call should just go through
+            counter = 0;
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.Equal(1, counter);
+
+            // get out of the 3 sec window
+            await Task.Delay(3500);
+
+            // The second call out of the window should go through
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.Equal(2, counter);
+
+            // Still in the window, so these should not go through. However, a delayed pull gets started
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+
+            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
+
+            await Task.Delay(500); // wait a bit more, so there is time to pull twin more if the throttling does not work
+
+            Assert.Equal(2, counter);
+
+            // get out of the 3 sec window, the delayed pull should finish by then
+            await Task.Delay(3500);
+            Assert.Equal(3, counter);
         }
 
         [Fact]
