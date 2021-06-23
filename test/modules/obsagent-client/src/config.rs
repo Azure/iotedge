@@ -58,7 +58,7 @@ pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                     .to_string())
             },
             |v| v.parse(),
-        )?, 
+        )?,
     };
     let prom_config = PromConfig {
         endpoint: std::env::var("PROMETHEUS_ENDPOINT").map_or_else(
@@ -69,7 +69,7 @@ pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                     .to_string())
             },
             |v| v.parse(),
-        )?
+        )?,
     };
 
     let config = Config {

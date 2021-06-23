@@ -5,12 +5,13 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
 };
-use prometheus::{opts, register_histogram, register_int_counter, register_int_gauge, Encoder, TextEncoder};
+use prometheus::{
+    opts, register_histogram, register_int_counter, register_int_gauge, Encoder, TextEncoder,
+};
 use rand::random;
 use tracing::{error, info};
 
 use crate::config::Config;
-
 
 async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     let encoder = TextEncoder::new();
