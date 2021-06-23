@@ -144,7 +144,7 @@ jobs:
           project: $(vsts.project)
           pipeline: $(images.build)
           branchName: $(images.branchName)
-          buildVersionToDownload: '42928089`
+          buildVersionToDownload: '42928089'
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.linux)
           allowPartiallySucceededBuilds: true
