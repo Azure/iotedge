@@ -27,8 +27,9 @@ steps:
         if [ "$LEVEL" = "5" ]; then
             az iot hub device-identity create -n ${iotHubName} -d ${deviceId} --ee --output none       
         else
-            echo "Attaching device Id to parent device Id: $(parentDeviceId)"
-
+            echo "Create device identity and relate it to the parent device Id: $(parentDeviceId)"
+            
+            az iot hub device-identity create --device-id ${deviceId} --hub-name ${iotHubName} --ee --output none
             az iot hub device-identity parent set --device-id ${deviceId} --hub-name ${iotHubName} --pd $(parentDeviceId)
         fi
         connectionString=$(az iot hub device-identity connection-string show -d ${deviceId} -n ${iotHubName} --query 'connectionString' -o tsv)
