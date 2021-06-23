@@ -6,11 +6,25 @@ pub fn auth_agent(pid: libc::pid_t) -> Result<(), http_common::server::Error> {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub fn auth_caller(name: &str, pid: libc::pid_t) -> Result<(), http_common::server::Error> {
-    log::info!("");
+pub fn auth_caller(
+    expected_name: &str,
+    pid: libc::pid_t,
+) -> Result<(), http_common::server::Error> {
+    let actual_name = "edgeAgent"; // TODO: Get this from docker
 
-    Err(http_common::server::Error {
-        status_code: http::StatusCode::FORBIDDEN,
-        message: "module not authorized to access endpoint".into(),
-    })
+    if expected_name != actual_name {
+        log::info!(
+            "Only {} is authorized for this endpoint; {} (pid {}) not authorized.",
+            expected_name,
+            actual_name,
+            pid
+        );
+
+        return Err(http_common::server::Error {
+            status_code: http::StatusCode::FORBIDDEN,
+            message: "forbidden".into(),
+        });
+    }
+
+    Ok(())
 }

@@ -320,6 +320,7 @@ dependencies = [
  "http",
  "http-common",
  "hyper",
+ "libc",
  "log",
  "serde",
  "serde_json",
