@@ -2,11 +2,14 @@
 
 use std::convert::TryFrom;
 
-use crate::identity::Identity;
-
 pub(crate) struct Route {
     client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
     pid: libc::pid_t,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct ListIdentitiesResponse {
+    identities: Vec<crate::identity::Identity>,
 }
 
 #[async_trait::async_trait]
@@ -41,7 +44,7 @@ impl http_common::server::Route for Route {
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
 
-    type GetResponse = Vec<Identity>;
+    type GetResponse = ListIdentitiesResponse;
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         edgelet_http::auth_agent(self.pid)?;
 
@@ -51,19 +54,19 @@ impl http_common::server::Route for Route {
         match client.get_identities().await {
             Ok(ids) => {
                 for identity in ids {
-                    let identity = Identity::try_from(identity)?;
+                    let identity = crate::identity::Identity::try_from(identity)?;
                     identities.push(identity);
                 }
-            },
+            }
             Err(err) => {
                 return Err(http_common::server::Error {
                     status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
                     message: format!("{}", err).into(),
                 })
-            },
+            }
         };
 
-        Ok((http::StatusCode::OK, identities))
+        Ok((http::StatusCode::OK, ListIdentitiesResponse { identities }))
     }
 
     type PostBody = serde::de::IgnoredAny;
