@@ -37,7 +37,6 @@ async fn metrics_loop(update_rate: f64) -> Result<(), Box<dyn Error + Send + Syn
         counter.inc();
         gauge.inc();
         histogram.observe(random::<f64>());
-        // TODO: Replace '10000' w/ config.update_rate
         tokio::time::sleep(Duration::from_secs_f64(1.0 / update_rate)).await;
     }
 }
