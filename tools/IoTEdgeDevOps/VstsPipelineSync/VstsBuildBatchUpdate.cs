@@ -85,8 +85,6 @@ namespace VstsPipelineSync
                         Console.WriteLine(e.Message);
                         Console.WriteLine("Create bug failed. Will retry later.");
                     }
-
-                    Console.ReadLine();
                 }
             }
 

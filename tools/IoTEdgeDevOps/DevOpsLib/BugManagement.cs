@@ -34,7 +34,7 @@ namespace DevOpsLib
                 .WithHeader("Content-Type", "application/json-patch+json")
                 .SetQueryParam("api-version", "6.0");
 
-            var jsonBody = new[]
+            var jsonBody = new object[]
             {
                 new {
                     op = "add",
@@ -62,6 +62,16 @@ namespace DevOpsLib
                     path = "/fields/System.AreaPath",
                     from = string.Empty,
                     value = "One\\IoT\\Platform\\IoTEdge"
+                },
+                new
+                {
+                    op = "add",
+                    path = "/relations/-",
+                    value = new
+                    {
+                        rel = "Hyperlink",
+                        url = $"{build.WebUri}"
+                    }
                 }
             };
 
@@ -72,7 +82,6 @@ namespace DevOpsLib
                     .PostJsonAsync(jsonBody);
 
                 result = await response.GetJsonAsync<JObject>();
-                Console.WriteLine(result.ToString());
             }
             catch (FlurlHttpException e)
             {
