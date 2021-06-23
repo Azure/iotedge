@@ -20,12 +20,13 @@ namespace DevOpsLib
         }
 
         /// <summary>
-        /// This method is used to execute a Dev Ops work item query and get the number of bugs for a given query.
-        /// If result is not found for a query, it will return 0.
-        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/wiql/query%20by%20wiql?view=azure-devops-rest-5.1
+        /// This method is used to create a bug in Azure Dev Ops.
+        /// If it cannot create the bug it will rethrow the exception from the DevOps api.
+        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/work%20items/create?view=azure-devops-rest-6.0
         /// </summary>
-        /// <param name="bugQuery">Bug query object representing vsts shared queries</param>
-        /// <returns>Number of bugs output by query</returns>
+        /// <param name="branch">Branch for which the bug is being created</param>
+        /// <param name="build">Build for which the bug is being created</param>
+        /// <returns>Work item id for the created bug.</returns>
         public async Task<string> CreateBugAsync(string branch, VstsBuild build)
         {
             string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project);
