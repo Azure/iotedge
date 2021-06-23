@@ -312,6 +312,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-identity-client-async",
+ "aziot-identity-common",
  "aziot-identity-common-http",
  "edgelet-core",
  "edgelet-http",

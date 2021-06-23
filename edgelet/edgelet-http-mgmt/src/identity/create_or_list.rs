@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::TryFrom;
+
 use crate::identity::Identity;
 
 pub(crate) struct Route {
@@ -43,7 +45,25 @@ impl http_common::server::Route for Route {
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         edgelet_http::auth_agent(self.pid)?;
 
-        todo!()
+        let client = self.client.lock().await;
+
+        let mut identities = vec![];
+        match client.get_identities().await {
+            Ok(ids) => {
+                for identity in ids {
+                    let identity = Identity::try_from(identity)?;
+                    identities.push(identity);
+                }
+            },
+            Err(err) => {
+                return Err(http_common::server::Error {
+                    status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
+                    message: format!("{}", err).into(),
+                })
+            },
+        };
+
+        Ok((http::StatusCode::OK, identities))
     }
 
     type PostBody = serde::de::IgnoredAny;
