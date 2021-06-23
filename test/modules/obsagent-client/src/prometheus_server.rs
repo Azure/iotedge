@@ -43,7 +43,7 @@ async fn metrics_loop(update_rate: f64) -> Result<(), Box<dyn Error + Send + Syn
 }
 
 pub async fn run(config: Arc<Config>) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-    let addr = ([127, 0, 0, 1], 9600).into();
+    let addr = config.prom_config.endpoint.parse()?;
     info!("Listening on http://{}", addr);
 
     let serve_future = Server::bind(&addr).serve(make_service_fn(|_| async {

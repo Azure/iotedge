@@ -41,7 +41,7 @@ fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushControl
 }
 
 pub async fn run(config: Arc<Config>) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-    let _started = init_meter(1.0 / config.push_rate, config.otlp_endpoint.clone())?;
+    let _started = init_meter(1.0 / config.otel_config.push_rate, config.otel_config.otlp_endpoint.clone())?;
     let meter = global::meter(METER_NAME);
 
     // Init synchronous instruments

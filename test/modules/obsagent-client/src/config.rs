@@ -5,8 +5,19 @@ use clap::{value_t, App, Arg};
 #[derive(Debug)]
 pub struct Config {
     pub update_rate: f64,
+    pub prom_config: PromConfig,
+    pub otel_config: OTelConfig,
+}
+
+#[derive(Debug)]
+pub struct OTelConfig {
     pub push_rate: f64,
     pub otlp_endpoint: String,
+}
+
+#[derive(Debug)]
+pub struct PromConfig {
+    pub endpoint: String,
 }
 
 pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
@@ -34,11 +45,7 @@ pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
         )
         .get_matches();
 
-    let config = Config {
-        update_rate: std::env::var("UPDATE_RATE").map_or_else(
-            |_e| Ok(value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)),
-            |v| v.parse(),
-        )?,
+    let otel_config = OTelConfig {
         push_rate: std::env::var("PUSH_RATE").map_or_else(
             |_e| Ok(value_t!(matches.value_of("push-rate"), f64).unwrap_or(0.2)),
             |v| v.parse(),
@@ -51,7 +58,27 @@ pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
                     .to_string())
             },
             |v| v.parse(),
+        )?, 
+    };
+    let prom_config = PromConfig {
+        endpoint: std::env::var("PROMETHEUS_ENDPOINT").map_or_else(
+            |_e| {
+                Ok(matches
+                    .value_of("prometheus-endpoint")
+                    .unwrap_or("127.0.0.1:9600")
+                    .to_string())
+            },
+            |v| v.parse(),
+        )?
+    };
+
+    let config = Config {
+        update_rate: std::env::var("UPDATE_RATE").map_or_else(
+            |_e| Ok(value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)),
+            |v| v.parse(),
         )?,
+        otel_config,
+        prom_config,
     };
     Ok(config)
 }
