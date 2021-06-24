@@ -9,6 +9,7 @@ pub fn bad_request(
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub fn server_error(
     message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
 ) -> http_common::server::Error {
