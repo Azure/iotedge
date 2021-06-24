@@ -14,7 +14,7 @@ content-type: application/json
 `version` must be at least `2018-06-28`.
 
 #### Request body
-```json
+```
 {
     "moduleId": "string",
     "managedBy": "string"
@@ -31,7 +31,7 @@ content-type: application/json
 ```
 
 #### Response body
-```json
+```
 {
     "moduleId": "string",
     "managedBy": "string",
@@ -61,7 +61,7 @@ content-type: application/json
 ```
 
 #### Response body
-```json
+```
 {
     "identities": [
         {
@@ -95,7 +95,7 @@ content-type: application/json
 ```
 
 #### Response body
-```json
+```
 {
     "moduleId": "string",
     "managedBy": "string",

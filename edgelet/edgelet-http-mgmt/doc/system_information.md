@@ -17,7 +17,7 @@ content-type: application/json
 ```
 
 #### Response body
-```json
+```
 {
     "osType": "string",
     "architecture": "string",
@@ -54,7 +54,7 @@ content-type: application/json
 ```
 
 #### Response body
-```json
+```
 {
     "host_uptime": int,
     "process_uptime": int,
