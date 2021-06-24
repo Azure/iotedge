@@ -360,6 +360,8 @@ fn execute_inner(
     };
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert,
 
         auto_reprovisioning_mode,
