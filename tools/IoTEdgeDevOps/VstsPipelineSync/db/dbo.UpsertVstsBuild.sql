@@ -1,5 +1,4 @@
 ﻿CREATE PROCEDURE [dbo].[UpsertVstsBuild]
-	@BuildId varchar(20),
 	@BuildNumber varchar(20),
 	@DefinitionId int,
 	@DefinitionName varchar(100),
@@ -10,17 +9,15 @@
 	@Result varchar(20),
 	@QueueTime datetime2,
 	@StartTime datetime2,
-	@FinishTime datetime2,
-	@WasScheduled varchar(20)
+	@FinishTime datetime2
 AS
 	DECLARE @now datetime2;
 	SET @now = SYSDATETIME();
 
-	IF EXISTS (SELECT 1 FROM dbo.VstsBuild WHERE BuildId = @BuildId)
+	IF EXISTS (SELECT 1 FROM dbo.VstsBuild WHERE BuildNumber = @BuildNumber AND DefinitionId = @DefinitionId)
 	BEGIN
 		UPDATE dbo.VstsBuild
-		SET BuildId = @BuildId,
-		    DefinitionName = @DefinitionName,
+		SET DefinitionName = @DefinitionName,
 		    SourceBranch = @SourceBranch,
 			SourceVersionDisplayUri = @SourceVersionDisplayUri,
 			WebUri = @WebUri,
@@ -29,12 +26,12 @@ AS
 			QueueTime = @QueueTime,
 			StartTime = @StartTime,
 			FinishTime = @FinishTIme,
-			WasScheduled = @WasScheduled,
 			UpdatedAt = @now
-		WHERE BuildId = @BuildId
+		WHERE BuildNumber = @BuildNumber
+		AND DefinitionId = @DefinitionId
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuild(BuildId, BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, WasScheduled, InsertedAt, UpdatedAt)
-		VALUES (@BuildId, @BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @WasScheduled, @now, @now)
+		INSERT INTO dbo.VstsBuild(BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, InsertedAt, UpdatedAt)
+		VALUES (@BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @now, @now)
 	END

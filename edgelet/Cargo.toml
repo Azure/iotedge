@@ -11,5 +11,6 @@ members = [
     "edgelet-utils",
     #"iotedge",
     #"management",
+    "support-bundle",
     #"systemd",
 ]

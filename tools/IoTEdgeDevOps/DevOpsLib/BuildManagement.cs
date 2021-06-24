@@ -72,9 +72,7 @@ namespace DevOpsLib
                 return buildDefinitionIds.Select(i => VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
             }
 
-            IList<VstsBuild> builds = JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
-
-            return builds;
+            return JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToList();
         }
 
         private static Url GetBuildsRequestUri(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName, string requestPath, DateTime? minTime, int? maxBuildsPerDefinition)
@@ -82,7 +80,7 @@ namespace DevOpsLib
             Url requestUri = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("definitions", string.Join(",", buildDefinitionIds.Select(b => b.IdString())))
-                .SetQueryParam("queryOrder", "finishTimeDescending")
+                .SetQueryParam("queryOrder", "finishTimeDescending")                
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("branchName", branchName);
 
