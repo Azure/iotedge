@@ -2,6 +2,7 @@
 
 mod device_actions;
 mod identity;
+mod module;
 mod system_info;
 
 #[derive(Clone)]
@@ -29,6 +30,8 @@ http_common::make_service! {
     { M: edgelet_core::ModuleRuntime + Send + Sync + 'static }
     api_version: edgelet_http::ApiVersion,
     routes: [
+        module::create_or_list::Route<M>,
+
         system_info::get::Route<M>,
         system_info::resources::Route<M>,
         system_info::support_bundle::Route<M>,
