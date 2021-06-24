@@ -17,7 +17,7 @@ where
         &((edgelet_http::ApiVersion::V2019_11_05)..)
     }
 
-    type Service = crate::Service<M>;
+    type Service = crate::ModuleManagement<M>;
     fn from_uri(
         service: &Self::Service,
         path: &str,
@@ -38,7 +38,12 @@ where
 
     type GetResponse = edgelet_core::module::SystemResources;
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
-        todo!()
+        let runtime = self.runtime.lock().await;
+
+        match runtime.system_resources().await {
+            Ok(resources) => Ok((http::StatusCode::OK, resources)),
+            Err(err) => todo!(),
+        }
     }
 
     type PostBody = serde::de::IgnoredAny;

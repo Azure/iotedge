@@ -4,3 +4,10 @@ version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
 edition = "2018"
+
+[dependencies]
+http = "0.2"
+libc = "0.2"
+log = "0.4"
+
+http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
