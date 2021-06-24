@@ -196,7 +196,6 @@ where
         .until()
         .map(|until| DateTime::from_utc(NaiveDateTime::from_timestamp(until.into(), 0), Utc));
 
-    #[cfg(unix)]
     let command = {
         let mut command = Command::new("journalctl");
         command
