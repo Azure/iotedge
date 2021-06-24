@@ -1,19 +1,26 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+mod device_actions;
 mod identity;
 mod system_info;
+
+#[derive(Clone)]
+pub struct DeviceManagement {}
+
+http_common::make_service! {
+    service: DeviceManagement,
+    api_version: edgelet_http::ApiVersion,
+    routes: [
+        device_actions::reprovision::Route,
+    ],
+}
 
 #[derive(Clone)]
 pub struct ModuleManagement<M>
 where
     M: edgelet_core::ModuleRuntime,
 {
-    pub runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
-}
-
-#[derive(Clone)]
-pub struct IdentityManagement {
-    pub client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
 http_common::make_service! {
@@ -28,22 +35,14 @@ http_common::make_service! {
     ],
 }
 
-http_common::make_service! {
-    service: IdentityManagement,
-    api_version: edgelet_http::ApiVersion,
-    routes: [
-        identity::create_or_list::Route,
-        identity::delete_or_update::Route,
-    ],
+#[derive(Clone)]
+pub struct IdentityManagement {
+    client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
 }
 
-impl Default for IdentityManagement {
-    fn default() -> Self {
-        // Use default Identity Service socket path and latest API version.
-        let socket = url::Url::parse("unix:///run/aziot/identityd.sock")
-            .expect("cannot fail to parse hardcoded path");
-        let connector =
-            http_common::Connector::new(&socket).expect("cannot fail to create connector");
+impl IdentityManagement {
+    pub fn new(identity_socket: url::Url) -> Result<Self, http_common::ConnectorError> {
+        let connector = http_common::Connector::new(&identity_socket)?;
 
         let client = aziot_identity_client_async::Client::new(
             aziot_identity_common_http::ApiVersion::V2020_09_01,
@@ -51,6 +50,15 @@ impl Default for IdentityManagement {
         );
         let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
 
-        IdentityManagement { client }
+        Ok(IdentityManagement { client })
     }
+}
+
+http_common::make_service! {
+    service: IdentityManagement,
+    api_version: edgelet_http::ApiVersion,
+    routes: [
+        identity::create_or_list::Route,
+        identity::delete_or_update::Route,
+    ],
 }

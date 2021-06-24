@@ -42,7 +42,7 @@ where
 
         match runtime.system_resources().await {
             Ok(resources) => Ok((http::StatusCode::OK, resources)),
-            Err(err) => todo!()
+            Err(err) => todo!(),
         }
     }
 

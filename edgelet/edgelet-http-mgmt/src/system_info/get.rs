@@ -42,7 +42,7 @@ where
 
         match runtime.system_info().await {
             Ok(sysinfo) => Ok((http::StatusCode::OK, sysinfo)),
-            Err(err) => todo!()
+            Err(err) => todo!(),
         }
     }
 
