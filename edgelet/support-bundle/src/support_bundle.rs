@@ -2,10 +2,7 @@
 
 use std::ffi::OsString;
 use std::fs::File;
-use std::io::Seek;
-use std::io::SeekFrom;
-use std::io::Write;
-use std::io::{Cursor, Read};
+use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use failure::Fail;
