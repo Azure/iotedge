@@ -51,9 +51,8 @@ make \
     LISTEN_WORKLOAD_URI=unix://%{iotedge_socketdir}/workload.sock \
     DESTDIR=$RPM_BUILD_ROOT \
     unitdir=%{_unitdir} \
-    presetdir=%{_presetdir} \
     docdir=%{_docdir}/%{name} \
-    install-rpm
+    install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -164,7 +163,6 @@ fi
 
 # systemd
 %{_unitdir}/aziot-edged.service
-%{_presetdir}/00-aziot-edged.preset
 
 # sockets
 %attr(660, %{iotedge_user}, %{iotedge_group}) %{iotedge_socketdir}/mgmt.sock

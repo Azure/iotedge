@@ -57,7 +57,6 @@ fn make_settings(moby_runtime: &str) -> Settings {
             r#"
 hostname = "zoo"
 homedir = "/var/lib/aziot/edged"
-allow_elevated_docker_permissions = true
 
 [agent]
 name = "edgeAgent"

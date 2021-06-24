@@ -1,6 +1,6 @@
 steps:
 - task: Docker@2
-  displayName: Docker login edgebuilds
+  displayName: Docker login
   inputs:
     command: login
     containerRegistry: iotedge-edgebuilds-acr
