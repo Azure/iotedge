@@ -68,10 +68,7 @@ impl http_common::server::Route for Route {
                 }
             }
             Err(err) => {
-                return Err(http_common::server::Error {
-                    status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                    message: format!("{}", err).into(),
-                });
+                return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
 
@@ -89,10 +86,7 @@ impl http_common::server::Route for Route {
         let body = match body {
             Some(body) => body,
             None => {
-                return Err(http_common::server::Error {
-                    status_code: http::StatusCode::BAD_REQUEST,
-                    message: "missing request body".into(),
-                });
+                return Err(edgelet_http::error::bad_request("missing request body"));
             }
         };
 
@@ -106,10 +100,7 @@ impl http_common::server::Route for Route {
                 identity
             }
             Err(err) => {
-                return Err(http_common::server::Error {
-                    status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                    message: format!("{}", err).into(),
-                });
+                return Err(edgelet_http::error::server_error(err.to_string()));
             }
         };
 

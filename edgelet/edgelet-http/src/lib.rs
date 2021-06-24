@@ -9,6 +9,7 @@
 )]
 
 mod auth;
+pub mod error;
 mod version;
 
 pub use auth::auth_agent;

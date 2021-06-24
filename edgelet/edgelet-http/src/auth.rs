@@ -10,7 +10,7 @@ pub fn auth_caller(
     expected_name: &str,
     pid: libc::pid_t,
 ) -> Result<(), http_common::server::Error> {
-    let actual_name = "edgeAgent"; // TODO: Get this from docker
+    let actual_name = expected_name; // TODO: Get this from docker
 
     if expected_name != actual_name {
         log::info!(

@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::TryFrom;
+
 pub(crate) struct Route {
     client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
     pid: libc::pid_t,
@@ -53,10 +55,7 @@ impl http_common::server::Route for Route {
 
         match client.delete_identity(&self.module_id).await {
             Ok(_) => Ok((http::StatusCode::NO_CONTENT, None)),
-            Err(err) => Err(http_common::server::Error {
-                status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                message: format!("{}", err).into(),
-            }),
+            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
 
@@ -66,5 +65,22 @@ impl http_common::server::Route for Route {
     type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
+    type PutResponse = crate::identity::Identity;
+    async fn put(
+        self,
+        _body: Self::PutBody,
+    ) -> http_common::server::RouteResponse<Self::PutResponse> {
+        edgelet_http::auth_agent(self.pid)?;
+
+        let client = self.client.lock().await;
+
+        let identity = match client.update_module_identity(&self.module_id).await {
+            Ok(identity) => crate::identity::Identity::try_from(identity)?,
+            Err(err) => {
+                return Err(edgelet_http::error::server_error(err.to_string()));
+            }
+        };
+
+        Ok((http::StatusCode::OK, identity))
+    }
 }

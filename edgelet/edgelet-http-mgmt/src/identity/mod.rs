@@ -27,20 +27,14 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                 let module_id = match identity.module_id {
                     Some(module_id) => module_id.0,
                     None => {
-                        return Err(http_common::server::Error {
-                            status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                            message: "missing module id".into(),
-                        });
+                        return Err(edgelet_http::error::server_error("missing module id"));
                     }
                 };
 
                 let generation_id = match identity.gen_id {
                     Some(gen_id) => gen_id.0,
                     None => {
-                        return Err(http_common::server::Error {
-                            status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                            message: "missing generation id".into(),
-                        });
+                        return Err(edgelet_http::error::server_error("missing generation id"));
                     }
                 };
 
@@ -51,10 +45,7 @@ impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {
                     auth_type: "sas".to_string(),
                 })
             }
-            _ => Err(http_common::server::Error {
-                status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
-                message: "invalid identity type".into(),
-            }),
+            _ => Err(edgelet_http::error::server_error("invalid identity type")),
         }
     }
 }
