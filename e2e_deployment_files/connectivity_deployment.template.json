@@ -55,6 +55,9 @@
               "NestedEdgeEnabled": {
                 "value": "false"
               },
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
+              },
               "SslProtocols": {
                 "value": "tls1.2"
               }
@@ -368,7 +371,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
@@ -432,6 +435,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -471,6 +477,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -510,6 +519,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -549,6 +561,9 @@
               },
               "TwinUpdateFrequency": {
                 "value": "<TwinUpdateFrequency>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
