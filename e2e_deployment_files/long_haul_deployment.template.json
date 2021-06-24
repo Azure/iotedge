@@ -50,6 +50,9 @@
               "RuntimeLogLevel": {
                 "value": "debug"
               },
+              "OptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
+              },
               "SslProtocols": {
                 "value": "tls1.2"
               }
@@ -198,6 +201,9 @@
               },
               "TwinUpdateFailureThreshold": {
                 "value": "<TwinUpdateFailureThreshold>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -237,6 +243,9 @@
               },
               "TwinUpdateFailureThreshold": {
                 "value": "<TwinUpdateFailureThreshold>"
+              },
+              "StorageOptimizeForPerformance": {
+                "value": "<OptimizeForPerformance>"
               }
             },
             "settings": {
@@ -383,7 +392,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"
