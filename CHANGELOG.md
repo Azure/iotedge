@@ -1,3 +1,40 @@
+# 1.2.2 (2021-06-23)
+## Edge Agent
+### Bug Fixes
+* Properly dispose UDS for Workload Client. ( [472cee5](https://github.com/Azure/iotedge/commit/472cee580101cfd5999492ef3760d5038679680e), [f9cdb59](https://github.com/Azure/iotedge/commit/f9cdb5902a8e13b80bbd8040323fb0729f085dc3) )
+* Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+
+### Features
+* Use Docker Timestamp When Log Timestamp is not Available in JSON-formatted log. ( [d336d08](https://github.com/Azure/iotedge/commit/d336d085f5503747fb5f194e3cd261c0d2b91aea) )
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+* Propagate back error code from edgeHub ( [421347d](https://github.com/Azure/iotedge/commit/421347dff842eff6e552462b967f6c84e1982b29) )
+
+
+## Diagnostic Module
+### Bug Fixes
+* Fix potential instability in iotedged after UploadSupportBundle fails. ( [f567e38](https://github.com/Azure/iotedge/commit/f567e3870633209fac609c37d71d715e39d73e1a) )
+* Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+
+
+## Temperature Filter Function Module
+### Bug Fixes
+* Update Temperature Filter Function sample module to be using .NET3.0. ( [adf8878](https://github.com/Azure/iotedge/commit/adf88788fb25873a3db90b1cb775fdd97afbd8c0) )
+
+
+## aziot-edge
+### Bug Fixes
+* Fix provisioning behavior when DPS changes. ( [c6e8900](https://github.com/Azure/iotedge/commit/c6e890040945544112d56d377cd22655d5b0dd05) )
+* Limit sysinfo crate FDs usage. ( [5947981](https://github.com/Azure/iotedge/commit/5947981c06b3677fbf403e00f090d180f5737050) )
+
+### Features
+* Enable aziot-edged in CentOS package. ( [0539cdb](https://github.com/Azure/iotedge/commit/0539cdb31f4e6f53c20245cf3290b4095dd50435) )
+* Update IoT Identity Service to version 1.2.1 ( [572de56](https://github.com/Azure/iotedge/commit/572de564ed48f43492d589d63c8bf3d43cd2160c) )
+
+
 # 1.2.1 (2021-06-01)
 ## Edge Agent
 ### Bug Fixes
