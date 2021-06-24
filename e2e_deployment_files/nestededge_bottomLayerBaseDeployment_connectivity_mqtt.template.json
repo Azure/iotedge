@@ -36,14 +36,14 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-agent:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"9600/tcp\": [{\"HostPort\": \"9600\"}]}}}"
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-hub:<EdgeRuntime.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"100m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
+              "createOptions": "{\"ExposedPorts\": {\"9600/tcp\": {}}, \"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}],\"9600/tcp\": [{\"HostPort\": \"9601\"}]}}}"
             },
             "env": {
               "experimentalFeatures__enabled": {
@@ -94,7 +94,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "loadGen2": {
@@ -127,7 +127,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "directMethodSender1": {
@@ -163,7 +163,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver1": {
@@ -184,7 +184,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "directMethodSender2": {
@@ -220,7 +220,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -241,7 +241,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "directMethodSender3": {
@@ -280,7 +280,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "relayer1": {
@@ -304,7 +304,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "relayer2": {
@@ -328,7 +328,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "testResultCoordinator": {
@@ -388,7 +388,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
             }
           },
           "twinTester1": {
@@ -421,7 +421,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "twinTester2": {
@@ -454,7 +454,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "twinTester3": {
@@ -487,7 +487,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "twinTester4": {
@@ -520,7 +520,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "deploymentTester1": {
@@ -556,7 +556,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "deploymentTester2": {
@@ -577,7 +577,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
+              "createOptions": ""
             }
           },
           "networkController": {
@@ -610,7 +610,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "metricsCollector": {
@@ -640,7 +640,7 @@
             },
             "settings": {
               "image": "$upstream:443/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}, \"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "genericMqttTester": {

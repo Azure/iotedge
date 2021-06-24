@@ -886,7 +886,7 @@ function configure_longhaul_settings() {
         log_rotation_max_file="7"
         log_rotation_max_file_edgehub="30"
 
-        MB_CONSTANT=1000000
+        MB_CONSTANT=$((1024 * 1024))
         EDGE_AGENT_MEMORY_THRESHOLD=$((70 * $MB_CONSTANT))
         EDGE_HUB_MEMORY_THRESHOLD=$((140 * $MB_CONSTANT))
         LOAD_GEN_MEMORY_THRESHOLD=$((40 * $MB_CONSTANT))
