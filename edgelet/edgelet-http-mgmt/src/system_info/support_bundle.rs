@@ -36,8 +36,10 @@ where
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
 
-    type GetResponse = ();
+    type GetResponse = (); // TODO: change type to logs type
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+        let runtime = self.runtime.lock().await;
+
         todo!()
     }
 

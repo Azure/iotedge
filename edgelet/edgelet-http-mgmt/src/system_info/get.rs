@@ -40,9 +40,10 @@ where
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let runtime = self.runtime.lock().await;
 
-        let sysinfo = runtime.system_info().await.unwrap();
-
-        Ok((http::StatusCode::OK, sysinfo))
+        match runtime.system_info().await {
+            Ok(sysinfo) => Ok((http::StatusCode::OK, sysinfo)),
+            Err(err) => todo!()
+        }
     }
 
     type PostBody = serde::de::IgnoredAny;
