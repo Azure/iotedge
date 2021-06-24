@@ -7,9 +7,11 @@ This API is only available to `edgeAgent`. All other callers will receive `403 F
 ### Request
 ```
 POST /identities?api-version={version}
+
+content-type: application/json
 ```
 
-`version` must be at least `2018_06_28`.
+`version` must be at least `2018-06-28`.
 
 #### Request body
 ```json
@@ -24,6 +26,8 @@ POST /identities?api-version={version}
 ### Response
 ```
 200 OK
+
+content-type: application/json
 ```
 
 #### Response body
@@ -47,11 +51,13 @@ This API is only available to `edgeAgent`. All other callers will receive `403 F
 GET /identities?api-version={version}
 ```
 
-`version` must be at least `2018_06_28`.
+`version` must be at least `2018-06-28`.
 
 ### Response
 ```
 200 OK
+
+content-type: application/json
 ```
 
 #### Response body
@@ -79,11 +85,13 @@ This API is only available to `edgeAgent`. All other callers will receive `403 F
 PUT /identities/{module-id}?api-version={version}
 ```
 
-`version` must be at least `2018_06_28`.
+`version` must be at least `2018-06-28`.
 
 ### Response
 ```
 200 OK
+
+content-type: application/json
 ```
 
 #### Response body
@@ -107,7 +115,7 @@ This API is only available to `edgeAgent`. All other callers will receive `403 F
 DELETE /identities/{module-id}?api-version={version}
 ```
 
-`version` must be at least `2018_06_28`.
+`version` must be at least `2018-06-28`.
 
 ### Response
 ```
