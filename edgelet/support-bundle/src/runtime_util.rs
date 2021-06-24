@@ -15,15 +15,17 @@ pub async fn get_modules(
 ) -> Result<Vec<String>, Error> {
     const MS_MODULES: &[&str] = &["edgeAgent", "edgeHub"];
 
-    let runtime_modules = runtime
-        .list_with_details()
+    runtime
+        .list()
         .await
-        .into_iter()
-        .map(|(module, _s)| module.name().to_owned())
-        .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
-        .collect();
-
-    Ok(runtime_modules)
+        .map(|modules| {
+            modules
+                .into_iter()
+                .map(|module| module.name().to_owned())
+                .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
+                .collect()
+        })
+        .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
 }
 
 /// # Errors

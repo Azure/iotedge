@@ -6,8 +6,8 @@
 
 mod error;
 mod runtime_util;
-mod support_bundle;
 mod shell_util;
+mod support_bundle;
 
 pub use crate::error::{Error, ErrorKind};
 pub use crate::runtime_util::write_logs;
