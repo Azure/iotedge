@@ -23,8 +23,6 @@ parameters:
   logAnalytics.sharedKey: ''
   logAnalytics.logType: ''
   twinTester.twinUpdateSize: ''
-  twinTester.twinUpdateFailureThreshold: ''
-  twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''

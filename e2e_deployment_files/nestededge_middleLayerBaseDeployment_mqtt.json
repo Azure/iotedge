@@ -85,6 +85,9 @@
               },
               "TEST_START_DELAY": {
                 "value": "10s"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "settings": {

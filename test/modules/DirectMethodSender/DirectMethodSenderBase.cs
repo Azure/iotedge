@@ -3,6 +3,7 @@ namespace DirectMethodSender
 {
     using System;
     using System.Net;
+    using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common.Exceptions;
@@ -56,6 +57,21 @@ namespace DirectMethodSender
             {
                 logger.LogInformation(e, $"DeviceNotFound exception caught with count {this.directMethodCount}");
                 return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.NotFound, this.directMethodCount);
+            }
+            catch (SocketException e)
+            {
+                logger.LogInformation(e, $"Resource exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.ServiceUnavailable, this.directMethodCount);
+            }
+            catch (UnauthorizedException e)
+            {
+                logger.LogInformation(e, $"Unauthorized exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.Unauthorized, this.directMethodCount);
+            }
+            catch (Exception e) when (e is System.Net.Http.HttpRequestException || e is IotHubException || e is IotHubCommunicationException)
+            {
+                logger.LogInformation(e, $"Transient exception caught with count {this.directMethodCount}");
+                return new Tuple<HttpStatusCode, ulong>(HttpStatusCode.FailedDependency, this.directMethodCount);
             }
             catch (Exception e)
             {
