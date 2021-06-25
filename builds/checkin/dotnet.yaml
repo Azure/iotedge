@@ -32,7 +32,6 @@ jobs:
     pool:
       vmImage: ubuntu-18.04
     steps:
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - task: Bash@3
         displayName: Install Prerequisites
@@ -64,7 +63,6 @@ jobs:
     pool:
       vmImage: "vs2017-win2016"
     steps:
-      - template: ../templates/install-dotnet2.yaml
       - template: ../templates/install-dotnet3.yaml
       - task: PowerShell@2
         displayName: Build
