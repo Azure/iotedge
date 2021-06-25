@@ -43,9 +43,11 @@ namespace VstsPipelineSync
 
                 foreach (string branch in this.branches)
                 {
-                    buildLastUpdatePerBranchPerDefinition.Upsert(
-                        branch,
-                        await ImportVstsBuildsDataAsync(buildManagement, branch, BuildExtension.BuildDefinitions));
+                    foreach (BuildDefinitionId buildDefinitionId in BuildExtension.BuildDefinitions)
+                    {
+                        IList<VstsBuild> builds = await GetBuildsAndTrackLastUpdatedAsync(buildManagement, buildDefinitionId, branch);
+                        ImportVstsBuildsDataForSpecificDefinitionAsync(builds, buildDefinitionId);
+                    }
                 }
 
                 foreach (string branch in this.branches)
@@ -56,6 +58,33 @@ namespace VstsPipelineSync
                 Console.WriteLine($"Import Vsts data finished at {DateTime.UtcNow}; wait {waitPeriodAfterEachUpdate} for next update.");
                 await Task.Delay((int)waitPeriodAfterEachUpdate.TotalMilliseconds);
             }
+        }
+
+        async Task<IList<VstsBuild>> GetBuildsAndTrackLastUpdatedAsync(BuildManagement buildManagement, BuildDefinitionId buildDefinitionId, string branch)
+        {
+            Dictionary<BuildDefinitionId, DateTime> buildDefinitionIdToLastUpdate = this.buildLastUpdatePerBranchPerDefinition.GetIfExists(branch);
+            if (buildDefinitionIdToLastUpdate == null)
+            {
+                buildDefinitionIdToLastUpdate = new Dictionary<BuildDefinitionId, DateTime>();
+            }
+
+            DateTime lastUpdate = buildDefinitionIdToLastUpdate.GetIfExists(buildDefinitionId);
+            IList<VstsBuild> buildResults = await buildManagement.GetBuildsAsync(new HashSet<BuildDefinitionId> { buildDefinitionId }, branch, lastUpdate);
+            Console.WriteLine($"Query VSTS builds for branch [{branch}] and build definition [{buildDefinitionId.ToString()}]: last update={lastUpdate} => result count={buildResults.Count}");
+
+            DateTime maxLastChange = DateTime.MinValue;
+            foreach (VstsBuild build in buildResults.Where(r => r.HasResult()))
+            {
+                if (build.LastChangedDate > maxLastChange)
+                {
+                    maxLastChange = build.LastChangedDate;
+                }
+            }
+
+            buildDefinitionIdToLastUpdate.Upsert(buildDefinitionId, maxLastChange);
+            this.buildLastUpdatePerBranchPerDefinition.Upsert(branch, buildDefinitionIdToLastUpdate);
+
+            return buildResults;
         }
 
         async Task ImportVstsBugDataAsync(BugManagement bugManagement, HashSet<BugQuery> bugQueries)
@@ -85,30 +114,9 @@ namespace VstsPipelineSync
             }
         }
 
-        async Task<Dictionary<BuildDefinitionId, DateTime>> ImportVstsBuildsDataAsync(BuildManagement buildManagement, string branch, HashSet<BuildDefinitionId> buildDefinitionIds)
-        {
-            Console.WriteLine($"Import VSTS builds from branch [{branch}] started at {DateTime.UtcNow}.");
-            Dictionary<BuildDefinitionId, DateTime> lastUpdatePerDefinition = this.buildLastUpdatePerBranchPerDefinition.GetIfExists(branch);
-
-            if (lastUpdatePerDefinition == null)
-            {
-                lastUpdatePerDefinition = new Dictionary<BuildDefinitionId, DateTime>();
-            }
-
-            foreach (BuildDefinitionId buildDefinitionId in buildDefinitionIds)
-            {
-                DateTime maxLastChange = await ImportVstsBuildsDataForSpecificDefinitionAsync(buildManagement, branch, buildDefinitionId, lastUpdatePerDefinition.GetIfExists(buildDefinitionId));
-                lastUpdatePerDefinition.Upsert(buildDefinitionId, maxLastChange);
-            }
-
-            return lastUpdatePerDefinition;
-        }
-
-        async Task<DateTime> ImportVstsBuildsDataForSpecificDefinitionAsync(
-            BuildManagement buildManagement,
-            string branch,
-            BuildDefinitionId buildDefinitionId,
-            DateTime lastUpdate)
+        void ImportVstsBuildsDataForSpecificDefinitionAsync(
+            IList<VstsBuild> builds,
+            BuildDefinitionId buildDefinitionId)
         {
             SqlConnection sqlConnection = null;
 
@@ -117,21 +125,10 @@ namespace VstsPipelineSync
                 sqlConnection = new SqlConnection(this.dbConnectionString);
                 sqlConnection.Open();
 
-                IList<VstsBuild> buildResults = await buildManagement.GetBuildsAsync(new HashSet<BuildDefinitionId> { buildDefinitionId }, branch, lastUpdate);
-                Console.WriteLine($"Query VSTS builds for branch [{branch}] and build definition [{buildDefinitionId.ToString()}]: last update={lastUpdate} => result count={buildResults.Count}");
-                DateTime maxLastChange = lastUpdate;
-
-                foreach (VstsBuild build in buildResults.Where(r => r.HasResult()))
+                foreach (VstsBuild build in builds.Where(r => r.HasResult()))
                 {
                     UpsertVstsBuildToDb(sqlConnection, build);
-
-                    if (build.LastChangedDate > maxLastChange)
-                    {
-                        maxLastChange = build.LastChangedDate;
-                    }
                 }
-
-                return maxLastChange;
             }
             catch (Exception)
             {
@@ -170,6 +167,7 @@ namespace VstsPipelineSync
                 CommandText = "UpsertVstsBuild"
             };
 
+            cmd.Parameters.Add(new SqlParameter("@BuildId", build.BuildId));
             cmd.Parameters.Add(new SqlParameter("@BuildNumber", build.BuildNumber));
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", build.DefinitionId));
             cmd.Parameters.Add(new SqlParameter("@DefinitionName", build.DefinitionId.DisplayName()));
@@ -181,6 +179,7 @@ namespace VstsPipelineSync
             cmd.Parameters.Add(new SqlParameter("@QueueTime", SqlDbType.DateTime2) { Value = build.QueueTime });
             cmd.Parameters.Add(new SqlParameter("@StartTime", SqlDbType.DateTime2) { Value = build.StartTime });
             cmd.Parameters.Add(new SqlParameter("@FinishTime", SqlDbType.DateTime2) { Value = build.FinishTime });
+            cmd.Parameters.Add(new SqlParameter("@WasScheduled", build.WasScheduled().ToString()));
 
             cmd.ExecuteNonQuery();
         }
@@ -213,13 +212,13 @@ namespace VstsPipelineSync
                         {
                             UpsertVstsReleaseEnvironmentToDb(sqlConnection, release.Id, releaseEnvironment, kvp.Value);
 
-                            foreach(IoTEdgeReleaseDeployment deployment in releaseEnvironment.Deployments)
+                            foreach (IoTEdgeReleaseDeployment deployment in releaseEnvironment.Deployments)
                             {
                                 UpsertVstsReleaseDeploymentToDb(sqlConnection, releaseEnvironment.Id, deployment);
 
                                 const string testTaskPrefix = "Test:";
 
-                                foreach(IoTEdgePipelineTask pipelineTask in deployment.Tasks.Where(x => IsTestTask(x, testTaskPrefix)))
+                                foreach (IoTEdgePipelineTask pipelineTask in deployment.Tasks.Where(x => IsTestTask(x, testTaskPrefix)))
                                 {
                                     UpsertVstsReleaseTaskToDb(sqlConnection, deployment.Id, pipelineTask, testTaskPrefix);
                                 }
@@ -229,7 +228,7 @@ namespace VstsPipelineSync
 
                     releaseCount++;
 
-                    if (releaseCount % 10 ==0)
+                    if (releaseCount % 10 == 0)
                     {
                         Console.WriteLine($"Query VSTS releases for branch [{branch}] and release definition [{releaseDefinitionId.ToString()}]: release count={releaseCount} at {DateTime.UtcNow}.");
                     }
