@@ -6,8 +6,10 @@ variables:
   NugetSecurityAnalysisWarningLevel: warn
   
 jobs:
-  - deployment: publishImages
-    displayName: Publish Images
+################################################################################
+  - deployment: publishImagesLinux
+################################################################################
+    displayName: Publish Images Linux
     pool:
       vmImage: ubuntu-18.04
     workspace:
@@ -21,12 +23,17 @@ jobs:
             clean: true
             fetchDepth: 100
         
-          - task: Bash@3
-            displayName: Log into Registries
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
             inputs:
-              targetType: Inline
-              script: |
-                docker login $(registry.address) --username $(registry.user) --password $(registry.password)
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
         
           - task: Bash@3
             displayName: 'Publish Metrics Collector - Linux amd64'
@@ -45,16 +52,79 @@ jobs:
             inputs:
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
               arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-linux-arm64v8'
+################################################################################
+  - deployment: publishImagesWindows
+################################################################################
+    displayName: Publish Images Windows
+    pool:
+      name: Azure-IoT-Edge-Core
+      demands:
+      - Build-Image -equals true
+      - agent-os-name -equals WinPro_x64
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
 
-          - task: Bash@3
-            displayName: 'Publish Metrics Collector - Windows amd64'
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
             inputs:
-              filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-              arguments: '--from $(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64 --to $(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'
-      
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
+
+          - task: PowerShell@2
+            displayName: "Publish Metrics Collector - Windows amd64"
+            inputs:
+              arguments: "-FromImage '$(registry.address)/$(from.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64' -ToImage '$(registry.address)/$(to.registry.namespace)/azureiotedge-metrics-collector:$(version)-windows-amd64'"
+              filePath: ./scripts/windows/build/Move-Image.ps1
+              targetType: filePath
+################################################################################
+  - deployment: manifest
+################################################################################
+    displayName: Publish Manifest
+    pool:
+      vmImage: ubuntu-18.04
+    workspace:
+      clean: all
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    dependsOn:
+      - publishImagesLinux
+      - publishImagesWindows
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            clean: true
+            fetchDepth: 100
+
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
+            inputs:
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
+
           - task: Bash@3
             displayName: 'Publish Metrics Collector Manifest'
             inputs:
               targetType: filePath
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-              arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/azure-monitor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
