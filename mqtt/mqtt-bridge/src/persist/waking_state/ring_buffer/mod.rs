@@ -513,6 +513,7 @@ where
     // We don't need any explicit returns elsewhere as EOF should be an ERR.
     #[allow(clippy::cast_possible_truncation)]
     let all_zeroes: Vec<u8> = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
+    let mut start = 0;
     loop {
         #[allow(clippy::cast_possible_truncation)]
         let mut buf = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
@@ -534,7 +535,8 @@ where
             }
         }
 
-        readable.seek(SeekFrom::Current(1))?;
+        readable.seek(SeekFrom::Start(start + 1))?;
+        start += 1;
     }
 }
 
