@@ -780,6 +780,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 .Callback<ConnectionStatusChangesHandler>(statusChanges => connectionStatusChangesHandler = statusChanges)
                 .ReturnsAsync(deviceClient.Object);
 
+            var retryStrategy = new Mock<RetryStrategy>(new object[] { false });
+            retryStrategy.Setup(rs => rs.GetShouldRetry())
+                .Returns(
+                    (int retryCount, Exception lastException, out TimeSpan delay) =>
+                    {
+                        delay = TimeSpan.Zero;
+                        return false;
+                    });
+
             var counter = 0;
             var milestone = new SemaphoreSlim(0, 1);
 
@@ -800,11 +809,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Setup(x => x.ReprovisionDeviceAsync()).Returns(Task.CompletedTask);
             Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
-            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
-            connection.TwinPullOnConnectThrottleTime = TimeSpan.FromSeconds(3);
+            var connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(3));
 
             // There is a twin pull during init, wait for that
-            await milestone.WaitAsync(TimeSpan.FromSeconds(3));
+            await milestone.WaitAsync(TimeSpan.FromSeconds(2));
 
             // A first time call should just go through
             counter = 0;
@@ -962,7 +970,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(30));
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1047,7 +1055,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(30));
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -1501,7 +1509,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(30)))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1615,7 +1623,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle))
+            using (var edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(30)))
             {
                 await Task.Delay(TimeSpan.FromSeconds(3));
                 Option<DeploymentConfigInfo> receivedDeploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
@@ -1720,7 +1728,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<X509Certificate2> manifestTrustBundle = Option.None<X509Certificate2>();
 
             // Act
-            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
+            IEdgeAgentConnection connection = new EdgeAgentConnection(moduleClientProvider.Object, serde.Object, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromHours(1), retryStrategy.Object, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(30));
 
             // Assert
             // The connection hasn't been created yet. So wait for it.
@@ -2293,13 +2301,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Option<X509Certificate2> manifestTrustBundle2 = GetEcdsaManifestTrustBundle();
 
             // Case 1: Unsigned Twin with Empty Trust Bundle
-            yield return new object[] { false, new EdgeAgentConnection(moduleClientProvider1.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle1), twin1.Properties.Desired };
+            yield return new object[] { false, new EdgeAgentConnection(moduleClientProvider1.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle1, TimeSpan.FromSeconds(30)), twin1.Properties.Desired };
             // Case 2: Unsigned Twin with Non-Empty Trust Bundle
-            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider1.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle2), twin1.Properties.Desired };
+            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider1.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle2, TimeSpan.FromSeconds(30)), twin1.Properties.Desired };
             // Case 3: Signed Twin with Empty Trust Bundle
-            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider2.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle1), twin2.Properties.Desired };
+            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider2.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle1, TimeSpan.FromSeconds(30)), twin2.Properties.Desired };
             // Case 4: Signed Twin with Non-Empty Trust Bundle
-            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider2.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle2), twin2.Properties.Desired };
+            yield return new object[] { true, new EdgeAgentConnection(moduleClientProvider2.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle2, TimeSpan.FromSeconds(30)), twin2.Properties.Desired };
         }
 
         public static IEnumerable<object[]> GetTwinCollectionToCheckIfTwinSignatureIsValid()
@@ -2433,7 +2441,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             var retryStrategy = new FixedInterval(3, TimeSpan.FromSeconds(2));
             var deviceManager = new Mock<IDeviceManager>();
 
-            return new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle);
+            return new EdgeAgentConnection(moduleClientProvider.Object, serde, new RequestManager(requestHandlers, DefaultRequestTimeout), deviceManager.Object, true, TimeSpan.FromSeconds(10), retryStrategy, Mock.Of<IDeploymentMetrics>(), manifestTrustBundle, TimeSpan.FromSeconds(30));
         }
 
         public static string GetEdgeAgentRightImageName() => "mcr.microsoft.com/azureiotedge-agent:1.0";

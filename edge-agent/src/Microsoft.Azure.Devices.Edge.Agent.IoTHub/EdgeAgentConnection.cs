@@ -32,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         internal static readonly Version ExpectedSchemaVersion = new Version("1.1.0");
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
+        static readonly TimeSpan DefaultTwinPullOnConnectThrottleTime = TimeSpan.FromSeconds(30);
 
         static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
 
@@ -48,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IDeviceManager deviceManager;
         readonly IDeploymentMetrics deploymentMetrics;
         readonly Option<X509Certificate2> manifestTrustBundle;
+        readonly TimeSpan twinPullOnConnectThrottleTime;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -64,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             IDeploymentMetrics deploymentMetrics,
             Option<X509Certificate2> manifestTrustBundle)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle, DefaultTwinPullOnConnectThrottleTime)
         {
         }
 
@@ -77,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             TimeSpan configRefreshFrequency,
             IDeploymentMetrics deploymentMetrics,
             Option<X509Certificate2> manifestTrustBundle)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle, DefaultTwinPullOnConnectThrottleTime)
         {
         }
 
@@ -90,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy,
             IDeploymentMetrics deploymentMetrics,
-            Option<X509Certificate2> manifestTrustBundle)
+            Option<X509Certificate2> manifestTrustBundle,
+            TimeSpan twinPullOnConnectThrottleTime)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -104,15 +107,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
             this.initTask = this.ForceRefreshTwin();
             this.manifestTrustBundle = manifestTrustBundle;
-            this.TwinPullOnConnectThrottleTime = TimeSpan.FromSeconds(30);
+            this.twinPullOnConnectThrottleTime = twinPullOnConnectThrottleTime;
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
 
         public IModuleConnection ModuleConnection => this.moduleConnection;
-
-        // Used by tests to shorten delay time
-        public TimeSpan TwinPullOnConnectThrottleTime { get; set; }
 
         public async Task<Option<DeploymentConfigInfo>> GetDeploymentConfigInfoAsync()
         {
@@ -253,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     using (await this.twinLock.LockAsync())
                     {
                         var now = DateTime.Now;
-                        if (now - this.lastTwinPullOnConnect > this.TwinPullOnConnectThrottleTime && !this.isDelayedTwinPullInProgress.Get())
+                        if (now - this.lastTwinPullOnConnect > this.twinPullOnConnectThrottleTime && !this.isDelayedTwinPullInProgress.Get())
                         {
                             this.lastTwinPullOnConnect = now;
                             await this.RefreshTwinAsync();
@@ -265,40 +265,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     {
                         if (this.isDelayedTwinPullInProgress.GetAndSet(true))
                         {
-                            this.pullRequestCounter++;
+                            Interlocked.Increment(ref this.pullRequestCounter);
                         }
                         else
                         {
-                            _ = Task.Run(
-                                async () =>
-                                {
-                                    await Task.Delay(this.TwinPullOnConnectThrottleTime);
-
-                                    var requestCounter = default(int);
-                                    using (await this.twinLock.LockAsync())
-                                    {
-                                        this.lastTwinPullOnConnect = DateTime.Now;
-
-                                        try
-                                        {
-                                            await this.RefreshTwinAsync();
-                                        }
-                                        catch
-                                        {
-                                            // swallowing intentionally
-                                        }
-
-                                        requestCounter = this.pullRequestCounter;
-                                        this.pullRequestCounter = 0;
-
-                                        this.isDelayedTwinPullInProgress.Set(false);
-                                    }
-
-                                    if (requestCounter > PullFrequencyThreshold)
-                                    {
-                                        Events.PullingTwinHasBeenTriggeredFrequently(requestCounter, Convert.ToInt32(this.TwinPullOnConnectThrottleTime.TotalSeconds));
-                                    }
-                                });
+                            _ = this.DelayedRefreshTwinAsync();
                         }
                     }
                 }
@@ -307,6 +278,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.ConnectionStatusChangedHandlingError(ex);
             }
+        }
+
+        async Task DelayedRefreshTwinAsync()
+        {
+            Events.StartedDelayedTwinPull();
+            await Task.Delay(this.twinPullOnConnectThrottleTime);
+
+            var requestCounter = default(int);
+            using (await this.twinLock.LockAsync())
+            {
+                this.lastTwinPullOnConnect = DateTime.Now;
+
+                try
+                {
+                    await this.RefreshTwinAsync();
+                }
+                catch
+                {
+                    // swallowing intentionally
+                }
+
+                requestCounter = Interlocked.Exchange(ref this.pullRequestCounter, 0);
+
+                this.isDelayedTwinPullInProgress.Set(false);
+            }
+
+            if (requestCounter > PullFrequencyThreshold)
+            {
+                Events.PullingTwinHasBeenTriggeredFrequently(requestCounter, Convert.ToInt32(this.twinPullOnConnectThrottleTime.TotalSeconds));
+            }
+
+            Events.FinishedDelayedTwinPull();
         }
 
         async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
@@ -632,7 +635,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ManifestSigningIsNotEnabled,
                 ManifestTrustBundleIsNotConfigured,
                 DeploymentManifestIsNotSigned,
-                PullingTwinHasBeenTriggeredFrequently
+                PullingTwinHasBeenTriggeredFrequently,
+                StartedDelayedTwinPull,
+                FinishedDelayedTwinPull
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -820,6 +825,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void PullingTwinHasBeenTriggeredFrequently(int count, int seconds)
             {
                 Log.LogWarning((int)EventIds.PullingTwinHasBeenTriggeredFrequently, $"Pulling twin by 'Connected' event has been triggered frequently, {count} times in the last {seconds} seconds. This can be a sign when more edge devices use the same identity and they keep getting disconnected.");
+            }
+
+            internal static void StartedDelayedTwinPull()
+            {
+                Log.LogDebug((int)EventIds.StartedDelayedTwinPull, $"Started delayed twin-pull");
+            }
+
+            internal static void FinishedDelayedTwinPull()
+            {
+                Log.LogDebug((int)EventIds.FinishedDelayedTwinPull, $"Finished delayed twin-pull");
             }
         }
     }
