@@ -80,7 +80,12 @@ jobs:
         displayName: Test
         inputs:
           filePath: scripts/windows/test/Test-Branch.ps1
-          arguments: -Filter Category=Unit
+          arguments: '"--filter Category=Unit&Category!=GetLogsTests"'
+      - task: PowerShell@2
+        displayName: Run GetLogsTests Tests
+        inputs:
+          filePath: scripts/windows/test/Test-Branch.ps1
+          arguments: '"--filter Category=GetLogsTests"'
       - task: PublishTestResults@2
         displayName: Publish Test Results
         inputs:
