@@ -30,7 +30,11 @@ pub(crate) async fn get_device_info(
         match identity_client.get_device_identity().await {
             Ok(device_info) => match device_info {
                 aziot_identity_common::Identity::Aziot(device_info) => {
-                    log::info!("Finished provisioning Edge device");
+                    log::info!(
+                        "Device is {} on {}",
+                        device_info.device_id.0,
+                        device_info.hub_name
+                    );
 
                     return Ok(device_info);
                 }

@@ -6,7 +6,15 @@ mod module;
 mod system_info;
 
 #[derive(Clone)]
-pub struct DeviceManagement {}
+pub struct DeviceManagement {
+    sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+}
+
+impl DeviceManagement {
+    pub fn new(sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>) -> Self {
+        DeviceManagement { sender }
+    }
+}
 
 http_common::make_service! {
     service: DeviceManagement,
@@ -44,8 +52,8 @@ pub struct IdentityManagement {
 }
 
 impl IdentityManagement {
-    pub fn new(identity_socket: url::Url) -> Result<Self, http_common::ConnectorError> {
-        let connector = http_common::Connector::new(&identity_socket)?;
+    pub fn new(identity_socket: &url::Url) -> Result<Self, http_common::ConnectorError> {
+        let connector = http_common::Connector::new(identity_socket)?;
 
         let client = aziot_identity_client_async::Client::new(
             aziot_identity_common_http::ApiVersion::V2020_09_01,

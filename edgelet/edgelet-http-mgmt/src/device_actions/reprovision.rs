@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub(crate) struct Route {
+    sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
     pid: libc::pid_t,
 }
 
@@ -27,7 +28,10 @@ impl http_common::server::Route for Route {
             None => return None,
         };
 
-        Some(Route { pid })
+        Some(Route {
+            sender: service.sender.clone(),
+            pid,
+        })
     }
 
     type DeleteBody = serde::de::IgnoredAny;
@@ -43,7 +47,12 @@ impl http_common::server::Route for Route {
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
         edgelet_http::auth_agent(self.pid)?;
 
-        Ok((http::StatusCode::OK, None))
+        match self.sender.send(edgelet_core::ShutdownReason::Reprovision) {
+            Ok(()) => Ok((http::StatusCode::OK, None)),
+            Err(_) => Err(edgelet_http::error::server_error(
+                "failed to send reprovision request",
+            )),
+        }
     }
 
     type PutBody = serde::de::IgnoredAny;

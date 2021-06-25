@@ -7,6 +7,9 @@ mod error;
 mod management;
 mod provision;
 
+// TODO: Remove this with parent_hostname_resolve
+use edgelet_core::RuntimeSettings;
+
 use crate::error::Error as EdgedError;
 
 #[tokio::main]
@@ -59,7 +62,33 @@ async fn run() -> Result<(), EdgedError> {
 
     provision::update_device_cache(&cache_dir, &device_info)?;
 
-    management::start().await;
+    // TODO: Rework settings so this isn't needed.
+    let mut settings = settings;
+    settings
+        .agent_mut()
+        .parent_hostname_resolve(&device_info.gateway_host);
 
-    unreachable!()
+    let (sender, mut receiver) =
+        tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+
+    // Set the signal handler to listen for CTRL+C (SIGINT).
+    let sigint_sender = sender.clone();
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("cannot fail to set signal handler");
+
+        // Failure to send the shutdown signal means that the mpsc queue is closed.
+        // Ignore this Result, as the process will be shutting down anyways.
+        let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
+    });
+
+    // Start management and workload sockets.
+    management::start(&settings, sender).await?;
+
+    if let Some(shutdown) = receiver.recv().await {
+        log::info!("{}", shutdown);
+    }
+
+    Ok(())
 }
