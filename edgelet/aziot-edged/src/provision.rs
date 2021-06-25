@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use sha2::Digest;
+
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn get_device_info(
@@ -28,7 +30,7 @@ pub(crate) async fn get_device_info(
         match identity_client.get_device_identity().await {
             Ok(device_info) => match device_info {
                 aziot_identity_common::Identity::Aziot(device_info) => {
-                    log::info!("Finished provisioning Edge device.");
+                    log::info!("Finished provisioning Edge device");
 
                     return Ok(device_info);
                 }
@@ -54,6 +56,47 @@ pub(crate) async fn get_device_info(
     }
 }
 
+pub(crate) fn update_device_cache(
+    cache_dir: &std::path::Path,
+    device_info: &aziot_identity_common::AzureIoTSpec,
+) -> Result<(), EdgedError> {
+    log::info!("Detecting if device information has changed...");
+
+    let cache_path = cache_dir.join("provisioning_state");
+
+    let cached_device = match std::fs::read_to_string(cache_path.clone()) {
+        Ok(cache) => cache,
+        Err(err) => match err.kind() {
+            std::io::ErrorKind::NotFound => String::default(),
+            _ => {
+                return Err(EdgedError::new(format!(
+                    "Failed to read cached provisioning state: {}",
+                    err
+                )));
+            }
+        },
+    };
+
+    let current_device = device_digest(device_info);
+
+    if current_device != cached_device {
+        log::info!("Change to device information detected");
+
+        log::info!("Removing all modules...");
+        // TODO
+        log::info!("Removed all modules");
+
+        log::info!("Updating cached device information");
+        std::fs::write(cache_path, current_device).map_err(|err| {
+            EdgedError::new(format!("Failed to save provisioning cache: {}", err))
+        })?;
+    } else {
+        log::info!("Device information has not changed");
+    }
+
+    Ok(())
+}
+
 async fn reprovision(
     identity_client: &aziot_identity_client_async::Client,
     cache_dir: &std::path::Path,
@@ -66,4 +109,17 @@ async fn reprovision(
     }
 
     identity_client.reprovision().await
+}
+
+fn device_digest(device: &aziot_identity_common::AzureIoTSpec) -> String {
+    let json = serde_json::json!({
+        "device_id": device.device_id.0,
+        "gateway_host_name": device.gateway_host,
+        "hub_name": device.hub_name,
+    })
+    .to_string();
+
+    let digest = sha2::Sha256::digest(json.as_bytes());
+
+    base64::encode(digest)
 }

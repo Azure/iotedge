@@ -6,8 +6,11 @@ publish = false
 edition = "2018"
 
 [dependencies]
+base64 = "0.13"
 clap = "2.33"
 log = "0.4"
+serde_json = "1"
+sha2 = "0.9"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 url = "2"
 

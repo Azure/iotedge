@@ -92,6 +92,7 @@ dependencies = [
  "aziot-identity-client-async",
  "aziot-identity-common",
  "aziot-identity-common-http",
+ "base64 0.13.0",
  "clap",
  "edgelet-core",
  "edgelet-docker",
@@ -99,6 +100,8 @@ dependencies = [
  "http-common",
  "log",
  "logger",
+ "serde_json",
+ "sha2",
  "tokio 1.6.0",
  "url 2.2.2",
 ]

@@ -22,7 +22,7 @@ async fn main() {
     logger::try_init()
         .expect("cannot fail to initialize global logger from the process entrypoint");
 
-    log::info!("Starting Azure IoT Edge Module Runtime");
+    log::info!("Starting Azure IoT Edge Daemon");
     log::info!("Version - {}", edgelet_core::version_with_source_version());
 
     if let Err(err) = run().await {
@@ -45,6 +45,19 @@ async fn run() -> Result<(), EdgedError> {
     })?;
 
     let device_info = provision::get_device_info(&settings, &cache_dir).await?;
+
+    // Normally, aziot-edged will stop all modules when it shuts down. But if it crashed,
+    // modules will continue to run. On Linux systems where aziot-edged is responsible for
+    // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
+    // support systemd socket activation), modules will be left holding stale file
+    // descriptors for the workload and management APIs and calls on these APIs will
+    // begin to fail. Resilient modules should be able to deal with this, but we'll
+    // restart all modules to ensure a clean start.
+    log::info!("Stopping all modules...");
+    // TODO
+    log::info!("All modules stopped");
+
+    provision::update_device_cache(&cache_dir, &device_info)?;
 
     management::start().await;
 
