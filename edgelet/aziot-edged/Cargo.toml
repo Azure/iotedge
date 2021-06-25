@@ -8,11 +8,16 @@ edition = "2018"
 [dependencies]
 clap = "2.33"
 log = "0.4"
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
+
+aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
 logger = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

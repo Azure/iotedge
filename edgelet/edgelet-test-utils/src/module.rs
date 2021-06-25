@@ -381,7 +381,9 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
         }
     }
 
-    async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error> {
+    async fn list_with_details(
+        &self,
+    ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error> {
         match self.module.as_ref().unwrap() {
             Ok(m) => {
                 let state = m.runtime_state().await?;

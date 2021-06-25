@@ -3,7 +3,11 @@
 #![deny(rust_2018_idioms)]
 #![warn(clippy::all, clippy::pedantic)]
 
+mod error;
 mod management;
+mod provision;
+
+use crate::error::Error as EdgedError;
 
 #[tokio::main]
 async fn main() {
@@ -23,11 +27,25 @@ async fn main() {
 
     if let Err(err) = run().await {
         log::error!("{}", err);
-        //std::process::exit(i32::from(err.kind()));
+
+        std::process::exit(err.into());
     }
 }
 
-async fn run() -> Result<(), std::io::Error> {
+async fn run() -> Result<(), EdgedError> {
+    let settings = edgelet_docker::Settings::new()?;
+
+    let cache_dir = std::path::Path::new(&settings.base.homedir).join("cache");
+    std::fs::create_dir_all(cache_dir.clone()).map_err(|err| {
+        EdgedError::new(format!(
+            "Failed to create cache directory {}: {}",
+            cache_dir.as_path().display(),
+            err
+        ))
+    })?;
+
+    let device_info = provision::get_device_info(&settings, &cache_dir).await?;
+
     management::start().await;
 
     unreachable!()

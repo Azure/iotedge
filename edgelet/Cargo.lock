@@ -89,8 +89,12 @@ dependencies = [
 name = "aziot-edged"
 version = "0.1.0"
 dependencies = [
+ "aziot-identity-client-async",
+ "aziot-identity-common",
+ "aziot-identity-common-http",
  "clap",
  "edgelet-core",
+ "edgelet-docker",
  "edgelet-http-mgmt",
  "http-common",
  "log",
