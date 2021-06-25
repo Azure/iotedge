@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - task: Docker@2
-        displayName: Docker Login
+        displayName: Docker login edgebuilds
         inputs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr
@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - task: Docker@2
-        displayName: Docker Login
+        displayName: Docker login edgebuilds
         inputs:
           command: login
           containerRegistry: iotedge-edgebuilds-acr

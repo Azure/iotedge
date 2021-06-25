@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Text.RegularExpressions;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -15,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     internal class Settings
     {
         public static Settings Current = Create();
+        public static Settings Information = GetInformation();
 
         private Settings(
             string logAnalyticsWorkspaceId,
@@ -94,6 +96,26 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 Environment.Exit(2);
                 throw new Exception();  // to make code analyzers happy (this line will never run)
             }
+        }
+
+        private static Settings GetInformation()
+        {
+            Settings settings = Current;
+
+            Regex regex = new Regex("(\\/subscriptions\\/)(.*?)(\\/resourceGroups\\/)(.*?)(\\/providers\\/)");
+
+            return new Settings(
+                settings.LogAnalyticsWorkspaceId,
+                settings.LogAnalyticsWorkspaceKey,
+                string.Join(',', settings.Endpoints),
+                settings.ScrapeFrequencySecs,
+                settings.UploadTarget,
+                settings.CompressForUpload,
+                settings.TransformForIoTCentral,
+                settings.AllowedMetrics.ToString(),
+                settings.BlockedMetrics.ToString(),
+                regex.Replace(settings.ResourceId, "$1" + "XXX" + "$3" + "XXX" + "$5"),
+                settings.Version);
         }
 
         public string LogAnalyticsWorkspaceId { get; }

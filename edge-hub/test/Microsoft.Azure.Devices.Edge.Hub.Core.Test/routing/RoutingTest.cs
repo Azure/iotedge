@@ -32,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
     {
         static readonly TimeSpan DefaultMessageAckTimeout = TimeSpan.FromSeconds(30);
         static readonly Random Rand = new Random();
-        static readonly string edgeHubModuleId = "$edgeHub";
 
         [Fact]
         public async Task RouteToCloudTest()
@@ -379,7 +378,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             await device1.UpdateReportedProperties(message);
             await Task.Delay(GetSleepTime());
 
-            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, edgeHubModuleId));
+            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, Constants.EdgeHubModuleId));
         }
 
         [Fact(Skip = "Flaky test, bug #2494150")]
@@ -400,8 +399,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message = GetReportedPropertiesMessage();
             await device1.UpdateReportedProperties(message);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, edgeHubModuleId));
-            Assert.True(module1.HasReceivedTwinChangeNotification());
+            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, Constants.EdgeHubModuleId));
+            Assert.True(module1.HasReceivedTwinChangeNotification("device1", null));
         }
 
         [Fact(Skip = "Flaky test, bug #2494150")]
@@ -422,8 +421,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             IMessage message = GetReportedPropertiesMessage();
             await module2.UpdateReportedProperties(message);
             await Task.Delay(GetSleepTime());
-            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, edgeHubModuleId));
-            Assert.True(module1.HasReceivedTwinChangeNotification());
+            Assert.True(iotHub.HasReceivedTwinChangeNotification(edgeDeviceId, Constants.EdgeHubModuleId));
+            Assert.True(module1.HasReceivedTwinChangeNotification(edgeDeviceId, "mod2"));
         }
 
         // Need longer sleep when run tests in parallel
@@ -467,7 +466,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             ITwinManager twinManager = new TwinManager(connectionManager, new TwinCollectionMessageConverter(), new TwinMessageConverter(), Option.None<IEntityStore<string, TwinInfo>>());
             var invokeMethodHandler = Mock.Of<IInvokeMethodHandler>();
             var subscriptionProcessor = new SubscriptionProcessor(connectionManager, invokeMethodHandler, deviceConnectivityManager);
-            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, edgeHubModuleId, invokeMethodHandler, subscriptionProcessor);
+            IEdgeHub edgeHub = new RoutingEdgeHub(router, routingMessageConverter, connectionManager, twinManager, edgeDeviceId, Constants.EdgeHubModuleId, invokeMethodHandler, subscriptionProcessor);
             return (edgeHub, connectionManager);
         }
 
@@ -638,9 +637,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             public Task UpdateReportedProperties(IMessage reportedPropertiesMessage) =>
                 this.deviceListener.UpdateReportedPropertiesAsync(reportedPropertiesMessage, Guid.NewGuid().ToString());
 
-            public bool HasReceivedTwinChangeNotification() => this.receivedMessages.Any(
+            public bool HasReceivedTwinChangeNotification(string connDeviceId, string connModuleId) => this.receivedMessages.Any(
                 m =>
-                    m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType);
+                m.SystemProperties[SystemProperties.MessageType] == Constants.TwinChangeNotificationMessageType
+                && m.SystemProperties[SystemProperties.RpConnectionDeviceIdInternal] == connDeviceId
+                && (string.IsNullOrWhiteSpace(connModuleId) || m.SystemProperties[SystemProperties.RpConnectionModuleIdInternal] == connModuleId));
         }
     }
 }
