@@ -415,8 +415,8 @@ fn find_pointers_and_order_post_crash(file: &mut File, max_file_size: u64) -> Ri
     let block_size = *SERIALIZED_BLOCK_SIZE;
     let mut start = inner.write_index();
     let mut end = start + block_size;
-    let mut read = 0;
-    let mut write = 0;
+    let mut read = start;
+    let mut write = start;
     let mut order = inner.order();
     let mut should_update_write = true;
 
@@ -741,10 +741,12 @@ mod tests {
 
     #[test]
     fn it_inits_ok_with_no_previous_data() {
-        let result = panic::catch_unwind(|| {
-            default_ring_buffer();
-        });
-        assert_matches!(result, Ok(_));
+        let rb = default_ring_buffer();
+        assert_eq!(rb.metadata.file_pointers.write, 0);
+        assert_eq!(rb.metadata.file_pointers.read_begin, 0);
+        assert_eq!(rb.metadata.file_pointers.read_end, 0);
+        assert_eq!(rb.metadata.can_read_from_wrap_around_when_write_full, false);
+        assert_eq!(rb.metadata.order, 0);
     }
 
     #[test]
@@ -811,6 +813,57 @@ mod tests {
             }
         });
         assert_matches!(result, Ok(_));
+    }
+
+    #[test]
+    fn it_inits_ok_with_first_block_not_at_beginning() {
+        let publication = Publication {
+            topic_name: "test".to_owned(),
+            qos: QoS::AtMostOnce,
+            retain: true,
+            payload: Bytes::new(),
+        };
+        let read;
+        let write;
+        let result = NamedTempFile::new();
+        assert_matches!(result, Ok(_));
+        let file = result.unwrap();
+
+        let key;
+        // Create ring buffer and perform some operations and then destruct.
+        {
+            let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS)
+                .expect("Failed to create ring buffer!");
+
+            // Force start of rb to be somewhere other than begin and not aligned to block
+            rb.metadata.file_pointers.write = *SERIALIZED_BLOCK_SIZE - 1;
+            rb.metadata.file_pointers.read_begin = *SERIALIZED_BLOCK_SIZE - 1;
+
+            key = rb.insert(&publication).expect("Failed to insert");
+
+            read = rb.metadata.file_pointers.read_begin;
+            write = rb.metadata.file_pointers.write;
+            assert_eq!(rb.metadata.order, 1);
+        }
+        // Create ring buffer again and validate pointers match where they left off.
+        {
+            let mut rb = RingBuffer::new(file.path(), MAX_FILE_SIZE_NON_ZERO, FLUSH_OPTIONS)
+                .expect("Failed to create ring buffer!");
+
+            let loaded_read = rb.metadata.file_pointers.read_begin;
+            let loaded_write = rb.metadata.file_pointers.write;
+            assert_eq!(read, loaded_read);
+            assert_eq!(write, loaded_write);
+
+            let batch = rb.batch(1).expect("Failed to batch!");
+            assert_eq!(batch.len(), 1);
+
+            for (k, v) in batch {
+                assert_eq!(key, k);
+                assert_eq!(publication, v);
+            }
+            assert_eq!(rb.metadata.order, 1);
+        }
     }
 
     #[test]
@@ -884,7 +937,7 @@ mod tests {
     }
 
     #[test]
-    fn it_inits_ok_with_previous_data_and_write_pointer_is_reaches_read_pointer_after_read() {
+    fn it_inits_ok_with_previous_data_and_write_pointer_reaches_read_pointer_after_read() {
         let file = NamedTempFile::new().unwrap();
 
         let publication = Publication {
