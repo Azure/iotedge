@@ -26,6 +26,8 @@ namespace LoadGen
             {
                 try
                 {
+                    await Task.Delay(Settings.Current.MessageFrequency);
+
                     await this.SendEventAsync(messageIdCounter, Settings.Current.OutputName);
 
                     // Report sending message successfully to Test Result Coordinator
@@ -36,7 +38,6 @@ namespace LoadGen
                         this.Logger.LogInformation($"Sent {messageIdCounter} messages.");
                     }
 
-                    await Task.Delay(Settings.Current.MessageFrequency);
                     messageIdCounter++;
                 }
                 catch (Exception ex)
