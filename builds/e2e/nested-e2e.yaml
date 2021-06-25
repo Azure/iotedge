@@ -109,7 +109,6 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked_$(Build.BuildId)
-        - $(agent.cleanIdentity)
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/unlock-test-agent.yaml
