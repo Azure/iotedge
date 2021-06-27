@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
             {
                 if (!string.IsNullOrWhiteSpace(creds.ProviderUri))
                 {
-                    envVars.Add(new EnvVar(Constants.EdgeletWorkloadUriVariableName, creds.ProviderUri));
+                    envVars.Add(new EnvVar(Constants.EdgeletWorkloadConnectUriVariableName, creds.ProviderUri));
                 }
 
                 if (!string.IsNullOrWhiteSpace(creds.AuthScheme))

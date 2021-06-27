@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 Assert.Equal(testData.EnvironmentVariables[key].Value, environmentVariables.First(v => v.Key.Equals(key)).Value);
             }
 
-            Assert.Equal(testData.EdgeletWorkloadUri, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletWorkloadUriVariableName)).Value);
+            Assert.Equal(testData.EdgeletWorkloadUri, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletWorkloadConnectUriVariableName)).Value);
             Assert.Equal(testData.EdgeletAuthScheme, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletAuthSchemeVariableName)).Value);
             Assert.Equal(testData.ModuleGenerationId, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletModuleGenerationIdVariableName)).Value);
             Assert.Equal(testData.IoTHubHostname, environmentVariables.First(v => v.Key.Equals(Constants.IotHubHostnameVariableName)).Value);

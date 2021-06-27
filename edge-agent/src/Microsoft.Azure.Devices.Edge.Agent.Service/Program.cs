@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     case Constants.IotedgedMode:
                         string managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                        string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
+                        string workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadConnectUriVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
@@ -194,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     case Constants.KubernetesMode:
                         managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                        workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
+                        workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadConnectUriVariableName);
                         moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
