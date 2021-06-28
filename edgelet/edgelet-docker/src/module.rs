@@ -22,23 +22,20 @@ type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
 
-pub struct DockerModule<C: Connect> {
-    client: DockerClient<C>,
+pub struct DockerModule {
+    client: DockerClient,
     name: String,
     config: DockerConfig,
 }
 
-impl<C> std::fmt::Debug for DockerModule<C>
-where
-    C: Connect,
-{
+impl std::fmt::Debug for DockerModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModule").finish()
     }
 }
 
-impl<C: 'static + Connect> DockerModule<C> {
-    pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> Result<Self> {
+impl DockerModule {
+    pub fn new(client: DockerClient, name: String, config: DockerConfig) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
 
         Ok(DockerModule {
@@ -51,12 +48,12 @@ impl<C: 'static + Connect> DockerModule<C> {
 
 #[async_trait::async_trait]
 pub trait DockerModuleTop {
-    async fn top(&self) -> Result<ModuleTop, Error>;
+    async fn top(&self) -> Result<ModuleTop>;
 }
 
 #[async_trait::async_trait]
-impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
-    async fn top(&self) -> Result<ModuleTop, Error> {
+impl DockerModuleTop for DockerModule {
+    async fn top(&self) -> Result<ModuleTop> {
         // let id = self.name.to_string();
         // Box::new(
         //     self.client
@@ -78,10 +75,7 @@ impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
         //             }
         //         }),
         // )
-        Ok(ModuleTop {
-            name: "".to_owned(),
-            process_ids: Vec::new(),
-        })
+        Ok(ModuleTop::new("".to_owned(), Vec::new()))
     }
 }
 
@@ -170,12 +164,10 @@ pub fn runtime_state(
     })
 }
 
-impl<C: 'static + Connect> Module for DockerModule<C> {
+#[async_trait::async_trait]
+impl Module for DockerModule {
     type Config = DockerConfig;
     type Error = Error;
-    type RuntimeStateFuture =
-        Box<dyn Future<Item = ModuleRuntimeState, Error = Self::Error> + Send>;
-
     fn name(&self) -> &str {
         &self.name
     }
@@ -188,19 +180,21 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
         &self.config
     }
 
-    fn runtime_state(&self) -> Self::RuntimeStateFuture {
-        Box::new(
-            self.client
-                .container_api()
-                .container_inspect(&self.name, false)
-                .map(|resp| runtime_state(resp.id(), resp.state()))
-                .map_err(|err| {
-                    Error::from_docker_error(
-                        err,
-                        ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
-                    )
-                }),
-        )
+    async fn runtime_state(&self) -> Result<ModuleRuntimeState> {
+        // Box::new(
+        //     self.client
+        //         .container_api()
+        //         .container_inspect(&self.name, false)
+        //         .map(|resp| runtime_state(resp.id(), resp.state()))
+        //         .map_err(|err| {
+        //             Error::from_docker_error(
+        //                 err,
+        //                 ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
+        //             )
+        //         }),
+        // )
+
+        Ok(ModuleRuntimeState::default())
     }
 }
 
