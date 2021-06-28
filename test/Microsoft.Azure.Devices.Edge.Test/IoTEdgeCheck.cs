@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 // When test runs behind proxy, skip MQTT and AMQP checks which legitimately fail
                 args += string.Join(" ", new[]
                 {
-                    "--dont-run",
+                    " --dont-run",
                     "container-connect-upstream-mqtt",
                     "container-connect-upstream-amqp",
                     "container-default-connect-upstream-mqtt",
