@@ -69,7 +69,7 @@ function Update-ARM-BaseImages
 
     # Replace the underlying ASP .Net Core to the new version
     # Assuming the ARM64 & ARM32 both use the same *-bionic-arm* ASP .Net Core image tag
-    $baseAspNetLocale = $($($fileLocale | Convert-Path) -like "*\base\*" | Resolve-path)
+    $baseAspNetLocale = $($($fileLocale | Convert-Path) -like "*\base\*" -notlike "*\bin\*" | Resolve-path)
     foreach ($file in $baseAspNetLocale)
     {
         (Get-Content -Encoding utf8 $file.Path) |
@@ -140,6 +140,20 @@ function Update-AMD-BaseImages
     {
         (Get-Content -Encoding utf8 $file.Path) |
         Foreach-Object { $_ -replace "ARG base_tag=.*.-nanoserver-1809", "ARG base_tag=$NewASPNetCoreVersion-nanoserver-1809" } |
+        Set-Content -Encoding utf8 $file.Path 
+    }
+
+    # Replace the underlying ASP .Net Core to the new version for 'alpine'
+    $baseAspNetLocale = $($($fileLocale | Convert-Path) -like "*\linux\amd64\*" -notlike "*\bin\*" | Resolve-path)
+    foreach ($file in $baseAspNetLocale)
+    {
+        # Note: The following dockerfile(s) are not automatically updated by this script
+        #    \iotedge\tools\snitch\prep-mail\docker\linux\amd64\Dockerfile
+        #    \iotedge\tools\snitch\snitcher\docker\linux\amd64\Dockerfile
+        #    \iotedge\edgelet\iotedged\docker\linux\amd64\Dockerfile        (debian10)
+        (Get-Content -Encoding utf8 $file.Path) |
+        Foreach-Object { $_ -replace "ARG base_tag=.*.-alpine[\d]+\.[\d]+", "ARG base_tag=$NewASPNetCoreVersion-alpine$NewAlpineVersion" } |
+        Foreach-Object { $_ -replace "FROM alpine:[\d]+\.[\d]+", "FROM alpine:$NewAlpineVersion" } |
         Set-Content -Encoding utf8 $file.Path 
     }
 
