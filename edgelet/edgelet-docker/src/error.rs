@@ -73,6 +73,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid socket URI: {:?}", _0)]
     InvalidSocketUri(String),
 
+    #[fail(display = "Invalid socket URI")]
+    InvalidHomeDirPath,
+
     #[fail(display = "{}", _0)]
     LaunchNotary(String),
 

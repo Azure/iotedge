@@ -28,6 +28,12 @@ jobs:
      - template: nested-get-root-ca.yaml       
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
+     - task: Bash@3
+       displayName: 'bla'
+       inputs:
+         targetType: inline
+         script: |
+           sleep 10m
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
     dependsOn: SetupVM_level5_${{ parameters['upstream.protocol'] }}

@@ -10,10 +10,13 @@ use std::time::Duration;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
+use futures::sync::mpsc::UnboundedSender;
+use futures::sync::oneshot;
+use futures::sync::oneshot::{Receiver, Sender};
 use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
-use log::{debug, info, warn, Level};
+use log::{debug, error, info, warn, Level};
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -21,9 +24,9 @@ use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, HostConfig, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
-    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
-    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -66,6 +69,7 @@ pub struct DockerModuleRuntime {
     notary_registries: BTreeMap<String, PathBuf>,
     notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
     allow_elevated_docker_permissions: bool,
+    create_socket_channel: UnboundedSender<ModuleAction>,
 }
 
 impl DockerModuleRuntime {
@@ -247,7 +251,10 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(settings: Settings) -> Self::Future {
+    fn make_runtime(
+        settings: Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> Self::Future {
         info!("Initializing module runtime...");
 
         let created = match init_client(settings.moby_runtime().uri()) {
@@ -350,6 +357,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                             allow_elevated_docker_permissions: settings
                                 .base
                                 .allow_elevated_docker_permissions,
+                            create_socket_channel,
                         }
                     });
                 future::Either::A(fut)
@@ -618,23 +626,44 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
+        let (signal_socket_created, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
+
+        if let Err(err) = self
+            .create_socket_channel
+            .unbounded_send(ModuleAction::Start(id.clone(), signal_socket_created))
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.clone(),
+                )))
+            })
+        {
+            return Box::new(future::err(err));
+        }
+
+        let future = self.client.container_api().container_start(&id, "");
+
+        let id2 = id.clone();
+
         Box::new(
-            self.client
-                .container_api()
-                .container_start(&id, "")
-                .then(|result| match result {
-                    Ok(_) => {
-                        info!("Successfully started module {}", id);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
+            receiver
+                .map_err(move |_| {
+                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)))
+                })
+                .and_then(move |()| {
+                    future.then(move |result| match result {
+                        Ok(_) => {
+                            info!("Successfully started module {}", id2);
+                            Ok(())
+                        }
+                        Err(err) => {
+                            let err = Error::from_docker_error(
+                                err,
+                                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id2)),
+                            );
+                            log_failure(Level::Warn, &err);
+                            Err(err)
+                        }
+                    })
                 }),
         )
     }
@@ -655,14 +684,26 @@ impl ModuleRuntime for DockerModuleRuntime {
             s => s as i32,
         });
 
+        let create_socket_channel = self.create_socket_channel.clone();
         Box::new(
             self.client
                 .container_api()
                 .container_stop(&id, wait_timeout)
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
-                        info!("Successfully stopped module {}", id);
-                        Ok(())
+                        match create_socket_channel.unbounded_send(ModuleAction::Stop(id.clone())) {
+                            Ok(()) => {
+                                info!("Successfully stoppedmodule {}", id);
+                                Ok(())
+                            },
+                            Err(err) => {
+                                log_failure(Level::Warn, &err);
+                                info!("Successfully stoppedmodule {}, but could not stop listener on socket", id);
+                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                    RuntimeOperation::GetModule(id),
+                                )))
+                            }
+                        }
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -718,6 +759,8 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
+        let create_socket_channel = self.create_socket_channel.clone();
+
         Box::new(
             self.client
                 .container_api()
@@ -725,10 +768,25 @@ impl ModuleRuntime for DockerModuleRuntime {
                     &id, /* remove volumes */ false, /* force */ true,
                     /* remove link */ false,
                 )
-                .then(|result| match result {
+                .then(move |result| match result {
                     Ok(_) => {
-                        info!("Successfully removed module {}", id);
-                        Ok(())
+                        match create_socket_channel.unbounded_send(ModuleAction::Remove(id.clone()))
+                        {
+                            Ok(()) => {
+                                info!("Successfully removed module {}", id);
+                                Ok(())
+                            }
+                            Err(err) => {
+                                log_failure(Level::Warn, &err);
+                                error!(
+                                    "Successfully removed module {}, but could not remove socket",
+                                    id
+                                );
+                                Err(Error::from(ErrorKind::RuntimeOperation(
+                                    RuntimeOperation::GetModule(id),
+                                )))
+                            }
+                        }
                     }
                     Err(err) => {
                         let err = Error::from_docker_error(
@@ -1354,6 +1412,7 @@ mod tests {
 
     use std::path::Path;
 
+    use edgelet_core::ModuleAction;
     use futures::future::FutureResult;
     use futures::stream::Empty;
 
@@ -1361,6 +1420,7 @@ mod tests {
         settings::AutoReprovisioningMode, Connect, Endpoints, Listen, ModuleRegistry, ModuleTop,
         RuntimeSettings, WatchdogSettings,
     };
+    use futures::sync::mpsc::UnboundedSender;
 
     #[test]
     fn merge_env_empty() {
@@ -1740,7 +1800,10 @@ mod tests {
         type Error = Error;
         type Future = FutureResult<Self, Self::Error>;
 
-        fn make_runtime(_settings: Self::Settings) -> Self::Future {
+        fn make_runtime(
+            _settings: Self::Settings,
+            _recv: UnboundedSender<ModuleAction>,
+        ) -> Self::Future {
             unimplemented!()
         }
     }

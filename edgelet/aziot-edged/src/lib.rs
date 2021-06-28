@@ -21,6 +21,7 @@ pub mod logging;
 pub mod signal;
 pub mod watchdog;
 pub mod workload;
+pub mod workload_manager;
 
 pub mod unix;
 
@@ -32,23 +33,27 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{collections::BTreeMap, fs::OpenOptions, io::Read};
 
+use workload_manager::WorkloadManager;
+
 use edgelet_core::{
     crypto::{AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS},
     settings::AutoReprovisioningMode,
 };
 use edgelet_core::{
-    Authenticator, MakeModuleRuntime, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
-    RuntimeSettings, WorkloadConfig,
+    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, RuntimeSettings, WorkloadConfig,
 };
 use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
-use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
 use failure::{Context, Fail, ResultExt};
 use futures::future::Either;
-use futures::sync::oneshot::{self, Receiver};
+use futures::sync::{
+    mpsc::{UnboundedReceiver, UnboundedSender},
+    oneshot::{self, Receiver},
+};
 use futures::{future, Future, Stream};
 use hyper::server::conn::Http;
 use hyper::{Body, Request};
@@ -117,6 +122,9 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 /// This is the name of the settings backup file
 const EDGE_PROVISIONING_STATE_FILENAME: &str = "provisioning_state";
 
+// This is the name of the directory that contains the module folder
+// with worlkload sockets inside, on the host
+const WORKLOAD_LISTEN_MNT_URI: &str = "IOTEDGE_WORKLOADLISTEN_MNTURI";
 // 2 hours
 const AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 // 90 days
@@ -126,12 +134,6 @@ const STOP_TIME: Duration = Duration::from_secs(30);
 
 /// This is the interval at which to poll Identity Service for device information.
 const IS_GET_DEVICE_INFO_RETRY_INTERVAL_SECS: Duration = Duration::from_secs(5);
-
-#[derive(PartialEq)]
-enum StartApiReturnStatus {
-    Restart,
-    Shutdown,
-}
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct ProvisioningResult {
@@ -183,18 +185,22 @@ where
                 InitializeErrorReason::CreateCacheDirectory,
             ))?;
 
-        let runtime = init_runtime::<M>(settings.clone(), &mut tokio_runtime)?;
+        let (create_socket_channel_snd, create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+        let runtime = init_runtime::<M>(
+            settings.clone(),
+            &mut tokio_runtime,
+            create_socket_channel_snd,
+        )?;
 
-        // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
-        // is received. If the TLS cert needs a restart, we will loop again.
-        loop {
+        let url = settings.endpoints().aziot_identityd_url().clone();
+        let client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
+            aziot_identity_common_http::ApiVersion::V2020_09_01,
+            &url,
+        )));
+
+        let provisioning_result = loop {
             info!("Obtaining edge device provisioning data...");
-
-            let url = settings.endpoints().aziot_identityd_url().clone();
-            let client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
-                aziot_identity_common_http::ApiVersion::V2020_09_01,
-                &url,
-            )));
 
             match settings.auto_reprovisioning_mode() {
                 AutoReprovisioningMode::AlwaysOnStartup => {
@@ -231,75 +237,7 @@ where
 
             match result {
                 Ok(provisioning_result) => {
-                    info!("Finished provisioning edge device.");
-
-                    // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
-                    // modules will continue to run. On Linux systems where aziot-edged is responsible for
-                    // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
-                    // support systemd socket activation), modules will be left holding stale file
-                    // descriptors for the workload and management APIs and calls on these APIs will
-                    // begin to fail. Resilient modules should be able to deal with this, but we'll
-                    // restart all modules to ensure a clean start.
-                    info!("Stopping all modules...");
-                    tokio_runtime
-                        .block_on(runtime.stop_all(Some(STOP_TIME)))
-                        .context(ErrorKind::Initialize(
-                            InitializeErrorReason::StopExistingModules,
-                        ))?;
-                    info!("Finished stopping modules.");
-
-                    // Detect if the device was changed and if the device needs to be reconfigured
-                    check_device_reconfigure::<M>(
-                        &cache_subdir_path,
-                        EDGE_PROVISIONING_STATE_FILENAME,
-                        &provisioning_result,
-                        &runtime,
-                        &mut tokio_runtime,
-                    )?;
-
-                    settings
-                        .agent_mut()
-                        .parent_hostname_resolve(&provisioning_result.gateway_host_name);
-
-                    let cfg = WorkloadData::new(
-                        provisioning_result.hub_name,
-                        provisioning_result.device_id,
-                        settings
-                            .edge_ca_cert()
-                            .unwrap_or(AZIOT_EDGED_CA_ALIAS)
-                            .to_string(),
-                        settings
-                            .edge_ca_key()
-                            .unwrap_or(AZIOT_EDGED_CA_ALIAS)
-                            .to_string(),
-                        settings
-                            .trust_bundle_cert()
-                            .unwrap_or(TRUST_BUNDLE_ALIAS)
-                            .to_string(),
-                        settings
-                            .manifest_trust_bundle_cert()
-                            .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
-                            .to_string(),
-                        AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
-                        AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
-                    );
-
-                    let (code, should_reprovision) = start_api::<_, _, M>(
-                        &settings,
-                        &provisioning_result.gateway_host_name,
-                        &runtime,
-                        cfg.clone(),
-                        make_shutdown_signal(),
-                        &mut tokio_runtime,
-                    )?;
-
-                    if should_reprovision {
-                        tokio_runtime.block_on(reprovision_device(&client))?;
-                    }
-
-                    if code != StartApiReturnStatus::Restart {
-                        break;
-                    }
+                    break provisioning_result;
                 }
                 Err(err) => {
                     log_failure(Level::Warn, &err);
@@ -309,6 +247,73 @@ where
                     log::warn!("Retrying getting edge device provisioning information.");
                 }
             };
+        };
+
+        info!("Finished provisioning edge device.");
+
+        // Normally aziot-edged will stop all modules when it shuts down. But if it crashed,
+        // modules will continue to run. On Linux systems where aziot-edged is responsible for
+        // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
+        // support systemd socket activation), modules will be left holding stale file
+        // descriptors for the workload and management APIs and calls on these APIs will
+        // begin to fail. Resilient modules should be able to deal with this, but we'll
+        // restart all modules to ensure a clean start.
+        info!("Stopping all modules...");
+        tokio_runtime
+            .block_on(runtime.stop_all(Some(STOP_TIME)))
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::StopExistingModules,
+            ))?;
+        info!("Finished stopping modules.");
+
+        // Detect if the device was changed and if the device needs to be reconfigured
+        check_device_reconfigure::<M>(
+            &cache_subdir_path,
+            EDGE_PROVISIONING_STATE_FILENAME,
+            &provisioning_result,
+            &runtime,
+            &mut tokio_runtime,
+        )?;
+
+        settings
+            .agent_mut()
+            .parent_hostname_resolve(&provisioning_result.gateway_host_name);
+
+        let cfg = WorkloadData::new(
+            provisioning_result.hub_name,
+            provisioning_result.device_id,
+            settings
+                .edge_ca_cert()
+                .unwrap_or(AZIOT_EDGED_CA_ALIAS)
+                .to_string(),
+            settings
+                .edge_ca_key()
+                .unwrap_or(AZIOT_EDGED_CA_ALIAS)
+                .to_string(),
+            settings
+                .trust_bundle_cert()
+                .unwrap_or(TRUST_BUNDLE_ALIAS)
+                .to_string(),
+            settings
+                .manifest_trust_bundle_cert()
+                .unwrap_or(MANIFEST_TRUST_BUNDLE_ALIAS)
+                .to_string(),
+            AZIOT_EDGE_ID_CERT_MAX_DURATION_SECS,
+            AZIOT_EDGE_SERVER_CERT_MAX_DURATION_SECS,
+        );
+
+        let should_reprovision = start_api::<_, _, M>(
+            &settings,
+            &provisioning_result.gateway_host_name,
+            &runtime,
+            cfg,
+            make_shutdown_signal(),
+            &mut tokio_runtime,
+            create_socket_channel_rcv,
+        )?;
+
+        if should_reprovision {
+            tokio_runtime.block_on(reprovision_device(&client))?;
         }
 
         info!("Shutdown complete.");
@@ -444,7 +449,8 @@ fn start_api<F, W, M>(
     workload_config: W,
     shutdown_signal: F,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<(StartApiReturnStatus, bool), Error>
+    create_socket_channel_rcv: UnboundedReceiver<ModuleAction>,
+) -> Result<bool, Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
@@ -462,11 +468,17 @@ where
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (mgmt_stop_and_reprovision_tx, mgmt_stop_and_reprovision_rx) = mpsc::unbounded();
-    let (work_tx, work_rx) = oneshot::channel();
 
     let mgmt = start_management::<M>(settings, runtime, mgmt_rx, mgmt_stop_and_reprovision_tx);
 
-    let workload = start_workload::<_, M>(settings, runtime, work_rx, workload_config);
+    //let workload = start_workload::<_, M>(settings, runtime, work_rx, workload_config, tokio_runtime, create_socket_channel_rcv);
+    WorkloadManager::start_manager::<M>(
+        settings,
+        runtime,
+        workload_config,
+        tokio_runtime,
+        create_socket_channel_rcv,
+    )?;
 
     let (runt_tx, runt_rx) = oneshot::channel();
     let edge_rt = start_runtime::<M>(
@@ -501,11 +513,11 @@ where
         |res| match res {
             Ok(Either::A((_edge_rt_ok, _mgmt_stop_and_reprovision_signaled_future))) => {
                 info!("Edge runtime will stop because of the shutdown signal.");
-                future::ok((StartApiReturnStatus::Shutdown, false))
+                future::ok(false)
             }
             Ok(Either::B((_mgmt_stop_and_reprovision_signaled_ok, _edge_rt_future))) => {
                 info!("Edge runtime will stop because of the device reprovisioning signal.");
-                future::ok((StartApiReturnStatus::Shutdown, true))
+                future::ok(true)
             }
             Err(Either::A((edge_rt_err, _mgmt_stop_and_reprovision_signaled_future))) => {
                 error!("Edge runtime will stop because the shutdown signal raised an error.");
@@ -522,14 +534,11 @@ where
     // This way the edgeAgent can finish shutting down all modules.
     let edge_rt_with_cleanup = edge_rt_with_mgmt_signal.then(move |res| {
         mgmt_tx.send(()).unwrap_or(());
-        work_tx.send(()).unwrap_or(());
 
         // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
         // B -> Restart Signal Future
         match res {
-            Ok((start_api_return_status, should_reprovision)) => {
-                future::ok((start_api_return_status, should_reprovision))
-            }
+            Ok(should_reprovision) => future::ok(should_reprovision),
             Err(err) => future::err(err),
         }
     });
@@ -541,19 +550,19 @@ where
     });
     tokio_runtime.spawn(shutdown);
 
-    let services = mgmt
-        .join3(workload, edge_rt_with_cleanup)
-        .then(|result| match result {
-            Ok(((), (), (code, should_reprovision))) => Ok((code, should_reprovision)),
-            Err(err) => Err(err),
-        });
-    let (restart_code, should_reprovision) = tokio_runtime.block_on(services)?;
-    Ok((restart_code, should_reprovision))
+    let services = mgmt.join(edge_rt_with_cleanup).then(|result| match result {
+        Ok(((), should_reprovision)) => Ok(should_reprovision),
+        Err(err) => Err(err),
+    });
+
+    let should_reprovision = tokio_runtime.block_on(services)?;
+    Ok(should_reprovision)
 }
 
 fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    create_socket_channel_snd: UnboundedSender<ModuleAction>,
 ) -> Result<M::ModuleRuntime, Error>
 where
     M: MakeModuleRuntime + Send + 'static,
@@ -562,7 +571,7 @@ where
 {
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
-        .block_on(M::make_runtime(settings))
+        .block_on(M::make_runtime(settings, create_socket_channel_snd))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
@@ -637,13 +646,18 @@ where
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
 
     #[cfg(feature = "runtime-docker")]
-    let (workload_uri, management_uri) = (
+    let (workload_uri, management_uri, home_dir) = (
         settings.connect().workload_uri().to_string(),
         settings.connect().management_uri().to_string(),
+        settings.homedir().to_str().unwrap().to_string(),
     );
 
     env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
     env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
+    env.insert(
+        WORKLOAD_LISTEN_MNT_URI.to_string(),
+        Listen::workload_mnt_uri(&home_dir),
+    );
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
     env.insert(
         EDGE_RUNTIME_MODE_KEY.to_string(),
@@ -698,69 +712,6 @@ where
                 .run_until(shutdown.map_err(|_| ()))
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             info!("Listening on {} with 1 thread for management API.", url);
-            Ok(run)
-        })
-        .flatten()
-}
-
-fn start_workload<W, M>(
-    settings: &M::Settings,
-    runtime: &M::ModuleRuntime,
-    shutdown: Receiver<()>,
-    config: W,
-) -> impl Future<Item = (), Error = Error>
-where
-    W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: MakeModuleRuntime + 'static,
-    M::Settings: 'static,
-    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
-        Clone + DeserializeOwned + Serialize,
-    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
-{
-    info!("Starting workload API...");
-
-    let label = "work".to_string();
-    let url = settings.listen().workload_uri().clone();
-
-    let keyd_url = settings.endpoints().aziot_keyd_url().clone();
-    let certd_url = settings.endpoints().aziot_certd_url().clone();
-    let identityd_url = settings.endpoints().aziot_identityd_url().clone();
-
-    let key_connector = http_common::Connector::new(&keyd_url).expect("Connector");
-    let key_client = Arc::new(aziot_key_client::Client::new(
-        aziot_key_common_http::ApiVersion::V2020_09_01,
-        key_connector,
-    ));
-
-    let cert_client = Arc::new(Mutex::new(cert_client::CertificateClient::new(
-        aziot_cert_common_http::ApiVersion::V2020_09_01,
-        &certd_url,
-    )));
-    let identity_client = Arc::new(Mutex::new(identity_client::IdentityClient::new(
-        aziot_identity_common_http::ApiVersion::V2020_09_01,
-        &identityd_url,
-    )));
-
-    WorkloadService::new(runtime, identity_client, cert_client, key_client, config)
-        .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(
-                InitializeErrorReason::WorkloadService,
-            ))?;
-            let service = LoggingService::new(label, service);
-
-            let run = Http::new()
-                .bind_url(url.clone(), service)
-                .map_err(|err| {
-                    err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::WorkloadService,
-                    ))
-                })?
-                .run_until(shutdown.map_err(|_| ()))
-                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
-            info!("Listening on {} with 1 thread for workload API.", url);
             Ok(run)
         })
         .flatten()
