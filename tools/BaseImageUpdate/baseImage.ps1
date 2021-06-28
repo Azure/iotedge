@@ -29,6 +29,14 @@ function Get-Unique-BaseImages
         Sort-Object -Unique
 }
 
+function Get-Dockerfile-Locations
+{
+    Setup-BaseImage-Script | Out-Null
+
+    # Get all the Dockerfile file location
+    $fileLocale = $(Get-ChildItem -Recurse -Filter "Dockerfile" | Where {$_.FullName -notlike "*generic-mqtt-tester*"})
+    return $fileLocale;
+}
 
 function Update-ARM-BaseImages
 {
@@ -40,13 +48,24 @@ function Update-ARM-BaseImages
         #>
         [Parameter(Mandatory)]
         [string]
-        $NewASPNetCoreVersion
+        $NewASPNetCoreVersion,
+
+        <# 
+        Object array contain file paths to base image dockerfile
+        #>
+        [Parameter(Mandatory=$false)]
+        [Object[]]
+        $FileLocale
     )
 
-    Setup-BaseImage-Script
-
-    # Get all the Dockerfile file location
-    $fileLocale = $(Get-ChildItem -Recurse -Filter "Dockerfile" | Where {$_.FullName -notlike "*generic-mqtt-tester*"})
+    if ($FileLocale.Count -gt 0)
+    {
+        $fileLocale = $FileLocale
+    }
+    else
+    {
+        $fileLocale = Get-Dockerfile-Locations
+    }
 
     # Replace the underlying ASP .Net Core to the new version
     # Assuming the ARM64 & ARM32 both use the same *-bionic-arm* ASP .Net Core image tag
