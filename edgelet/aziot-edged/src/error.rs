@@ -6,10 +6,17 @@ pub(crate) struct Error {
 }
 
 impl Error {
-    pub fn new(message: String) -> Self {
+    pub fn new(message: impl std::fmt::Display) -> Self {
         Error {
-            message,
+            message: message.to_string(),
             // The default exit code when a failure occurs.
+            exit_code: 1,
+        }
+    }
+
+    pub fn from_err(message: impl std::fmt::Display, err: impl std::error::Error) -> Self {
+        Error {
+            message: format!("{}: {}", message, err),
             exit_code: 1,
         }
     }

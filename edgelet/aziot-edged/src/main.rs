@@ -40,11 +40,13 @@ async fn run() -> Result<(), EdgedError> {
 
     let cache_dir = std::path::Path::new(&settings.base.homedir).join("cache");
     std::fs::create_dir_all(cache_dir.clone()).map_err(|err| {
-        EdgedError::new(format!(
-            "Failed to create cache directory {}: {}",
-            cache_dir.as_path().display(),
-            err
-        ))
+        EdgedError::from_err(
+            format!(
+                "Failed to create cache directory {}",
+                cache_dir.as_path().display()
+            ),
+            err,
+        )
     })?;
 
     let device_info = provision::get_device_info(&settings, &cache_dir).await?;
