@@ -660,7 +660,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "$upstream:443/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"<LogRotationMaxFile>\"}}}}"
             }
           }
@@ -682,9 +682,7 @@
         "mqttBroker": {
           "authorizations": [
             {
-              "identities": [
-                "{{iot:identity}}"
-              ],
+              "identities": ["{{iot:identity}}"],
               "allow": [
                 {
                   "operations": [
@@ -692,9 +690,7 @@
                     "mqtt:publish",
                     "mqtt:subscribe"
                   ],
-                  "resources": [
-                    "#"
-                  ]
+                  "resources": ["#"]
                 }
               ]
             }
