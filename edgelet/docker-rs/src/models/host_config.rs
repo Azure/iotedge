@@ -169,19 +169,11 @@ pub struct HostConfig {
     #[serde(rename = "Mounts", skip_serializing_if = "Option::is_none")]
     mounts: Option<Vec<crate::models::Mount>>,
     /// A list of kernel capabilities to add to the container.
-    #[serde(
-        rename = "CapAdd",
-        default = "Vec::new",
-        skip_serializing_if = "Vec::is_empty"
-    )]
-    cap_add: Vec<String>,
+    #[serde(rename = "CapAdd", skip_serializing_if = "Option::is_none")]
+    cap_add: Option<Vec<String>>,
     /// A list of kernel capabilities to drop from the container.
-    #[serde(
-        rename = "CapDrop",
-        default = "Vec::new",
-        skip_serializing_if = "Vec::is_empty"
-    )]
-    cap_drop: Vec<String>,
+    #[serde(rename = "CapDrop", skip_serializing_if = "Option::is_none")]
+    cap_drop: Option<Vec<String>>,
     // /// A list of DNS servers for the container to use.
     // #[serde(rename = "Dns", skip_serializing_if = "Option::is_none")]
     // dns: Option<Vec<String>>,
@@ -299,8 +291,8 @@ impl HostConfig {
             // volume_driver: None,
             // volumes_from: None,
             mounts: None,
-            cap_add: Vec::new(),
-            cap_drop: Vec::new(),
+            cap_add: None,
+            cap_drop: None,
             // dns: None,
             // dns_options: None,
             // dns_search: None,
@@ -1054,37 +1046,37 @@ impl HostConfig {
     }
 
     pub fn set_cap_add(&mut self, cap_add: Vec<String>) {
-        self.cap_add = cap_add;
+        self.cap_add = Some(cap_add);
     }
 
     pub fn with_cap_add(mut self, cap_add: Vec<String>) -> Self {
-        self.cap_add = cap_add;
+        self.cap_add = Some(cap_add);
         self
     }
 
-    pub fn cap_add(&self) -> &Vec<String> {
-        &self.cap_add
+    pub fn cap_add(&self) -> Option<&Vec<String>> {
+        self.cap_add.as_ref()
     }
 
     pub fn reset_cap_add(&mut self) {
-        self.cap_add = Vec::new();
+        self.cap_add = None;
     }
 
     pub fn set_cap_drop(&mut self, cap_drop: Vec<String>) {
-        self.cap_drop = cap_drop;
+        self.cap_drop = Some(cap_drop);
     }
 
     pub fn with_cap_drop(mut self, cap_drop: Vec<String>) -> Self {
-        self.cap_drop = cap_drop;
+        self.cap_drop = Some(cap_drop);
         self
     }
 
-    pub fn cap_drop(&self) -> &Vec<String> {
-        &self.cap_drop
+    pub fn cap_drop(&self) -> Option<&Vec<String>> {
+        self.cap_drop.as_ref()
     }
 
     pub fn reset_cap_drop(&mut self) {
-        self.cap_drop = Vec::new();
+        self.cap_drop = None;
     }
 
     // pub fn set_dns(&mut self, dns: Vec<String>) {
