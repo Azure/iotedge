@@ -94,3 +94,69 @@ function Update-ARM-BaseImages
         Set-Content $file.Path
     }
 }
+
+function Update-AMD-BaseImages
+{
+    [CmdletBinding()]
+    param (
+        <# 
+        The new version of ASP .NET Core. 
+        This version is applied to both 'alpine' and 'nanoserver'
+        Ex: The new ASP .NET Core tag is 3.1.15-alpine3.13, the $NewASPNetCoreVersion = 3.1.15
+        #>
+        [Parameter(Mandatory)]
+        [string]
+        $NewASPNetCoreVersion,
+
+        <# 
+        The new version of Alpine base image. 
+        This version is only applied to 'alpine' images
+        Ex: The new ASP .NET Core tag is 3.1.15-alpine3.13, the $NewAlpineVersion = 3.13
+        #>
+        [Parameter(Mandatory)]
+        [string]
+        $NewAlpineVersion,
+
+        <# 
+        Object array contain file paths to base image dockerfile
+        #>
+        [Parameter(Mandatory=$false)]
+        [Object[]]
+        $FileLocale
+    )
+
+    if ($FileLocale.Count -gt 0)
+    {
+        $fileLocale = $FileLocale
+    }
+    else
+    {
+        $fileLocale = Get-Dockerfile-Locations
+    }
+
+    # Replace the underlying ASP .Net Core to the new version for 'nanoserver'
+    $baseAspNetLocale = $($($fileLocale | Convert-Path) -like "*\windows\amd64\*" -notlike "*\bin\*" | Resolve-path)
+    foreach ($file in $baseAspNetLocale)
+    {
+        (Get-Content -Encoding utf8 $file.Path) |
+        Foreach-Object { $_ -replace "ARG base_tag=.*.-nanoserver-1809", "ARG base_tag=$NewASPNetCoreVersion-nanoserver-1809" } |
+        Set-Content -Encoding utf8 $file.Path 
+    }
+
+    # Update the places where the base images are used
+    # $baseImageLocale = $($fileLocale | Select-String "ARG base_tag=.*.-linux-arm" | Select-Object -Unique Path)
+    # foreach ($file in $($baseImageLocale | Resolve-path))
+    # {
+    #     # Increment the last digit by 1
+    #     $fileContent = (Get-Content $file.Path);
+    #     $curVersion = $($fileContent -like "ARG base_tag=*" ).split("=")[1].split("-")[0];
+    #     $splitVersion = $curVersion.split(".", 4);
+    #     $incrementedSegment = $([int]$splitVersion[3]) + 1;
+    #     $newBaseImageVersion = $($splitVersion[0,1,2] + $incrementedSegment -join ".");
+
+    #     # Replace the version
+    #     $fileContent |
+    #     Foreach-Object { $_ -replace "ARG base_tag=.*.-linux-arm", "ARG base_tag=$newBaseImageVersion-linux-arm" } |
+    #     Set-Content $file.Path
+    # }
+}
