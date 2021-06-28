@@ -24,19 +24,19 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     #[cfg(feature = "otel")]
-    let otel_fut = otel_client::run(config.clone());
+    let otel_fut = tokio::spawn(otel_client::run(config.clone()));
     #[cfg(feature = "prom")]
-    let prom_fut = prometheus_server::run(config);
+    let prom_fut = tokio::spawn(prometheus_server::run(config.clone()));
 
     cfg_if::cfg_if! {
         if #[cfg(all(feature="otel", feature = "prom"))] {
             let (otel_result, prom_result) = futures::join!(otel_fut, prom_fut);
-            otel_result?;
-            prom_result?;
+            otel_result??;
+            prom_result??;
         } else if #[cfg(feature = "otel")] {
-            otel_fut.await?;
+            otel_fut.await??;
         } else if #[cfg(feature = "prom")] {
-            prom_fut.await?;
+            prom_fut.await??;
         }
     }
 

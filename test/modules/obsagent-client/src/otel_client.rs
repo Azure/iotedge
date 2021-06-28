@@ -13,7 +13,7 @@ use opentelemetry::{
     sdk::metrics::{selectors, PushController},
 };
 use opentelemetry_otlp::ExporterConfig;
-use rand::Rng;
+use rand::random;
 use thiserror::Error;
 use tokio::time;
 use tracing::error;
@@ -105,14 +105,13 @@ pub async fn run(config: Config) -> Result<(), OTelClientError> {
         .init();
 
     // Loop, updating each metric value at the configured update rate
-    let mut rng = rand::thread_rng();
     let term = Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&term))
         .map_err(OTelClientError::SignalHookRegisterError)?;
     while !term.load(Ordering::Relaxed) {
         counter.add(1, &[]);
         ud_counter.add(1, &[]);
-        value_recorder.record(rng.gen::<f64>(), &[]);
+        value_recorder.record(random::<f64>(), &[]);
         {
             if let Ok(mut sum) = sum.try_lock() {
                 *sum += 1;
@@ -129,7 +128,7 @@ pub async fn run(config: Config) -> Result<(), OTelClientError> {
         }
         {
             if let Ok(mut value) = value.try_lock() {
-                *value = rng.gen::<f64>();
+                *value = random::<f64>();
             } else {
                 error!("try_lock failed");
             }
