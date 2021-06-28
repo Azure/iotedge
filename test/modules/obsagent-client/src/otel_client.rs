@@ -1,5 +1,4 @@
 use std::{
-    error::Error,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
@@ -15,14 +14,24 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::ExporterConfig;
 use rand::Rng;
+use thiserror::Error;
+use tokio::time;
 use tracing::error;
 
 use crate::config::Config;
 
 const METER_NAME: &str = "microsoft.com/azureiot-edge";
 
+#[derive(Debug, Error)]
+pub enum OTelClientError {
+    #[error("could not initialize opentelemetry metrics pipeline: {0:?}")]
+    MetricsPipelineInitError(#[source] metrics::MetricsError),
+    #[error("error registering signal hook action: {0:?}")]
+    SignalHookRegisterError(#[source] std::io::Error),
+}
+
 // Skip first immediate tick from tokio, not needed for async_std.
-fn delayed_interval(duration: Duration) -> impl Stream<Item = tokio::time::Instant> {
+fn delayed_interval(duration: Duration) -> impl Stream<Item = time::Instant> {
     opentelemetry::util::tokio_interval_stream(duration).skip(1)
 }
 
@@ -40,11 +49,12 @@ fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushControl
         .build()
 }
 
-pub async fn run(config: Arc<Config>) -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+pub async fn run(config: Config) -> Result<(), OTelClientError> {
     let _started = init_meter(
         1.0 / config.otel_config.push_rate,
         config.otel_config.otlp_endpoint.clone(),
-    )?;
+    )
+    .map_err(OTelClientError::MetricsPipelineInitError)?;
     let meter = global::meter(METER_NAME);
 
     // Init synchronous instruments
@@ -97,7 +107,8 @@ pub async fn run(config: Arc<Config>) -> Result<(), Box<dyn Error + Send + Sync 
     // Loop, updating each metric value at the configured update rate
     let mut rng = rand::thread_rng();
     let term = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&term))?;
+    signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&term))
+        .map_err(OTelClientError::SignalHookRegisterError)?;
     while !term.load(Ordering::Relaxed) {
         counter.add(1, &[]);
         ud_counter.add(1, &[]);
@@ -123,7 +134,7 @@ pub async fn run(config: Arc<Config>) -> Result<(), Box<dyn Error + Send + Sync 
                 error!("try_lock failed");
             }
         }
-        tokio::time::sleep(Duration::from_secs_f64(1.0 / config.update_rate)).await;
+        time::sleep(Duration::from_secs_f64(1.0 / config.update_rate)).await;
     }
 
     Ok(())

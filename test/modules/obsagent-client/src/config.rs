@@ -1,26 +1,35 @@
-use std::error::Error;
+use std::{num::ParseFloatError, string::ParseError};
 
 use clap::{value_t, App, Arg};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub update_rate: f64,
     pub prom_config: PromConfig,
     pub otel_config: OTelConfig,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OTelConfig {
     pub push_rate: f64,
     pub otlp_endpoint: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PromConfig {
     pub endpoint: String,
 }
 
-pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    #[error("error parsing command line argument into string: {0:?}")]
+    StringArgParseError(#[source] ParseError),
+    #[error("error parsing command line argument into float: {0:?}")]
+    FloatArgParseError(#[source] ParseFloatError),
+}
+
+pub fn init_config() -> Result<Config, ConfigError> {
     let matches = App::new("obs_agent_client")
         .arg(
             Arg::with_name("update-rate")
@@ -46,37 +55,45 @@ pub fn init_config() -> Result<Config, Box<dyn Error + Send + Sync + 'static>> {
         .get_matches();
 
     let otel_config = OTelConfig {
-        push_rate: std::env::var("PUSH_RATE").map_or_else(
-            |_e| Ok(value_t!(matches.value_of("push-rate"), f64).unwrap_or(0.2)),
-            |v| v.parse(),
-        )?,
-        otlp_endpoint: std::env::var("OTLP_ENDPOINT").map_or_else(
-            |_e| {
-                Ok(matches
-                    .value_of("otlp-endpoint")
-                    .unwrap_or("http://localhost:4317")
-                    .to_string())
-            },
-            |v| v.parse(),
-        )?,
+        push_rate: std::env::var("PUSH_RATE")
+            .map_or_else(
+                |_e| Ok(value_t!(matches.value_of("push-rate"), f64).unwrap_or(0.2)),
+                |v| v.parse(),
+            )
+            .map_err(ConfigError::FloatArgParseError)?,
+        otlp_endpoint: std::env::var("OTLP_ENDPOINT")
+            .map_or_else(
+                |_e| {
+                    Ok(matches
+                        .value_of("otlp-endpoint")
+                        .unwrap_or("http://localhost:4317")
+                        .to_string())
+                },
+                |v| v.parse(),
+            )
+            .map_err(ConfigError::StringArgParseError)?,
     };
     let prom_config = PromConfig {
-        endpoint: std::env::var("PROMETHEUS_ENDPOINT").map_or_else(
-            |_e| {
-                Ok(matches
-                    .value_of("prometheus-endpoint")
-                    .unwrap_or("127.0.0.1:9600")
-                    .to_string())
-            },
-            |v| v.parse(),
-        )?,
+        endpoint: std::env::var("PROMETHEUS_ENDPOINT")
+            .map_or_else(
+                |_e| {
+                    Ok(matches
+                        .value_of("prometheus-endpoint")
+                        .unwrap_or("127.0.0.1:9600")
+                        .to_string())
+                },
+                |v| v.parse(),
+            )
+            .map_err(ConfigError::StringArgParseError)?,
     };
 
     let config = Config {
-        update_rate: std::env::var("UPDATE_RATE").map_or_else(
-            |_e| Ok(value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)),
-            |v| v.parse(),
-        )?,
+        update_rate: std::env::var("UPDATE_RATE")
+            .map_or_else(
+                |_e| Ok(value_t!(matches.value_of("update-rate"), f64).unwrap_or(1.0)),
+                |v| v.parse(),
+            )
+            .map_err(ConfigError::FloatArgParseError)?,
         otel_config,
         prom_config,
     };

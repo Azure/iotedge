@@ -546,6 +546,7 @@ dependencies = [
 name = "obsagent-client"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cfg-if",
  "clap",
  "futures",
@@ -556,6 +557,7 @@ dependencies = [
  "rand",
  "serde_json",
  "signal-hook",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-futures",

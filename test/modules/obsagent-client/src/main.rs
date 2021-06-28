@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::{error::Error, sync::Arc};
-
 use tracing::{info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
@@ -17,9 +15,9 @@ fn init_logging() {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
+async fn main() -> Result<(), anyhow::Error> {
     init_logging();
-    let config = Arc::new(config::init_config()?);
+    let config = config::init_config()?;
     info!(
         "Starting Observability Agent Client with configuration: {:?}",
         config
@@ -28,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
     #[cfg(feature = "otel")]
     let otel_fut = otel_client::run(config.clone());
     #[cfg(feature = "prom")]
-    let prom_fut = prometheus_server::run(config.clone());
+    let prom_fut = prometheus_server::run(config);
 
     cfg_if::cfg_if! {
         if #[cfg(all(feature="otel", feature = "prom"))] {
