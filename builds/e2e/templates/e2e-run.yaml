@@ -70,8 +70,8 @@ steps:
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
-    http_proxy: ${{ variables.Agent.ProxyUrl }}
-    https_proxy: ${{ variables.Agent.ProxyUrl }}
+    http_proxy: $[variables.Agent.ProxyUrl]
+    https_proxy: $[variables.Agent.ProxyUrl]
 
 - task: PublishTestResults@2
   displayName: Publish test results
