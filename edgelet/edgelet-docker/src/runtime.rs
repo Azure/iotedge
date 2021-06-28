@@ -1167,7 +1167,7 @@ fn unset_privileged(
         return;
     }
     if let Some(config) = create_options.host_config() {
-        if config.privileged() == Some(&true) || !config.cap_add().is_empty() {
+        if config.privileged() == Some(&true) || config.cap_add().map_or(0, Vec::len) != 0 {
             warn!("Privileged capabilities are disallowed on this device. Privileged capabilities can be used to gain root access. If a module needs to run as privileged, and you are aware of the consequences, set `allow_elevated_docker_permissions` to `true` in the config.toml and restart the service.");
             let mut config = config.clone();
 
@@ -1197,10 +1197,13 @@ fn drop_unsafe_privileges(
     #[allow(clippy::option_if_let_else)]
     let host_config = if let Some(config) = create_options.host_config() {
         // Don't drop caps that the user added explicitly
-        caps_to_drop.retain(|cap_drop| !config.cap_add().contains(cap_drop));
-
+        if let Some(cap_add) = config.cap_add() {
+            caps_to_drop.retain(|cap_drop| !cap_add.contains(cap_drop));
+        }
         // Add customer specified cap_drops
-        caps_to_drop.extend_from_slice(config.cap_drop());
+        if let Some(cap_drop) = config.cap_drop() {
+            caps_to_drop.extend_from_slice(cap_drop);
+        }
 
         config.clone().with_cap_drop(caps_to_drop)
     } else {
@@ -1532,11 +1535,9 @@ mod tests {
         // Doesn't remove privileged
         unset_privileged(true, &mut create_options);
         assert!(create_options.host_config().unwrap().privileged().unwrap());
-
         // Removes privileged
         unset_privileged(false, &mut create_options);
         assert!(!create_options.host_config().unwrap().privileged().unwrap());
-
         create_options.set_host_config(
             HostConfig::new().with_cap_add(vec!["CAP1".to_owned(), "CAP2".to_owned()]),
         );
@@ -1545,39 +1546,33 @@ mod tests {
         unset_privileged(true, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_add(),
-            &vec!["CAP1".to_owned(), "CAP2".to_owned()]
+            Some(&vec!["CAP1".to_owned(), "CAP2".to_owned()])
         );
 
         // Removes caps
         unset_privileged(false, &mut create_options);
-        assert!(create_options.host_config().unwrap().cap_add().is_empty());
+        assert_eq!(create_options.host_config().unwrap().cap_add(), None);
     }
 
     #[test]
     fn drop_unsafe_privileges_works() {
         let mut create_options = ContainerCreateBody::new().with_host_config(HostConfig::new());
-
         // Do nothing if privileged is allowed
         drop_unsafe_privileges(true, &mut create_options);
-        assert_eq!(
-            create_options.host_config().unwrap().cap_drop(),
-            &Vec::<String>::new()
-        );
-
+        assert_eq!(create_options.host_config().unwrap().cap_drop(), None);
         // Drops privileges by if privileged is false
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
-            &vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()]
+            Some(&vec!["CAP_CHOWN".to_owned(), "CAP_SETUID".to_owned()])
         );
-
         // Doesn't drop caps if specified
         create_options
             .set_host_config(HostConfig::new().with_cap_add(vec!["CAP_CHOWN".to_owned()]));
         drop_unsafe_privileges(false, &mut create_options);
         assert_eq!(
             create_options.host_config().unwrap().cap_drop(),
-            &vec!["CAP_SETUID".to_owned()]
+            Some(&vec!["CAP_SETUID".to_owned()])
         );
     }
 
