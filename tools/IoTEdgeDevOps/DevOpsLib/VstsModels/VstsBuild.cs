@@ -8,6 +8,9 @@ namespace DevOpsLib.VstsModels
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsBuild : IEquatable<VstsBuild>
     {
+        [JsonProperty("id")]
+        public string BuildId { get; set; }
+
         [JsonProperty("definition.id")]
         public BuildDefinitionId DefinitionId { get; set; }
 
@@ -41,6 +44,9 @@ namespace DevOpsLib.VstsModels
         [JsonProperty("lastChangedDate")]
         public DateTime LastChangedDate { get; set; }
 
+        [JsonProperty("requestedBy")]
+        public Dictionary<string, object> RequestedBy { get; set; }
+
         public static VstsBuild CreateBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
             new VstsBuild
             {
@@ -55,11 +61,22 @@ namespace DevOpsLib.VstsModels
                 StartTime = DateTime.MinValue,
                 FinishTime = DateTime.MinValue,
                 LastChangedDate = DateTime.MinValue,
+                RequestedBy = new Dictionary<string, Object>()
             };
 
         public bool HasResult()
         {
             return !string.IsNullOrEmpty(this.BuildNumber);
+        }
+
+        public bool WasScheduled()
+        {
+            if (this.RequestedBy["displayName"] != null && (string)this.RequestedBy["displayName"] == "Microsoft.VisualStudio.Services.TFS")
+            {
+                return true;
+            }
+
+            return false;
         }
 
         public bool Equals(VstsBuild other)
