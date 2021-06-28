@@ -95,7 +95,7 @@ function Update-ARM-BaseImages
     }
 }
 
-function Update-AMD-BaseImages
+function Update-AMD64-BaseImages
 {
     [CmdletBinding()]
     param (
@@ -138,6 +138,9 @@ function Update-AMD-BaseImages
     $baseAspNetLocale = $($($fileLocale | Convert-Path) -like "*\windows\amd64\*" -notlike "*\bin\*" | Resolve-path)
     foreach ($file in $baseAspNetLocale)
     {
+        # Note: The following dockerfile(s) are not automatically updated by this script
+        #    \iotedge\edge-modules\functions\samples\docker\windows\amd64\Dockerfile
+        #    \iotedge\tools\snitch\snitcher\docker\windows\amd64\Dockerfile
         (Get-Content -Encoding utf8 $file.Path) |
         Foreach-Object { $_ -replace "ARG base_tag=.*.-nanoserver-1809", "ARG base_tag=$NewASPNetCoreVersion-nanoserver-1809" } |
         Set-Content -Encoding utf8 $file.Path 
@@ -148,6 +151,7 @@ function Update-AMD-BaseImages
     foreach ($file in $baseAspNetLocale)
     {
         # Note: The following dockerfile(s) are not automatically updated by this script
+        #    \iotedge\edge-modules\functions\samples\docker\linux\amd64\Dockerfile
         #    \iotedge\tools\snitch\prep-mail\docker\linux\amd64\Dockerfile
         #    \iotedge\tools\snitch\snitcher\docker\linux\amd64\Dockerfile
         #    \iotedge\edgelet\iotedged\docker\linux\amd64\Dockerfile        (debian10)
