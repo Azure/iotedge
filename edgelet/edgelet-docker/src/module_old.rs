@@ -49,39 +49,39 @@ impl<C: 'static + Connect> DockerModule<C> {
     }
 }
 
-#[async_trait::async_trait]
 pub trait DockerModuleTop {
-    async fn top(&self) -> Result<ModuleTop, Error>;
+    type Error;
+    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
+
+    fn top(&self) -> Self::ModuleTopFuture;
 }
 
-#[async_trait::async_trait]
 impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
-    async fn top(&self) -> Result<ModuleTop, Error> {
-        // let id = self.name.to_string();
-        // Box::new(
-        //     self.client
-        //         .container_api()
-        //         .container_top(&id, "")
-        //         .then(|result| match result {
-        //             Ok(resp) => {
-        //                 let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-        //                     ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
-        //                 })?;
-        //                 Ok(ModuleTop::new(id, p))
-        //             }
-        //             Err(err) => {
-        //                 let err = Error::from_docker_error(
-        //                     err,
-        //                     ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
-        //                 );
-        //                 Err(err)
-        //             }
-        //         }),
-        // )
-        Ok(ModuleTop {
-            name: "".to_owned(),
-            process_ids: Vec::new(),
-        })
+    type Error = Error;
+    type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
+
+    fn top(&self) -> Self::ModuleTopFuture {
+        let id = self.name.to_string();
+        Box::new(
+            self.client
+                .container_api()
+                .container_top(&id, "")
+                .then(|result| match result {
+                    Ok(resp) => {
+                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
+                        })?;
+                        Ok(ModuleTop::new(id, p))
+                    }
+                    Err(err) => {
+                        let err = Error::from_docker_error(
+                            err,
+                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
+                        );
+                        Err(err)
+                    }
+                }),
+        )
     }
 }
 

@@ -539,6 +539,7 @@ dependencies = [
 name = "edgelet-docker"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "aziot-cert-common-http",
  "base64 0.9.3",
  "chrono",
