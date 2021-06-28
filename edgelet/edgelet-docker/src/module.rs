@@ -54,69 +54,42 @@ pub trait DockerModuleTop {
 #[async_trait::async_trait]
 impl DockerModuleTop for DockerModule {
     async fn top(&self) -> Result<ModuleTop> {
-        // let id = self.name.to_string();
-        // Box::new(
-        //     self.client
-        //         .container_api()
-        //         .container_top(&id, "")
-        //         .then(|result| match result {
-        //             Ok(resp) => {
-        //                 let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-        //                     ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
-        //                 })?;
-        //                 Ok(ModuleTop::new(id, p))
-        //             }
-        //             Err(err) => {
-        //                 let err = Error::from_docker_error(
-        //                     err,
-        //                     ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
-        //                 );
-        //                 Err(err)
-        //             }
-        //         }),
-        // )
-        Ok(ModuleTop::new("".to_owned(), Vec::new()))
-    }
-}
+        let error = || {
+            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
+                self.name.clone(),
+            )))
+        };
 
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let titles = resp
-        .titles()
-        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-    let pid_index = titles
-        .iter()
-        .position(|ref s| s.as_str() == "PID")
-        .ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Seq,
-                &"array including the column title 'PID'",
-            )
-        })?;
-    let processes = resp
-        .processes()
-        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-    let pids: std::result::Result<_, _> = processes
-        .iter()
-        .map(|ref p| {
-            let val = p.get(pid_index).ok_or_else(|| {
-                serde::de::Error::invalid_length(
-                    p.len(),
-                    &&*format!("at least {} columns", pid_index + 1),
-                )
-            })?;
-            let pid = val.parse::<i32>().map_err(|_| {
-                serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(val),
-                    &"a process ID number",
-                )
-            })?;
-            Ok(pid)
-        })
-        .collect();
-    Ok(pids?)
+        let top_response = self
+            .client
+            .docker
+            .top_processes::<&str>(&self.name, None)
+            .await
+            .map_err(|_| error())?;
+
+        let pids: Vec<i32> = if let Some(titles) = top_response.titles {
+            let pid_index: usize = titles
+                .iter()
+                .position(|s| s.as_str() == "PID")
+                .ok_or_else(error)?;
+
+            if let Some(processes) = top_response.processes {
+                processes
+                    .iter()
+                    .map(|process| {
+                        let str_pid = process.get(pid_index).ok_or_else(error)?;
+                        str_pid.parse::<i32>().map_err(|_| error())
+                    })
+                    .collect::<Result<Vec<i32>>>()?
+            } else {
+                return Err(error());
+            }
+        } else {
+            return Err(error());
+        };
+
+        Ok(ModuleTop::new(self.name.clone(), pids))
+    }
 }
 
 fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
