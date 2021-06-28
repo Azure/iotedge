@@ -97,6 +97,7 @@ function Update-ARM-BaseImages
 
 function Update-AMD64-BaseImages
 {
+    <# REMARK: This function does not update 'debian' and 'azure function' base images!!! #>>
     [CmdletBinding()]
     param (
         <# 
@@ -139,8 +140,8 @@ function Update-AMD64-BaseImages
     foreach ($file in $baseAspNetLocale)
     {
         # Note: The following dockerfile(s) are not automatically updated by this script
-        #    \iotedge\edge-modules\functions\samples\docker\windows\amd64\Dockerfile
-        #    \iotedge\tools\snitch\snitcher\docker\windows\amd64\Dockerfile
+        #    \iotedge\edge-modules\functions\samples\docker\windows\amd64\Dockerfile_______(Azure Function)
+        #    \iotedge\tools\snitch\snitcher\docker\windows\amd64\Dockerfile _______________(debian10)
         (Get-Content -Encoding utf8 $file.Path) |
         Foreach-Object { $_ -replace "ARG base_tag=.*.-nanoserver-1809", "ARG base_tag=$NewASPNetCoreVersion-nanoserver-1809" } |
         Set-Content -Encoding utf8 $file.Path 
@@ -151,14 +152,14 @@ function Update-AMD64-BaseImages
     foreach ($file in $baseAspNetLocale)
     {
         # Note: The following dockerfile(s) are not automatically updated by this script
-        #    \iotedge\edge-modules\functions\samples\docker\linux\amd64\Dockerfile
-        #    \iotedge\tools\snitch\prep-mail\docker\linux\amd64\Dockerfile
-        #    \iotedge\tools\snitch\snitcher\docker\linux\amd64\Dockerfile
-        #    \iotedge\edgelet\iotedged\docker\linux\amd64\Dockerfile        (debian10)
+        #    \iotedge\edge-modules\functions\samples\docker\linux\amd64\Dockerfile ________(Azure Function)
+        #    \iotedge\tools\snitch\prep-mail\docker\linux\amd64\Dockerfile ________________(Deprecating)
+        #    \iotedge\tools\snitch\snitcher\docker\linux\amd64\Dockerfile _________________(Deprecating)
+        #    \iotedge\edgelet\iotedged\docker\linux\amd64\Dockerfile ______________________(debian10)
         (Get-Content -Encoding utf8 $file.Path) |
         Foreach-Object { $_ -replace "ARG base_tag=.*.-alpine[\d]+\.[\d]+", "ARG base_tag=$NewASPNetCoreVersion-alpine$NewAlpineVersion" } |
         Foreach-Object { $_ -replace "FROM alpine:[\d]+\.[\d]+", "FROM alpine:$NewAlpineVersion" } |
-        Set-Content -Encoding utf8 $file.Path 
+        Set-Content -Encoding utf8 $file.Path
     }
 
     # Update the places where the base images are used
