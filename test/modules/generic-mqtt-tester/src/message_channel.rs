@@ -63,10 +63,14 @@ impl MessageHandler for ReportResultMessageHandler {
 
         let test_type = trc_client::TestType::Messages;
         let created_at = chrono::Utc::now();
-        self.reporting_client
+
+        if let Err(e) = self
+            .reporting_client
             .report_result(self.report_source.clone(), result, test_type, created_at)
             .await
-            .map_err(MessageTesterError::ReportResult)?;
+        {
+            error!("error reporting result to trc: {:?}", e);
+        }
 
         Ok(())
     }
