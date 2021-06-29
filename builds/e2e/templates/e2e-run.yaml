@@ -60,10 +60,10 @@ steps:
       $filter += '&Category!=NestedEdgeOnly'
     }
 
-    if ('${{ Agent.ProxyUrl }}')
+    if ('${{ variables.Agent.ProxyUrl }}')
     {
-      $env:http_proxy = '${{ Agent.ProxyUrl }}'
-      $env:https_proxy = '${{ Agent.ProxyUrl }}'
+      $env:http_proxy = '${{ variables.Agent.ProxyUrl }}'
+      $env:https_proxy = '${{ variables.Agent.ProxyUrl }}'
     }
 
     sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
