@@ -161,21 +161,4 @@ function Update-AMD64-BaseImages
         Foreach-Object { $_ -replace "FROM alpine:[\d]+\.[\d]+", "FROM alpine:$NewAlpineVersion" } |
         Set-Content -Encoding utf8 $file.Path
     }
-
-    # Update the places where the base images are used
-    # $baseImageLocale = $($fileLocale | Select-String "ARG base_tag=.*.-linux-arm" | Select-Object -Unique Path)
-    # foreach ($file in $($baseImageLocale | Resolve-path))
-    # {
-    #     # Increment the last digit by 1
-    #     $fileContent = (Get-Content $file.Path);
-    #     $curVersion = $($fileContent -like "ARG base_tag=*" ).split("=")[1].split("-")[0];
-    #     $splitVersion = $curVersion.split(".", 4);
-    #     $incrementedSegment = $([int]$splitVersion[3]) + 1;
-    #     $newBaseImageVersion = $($splitVersion[0,1,2] + $incrementedSegment -join ".");
-
-    #     # Replace the version
-    #     $fileContent |
-    #     Foreach-Object { $_ -replace "ARG base_tag=.*.-linux-arm", "ARG base_tag=$newBaseImageVersion-linux-arm" } |
-    #     Set-Content $file.Path
-    # }
 }
