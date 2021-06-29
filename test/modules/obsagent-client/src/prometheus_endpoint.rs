@@ -16,7 +16,7 @@ use tracing::{error, info};
 use crate::config::Config;
 
 #[derive(Debug, Error)]
-pub enum PromServerError {
+pub enum PromEndpointError {
     #[error("could not register Counter: {0:?}")]
     CounterRegisterError(#[source] prometheus::Error),
     #[error("could not register Gauge: {0:?}")]
@@ -42,17 +42,17 @@ async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> 
     Ok(response)
 }
 
-async fn metrics_loop(update_period: f64) -> Result<(), PromServerError> {
+async fn metrics_loop(update_period: f64) -> Result<(), PromEndpointError> {
     let counter = register_int_counter!(opts!("u64_counter_example", "Example of a u64 counter."))
-        .map_err(PromServerError::CounterRegisterError)?;
+        .map_err(PromEndpointError::CounterRegisterError)?;
     let gauge = register_int_gauge!(opts!("i64_gauge_example", "Example of a i64 gauge."))
-        .map_err(PromServerError::GaugeRegisterError)?;
+        .map_err(PromEndpointError::GaugeRegisterError)?;
     let histogram = register_histogram!(
         "f64_histogram_example",
         "Example of a f64 histogram.",
         vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,]
     )
-    .map_err(PromServerError::HistogramRegisterError)?;
+    .map_err(PromEndpointError::HistogramRegisterError)?;
     loop {
         counter.inc();
         gauge.inc();
@@ -61,12 +61,12 @@ async fn metrics_loop(update_period: f64) -> Result<(), PromServerError> {
     }
 }
 
-pub async fn run(config: Config) -> Result<(), PromServerError> {
+pub async fn run(config: Config) -> Result<(), PromEndpointError> {
     let addr = config
         .prom_config
         .endpoint
         .parse()
-        .map_err(PromServerError::SocketAddrParseError)?;
+        .map_err(PromEndpointError::SocketAddrParseError)?;
     info!("Listening on http://{}", addr);
 
     let serve_future = Server::bind(&addr).serve(make_service_fn(|_| async {
@@ -75,7 +75,7 @@ pub async fn run(config: Config) -> Result<(), PromServerError> {
 
     tokio::spawn(async move { metrics_loop(config.update_period).await });
 
-    serve_future.await.map_err(PromServerError::HyperError)?;
+    serve_future.await.map_err(PromEndpointError::HyperError)?;
 
     Ok(())
 }

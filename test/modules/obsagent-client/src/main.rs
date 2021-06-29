@@ -8,7 +8,7 @@ use obsagent_client::config;
 #[cfg(feature = "otel")]
 use obsagent_client::otel_client;
 #[cfg(feature = "prom")]
-use obsagent_client::prometheus_server;
+use obsagent_client::prometheus_endpoint;
 
 fn init_logging() {
     let subscriber = Subscriber::builder().with_max_level(Level::INFO).finish();
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Error> {
     #[cfg(feature = "otel")]
     let otel_fut = tokio::spawn(otel_client::run(config.clone()));
     #[cfg(feature = "prom")]
-    let prom_fut = tokio::spawn(prometheus_server::run(config.clone()));
+    let prom_fut = tokio::spawn(prometheus_endpoint::run(config.clone()));
 
     cfg_if::cfg_if! {
         if #[cfg(all(feature="otel", feature = "prom"))] {
