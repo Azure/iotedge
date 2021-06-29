@@ -65,6 +65,8 @@ use sha2::{Digest, Sha256};
 use crate::watchdog::Watchdog;
 use crate::workload::WorkloadData;
 
+const MGMT_SOCKET_DEFAULT_PERMISSION: u32 = 0o660;
+
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
 const AUTH_SCHEME: &str = "sasToken";
@@ -471,7 +473,6 @@ where
 
     let mgmt = start_management::<M>(settings, runtime, mgmt_rx, mgmt_stop_and_reprovision_tx);
 
-    //let workload = start_workload::<_, M>(settings, runtime, work_rx, workload_config, tokio_runtime, create_socket_channel_rcv);
     WorkloadManager::start_manager::<M>(
         settings,
         runtime,
@@ -703,7 +704,7 @@ where
             let service = LoggingService::new(label, service);
 
             let run = Http::new()
-                .bind_url(url.clone(), service)
+                .bind_url(url.clone(), service, MGMT_SOCKET_DEFAULT_PERMISSION)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,

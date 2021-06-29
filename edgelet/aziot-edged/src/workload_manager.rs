@@ -5,27 +5,30 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::error::{Error, ErrorKind, InitializeErrorReason};
-use aziot_key_client::Client;
-use cert_client::CertificateClient;
-use edgelet_core::{
-    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
-    ModuleRuntimeErrorReason, RuntimeSettings, UrlExt, WorkloadConfig,
-};
-
-use edgelet_http::{logging::LoggingService, HyperExt};
-use edgelet_http_workload::WorkloadService;
-use edgelet_utils::log_failure;
 use failure::{Fail, ResultExt};
 use futures::{
     sync::{mpsc::UnboundedReceiver, oneshot, oneshot::Sender},
     Future, Stream,
 };
 use hyper::{server::conn::Http, Body, Request};
-use identity_client::IdentityClient;
 use log::{error, info, warn, Level};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
+
+use aziot_key_client::Client;
+use cert_client::CertificateClient;
+use edgelet_core::{
+    Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
+    ModuleRuntimeErrorReason, RuntimeSettings, UrlExt, WorkloadConfig,
+};
+use edgelet_http::{logging::LoggingService, HyperExt};
+use edgelet_http_workload::WorkloadService;
+use edgelet_utils::log_failure;
+use identity_client::IdentityClient;
+
+use crate::error::{Error, ErrorKind, InitializeErrorReason};
+
+const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
 
 pub struct WorkloadManager<M, W>
 where
@@ -140,7 +143,7 @@ where
             let service = LoggingService::new(label, service);
 
             let run = Http::new()
-                .bind_url(workload_uri.clone(), service)
+                .bind_url(workload_uri.clone(), service, SOCKET_DEFAULT_PERMISSION)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
@@ -248,11 +251,7 @@ where
     <M as ModuleRuntime>::Logs: Into<Body>,
 {
     // Spawn a listener for module that are still running and uses old listen socket
-    workload_manager.spawn_listener(
-        workload_manager.legacy_workload_uri.clone(),
-        None,
-        &String::new(),
-    )?;
+    workload_manager.spawn_listener(workload_manager.legacy_workload_uri.clone(), None, "")?;
 
     // Spawn listeners for all module that are still running
     module_list

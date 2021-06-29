@@ -129,12 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             var workloadListenUriMntString = this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadListenMntUriVariableName);
             var workloadConnectUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
-            var workloadListenUri = workloadConnectUri;
 
-            if (workloadListenUriMntString != null)
-            {
-                workloadListenUri = new Uri(workloadListenUriMntString + "/" + module.Name + ".sock");
-            }
+            Uri workloadListenUri = !string.IsNullOrEmpty(workloadListenUriMntString)
+              ? new Uri($"{workloadListenUriMntString}/{module.Name}.sock")
+              : workloadConnectUri;
 
             if (workloadConnectUri.Scheme == "unix")
             {

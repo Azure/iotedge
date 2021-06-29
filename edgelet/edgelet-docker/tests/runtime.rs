@@ -942,7 +942,7 @@ network = "azure-iot-edge"
                 sender.send(()).unwrap();
                 Ok(())
             }
-            ModuleAction::Stop(_module_id) => Ok(()),
+            ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
         });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();

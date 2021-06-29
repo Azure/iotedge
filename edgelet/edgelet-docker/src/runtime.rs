@@ -626,11 +626,11 @@ impl ModuleRuntime for DockerModuleRuntime {
             return Box::new(future::err(Error::from(err)));
         }
 
-        let (signal_socket_created, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
+        let (sender, receiver): (Sender<()>, Receiver<()>) = oneshot::channel();
 
         if let Err(err) = self
             .create_socket_channel
-            .unbounded_send(ModuleAction::Start(id.clone(), signal_socket_created))
+            .unbounded_send(ModuleAction::Start(id.clone(), sender))
             .map_err(|_| {
                 Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
                     id.clone(),
