@@ -511,32 +511,33 @@ where
     T: Read + Seek,
 {
     // We don't need any explicit returns elsewhere as EOF should be an ERR.
+    let serialized_block_size = *SERIALIZED_BLOCK_SIZE as usize;
+    let buffer_size = (serialized_block_size * 2) as usize;
+
+    // Read two blocks worth of data and scan to see if there is a block.
+    // If not, then read another block worth of data and continue...
     #[allow(clippy::cast_possible_truncation)]
-    let all_zeroes: Vec<u8> = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
-    let mut start = 0;
+    let mut buf = vec![0; buffer_size];
+    readable.read_exact(&mut buf)?;
     loop {
-        #[allow(clippy::cast_possible_truncation)]
-        let mut buf = vec![0; *SERIALIZED_BLOCK_SIZE as usize];
-        readable.read_exact(&mut buf)?;
-
-        // If all zeroes we can skip faster.
-        if buf == all_zeroes {
-            // This is okay since the block size is too small to wrap.
-            #[allow(clippy::cast_possible_wrap)]
-            readable.seek(SeekFrom::Current(*SERIALIZED_BLOCK_SIZE as i64))?;
-            continue;
-        }
-
-        if let Ok(block) = bincode::deserialize::<BlockHeaderWithCrc>(&buf) {
-            let BlockVersion::Version1(inner) = block.inner();
-            // We maybe found a block.
-            if inner.hint() == BLOCK_HINT {
-                return Ok(block);
+        for offset in 0..(serialized_block_size) {
+            let start = offset;
+            let end = start + serialized_block_size;
+            if let Ok(block) = bincode::deserialize::<BlockHeaderWithCrc>(&buf[start..end]) {
+                let BlockVersion::Version1(inner) = block.inner();
+                // We maybe found a block.
+                if inner.hint() == BLOCK_HINT {
+                    return Ok(block);
+                }
             }
         }
 
-        readable.seek(SeekFrom::Start(start + 1))?;
-        start += 1;
+        // Remove bytes we know don't have a block in them.
+        buf.drain(..serialized_block_size);
+        // extend buffer to fit another potential blocks worth of data
+        buf.resize(buffer_size, 0);
+        // Read into second half of the buffer
+        readable.read_exact(&mut buf[serialized_block_size..])?;
     }
 }
 
