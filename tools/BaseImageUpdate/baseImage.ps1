@@ -97,7 +97,6 @@ function Update-ARM-BaseImages
 
 function Update-AMD64-BaseImages
 {
-    <# REMARK: This function does not update 'debian' and 'azure function' base images!!! #>>
     [CmdletBinding()]
     param (
         <# 
@@ -125,6 +124,8 @@ function Update-AMD64-BaseImages
         [Object[]]
         $FileLocale
     )
+
+    <# REMARK: This function does not update 'debian' and 'azure function' base images!!! #>>
 
     if ($FileLocale.Count -gt 0)
     {
