@@ -17,7 +17,7 @@
  The program is configurable via command line arguments as well as environment variables,
  with the environment variables taking precendence. The following is a list of the environment
  variables (and corresponding command line args in brackets):
-    1. UPDATE_PERIOD [--update-period|-u] - Period in seconds between updates of each 
+    1. UPDATE_PERIOD [--update-period|-u] - Period in seconds between updates of each
         instrument with a new metric measurement.
     2. PUSH_PERIOD [--push-period|-p] - Period in seconds between pushes of collected
         measurements out of the OTel client. Only used in OTel mode.
