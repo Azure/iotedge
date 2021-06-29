@@ -102,5 +102,5 @@ steps:
   displayName: Publish logs
   inputs:
     PathtoPublish: $(Build.ArtifactStagingDirectory)/logs${{ parameters.test_type }}
-    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(artifactSuffix)
+    ArtifactName: logs-end-to-end-$(artifactSuffix)
   condition: succeededOrFailed()
