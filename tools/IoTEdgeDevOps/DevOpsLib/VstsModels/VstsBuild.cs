@@ -63,7 +63,7 @@ namespace DevOpsLib.VstsModels
                 StartTime = DateTime.MinValue,
                 FinishTime = DateTime.MinValue,
                 LastChangedDate = DateTime.MinValue,
-                RequestedBy = new Dictionary<string, Object>()
+                RequestedBy = new Dictionary<string, object>()
             };
 
         public bool HasResult()

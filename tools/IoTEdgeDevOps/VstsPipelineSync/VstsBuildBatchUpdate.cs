@@ -47,6 +47,7 @@ namespace VstsPipelineSync
                     foreach (BuildDefinitionId buildDefinitionId in BuildExtension.BuildDefinitions)
                     {
                         IList<VstsBuild> builds = await GetBuildsAndTrackLastUpdatedAsync(buildManagement, buildDefinitionId, branch);
+                        Console.WriteLine($"Received {builds.Count} builds");
                         ImportVstsBuildsDataForSpecificDefinitionAsync(builds, buildDefinitionId);
                         await OpenBugsForFailingBuilds(bugManagement, builds, branch, buildDefinitionId);
                     }
@@ -66,25 +67,23 @@ namespace VstsPipelineSync
         {
             // Filter out the builds for which we have already made bugs
             builds = FilterBuildsByDate(builds);
+            builds = FilterBuildsByStatus(builds);
             builds = FilterBuildsByExistingBugs(builds);
-            Console.WriteLine($"Filtering builds. {builds.Count} left for bug analysis after filtering");
+            Console.WriteLine($"Filtering builds complete. Creating bugs for {builds.Count} builds");
 
             // Create the bugs
             Dictionary<string, string> buildIdToBugId = new Dictionary<string, string>();
             foreach (VstsBuild build in builds)
             {
-                if (build.Result == VstsBuildResult.Failed && build.WasScheduled() == true)
+                try
                 {
-                    try
-                    {
-                        string bugId = await bugManagement.CreateBugAsync(branch, build);
-                        buildIdToBugId.Add(build.BuildId, bugId);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e.Message);
-                        Console.WriteLine("Create bug failed. Will retry later.");
-                    }
+                    string bugId = await bugManagement.CreateBugAsync(branch, build);
+                    buildIdToBugId.Add(build.BuildId, bugId);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    Console.WriteLine("Create bug failed. Will retry later.");
                 }
             }
 
@@ -248,6 +247,8 @@ namespace VstsPipelineSync
                 sqlConnection?.Close();
             }
 
+            Console.WriteLine($"Filtering by existing bugs complete. {filteredBuilds.Count} builds remaining.");
+
             return filteredBuilds;
         }
 
@@ -258,12 +259,28 @@ namespace VstsPipelineSync
             IList<VstsBuild> filteredBuilds = new List<VstsBuild>();
             foreach (VstsBuild build in builds)
             {
-                if (build.QueueTime > DateTime.UtcNow - TimeSpan.FromHours(1))
+                if (build.FinishTime > DateTime.UtcNow - TimeSpan.FromHours(1))
                 {
                     filteredBuilds.Add(build);
                 }
             }
 
+            Console.WriteLine($"Filtering by date complete. {filteredBuilds.Count} builds remaining.");
+            return filteredBuilds;
+        }
+
+        IList<VstsBuild> FilterBuildsByStatus(IList<VstsBuild> builds)
+        {
+            IList<VstsBuild> filteredBuilds = new List<VstsBuild>();
+            foreach (VstsBuild build in builds)
+            {
+                if (build.Result == VstsBuildResult.Failed && build.WasScheduled() == true)
+                {
+                    filteredBuilds.Add(build);
+                }
+            }
+
+            Console.WriteLine($"Filtering out non-scheduled builds complete. {filteredBuilds.Count} builds remaining.");
             return filteredBuilds;
         }
 
