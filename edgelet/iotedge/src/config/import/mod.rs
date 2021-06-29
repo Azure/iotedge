@@ -376,6 +376,10 @@ fn execute_inner(
 
             localid: None,
 
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
+
             aziot_keys: Default::default(),
 
             preloaded_keys: Default::default(),

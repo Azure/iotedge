@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
     using System.Collections.Generic;
     using System.Dynamic;
     using System.IO;
+    using System.Net;
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading;
@@ -306,13 +307,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
         {
             // TODO acquire the response timeout from the message
             var callingTask = this.edgeHub.InvokeMethodAsync(rid, new DirectMethodRequest(id, method, payload, TimeSpan.FromMinutes(1)));
-            callingTask.ContinueWith(
-                    async response =>
+            _ = callingTask.ContinueWith(
+                    async responseTask =>
                     {
-                        var status = response.IsCompletedSuccessfully ? response.Result.Status : 500; // TODO check the correct status code to return
-                        var topic = string.Format(DirectMethodResponseTemplate, id, response.Result.Status, rid);
+                        // DirectMethodResponse has a 'Status' and 'HttpStatusCode'. If everything is fine, 'Status' contains
+                        // the response of the device and HttpStatusCode is 200. In this case we pass back the response of the
+                        // device. If something went wrong, then HttpStatusCode is an error (typically 404). In this case we
+                        // pass back that value. The value 500/InternalServerError is just a fallback, edgeHub is supposed to
+                        // handle errors, so 500 always should be overwritten.
+                        var responseCode = Convert.ToInt32(HttpStatusCode.InternalServerError);
+                        var responseData = this.emptyArray;
+                        if (responseTask.IsCompletedSuccessfully)
+                        {
+                            var response = responseTask.Result;
+                            responseData = response.Data ?? responseData;
 
-                        await this.SendUpstreamMessageAsync(RpcCmdPub, topic, response.Result.Data ?? this.emptyArray);
+                            if (response.HttpStatusCode == HttpStatusCode.OK)
+                            {
+                                responseCode = response.Status;
+                            }
+                            else
+                            {
+                                responseCode = Convert.ToInt32(response.HttpStatusCode);
+                            }
+                        }
+
+                        var topic = string.Format(DirectMethodResponseTemplate, id, responseCode, rid);
+                        await this.SendUpstreamMessageAsync(RpcCmdPub, topic, responseData);
                     });
         }
 

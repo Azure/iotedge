@@ -116,7 +116,7 @@ namespace IotEdgeQuickstart.Details
                     if (this.overwritePackages)
                     {
                         Console.WriteLine($"{package}: found. Removing package.");
-                        await Process.RunAsync("apt", $"purge -y {package}");
+                        await Process.RunAsync("apt", $"purge -y {package}", 180);
                     }
                     else
                     {

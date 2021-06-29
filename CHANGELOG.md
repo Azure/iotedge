@@ -1,3 +1,66 @@
+# 1.2.2 (2021-06-23)
+## Edge Agent
+### Bug Fixes
+* Properly dispose UDS for Workload Client. ( [472cee5](https://github.com/Azure/iotedge/commit/472cee580101cfd5999492ef3760d5038679680e), [f9cdb59](https://github.com/Azure/iotedge/commit/f9cdb5902a8e13b80bbd8040323fb0729f085dc3) )
+* Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+
+### Features
+* Use Docker Timestamp When Log Timestamp is not Available in JSON-formatted log. ( [d336d08](https://github.com/Azure/iotedge/commit/d336d085f5503747fb5f194e3cd261c0d2b91aea) )
+
+
+## Edge Hub
+### Bug Fixes
+* Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+* Propagate back error code from edgeHub ( [421347d](https://github.com/Azure/iotedge/commit/421347dff842eff6e552462b967f6c84e1982b29) )
+
+
+## Diagnostic Module
+### Bug Fixes
+* Fix potential instability in iotedged after UploadSupportBundle fails. ( [f567e38](https://github.com/Azure/iotedge/commit/f567e3870633209fac609c37d71d715e39d73e1a) )
+* Update Base Images for Security Vulnerability ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
+
+
+## Temperature Filter Function Module
+### Bug Fixes
+* Update Temperature Filter Function sample module to be using .NET3.0. ( [adf8878](https://github.com/Azure/iotedge/commit/adf88788fb25873a3db90b1cb775fdd97afbd8c0) )
+
+
+## aziot-edge
+### Bug Fixes
+* Fix provisioning behavior when DPS changes. ( [c6e8900](https://github.com/Azure/iotedge/commit/c6e890040945544112d56d377cd22655d5b0dd05) )
+* Limit sysinfo crate FDs usage. ( [5947981](https://github.com/Azure/iotedge/commit/5947981c06b3677fbf403e00f090d180f5737050) )
+
+### Features
+* Enable aziot-edged in CentOS package. ( [0539cdb](https://github.com/Azure/iotedge/commit/0539cdb31f4e6f53c20245cf3290b4095dd50435) )
+* Update IoT Identity Service to version 1.2.1 ( [572de56](https://github.com/Azure/iotedge/commit/572de564ed48f43492d589d63c8bf3d43cd2160c) )
+
+
+# 1.2.1 (2021-06-01)
+## Edge Agent
+### Bug Fixes
+* Update Base Images for Security Patch. ( [513f721](https://github.com/Azure/iotedge/commit/513f721c38381a32ed968bdb1c489ee0d9cfc243) )
+
+
+## Edge Hub
+### Bug Fixes
+* Update bridge config validation. ( [afdc9c2](https://github.com/Azure/iotedge/commit/afdc9c2e8d8fc46c585d7a34376a4e099917e64b) )
+* Device scope cache retry for first initialization. ( [3b903a1](https://github.com/Azure/iotedge/commit/3b903a19dcd2b41105664442335f37b357fddbcb) )
+* Add validation for null props inside objects inside arrays. ( [c25fcb9](https://github.com/Azure/iotedge/commit/c25fcb94729c795d78de802f9e76c6e096050335) )
+* Adds SharedAccessSignature to repo with fix for vulnerability. ( [60d411c](https://github.com/Azure/iotedge/commit/60d411c5d6737564f75469b4ab35a1aee8306dee) )
+* Update GetModuleLogs method when tail + since + until options are provided. ( [2b650a8](https://github.com/Azure/iotedge/commit/2b650a8b90d5b51299ef24c002e5af39c481c253) )
+* Fix edgehub queue len metric ( [4068369](https://github.com/Azure/iotedge/commit/4068369c4e32326809c3d5cfde33a8da0215dcfc) )
+* Update Base Images for Security Patch. ( [513f721](https://github.com/Azure/iotedge/commit/513f721c38381a32ed968bdb1c489ee0d9cfc243) )
+
+
+### Features
+* Restore device scopes from older store. ( [c90245b](https://github.com/Azure/iotedge/commit/c90245bec35e7dae06d50e171556961de8e718de) )
+
+
+## aziot-edge
+### Features
+* Introduce Timestamps Option via mgmt.sock. ( [37c661b](https://github.com/Azure/iotedge/commit/37c661bcbae1b2b2506e54d102a14ea1b6f8bb3c) )
+
+
 # 1.2.0 (2021-04-9)
 ## AWARENESS
 This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
