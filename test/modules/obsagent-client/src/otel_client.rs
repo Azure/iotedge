@@ -51,7 +51,7 @@ fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushControl
 
 pub async fn run(config: Config) -> Result<(), OTelClientError> {
     let _started = init_meter(
-        1.0 / config.otel_config.push_rate,
+        config.otel_config.push_period,
         config.otel_config.otlp_endpoint.clone(),
     )
     .map_err(OTelClientError::MetricsPipelineInitError)?;
@@ -104,7 +104,7 @@ pub async fn run(config: Config) -> Result<(), OTelClientError> {
         .f64_value_observer("f64_value_observer_example", value_observer_cb)
         .init();
 
-    // Loop, updating each metric value at the configured update rate
+    // Loop, updating each metric value at the configured update period
     let term = Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(signal_hook::consts::SIGTERM, Arc::clone(&term))
         .map_err(OTelClientError::SignalHookRegisterError)?;
@@ -133,7 +133,7 @@ pub async fn run(config: Config) -> Result<(), OTelClientError> {
                 error!("try_lock failed");
             }
         }
-        time::sleep(Duration::from_secs_f64(1.0 / config.update_rate)).await;
+        time::sleep(Duration::from_secs_f64(config.update_period)).await;
     }
 
     Ok(())

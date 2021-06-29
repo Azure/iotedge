@@ -42,7 +42,7 @@ async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> 
     Ok(response)
 }
 
-async fn metrics_loop(update_rate: f64) -> Result<(), PromServerError> {
+async fn metrics_loop(update_period: f64) -> Result<(), PromServerError> {
     let counter = register_int_counter!(opts!("u64_counter_example", "Example of a u64 counter."))
         .map_err(PromServerError::CounterRegisterError)?;
     let gauge = register_int_gauge!(opts!("i64_gauge_example", "Example of a i64 gauge."))
@@ -57,7 +57,7 @@ async fn metrics_loop(update_rate: f64) -> Result<(), PromServerError> {
         counter.inc();
         gauge.inc();
         histogram.observe(random::<f64>());
-        time::sleep(Duration::from_secs_f64(1.0 / update_rate)).await;
+        time::sleep(Duration::from_secs_f64(update_period)).await;
     }
 }
 
@@ -73,7 +73,7 @@ pub async fn run(config: Config) -> Result<(), PromServerError> {
         Ok::<_, hyper::Error>(service_fn(serve_req))
     }));
 
-    tokio::spawn(async move { metrics_loop(config.update_rate).await });
+    tokio::spawn(async move { metrics_loop(config.update_period).await });
 
     serve_future.await.map_err(PromServerError::HyperError)?;
 

@@ -17,10 +17,10 @@
  The program is configurable via command line arguments as well as environment variables,
  with the environment variables taking precendence. The following is a list of the environment
  variables (and corresponding command line args in brackets):
-    1. UPDATE_RATE [--update-rate|-u] - Rate at which each instrument is
-            updated with a new metric measurement (updates/sec).
-    2. PUSH_RATE [--push-rate|-p] - Rate at which measurements are pushed
-            out of the OTel client (pushes/sec). Only used in OTel mode.
+    1. UPDATE_PERIOD [--update-period|-u] - Period in seconds between updates of each 
+        instrument with a new metric measurement.
+    2. PUSH_PERIOD [--push-period|-p] - Period in seconds between pushes of collected
+        measurements out of the OTel client. Only used in OTel mode.
     3. OTLP_ENDPOINT [--otlp-endpoint|-e] - Endpoint to which OTLP messages
              will be sent.
     4. PROMETHEUS_ENDPOINT [--prometheus-endpoint] - Endpoint address from which Prometheus
