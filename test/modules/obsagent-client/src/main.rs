@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use anyhow::Error;
 use tracing::{info, subscriber, Level};
 use tracing_subscriber::fmt::Subscriber;
 
@@ -15,7 +16,7 @@ fn init_logging() {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> Result<(), Error> {
     init_logging();
     let config = config::init_config()?;
     info!(
