@@ -17,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         const string GenericMqttInitiatorModuleName = "GenericMqttInitiator";
         const string GenericMqttRelayerModuleName = "GenericMqttRelayer";
         const string GenericMqttTesterMaxMessages = "5";
-        const string GenericMqttTesterTestStartDelay = "10s";
-        const int SecondsBeforeVerification = 45;
+        const string GenericMqttTesterTestStartDelay = "30s";
+        const int SecondsBeforeVerification = 300;
 
         /// <summary>
         /// Scenario:
