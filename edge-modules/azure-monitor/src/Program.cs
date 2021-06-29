@@ -53,6 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             {
                 moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
                 moduleClient.ProductInfo = Constants.ProductInfo;
+                await moduleClient.OpenAsync();
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
