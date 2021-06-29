@@ -125,7 +125,7 @@ function Update-AMD64-BaseImages
         $FileLocale
     )
 
-    <# REMARK: This function does not update 'debian' and 'azure function' base images!!! #>>
+    <# REMARK: This function does not update 'debian' and 'azure function' base images!!! #>
 
     if ($FileLocale.Count -gt 0)
     {
