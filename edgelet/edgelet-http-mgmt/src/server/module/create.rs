@@ -118,11 +118,12 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
+    use futures::sync::mpsc;
     use hyper::Request;
     use lazy_static::lazy_static;
     use serde_json::json;
 
-    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleAction, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime, TestSettings};
     use management::models::{Config, ErrorResponse, ModuleDetails};
@@ -143,7 +144,10 @@ mod tests {
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
             let module = TestModule::new("test-module".to_string(), config, Ok(state));
-            TestRuntime::make_runtime(TestSettings::new())
+            let (create_socket_channel_snd, _create_socket_channel_rcv) =
+                mpsc::unbounded::<ModuleAction>();
+
+            TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
                 .wait()
                 .unwrap()
                 .with_module(Ok(module))
@@ -219,7 +223,9 @@ mod tests {
 
     #[test]
     fn runtime_error() {
-        let runtime = TestRuntime::make_runtime(TestSettings::new())
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
             .with_module(Err(Error::General));
@@ -252,7 +258,10 @@ mod tests {
 
     #[test]
     fn bad_settings() {
-        let runtime = TestRuntime::make_runtime(TestSettings::new())
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
             .with_module(Err(Error::General));

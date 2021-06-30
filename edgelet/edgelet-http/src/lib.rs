@@ -274,7 +274,12 @@ where
 }
 
 pub trait HyperExt {
-    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
+    fn bind_url<S>(
+        &self,
+        url: Url,
+        new_service: S,
+        unix_socket_permission: u32,
+    ) -> Result<Server<S>, Error>
     where
         S: NewService<ReqBody = Body>;
 }
@@ -282,7 +287,12 @@ pub trait HyperExt {
 // This variable is used on Unix but not Windows
 impl HyperExt for Http {
     #[cfg_attr(not(unix), allow(unused_variables))]
-    fn bind_url<S>(&self, url: Url, new_service: S) -> Result<Server<S>, Error>
+    fn bind_url<S>(
+        &self,
+        url: Url,
+        new_service: S,
+        unix_socket_permission: u32,
+    ) -> Result<Server<S>, Error>
     where
         S: NewService<ReqBody = Body>,
     {
@@ -304,7 +314,7 @@ impl HyperExt for Http {
                 let path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                unix::listener(path)?
+                unix::listener(path, unix_socket_permission)?
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {
