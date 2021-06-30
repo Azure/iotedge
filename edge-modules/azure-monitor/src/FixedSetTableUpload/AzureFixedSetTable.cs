@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                 // Lazily generate and register certificate.
                 if (cert == null)
                 {
-                    (X509Certificate2 tempCert, (string certString, byte[] certBuf), string keyString) = CertGenerator.RegisterAgentWithOMS(workspaceId, sharedKey, Constants.DefaultLogAnalyticsWorkspaceDomainPrefix);
+                    (X509Certificate2 tempCert, (string certString, byte[] certBuf), string keyString) = CertGenerator.RegisterAgentWithOMS(workspaceId, sharedKey, Constants.DefaultLogAnalyticsWorkspaceDomainPrefixOms);
                     cert = tempCert;
                 }
                 using (var handler = new HttpClientHandler())
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.FixedSetTableUpload
                     handler.PreAuthenticate = true;
                     handler.ClientCertificateOptions = ClientCertificateOption.Manual;
 
-                    Uri requestUri = new Uri("https://" + workspaceId + Constants.DefaultLogAnalyticsWorkspaceDomainPrefix + Settings.Current.AzureDomain + "/OperationalData.svc/PostJsonDataItems");
+                    Uri requestUri = new Uri("https://" + workspaceId + Constants.DefaultLogAnalyticsWorkspaceDomainPrefixOds + Settings.Current.AzureDomain + "/OperationalData.svc/PostJsonDataItems");
 
                     using (HttpClient client = new HttpClient(handler))
                     {
