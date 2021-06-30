@@ -1,4 +1,4 @@
-FROM ekidd/rust-musl-builder AS builder
+﻿FROM ekidd/rust-musl-builder AS builder
 
 ARG SRC_DIR=.
 
