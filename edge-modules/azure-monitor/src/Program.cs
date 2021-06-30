@@ -53,7 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             {
                 moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
                 moduleClient.ProductInfo = Constants.ProductInfo;
-                await moduleClient.OpenAsync();
+
+                IothubConnectionManager iothubConnectionManager = new IothubConnectionManager(moduleClient);
+                PeriodicTask periodicIothubConnect = new PeriodicTask(iothubConnectionManager.ConnectToIothub, Settings.Current.IotHubConnectFrequency, new TimeSpan(0, 0, 0), LoggerUtil.Writer, "Connect to IoT Hub", true);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
