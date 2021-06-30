@@ -705,7 +705,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::write, panic, path::PathBuf};
+    use std::{fs::write, panic};
 
     use bytes::Bytes;
     use matches::assert_matches;
@@ -1669,36 +1669,6 @@ mod tests {
 
             let result = rb.pop();
             assert_matches!(result, Ok(removed) if removed == key);
-        }
-    }
-
-    #[test]
-    fn it_works_again() {
-        let file_path =
-            PathBuf::from("/Users/robertbaldwin/Documents/GitHub/iotedge/mqtt/mqtt-bridge/remote");
-        let file_path = file_path.as_path();
-        let max_file_size = NonZeroU64::new(33_554_432).unwrap();
-
-        let result = RingBuffer::new(file_path, max_file_size, FlushOptions::AfterEachWrite);
-        assert_matches!(result, Ok(_));
-        let mut rb = result.unwrap();
-        println!("before {:?}", rb.metadata);
-        // rb.metadata.can_read_from_wrap_around_when_write_full = true;
-        for _ in 0..10_000_000 {
-            let result = rb.batch(1);
-
-            let diff = rb.metadata.file_pointers.read_end - rb.metadata.file_pointers.read_begin;
-            if diff != 0 {
-                println!("rp {:?}", rb.metadata);
-            }
-            if diff != 93 && diff != 0 {
-                // println!("rp1 {:?}", rb.metadata);
-            }
-            assert_matches!(result, Ok(_));
-            let messages = result.unwrap();
-            for message in &messages {
-                println!("k/v {:?}", message);
-            }
         }
     }
 }
