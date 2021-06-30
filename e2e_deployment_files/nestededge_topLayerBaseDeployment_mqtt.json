@@ -30,6 +30,9 @@
               },
               "https_proxy": {
                 "value": "<proxyAddress>"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             }
           },
