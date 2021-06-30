@@ -18,6 +18,7 @@ mod error;
 pub mod logging;
 pub mod signal;
 pub mod workload;
+pub mod workload_manager;
 
 #[cfg(not(target_os = "windows"))]
 pub mod unix;
@@ -37,7 +38,10 @@ use std::time::Duration;
 
 use failure::{Context, Fail, ResultExt};
 use futures::future::Either;
-use futures::sync::oneshot::{self, Receiver};
+use futures::sync::{
+    mpsc::{UnboundedSender},
+    oneshot::{self, Receiver},
+};
 use futures::{future, Future, Stream};
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Uri};
@@ -57,8 +61,8 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    CertificateType, Dps, Listen, MakeModuleRuntime, ManualAuthMethod, Module, ModuleAction,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
     ProvisioningType, RuntimeSettings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
     WorkloadConfig, X509AttestationInfo,
 };
@@ -70,7 +74,6 @@ use edgelet_http::logging::LoggingService;
 use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
-use edgelet_http_workload::WorkloadService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
 use edgelet_utils::log_failure;
 use hsm::tpm::Tpm;
@@ -85,6 +88,9 @@ use provisioning::provisioning::{
 use error::ExternalProvisioningErrorReason;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
 use workload::WorkloadData;
+use workload_manager::WorkloadManager;
+
+const MGMT_SOCKET_DEFAULT_PERMISSION: u32 = 0o660;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -113,6 +119,10 @@ const MODULEID_KEY: &str = "IOTEDGE_MODULEID";
 /// for its own needs and is also used for volume mounting into module
 /// containers when the URI refers to a Unix domain socket.
 const WORKLOAD_URI_KEY: &str = "IOTEDGE_WORKLOADURI";
+
+// This is the name of the directory that contains the module folder
+// with worlkload sockets inside, on the host
+const WORKLOAD_LISTEN_MNT_URI: &str = "IOTEDGE_WORKLOADLISTEN_MNTURI";
 
 /// This variable holds the URI to use for connecting to the management
 /// endpoint in iotedged. This is used by the edge agent for managing module
@@ -322,11 +332,15 @@ where
             ($key_store:ident, $provisioning_result:ident, $root_key:ident, $force_reprovision:ident, $id_cert_thumprint:ident, $provision:ident,) => {{
                 info!("Finished provisioning edge device.");
 
+                let (create_socket_channel_snd, create_socket_channel_rcv) =
+                mpsc::unbounded::<ModuleAction>();
+
                 let runtime = init_runtime::<M>(
                     settings.clone(),
                     &mut tokio_runtime,
                     $provisioning_result.clone(),
                     crypto.clone(),
+                    create_socket_channel_snd,
                 )?;
 
                 // Normally iotedged will stop all modules when it shuts down. But if it crashed,
@@ -380,6 +394,32 @@ where
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
+                
+                let edgelet_cert_props = CertificateProperties::new(
+                    settings.certificates().auto_generated_ca_lifetime_seconds(),
+                    IOTEDGED_TLS_COMMONNAME.to_string(),
+                    CertificateType::Server,
+                    "iotedge-tls".to_string(),
+                )
+                .with_issuer(CertificateIssuer::DeviceCa);
+
+                let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
+                    ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
+                )?;
+             
+                let cert_manager = Arc::new(cert_manager);
+ 
+                WorkloadManager::start_manager::<M>(
+                    &settings,
+                    &$key_store,
+                    &runtime,
+                    &crypto,
+                    cfg.clone(),
+                    cert_manager.clone(),
+                    &mut tokio_runtime,
+                    create_socket_channel_rcv,
+                )?;
+
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
                 loop {
@@ -388,11 +428,11 @@ where
                         hyper_client.clone(),
                         &runtime,
                         &$key_store,
-                        cfg.clone(),
+                        &cfg,
                         $root_key.clone(),
                         make_shutdown_signal(),
-                        &crypto,
                         &mut tokio_runtime,
+                        &cert_manager,
                     )?;
 
                     if should_reprovision {
@@ -1412,11 +1452,11 @@ fn start_api<HC, K, F, C, W, M>(
     hyper_client: HC,
     runtime: &M::ModuleRuntime,
     key_store: &DerivedKeyStore<K>,
-    workload_config: W,
+    workload_config: &W,
     root_key: K,
     shutdown_signal: F,
-    crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
+    cert_manager: &Arc<CertificateManager<C>>,
 ) -> Result<(StartApiReturnStatus, bool), Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
@@ -1458,25 +1498,12 @@ where
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
     let (mgmt_stop_and_reprovision_tx, mgmt_stop_and_reprovision_rx) = mpsc::unbounded();
-    let (work_tx, work_rx) = oneshot::channel();
-
-    let edgelet_cert_props = CertificateProperties::new(
-        settings.certificates().auto_generated_ca_lifetime_seconds(),
-        IOTEDGED_TLS_COMMONNAME.to_string(),
-        CertificateType::Server,
-        "iotedge-tls".to_string(),
-    )
-    .with_issuer(CertificateIssuer::DeviceCa);
-
-    let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
-        ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
-    )?;
 
     // Create the certificate management timer and channel
     let (restart_tx, restart_rx) = oneshot::channel();
 
     let expiration_timer = if settings.listen().management_uri().scheme() == "https"
-        || settings.listen().workload_uri().scheme() == "https"
+        || settings.listen().legacy_workload_uri().scheme() == "https"
     {
         Either::A(
             cert_manager
@@ -1489,8 +1516,6 @@ where
         Either::B(future::ok(()))
     };
 
-    let cert_manager = Arc::new(cert_manager);
-
     let mgmt = start_management::<_, _, _, M>(
         settings,
         runtime,
@@ -1498,16 +1523,6 @@ where
         mgmt_rx,
         cert_manager.clone(),
         mgmt_stop_and_reprovision_tx,
-    );
-
-    let workload = start_workload::<_, _, _, _, M>(
-        settings,
-        key_store,
-        runtime,
-        work_rx,
-        crypto,
-        cert_manager,
-        workload_config,
     );
 
     let (runt_tx, runt_rx) = oneshot::channel();
@@ -1563,7 +1578,6 @@ where
         .select2(restart_rx)
         .then(move |res| {
             mgmt_tx.send(()).unwrap_or(());
-            work_tx.send(()).unwrap_or(());
 
             // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
             // B -> Restart Signal Future
@@ -1591,9 +1605,9 @@ where
     tokio_runtime.spawn(shutdown);
 
     let services = mgmt
-        .join4(workload, edge_rt_with_cleanup, expiration_timer)
+        .join3(edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), (code, should_reprovision), ())) => Ok((code, should_reprovision)),
+            Ok(((), (code, should_reprovision), ())) => Ok((code, should_reprovision)),
             Err(err) => Err(err),
         });
     let (restart_code, should_reprovision) = tokio_runtime.block_on(services)?;
@@ -1605,6 +1619,7 @@ fn init_runtime<M>(
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
     crypto: Crypto,
+    create_socket_channel: UnboundedSender<ModuleAction>,
 ) -> Result<M::ModuleRuntime, Error>
 where
     M: MakeModuleRuntime + Send + 'static,
@@ -1613,7 +1628,7 @@ where
 {
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
-        .block_on(M::make_runtime(settings, provisioning_result, crypto))
+        .block_on(M::make_runtime(settings, provisioning_result, crypto, create_socket_channel))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
@@ -2030,9 +2045,10 @@ where
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
 
     #[cfg(feature = "runtime-docker")]
-    let (workload_uri, management_uri) = (
+    let (workload_uri, management_uri, home_dir) = (
         settings.connect().workload_uri().to_string(),
         settings.connect().management_uri().to_string(),
+        settings.homedir().to_str().unwrap().to_string(),
     );
     #[cfg(feature = "runtime-kubernetes")]
     let (workload_uri, management_uri) = (
@@ -2047,6 +2063,11 @@ where
     );
 
     env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
+    #[cfg(feature = "runtime-docker")]
+    env.insert(
+        WORKLOAD_LISTEN_MNT_URI.to_string(),
+        Listen::workload_mnt_uri(&home_dir),
+    );
     env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
     env.insert(
@@ -2095,7 +2116,7 @@ where
             let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
 
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(tls_params))
+                .bind_url(url.clone(), service, Some(tls_params), MGMT_SOCKET_DEFAULT_PERMISSION)
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -2108,7 +2129,7 @@ where
         })
         .flatten()
 }
-
+/* 
 fn start_workload<K, C, CE, W, M>(
     settings: &M::Settings,
     key_store: &K,
@@ -2168,7 +2189,7 @@ where
             Ok(run)
         })
         .flatten()
-}
+}*/
 
 #[cfg(test)]
 mod tests {
@@ -2460,10 +2481,12 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd,
         )
         .wait()
         .unwrap()
@@ -2501,12 +2524,15 @@ mod tests {
         )
         .unwrap();
         let state = ModuleRuntimeState::default();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd,
         )
         .wait()
         .unwrap()
@@ -2545,10 +2571,12 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd,
         )
         .wait()
         .unwrap()
@@ -2625,10 +2653,12 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd,
         )
         .wait()
         .unwrap()
@@ -2696,10 +2726,12 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd,
         )
         .wait()
         .unwrap()

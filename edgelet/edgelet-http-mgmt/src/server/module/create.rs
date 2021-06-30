@@ -118,11 +118,12 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
+    use futures::sync::mpsc;
     use hyper::Request;
     use lazy_static::lazy_static;
     use serde_json::json;
 
-    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleAction, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
@@ -146,14 +147,18 @@ mod tests {
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
             let module = TestModule::new("test-module".to_string(), config, Ok(state));
+            let (create_socket_channel_snd, _create_socket_channel_rcv) =
+                mpsc::unbounded::<ModuleAction>();
+
             TestRuntime::make_runtime(
                 TestSettings::new(),
                 TestProvisioningResult::new(),
                 TestHsm::default(),
-            )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module))
+                 create_socket_channel_snd
+                )
+                .wait()
+                .unwrap()
+                .with_module(Ok(module))
         };
     }
 
@@ -226,14 +231,17 @@ mod tests {
 
     #[test]
     fn runtime_error() {
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
+            TestSettings::new(), 
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd
         )
-        .wait()
-        .unwrap()
-        .with_module(Err(Error::General));
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
@@ -263,14 +271,18 @@ mod tests {
 
     #[test]
     fn bad_settings() {
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
+            TestSettings::new(), 
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd
         )
-        .wait()
-        .unwrap()
-        .with_module(Err(Error::General));
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);

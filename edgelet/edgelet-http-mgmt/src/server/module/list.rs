@@ -98,13 +98,13 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
-    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleAction, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
         TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
     };
-    use futures::Stream;
+    use futures::{sync::mpsc, Stream};
     use management::models::{ErrorResponse, ModuleList};
 
     use super::{Body, Future, Handler, ListModules, Request};
@@ -123,14 +123,18 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+             create_socket_channel_snd
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = ListModules::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
@@ -179,14 +183,18 @@ mod tests {
     #[test]
     fn list_failed() {
         // arrange
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd
         )
-        .wait()
-        .unwrap()
-        .with_module(Err(Error::General));
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = ListModules::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
@@ -216,14 +224,18 @@ mod tests {
         // arrange
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module = TestModule::new("test-module".to_string(), config, Err(Error::General));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
+            TestSettings::new(), 
             TestProvisioningResult::new(),
             TestHsm::default(),
+            create_socket_channel_snd
         )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = ListModules::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())

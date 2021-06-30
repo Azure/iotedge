@@ -13,6 +13,7 @@ use config::{Config, File, FileFormat};
 use failure::Fail;
 use futures::future;
 use futures::prelude::*;
+use futures::sync::mpsc;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use json_patch::merge;
 use maplit::btreemap;
@@ -27,7 +28,7 @@ use docker::models::{
 
 use edgelet_core::{
     GetTrustBundle, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module,
-    ModuleRegistry, ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
+    ModuleAction, ModuleRegistry, ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
@@ -241,7 +242,9 @@ fn image_pull_with_invalid_image_name_fails() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             let auth = AuthConfig::new()
                 .with_username("u1".to_string())
@@ -342,7 +345,9 @@ fn image_pull_with_invalid_image_host_fails() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             let auth = AuthConfig::new()
                 .with_username("u1".to_string())
@@ -456,8 +461,9 @@ fn image_pull_with_invalid_creds_fails() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             // password is written to guarantee base64 encoding has '-' and/or '_'
             let auth = AuthConfig::new()
@@ -555,8 +561,10 @@ fn image_pull_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(),create_socket_channel_snd)
         .and_then(|runtime| {
             let auth = AuthConfig::new()
                 .with_username("u1".to_string())
@@ -641,8 +649,9 @@ fn image_pull_with_creds_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             let auth = AuthConfig::new()
                 .with_username("u1".to_string())
@@ -704,8 +713,9 @@ fn image_remove_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| ModuleRegistry::remove(&runtime, IMAGE_NAME));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -815,8 +825,9 @@ fn container_create_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             let mut env = BTreeMap::new();
             env.insert("k1".to_string(), "v1".to_string());
@@ -856,7 +867,7 @@ fn container_create_succeeds() {
             let module_config = ModuleSpec::new(
                 "m1".to_string(),
                 "docker".to_string(),
-                DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
+                DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
                 env,
                 ImagePullPolicy::default(),
             )
@@ -898,11 +909,24 @@ fn container_start_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.start("m1"));
+
+    let simulate_workload_manager =
+        create_socket_channel_rcv.for_each(move |module_id: ModuleAction| match module_id {
+            ModuleAction::Start(_module_id, sender) => {
+                sender.send(()).unwrap();
+                Ok(())
+            }
+            ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
+        });        
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
+    runtime.spawn(simulate_workload_manager);
+
     runtime.block_on(task).unwrap();
 }
 
@@ -934,7 +958,9 @@ fn container_stop_succeeds() {
         }
     })));
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.stop("m1", None));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -970,8 +996,9 @@ fn container_stop_with_timeout_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.stop("m1", Some(Duration::from_secs(600))));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1006,8 +1033,9 @@ fn container_remove_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| ModuleRuntime::remove(&runtime, "m1"));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1125,8 +1153,9 @@ fn container_list_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.list());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1206,8 +1235,9 @@ fn container_logs_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             let options = LogOptions::new()
                 .with_follow(true)
@@ -1247,7 +1277,9 @@ fn image_remove_with_white_space_name_fails() {
     })));
     let image_name = "     ";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| ModuleRegistry::remove(&runtime, image_name))
         .then(|res| match res {
             Ok(_) => Err("Expected error but got a result.".to_string()),
@@ -1281,12 +1313,14 @@ fn create_fails_for_non_docker_type() {
     })));
     let name = "not_docker";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| {
             let module_config = ModuleSpec::new(
                 "m1".to_string(),
                 name.to_string(),
-                DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
+                DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None, None)
                     .unwrap(),
                 BTreeMap::new(),
                 ImagePullPolicy::default(),
@@ -1320,7 +1354,9 @@ fn start_fails_for_empty_id() {
     })));
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.start(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1352,7 +1388,9 @@ fn start_fails_for_white_space_id() {
     })));
     let name = "      ";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.start(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1384,7 +1422,9 @@ fn stop_fails_for_empty_id() {
     })));
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.stop(name, None))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1416,7 +1456,9 @@ fn stop_fails_for_white_space_id() {
     })));
     let name = "     ";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.stop(name, None))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1448,7 +1490,9 @@ fn restart_fails_for_empty_id() {
     })));
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.restart(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1480,7 +1524,9 @@ fn restart_fails_for_white_space_id() {
     })));
     let name = "      ";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.restart(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1512,6 +1558,8 @@ fn remove_fails_for_empty_id() {
     })));
     let name = "";
 
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+    
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
@@ -1544,7 +1592,9 @@ fn remove_fails_for_white_space_id() {
     })));
     let name = "      ";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1576,7 +1626,9 @@ fn get_fails_for_empty_id() {
     })));
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.get(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1608,7 +1660,9 @@ fn get_fails_for_white_space_id() {
     })));
     let name = "    ";
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.get(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1657,9 +1711,10 @@ fn runtime_init_network_does_not_exist_create() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1739,9 +1794,10 @@ fn network_ipv6_create() {
             }
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1800,9 +1856,10 @@ fn runtime_init_network_exist_do_not_create() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto());
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1862,8 +1919,9 @@ fn runtime_system_info_succeeds() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1919,8 +1977,9 @@ fn runtime_system_info_none_returns_unkown() {
             "uri": &format!("http://localhost:{}", port)
         }
     })));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
         .and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();

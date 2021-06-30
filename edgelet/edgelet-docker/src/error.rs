@@ -70,6 +70,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid socket URI: {:?}", _0)]
     InvalidSocketUri(String),
 
+    #[fail(display = "Invalid home directory")]
+    InvalidHomeDirPath,
+
     #[fail(display = "{}", _0)]
     ModuleOperation(ModuleOperation),
 

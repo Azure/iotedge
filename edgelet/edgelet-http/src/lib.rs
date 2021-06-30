@@ -298,6 +298,7 @@ pub trait HyperExt {
         url: Url,
         new_service: S,
         cert_manager: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -312,6 +313,7 @@ impl HyperExt for Http {
         url: Url,
         new_service: S,
         tls_params: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -380,7 +382,7 @@ impl HyperExt for Http {
                 let path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                unix::listener(path)?
+                unix::listener(path, unix_socket_permission)?
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {

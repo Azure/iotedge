@@ -63,12 +63,13 @@ where
 mod tests {
     use chrono::prelude::*;
 
-    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleAction, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
         TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
     };
+    use futures::sync::mpsc;
 
     use super::{Body, DeleteModule, Future, Handler, Request, StatusCode};
     use crate::server::module::tests::Error;
@@ -86,14 +87,18 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+             create_socket_channel_snd
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = DeleteModule::new(runtime);
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
@@ -121,14 +126,19 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
+
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+             create_socket_channel_snd
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = DeleteModule::new(runtime);
         let request = Request::delete("http://localhost/modules/test")
             .body(Body::default())

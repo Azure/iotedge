@@ -62,13 +62,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::{self, MakeModuleRuntime, ModuleRuntimeState};
+    use edgelet_core::{self, MakeModuleRuntime, ModuleAction, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
         TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
     };
-    use futures::Stream;
+    use futures::{sync::mpsc, Stream};
     use management::models::SystemInfo;
 
     use super::{Body, Future, GetSystemInfo, Handler, Request};
@@ -81,14 +81,18 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
+
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        let runtime = TestRuntime::make_runtime(TestSettings::new(),
+        TestProvisioningResult::new(),
+        TestHsm::default(),
+         create_socket_channel_snd
         )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+            .wait()
+            .unwrap()
+            .with_module(Ok(module));
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/info")
             .body(Body::default())
@@ -121,15 +125,17 @@ mod tests {
 
     #[test]
     fn system_info_failed() {
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         // arrange
-        let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(TestSettings::new(),             TestProvisioningResult::new(),
+        TestHsm::default(),
+        create_socket_channel_snd
+    )
+            .wait()
+            .unwrap()
+            .with_module(Err(Error::General));
         let handler = GetSystemInfo::new(runtime);
         let request = Request::get("http://localhost/modules")
             .body(Body::default())
