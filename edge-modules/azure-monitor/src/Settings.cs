@@ -30,7 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             string blockedMetrics,
             string resourceId,
             string version,
-            TimeSpan iotHubConnectFrequency)
+            TimeSpan iotHubConnectFrequency,
+            string azureDomain)
         {
             this.UploadTarget = uploadTarget;
             this.ResourceId = Preconditions.CheckNonWhiteSpace(resourceId, nameof(resourceId));
@@ -66,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
             this.Version = version;
             this.IotHubConnectFrequency = iotHubConnectFrequency;
+            this.AzureDomain = azureDomain;
         }
 
         private static Settings Create()
@@ -90,7 +92,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                     configuration.GetValue<string>("BlockedMetrics", ""),
                     configuration.GetValue<string>("ResourceID", ""),
                     configuration.GetValue<string>("version", ""),
-                    configuration.GetValue<TimeSpan>("IotHubConnectFrequency", TimeSpan.FromDays(1)));
+                    configuration.GetValue<TimeSpan>("IotHubConnectFrequency", TimeSpan.FromDays(1)),
+                    configuration.GetValue<String>("AzureDomain", "azure.com")
+                    );
             }
             catch (ArgumentException e)
             {
@@ -119,7 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 settings.BlockedMetrics.ToString(),
                 regex.Replace(settings.ResourceId, "$1" + "XXX" + "$3" + "XXX" + "$5"),
                 settings.Version,
-                settings.IotHubConnectFrequency);
+                settings.IotHubConnectFrequency,
+                settings.AzureDomain);
         }
 
         public string LogAnalyticsWorkspaceId { get; }
@@ -146,6 +151,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public TimeSpan IotHubConnectFrequency { get; }
 
+        public string AzureDomain { get; }
+
         // Used to eliminate secrets when logging the settings
         public override string ToString()
         {
@@ -160,7 +167,8 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 { nameof(this.AllowedMetrics), string.Join(",", this.AllowedMetrics.ToString()) },
                 { nameof(this.BlockedMetrics), string.Join(",", this.BlockedMetrics.ToString()) },
                 { nameof(this.ResourceId), this.ResourceId ?? string.Empty },
-                { nameof(this.IotHubConnectFrequency), this.IotHubConnectFrequency.ToString() ?? string.Empty }
+                { nameof(this.IotHubConnectFrequency), this.IotHubConnectFrequency.ToString() ?? string.Empty },
+                { nameof(this.AzureDomain), this.AzureDomain ?? string.Empty }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
