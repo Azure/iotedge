@@ -42,7 +42,7 @@ async fn serve_req(_req: Request<Body>) -> Result<Response<Body>, hyper::Error> 
     Ok(response)
 }
 
-async fn metrics_loop(update_period: f64) -> Result<(), PromEndpointError> {
+async fn metrics_loop(update_period: Duration) -> Result<(), PromEndpointError> {
     let counter = register_int_counter!(opts!("u64_counter_example", "Example of a u64 counter."))
         .map_err(PromEndpointError::CounterRegisterError)?;
     let gauge = register_int_gauge!(opts!("i64_gauge_example", "Example of a i64 gauge."))
@@ -57,7 +57,7 @@ async fn metrics_loop(update_period: f64) -> Result<(), PromEndpointError> {
         counter.inc();
         gauge.inc();
         histogram.observe(random::<f64>());
-        time::sleep(Duration::from_secs_f64(update_period)).await;
+        time::sleep(update_period).await;
     }
 }
 

@@ -35,7 +35,7 @@ fn delayed_interval(duration: Duration) -> impl Stream<Item = time::Instant> {
     opentelemetry::util::tokio_interval_stream(duration).skip(1)
 }
 
-fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushController> {
+fn init_meter(period: Duration, otlp_endpoint: String) -> metrics::Result<PushController> {
     let export_config = ExporterConfig {
         endpoint: otlp_endpoint,
         ..ExporterConfig::default()
@@ -45,7 +45,7 @@ fn init_meter(period: f64, otlp_endpoint: String) -> metrics::Result<PushControl
         .with_aggregator_selector(selectors::simple::Selector::Histogram(vec![
             0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
         ]))
-        .with_period(Duration::from_secs_f64(period))
+        .with_period(period)
         .build()
 }
 
@@ -133,7 +133,7 @@ pub async fn run(config: Config) -> Result<(), OTelClientError> {
                 error!("try_lock failed");
             }
         }
-        time::sleep(Duration::from_secs_f64(config.update_period)).await;
+        time::sleep(config.update_period).await;
     }
 
     Ok(())
