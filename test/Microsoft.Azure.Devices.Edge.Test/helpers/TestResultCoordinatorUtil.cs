@@ -76,14 +76,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                    ["TestDescription"] = "network controller"
                                }
                            }
-                       });
+                       })
+                       .WithProxy(Context.Current.TestRunnerProxy);
                 });
         }
 
         public static async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
             Log.Information("Test Result Coordinator response: {Response}", response.ToString());
             var jsonstring = await response.Content.ReadAsStringAsync();
             Log.Information("Test Result Coordinator response: {Response}", jsonstring);
