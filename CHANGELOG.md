@@ -1,4 +1,4 @@
-# 1.1.4 (2021-06-05)
+# 1.1.4 (2021-07-05)
 ## Edge Agent
 ### Bug Fixes
 * Use Docker Timestamp When Log Timestamp is not Available in JSON log. [b4d989b](https://github.com/Azure/iotedge/commit/b4d989bb9d0a92ac9d83c8d1be9384c6bcd61530)
