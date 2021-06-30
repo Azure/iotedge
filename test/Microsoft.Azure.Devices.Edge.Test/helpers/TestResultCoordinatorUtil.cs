@@ -43,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 {
                     // This test uses the TestResultCoordinator. It was originally designed for connectivity tests, so some of the parameters
                     // are unnecessary for the e2e tests.
+                    // Note: We cannot bind ports to the host for squid proxy tests, as squid will deny aspnetcore's GET request to init this bind
                     builder.AddModule(TrcModuleName, trcImage)
                        .WithEnvironment(new[]
                        {
@@ -55,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                            ("NetworkControllerRunProfile", "Online"),
                            ("TEST_INFO", "key=unnecessary")
                        })
-                       .WithSettings(new[] { ("createOptions", "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}") })
 
                        .WithDesiredProperties(new Dictionary<string, object>
                        {
