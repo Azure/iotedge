@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class TestResultCoordinatorUtil
     {
-        const string TestResultCoordinatorUrl = "http://testResultCoordinator:5001";
+        const string TestResultCoordinatorUrl = "http://localhost:5001/api/report";
         const string TrcModuleName = "testResultCoordinator";
         const string NetworkControllerModuleName = "networkController";
 
