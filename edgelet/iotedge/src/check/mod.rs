@@ -75,6 +75,9 @@ pub enum CheckResult {
     /// Check was skipped because of errors from some previous checks. Should be treated as an error.
     Skipped,
 
+    /// Check as skipped due to a reason. Should be treated as success.
+    SkippedDueTo(String),
+
     /// Check failed, and further checks should be performed.
     Failed(failure::Error),
 
@@ -348,6 +351,26 @@ impl Check {
                     }
                 }
 
+                CheckResult::SkippedDueTo(reason) => {
+                    num_skipped += 1;
+
+                    checks.insert(
+                        check_id,
+                        CheckOutputSerializable {
+                            result: CheckResultSerializable::Skipped,
+                            additional_info,
+                        },
+                    );
+
+                    if verbose {
+                        stdout.write_success(|stdout| {
+                            writeln!(stdout, "\u{221a} {} - OK", check_name)?;
+                            writeln!(stdout, "    skipping because of {}", reason)?;
+                            Ok(())
+                        });
+                    }
+                }
+
                 CheckResult::Fatal(err) => {
                     num_fatal += 1;
 
@@ -561,16 +584,14 @@ impl Check {
                     check.execute(self, runtime)
                 };
 
-                if output_check(
-                    CheckOutput {
-                        id: check.id().into(),
-                        description: check.description().into(),
-                        result: check_result,
-                        additional_info: check.get_json(),
-                    },
-                    self.verbose,
-                    self.warnings_as_errors,
-                )? {
+                let check_output = CheckOutput {
+                    id: check.id().into(),
+                    description: check.description().into(),
+                    result: check_result,
+                    additional_info: check.get_json(),
+                };
+
+                if output_check(check_output, self.verbose, self.warnings_as_errors)? {
                     break 'outer;
                 }
             }
