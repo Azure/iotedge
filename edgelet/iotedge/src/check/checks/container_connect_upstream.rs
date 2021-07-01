@@ -117,18 +117,15 @@ impl ContainerConnectUpstream {
 
         self.upstream_hostname = Some(upstream_hostname.clone());
 
-        let upstream_protocol = if let Some(upstream_protocol) =
-            get_env_from_container(docker_host_arg, "edgeAgent", "UpstreamProtocol")
-        {
-            upstream_protocol
-        } else {
-            // We should default to AMQP with fallback to AMQPWS.
-            if self.upstream_port == UpstreamProtocolPort::Https {
-                UpstreamProtocol::AmqpWs
-            } else {
-                UpstreamProtocol::Amqp
-            }
-        };
+        let upstream_protocol =
+            get_env_from_container(docker_host_arg, "edgeAgent", "UpstreamProtocol").unwrap_or(
+                // We should default to AMQP with fallback to AMQPWS.
+                if self.upstream_port == UpstreamProtocolPort::Https {
+                    UpstreamProtocol::AmqpWs
+                } else {
+                    UpstreamProtocol::Amqp
+                },
+            );
 
         let should_skip_instead = should_skip_instead(self.upstream_port, upstream_protocol);
 
@@ -242,7 +239,7 @@ fn get_env_from_container(
         .and_then(|output| {
             let mut s = String::from_utf8(output)?;
             // Remove newline
-            if s.ends_with("\n") {
+            if s.ends_with('\n') {
                 s.pop();
             }
             Ok(s)
@@ -267,18 +264,11 @@ fn to_serde_enum(val: impl Into<String>) -> String {
 
 fn should_skip_instead(upp: UpstreamProtocolPort, up: UpstreamProtocol) -> bool {
     match upp {
-        UpstreamProtocolPort::Amqp => match up {
-            UpstreamProtocol::Mqtt => true,
-            _ => false,
-        },
-        UpstreamProtocolPort::Https => match up {
-            UpstreamProtocol::Amqp | UpstreamProtocol::Mqtt => true,
-            _ => false,
-        },
-        UpstreamProtocolPort::Mqtt => match up {
-            UpstreamProtocol::Amqp => true,
-            _ => false,
-        },
+        UpstreamProtocolPort::Amqp => matches!(up, UpstreamProtocol::Mqtt),
+        UpstreamProtocolPort::Https => {
+            matches!(up, UpstreamProtocol::Amqp | UpstreamProtocol::Mqtt)
+        }
+        UpstreamProtocolPort::Mqtt => matches!(up, UpstreamProtocol::Amqp),
     }
 }
 
