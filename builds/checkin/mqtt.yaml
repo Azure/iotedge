@@ -44,7 +44,7 @@ jobs:
         displayName: Build with no default features
       - bash: scripts/linux/generic-rust/build.sh --project-root "mqtt" --packages "mqttd/Cargo.toml" --manifest-path
         displayName: Build with default features
-      - bash: mqtt/build/linux/test.sh --report test-results.xml
+      - bash: mqtt/build/linux/test.sh -r --report test-results.xml
         displayName: Test
       - task: PublishTestResults@2
         displayName: Publish test results
