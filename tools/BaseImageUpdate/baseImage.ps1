@@ -185,7 +185,7 @@ function Update-BaseImages
         This version is only applied to 'alpine' images
         Ex: The new ASP .NET Core tag is 3.1.15-alpine3.13, the $NewAlpineVersion = 3.13
         #>
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory)]
         [string]
         $NewAlpineVersion
     )
