@@ -29,6 +29,7 @@ function Get-Unique-BaseImages
         Sort-Object -Unique
 }
 
+
 function Get-Dockerfile-Locations
 {
     Setup-BaseImage-Script | Out-Null
@@ -37,6 +38,7 @@ function Get-Dockerfile-Locations
     $fileLocale = $(Get-ChildItem -Recurse -Filter "Dockerfile" | Where {$_.FullName -notlike "*generic-mqtt-tester*"})
     return $fileLocale;
 }
+
 
 function Update-ARM-BaseImages
 {
@@ -94,6 +96,7 @@ function Update-ARM-BaseImages
         Set-Content $file.Path
     }
 }
+
 
 function Update-AMD64-BaseImages
 {
@@ -162,4 +165,37 @@ function Update-AMD64-BaseImages
         Foreach-Object { $_ -replace "FROM alpine:[\d]+\.[\d]+", "FROM alpine:$NewAlpineVersion" } |
         Set-Content -Encoding utf8 $file.Path
     }
+}
+
+
+function Update-BaseImages
+{
+    [CmdletBinding()]
+    param (
+        <#
+        The new version of ASP .NET Core
+        Ex: The new ASP .NET Core tag is 2.1.23-bionic-arm32, the $NewASPNetCoreVersion = 2.1.23
+        #>
+        [Parameter(Mandatory)]
+        [string]
+        $NewASPNetCoreVersion,
+
+        <#
+        The new version of Alpine base image.
+        This version is only applied to 'alpine' images
+        Ex: The new ASP .NET Core tag is 3.1.15-alpine3.13, the $NewAlpineVersion = 3.13
+        #>
+        [Parameter(Mandatory=$false)]
+        [string]
+        $NewAlpineVersion
+    )
+
+    echo "Lookuping location of dockerfiles..."
+    $fileLocale = Get-Dockerfile-Locations
+
+    echo "Updating base image for ARM32 & ARM64..."
+    Update-ARM-BaseImages -NewASPNetCoreVersion "$NewASPNetCoreVersion" -FileLocale $fileLocale -ErrorAction Stop
+
+    echo "Updating base image for AMD64..."
+    Update-AMD64-BaseImages -NewASPNetCoreVersion "$NewASPNetCoreVersion" -NewAlpineVersion "$NewAlpineVersion" -FileLocale $fileLocale -ErrorAction Stop
 }
