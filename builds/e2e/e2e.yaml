@@ -65,6 +65,15 @@ jobs:
     timeoutInMinutes: 90
 
     steps:
+    - pwsh: |
+        Write-Host "pipeline macro var: >>>$(Agent.ProxyUrl)<<<"
+        Write-Host "pipeline runtime expr var: >>>$[variables.Agent.ProxyUrl]<<<"
+        Write-Host "pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<"
+        Write-Host "env var: >>>${env:AGENT_PROXYURL}<<<"
+      displayName: display proxy value
+      env:
+        https_proxy: $(Agent.ProxyUrl)
+
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
@@ -118,6 +127,15 @@ jobs:
     timeoutInMinutes: 120
 
     steps:
+    - pwsh: |
+        Write-Host "pipeline macro var: >>>$(Agent.ProxyUrl)<<<"
+        Write-Host "pipeline runtime expr var: >>>$[variables.Agent.ProxyUrl]<<<"
+        Write-Host "pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<"
+        Write-Host "env var: >>>${env:AGENT_PROXYURL}<<<"
+      displayName: display proxy value
+      env:
+        https_proxy: $(Agent.ProxyUrl)
+
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
