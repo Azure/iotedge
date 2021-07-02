@@ -4,6 +4,7 @@ pr:
     include:
       - master
       - release/*
+
 jobs:
   ################################################################################
   - job: check_run_pipeline
@@ -55,9 +56,19 @@ jobs:
       - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/generic-mqtt-tester"
         displayName: Clippy (Generic MQTT Tester)
 
-      - bash: scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" --packages "Cargo.toml" --manifest-path
-        displayName: Build Observability-Agent Client Module           
+      - bash: >
+          scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" 
+          --packages "Cargo.toml" --manifest-path --no-default-features --features prom
+        displayName: Build ObsAgent Client Module (Prometheus mode)
+      - bash: >
+          scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" 
+          --packages "Cargo.toml" --manifest-path --no-default-features --features otel
+        displayName: Build ObsAgent Client Module (OpenTelemetry mode)        
+      - bash: >
+          scripts/linux/generic-rust/build.sh --project-root "test/modules/obsagent-client" 
+          --packages "Cargo.toml" --manifest-path --no-default-features --features "prom otel"
+        displayName: Build ObsAgent Client Module (Prom & OTel)
       - bash: scripts/linux/generic-rust/format.sh --project-root "test/modules/obsagent-client"
-        displayName: Format Code (Observability-Agent Client)
+        displayName: Format Code (ObsAgent Client)
       - bash: scripts/linux/generic-rust/clippy.sh --project-root "test/modules/obsagent-client"
-        displayName: Clippy (Observability-Agent Client)
+        displayName: Clippy (ObsAgent Client)

@@ -1,5 +1,4 @@
-﻿/****** Object:  StoredProcedure [dbo].[UpsertVstsReleaseEnvironment]    Script Date: 2/14/2020 3:21:59 PM ******/
-SET ANSI_NULLS ON
+﻿SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
