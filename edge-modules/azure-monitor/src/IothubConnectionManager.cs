@@ -18,13 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             try
             {
+                await this.ModuleClient.CloseAsync();
                 await this.ModuleClient.OpenAsync();
 
-                LoggerUtil.Writer.LogInformation("Successfully re-established connection to IoT Hub");
+                LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
             }
             catch (Exception e)
             {
-                LoggerUtil.Writer.LogWarning("Failed re-establishing connection to IoT Hub", e);
+                LoggerUtil.Writer.LogWarning("Failed closing and re-establishing connection to IoT Hub", e);
             }
         }
     }
