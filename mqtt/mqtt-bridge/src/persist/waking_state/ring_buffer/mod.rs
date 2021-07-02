@@ -521,7 +521,14 @@ where
     // If not, then read another block worth of data and continue...
     let mut buf = vec![0; buffer_size];
     readable.read_exact(&mut buf)?;
+
+    let all_zeroes = vec![0; buffer_size];
     loop {
+        if buf == all_zeroes {
+            readable.read_exact(&mut buf[serialized_block_size..])?;
+            continue;
+        }
+
         // Try to find block in the buffer we have, if cannot find it by halfway point,
         // we will need to fetch more data.
         for offset in 0..(serialized_block_size) {
