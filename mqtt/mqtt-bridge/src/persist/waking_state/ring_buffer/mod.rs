@@ -525,7 +525,7 @@ where
     let all_zeroes = vec![0; buffer_size];
     loop {
         if buf == all_zeroes {
-            readable.read_exact(&mut buf[serialized_block_size..])?;
+            readable.read_exact(&mut buf)?;
             continue;
         }
 
