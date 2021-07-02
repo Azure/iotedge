@@ -27,6 +27,7 @@ variables:
   # installation, or in running a very basic test. We don't need to repeat the entire test suite.
   # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
   minimal: false
+  verbose: false
   NugetSecurityAnalysisWarningLevel: warn
 
 jobs:
@@ -189,6 +190,8 @@ jobs:
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
       'agent.disablelogplugin.testfilepublisherplugin': true
       'agent.disablelogplugin.testresultlogplugin': true
+      # because we aren't publishing test artifacts for this job, turn on verbose logging instead
+      verbose: true
 
     timeoutInMinutes: 120
 
