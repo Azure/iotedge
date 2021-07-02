@@ -85,9 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         {
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
-            Log.Information("Test Result Coordinator response: {Response}", response.ToString());
             var jsonstring = await response.Content.ReadAsStringAsync();
-            Log.Information("Test Result Coordinator response: {Response}", jsonstring);
 
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
 

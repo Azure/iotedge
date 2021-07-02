@@ -55,7 +55,7 @@ steps:
       $filter += '&Category!=NestedEdgeOnly'
     } 
 
-    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:FullyQualifiedName=Microsoft.Azure.Devices.Edge.Test.GenericMqtt.GenericMqttTelemetry
+    sudo --preserve-env dotnet test $testFile --logger:trx --testcasefilter:$filter
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
