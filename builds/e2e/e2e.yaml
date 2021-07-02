@@ -69,7 +69,8 @@ jobs:
         Write-Host 'pipeline macro var: >>>$(Agent.ProxyUrl)<<<'
         Write-Host 'pipeline runtime expr var: >>>$[ variables.Agent.ProxyUrl ]<<<'
         Write-Host 'pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<'
-        Write-Host "env var: >>>${env:AGENT_PROXYURL}<<<"
+        Write-Host "env var AGENT_PROXYURL: >>>${env:AGENT_PROXYURL}<<<"
+        Write-Host "env var https_proxy: >>>${env:https_proxy}<<<"
       displayName: display proxy value
       env:
         https_proxy: $(Agent.ProxyUrl)
@@ -131,7 +132,8 @@ jobs:
         Write-Host 'pipeline macro var: >>>$(Agent.ProxyUrl)<<<'
         Write-Host 'pipeline runtime expr var: >>>$[ variables.Agent.ProxyUrl ]<<<'
         Write-Host 'pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<'
-        Write-Host "env var: >>>${env:AGENT_PROXYURL}<<<"
+        Write-Host "env var AGENT_PROXYURL: >>>${env:AGENT_PROXYURL}<<<"
+        Write-Host "env var https_proxy: >>>${env:https_proxy}<<<"
       displayName: display proxy value
       env:
         https_proxy: $(Agent.ProxyUrl)
