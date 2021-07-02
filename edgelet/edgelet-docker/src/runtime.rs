@@ -336,9 +336,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     })
                     .join(notary_registries)
                     .map(move |(client, (notary_registries, _))| {
-                        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
-                        sysinfo::set_open_files_limit(0);
-                        let system_resources = System::new_all();
+                        let mut system_resources = System::new_all();
+                        system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
                         let notary_lock = tokio::sync::lock::Lock::new(BTreeMap::new());
                         DockerModuleRuntime {
@@ -843,6 +842,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .as_ref()
             .lock()
             .expect("Could not acquire system resources lock");
+        system_resources.refresh_all();
 
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -851,7 +851,6 @@ impl ModuleRuntime for DockerModuleRuntime {
         let start_time = process::id()
             .try_into()
             .map(|id| {
-                system_resources.refresh_process(id);
                 system_resources
                     .get_process(id)
                     .map(|p| p.start_time())
@@ -859,12 +858,11 @@ impl ModuleRuntime for DockerModuleRuntime {
             })
             .unwrap_or_default();
 
-        system_resources.refresh_system();
         let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
+
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
 
-        system_resources.refresh_disks();
         let disks = system_resources
             .get_disks()
             .iter()
