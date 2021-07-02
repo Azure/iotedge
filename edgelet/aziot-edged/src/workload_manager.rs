@@ -21,7 +21,7 @@ use edgelet_core::{
     Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
     ModuleRuntimeErrorReason, RuntimeSettings, UrlExt, WorkloadConfig,
 };
-use edgelet_http::{logging::LoggingService, HyperExt};
+use edgelet_http::{logging::LoggingService, ConcurrencyThrottling, HyperExt};
 use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 use identity_client::IdentityClient;
@@ -29,6 +29,7 @@ use identity_client::IdentityClient;
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 
 const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
+const MAX_CONCURRENCY: ConcurrencyThrottling = ConcurrencyThrottling::Limited(10);
 
 pub struct WorkloadManager<M, W>
 where
@@ -121,6 +122,7 @@ where
         workload_uri: Url,
         signal_socket_created: Option<Sender<()>>,
         module_id: &str,
+        concurrency: ConcurrencyThrottling,
     ) -> Result<(), Error> {
         let label = "work".to_string();
 
@@ -158,7 +160,7 @@ where
             }
 
             let run = run
-                .run_until(shutdown_receiver.map_err(|_| ()))
+                .run_until(shutdown_receiver.map_err(|_| ()), concurrency)
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
             info!(
                 "Listening on {} with 1 thread for workload API.",
@@ -196,7 +198,12 @@ where
         info!("String new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
-        self.spawn_listener(workload_uri, signal_socket_created, module_id)
+        self.spawn_listener(
+            workload_uri,
+            signal_socket_created,
+            module_id,
+            MAX_CONCURRENCY,
+        )
     }
 
     fn stop(&mut self, module_id: &str) -> Result<(), Error> {
@@ -251,7 +258,13 @@ where
     <M as ModuleRuntime>::Logs: Into<Body>,
 {
     // Spawn a listener for module that are still running and uses old listen socket
-    workload_manager.spawn_listener(workload_manager.legacy_workload_uri.clone(), None, "")?;
+    // Several modules can listen on this socket, so we don't put any limit to the concurrency
+    workload_manager.spawn_listener(
+        workload_manager.legacy_workload_uri.clone(),
+        None,
+        "",
+        ConcurrencyThrottling::NoLimit,
+    )?;
 
     // Spawn listeners for all module that are still running
     module_list
