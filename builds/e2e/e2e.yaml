@@ -66,9 +66,9 @@ jobs:
 
     steps:
     - pwsh: |
-        Write-Host "pipeline macro var: >>>$(Agent.ProxyUrl)<<<"
-        Write-Host "pipeline runtime expr var: >>>$[variables.Agent.ProxyUrl]<<<"
-        Write-Host "pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<"
+        Write-Host 'pipeline macro var: >>>$(Agent.ProxyUrl)<<<'
+        Write-Host 'pipeline runtime expr var: >>>$[ variables.Agent.ProxyUrl ]<<<'
+        Write-Host 'pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<'
         Write-Host "env var: >>>${env:AGENT_PROXYURL}<<<"
       displayName: display proxy value
       env:
@@ -128,9 +128,9 @@ jobs:
 
     steps:
     - pwsh: |
-        Write-Host "pipeline macro var: >>>$(Agent.ProxyUrl)<<<"
-        Write-Host "pipeline runtime expr var: >>>$[variables.Agent.ProxyUrl]<<<"
-        Write-Host "pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<"
+        Write-Host 'pipeline macro var: >>>$(Agent.ProxyUrl)<<<'
+        Write-Host 'pipeline runtime expr var: >>>$[ variables.Agent.ProxyUrl ]<<<'
+        Write-Host 'pipeline template expr var: >>>${{ variables.Agent.ProxyUrl }}<<<'
         Write-Host "env var: >>>${env:AGENT_PROXYURL}<<<"
       displayName: display proxy value
       env:
