@@ -18,7 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             try
             {
+                // Close the connection, wait 5 seconds, and reopen it.
+                // Delay needed to assure SDK will reconnect.
                 await this.ModuleClient.CloseAsync();
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 await this.ModuleClient.OpenAsync();
 
                 LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
