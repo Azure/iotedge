@@ -44,7 +44,7 @@ use edgelet_core::{
     ModuleRuntimeErrorReason, ModuleSpec, RuntimeSettings, WorkloadConfig,
 };
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, API_VERSION};
+use edgelet_http::{ConcurrencyThrottling, HyperExt, API_VERSION};
 use edgelet_http_mgmt::ManagementService;
 use edgelet_utils::log_failure;
 pub use error::{Error, ErrorKind, InitializeErrorReason};
@@ -710,7 +710,7 @@ where
                         InitializeErrorReason::ManagementService,
                     ))
                 })?
-                .run_until(shutdown.map_err(|_| ()))
+                .run_until(shutdown.map_err(|_| ()), ConcurrencyThrottling::NoLimit)
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             info!("Listening on {} with 1 thread for management API.", url);
             Ok(run)
