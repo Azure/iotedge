@@ -55,7 +55,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Option<i32>,
+    pid: Option<i64>,
 }
 
 impl Default for ModuleRuntimeState {
@@ -127,11 +127,11 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Option<i32> {
+    pub fn pid(&self) -> Option<i64> {
         self.pid
     }
 
-    pub fn with_pid(mut self, pid: Option<i32>) -> Self {
+    pub fn with_pid(mut self, pid: Option<i64>) -> Self {
         self.pid = pid;
         self
     }

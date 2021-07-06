@@ -7,7 +7,7 @@ use failure::ResultExt;
 use futures::Future;
 use hyper::client::connect::Connect;
 
-use docker::models::{InlineResponse2001, InlineResponse200State};
+use bollard::service::{ContainerState, ContainerStateStatusEnum};
 use edgelet_core::{
     Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
 };
@@ -103,37 +103,43 @@ fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
 }
 
 pub fn runtime_state(
-    id: Option<&str>,
-    response_state: Option<&InlineResponse200State>,
+    id: Option<String>,
+    response_state: Option<&ContainerState>,
 ) -> ModuleRuntimeState {
     response_state.map_or_else(ModuleRuntimeState::default, |state| {
         let status = state
-            .status()
+            .status
             .and_then(|status| match status {
-                "created" | "paused" | "restarting" => Some(ModuleStatus::Stopped),
-                "removing" | "dead" | "exited" => status_from_exit_code(state.exit_code()),
-                "running" => Some(ModuleStatus::Running),
+                ContainerStateStatusEnum::CREATED
+                | ContainerStateStatusEnum::PAUSED
+                | ContainerStateStatusEnum::RESTARTING => Some(ModuleStatus::Stopped),
+                ContainerStateStatusEnum::REMOVING
+                | ContainerStateStatusEnum::DEAD
+                | ContainerStateStatusEnum::EXITED => status_from_exit_code(state.exit_code),
+                ContainerStateStatusEnum::RUNNING => Some(ModuleStatus::Running),
                 _ => Some(ModuleStatus::Unknown),
             })
-            .unwrap_or_else(|| ModuleStatus::Unknown);
+            .unwrap_or(ModuleStatus::Unknown);
         ModuleRuntimeState::default()
             .with_status(status)
-            .with_exit_code(state.exit_code())
-            .with_status_description(state.status().map(ToOwned::to_owned))
+            .with_exit_code(state.exit_code)
+            .with_status_description(state.status.map(|s| s.to_string()))
             .with_started_at(
                 state
-                    .started_at()
+                    .started_at
+                    .as_ref()
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
                     .and_then(|started_at| DateTime::from_str(started_at).ok()),
             )
             .with_finished_at(
                 state
-                    .finished_at()
+                    .finished_at
+                    .as_ref()
                     .and_then(|d| if d == MIN_DATE { None } else { Some(d) })
                     .and_then(|finished_at| DateTime::from_str(finished_at).ok()),
             )
-            .with_image_id(id.map(ToOwned::to_owned))
-            .with_pid(state.pid())
+            .with_image_id(id)
+            .with_pid(state.pid)
     })
 }
 
@@ -154,20 +160,14 @@ impl Module for DockerModule {
     }
 
     async fn runtime_state(&self) -> Result<ModuleRuntimeState> {
-        // Box::new(
-        //     self.client
-        //         .container_api()
-        //         .container_inspect(&self.name, false)
-        //         .map(|resp| runtime_state(resp.id(), resp.state()))
-        //         .map_err(|err| {
-        //             Error::from_docker_error(
-        //                 err,
-        //                 ErrorKind::ModuleOperation(ModuleOperation::RuntimeState),
-        //             )
-        //         }),
-        // )
+        let inspect = self
+            .client
+            .docker
+            .inspect_container(&self.name, None)
+            .await
+            .map_err(|_| Error::from(ErrorKind::ModuleOperation(ModuleOperation::RuntimeState)))?;
 
-        Ok(ModuleRuntimeState::default())
+        Ok(runtime_state(inspect.id.clone(), inspect.state.as_ref()))
     }
 }
 
