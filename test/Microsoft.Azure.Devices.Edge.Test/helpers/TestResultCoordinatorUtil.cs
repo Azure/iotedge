@@ -88,6 +88,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             var jsonstring = await response.Content.ReadAsStringAsync();
 
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
+            if (!isPassed)
+            {
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+            }
 
             Assert.IsTrue(isPassed);
         }
