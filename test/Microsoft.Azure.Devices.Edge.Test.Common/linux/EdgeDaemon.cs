@@ -80,9 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
-                    Log.Verbose(string.Join("\n", output));
-
+                    await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     await this.InternalStopAsync(token);
                 },
                 message,
@@ -128,8 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync("systemctl", "start aziot-keyd aziot-certd aziot-identityd aziot-edged", token);
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
 
             // Waiting for the processes to enter the "Running" state doesn't guarantee that
@@ -170,8 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
-            Log.Verbose(string.Join("\n", output));
+            await Process.RunAsync("systemctl", $"stop {this.packageManagement.IotedgeServices}", token);
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
 
@@ -188,29 +184,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
             string[] commands = this.packageManagement.GetUninstallCommands();
 
-            foreach (string command in commands)
-            {
-                try
+            await Profiler.Run(
+                async () =>
                 {
-                    await Profiler.Run(
-                    async () =>
+                    foreach (string command in commands)
                     {
-                        string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
-                        if (output.Length > 0)
+                        try
                         {
-                            Log.Verbose($"Uninstall command '{command}' ran unsuccessfully. This is probably because this component wasn't installed. Output:\n" + string.Join("\n", output));
+                            await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", command)}\"", token);
                         }
-                        else
+                        catch (Win32Exception e)
                         {
-                            Log.Verbose($"Uninstall command '{command}' ran successfully");
+                            Log.Verbose(e, $"Failed to uninstall edge component with command '{command}', probably because this component isn't installed");
                         }
-                    }, $"Successful: {command}");
-                }
-                catch (Win32Exception e)
-                {
-                    Log.Verbose(e, $"Failed to uninstall edge component with command '{command}', probably because this component isn't installed");
-                }
-            }
+                    }
+                }, "Uninstalled edge daemon");
         }
 
         public Task WaitForStatusAsync(EdgeDaemonStatus desired, CancellationToken token) => Profiler.Run(
@@ -234,8 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     };
 
                     string[] output = await Process.RunAsync("systemctl", $"-p ActiveState show {process}", token);
-                    Log.Verbose($"{process}: {output.First()}");
-
                     if (stateMatchesDesired(output.First().Split("=").Last()))
                     {
                         break;
