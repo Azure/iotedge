@@ -53,6 +53,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeletWorkloadUriVariableName = "IOTEDGE_WORKLOADURI";
 
+        public const string EdgeletWorkloadListenMntUriVariableName = "IOTEDGE_WORKLOADLISTEN_MNTURI";
+
         public const string IotHubHostnameVariableName = "IOTEDGE_IOTHUBHOSTNAME";
 
         public const string GatewayHostnameVariableName = "IOTEDGE_GATEWAYHOSTNAME";

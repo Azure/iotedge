@@ -232,7 +232,7 @@ jobs:
       - template: templates/rust-test-module-images.yaml
         parameters:
           module.path: 'test/modules/obsagent-client'
-          module.name: 'obsagent-client'        
+          module.name: 'obsagent-client'     
 
 ################################################################################
   - job: manifest

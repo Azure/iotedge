@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.None<string>(),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -83,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.Some("parentEdgeHost999"),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -108,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.None<string>(),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -133,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.Some("parentEdgeHost999"),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -158,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.None<string>(),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -183,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.Some("parentEdgeHost999"),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -272,6 +278,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 var edgeletManagementUriConfig = new Mock<IConfigurationSection>();
                 this.Configuration.Setup(c => c.GetSection(Constants.EdgeletManagementUriVariableName)).Returns(edgeletManagementUriConfig.Object);
                 edgeletManagementUriConfig.Setup(c => c.Value).Returns(testData.EdgeletManagementUri);
+                var edgeletWorkloadListenUriMntConfig = new Mock<IConfigurationSection>();
+                this.Configuration.Setup(c => c.GetSection(Constants.EdgeletWorkloadListenMntUriVariableName)).Returns(edgeletWorkloadListenUriMntConfig.Object);
+                edgeletWorkloadListenUriMntConfig.Setup(c => c.Value).Returns(testData.EdgeletWorkloadListenUriMnt);
                 var networkIdConfig = new Mock<IConfigurationSection>();
                 this.Configuration.Setup(c => c.GetSection(Constants.NetworkIdKey)).Returns(networkIdConfig.Object);
                 networkIdConfig.Setup(c => c.Value).Returns(testData.NetworkId);
@@ -308,6 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 Option<string> parentEdgeHostname,
                 string upstreamProtocol,
                 string edgeletManagementUri,
+                string edgeletWorkloadListenUriMnt,
                 string networkId,
                 string edgeletApiVersion,
                 object settings)
@@ -326,6 +336,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 this.ParentEdgeHostname = parentEdgeHostname;
                 this.UpstreamProtocol = Preconditions.CheckNonWhiteSpace(upstreamProtocol, nameof(upstreamProtocol));
                 this.EdgeletManagementUri = Preconditions.CheckNonWhiteSpace(edgeletManagementUri, nameof(edgeletManagementUri));
+                this.EdgeletWorkloadListenUriMnt = Preconditions.CheckNonWhiteSpace(edgeletWorkloadListenUriMnt, nameof(edgeletWorkloadListenUriMnt));
                 this.NetworkId = Preconditions.CheckNonWhiteSpace(networkId, nameof(networkId));
                 this.EdgeletApiVersion = Preconditions.CheckNonWhiteSpace(edgeletApiVersion, nameof(edgeletApiVersion));
                 this.Settings = settings;
@@ -362,6 +373,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
             internal string UpstreamProtocol { get; }
 
             internal string EdgeletManagementUri { get; }
+
+            internal string EdgeletWorkloadListenUriMnt { get; }
 
             internal string NetworkId { get; }
 
