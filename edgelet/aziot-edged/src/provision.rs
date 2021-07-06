@@ -75,7 +75,7 @@ pub(crate) fn update_device_cache(
             _ => {
                 return Err(EdgedError::from_err(
                     "Failed to read cached provisioning state",
-                    err
+                    err,
                 ));
             }
         },
@@ -91,9 +91,8 @@ pub(crate) fn update_device_cache(
         log::info!("Removed all modules");
 
         log::info!("Updating cached device information");
-        std::fs::write(cache_path, current_device).map_err(|err| {
-            EdgedError::from_err("Failed to save provisioning cache", err)
-        })?;
+        std::fs::write(cache_path, current_device)
+            .map_err(|err| EdgedError::from_err("Failed to save provisioning cache", err))?;
     } else {
         log::info!("Device information has not changed");
     }

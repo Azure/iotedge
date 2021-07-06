@@ -17,7 +17,7 @@ where
         &((edgelet_http::ApiVersion::V2019_11_05)..)
     }
 
-    type Service = crate::ModuleManagement<M>;
+    type Service = crate::Service<M>;
     fn from_uri(
         service: &Self::Service,
         path: &str,

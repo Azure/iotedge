@@ -2,9 +2,13 @@
 
 use std::convert::TryFrom;
 
-pub(crate) struct Route {
+pub(crate) struct Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
     pid: libc::pid_t,
+    _runtime: std::marker::PhantomData<M>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -22,13 +26,16 @@ pub(crate) struct ListIdentitiesResponse {
 }
 
 #[async_trait::async_trait]
-impl http_common::server::Route for Route {
+impl<M> http_common::server::Route for Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
         &((edgelet_http::ApiVersion::V2018_06_28)..)
     }
 
-    type Service = crate::IdentityManagement;
+    type Service = crate::Service<M>;
     fn from_uri(
         service: &Self::Service,
         path: &str,
@@ -45,8 +52,9 @@ impl http_common::server::Route for Route {
         };
 
         Some(Route {
-            client: service.client.clone(),
+            client: service.identity.clone(),
             pid,
+            _runtime: std::marker::PhantomData,
         })
     }
 

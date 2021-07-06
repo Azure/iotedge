@@ -1,18 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-pub(crate) struct Route {
-    sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
+pub(crate) struct Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
+    reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
     pid: libc::pid_t,
+    _runtime: std::marker::PhantomData<M>,
 }
 
 #[async_trait::async_trait]
-impl http_common::server::Route for Route {
+impl<M> http_common::server::Route for Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
         &((edgelet_http::ApiVersion::V2019_10_22)..)
     }
 
-    type Service = crate::DeviceManagement;
+    type Service = crate::Service<M>;
     fn from_uri(
         service: &Self::Service,
         path: &str,
@@ -29,8 +36,9 @@ impl http_common::server::Route for Route {
         };
 
         Some(Route {
-            sender: service.sender.clone(),
+            reprovision: service.reprovision.clone(),
             pid,
+            _runtime: std::marker::PhantomData,
         })
     }
 
@@ -47,7 +55,10 @@ impl http_common::server::Route for Route {
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
         edgelet_http::auth_agent(self.pid)?;
 
-        match self.sender.send(edgelet_core::ShutdownReason::Reprovision) {
+        match self
+            .reprovision
+            .send(edgelet_core::ShutdownReason::Reprovision)
+        {
             Ok(()) => Ok((http::StatusCode::OK, None)),
             Err(_) => Err(edgelet_http::error::server_error(
                 "failed to send reprovision request",
