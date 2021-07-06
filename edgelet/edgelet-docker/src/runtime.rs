@@ -60,10 +60,10 @@ lazy_static! {
 
 #[derive(Clone)]
 pub struct DockerModuleRuntime {
-    client: DockerClient<UrlConnector>,
+    client: DockerClient,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
-    notary_lock: tokio::sync::lock::Lock<BTreeMap<String, String>>,
+    notary_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 impl DockerModuleRuntime {
@@ -96,134 +96,97 @@ impl std::fmt::Debug for DockerModuleRuntime {
     }
 }
 
-struct MutexFuture<T>(tokio::sync::lock::Lock<T>);
-
-impl<T> Future for MutexFuture<T> {
-    type Item = tokio::sync::lock::LockGuard<T>;
-    type Error = Error;
-
-    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        Ok(self.0.poll_lock())
-    }
-}
-
+#[async_trait::async_trait]
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
-    type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error>>;
     type Config = DockerConfig;
 
-    fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        let image_with_tag = config.image().to_string();
+    async fn pull(&self, config: &Self::Config) -> Result<()> {
+        let image_with_tag = config.image().to_owned();
 
-        let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
+        let image = if let Some((notary_auth, gun, tag, config_path)) =
             get_notary_parameters(config, &self.notary_registries, &image_with_tag)
         {
             let lock = self.notary_lock.clone();
-            let mutex = MutexFuture(lock);
-            future::Either::A(
-                mutex
-                    .and_then({
-                        let gun = gun.clone();
-                        move |lock| {
-                            notary::notary_lookup(
-                                notary_auth.as_deref(),
-                                &gun,
-                                &tag,
-                                &config_path,
-                                lock,
-                            )
-                        }
-                    })
-                    .map(move |(digest, mut lock)| {
-                        debug!("Digest from notary lookup {}", digest);
-                        let image_with_digest = format!("{}@{}", gun, digest);
-                        lock.insert(image_with_tag, digest);
-                        (image_with_digest, true)
-                    }),
-            )
+            let lock = lock.lock().await;
+
+            let digest =
+                notary::notary_lookup(notary_auth.as_deref(), &gun, &tag, &config_path).await?;
+
+            debug!("Digest from notary lookup {}", digest);
+            let image_with_digest = format!("{}@{}", gun, digest);
+            // lock.insert(image_with_tag, digest); TODO: Ask Gaya why this is added
+
+            info!("Pulling image via digest {}...", image_with_digest);
+            image_with_digest
         } else {
-            future::Either::B(futures::future::ok((image_with_tag, false)))
+            info!("Pulling image via tag {}...", image_with_tag);
+            image_with_tag
         };
 
-        let creds = config.auth().cloned();
-        let client_copy = self.client.clone();
-        let response = image_by_notary
-            .and_then(|(image, is_content_trust_enabled)| {
-                let creds = match creds {
-                    Some(a) => {
-                        let json = serde_json::to_string(&a).with_context(|_| {
-                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(
-                                image.clone(),
-                            ))
-                        })?;
-                        base64::encode_config(&json, base64::URL_SAFE)
-                    }
-                    None => String::new(),
-                };
-                Ok((image, is_content_trust_enabled, creds))
-            })
-            .and_then(move |(image, is_content_trust_enabled, creds)| {
-                if is_content_trust_enabled {
-                    info!("Pulling image via digest {}...", image);
-                } else {
-                    info!("Pulling image via tag {}...", image);
-                }
-                client_copy
-                    .image_api()
-                    .image_create(&image, "", "", "", "", &creds, "")
-                    .then(|result| match result {
-                        Ok(()) => Ok(image),
-                        Err(err) => Err(Error::from_docker_error(
-                            err,
-                            ErrorKind::RegistryOperation(RegistryOperation::PullImage(image)),
-                        )),
-                    })
-            })
-            .then(move |result| match result {
-                Ok(image) => {
-                    info!("Successfully pulled image {}", image);
-                    Ok(())
-                }
-                Err(err) => {
-                    log_failure(Level::Warn, &err);
-                    Err(err)
-                }
-            });
+        let image_options = Some(bollard::image::CreateImageOptions {
+            from_image: image,
+            ..Default::default()
+        });
 
-        Box::new(response)
+        let docker_credentials = config.auth().cloned().map(
+            |docker::models::AuthConfig {
+                 username,
+                 password,
+                 email,
+                 serveraddress,
+             }| {
+                bollard::auth::DockerCredentials {
+                    username,
+                    password,
+                    email,
+                    serveraddress,
+                    ..Default::default()
+                }
+            },
+        );
+
+        self.client
+            .docker
+            .create_image(image_options, None, docker_credentials) // call image create api
+            .collect::<Vec<std::result::Result<_, _>>>() // collect async stream into Vec<Result>
+            .await
+            .into_iter()
+            .collect::<std::result::Result<Vec<_>, _>>() // collect Vec<Result> into Result<Vec>
+            .map_err(|e| {
+                log_failure(Level::Warn, &e);
+                Error::from(ErrorKind::RegistryOperation(RegistryOperation::PullImage(
+                    image,
+                )))
+            })?;
+
+        info!("Successfully pulled image {}", image);
+        Ok(())
     }
 
-    fn remove(&self, name: &str) -> Self::RemoveFuture {
+    async fn remove(&self, name: &str) -> Result<()> {
         info!("Removing image {}...", name);
 
         if let Err(err) = ensure_not_empty_with_context(name, || {
             ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name.to_string()))
         }) {
-            return Box::new(future::err(Error::from(err)));
+            return Err(Error::from(err));
         }
 
-        let name = name.to_string();
+        self.client
+            .docker
+            .remove_image(name, None, None)
+            .await
+            .map_err(|e| {
+                let err = e.context(ErrorKind::RegistryOperation(
+                    RegistryOperation::RemoveImage(name.to_owned()),
+                ));
+                log_failure(Level::Warn, &err);
+                err
+            })?;
 
-        Box::new(
-            self.client
-                .image_api()
-                .image_delete(&name, false, false)
-                .then(|result| match result {
-                    Ok(_) => {
-                        info!("Successfully removed image {}", name);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(name)),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
+        info!("Successfully removed image {}", name);
+        Ok(())
     }
 }
 

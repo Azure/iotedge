@@ -1,13 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use failure::ResultExt;
+use futures::Future;
 use log::debug;
 use serde_json::json;
-use tokio::process::Command;
+use tokio_process::CommandExt;
 
 use crate::{Error, ErrorKind};
 
@@ -152,37 +155,47 @@ pub fn notary_init(
     Ok(config_file_path)
 }
 
-pub async fn notary_lookup(
+pub fn notary_lookup(
     notary_auth: Option<&str>,
     image_gun: &str,
     tag: &str,
     config_path: &Path,
-) -> Result<String, Error> {
+    lock: tokio::sync::lock::LockGuard<BTreeMap<String, String>>,
+) -> impl Future<
+    Item = (
+        String,
+        tokio::sync::lock::LockGuard<BTreeMap<String, String>>,
+    ),
+    Error = Error,
+> {
     let mut notary_cmd = Command::new("notary");
     if let Some(notary_auth) = notary_auth {
         notary_cmd.env("NOTARY_AUTH", notary_auth);
     }
-    let notary_output = notary_cmd
+    notary_cmd
         .arg("lookup")
         .args(&[image_gun, tag])
         .arg("-c")
         .arg(config_path)
-        .output()
-        .await
-        .with_context(|_| ErrorKind::LaunchNotary("could not spawn notary process".to_owned()))?;
+        .output_async()
+        .then(|notary_output| {
+            let notary_output = notary_output.with_context(|_| {
+                ErrorKind::LaunchNotary("could not spawn notary process".to_owned())
+            })?;
+            let notary_output_string =
+                String::from_utf8(notary_output.stdout).with_context(|_| {
+                    ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
+                })?;
+            debug!("Notary output string is {}", notary_output_string);
+            let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
+            if split_array.len() < 2 {
+                return Err(ErrorKind::LaunchNotary(
+                    "notary digest split array is empty".to_owned(),
+                )
+                .into());
+            }
 
-    let notary_output_string = String::from_utf8(notary_output.stdout).with_context(|_| {
-        ErrorKind::LaunchNotary("could not retrieve notary output as string".to_owned())
-    })?;
-
-    debug!("Notary output string is {}", notary_output_string);
-    let split_array: Vec<&str> = notary_output_string.split_whitespace().collect();
-    if split_array.len() < 2 {
-        return Err(
-            ErrorKind::LaunchNotary("notary digest split array is empty".to_owned()).into(),
-        );
-    }
-
-    // Notary Server output on lookup is of the format [tag, digest, bytes]
-    Ok(split_array[1].to_string())
+            // Notary Server output on lookup is of the format [tag, digest, bytes]
+            Ok((split_array[1].to_string(), lock))
+        })
 }

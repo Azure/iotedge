@@ -453,15 +453,6 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-queue"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c979cd6cfe72335896575c6b5688da489e420d36a27a0b9eb0c73db574b4a4b"
-dependencies = [
- "crossbeam-utils 0.6.6",
-]
-
-[[package]]
-name = "crossbeam-queue"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "774ba60a54c213d409d5353bda12d49cd68d14e45036a285234c8d6f91f92570"
@@ -469,16 +460,6 @@ dependencies = [
  "cfg-if 0.1.10",
  "crossbeam-utils 0.7.2",
  "maybe-uninit",
-]
-
-[[package]]
-name = "crossbeam-utils"
-version = "0.6.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04973fa96e96579258a5091af6003abde64af786b860f18622b82e026cca60e6"
-dependencies = [
- "cfg-if 0.1.10",
- "lazy_static",
 ]
 
 [[package]]
@@ -648,7 +629,7 @@ dependencies = [
  "edgelet-test-utils",
  "edgelet-utils",
  "failure",
- "futures 0.1.31",
+ "futures 0.3.15",
  "hyper 0.12.36",
  "lazy_static",
  "libc",
@@ -661,8 +642,7 @@ dependencies = [
  "tempdir",
  "tempfile",
  "time",
- "tokio 0.1.22",
- "tokio-process",
+ "tokio 1.8.0",
  "typed-headers",
  "url 2.2.2",
  "url_serde",
@@ -1501,29 +1481,6 @@ dependencies = [
  "miow 0.3.7",
  "ntapi",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "mio-named-pipes"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0840c1c50fd55e521b247f949c241c9997709f23bd7f023b9762cd561e935656"
-dependencies = [
- "log",
- "mio 0.6.23",
- "miow 0.3.7",
- "winapi 0.3.9",
-]
-
-[[package]]
-name = "mio-uds"
-version = "0.6.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afcb699eb26d4332647cc848492bbc15eafb26f08d0304550d5aa1f612e066f0"
-dependencies = [
- "iovec",
- "libc",
- "mio 0.6.23",
 ]
 
 [[package]]
@@ -2460,18 +2417,12 @@ dependencies = [
  "futures 0.1.31",
  "mio 0.6.23",
  "num_cpus",
- "tokio-codec",
  "tokio-current-thread",
  "tokio-executor",
- "tokio-fs",
  "tokio-io",
  "tokio-reactor",
- "tokio-sync",
- "tokio-tcp",
  "tokio-threadpool",
  "tokio-timer",
- "tokio-udp",
- "tokio-uds",
 ]
 
 [[package]]
@@ -2505,17 +2456,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-codec"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25b2998660ba0e70d18684de5d06b70b70a3a747469af9dea7618cc59e75976b"
-dependencies = [
- "bytes 0.4.12",
- "futures 0.1.31",
- "tokio-io",
-]
-
-[[package]]
 name = "tokio-current-thread"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2533,17 +2473,6 @@ checksum = "fb2d1b8f4548dbf5e1f7818512e9c406860678f29c300cdf0ebac72d1a3a1671"
 dependencies = [
  "crossbeam-utils 0.7.2",
  "futures 0.1.31",
-]
-
-[[package]]
-name = "tokio-fs"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "297a1206e0ca6302a0eed35b700d292b275256f596e2f3fea7729d5e629b6ff4"
-dependencies = [
- "futures 0.1.31",
- "tokio-io",
- "tokio-threadpool",
 ]
 
 [[package]]
@@ -2581,25 +2510,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio-process"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "382d90f43fa31caebe5d3bc6cfd854963394fff3b8cb59d5146607aaae7e7e43"
-dependencies = [
- "crossbeam-queue 0.1.2",
- "futures 0.1.31",
- "lazy_static",
- "libc",
- "log",
- "mio 0.6.23",
- "mio-named-pipes",
- "tokio-io",
- "tokio-reactor",
- "tokio-signal",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "tokio-reactor"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2616,23 +2526,6 @@ dependencies = [
  "tokio-executor",
  "tokio-io",
  "tokio-sync",
-]
-
-[[package]]
-name = "tokio-signal"
-version = "0.2.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0c34c6e548f101053321cba3da7cbb87a610b85555884c41b07da2eb91aff12"
-dependencies = [
- "futures 0.1.31",
- "libc",
- "mio 0.6.23",
- "mio-uds",
- "signal-hook-registry",
- "tokio-executor",
- "tokio-io",
- "tokio-reactor",
- "winapi 0.3.9",
 ]
 
 [[package]]
@@ -2666,7 +2559,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df720b6581784c118f0eb4310796b12b1d242a7eb95f716a8367855325c25f89"
 dependencies = [
  "crossbeam-deque 0.7.3",
- "crossbeam-queue 0.2.3",
+ "crossbeam-queue",
  "crossbeam-utils 0.7.2",
  "futures 0.1.31",
  "lazy_static",
@@ -2686,39 +2579,6 @@ dependencies = [
  "futures 0.1.31",
  "slab",
  "tokio-executor",
-]
-
-[[package]]
-name = "tokio-udp"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2a0b10e610b39c38b031a2fcab08e4b82f16ece36504988dcbd81dbba650d82"
-dependencies = [
- "bytes 0.4.12",
- "futures 0.1.31",
- "log",
- "mio 0.6.23",
- "tokio-codec",
- "tokio-io",
- "tokio-reactor",
-]
-
-[[package]]
-name = "tokio-uds"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab57a4ac4111c8c9dbcf70779f6fc8bc35ae4b2454809febac840ad19bd7e4e0"
-dependencies = [
- "bytes 0.4.12",
- "futures 0.1.31",
- "iovec",
- "libc",
- "log",
- "mio 0.6.23",
- "mio-uds",
- "tokio-codec",
- "tokio-io",
- "tokio-reactor",
 ]
 
 [[package]]
