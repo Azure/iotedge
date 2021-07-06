@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             EdgeDeploymentDefinition edgeDeploymentDefinition = null;
             client.SetupCreateEdgeDeploymentDefinition()
                 .Callback(
-                    (object body, string group, string version, string ns, string plural, string name, Dictionary<string, List<string>> headers, CancellationToken token) => { edgeDeploymentDefinition = ((JObject)body).ToObject<EdgeDeploymentDefinition>(); })
+                    (object body, string group, string version, string ns, string plural, string dryRun, string fieldManager, string pretty, Dictionary<string, List<string>> headers, CancellationToken token) => { edgeDeploymentDefinition = ((JObject)body).ToObject<EdgeDeploymentDefinition>(); })
                 .ReturnsAsync(() => CreateResponse<object>(edgeDeploymentDefinition));
 
             var cmd = new EdgeDeploymentCommand(ResourceName, Selector, Namespace, client.Object, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
