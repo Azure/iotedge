@@ -7,7 +7,7 @@ pub struct DockerClient {
 }
 
 impl DockerClient {
-    pub fn new() -> Result<Self, Box<std::error::Error>> {
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(DockerClient {
             docker: Docker::connect_with_local_defaults()?,
         })

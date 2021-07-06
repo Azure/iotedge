@@ -597,7 +597,7 @@ pub enum RuntimeOperation {
     StopModule(String),
     SystemInfo,
     SystemResources,
-    TopModule(String),
+    TopModule(String, String),
 }
 
 impl fmt::Display for RuntimeOperation {
@@ -617,7 +617,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
             RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
-            RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
+            RuntimeOperation::TopModule(name, reason) => write!(f, "Could not top module {}.\n{}", name, reason),
         }
     }
 }
