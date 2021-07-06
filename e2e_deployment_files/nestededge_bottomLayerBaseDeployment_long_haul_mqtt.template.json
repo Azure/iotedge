@@ -52,6 +52,9 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "settings": {
@@ -377,7 +380,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"

@@ -1,3 +1,8 @@
+# 1.2.3 (2021-06-30)
+## aziot-edge
+### Bug Fixes
+* Fix `iotedge check` recommending an old version of aziot-identity-service.
+
 # 1.2.2 (2021-06-23)
 ## Edge Agent
 ### Bug Fixes
@@ -63,7 +68,7 @@
 
 # 1.2.0 (2021-04-9)
 ## AWARENESS
-This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
+This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside.
 
 ### Impact to Edge modules
 Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
@@ -147,7 +152,7 @@ The refactoring does affect the packaging and installation of IoT Edge. While we
 
 # 1.2.0-rc4 (2021-03-1)
 ## AWARENESS
-This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside. 
+This release contains a significant refactoring to the IoT Edge security daemon. It separates out the daemon's functionality for provisioning and providing cryptographic services for Linux-based devices into a set of stand-alone system services. Details on these individual system services can be found in the [Overview](https://azure.github.io/iot-identity-service) of the related github repository in which they reside.
 
 ### Impact to Edge modules
 Every attempt has been made to ensure that the APIs on which Edge modules depend will remain unaffected and backward compatible. Issues affecting Edge modules will be treated with the highest priority.
@@ -262,7 +267,7 @@ Please use the edgelet artifacts from release 1.2.0-rc1.
 * Update arm base images for security vulnerability ([07f6750](https://github.com/Azure/iotedge/commit/07f6750958063adc92f5c732fb6a8eca8a9a1dea))
 
 # 1.2.0-rc2 (2020-11-20)
-This is only container image update. We do not publish edgelet artifact in this release. 
+This is only container image update. We do not publish edgelet artifact in this release.
 Please use the edgelet artifacts from release 1.2.0-rc1.
 
 ## Edge Agent
@@ -285,7 +290,7 @@ Please use the edgelet artifacts from release 1.2.0-rc1.
 
 # 1.2.0-rc1 (2020-11-09)
 * Preview support for nesting IoT Edge devices in gateway configuration, to allow creation of hierarchies of IoT Edge devices.
-* Preview support for MQTT 3.1.1 compliant broker in EdgeHub. 
+* Preview support for MQTT 3.1.1 compliant broker in EdgeHub.
 * Updates to `iotedge check` troubleshooting command to work in hierarchical configuration.
 
 ## Edge Agent
