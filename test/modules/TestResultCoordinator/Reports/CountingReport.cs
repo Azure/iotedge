@@ -50,7 +50,7 @@ namespace TestResultCoordinator.Reports
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
-            this.TotalUnmatchedCount = Convert.ToUInt64(unmatchedResults.Count);
+            this.TotalUnmatchedCount = TotalExpectCount - TotalMatchCount;
             this.TotalDuplicateExpectedResultCount = totalDuplicateExpectedResultCount;
             this.TotalDuplicateActualResultCount = totalDuplicateActualResultCount;
             this.TotalMisorderedActualResultCount = totalMisorderedActualResultCount;
