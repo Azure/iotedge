@@ -311,6 +311,7 @@ impl ToString for LogTail {
 pub struct LogOptions {
     follow: bool,
     tail: LogTail,
+    timestamps: bool,
     since: i32,
     until: Option<i32>,
 }
@@ -320,6 +321,7 @@ impl LogOptions {
         LogOptions {
             follow: false,
             tail: LogTail::All,
+            timestamps: false,
             since: 0,
             until: None,
         }
@@ -345,6 +347,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_timestamps(mut self, timestamps: bool) -> Self {
+        self.timestamps = timestamps;
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -359,6 +366,10 @@ impl LogOptions {
 
     pub fn until(&self) -> Option<i32> {
         self.until
+    }
+
+    pub fn timestamps(&self) -> bool {
+        self.timestamps
     }
 }
 
@@ -525,7 +536,9 @@ pub trait ModuleRuntime: Sized {
     async fn system_info(&self) -> Result<SystemInfo, Self::Error>;
     async fn system_resources(&self) -> Result<SystemResources, Self::Error>;
     async fn list(&self) -> Result<Vec<Self::Module>, Self::Error>;
-    async fn list_with_details(&self) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
+    async fn list_with_details(
+        &self,
+    ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
     async fn logs(&self, id: &str, options: &LogOptions) -> Result<Self::Logs, Self::Error>;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;

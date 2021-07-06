@@ -39,6 +39,9 @@ namespace TestResultCoordinator.Reports
             ulong totalDuplicateActualResultCount,
             ulong totalMisorderedActualResultCount,
             IReadOnlyList<TestOperationResult> unmatchedResults,
+            IReadOnlyList<TestOperationResult> duplicateExpectedResults,
+            IReadOnlyList<TestOperationResult> duplicateActualResults,
+            IReadOnlyList<TestOperationResult> misorderedActualResults,
             Option<EventHubSpecificReportComponents> eventHubSpecificReportComponents,
             Option<DateTime> lastActualResultTimestamp)
             : base(testDescription, trackingId, resultType)
@@ -52,6 +55,9 @@ namespace TestResultCoordinator.Reports
             this.TotalDuplicateActualResultCount = totalDuplicateActualResultCount;
             this.TotalMisorderedActualResultCount = totalMisorderedActualResultCount;
             this.UnmatchedResults = unmatchedResults;
+            this.DuplicateExpectedResults = duplicateExpectedResults;
+            this.DuplicateActualResults = duplicateActualResults;
+            this.MisorderedActualResults = misorderedActualResults;
             this.EventHubSpecificReportComponents = eventHubSpecificReportComponents;
             this.LastActualResultTimestamp = lastActualResultTimestamp;
         }
@@ -73,6 +79,12 @@ namespace TestResultCoordinator.Reports
         public ulong TotalMisorderedActualResultCount { get; }
 
         public IReadOnlyList<TestOperationResult> UnmatchedResults { get; }
+
+        public IReadOnlyList<TestOperationResult> DuplicateExpectedResults { get; }
+
+        public IReadOnlyList<TestOperationResult> DuplicateActualResults { get; }
+
+        public IReadOnlyList<TestOperationResult> MisorderedActualResults { get; }
 
         // EventHubSpecificReportComponents is a struct only for LongHaul counting reports that use EventHub.
         // We need to deal with counting reports that involve EventHub differently, because

@@ -96,3 +96,17 @@ pub const UNIX_SCHEME: &str = "unix";
 
 /// This is the name of the network created by the aziot-edged
 pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";
+
+pub enum ShutdownReason {
+    Reprovision,
+    SigInt,
+}
+
+impl std::fmt::Display for ShutdownReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShutdownReason::Reprovision => f.write_str(""), // TODO
+            ShutdownReason::SigInt => f.write_str("Received SIGINT; shutting down"),
+        }
+    }
+}

@@ -4,8 +4,8 @@ trigger:
     include:
       - master
       - release/*
-
 pr: none
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
 

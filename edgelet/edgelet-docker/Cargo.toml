@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 base64 = "0.9"
+bollard = "0.11"
 chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1"
 futures = "0.1"
@@ -24,7 +25,6 @@ url = { version = "2", features = ["serde"] }
 url_serde = "0.2"
 
 aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-cert-client = { path = "../cert-client" }
 config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }

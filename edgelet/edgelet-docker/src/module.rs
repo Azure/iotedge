@@ -22,23 +22,20 @@ type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead
 pub const MODULE_TYPE: &str = "docker";
 pub const MIN_DATE: &str = "0001-01-01T00:00:00Z";
 
-pub struct DockerModule<C: Connect> {
-    client: DockerClient<C>,
+pub struct DockerModule {
+    client: DockerClient,
     name: String,
     config: DockerConfig,
 }
 
-impl<C> std::fmt::Debug for DockerModule<C>
-where
-    C: Connect,
-{
+impl std::fmt::Debug for DockerModule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DockerModule").finish()
     }
 }
 
-impl<C: 'static + Connect> DockerModule<C> {
-    pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> Result<Self> {
+impl DockerModule {
+    pub fn new(client: DockerClient, name: String, config: DockerConfig) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
 
         Ok(DockerModule {
@@ -49,80 +46,50 @@ impl<C: 'static + Connect> DockerModule<C> {
     }
 }
 
+#[async_trait::async_trait]
 pub trait DockerModuleTop {
-    type Error;
-    type ModuleTopFuture: Future<Item = ModuleTop, Error = Self::Error> + Send;
-
-    fn top(&self) -> Self::ModuleTopFuture;
+    async fn top(&self) -> Result<ModuleTop>;
 }
 
-impl<C: 'static + Connect> DockerModuleTop for DockerModule<C> {
-    type Error = Error;
-    type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
+#[async_trait::async_trait]
+impl DockerModuleTop for DockerModule {
+    async fn top(&self) -> Result<ModuleTop> {
+        let error = || {
+            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
+                self.name.clone(),
+            )))
+        };
 
-    fn top(&self) -> Self::ModuleTopFuture {
-        let id = self.name.to_string();
-        Box::new(
-            self.client
-                .container_api()
-                .container_top(&id, "")
-                .then(|result| match result {
-                    Ok(resp) => {
-                        let p = parse_top_response::<Deserializer>(&resp).with_context(|_| {
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id.clone()))
-                        })?;
-                        Ok(ModuleTop::new(id, p))
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(id)),
-                        );
-                        Err(err)
-                    }
-                }),
-        )
+        let top_response = self
+            .client
+            .docker
+            .top_processes::<&str>(&self.name, None)
+            .await
+            .map_err(|_| error())?;
+
+        let pids: Vec<i32> = if let Some(titles) = top_response.titles {
+            let pid_index: usize = titles
+                .iter()
+                .position(|s| s.as_str() == "PID")
+                .ok_or_else(error)?;
+
+            if let Some(processes) = top_response.processes {
+                processes
+                    .iter()
+                    .map(|process| {
+                        let str_pid = process.get(pid_index).ok_or_else(error)?;
+                        str_pid.parse::<i32>().map_err(|_| error())
+                    })
+                    .collect::<Result<Vec<i32>>>()?
+            } else {
+                return Err(error());
+            }
+        } else {
+            return Err(error());
+        };
+
+        Ok(ModuleTop::new(self.name.clone(), pids))
     }
-}
-
-fn parse_top_response<'de, D>(resp: &InlineResponse2001) -> std::result::Result<Vec<i32>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let titles = resp
-        .titles()
-        .ok_or_else(|| serde::de::Error::missing_field("Titles"))?;
-    let pid_index = titles
-        .iter()
-        .position(|ref s| s.as_str() == "PID")
-        .ok_or_else(|| {
-            serde::de::Error::invalid_value(
-                serde::de::Unexpected::Seq,
-                &"array including the column title 'PID'",
-            )
-        })?;
-    let processes = resp
-        .processes()
-        .ok_or_else(|| serde::de::Error::missing_field("Processes"))?;
-    let pids: std::result::Result<_, _> = processes
-        .iter()
-        .map(|ref p| {
-            let val = p.get(pid_index).ok_or_else(|| {
-                serde::de::Error::invalid_length(
-                    p.len(),
-                    &&*format!("at least {} columns", pid_index + 1),
-                )
-            })?;
-            let pid = val.parse::<i32>().map_err(|_| {
-                serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(val),
-                    &"a process ID number",
-                )
-            })?;
-            Ok(pid)
-        })
-        .collect();
-    Ok(pids?)
 }
 
 fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {
@@ -171,10 +138,9 @@ pub fn runtime_state(
 }
 
 #[async_trait::async_trait]
-impl<C: 'static + Connect> Module for DockerModule<C> {
+impl Module for DockerModule {
     type Config = DockerConfig;
     type Error = Error;
-
     fn name(&self) -> &str {
         &self.name
     }
@@ -187,8 +153,7 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
         &self.config
     }
 
-    async fn runtime_state(&self) -> Result<ModuleRuntimeState, Self::Error> {
-        Ok(ModuleRuntimeState::default())
+    async fn runtime_state(&self) -> Result<ModuleRuntimeState> {
         // Box::new(
         //     self.client
         //         .container_api()
@@ -201,6 +166,8 @@ impl<C: 'static + Connect> Module for DockerModule<C> {
         //             )
         //         }),
         // )
+
+        Ok(ModuleRuntimeState::default())
     }
 }
 
