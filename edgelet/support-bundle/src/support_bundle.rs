@@ -218,20 +218,19 @@ where
             // so it doesn't block forever on an unavailable socket.
             .timeout(std::time::Duration::from_secs(5))
             .then(move |result| {
-                future::ok(match result {
-                    Ok(modules) => modules
+                future::ok(if let Ok(modules) = result {
+                    modules
                         .into_iter()
                         .map(|(module, _s)| module.name().to_owned())
                         .filter(move |name| {
                             !include_ms_only || MS_MODULES.iter().any(|ms| ms == name)
                         })
-                        .collect(),
-                    Err(_) => {
-                        println!(
-                            "Warning: Unable to call management socket. Module list not available."
-                        );
-                        Vec::new()
-                    }
+                        .collect()
+                } else {
+                    println!(
+                        "Warning: Unable to call management socket. Module list not available."
+                    );
+                    Vec::new()
                 })
             });
 
