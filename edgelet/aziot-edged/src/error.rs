@@ -50,6 +50,9 @@ pub enum ErrorKind {
 
     #[fail(display = "The workload service encountered an error")]
     WorkloadService,
+
+    #[fail(display = "The workload manager encountered an error")]
+    WorkloadManager,
 }
 
 impl Error {
@@ -141,6 +144,7 @@ pub enum InitializeErrorReason {
     StopExistingModules,
     Tokio,
     WorkloadService,
+    WorkloadManager,
 }
 
 impl fmt::Display for InitializeErrorReason {
@@ -197,6 +201,8 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 
             InitializeErrorReason::WorkloadService => write!(f, "Could not start workload service"),
+
+            InitializeErrorReason::WorkloadManager => write!(f, "Could not start workload manager"),
         }
     }
 }
