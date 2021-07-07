@@ -227,9 +227,11 @@ where
                         })
                         .collect(),
                     Err(_) => {
-                        println!("Warning: Unable to call management socket. Module list not available.");
+                        println!(
+                            "Warning: Unable to call management socket. Module list not available."
+                        );
                         Vec::new()
-                    },
+                    }
                 })
             });
 
