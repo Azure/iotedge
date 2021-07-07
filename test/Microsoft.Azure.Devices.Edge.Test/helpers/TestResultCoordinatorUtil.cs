@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class TestResultCoordinatorUtil
     {
-        const string TestResultCoordinatorUrl = "http://testResultCoordinator:5001";
+        const string TestResultCoordinatorUrl = "http://localhost:5001/api/report";
         const string TrcModuleName = "testResultCoordinator";
         const string NetworkControllerModuleName = "networkController";
 
@@ -76,19 +76,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                    ["TestDescription"] = "network controller"
                                }
                            }
-                       });
+                       })
+                       .WithProxy(Context.Current.TestRunnerProxy);
                 });
         }
 
         public static async Task ValidateResultsAsync()
         {
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync("http://localhost:5001/api/report");
+            HttpResponseMessage response = await client.GetAsync(TestResultCoordinatorUrl);
             var jsonstring = await response.Content.ReadAsStringAsync();
+
             bool isPassed = (bool)JArray.Parse(jsonstring)[0]["IsPassed"];
             if (!isPassed)
             {
-                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
+                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
             }
 
             Assert.IsTrue(isPassed);

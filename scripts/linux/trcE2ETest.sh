@@ -364,6 +364,8 @@ function print_test_run_logs() {
     print_highlighted_message 'cloudToDeviceMessageReceiver2 LOGS'
     docker logs cloudToDeviceMessageReceiver2 || true
 
+    print_highlighted_message 'genericMqttTester LOGS'
+    docker logs genericMqttTester || true
 
     print_highlighted_message 'networkController LOGS'
     docker logs networkController || true
