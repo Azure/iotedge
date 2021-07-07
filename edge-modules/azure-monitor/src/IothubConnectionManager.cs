@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Extensions.Logging;
@@ -8,28 +9,22 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
     public class IothubConnectionManager
     {
-        ModuleClient ModuleClient;
-        public IothubConnectionManager(ModuleClient moduleClient)
+        ModuleClientWrapper ModuleClientWrapper;
+        SemaphoreSlim Semaphore;
+
+        public IothubConnectionManager(ModuleClientWrapper moduleClient, SemaphoreSlim semaphore)
         {
-            this.ModuleClient = moduleClient;
+            this.ModuleClientWrapper = moduleClient;
+            this.Semaphore = semaphore;
         }
 
-        public async Task ConnectToIothub()
+        public async Task ConnectToIothub(CancellationToken ct)
         {
-            try
-            {
-                // Close the connection, wait 5 seconds, and reopen it.
-                // Delay needed to assure SDK will reconnect.
-                await this.ModuleClient.CloseAsync();
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                await this.ModuleClient.OpenAsync();
-
-                LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
-            }
-            catch (Exception e)
-            {
-                LoggerUtil.Writer.LogWarning("Failed closing and re-establishing connection to IoT Hub", e);
-            }
+            await this.Semaphore.WaitAsync();
+            Console.WriteLine($"connection manager before recreate {this.ModuleClientWrapper.Inner}");
+            await this.ModuleClientWrapper.RecreateClient(ct);
+            Console.WriteLine($"connection manager after recreate {this.ModuleClientWrapper.Inner}");
+            this.Semaphore.Release();
         }
     }
 }

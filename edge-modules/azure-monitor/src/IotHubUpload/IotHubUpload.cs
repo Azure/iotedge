@@ -17,15 +17,20 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
     public class IotHubMetricsUpload : IMetricsPublisher
     {
         const string IdentifierPropertyName = "id";
-        readonly ModuleClient moduleClient;
+        readonly ModuleClientWrapper moduleClientWrapper;
+        SemaphoreSlim Semaphore;
 
-        public IotHubMetricsUpload(ModuleClient moduleClient)
+        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper, SemaphoreSlim semaphore)
         {
-            this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
+            this.moduleClientWrapper = Preconditions.CheckNotNull(moduleClientWrapper, nameof(moduleClientWrapper));
+            this.Semaphore = semaphore;
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
+            await this.Semaphore.WaitAsync();
+
+            bool publishSucceeded;
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
@@ -47,16 +52,20 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
-                await this.moduleClient.SendEventAsync("metricOutput", metricsMessage);
+                Console.WriteLine($"iothub upload {moduleClientWrapper.Inner}");
+                await this.moduleClientWrapper.Inner.SendEventAsync("metricOutput", metricsMessage);
 
                 LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
-                return true;
+                publishSucceeded = true;
             }
             catch (Exception e)
             {
                 LoggerUtil.Writer.LogError(e, "Error sending metrics via IoT message");
-                return false;
+                publishSucceeded = false;
             }
+
+            this.Semaphore.Release();
+            return publishSucceeded;
         }
 
         private string Transform(IEnumerable<ExportMetric> metrics)

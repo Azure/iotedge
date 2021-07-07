@@ -51,11 +51,11 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             ModuleClient moduleClient = null;
             try
             {
-                moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-                moduleClient.ProductInfo = Constants.ProductInfo;
+                ModuleClientWrapper moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(transportSettings);
+                SemaphoreSlim moduleClientLock = new SemaphoreSlim(1, 1);
 
-                IothubConnectionManager iothubConnectionManager = new IothubConnectionManager(moduleClient);
-                PeriodicTask periodicIothubConnect = new PeriodicTask(iothubConnectionManager.ConnectToIothub, Settings.Current.IotHubConnectFrequency, new TimeSpan(0, 0, 0), LoggerUtil.Writer, "Connect to IoT Hub", true);
+                IothubConnectionManager iothubConnectionManager = new IothubConnectionManager(moduleClientWrapper, moduleClientLock);
+                PeriodicTask periodicIothubConnect = new PeriodicTask(iothubConnectionManager.ConnectToIothub, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Connect to IoT Hub", true);
 
                 MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
                 IMetricsPublisher publisher;
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
                 }
                 else
                 {
-                    publisher = new IotHubMetricsUpload.IotHubMetricsUpload(moduleClient);
+                    publisher = new IotHubMetricsUpload.IotHubMetricsUpload(moduleClientWrapper, moduleClientLock);
                 }
 
                 using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher))
