@@ -213,16 +213,24 @@ where
             .runtime
             .list_with_details()
             .collect()
+            // Getting modules requires the management socket, which might not be available if
+            // aziot-edged hasn't started. Require this operation to complete within a timeout
+            // so it doesn't block forever on an unavailable socket.
+            .timeout(std::time::Duration::from_secs(30))
             .then(move |result| {
-                future::ok(match result {
-                    Ok(modules) => modules
+                future::ok(if let Ok(modules) = result {
+                    modules
                         .into_iter()
                         .map(|(module, _s)| module.name().to_owned())
                         .filter(move |name| {
                             !include_ms_only || MS_MODULES.iter().any(|ms| ms == name)
                         })
-                        .collect(),
-                    Err(_) => Vec::new(),
+                        .collect()
+                } else {
+                    println!(
+                        "Warning: Unable to call management socket. Module list not available."
+                    );
+                    Vec::new()
                 })
             });
 
