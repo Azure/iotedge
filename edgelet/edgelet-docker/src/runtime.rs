@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::str;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 
 use failure::{Fail, ResultExt};
@@ -14,6 +14,7 @@ use futures::{future, stream, Async, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
+use tokio::sync::Mutex;
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -201,124 +202,125 @@ where
     Ok(name)
 }
 
+#[async_trait::async_trait]
 impl MakeModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Settings = Settings;
     type ModuleRuntime = Self;
     type Error = Error;
-    type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(settings: Settings) -> Self::Future {
+    async fn make_runtime(settings: Settings) -> Result<Self::ModuleRuntime> {
         info!("Initializing module runtime...");
 
-        let created = match init_client(settings.moby_runtime().uri()) {
-            Ok(client) => {
-                let home_dir: Arc<Path> = settings.homedir().into();
-                let network_id = settings.moby_runtime().network().name().to_string();
-                let notary_registries = BTreeMap::new();
-                let certd_url = settings.endpoints().aziot_certd_url().clone();
-                let cert_client = cert_client::CertificateClient::new(
-                    aziot_cert_common_http::ApiVersion::V2020_09_01,
-                    &certd_url,
-                );
+        let client = DockerClient::new(settings.moby_runtime().uri()).map_err(|e| {
+            // log_failure(Level::Warn, &e);
+            Error::from(ErrorKind::Docker)
+        })?;
 
-                let notary_registries = if let Some(content_trust_map) = settings
-                    .moby_runtime()
-                    .content_trust()
-                    .and_then(ContentTrust::ca_certs)
-                {
-                    debug!("Notary Content Trust is enabled");
-                    future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
-                        (notary_registries, cert_client),
-                        move |(mut notary_registries, cert_client),
-                              (registry_server_hostname, cert_id)| {
-                            let home_dir = home_dir.clone();
-                            cert_client
-                                .get_cert(&cert_id)
-                                .then(move |cert_output| -> Result<_> {
-                                    match cert_output {
-                                        Ok(cert_buf) => {
-                                            let config_path = notary::notary_init(
-                                                &home_dir,
-                                                &registry_server_hostname,
-                                                &cert_buf,
-                                            )
-                                            .context(ErrorKind::Initialization)?;
-                                            notary_registries.insert(
-                                                registry_server_hostname.clone(),
-                                                config_path,
-                                            );
-                                            Ok((notary_registries, cert_client))
-                                        }
-                                        Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
-                                            "Notary root CA read error".to_owned(),
-                                        )
-                                        .into()),
-                                    }
-                                })
-                        },
-                    ))
-                } else {
-                    debug!("Notary Content Trust is disabled");
-                    future::Either::B(future::ok((notary_registries, cert_client)))
-                };
-                let (enable_i_pv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
-                info!("Using runtime network id {}", network_id);
+        let home_dir: Arc<Path> = settings.homedir().into();
+        let notary_registries = BTreeMap::new();
+        // let certd_url = settings.endpoints().aziot_certd_url().clone();
+        // let cert_client = cert_client::CertificateClient::new(
+        //     aziot_cert_common_http::ApiVersion::V2020_09_01,
+        //     &certd_url,
+        // );
 
-                let filter = format!(r#"{{"name":{{"{}":true}}}}"#, network_id);
-                let client_copy = client.clone();
-                let fut = client
-                    .network_api()
-                    .network_list(&filter)
-                    .and_then(move |existing_networks| {
-                        if existing_networks.is_empty() {
-                            let mut network_config =
-                                NetworkConfig::new(network_id).with_enable_i_pv6(enable_i_pv6);
+        // let notary_registries = if let Some(content_trust_map) = settings
+        //     .moby_runtime()
+        //     .content_trust()
+        //     .and_then(ContentTrust::ca_certs)
+        // {
+        //     debug!("Notary Content Trust is enabled");
+        //     future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
+        //         (notary_registries, cert_client),
+        //         move |(mut notary_registries, cert_client), (registry_server_hostname, cert_id)| {
+        //             let home_dir = home_dir.clone();
+        //             cert_client
+        //                 .get_cert(&cert_id)
+        //                 .then(move |cert_output| -> Result<_> {
+        //                     match cert_output {
+        //                         Ok(cert_buf) => {
+        //                             let config_path = notary::notary_init(
+        //                                 &home_dir,
+        //                                 &registry_server_hostname,
+        //                                 &cert_buf,
+        //                             )
+        //                             .context(ErrorKind::Initialization)?;
+        //                             notary_registries
+        //                                 .insert(registry_server_hostname.clone(), config_path);
+        //                             Ok((notary_registries, cert_client))
+        //                         }
+        //                         Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
+        //                             "Notary root CA read error".to_owned(),
+        //                         )
+        //                         .into()),
+        //                     }
+        //                 })
+        //         },
+        //     ))
+        // } else {
+        //     debug!("Notary Content Trust is disabled");
+        //     future::Either::B(future::ok((notary_registries, cert_client)))
+        // };
 
-                            if let Some(ipam_config) = ipam {
-                                network_config.set_IPAM(ipam_config);
-                            };
+        create_network_if_missing(&settings, &client).await?;
 
-                            let fut = client_copy
-                                .network_api()
-                                .network_create(network_config)
-                                .map(move |_| client_copy);
-                            future::Either::A(fut)
-                        } else {
-                            future::Either::B(future::ok(client_copy))
-                        }
-                    })
-                    .map_err(|err| {
-                        let e = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::Init),
-                        );
-                        log_failure(Level::Warn, &e);
-                        e
-                    })
-                    .join(notary_registries)
-                    .map(move |(client, (notary_registries, _))| {
-                        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
-                        sysinfo::set_open_files_limit(0);
-                        let system_resources = System::new_all();
-                        info!("Successfully initialized module runtime");
-                        let notary_lock = tokio::sync::lock::Lock::new(BTreeMap::new());
-                        DockerModuleRuntime {
-                            client,
-                            system_resources: Arc::new(Mutex::new(system_resources)),
-                            notary_registries,
-                            notary_lock,
-                        }
-                    });
-                future::Either::A(fut)
-            }
-            Err(err) => {
-                log_failure(Level::Warn, &err);
-                future::Either::B(Err(err).into_future())
-            }
+        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
+        sysinfo::set_open_files_limit(0);
+        let system_resources = System::new_all();
+        info!("Successfully initialized module runtime");
+
+        let runtime = Self {
+            client,
+            system_resources: Arc::new(Mutex::new(system_resources)),
+            notary_registries,
+            notary_lock: Arc::new(Mutex::new(())),
         };
-        Box::new(created)
+
+        Ok(runtime)
     }
+}
+
+async fn create_network_if_missing(settings: &Settings, client: &DockerClient) -> Result<()> {
+    let (enable_ipv6, ipam) = get_ipv6_settings(settings.moby_runtime().network());
+    let network_id = settings.moby_runtime().network().name();
+    info!("Using runtime network id {}", network_id);
+
+    let mut list_networks_filters = HashMap::new();
+    list_networks_filters.insert("name", vec![network_id]);
+
+    let list_options = Some(bollard::network::ListNetworksOptions {
+        filters: list_networks_filters,
+    });
+
+    let existing_iotedge_networks = client
+        .docker
+        .list_networks(list_options)
+        .await
+        .map_err(|e| Error::from(ErrorKind::Docker))?;
+
+    if existing_iotedge_networks.is_empty() {
+        let ipam = ipam.map_or_else(Default::default, |ipam| bollard::models::Ipam {
+            config: ipam.config,
+            driver: ipam.driver,
+            options: ipam.options,
+        });
+
+        let config = bollard::network::CreateNetworkOptions {
+            name: network_id,
+            enable_ipv6,
+            ipam,
+            ..Default::default()
+        };
+
+        client
+            .docker
+            .create_network(config)
+            .await
+            .map_err(|e| Error::from(ErrorKind::Docker))?;
+    }
+
+    Ok(())
 }
 
 fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>) {
@@ -1010,30 +1012,6 @@ impl Authenticator for DockerModuleRuntime {
     fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
         authenticate(self, req)
     }
-}
-
-fn init_client(docker_url: &Url) -> Result<DockerClient<UrlConnector>> {
-    // build the hyper client
-    let client =
-        Client::builder().build(UrlConnector::new(docker_url).context(ErrorKind::Initialization)?);
-
-    // extract base path - the bit that comes after the scheme
-    let base_path = docker_url
-        .to_base_path()
-        .context(ErrorKind::Initialization)?;
-    let mut configuration = Configuration::new(client);
-    configuration.base_path = base_path
-        .to_str()
-        .ok_or(ErrorKind::Initialization)?
-        .to_string();
-
-    let scheme = docker_url.scheme().to_string();
-    configuration.uri_composer = Box::new(move |base_path, path| {
-        Ok(UrlConnector::build_hyper_uri(&scheme, base_path, path)
-            .context(ErrorKind::Initialization)?)
-    });
-
-    Ok(DockerClient::new(APIClient::new(configuration)))
 }
 
 #[derive(Debug)]

@@ -15,13 +15,13 @@ use serde_json::Value;
 pub struct Ipam {
     /// Name of the IPAM driver to use.
     #[serde(rename = "Driver", skip_serializing_if = "Option::is_none")]
-    driver: Option<String>,
+    pub driver: Option<String>,
     /// List of IPAM configuration options, specified as a map: `{\"Subnet\": <CIDR>, \"IPRange\": <CIDR>, \"Gateway\": <IP address>, \"AuxAddress\": <device_name:IP address>}`
     #[serde(rename = "Config", skip_serializing_if = "Option::is_none")]
-    config: Option<Vec<::std::collections::HashMap<String, String>>>,
+    pub config: Option<Vec<::std::collections::HashMap<String, String>>>,
     /// Driver-specific options, specified as a map.
     #[serde(rename = "Options", skip_serializing_if = "Option::is_none")]
-    options: Option<::std::collections::HashMap<String, String>>,
+    pub options: Option<::std::collections::HashMap<String, String>>,
 }
 
 impl Ipam {

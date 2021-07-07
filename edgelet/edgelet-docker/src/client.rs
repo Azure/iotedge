@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use url::Uri;
 use bollard::Docker;
 
 pub struct DockerClient {
@@ -7,9 +8,9 @@ pub struct DockerClient {
 }
 
 impl DockerClient {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(_docker_uri: &Uri) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(DockerClient {
-            docker: Docker::connect_with_local_defaults()?,
+            docker: Docker::connect_with_local_defaults()?, // TODO: use docker url
         })
     }
 }
