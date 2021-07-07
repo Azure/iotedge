@@ -669,11 +669,11 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         // Get system resources
         let mut system_resources = self.system_resources.as_ref().lock().await;
-        system_resources.refresh_system();
+        system_resources.refresh_all();
+
         let start_time = process::id()
             .try_into()
             .map(|id| {
-                system_resources.refresh_process(id);
                 system_resources
                     .get_process(id)
                     .map(|p| p.start_time())
@@ -690,7 +690,6 @@ impl ModuleRuntime for DockerModuleRuntime {
         let total_memory = system_resources.get_total_memory() * 1000;
         let used_memory = system_resources.get_used_memory() * 1000;
 
-        system_resources.refresh_disks();
         let disks = system_resources
             .get_disks()
             .iter()
