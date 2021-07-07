@@ -33,9 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             try
             {
-                await this.Inner.CloseAsync();
                 this.Inner.Dispose();
-
                 this.Inner = await ModuleClient.CreateFromEnvironmentAsync(this.transportSettings);
                 this.Inner.ProductInfo = Constants.ProductInfo;
                 await this.Inner.OpenAsync();
