@@ -336,6 +336,8 @@ impl MakeModuleRuntime for DockerModuleRuntime {
                     })
                     .join(notary_registries)
                     .map(move |(client, (notary_registries, _))| {
+                        // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
+                        sysinfo::set_open_files_limit(0);
                         let mut system_resources = System::new_all();
                         system_resources.refresh_all();
                         info!("Successfully initialized module runtime");
