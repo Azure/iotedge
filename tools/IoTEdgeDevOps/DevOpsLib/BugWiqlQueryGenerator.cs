@@ -3,7 +3,7 @@ namespace DevOpsLib
 {
     using System.Collections.Generic;
 
-    public static class BugQueryGenerator
+    public static class BugWiqlQueryGenerator
     {
         static readonly BugPriorityGrouping[] priorities = new BugPriorityGrouping[]
         {
@@ -15,6 +15,7 @@ namespace DevOpsLib
         static readonly string[] areas = new string[]
         {
             "IoTEdge",
+            "IoTEdge\\Agility",
             "IoTEdge\\AppModel",
             "IoTEdge\\AppModel\\K8s",
             "IoTEdge\\Connectivity",
@@ -23,18 +24,19 @@ namespace DevOpsLib
             "IoTEdge\\Core\\Infrastructure",
             "IoTEdge\\Core\\Security",
             "IoTEdge\\Documentation",
-            "IoTEdge\\FieldGateway"
+            "IoTEdge\\FieldGateway",
+            "IoTEdge\\PartnerRequests"
         };
 
-        public static HashSet<BugQuery> GenerateBugQueries()
+        public static HashSet<BugWiqlQuery> GenerateBugQueries()
         {
-            HashSet<BugQuery> output = new HashSet<BugQuery>();
+            HashSet<BugWiqlQuery> output = new HashSet<BugWiqlQuery>();
             foreach (string area in areas)
             {
                 foreach (BugPriorityGrouping priority in priorities)
                 {
-                    output.Add(new BugQuery(area, priority, true));
-                    output.Add(new BugQuery(area, priority, false));
+                    output.Add(new BugWiqlQuery(area, priority, true));
+                    output.Add(new BugWiqlQuery(area, priority, false));
                 }
             }
 
