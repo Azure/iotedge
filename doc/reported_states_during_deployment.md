@@ -1,12 +1,12 @@
 
 # Tracking $edgeAgent's reported properties during deployment.
 
-An IoT Edge runtime receives a new deployment through $edgeAgent's twin in the desired properties 
+An IoT Edge runtime receives a new deployment through \$edgeAgent's twin in the desired properties 
 section.  When it receives this new deployment, it creates a plan to apply changes to the current 
-system. Once that plan finishes executing, successfully or not, the $edgeAgent will update its 
+system. Once that plan finishes executing, successfully or not, $edgeAgent will update its 
 reported properties.  
 
-This document will help spell out some of the details of $edgeAgent's twin properties as the IoT 
+This document will help spell out some of the details of \$edgeAgent's twin properties as the IoT 
 Edge runtime applies a new deployment. 
 
 # Relevant twin properties
@@ -17,7 +17,7 @@ and reported back to the service.
 
 ## Set by IoT Hub service
 
-The following sections are set in edgeAgent twin by the IoT Hub service and are read by the IoT Edge 
+The following sections are set in \$edgeAgent twin by the IoT Hub service and are read by the IoT Edge 
 runtime:
 
 ### Configuration section
@@ -47,7 +47,7 @@ Example:
 
 ### Desired Properties section
 
-This is the $edgeAgent section of the modulesContent in an edge deployment.
+This is the \$edgeAgent section of the modulesContent in an edge deployment.
 
 Example:
 
@@ -101,9 +101,9 @@ Example:
 | Relevant Field | Meaning |
 |------------------------------------------|-------------------------------------------------------|
 | .properties.desired."$version"           | This number is monotonically increasing. Even a rollback will increase this number. |
-| .properties.desired.systemModules.edgeAgent.settings.image | $edgeAgent’s desired image tag. |
-| .properties.desired.systemModules.edgeHub.status | $edgeHub’s desire status, “running” or “stopped”. |
-| .properties.desired.systemModules.edgeHub.settings.image | $edgeHub’s desired image tag. |
+| .properties.desired.systemModules.edgeAgent.settings.image | \$edgeAgent’s desired image tag. |
+| .properties.desired.systemModules.edgeHub.status | \$edgeHub’s desire status, “running” or “stopped”. |
+| .properties.desired.systemModules.edgeHub.settings.image | \$edgeHub’s desired image tag. |
 | .properties.desired.modules.*\<module\>*.status | A module’s desired status, “running” or “stopped”. |
 | .properties.desired.modules.*\<module\>*.settings.image | A module’s desired image tag. |
 
@@ -207,20 +207,16 @@ Example:
 | Relevant Field | Meaning |
 |------------------------------------------|-------------------------------------------------------|
 | .properties.reported.lastDesiredVerison | The last version number received and acted on. |
-| .properties.reported.lastDesiredStatus.code | The current status of the deployment (see table below).   |
+| .properties.reported.lastDesiredStatus.code | The current status of the deployment (see [table below](#last-desired-status-codes)).   |
 | .properties.reported.lastDesiredStatus.description | Text describing the deployment status. |
-| .properties.reported.systemModules.edgeAgent.runtimeStatus | See module status table below. |
+| .properties.reported.systemModules.edgeAgent.runtimeStatus | See [module status table below](#module-and-system-module-runtime-status). |
 | .properties.reported.systemModules.edgeAgent.settings.image | Current image being run by container runtime. | 
-| .properties.reported.systemModules.edgeHub.runtimeStatus | See module status table below. |
+| .properties.reported.systemModules.edgeHub.runtimeStatus | See [module status table below](#module-and-system-module-runtime-status). |
 | .properties.reported.systemModules.edgeHub.settings.image | Current image being run by container runtime. |
-| .properties.reported.modules.*\<module\>*.runtimeStatus | See module status table below. |
-| .properties.reported.modules.*\<module\>*.settings.image | Current image being run by container runtime. |
+| .properties.reported.modules.*\<module\>*.runtimeStatus | See [module status table below](#module-and-system-module-runtime-status). |
+| .properties.reported.modules.*\<module\>*.settings.image | Current image being run by container runtime.  The image names are read from the container itself, so will reflect the currently running image. |
 
-A module's runtime status is the current status of the modules as interpreted by the IoT Edge 
-runtime from the container status.  The image names are read from the container itself, so will 
-reflect the currently running image.
-
-#### Last Desired Status codes.
+#### Last Desired Status codes
 
 | Code | Meaning |
 |------|---------|
@@ -231,10 +227,10 @@ reflect the currently running image.
 | 417  | ConfigEmptyError - no deployment has been send to IoT Edge |
 | 500  | Failed - something has gone wrong when applying a deployment |
 
-The code will be 406(Unknown) until the edgeAgent is able to connect to the IoT Hub service, and 
-will be set to 406 when edgeAgent shuts down.
+The code will be 406(Unknown) until \$edgeAgent is able to connect to the IoT Hub service, and 
+will be set to 406 when \$edgeAgent shuts down.
 
-Once online, the code may be 417(ConfigEmptyError) until the edgeAgemt receives a non-empty 
+Once online, the code may be 417(ConfigEmptyError) until \$edgeAgent receives a non-empty 
 deployment.
 
 Once the deployment is successfully realized, the code will be 200(Ok).
@@ -244,17 +240,20 @@ reason why it failed.
 
 #### Module and system module runtime status
 
+A module's runtime status is the current status of the modules as interpreted by the IoT Edge 
+runtime from the container status. 
+
 | status  | Meaning |
 |---------|---------|
 | unknown | Module status is unknown. |
-| backoff | Modules transition to the backoff state when the edgeAgent has scheduled the module to be started but hasn't actually started running yet.|
-| running | Module is currentlt running. |
+| backoff | Module has had problems running, so \$edgeAgent has scheduled the module to restart at a future time.|
+| running | Module is currently running. |
 | stopped | Module has exited successfully (with a zero exit code). |
 | failed  | Module has exited with a failure exit code (non-zero). |
 
 # How these fields relate when applying a deployment
 
-The following section shows how you might detect the status of an IoT Edge Deployment, based on the fields defined above
+The following section shows how you might detect the status of an IoT Edge Deployment, based on the fields defined above.
 
 ### Before IoT Edge applies current deployment
 
@@ -275,16 +274,14 @@ have come into the correct state.
 
 ```
 configurations.<deployment name>.Status: "Applied" && 
-
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
-
 .properties.reported.lastDesiredStatus.code == 200 && 
+.properties.desired.systemModules.edgeHub.status == .properties.reported.systemModules.edgeHub.status &&
 ```
 
 For each desired module:
 ```
    .properties.desired.modules.<module>.status == .properties.reported.modules.<module>.runtimeStatus &&  
-
    .properties.desired.modules.<module>.settings.image == .properties.reported.modules.<module>.settings.image 
 ```
  
@@ -295,14 +292,12 @@ The IoT Edge runtime has received a deployment, but the deployment was invalid.
 
 ```
 configurations.<deployment name>.Status: "Applied" && 
-
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
-
 .properties.reported.lastDesiredStatus.code == 400 or 412  
 ```
 
-NOTE: We wouldn’t expect to see “406” unless edgeAgent shuts down, or “417” (empty deployment) at 
-all once the first deployment is applied. These may occur if the edgeAgent is being updated.
+NOTE: We wouldn’t expect to see “406” unless \$edgeAgent shuts down, or “417” (empty deployment) 
+once the first deployment is applied. These may occur if \$edgeAgent is being updated.
 
 
 ### Deployment succeeded, module failed after launch. 
@@ -312,31 +307,30 @@ a incorrect state after being deployed.
 
 ```
 configurations.<deployment name>.Status: "Applied" && 
-
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
-
 .properties.reported.lastDesiredStatus.code == 200 && 
 ```
 
 For any desired module:
 ```
    .properties.desired.modules.<module>.status  != .properties.reported.modules.<module>.runtimeStatus &&  
-
    .properties.desired.modules.<module>.settings.image == .properties.reported.modules.<module>.settings.image 
 ```
 
+NOTE: Modules may go into a failed state at any time for any number of reasons, it is up to the 
+user's discretion to determine the appropriate amount of time to wait to determine if a module has 
+not been successfully deployed. 
+
 ### Deployment in progress/Deployment failed.
 
-One of the steps that the IoT Edge runtime attempted to aplly the current desired state failed. 
+One of the steps that the IoT Edge runtime attempted to apply the current desired state failed. 
 There may be many reasons for this, such as an image pull request is taking too long, the module 
 specification references a bad image, or the container runtime failed for any number of reasons.
 
 
 ```
 configurations.<deployment name>.Status: "Applied" && 
-
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
-
 .properties.reported.lastDesiredStatus.code == 500 && 
 ```
 
