@@ -1,13 +1,13 @@
 [package]
-name = "edgelet-http-workload"
-version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
-publish = false
 edition = "2018"
+name = "edgelet-http-workload"
+publish = false
+version = "0.1.0"
 
 [dependencies]
 base64 = "0.9"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = {version = "0.4", features = ["serde"]}
 failure = "0.1.2"
 futures = "0.1"
 hyper = "0.12"
@@ -16,28 +16,28 @@ openssl = "0.10"
 serde = "1.0"
 serde_json = "1.0"
 
-aziot-key-openssl-engine = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-key-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-openssl-sys2 = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-key-client = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-key-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-key-common-http = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-key-openssl-engine = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+http-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+openssl-sys2 = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+openssl2 = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
 
-cert-client = { path = "../cert-client" }
-edgelet-core = { path = "../edgelet-core" }
-edgelet-http = { path = "../edgelet-http" }
-edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
-edgelet-utils = { path = "../edgelet-utils" }
-identity-client = { path = "../identity-client" }
-workload = { path = "../workload" }
+cert-client = {path = "../cert-client"}
+edgelet-core = {path = "../edgelet-core"}
+edgelet-http = {path = "../edgelet-http"}
+edgelet-http-mgmt = {path = "../edgelet-http-mgmt"}
+edgelet-utils = {path = "../edgelet-utils"}
+identity-client = {path = "../identity-client"}
+workload = {path = "../workload"}
 
 [dev-dependencies]
-edgelet-test-utils = { path = "../edgelet-test-utils" }
+edgelet-test-utils = {path = "../edgelet-test-utils"}
 native-tls = "0.2"
 openssl = "0.10"
 tempfile = "3"
 tokio = "0.1"
 tokio-tls = "0.2"
-workload = { path = "../workload" }
+workload = {path = "../workload"}

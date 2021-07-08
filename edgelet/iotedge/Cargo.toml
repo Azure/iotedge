@@ -1,19 +1,19 @@
 [package]
-name = "iotedge"
-version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 description = """
 The iotedge tool is used to manage the IoT Edge runtime.
 """
 edition = "2018"
+name = "iotedge"
+version = "0.1.0"
 [dependencies]
 atty = "0.2"
 base64 = "0.9"
 bytes = "0.4"
-chrono = { version = "0.4.7", features = ["serde"] }
+chrono = {version = "0.4.7", features = ["serde"]}
 chrono-humanize = "0.0.11"
 clap = "2.31"
-config = { version = "0.9", default-features = false }
+config = {version = "0.9", default-features = false}
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12"
@@ -37,25 +37,24 @@ typed-headers = "0.1.1"
 url = "2"
 zip = "0.5.3"
 
-aziot-certd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-identityd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keyd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-keys-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziot-tpmd-config = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-aziotctl-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-config-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
-docker = { path = "../docker-rs" }
-edgelet-core = { path = "../edgelet-core" }
-edgelet-docker = { path = "../edgelet-docker" }
-edgelet-http = { path = "../edgelet-http" }
-edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
-edgelet-utils = { path = "../edgelet-utils" }
-identity-client = { path = "../identity-client" }
-management = { path = "../management" }
-support-bundle = { path = "../support-bundle" }
-
+aziot-certd-config = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-identity-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-identity-common-http = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-identityd-config = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-keyd-config = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-keys-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziot-tpmd-config = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+aziotctl-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+config-common = {git = "https://github.com/nyanzebra/iot-identity-service", branch = "fix/bad_uri_on_central_block"}
+docker = {path = "../docker-rs"}
+edgelet-core = {path = "../edgelet-core"}
+edgelet-docker = {path = "../edgelet-docker"}
+edgelet-http = {path = "../edgelet-http"}
+edgelet-http-mgmt = {path = "../edgelet-http-mgmt"}
+edgelet-utils = {path = "../edgelet-utils"}
+identity-client = {path = "../identity-client"}
+management = {path = "../management"}
+support-bundle = {path = "../support-bundle"}
 
 [target.'cfg(unix)'.dependencies]
 byte-unit = "3.0.3"
@@ -63,5 +62,5 @@ libc = "0.2"
 sysinfo = "0.14.10"
 
 [dev-dependencies]
-edgelet-test-utils = { path = "../edgelet-test-utils" }
+edgelet-test-utils = {path = "../edgelet-test-utils"}
 tempfile = "3.1.0"
