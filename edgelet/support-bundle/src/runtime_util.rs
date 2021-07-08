@@ -9,23 +9,26 @@ use edgelet_core::{LogOptions, Module, ModuleRuntime};
 
 use crate::error::{Error, ErrorKind};
 
-pub async fn get_modules(
-    runtime: &impl ModuleRuntime,
-    include_ms_only: bool,
-) -> Result<Vec<String>, Error> {
+pub async fn get_modules(runtime: &impl ModuleRuntime, include_ms_only: bool) -> Vec<String> {
     const MS_MODULES: &[&str] = &["edgeAgent", "edgeHub"];
 
-    runtime
-        .list()
-        .await
-        .map(|modules| {
-            modules
-                .into_iter()
-                .map(|module| module.name().to_owned())
-                .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
-                .collect()
-        })
-        .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+    // Getting modules requires the management socket, which might not be available if
+    // aziot-edged hasn't started. Require this operation to complete within a timeout
+    // so it doesn't block forever on an unavailable socket.
+    let list = tokio::time::timeout(std::time::Duration::from_secs(30), runtime.list());
+
+    match list.await {
+        Ok(Ok(modules)) => modules
+            .into_iter()
+            .map(|module| module.name().to_owned())
+            .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
+            .collect(),
+        _ => {
+            println!("Warning: Unable to call management socket. Module list not available.");
+
+            Vec::new()
+        }
+    }
 }
 
 /// # Errors

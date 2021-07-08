@@ -96,7 +96,7 @@ where
     write_check(&mut zip_writer, iothub_hostname, verbose).await?;
 
     // Get all modules
-    for module_name in get_modules(&runtime, include_ms_only).await? {
+    for module_name in get_modules(&runtime, include_ms_only).await {
         // Write module logs
         zip_writer
             .start_file(format!("logs/{}_log.txt", module_name), file_options)
