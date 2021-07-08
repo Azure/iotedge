@@ -1,3 +1,23 @@
+# 1.1.4 (2021-07-05)
+## Edge Agent
+### Bug Fixes
+* Use Docker Timestamp When Log Timestamp is not Available in JSON log. [b4d989b](https://github.com/Azure/iotedge/commit/b4d989bb9d0a92ac9d83c8d1be9384c6bcd61530)
+* Update Base Images for a Security Patch. [de48c49](https://github.com/Azure/iotedge/commit/de48c495bd182a2fc943c52d3b3e80eb8bebe0cf)
+
+
+## Edge Hub
+### Bug Fixes
+* Add validation for null props inside objects inside arrays. [a6d7fee](https://github.com/Azure/iotedge/commit/a6d7feec065037a5d6f514e7c3b3dcdc6108a20c)
+* Fixed subscription restore from client state when mqtt client reconnects. [aadf030](https://github.com/Azure/iotedge/commit/aadf03037ef17927c9d69b870a21800a6bcd73e0)
+* Send connection device Id information on twin change notifications. [acc3e1f](https://github.com/Azure/iotedge/commit/acc3e1f711a7e0c0f9a88a09af79d33885025d26)
+* Update Base Images for a Security Patch. [de48c49](https://github.com/Azure/iotedge/commit/de48c495bd182a2fc943c52d3b3e80eb8bebe0cf)
+
+
+## Temperature Filter Function
+### Bug Fixes
+* Update to use Azure Functions 3.0 [0d18c66](https://github.com/Azure/iotedge/commit/0d18c661bc0b50186bf51743e2b7d974282c7674)
+
+
 # 1.1.3 (2021-05-24)
 ## Edge Agent
 ### Bug Fixes
