@@ -6,7 +6,7 @@ members = [
     "edgelet-docker",
     "edgelet-http",
     "edgelet-http-mgmt",
-    #"edgelet-http-workload",
+    "edgelet-http-workload",
     "edgelet-test-utils",
     "edgelet-utils",
     #"iotedge",

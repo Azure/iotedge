@@ -596,6 +596,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "edgelet-http-workload"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "edgelet-http",
+ "futures-util",
+ "http 0.2.4",
+ "http-common",
+ "hyper 0.14.7",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio 1.6.0",
+ "url 2.2.2",
+]
+
+[[package]]
 name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
