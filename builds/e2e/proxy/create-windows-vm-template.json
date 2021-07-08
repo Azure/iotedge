@@ -1,23 +1,20 @@
 {
-	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
 	"contentVersion": "1.0.0.0",
 	"parameters": {
-		"admin_password": {
-			"type": "securestring"
-		},
 		"admin_user": {
 			"type": "string"
 		},
-		"extension_command": {
+		"admin_password": {
 			"type": "securestring"
+		},
+		"extension_command": {
+			"type": "string"
 		},
 		"nic_name": {
 			"type": "string"
 		},
 		"nsg_id": {
-			"type": "string"
-		},
-		"ssh_public_key": {
 			"type": "string"
 		},
 		"vm_name": {
@@ -46,7 +43,7 @@
 		"condition": "[not(equals(parameters('ip_addr_name'), '!'))]",
 		"type": "Microsoft.Network/publicIPAddresses",
 		"name": "[parameters('ip_addr_name')]",
-		"apiVersion": "2018-02-01",
+		"apiVersion": "2020-05-01",
 		"sku": {
 			"name": "Basic",
 			"tier": "Regional"
@@ -60,7 +57,7 @@
 	}, {
 		"type": "Microsoft.Network/networkInterfaces",
 		"name": "[parameters('nic_name')]",
-		"apiVersion": "2018-02-01",
+		"apiVersion": "2020-05-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"ipConfigurations": [{
@@ -76,7 +73,7 @@
 			"networkSecurityGroup": {
 				"id": "[parameters('nsg_id')]"
 			},
-			"primary": true
+			"primary": false
 		},
 		"dependsOn": [
 			"[parameters('ip_addr_name')]"
@@ -84,7 +81,7 @@
 	}, {
 		"type": "Microsoft.Compute/virtualMachines",
 		"name": "[parameters('vm_name')]",
-		"apiVersion": "2017-12-01",
+		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"osProfile": {
@@ -129,12 +126,12 @@
 	}, {
 		"type": "Microsoft.Compute/virtualMachines/extensions",
 		"name": "[concat(parameters('vm_name'), '/', 'setup')]",
-		"apiVersion": "2018-06-01",
+		"apiVersion": "2020-06-01",
 		"location": "[resourceGroup().location]",
 		"properties": {
 			"publisher": "Microsoft.Compute",
 			"type": "CustomScriptExtension",
-			"typeHandlerVersion": "1.9",
+			"typeHandlerVersion": "1.10",
 			"autoUpgradeMinorVersion": true,
 			"settings": {},
 			"protectedSettings": {
@@ -144,11 +141,5 @@
 		"dependsOn": [
 			"[resourceId('Microsoft.Compute/virtualMachines/', parameters('vm_name'))]"
 		]
-	}],
-	"outputs": {
-		"hostkey": {
-			"type": "array",
-			"value": "[take(skip(split(string(reference(resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('vm_name'), 'setup')).instanceView.substatuses[0].message), '#DATA#'), 1), 1)]"
-		}
-	}
+	}]
 }
