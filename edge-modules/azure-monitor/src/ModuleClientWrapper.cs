@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.Devices.Client;
+using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
@@ -15,9 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
         public ModuleClientWrapper(ModuleClient moduleClient, ITransportSettings[] transportSettings, SemaphoreSlim moduleClientLock)
         {
-            this.inner = moduleClient;
-            this.transportSettings = transportSettings;
-            this.moduleClientLock = moduleClientLock;
+            this.inner = Preconditions.CheckNotNull(moduleClient);
+            this.transportSettings = Preconditions.CheckNotNull(transportSettings);
+            this.moduleClientLock = Preconditions.CheckNotNull(moduleClientLock);
         }
 
         public static async Task<ModuleClientWrapper> BuildModuleClientWrapperAsync(ITransportSettings[] transportSettings)
