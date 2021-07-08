@@ -10,7 +10,7 @@ use std::time::Duration;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
-use futures::{future, stream, Async, Stream};
+use futures::{future, stream, Stream};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
@@ -64,7 +64,7 @@ pub struct DockerModuleRuntime {
     client: DockerClient,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
-    notary_lock: Arc<tokio::sync::Mutex<()>>,
+    notary_lock: Arc<tokio::sync::Mutex<BTreeMap<String, String>>>,
 }
 
 impl DockerModuleRuntime {
@@ -89,6 +89,85 @@ impl DockerModuleRuntime {
             .map(|(key, value)| format!("{}={}", key, value))
             .collect()
     }
+
+    async fn check_for_notary_image(&self, config: &DockerConfig) -> Result<(String, bool)> {
+        if let Some((notary_auth, gun, tag, config_path)) = self.get_notary_parameters(config) {
+            let lock = self.notary_lock.clone();
+            let mut notary_map = lock.lock().await;
+
+            // Note `.entry()` cannot be used b/c the notary lookup is async
+            let digest_from_notary = if let Some(digest) = notary_map.get(config.image()) {
+                digest.clone()
+            } else {
+                let digest =
+                    notary::notary_lookup(notary_auth.as_deref(), &gun, &tag, &config_path).await?;
+                notary_map.insert(config.image().to_owned(), digest.clone());
+                digest
+            };
+
+            let image_with_digest = format!("{}@{}", gun, digest_from_notary);
+            if let Some(digest_from_manifest) = config.digest() {
+                if digest_from_manifest == digest_from_notary {
+                    info!("Digest from notary and Digest from manifest does match");
+                    debug!(
+                        "Digest from notary : {} and Digest from manifest : {} does match",
+                        digest_from_notary, digest_from_manifest
+                    );
+                    Ok((image_with_digest, true))
+                } else {
+                    info!("Digest from notary and Digest from manifest does not match");
+                    debug!(
+                        "Digest from notary : {} and Digest from manifest : {} does not match",
+                        digest_from_notary, digest_from_manifest
+                    );
+                    Err(Error::from(ErrorKind::NotaryDigestMismatch(
+                        "notary digest mismatch with the manifest".to_owned(),
+                    )))
+                }
+            } else {
+                info!("No Digest from the manifest");
+                Ok((image_with_digest, true))
+            }
+        } else {
+            Ok((config.image().to_owned(), false))
+        }
+    }
+
+    fn get_notary_parameters(
+        &self,
+        config: &DockerConfig,
+    ) -> Option<(Option<String>, Arc<str>, String, PathBuf)> {
+        // check if the serveraddress exists & check if it exists in notary_registries
+        let registry_auth = config.auth();
+        let (registry_hostname, registry_username, registry_password) = match registry_auth {
+            Some(a) => (a.serveraddress(), a.username(), a.password()),
+            None => (None, None, None),
+        };
+        let hostname = registry_hostname?;
+        let config_path = self.notary_registries.get(hostname)?;
+        info!("{} is enabled for notary content trust", hostname);
+        let notary_auth = match (registry_username, registry_password) {
+            (None, None) => None,
+            (username, password) => {
+                let notary_auth = format!(
+                    "{}:{}",
+                    username.unwrap_or_default(),
+                    password.unwrap_or_default()
+                );
+                let notary_auth = base64::encode(&notary_auth);
+                Some(notary_auth)
+            }
+        };
+        let mut image_with_tag_parts = config.image().split(':');
+        let gun = image_with_tag_parts
+            .next()
+            .expect("split always returns atleast one element")
+            .to_owned();
+        let gun: Arc<str> = gun.into();
+        let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
+
+        Some((notary_auth, gun, tag, config_path.to_path_buf()))
+    }
 }
 
 impl std::fmt::Debug for DockerModuleRuntime {
@@ -103,28 +182,12 @@ impl ModuleRegistry for DockerModuleRuntime {
     type Config = DockerConfig;
 
     async fn pull(&self, config: &Self::Config) -> Result<()> {
-        let image_with_tag = config.image().to_owned();
-
-        let image = if let Some((notary_auth, gun, tag, config_path)) =
-            get_notary_parameters(config, &self.notary_registries, &image_with_tag)
-        {
-            let lock = self.notary_lock.clone();
-            let lock = lock.lock().await;
-
-            let digest =
-                notary::notary_lookup(notary_auth.as_deref(), &gun, &tag, &config_path).await?;
-
-            debug!("Digest from notary lookup {}", digest);
-            let image_with_digest = format!("{}@{}", gun, digest);
-            // lock.insert(image_with_tag, digest); TODO: Ask Gaya why this is added
-
-            info!("Pulling image via digest {}...", image_with_digest);
-            image_with_digest
+        let (image, is_content_trust_enabled) = self.check_for_notary_image(config).await?;
+        if is_content_trust_enabled {
+            info!("Pulling image via digest {}...", image);
         } else {
-            info!("Pulling image via tag {}...", image_with_tag);
-            image_with_tag
-        };
-
+            info!("Pulling image via tag {}...", image);
+        }
         let image_options = Some(bollard::image::CreateImageOptions {
             from_image: image,
             ..Default::default()
@@ -274,7 +337,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             client,
             system_resources: Arc::new(Mutex::new(system_resources)),
             notary_registries,
-            notary_lock: Arc::new(Mutex::new(())),
+            notary_lock: Arc::new(Mutex::new(BTreeMap::new())),
         };
 
         Ok(runtime)
@@ -357,159 +420,74 @@ fn get_ipv6_settings(network_configuration: &MobyNetwork) -> (bool, Option<Ipam>
     }
 }
 
+#[async_trait::async_trait]
 impl ModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Config = DockerConfig;
-    type Module = DockerModule<UrlConnector>;
+    type Module = DockerModule;
     type ModuleRegistry = Self;
     type Chunk = Chunk;
     type Logs = Logs;
 
-    type CreateFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type GetFuture =
-        Box<dyn Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type ListFuture = Box<dyn Future<Item = Vec<Self::Module>, Error = Self::Error> + Send>;
-    type ListWithDetailsStream =
-        Box<dyn Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send>;
-    type LogsFuture = Box<dyn Future<Item = Self::Logs, Error = Self::Error> + Send>;
-    type RemoveFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type RestartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
-    type SystemResourcesFuture =
-        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
-    type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-    type StopAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
-
-    fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
         if module.type_() != DOCKER_MODULE_TYPE {
-            return Box::new(future::err(Error::from(ErrorKind::InvalidModuleType(
+            return Err(Error::from(ErrorKind::InvalidModuleType(
                 module.type_().to_string(),
-            ))));
+            )));
         }
 
-        let image_with_tag = module.config().image().to_string();
-        let digest_from_manifest = module.config().digest().map(&str::to_owned);
-
-        let image_by_notary = if let Some((notary_auth, gun, tag, config_path)) =
-            get_notary_parameters(module.config(), &self.notary_registries, &image_with_tag)
-        {
-            let lock = self.notary_lock.clone();
-            let mutex = MutexFuture(lock);
-            future::Either::A(
-                mutex
-                    .and_then({
-                        let gun = gun.clone();
-                        let image_with_tag = image_with_tag.clone();
-                        move |lock| {
-                            let digest_from_notary = lock.get(&image_with_tag);
-                            #[allow(clippy::option_if_let_else)]
-                            if let Some(digest_from_notary) = digest_from_notary {
-                                future::Either::A(future::ok((digest_from_notary.clone(), lock)))
-                            }
-                            else {
-                                future::Either::B(notary::notary_lookup(
-                                    notary_auth.as_deref(),
-                                    &gun,
-                                    &tag,
-                                    &config_path,
-                                    lock,
-                                ))
-                            }
-                        }
-                    })
-                    .and_then(move |(digest_from_notary, mut lock)| {
-                        lock.insert(image_with_tag, digest_from_notary.clone());
-                        let image_with_digest = format!("{}@{}", gun, digest_from_notary);
-                        if let Some(digest_from_manifest_str) = digest_from_manifest {
-                            if digest_from_manifest_str == digest_from_notary {
-                                info!("Digest from notary and Digest from manifest does match");
-                                debug!("Digest from notary : {} and Digest from manifest : {} does match", digest_from_notary, digest_from_manifest_str);
-                                Ok((image_with_digest, true))
-                            }
-                            else {
-                                info!("Digest from notary and Digest from manifest does not match");
-                                debug!("Digest from notary : {} and Digest from manifest : {} does not match", digest_from_notary, digest_from_manifest_str);
-                                Err(Error::from(ErrorKind::NotaryDigestMismatch(
-                                        "notary digest mismatch with the manifest".to_owned(),
-                                )))
-                            }
-                        }
-                        else {
-                            info!("No Digest from the manifest");
-                            Ok((image_with_digest, true))
-                        }
-                    }),
-            )
+        let (image, is_content_trust_enabled) =
+            self.check_for_notary_image(module.config()).await?;
+        if is_content_trust_enabled {
+            info!("Creating image via digest {}...", image);
         } else {
-            future::Either::B(futures::future::ok((image_with_tag, false)))
-        };
+            info!("Creating image via tag {}...", image);
+        }
 
-        let client = self.client.clone();
-        let result = image_by_notary
-            .and_then(|(image, is_content_trust_enabled)| {
-                if is_content_trust_enabled {
-                    info!("Creating image via digest {}...", image);
-                } else {
-                    info!("Creating image via tag {}...", image);
-                }
-                module
-                    .config()
-                    .clone_create_options()
-                    .map(move |create_options| {
-                        let merged_env =
-                            DockerModuleRuntime::merge_env(create_options.env(), module.env());
+        Ok(())
 
-                        let mut labels = create_options
-                            .labels()
-                            .cloned()
-                            .unwrap_or_else(BTreeMap::new);
-                        labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
-                        labels.insert(
-                            ORIGINAL_IMAGE_LABEL_KEY.to_string(),
-                            module.config().image().to_string(),
-                        );
+        // module
+        //     .config()
+        //     .clone_create_options()
+        //     .map(move |create_options| {
+        //         let merged_env =
+        //             DockerModuleRuntime::merge_env(create_options.env(), module.env());
 
-                        debug!("Creating container {} with image {}", module.name(), image);
+        //         let mut labels = create_options
+        //             .labels()
+        //             .cloned()
+        //             .unwrap_or_else(BTreeMap::new);
+        //         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
+        //         labels.insert(
+        //             ORIGINAL_IMAGE_LABEL_KEY.to_string(),
+        //             module.config().image().to_string(),
+        //         );
 
-                        let create_options = create_options
-                            .with_image(image)
-                            .with_env(merged_env)
-                            .with_labels(labels);
+        //         debug!("Creating container {} with image {}", module.name(), image);
 
-                        // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
-                        // It contains the logic to add a container to the iot edge network only if a network is not already specified.
-                        client
-                            .container_api()
-                            .container_create(create_options, module.name())
-                            .then(|result| match result {
-                                Ok(_) => Ok(module),
-                                Err(err) => Err(Error::from_docker_error(
-                                    err,
-                                    ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                        module.name().to_string(),
-                                    )),
-                                )),
-                            })
-                    })
-            })
-            .flatten()
-            .then(|result| match result {
-                Ok(module) => {
-                    info!("Successfully created module {}", module.name());
-                    Ok(())
-                }
-                Err(err) => {
-                    log_failure(Level::Warn, &err);
-                    Err(err)
-                }
-            });
+        //         let create_options = create_options
+        //             .with_image(image)
+        //             .with_env(merged_env)
+        //             .with_labels(labels);
 
-        Box::new(result)
+        //         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
+        //         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+        //         client
+        //             .container_api()
+        //             .container_create(create_options, module.name())
+        //             .then(|result| match result {
+        //                 Ok(_) => Ok(module),
+        //                 Err(err) => Err(Error::from_docker_error(
+        //                     err,
+        //                     ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+        //                         module.name().to_string(),
+        //                     )),
+        //                 )),
+        //             })
+        //     })
     }
 
     fn get(&self, id: &str) -> Self::GetFuture {
@@ -1175,43 +1153,6 @@ where
             },
         ),
     })
-}
-
-fn get_notary_parameters(
-    config: &DockerConfig,
-    notary_registries: &BTreeMap<String, PathBuf>,
-    image_with_tag: &str,
-) -> Option<(Option<String>, Arc<str>, String, PathBuf)> {
-    // check if the serveraddress exists & check if it exists in notary_registries
-    let registry_auth = config.auth();
-    let (registry_hostname, registry_username, registry_password) = match registry_auth {
-        Some(a) => (a.serveraddress(), a.username(), a.password()),
-        None => (None, None, None),
-    };
-    let hostname = registry_hostname?;
-    let config_path = notary_registries.get(hostname)?;
-    info!("{} is enabled for notary content trust", hostname);
-    let notary_auth = match (registry_username, registry_password) {
-        (None, None) => None,
-        (username, password) => {
-            let notary_auth = format!(
-                "{}:{}",
-                username.unwrap_or_default(),
-                password.unwrap_or_default()
-            );
-            let notary_auth = base64::encode(&notary_auth);
-            Some(notary_auth)
-        }
-    };
-    let mut image_with_tag_parts = image_with_tag.split(':');
-    let gun = image_with_tag_parts
-        .next()
-        .expect("split always returns atleast one element")
-        .to_owned();
-    let gun: Arc<str> = gun.into();
-    let tag = image_with_tag_parts.next().unwrap_or("latest").to_owned();
-
-    Some((notary_auth, gun, tag, config_path.to_path_buf()))
 }
 
 #[cfg(test)]
