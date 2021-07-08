@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
         {
             Settings settings = Current;
 
-            Regex regex = new Regex("(\\/subscriptions\\/)(.*?)(\\/resourceGroups\\/)(.*?)(\\/providers\\/)");
+            Regex regex = new Regex("(subscriptions\\/)(.*?)(\\/resourceGroups\\/)(.*?)(\\/providers\\/)");
 
             return new Settings(
                 settings.LogAnalyticsWorkspaceId,
