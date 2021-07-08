@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             return new ModuleClientWrapper(moduleClient, transportSettings);
         }
 
-        public async Task RecreateClient(CancellationToken ct)
+        public async Task RecreateClient()
         {
             try
             {

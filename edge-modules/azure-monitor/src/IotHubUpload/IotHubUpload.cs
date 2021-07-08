@@ -52,7 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
-                Console.WriteLine($"iothub upload {moduleClientWrapper.Inner}");
                 await this.moduleClientWrapper.Inner.SendEventAsync("metricOutput", metricsMessage);
 
                 LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");

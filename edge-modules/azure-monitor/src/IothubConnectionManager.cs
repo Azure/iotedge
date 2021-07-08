@@ -18,12 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             this.Semaphore = semaphore;
         }
 
-        public async Task ConnectToIothub(CancellationToken ct)
+        public async Task ConnectToIothub()
         {
             await this.Semaphore.WaitAsync();
-            Console.WriteLine($"connection manager before recreate {this.ModuleClientWrapper.Inner}");
-            await this.ModuleClientWrapper.RecreateClient(ct);
-            Console.WriteLine($"connection manager after recreate {this.ModuleClientWrapper.Inner}");
+            await this.ModuleClientWrapper.RecreateClient();
             this.Semaphore.Release();
         }
     }
