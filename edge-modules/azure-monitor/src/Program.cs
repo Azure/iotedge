@@ -48,10 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             var transportSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
 
             ITransportSettings[] transportSettings = { transportSetting };
-            ModuleClient moduleClient = null;
+            ModuleClientWrapper moduleClientWrapper = null;
             try
             {
-                ModuleClientWrapper moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(transportSettings);
+                moduleClientWrapper = await ModuleClientWrapper.BuildModuleClientWrapperAsync(transportSettings);
 
                 PeriodicTask periodicIothubConnect = new PeriodicTask(moduleClientWrapper.RecreateClientAsync, Settings.Current.IotHubConnectFrequency, TimeSpan.FromMinutes(1), LoggerUtil.Writer, "Reconnect to IoT Hub", true);
 
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             }
             finally
             {
-                moduleClient?.Dispose();
+                moduleClientWrapper?.Dispose();
             }
 
             completed.Set();

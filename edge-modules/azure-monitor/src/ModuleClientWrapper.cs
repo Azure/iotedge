@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 {
 
-    public class ModuleClientWrapper
+    public class ModuleClientWrapper : IDisposable
     {
         ModuleClient inner;
         ITransportSettings[] transportSettings;
@@ -66,6 +66,12 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             }
 
             this.moduleClientLock.Release();
+        }
+
+        public void Dispose()
+        {
+            this.inner.Dispose();
+            this.moduleClientLock.Dispose();
         }
     }
 }
