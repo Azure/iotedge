@@ -1,9 +1,9 @@
 
-# Tracking $edgeAgent's reported properties during deployment.
+# Tracking \$edgeAgent's reported properties during deployment.
 
 An IoT Edge runtime receives a new deployment through \$edgeAgent's twin in the desired properties 
 section.  When it receives this new deployment, it creates a plan to apply changes to the current 
-system. Once that plan finishes executing, successfully or not, $edgeAgent will update its 
+system. Once that plan finishes executing, successfully or not, \$edgeAgent will update its 
 reported properties.  
 
 This document will help spell out some of the details of \$edgeAgent's twin properties as the IoT 
@@ -23,7 +23,7 @@ runtime:
 ### Configuration section
 
 This section is present when the service applies at-scale (base and layered) deployments. This 
-section will not be present if no at-scale or layered deployment is applied.
+section will not be presented if no at-scale or layered deployment is applied.
 
 Example:
 
@@ -47,7 +47,7 @@ Example:
 
 ### Desired Properties section
 
-This is the \$edgeAgent section of the modulesContent in an edge deployment.
+This is the \$edgeAgent section of the *modulesContent* in an edge deployment.
 
 Example:
 
@@ -100,7 +100,7 @@ Example:
  
 | Relevant Field | Meaning |
 |------------------------------------------|-------------------------------------------------------|
-| .properties.desired."$version"           | This number is monotonically increasing. Even a rollback will increase this number. |
+| .properties.desired."\$version"           | This number is monotonically increasing. Even a rollback will increase this number. |
 | .properties.desired.systemModules.edgeAgent.settings.image | \$edgeAgent’s desired image tag. |
 | .properties.desired.systemModules.edgeHub.status | \$edgeHub’s desire status, “running” or “stopped”. |
 | .properties.desired.systemModules.edgeHub.settings.image | \$edgeHub’s desired image tag. |
@@ -110,7 +110,7 @@ Example:
 
 ## Set by IoT Edge
 
-These properties are set on the IoT Edge and reported back to the service via $edgeAgent Twin.
+These properties are set on the IoT Edge and reported back to the service via \$edgeAgent Twin.
 
 ### Reported Properties section
 
@@ -191,7 +191,7 @@ Example:
                     "imagePullPolicy": "on-create",
                     "type": "docker",
                     "settings": {
-                        "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0",
+                        "image": "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.1",
                         "imageHash": "sha256:85fdb1e9675c837c18b75f103be6f156587d1058eced1fc508cdb84a722e4f82",
                         "createOptions": "{}"
                     },
@@ -227,16 +227,16 @@ Example:
 | 417  | ConfigEmptyError - no deployment has been send to IoT Edge |
 | 500  | Failed - something has gone wrong when applying a deployment |
 
-The code will be 406(Unknown) until \$edgeAgent is able to connect to the IoT Hub service, and 
-will be set to 406 when \$edgeAgent shuts down.
+The code will be `406(Unknown)` until \$edgeAgent is able to connect to the IoT Hub service, and 
+will be set to `406` when \$edgeAgent shuts down.
 
-Once online, the code may be 417(ConfigEmptyError) until \$edgeAgent receives a non-empty 
+Once online, the code may be `417(ConfigEmptyError)` until \$edgeAgent receives a non-empty 
 deployment.
 
-Once the deployment is successfully realized, the code will be 200(Ok).
+Once the deployment is successfully realized, the code will be `200(Ok)`.
 
-If the deployment is not successfully realized, the code will either be 400, 412, 417 or 500, based on the
-reason why it failed.
+If the deployment is not successfully realized, the code will either be `400`, `412`, `417` or `500`, 
+based on the reason why it failed.
 
 #### Module and system module runtime status
 
@@ -261,19 +261,19 @@ When the twin fields are in this state, the IoT Hub has applied a deployment, bu
 not received and processed it.
 
 ```
-configurations.<deployment name>.Status: "Applied" && 
+.configurations.<deployment name>.Status: "Applied" && 
 .properties.desired."$version" != .properties.reported.lastDesiredVerison 
 ```
  
 
 ### Completely successful
 
-A deployment may report a 200 code, which means it successfully deployed all modules, and all modules
+A deployment may report a `200` code, which means it successfully deployed all modules, and all modules
 have come into the correct state.
 
 
 ```
-configurations.<deployment name>.Status: "Applied" && 
+.configurations.<deployment name>.Status: "Applied" && 
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
 .properties.reported.lastDesiredStatus.code == 200 && 
 .properties.desired.systemModules.edgeHub.status == .properties.reported.systemModules.edgeHub.status &&
@@ -291,7 +291,7 @@ For each desired module:
 The IoT Edge runtime has received a deployment, but the deployment was invalid.
 
 ```
-configurations.<deployment name>.Status: "Applied" && 
+.configurations.<deployment name>.Status: "Applied" && 
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
 .properties.reported.lastDesiredStatus.code == 400 or 412  
 ```
@@ -306,7 +306,7 @@ In this state, the IoT Edge runtime has successfuly deployed all modules, but th
 a incorrect state after being deployed.
 
 ```
-configurations.<deployment name>.Status: "Applied" && 
+.configurations.<deployment name>.Status: "Applied" && 
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
 .properties.reported.lastDesiredStatus.code == 200 && 
 ```
@@ -329,7 +329,7 @@ specification references a bad image, or the container runtime failed for any nu
 
 
 ```
-configurations.<deployment name>.Status: "Applied" && 
+.configurations.<deployment name>.Status: "Applied" && 
 .properties.desired."$version" == .properties.reported.lastDesiredVerison && 
 .properties.reported.lastDesiredStatus.code == 500 && 
 ```
