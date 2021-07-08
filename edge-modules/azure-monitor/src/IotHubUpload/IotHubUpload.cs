@@ -18,19 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
     {
         const string IdentifierPropertyName = "id";
         readonly ModuleClientWrapper ModuleClientWrapper;
-        SemaphoreSlim ModuleClientLock;
 
-        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper, SemaphoreSlim moduleClientLock)
+        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper)
         {
             this.ModuleClientWrapper = Preconditions.CheckNotNull(moduleClientWrapper, nameof(moduleClientWrapper));
-            this.ModuleClientLock = moduleClientLock;
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            await this.ModuleClientLock.WaitAsync();
-
-            bool publishSucceeded;
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
@@ -52,19 +47,16 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 Message metricsMessage = new Message(metricsData);
                 metricsMessage.Properties[IdentifierPropertyName] = Constants.IoTUploadMessageIdentifier;
 
-                await this.ModuleClientWrapper.Inner.SendEventAsync("metricOutput", metricsMessage);
+                await this.ModuleClientWrapper.SendMessage("metricOutput", metricsMessage);
 
                 LoggerUtil.Writer.LogInformation("Successfully sent metrics via IoT message");
-                publishSucceeded = true;
+                return true;
             }
             catch (Exception e)
             {
                 LoggerUtil.Writer.LogError(e, "Error sending metrics via IoT message");
-                publishSucceeded = false;
+                return false;
             }
-
-            this.ModuleClientLock.Release();
-            return publishSucceeded;
         }
 
         private string Transform(IEnumerable<ExportMetric> metrics)

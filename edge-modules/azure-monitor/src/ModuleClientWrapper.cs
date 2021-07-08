@@ -9,34 +9,38 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
 
     public class ModuleClientWrapper
     {
-        public ModuleClient Inner;
+        ModuleClient inner;
         ITransportSettings[] transportSettings;
+        SemaphoreSlim moduleClientLock;
 
-        public ModuleClientWrapper(ModuleClient moduleClient, ITransportSettings[] transportSettings)
+        public ModuleClientWrapper(ModuleClient moduleClient, ITransportSettings[] transportSettings, SemaphoreSlim moduleClientLock)
         {
-            this.Inner = moduleClient;
+            this.inner = moduleClient;
             this.transportSettings = transportSettings;
-
-            moduleClient.ProductInfo = Constants.ProductInfo;
+            this.moduleClientLock = moduleClientLock;
         }
 
         public static async Task<ModuleClientWrapper> BuildModuleClientWrapperAsync(ITransportSettings[] transportSettings)
         {
+            SemaphoreSlim moduleClientLock = new SemaphoreSlim(1, 1);
+
             ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
             moduleClient.ProductInfo = Constants.ProductInfo;
             await moduleClient.OpenAsync();
 
-            return new ModuleClientWrapper(moduleClient, transportSettings);
+            return new ModuleClientWrapper(moduleClient, transportSettings, moduleClientLock);
         }
 
-        public async Task RecreateClient()
+        public async Task RecreateClientAsync()
         {
+            await this.moduleClientLock.WaitAsync();
+
             try
             {
-                this.Inner.Dispose();
-                this.Inner = await ModuleClient.CreateFromEnvironmentAsync(this.transportSettings);
-                this.Inner.ProductInfo = Constants.ProductInfo;
-                await this.Inner.OpenAsync();
+                this.inner.Dispose();
+                this.inner = await ModuleClient.CreateFromEnvironmentAsync(this.transportSettings);
+                this.inner.ProductInfo = Constants.ProductInfo;
+                await this.inner.OpenAsync();
 
                 LoggerUtil.Writer.LogInformation("Closed and re-established connection to IoT Hub");
             }
@@ -44,6 +48,24 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
             {
                 LoggerUtil.Writer.LogWarning($"Failed closing and re-establishing connection to IoT Hub: {e.ToString()}");
             }
+
+            this.moduleClientLock.Release();
+        }
+
+        public async Task SendMessage(string outputName, Message message)
+        {
+            await this.moduleClientLock.WaitAsync();
+
+            try
+            {
+                await this.inner.SendEventAsync(outputName, message);
+            }
+            catch (Exception e)
+            {
+                LoggerUtil.Writer.LogError($"Failed sending metrics as IoT message: {e.ToString()}");
+            }
+
+            this.moduleClientLock.Release();
         }
     }
 }
