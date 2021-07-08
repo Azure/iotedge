@@ -10,19 +10,19 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor
     public class IothubConnectionManager
     {
         ModuleClientWrapper ModuleClientWrapper;
-        SemaphoreSlim Semaphore;
+        SemaphoreSlim ModuleClientLock;
 
-        public IothubConnectionManager(ModuleClientWrapper moduleClient, SemaphoreSlim semaphore)
+        public IothubConnectionManager(ModuleClientWrapper moduleClient, SemaphoreSlim moduleClientLock)
         {
             this.ModuleClientWrapper = moduleClient;
-            this.Semaphore = semaphore;
+            this.ModuleClientLock = moduleClientLock;
         }
 
         public async Task ConnectToIothub()
         {
-            await this.Semaphore.WaitAsync();
+            await this.ModuleClientLock.WaitAsync();
             await this.ModuleClientWrapper.RecreateClient();
-            this.Semaphore.Release();
+            this.ModuleClientLock.Release();
         }
     }
 }

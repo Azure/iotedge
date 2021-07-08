@@ -18,17 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
     {
         const string IdentifierPropertyName = "id";
         readonly ModuleClientWrapper moduleClientWrapper;
-        SemaphoreSlim Semaphore;
+        SemaphoreSlim ModuleClientLock;
 
-        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper, SemaphoreSlim semaphore)
+        public IotHubMetricsUpload(ModuleClientWrapper moduleClientWrapper, SemaphoreSlim moduleClientLock)
         {
             this.moduleClientWrapper = Preconditions.CheckNotNull(moduleClientWrapper, nameof(moduleClientWrapper));
-            this.Semaphore = semaphore;
+            this.ModuleClientLock = moduleClientLock;
         }
 
         public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            await this.Semaphore.WaitAsync();
+            await this.ModuleClientLock.WaitAsync();
 
             bool publishSucceeded;
             try
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Azure.Monitor.IotHubMetricsUpload
                 publishSucceeded = false;
             }
 
-            this.Semaphore.Release();
+            this.ModuleClientLock.Release();
             return publishSucceeded;
         }
 
