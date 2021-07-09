@@ -28,6 +28,8 @@ jobs:
           
           if [[ "$(resources.pipeline.images.runName)" == "$VERSION" ]]; then
             echo "Input image build has the same version as the targetting release tags."
+            echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
+            echo "    Targeting Release Version: $VERSION"
           else
             echo "Input image build has a differnt version as the targetting release tags."
             echo "Please make sure the input image resource is correctly selected."
