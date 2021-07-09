@@ -17,7 +17,7 @@ jobs:
   - job: safe_guard
 ################################################################################
     timeoutInMinutes: 180
-    displayName: Publish Linux Images
+    displayName: Safe Guards
     pool:
       name: $(pool.linux.name)
       demands:
