@@ -57,7 +57,9 @@ impl TrcClient {
                 .map_err(ReportResultError::ConstructRequest)?;
 
             match self.trc_request(request).await {
-                Err(_) if retries > 0 => {
+                Err(e) if retries > 0 => {
+                    warn!("request to trc failed: {:?}", e);
+
                     retries -= 1;
                     time::sleep(wait).await;
                     wait *= 2
