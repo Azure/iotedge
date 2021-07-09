@@ -45,7 +45,7 @@ impl TrcClient {
             return Err(ReportResultError::UnsupportedTestType);
         }
 
-        // exponential backoff for max ~3 mins
+        // exponential randomized backoff for max ~3 mins (plus whatever internal time taken by http calls)
         let mut retries: u32 = 11;
         let mut base_wait = Duration::from_millis(100);
         loop {
