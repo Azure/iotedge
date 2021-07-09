@@ -6,6 +6,14 @@ variables:
   to.registry.address: 'edgebuilds.azurecr.io'
   to.registry.namespace: 'public'
   pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
+  tags: '7.8.21'
+  tempSensor.tags: '7.8.21'
+
+resources:
+  pipelines:
+  - pipeline: images
+    source: 'Azure-IoT-Edge-Core Images Release YAML'
+    branch: 'release/1.2'
 
 jobs:
 ################################################################################
@@ -31,6 +39,7 @@ jobs:
           command: login
           containerRegistry: iotedge-release-acr
 
+      # BEARWASHERE -- Use the $(Release.Artifacts.images.BuildNumber) from Resource option 
       - task: ShellScript@2
         displayName: 'Publish Edge Agent - Linux amd64'
         inputs:
