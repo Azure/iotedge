@@ -132,7 +132,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
-          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-agent/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/repo/edge-agent/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
 
@@ -141,7 +141,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
-          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-hub/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/repo/edge-hub/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
 
@@ -150,7 +150,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
-          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tempSensor.tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/repo/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tempSensor.tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
 
@@ -159,6 +159,6 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
-          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/repo/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
