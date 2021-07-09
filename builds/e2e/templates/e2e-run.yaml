@@ -67,6 +67,7 @@ steps:
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
     http_proxy: $(Agent.ProxyUrl)
     https_proxy: $(Agent.ProxyUrl)
+    no_proxy: 'localhost'
 
 - task: PublishTestResults@2
   displayName: Publish test results
