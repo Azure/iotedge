@@ -521,72 +521,46 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok((module, runtime_state))
     }
 
-    fn start(&self, id: &str) -> Self::StartFuture {
+    async fn start(&self, id: &str) -> Result<()> {
         info!("Starting module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.clone()))
-        }) {
-            return Box::new(future::err(Error::from(err)));
-        }
+        ensure_not_empty_with_context(id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id.to_owned()))
+        })
+        .map_err(Error::from)?;
 
-        Box::new(
-            self.client
-                .container_api()
-                .container_start(&id, "")
-                .then(|result| match result {
-                    Ok(_) => {
-                        info!("Successfully started module {}", id);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
+        self.client
+            .docker
+            .start_container::<&str>(id, None)
+            .await
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(
+                    id.to_owned(),
+                )))
+            })
     }
 
-    fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Self::StopFuture {
+    async fn stop(&self, id: &str, wait_before_kill: Option<Duration>) -> Result<()> {
         info!("Stopping module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.clone()))
-        }) {
-            return Box::new(future::err(Error::from(err)));
-        }
+        ensure_not_empty_with_context(id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id.to_owned()))
+        })
+        .map_err(Error::from)?;
 
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let wait_timeout = wait_before_kill.map(|s| match s.as_secs() {
-            s if s > i32::max_value() as u64 => i32::max_value(),
-            s => s as i32,
+        let options = wait_before_kill.map(|s| bollard::container::StopContainerOptions {
+            t: s.as_secs() as i64,
         });
 
-        Box::new(
-            self.client
-                .container_api()
-                .container_stop(&id, wait_timeout)
-                .then(|result| match result {
-                    Ok(_) => {
-                        info!("Successfully stopped module {}", id);
-                        Ok(())
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(id)),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
+        self.client
+            .docker
+            .stop_container(id, options)
+            .await
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(
+                    id.to_owned(),
+                )))
+            })
     }
 
     fn restart(&self, id: &str) -> Self::RestartFuture {
