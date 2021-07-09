@@ -1,9 +1,9 @@
-name: $(version)
+name: $(resources.pipeline.images.runName)
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  from.registry.address: 'edgebuilds.azurecr.io'
+  from.registry.address: ''
   from.registry.namespace: 'microsoft'
-  to.registry.address: 'edgebuilds.azurecr.io'
+  to.registry.address: ''
   to.registry.namespace: 'public'
   pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
   tags: '7.8.21'
