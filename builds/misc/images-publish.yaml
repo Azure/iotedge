@@ -1,8 +1,8 @@
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  from.registry.address: ''
+  from.registry.address: 'edgerelease.azurecr.io'
   from.registry.namespace: 'microsoft'
-  to.registry.address: ''
+  to.registry.address: 'beariotedgedevcontainerreg1.azurecr.io'
   to.registry.namespace: 'public'
   pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
 
@@ -25,10 +25,10 @@ jobs:
     steps:
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
-        displayName: Docker login edgebuilds
+        displayName: Docker login beariotedgedevcontainerreg1
         inputs:
           command: login
-          containerRegistry: iotedge-edgebuilds-acr
+          containerRegistry: beariotedgedevcontainerreg1
 
       - task: Docker@2
         displayName: Docker login edgerelease
@@ -121,10 +121,10 @@ jobs:
     steps:
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
-        displayName: Docker login edgebuilds
+        displayName: Docker login beariotedgedevcontainerreg1
         inputs:
           command: login
-          containerRegistry: iotedge-edgebuilds-acr
+          containerRegistry: beariotedgedevcontainerreg1
 
       - task: Docker@2
         displayName: Docker login edgerelease
