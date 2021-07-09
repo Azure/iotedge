@@ -447,47 +447,47 @@ impl ModuleRuntime for DockerModuleRuntime {
             info!("Creating image via tag {}...", image);
         }
 
+        let merged_env =
+            DockerModuleRuntime::merge_env(module.config().create_options.env(), module.env());
+        let mut labels: HashMap<&str, &str> =
+            module
+                .config()
+                .create_options
+                .labels()
+                .map_or_else(HashMap::new, |old_labels| {
+                    let new_labels = HashMap::with_capacity(old_labels.len() + 2);
+
+                    for (key, value) in old_labels {
+                        new_labels.insert(key.as_str(), value.as_str());
+                    }
+
+                    new_labels
+                });
+        labels.insert(OWNER_LABEL_KEY, OWNER_LABEL_VALUE);
+        labels.insert(ORIGINAL_IMAGE_LABEL_KEY, module.config().image());
+
+        debug!("Creating container {} with image {}", module.name(), image);
+        let config = bollard::container::Config::<&str> {
+            image: Some(&image),
+            labels: Some(labels),
+            env: Some(merged_env.iter().map(AsRef::as_ref).collect()),
+            ..Default::default()
+        };
+        let options = Some(bollard::container::CreateContainerOptions {
+            name: module.name(),
+        });
+
+        self.client
+            .docker
+            .create_container(options, config)
+            .await
+            .map_err(|_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                    module.name().to_string(),
+                ))
+            })?;
+
         Ok(())
-
-        // module
-        //     .config()
-        //     .clone_create_options()
-        //     .map(move |create_options| {
-        //         let merged_env =
-        //             DockerModuleRuntime::merge_env(create_options.env(), module.env());
-
-        //         let mut labels = create_options
-        //             .labels()
-        //             .cloned()
-        //             .unwrap_or_else(BTreeMap::new);
-        //         labels.insert(OWNER_LABEL_KEY.to_string(), OWNER_LABEL_VALUE.to_string());
-        //         labels.insert(
-        //             ORIGINAL_IMAGE_LABEL_KEY.to_string(),
-        //             module.config().image().to_string(),
-        //         );
-
-        //         debug!("Creating container {} with image {}", module.name(), image);
-
-        //         let create_options = create_options
-        //             .with_image(image)
-        //             .with_env(merged_env)
-        //             .with_labels(labels);
-
-        //         // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
-        //         // It contains the logic to add a container to the iot edge network only if a network is not already specified.
-        //         client
-        //             .container_api()
-        //             .container_create(create_options, module.name())
-        //             .then(|result| match result {
-        //                 Ok(_) => Ok(module),
-        //                 Err(err) => Err(Error::from_docker_error(
-        //                     err,
-        //                     ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-        //                         module.name().to_string(),
-        //                     )),
-        //                 )),
-        //             })
-        //     })
     }
 
     fn get(&self, id: &str) -> Self::GetFuture {
