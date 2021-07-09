@@ -5,8 +5,6 @@ variables:
   to.registry.address: ''
   to.registry.namespace: 'public'
   pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
-  tags: '7.8.21'
-  tempSensor.tags: '7.8.21'
 
 resources:
   pipelines:
@@ -38,17 +36,6 @@ jobs:
           command: login
           containerRegistry: iotedge-release-acr
 
-      - bash: |
-          BASE_VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
-          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
-          echo "Version: $VERSION"
-          echo "##vso[task.setvariable variable=version;]$VERSION"
-        # BEARWASHERE -- Correct the version
-          echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
-          echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-        displayName: Set Version
-
-      # BEARWASHERE -- Use the $(resources.pipeline.images.runName) from Resource option 
       - task: ShellScript@2
         displayName: 'Publish Edge Agent - Linux amd64'
         inputs:
@@ -144,6 +131,20 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
+
+      - bash: |
+          VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
+          TAGS=$(echo "${VERSION%.*}")
+
+          TAGS_STR=$(echo "['$TAGS']")
+          TEMP_SENSOR_TAGS_STR=$(echo "['$TAGS','latest']")
+
+          echo "Version: $VERSION"
+          echo "tags : $TAGS_STR"
+
+          echo "##vso[task.setvariable variable=tags;]$TAGS_STR"
+          echo "##vso[task.setvariable variable=tempSensor.tags;]$TEMP_SENSOR_TAGS_STR"
+        displayName: Set Version and Tags
 
       - task: Bash@3
         displayName: 'Publish Edge Agent Manifest'
