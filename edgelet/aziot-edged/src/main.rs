@@ -6,6 +6,9 @@
 mod error;
 mod management;
 mod provision;
+mod workload;
+
+use std::sync::atomic;
 
 // TODO: Remove this with parent_hostname_resolve
 use edgelet_core::RuntimeSettings;
@@ -86,11 +89,18 @@ async fn run() -> Result<(), EdgedError> {
     });
 
     // Start management and workload sockets.
-    management::start(&settings, sender).await?;
+    management::start(&settings, sender.clone()).await?;
+    let workload_shutdown = workload::start(&settings).await?;
 
-    if let Some(shutdown) = receiver.recv().await {
-        log::info!("{}", shutdown);
-    }
+    let shutdown = receiver.recv().await.expect("shutdown channel closed");
+    log::info!("{}", shutdown);
+
+    log::info!("Stopping workload API...");
+    workload_shutdown
+        .send(())
+        .expect("workload API receiver was dropped");
+
+    // TODO: make sure all mgmt and workload server tasks have exited
 
     Ok(())
 }

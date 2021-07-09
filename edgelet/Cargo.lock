@@ -88,6 +88,7 @@ dependencies = [
  "edgelet-core",
  "edgelet-docker",
  "edgelet-http-mgmt",
+ "edgelet-http-workload",
  "http-common",
  "log",
  "logger",
