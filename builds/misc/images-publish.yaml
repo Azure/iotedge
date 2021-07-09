@@ -1,10 +1,11 @@
 name: $(version)
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  from.registry.address: 'edgerelease.azurecr.io'
+  from.registry.address: 'edgebuilds.azurecr.io'
   from.registry.namespace: 'microsoft'
-  to.registry.address: 'edgerelease.azurecr.io'
+  to.registry.address: 'edgebuilds.azurecr.io'
   to.registry.namespace: 'public'
+  pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
 
 jobs:
 ################################################################################
@@ -13,9 +14,10 @@ jobs:
     timeoutInMinutes: 180
     displayName: Publish Linux Images
     pool:
-      vmImage: ubuntu-18.04
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
-
       # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
       - task: Docker@2
         displayName: Docker login edgebuilds
@@ -100,3 +102,63 @@ jobs:
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/repo/scripts/linux/moveImage.sh'
           args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8'
+
+################################################################################
+  - job: publish_manifest_images
+################################################################################
+    timeoutInMinutes: 180
+    displayName: Publish Manifest Images
+    dependsOn: publish_linux_images
+    pool:
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
+    steps:
+      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+      - task: Docker@2
+        displayName: Docker login edgebuilds
+        inputs:
+          command: login
+          containerRegistry: iotedge-edgebuilds-acr
+
+      - task: Docker@2
+        displayName: Docker login edgerelease
+        inputs:
+          command: login
+          containerRegistry: iotedge-release-acr
+
+      - task: Bash@3
+        displayName: 'Publish Edge Agent Manifest'
+        inputs:
+          targetType: filePath
+          filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
+          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-agent/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+        env:
+          BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
+
+      - task: Bash@3
+        displayName: 'Publish Edge Hub Manifest'
+        inputs:
+          targetType: filePath
+          filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
+          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-hub/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+        env:
+          BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
+
+      - task: Bash@3
+        displayName: 'Publish Temperature Sensor Manifest'
+        inputs:
+          targetType: filePath
+          filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
+          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tempSensor.tags)"'
+        env:
+          BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
+
+      - task: Bash@3
+        displayName: 'Publish diagnostics Manifest'
+        inputs:
+          targetType: filePath
+          filePath: './$(System.DefaultWorkingDirectory)/repo/scripts/linux/buildManifest.sh'
+          arguments: '-r $(to.registry.address) -v $(Release.Artifacts.images.BuildNumber) -t $(System.DefaultWorkingDirectory)/repo/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+        env:
+          BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)/repo
