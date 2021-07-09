@@ -48,6 +48,9 @@
               },
               "RuntimeLogLevel": {
                 "value": "debug"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
