@@ -3,6 +3,7 @@ use std::{iter::FromIterator, time::Duration, vec};
 use chrono::{DateTime, Utc};
 use enumset::EnumSet;
 use hyper::{body, client::HttpConnector, Body, Client, Request};
+use rand::Rng;
 use tokio::time;
 use tracing::warn;
 
@@ -46,7 +47,7 @@ impl TrcClient {
 
         // exponential backoff for max ~3 mins
         let mut retries: u32 = 11;
-        let mut wait = Duration::from_millis(100);
+        let mut base_wait = Duration::from_millis(100);
         loop {
             let body =
                 TestOperationResultDto::new(source.clone(), result.clone(), test_type, created_at);
@@ -60,9 +61,12 @@ impl TrcClient {
                 Err(e) if retries > 0 => {
                     warn!("request to trc failed: {:?}", e);
 
+                    let rand_num = rand::thread_rng().gen_range(1..10);
+                    let sleep_duration = base_wait + Duration::from_millis(rand_num * 100);
+
                     retries -= 1;
-                    time::sleep(wait).await;
-                    wait *= 2
+                    time::sleep(sleep_duration).await;
+                    base_wait *= 2
                 }
                 response => return response,
             }
