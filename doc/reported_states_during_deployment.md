@@ -2,8 +2,8 @@
 # Tracking \$edgeAgent's reported properties during deployment.
 
 An IoT Edge runtime receives a new deployment through \$edgeAgent's twin in the desired properties 
-section.  When it receives this new deployment, it creates a plan to apply changes to the current 
-system. Once that plan finishes executing, successfully or not, \$edgeAgent will update its 
+section.  When it receives this new deployment, it creates a reconciliation plan to apply changes to 
+the current system. Once that plan finishes running, successfully or not, \$edgeAgent will update its 
 reported properties.  
 
 This document will help spell out some of the details of \$edgeAgent's twin properties as the IoT 
@@ -229,6 +229,8 @@ Example:
 
 #### Last Desired Status codes
 
+This is the most recent device runtime status. It applies to the deployment as a whole.
+
 | Code | Meaning |
 |------|---------|
 | 200  | Successful deployment |
@@ -241,23 +243,23 @@ Example:
 The code will be `406(Unknown)` until \$edgeAgent is able to connect to the IoT Hub service, and 
 will be set to `406` when \$edgeAgent shuts down.
 
-Once online, the code may be `417(ConfigEmptyError)` until \$edgeAgent receives a non-empty 
+Once connected, the code may be `417(ConfigEmptyError)` until \$edgeAgent receives a non-empty 
 deployment.
 
-Once the deployment is successfully realized, the code will be `200(Ok)`.
+Once all deployment steps are successfully run, the code will be `200(Ok)`.
 
-If the deployment is not successfully realized, the code will either be `400`, `412`, `417` or `500`, 
-based on the reason why it failed.
+If all deployment steps are not successfully run, the code will either be `400`, `412`, `417` or `500`, 
+based on the reason why it failed. More discussion for each code is in [the next section](#how-these-fields-relate-when-applying-a-deployment).
 
 #### Module and system module runtime status
 
-A module's runtime status is the current status of the modules as interpreted by the IoT Edge 
+A module's runtime status is the current status of the module as interpreted by the IoT Edge 
 runtime from the container status. 
 
 | status  | Meaning |
 |---------|---------|
 | unknown | Module status is unknown. |
-| backoff | Module has had problems running, so \$edgeAgent has scheduled the module to restart at a future time.|
+| backoff | Module has had problems running, so \$edgeAgent has stopped the module and scheduled it to restart at a future time.|
 | running | Module is currently running. |
 | stopped | Module has exited successfully (with a zero exit code). |
 | failed  | Module has exited with a failure exit code (non-zero). |
@@ -353,18 +355,21 @@ the module is created.
 NOTE: If the module was previously marked as “running” it will stay “running” using the previous 
 image until the pull for the new module is complete.
 
-NOTE: The IoT Edge runtime doesn’t have a clear indicator that the pull is in progress compared to 
-the pull failing for some other reason (like a bad image name).  You may be able to derive some 
-information from `.properties.reported.lastDesiredStatus.description`.  For example, if the pull 
-was timed out, the text will contain “The operation was canceled”, and this state is probably 
-transitional.
+NOTE: Some module images may be very large or download very slowly. The IoT Edge runtime will only 
+wait for just over a minute for this pull to complete before timing out. The pull will still be in 
+progress, but the runtime will report this attempt as unsuccessful until the pull is complete. The 
+IoT Edge runtime doesn’t have a clear indicator to distinguish between this state and a failed image 
+pull. You may be able to derive diagnostic information from `.properties.reported.lastDesiredStatus.description`. 
+For example, if the pull was timed out, the text will contain “The operation was canceled”, and this 
+state is probably transitional.
 
-## Changes for individual deployments
+# Changes for individual deployments
 
 This document focused on at-scale deployments, but the IoT Edge runtime behavior is identical for an 
 [individual device deployment](https://docs.microsoft.com/azure/iot-edge/how-to-deploy-modules-portal?view=iotedge-2020-11). 
 The primary difference will be the **absence** of a [Configuration section](#configuration-section) in \$edgeAgent twin.
 
 The Configuration Section is set by the service, but it is not read or interpreted by the IoT Edge 
-runtime. All actions taken by the IoT Edge runtime are read from the [Desired Properties section](#desired-properties-section). 
-The fields `.configurations.<deployment name>.Status` will not be present for and may be ignored.
+runtime. All reconciliation actions taken by the IoT Edge runtime are derived from the [Desired Properties section](#desired-properties-section). 
+The fields like `.configurations.<deployment name>.Status` will not be present for this device and may be 
+ignored. All other twin properties will be set as described above.
