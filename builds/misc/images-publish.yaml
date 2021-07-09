@@ -1,7 +1,8 @@
-name: $(version)
 variables:
   NugetSecurityAnalysisWarningLevel: warn
+  from.registry.address: ''
   from.registry.namespace: 'microsoft'
+  to.registry.address: ''
   to.registry.namespace: 'public'
   pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
   tags: '7.8.21'
@@ -36,6 +37,16 @@ jobs:
         inputs:
           command: login
           containerRegistry: iotedge-release-acr
+
+      - bash: |
+          BASE_VERSION=$(cat $BUILD_SOURCESDIRECTORY/versionInfo.json | grep -oP '^\s*\"version\":\s*\"\K(?<version>\d*\.\d*\.\d*)')
+          VERSION="$BASE_VERSION$BUILD_BUILDNUMBER"
+          echo "Version: $VERSION"
+          echo "##vso[task.setvariable variable=version;]$VERSION"
+        # BEARWASHERE -- Correct the version
+          echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
+          echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
+        displayName: Set Version
 
       # BEARWASHERE -- Use the $(resources.pipeline.images.runName) from Resource option 
       - task: ShellScript@2
