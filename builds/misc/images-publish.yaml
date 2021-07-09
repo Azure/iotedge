@@ -1,4 +1,4 @@
-name: $(resources.pipeline.images.runName)
+name: $(version)
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   from.registry.namespace: 'microsoft'
