@@ -59,12 +59,14 @@ use edgelet_core::crypto::{
     IOTEDGED_CA_ALIAS,
 };
 use edgelet_core::watchdog::Watchdog;
+#[cfg(feature = "runtime-docker")]
+use edgelet_core::Listen;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, Dps, Listen, MakeModuleRuntime, ManualAuthMethod, Module, ModuleAction,
-    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
-    ProvisioningResult as CoreProvisioningResult, ProvisioningType, RuntimeSettings,
-    SymmetricKeyAttestationInfo, TpmAttestationInfo, WorkloadConfig, X509AttestationInfo,
+    CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, Module, ModuleAction, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    ProvisioningType, RuntimeSettings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
+    WorkloadConfig, X509AttestationInfo,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -125,6 +127,7 @@ const WORKLOAD_URI_KEY: &str = "IOTEDGE_WORKLOADURI";
 
 // This is the name of the directory that contains the module folder
 // with worlkload sockets inside, on the host
+#[cfg(feature = "runtime-docker")]
 const WORKLOAD_LISTEN_MNT_URI: &str = "IOTEDGE_WORKLOADLISTEN_MNTURI";
 
 /// This variable holds the URI to use for connecting to the management
@@ -2151,13 +2154,15 @@ mod tests {
     use std::sync::Mutex;
 
     use chrono::{Duration, Utc};
+    use futures::sync::mpsc;
     use lazy_static::lazy_static;
     use rand::RngCore;
     use serde_json::json;
     use tempdir::TempDir;
 
     use edgelet_core::{
-        KeyBytes, ModuleRuntimeState, PrivateKey, DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS,
+        KeyBytes, ModuleAction, ModuleRuntimeState, PrivateKey,
+        DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS,
     };
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;

@@ -491,11 +491,21 @@ impl Listen {
     }
 
     pub fn workload_mnt_uri(home_dir: &str) -> String {
-        "unix://".to_string() + home_dir + "/mnt"
+        #[cfg(windows)]
+        let url = "unix:///".to_string() + home_dir + "/mnt";
+        #[cfg(unix)]
+        let url = "unix://".to_string() + home_dir + "/mnt";
+
+        url
     }
 
     pub fn workload_uri(home_dir: &str, module_id: &str) -> Result<Url, ParseError> {
-        Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + ".sock"))
+        #[cfg(windows)]
+        let url = Url::parse(&("unix:///".to_string() + home_dir + "/mnt/" + module_id + ".sock"))?;
+        #[cfg(unix)]
+        let url = Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + ".sock"))?;
+
+        Ok(url)
     }
 
     pub fn management_uri(&self) -> &Url {

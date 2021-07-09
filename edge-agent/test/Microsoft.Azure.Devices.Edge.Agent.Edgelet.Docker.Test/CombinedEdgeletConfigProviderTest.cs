@@ -90,8 +90,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
                 { Constants.EdgeletManagementUriVariableName, "unix:///path/to/mgmt.sock" }
             };
 
-            IConfigurationRoot configRoot = new ConfigurationBuilder()
-                .AddInMemoryCollection(unixUris).Build();
+            var windowsUris = new Dictionary<string, string>
+            {
+                { Constants.EdgeletWorkloadUriVariableName, "unix:///C:/path/to/workload/sock" },
+                { Constants.EdgeletWorkloadListenMntUriVariableName, "unix:///C:/path/to/homedir/mnt" },
+                { Constants.EdgeletManagementUriVariableName, "unix:///C:/path/to/mgmt/sock" }
+            };
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? windowsUris : unixUris).Build();
             var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
             ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
 
@@ -107,6 +114,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             {
                 Assert.Equal("/path/to/homedir/mnt/edgeAgent.sock:/path/to/workload.sock", config.CreateOptions.HostConfig.Binds[0]);
                 Assert.Equal("/path/to/mgmt.sock:/path/to/mgmt.sock", config.CreateOptions.HostConfig.Binds[1]);
+            }else
+            {
+                Assert.Equal("C:\\path\\to\\homedir\\mnt:C:\\path\\to\\workload", config.CreateOptions.HostConfig.Binds[0]);
+                Assert.Equal("C:\\path\\to\\mgmt:C:\\path\\to\\mgmt", config.CreateOptions.HostConfig.Binds[1]);
             }
         }
 

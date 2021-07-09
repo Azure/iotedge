@@ -3,6 +3,7 @@
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
+#[cfg(unix)]
 use std::os::unix::prelude::PermissionsExt;
 use std::path::Path;
 
@@ -57,14 +58,7 @@ pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> Result<
         let listener = UnixListener::bind(&path)
             .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
 
-        fs::set_permissions(
-            path.as_ref(),
-            fs::Permissions::from_mode(unix_socket_permission),
-        )
-        .map_err(|err| {
-            error!("Cannot set directory permissions: {}", err);
-            ErrorKind::Path(path.as_ref().display().to_string())
-        })?;
+        set_permissions(path.as_ref(), unix_socket_permission)?;
 
         Incoming::Unix(listener)
     };
@@ -78,6 +72,23 @@ fn get_metadata(path: &Path) -> Result<fs::Metadata, Error> {
         fs::metadata(path).with_context(|_| ErrorKind::Path(path.display().to_string()))?;
     debug!("read metadata {:?} for {}", metadata, path.display());
     Ok(metadata)
+}
+
+#[cfg(unix)]
+fn set_permissions(path: &Path, unix_socket_permission: u32) -> Result<(), Error> {
+    fs::set_permissions(path, fs::Permissions::from_mode(unix_socket_permission)).map_err(
+        |err| {
+            error!("Cannot set directory permissions: {}", err);
+            ErrorKind::Path(path.display().to_string())
+        },
+    )?;
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn set_permissions(_path: &Path, _unix_socket_permission: u32) -> Result<(), Error> {
+    Ok(())
 }
 
 #[cfg(unix)]

@@ -901,7 +901,7 @@ fn container_create_succeeds() {
         let module_config = ModuleSpec::new(
             "m1".to_string(),
             "docker".to_string(),
-            DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
+            DockerConfig::new("nginx:latest".to_string(), create_options, None).unwrap(),
             env,
             ImagePullPolicy::default(),
         )
@@ -1392,13 +1392,8 @@ fn create_fails_for_non_docker_type() {
         let module_config = ModuleSpec::new(
             "m1".to_string(),
             name.to_string(),
-            DockerConfig::new(
-                "nginx:latest".to_string(),
-                ContainerCreateBody::new(),
-                None,
-                None,
-            )
-            .unwrap(),
+            DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None)
+                .unwrap(),
             BTreeMap::new(),
             ImagePullPolicy::default(),
         )
@@ -1667,20 +1662,25 @@ fn remove_fails_for_empty_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
-        .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);

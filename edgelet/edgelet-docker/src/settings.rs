@@ -301,7 +301,9 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use crate::settings::get_path_from_uri;
+
+    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url, UNIX_SCHEME};
 
     use std::cmp::Ordering;
     use std::fs::File;
@@ -311,7 +313,8 @@ mod tests {
     use tempdir::TempDir;
 
     use edgelet_core::{
-        AttestationMethod, IpamConfig, ManualAuthMethod, ProvisioningType, DEFAULT_NETWORKID,
+        AttestationMethod, IpamConfig, Listen, ManualAuthMethod, ProvisioningType,
+        DEFAULT_NETWORKID,
     };
 
     #[cfg(unix)]
@@ -953,6 +956,42 @@ mod tests {
             .expect("Test settings file could not be written");
 
         settings_yaml
+    }
+
+    #[test]
+    fn test() {
+        let home_dir = "C:\\ProgramData\\iotedge";
+
+        let workload_connect_uri =
+            Url::parse("unix:///C:/ProgramData/iotedge/workload/sock").unwrap();
+
+        let management_listen_uri = Url::parse("unix:///C:/ProgramData/iotedge/mgmt/sock").unwrap();
+
+        let management_connect_uri =
+            Url::parse("unix:///C:/ProgramData/iotedge/mgmt/sock").unwrap();
+
+        let workload_listen_uri = Listen::workload_uri(home_dir, "edgeAgent").unwrap();
+
+        let test = Listen::workload_mnt_uri(home_dir);
+
+        //Tmp
+        println!("{:?}", workload_connect_uri);
+        println!("{:?}", management_listen_uri);
+        println!("{:?}", management_connect_uri);
+        println!("{:?}", workload_listen_uri);
+        println!("{:?}", test);
+        // if the url is a domain socket URL then vol mount it into the container
+        for (listen_uri, connect_uri) in &[
+            (management_listen_uri, management_connect_uri),
+            (workload_listen_uri, workload_connect_uri),
+        ] {
+            if connect_uri.scheme() == UNIX_SCHEME {
+                let source_path = get_path_from_uri(listen_uri).unwrap();
+                let target_path = get_path_from_uri(connect_uri).unwrap();
+                println!("{:?}", source_path);
+                println!("{:?}", target_path);
+            }
+        }
     }
 
     #[test]

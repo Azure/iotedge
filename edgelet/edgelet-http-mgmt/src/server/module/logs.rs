@@ -116,7 +116,7 @@ fn parse_options(query: &str) -> Result<LogOptions, Error> {
 #[cfg(test)]
 mod tests {
     use chrono::prelude::*;
-    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
+    use edgelet_core::{MakeModuleRuntime, ModuleAction, ModuleRuntimeState, ModuleStatus};
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::{
         TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,

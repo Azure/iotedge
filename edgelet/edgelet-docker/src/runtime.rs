@@ -1140,16 +1140,16 @@ mod tests {
     use std::path::Path;
 
     use config::{Config, File, FileFormat};
-    use futures::future::FutureResult;
     use futures::stream::Empty;
     use futures::sync::mpsc::UnboundedSender;
+    use futures::{future::FutureResult, sync::mpsc};
 
     use json_patch::merge;
     use serde_json::{self, json, Value as JsonValue};
 
     use edgelet_core::{
-        Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
-        WatchdogSettings,
+        Certificates, Connect, Listen, ModuleAction, ModuleRegistry, ModuleTop, Provisioning,
+        RuntimeSettings, WatchdogSettings,
     };
     use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
