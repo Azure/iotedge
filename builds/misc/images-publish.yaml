@@ -1,10 +1,12 @@
+# Required variable from pipeline:
+#    from.registry.address: ''
+#    from.registry.namespace: ''
+#    to.registry.address: ''
+#    to.registry.namespace: ''
+#    pool.linux.name: ''
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  from.registry.address: 'edgerelease.azurecr.io'
-  from.registry.namespace: 'microsoft'
-  to.registry.address: 'beariotedgedevcontainerreg1.azurecr.io'
-  to.registry.namespace: 'public'
-  pool.linux.name: 'Azure-IoT-Edge-1ES-Hosted-Linux'
 
 resources:
   pipelines:
