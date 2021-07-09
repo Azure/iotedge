@@ -39,78 +39,78 @@ jobs:
           command: login
           containerRegistry: iotedge-release-acr
 
-      # BEARWASHERE -- Use the $(Release.Artifacts.images.BuildNumber) from Resource option 
+      # BEARWASHERE -- Use the $(resources.pipeline.images.runName) from Resource option 
       - task: ShellScript@2
         displayName: 'Publish Edge Agent - Linux amd64'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(Release.Artifacts.images.BuildNumber)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(Release.Artifacts.images.BuildNumber)-linux-amd64'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-amd64'
 
       - task: ShellScript@2
         displayName: 'Publish Edge Agent - Linux arm32v7'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm32v7'
 
       - task: ShellScript@2
         displayName: 'Publish Edge Agent - Linux arm64v8'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-linux-arm64v8'
 
       - task: ShellScript@2
         displayName: 'Publish Edge Hub - Linux amd64'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(Release.Artifacts.images.BuildNumber)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(Release.Artifacts.images.BuildNumber)-linux-amd64'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-amd64'
 
       - task: ShellScript@2
         displayName: 'Publish Edge Hub - Linux arm32v7'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm32v7'
 
       - task: ShellScript@2
         displayName: 'Publish Edge Hub - Linux arm64v8'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8'
 
       - task: ShellScript@2
         displayName: 'Publish Temp Sensor - Linux amd64'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(Release.Artifacts.images.BuildNumber)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(Release.Artifacts.images.BuildNumber)-linux-amd64'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64'
 
       - task: ShellScript@2
         displayName: 'Publish Temp Sensor - Linux arm32v7'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7'
 
       - task: ShellScript@2
         displayName: 'Publish Temp Sensor - Linux arm64v8'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
 
       - task: ShellScript@2
         displayName: 'Publish diagnostics - Linux amd64'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-amd64'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64'
 
       - task: ShellScript@2
         displayName: 'Publish diagnostics - Linux arm32v7'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-arm32v7'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7'
 
       - task: ShellScript@2
         displayName: 'Publish diagnostics - Linux arm64v8'
         inputs:
           scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
-          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(Release.Artifacts.images.BuildNumber)-linux-arm64v8'
+          args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
 
 ################################################################################
   - job: publish_manifest_images
@@ -141,7 +141,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-agent/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
@@ -150,7 +150,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-hub/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
@@ -159,7 +159,7 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tempSensor.tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-modules/SimulatedTemperatureSensor/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tempSensor.tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
@@ -168,6 +168,6 @@ jobs:
         inputs:
           targetType: filePath
           filePath: './$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-          arguments: '-r "$(to.registry.address)" -v "$(Release.Artifacts.images.BuildNumber)" -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
+          arguments: '-r "$(to.registry.address)" -v "$(resources.pipeline.images.runName)" -t $(System.DefaultWorkingDirectory)/edge-modules/iotedge-diagnostics-dotnet/docker/manifest.yaml.template -n "$(to.registry.namespace)" --tags "$(tags)"'
         env:
           BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
