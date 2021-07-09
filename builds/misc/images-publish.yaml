@@ -31,7 +31,7 @@ jobs:
           else
             echo "Input image build has a differnt version as the targetting release tags."
             echo "Please make sure the input image resource is correctly selected."
-            echo "    Input Image Built Version: $(resources.pipeline.images.runName)"
+            echo "    Input Image Build Version: $(resources.pipeline.images.runName)"
             echo "    Targeting Release Version: $VERSION"
             exit 1;
           fi
@@ -42,6 +42,7 @@ jobs:
 ################################################################################
     timeoutInMinutes: 180
     displayName: Publish Linux Images
+    dependsOn: safe_guard
     pool:
       name: $(pool.linux.name)
       demands:
