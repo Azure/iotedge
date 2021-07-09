@@ -3,9 +3,7 @@
 mod module;
 
 #[derive(Clone)]
-pub struct Service {
-
-}
+pub struct Service {}
 
 http_common::make_service! {
     service: Service,
