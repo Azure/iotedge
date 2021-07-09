@@ -308,7 +308,7 @@ The IoT Edge runtime has received a deployment, but the deployment was invalid.
 .properties.reported.lastDesiredStatus.code == 400 or 412  
 ```
 
-NOTE: We wouldn’t expect to see “406” unless \$edgeAgent shuts down, or “417” (empty deployment) 
+NOTE: We wouldn’t expect to see `406` unless \$edgeAgent shuts down, or `417` (empty deployment) 
 once the first deployment is applied. These may occur if \$edgeAgent is being updated.
 
 
