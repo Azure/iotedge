@@ -490,52 +490,35 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok(())
     }
 
-    fn get(&self, id: &str) -> Self::GetFuture {
+    async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState)> {
         debug!("Getting module {}...", id);
-        let id = id.to_string();
 
-        if let Err(err) = ensure_not_empty_with_context(&id, || {
-            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
-        }) {
-            return Box::new(future::err(Error::from(err)));
-        }
+        ensure_not_empty_with_context(id, || {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
+        })
+        .map_err(Error::from)?;
 
-        let client_copy = self.client.clone();
+        let response = self
+            .client
+            .docker
+            .inspect_container(id, None)
+            .await
+            .map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
+                    id.to_owned(),
+                )))
+            })?;
 
-        Box::new(
-            self.client
-                .container_api()
-                .container_inspect(&id, false)
-                .then(|result| match result {
-                    Ok(container) => {
-                        let name =
-                            parse_get_response::<Deserializer>(&container).with_context(|_| {
-                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
-                            })?;
-                        let config =
-                            DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
-                                .with_context(|_| {
-                                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(
-                                        id.clone(),
-                                    ))
-                                })?;
-                        let module =
-                            DockerModule::new(client_copy, name, config).with_context(|_| {
-                                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.clone()))
-                            })?;
-                        let state = runtime_state(container.id(), container.state());
-                        Ok((module, state))
-                    }
-                    Err(err) => {
-                        let err = Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id)),
-                        );
-                        log_failure(Level::Warn, &err);
-                        Err(err)
-                    }
-                }),
-        )
+        let name = response.name.unwrap_or_else(|| id.to_owned());
+        let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
+            .with_context(|_| {
+                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
+            })?;
+        let module = DockerModule::new(self.client.clone(), name, config)?;
+
+        let runtime_state = runtime_state(response.id, response.state.as_ref());
+
+        Ok((module, runtime_state))
     }
 
     fn start(&self, id: &str) -> Self::StartFuture {
