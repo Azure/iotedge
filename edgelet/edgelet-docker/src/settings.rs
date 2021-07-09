@@ -189,7 +189,7 @@ fn get_path_from_uri(uri: &Url) -> Result<String, LoadSettingsError> {
     #[cfg(windows)]
     let path = path
         .parent()
-        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?;        
+        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?;
     Ok(path
         .to_str()
         .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?

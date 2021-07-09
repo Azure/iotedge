@@ -7,18 +7,16 @@ use std::time::Duration;
 
 use failure::Fail;
 use futures::prelude::*;
+use futures::sync::mpsc::UnboundedSender;
 use futures::{future, stream, Async, Future, Stream};
-use futures::sync::{
-    mpsc::UnboundedSender,
-};
 use hyper::client::HttpConnector;
 use hyper::service::Service;
 use hyper::{Body, Chunk as HyperChunk, Request};
 use hyper_tls::HttpsConnector;
 
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
-    ModuleAction, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
+    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleAction,
+    ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
     ProvisioningResult as CoreProvisioningResult, RuntimeOperation, SystemInfo, SystemResources,
 };
 use edgelet_docker::DockerConfig;

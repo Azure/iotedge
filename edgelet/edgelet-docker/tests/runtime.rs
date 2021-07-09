@@ -27,8 +27,8 @@ use docker::models::{
 };
 
 use edgelet_core::{
-    GetTrustBundle, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module,
-    ModuleAction, ModuleRegistry, ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
+    GetTrustBundle, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction,
+    ModuleRegistry, ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
@@ -244,22 +244,27 @@ fn image_pull_with_invalid_image_name_fails() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                INVALID_IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            INVALID_IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -347,22 +352,27 @@ fn image_pull_with_invalid_image_host_fails() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                INVALID_IMAGE_HOST.to_string(),
-                ContainerCreateBody::new(),
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            INVALID_IMAGE_HOST.to_string(),
+            ContainerCreateBody::new(),
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -463,23 +473,28 @@ fn image_pull_with_invalid_creds_fails() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            // password is written to guarantee base64 encoding has '-' and/or '_'
-            let auth = AuthConfig::new()
-                .with_username("us1".to_string())
-                .with_password("ac?ac~aaac???".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        // password is written to guarantee base64 encoding has '-' and/or '_'
+        let auth = AuthConfig::new()
+            .with_username("us1".to_string())
+            .with_password("ac?ac~aaac???".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -563,23 +578,27 @@ fn image_pull_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            Some(auth),
+        )
+        .unwrap();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(),create_socket_channel_snd)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                Some(auth),
-            )
-            .unwrap();
-
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -651,22 +670,27 @@ fn image_pull_with_creds_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            let auth = AuthConfig::new()
-                .with_username("u1".to_string())
-                .with_password("bleh".to_string())
-                .with_email("u1@bleh.com".to_string())
-                .with_serveraddress("svr1".to_string());
-            let config = DockerConfig::new(
-                IMAGE_NAME.to_string(),
-                ContainerCreateBody::new(),
-                Some(auth),
-            )
-            .unwrap();
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let auth = AuthConfig::new()
+            .with_username("u1".to_string())
+            .with_password("bleh".to_string())
+            .with_email("u1@bleh.com".to_string())
+            .with_serveraddress("svr1".to_string());
+        let config = DockerConfig::new(
+            IMAGE_NAME.to_string(),
+            ContainerCreateBody::new(),
+            Some(auth),
+        )
+        .unwrap();
 
-            runtime.pull(&config)
-        });
+        runtime.pull(&config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -715,8 +739,13 @@ fn image_remove_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| ModuleRegistry::remove(&runtime, IMAGE_NAME));
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| ModuleRegistry::remove(&runtime, IMAGE_NAME));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -827,54 +856,59 @@ fn container_create_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            let mut env = BTreeMap::new();
-            env.insert("k1".to_string(), "v1".to_string());
-            env.insert("k2".to_string(), "v2".to_string());
-            env.insert("k3".to_string(), "v3".to_string());
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let mut env = BTreeMap::new();
+        env.insert("k1".to_string(), "v1".to_string());
+        env.insert("k2".to_string(), "v2".to_string());
+        env.insert("k3".to_string(), "v3".to_string());
 
-            // add some create options
-            let mut port_bindings = BTreeMap::new();
-            port_bindings.insert(
-                "22/tcp".to_string(),
-                vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
-            );
-            port_bindings.insert(
-                "80/tcp".to_string(),
-                vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
-            );
-            let memory: i64 = 3_221_225_472;
-            let mut volumes = ::std::collections::BTreeMap::new();
-            volumes.insert("test1".to_string(), json!({}));
-            let create_options = ContainerCreateBody::new()
-                .with_host_config(
-                    HostConfig::new()
-                        .with_port_bindings(port_bindings)
-                        .with_memory(memory),
-                )
-                .with_cmd(vec![
-                    "/do/the/custom/command".to_string(),
-                    "with these args".to_string(),
-                ])
-                .with_entrypoint(vec![
-                    "/also/do/the/entrypoint".to_string(),
-                    "and this".to_string(),
-                ])
-                .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
-                .with_volumes(volumes);
-
-            let module_config = ModuleSpec::new(
-                "m1".to_string(),
-                "docker".to_string(),
-                DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
-                env,
-                ImagePullPolicy::default(),
+        // add some create options
+        let mut port_bindings = BTreeMap::new();
+        port_bindings.insert(
+            "22/tcp".to_string(),
+            vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
+        );
+        port_bindings.insert(
+            "80/tcp".to_string(),
+            vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
+        );
+        let memory: i64 = 3_221_225_472;
+        let mut volumes = ::std::collections::BTreeMap::new();
+        volumes.insert("test1".to_string(), json!({}));
+        let create_options = ContainerCreateBody::new()
+            .with_host_config(
+                HostConfig::new()
+                    .with_port_bindings(port_bindings)
+                    .with_memory(memory),
             )
-            .unwrap();
+            .with_cmd(vec![
+                "/do/the/custom/command".to_string(),
+                "with these args".to_string(),
+            ])
+            .with_entrypoint(vec![
+                "/also/do/the/entrypoint".to_string(),
+                "and this".to_string(),
+            ])
+            .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+            .with_volumes(volumes);
 
-            runtime.create(module_config)
-        });
+        let module_config = ModuleSpec::new(
+            "m1".to_string(),
+            "docker".to_string(),
+            DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
+            env,
+            ImagePullPolicy::default(),
+        )
+        .unwrap();
+
+        runtime.create(module_config)
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -911,8 +945,13 @@ fn container_start_succeeds() {
 
     let (create_socket_channel_snd, create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.start("m1"));
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.start("m1"));
 
     let simulate_workload_manager =
         create_socket_channel_rcv.for_each(move |module_id: ModuleAction| match module_id {
@@ -921,7 +960,7 @@ fn container_start_succeeds() {
                 Ok(())
             }
             ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
-        });        
+        });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -960,8 +999,13 @@ fn container_stop_succeeds() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.stop("m1", None));
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.stop("m1", None));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -998,8 +1042,13 @@ fn container_stop_with_timeout_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.stop("m1", Some(Duration::from_secs(600))));
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.stop("m1", Some(Duration::from_secs(600))));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1035,8 +1084,13 @@ fn container_remove_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| ModuleRuntime::remove(&runtime, "m1"));
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| ModuleRuntime::remove(&runtime, "m1"));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1155,8 +1209,13 @@ fn container_list_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.list());
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.list());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1237,16 +1296,21 @@ fn container_logs_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            let options = LogOptions::new()
-                .with_follow(true)
-                .with_tail(LogTail::All)
-                .with_since(100_000)
-                .with_until(200_000);
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let options = LogOptions::new()
+            .with_follow(true)
+            .with_tail(LogTail::All)
+            .with_since(100_000)
+            .with_until(200_000);
 
-            runtime.logs("mod1", &options)
-        });
+        runtime.logs("mod1", &options)
+    });
 
     let expected_body = [
         0x01_u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20,
@@ -1279,22 +1343,25 @@ fn image_remove_with_white_space_name_fails() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| ModuleRegistry::remove(&runtime, image_name))
-        .then(|res| match res {
-            Ok(_) => Err("Expected error but got a result.".to_string()),
-            Err(err) => match err.kind() {
-                ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s))
-                    if s == image_name =>
-                {
-                    Ok(())
-                }
-                kind => panic!(
-                    "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| ModuleRegistry::remove(&runtime, image_name))
+    .then(|res| match res {
+        Ok(_) => Err("Expected error but got a result.".to_string()),
+        Err(err) => match err.kind() {
+            ErrorKind::RegistryOperation(RegistryOperation::RemoveImage(s)) if s == image_name => {
+                Ok(())
+            }
+            kind => panic!(
+                "Expected `RegistryOperation(RemoveImage)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1315,27 +1382,37 @@ fn create_fails_for_non_docker_type() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| {
-            let module_config = ModuleSpec::new(
-                "m1".to_string(),
-                name.to_string(),
-                DockerConfig::new("nginx:latest".to_string(), ContainerCreateBody::new(), None, None)
-                    .unwrap(),
-                BTreeMap::new(),
-                ImagePullPolicy::default(),
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| {
+        let module_config = ModuleSpec::new(
+            "m1".to_string(),
+            name.to_string(),
+            DockerConfig::new(
+                "nginx:latest".to_string(),
+                ContainerCreateBody::new(),
+                None,
+                None,
             )
-            .unwrap();
+            .unwrap(),
+            BTreeMap::new(),
+            ImagePullPolicy::default(),
+        )
+        .unwrap();
 
-            runtime.create(module_config)
-        })
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::InvalidModuleType(s) if s == name => Ok::<_, Error>(()),
-                kind => panic!("Expected `InvalidModuleType` error but got {:?}.", kind),
-            },
-        });
+        runtime.create(module_config)
+    })
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::InvalidModuleType(s) if s == name => Ok::<_, Error>(()),
+            kind => panic!("Expected `InvalidModuleType` error but got {:?}.", kind),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1356,20 +1433,25 @@ fn start_fails_for_empty_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.start(name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.start(name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1390,20 +1472,25 @@ fn start_fails_for_white_space_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.start(name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.start(name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(StartModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1424,20 +1511,25 @@ fn stop_fails_for_empty_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.stop(name, None))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.stop(name, None))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1458,20 +1550,25 @@ fn stop_fails_for_white_space_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.stop(name, None))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.stop(name, None))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::StopModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(StopModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1492,20 +1589,25 @@ fn restart_fails_for_empty_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.restart(name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.restart(name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1526,20 +1628,25 @@ fn restart_fails_for_white_space_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.restart(name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.restart(name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::RestartModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(RestartModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1559,7 +1666,7 @@ fn remove_fails_for_empty_id() {
     let name = "";
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
-    
+
     let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
@@ -1594,20 +1701,25 @@ fn remove_fails_for_white_space_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::RemoveModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(RemoveModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1628,20 +1740,25 @@ fn get_fails_for_empty_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.get(name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.get(name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1662,20 +1779,25 @@ fn get_fails_for_white_space_id() {
 
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.get(name))
-        .then(|result| match result {
-            Ok(_) => panic!("Expected test to fail but it didn't!"),
-            Err(err) => match err.kind() {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
-                    Ok::<_, Error>(())
-                }
-                kind => panic!(
-                    "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
-                    kind
-                ),
-            },
-        });
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.get(name))
+    .then(|result| match result {
+        Ok(_) => panic!("Expected test to fail but it didn't!"),
+        Err(err) => match err.kind() {
+            ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(s)) if s == name => {
+                Ok::<_, Error>(())
+            }
+            kind => panic!(
+                "Expected `RuntimeOperation(GetModule)` error but got {:?}.",
+                kind
+            ),
+        },
+    });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1714,7 +1836,12 @@ fn runtime_init_network_does_not_exist_create() {
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd);
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1797,7 +1924,12 @@ fn network_ipv6_create() {
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd);
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1859,7 +1991,12 @@ fn runtime_init_network_exist_do_not_create() {
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd);
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1921,8 +2058,13 @@ fn runtime_system_info_succeeds() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.system_info());
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1979,8 +2121,13 @@ fn runtime_system_info_none_returns_unkown() {
     })));
     let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-        .and_then(|runtime| runtime.system_info());
+    let task = DockerModuleRuntime::make_runtime(
+        settings,
+        provisioning_result(),
+        crypto(),
+        create_socket_channel_snd,
+    )
+    .and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);

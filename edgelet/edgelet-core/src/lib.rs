@@ -44,7 +44,7 @@ pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, Ident
 pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction,
-    ModuleOperation, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, 
+    ModuleOperation, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState,
     ModuleSpec, ModuleStatus, ModuleTop, ProvisioningInfo, ProvisioningResult, RegistryOperation,
     RuntimeOperation, SystemInfo, SystemResources,
 };

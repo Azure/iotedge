@@ -360,7 +360,7 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
 
             InitializeErrorReason::WorkloadService => write!(f, "Could not start workload service"),
-   
+
             InitializeErrorReason::WorkloadManager => write!(f, "Could not start workload manager"),
         }
     }

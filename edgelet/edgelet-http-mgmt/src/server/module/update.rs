@@ -168,14 +168,15 @@ mod tests {
             let (create_socket_channel_snd, _create_socket_channel_rcv) =
                 mpsc::unbounded::<ModuleAction>();
 
-            TestRuntime::make_runtime(TestSettings::new(),                 
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-            create_socket_channel_snd
-        )
-                .wait()
-                .unwrap()
-                .with_module(Ok(module))
+            TestRuntime::make_runtime(
+                TestSettings::new(),
+                TestProvisioningResult::new(),
+                TestHsm::default(),
+                create_socket_channel_snd,
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module))
         };
     }
 
@@ -290,14 +291,15 @@ mod tests {
         let (create_socket_channel_snd, _create_socket_channel_rcv) =
             mpsc::unbounded::<ModuleAction>();
 
-        let runtime = TestRuntime::make_runtime(TestSettings::new(),
-        TestProvisioningResult::new(),
-        TestHsm::default(),
-         create_socket_channel_snd
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+            create_socket_channel_snd,
         )
-            .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = UpdateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);
@@ -332,13 +334,13 @@ mod tests {
 
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
-        TestProvisioningResult::new(),
-        TestHsm::default(),
-         create_socket_channel_snd
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+            create_socket_channel_snd,
         )
-            .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = UpdateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("test-module".to_string(), "docker".to_string(), config);

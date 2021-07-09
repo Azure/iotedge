@@ -94,11 +94,11 @@ mod tests {
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-             create_socket_channel_snd
-            )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = DeleteModule::new(runtime);
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
@@ -134,11 +134,11 @@ mod tests {
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-             create_socket_channel_snd
-            )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = DeleteModule::new(runtime);
         let request = Request::delete("http://localhost/modules/test")
             .body(Body::default())

@@ -200,14 +200,14 @@ mod tests {
             mpsc::unbounded::<ModuleAction>();
 
         let runtime = TestRuntime::make_runtime(
-            TestSettings::new(), 
-        TestProvisioningResult::new(),
-        TestHsm::default(),
-        create_socket_channel_snd
-    )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = ModuleLogs::new(runtime);
         let request = Request::get("http://localhost/modules/mod1/logs?api-version=2018-06-28")
             .body(Body::default())
@@ -240,11 +240,11 @@ mod tests {
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-             create_socket_channel_snd
-            )
-            .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = ModuleLogs::new(runtime);
         let request = Request::get("http://localhost/modules/mod1/logs?api-version=2018-06-28")
             .body(Body::default())
@@ -288,14 +288,14 @@ mod tests {
             mpsc::unbounded::<ModuleAction>();
 
         let runtime = TestRuntime::make_runtime(
-            TestSettings::new(), 
+            TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-            create_socket_channel_snd
+            create_socket_channel_snd,
         )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = ModuleLogs::new(runtime);
         let request = Request::get(
             "http://localhost/modules/mod1/logs?api-version=2018-06-28&follow=asfda&tail=asfafda",

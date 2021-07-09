@@ -90,14 +90,14 @@ mod tests {
             mpsc::unbounded::<ModuleAction>();
 
         let runtime = TestRuntime::make_runtime(
-            TestSettings::new(), 
+            TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-            create_socket_channel_snd
+            create_socket_channel_snd,
         )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = RestartModule::new(runtime);
         let parameters =
             Parameters::with_captures(vec![(Some("name".to_string()), "test".to_string())]);
@@ -132,11 +132,11 @@ mod tests {
             TestSettings::new(),
             TestProvisioningResult::new(),
             TestHsm::default(),
-             create_socket_channel_snd
-            )
-            .wait()
-            .unwrap()
-            .with_module(Ok(module));
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
         let handler = RestartModule::new(runtime);
         let request = Request::post("http://localhost/modules/test/restart")
             .body(Body::default())

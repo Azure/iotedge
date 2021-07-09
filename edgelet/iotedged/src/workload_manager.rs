@@ -1,9 +1,4 @@
-use std::{
-    collections::HashMap,
-    fs,
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 
 use failure::{Fail, ResultExt};
 use futures::{
@@ -15,34 +10,37 @@ use log::{error, info, warn, Level};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 
+use edgelet_core::crypto::{
+    CreateCertificate, Decrypt, Encrypt, GetTrustBundle, KeyStore, MasterEncryptionKey,
+};
 use edgelet_core::{
     Authenticator, Listen, MakeModuleRuntime, Module, ModuleAction, ModuleRuntime,
     ModuleRuntimeErrorReason, Protocol, RuntimeSettings, UrlExt, WorkloadConfig,
 };
-use edgelet_core::crypto::{
-    CreateCertificate, Decrypt, Encrypt,
-    GetTrustBundle, KeyStore, MasterEncryptionKey,
-};
 
-use edgelet_http::{certificate_manager::CertificateManager, logging::LoggingService, HyperExt, TlsAcceptorParams};
+use edgelet_http::{
+    certificate_manager::CertificateManager, logging::LoggingService, ConcurrencyThrottling,
+    HyperExt, TlsAcceptorParams,
+};
 use edgelet_http_workload::WorkloadService;
 use edgelet_utils::log_failure;
 
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 
 const SOCKET_DEFAULT_PERMISSION: u32 = 0o666;
+const MAX_CONCURRENCY: ConcurrencyThrottling = ConcurrencyThrottling::Limited(10);
 
 pub struct WorkloadManager<K, C, W, M>
 where
-C: CreateCertificate
-    + Decrypt
-    + Encrypt
-    + GetTrustBundle
-    + MasterEncryptionKey
-    + Clone
-    + Send
-    + Sync
-    + 'static,
+    C: CreateCertificate
+        + Decrypt
+        + Encrypt
+        + GetTrustBundle
+        + MasterEncryptionKey
+        + Clone
+        + Send
+        + Sync
+        + 'static,
 {
     module_runtime: M,
     shutdown_senders: HashMap<String, oneshot::Sender<()>>,
@@ -57,22 +55,22 @@ C: CreateCertificate
 
 impl<K, C, W, M> WorkloadManager<K, C, W, M>
 where
-K: KeyStore + Clone + Send + Sync + 'static,
-C: CreateCertificate
-    + Decrypt
-    + Encrypt
-    + GetTrustBundle
-    + MasterEncryptionKey
-    + Clone
-    + Send
-    + Sync
-    + 'static,
-W: WorkloadConfig + Clone + Send + Sync + 'static,
-M: ModuleRuntime + 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-<<M as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-<<M as ModuleRuntime>::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
-<M as ModuleRuntime>::Logs: Into<Body>,
+    K: KeyStore + Clone + Send + Sync + 'static,
+    C: CreateCertificate
+        + Decrypt
+        + Encrypt
+        + GetTrustBundle
+        + MasterEncryptionKey
+        + Clone
+        + Send
+        + Sync
+        + 'static,
+    W: WorkloadConfig + Clone + Send + Sync + 'static,
+    M: ModuleRuntime + 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M as ModuleRuntime>::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    <M as ModuleRuntime>::Logs: Into<Body>,
 {
     #[allow(clippy::too_many_arguments)]
     pub fn start_manager<F>(
@@ -94,7 +92,6 @@ for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         let home_dir = settings.homedir().to_path_buf();
 
         let min_protocol_version = settings.listen().min_tls_version();
-
 
         let module_runtime = runtime.clone();
         let key_store = key_store.clone();
@@ -132,6 +129,7 @@ for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         workload_uri: Url,
         signal_socket_created: Option<Sender<()>>,
         module_id: &str,
+        concurrency: ConcurrencyThrottling,
     ) -> Result<(), Error> {
         let label = "work".to_string();
 
@@ -144,8 +142,10 @@ for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
             .insert(module_id.to_string(), shutdown_sender);
 
         let future = WorkloadService::new(
-            &self.key_store, self.crypto.clone(), 
-            &self.module_runtime, self.config.clone(),
+            &self.key_store,
+            self.crypto.clone(),
+            &self.module_runtime,
+            self.config.clone(),
         )
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -156,24 +156,32 @@ for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
             let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
 
             let run = Http::new()
-            .bind_url(workload_uri.clone(), service, Some(tls_params), SOCKET_DEFAULT_PERMISSION)
-            .map_err(|err| {
-                err.context(ErrorKind::Initialize(
-                    InitializeErrorReason::WorkloadService,
-                ))
-            })?;
+                .bind_url(
+                    workload_uri.clone(),
+                    service,
+                    Some(tls_params),
+                    SOCKET_DEFAULT_PERMISSION,
+                )
+                .map_err(|err| {
+                    err.context(ErrorKind::Initialize(
+                        InitializeErrorReason::WorkloadService,
+                    ))
+                })?;
 
             // Send signal back to module runtime that socket and folder are created.
             if let Some(signal_socket_created) = signal_socket_created {
                 signal_socket_created
                     .send(())
                     .map_err(|()| ErrorKind::Initialize(InitializeErrorReason::WorkloadService))?;
-            }            
+            }
 
             let run = run
-                .run_until(shutdown_receiver.map_err(|_| ()))
+                .run_until(shutdown_receiver.map_err(|_| ()), concurrency)
                 .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
-            info!("Listening on {} with 1 thread for workload API.", workload_uri);
+            info!(
+                "Listening on {} with 1 thread for workload API.",
+                workload_uri
+            );
             Ok(run)
         })
         .flatten()
@@ -206,7 +214,12 @@ for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
         info!("String new listener for module {}", module_id);
         let workload_uri = self.get_listener_uri(module_id)?;
 
-        self.spawn_listener(workload_uri, signal_socket_created, module_id)
+        self.spawn_listener(
+            workload_uri,
+            signal_socket_created,
+            module_id,
+            MAX_CONCURRENCY,
+        )
     }
 
     fn stop(&mut self, module_id: &str) -> Result<(), Error> {
@@ -271,7 +284,12 @@ where
     <M as ModuleRuntime>::Logs: Into<Body>,
 {
     // Spawn a listener for module that are still running and uses old listen socket
-    workload_manager.spawn_listener(workload_manager.legacy_workload_uri.clone(), None, "")?;
+    workload_manager.spawn_listener(
+        workload_manager.legacy_workload_uri.clone(),
+        None,
+        "",
+        ConcurrencyThrottling::NoLimit,
+    )?;
 
     // Spawn listeners for all module that are still running
     module_list

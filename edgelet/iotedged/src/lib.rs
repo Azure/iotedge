@@ -39,7 +39,7 @@ use std::time::Duration;
 use failure::{Context, Fail, ResultExt};
 use futures::future::Either;
 use futures::sync::{
-    mpsc::{UnboundedSender},
+    mpsc::UnboundedSender,
     oneshot::{self, Receiver},
 };
 use futures::{future, Future, Stream};
@@ -62,16 +62,19 @@ use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
     CertificateType, Dps, Listen, MakeModuleRuntime, ManualAuthMethod, Module, ModuleAction,
-    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
-    ProvisioningType, RuntimeSettings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
-    WorkloadConfig, X509AttestationInfo,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
+    ProvisioningResult as CoreProvisioningResult, ProvisioningType, RuntimeSettings,
+    SymmetricKeyAttestationInfo, TpmAttestationInfo, WorkloadConfig, X509AttestationInfo,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
+use edgelet_http::{
+    ConcurrencyThrottling, HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams,
+    API_VERSION,
+};
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_iothub::{HubIdentityManager, SasTokenSource};
@@ -394,7 +397,7 @@ where
                     IOTEDGE_ID_CERT_MAX_DURATION_SECS,
                     IOTEDGE_SERVER_CERT_MAX_DURATION_SECS,
                 );
-                
+
                 let edgelet_cert_props = CertificateProperties::new(
                     settings.certificates().auto_generated_ca_lifetime_seconds(),
                     IOTEDGED_TLS_COMMONNAME.to_string(),
@@ -406,9 +409,9 @@ where
                 let cert_manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).context(
                     ErrorKind::Initialize(InitializeErrorReason::CreateCertificateManager),
                 )?;
-             
+
                 let cert_manager = Arc::new(cert_manager);
- 
+
                 WorkloadManager::start_manager::<M>(
                     &settings,
                     &$key_store,
@@ -1628,7 +1631,12 @@ where
 {
     info!("Initializing the module runtime...");
     let runtime = tokio_runtime
-        .block_on(M::make_runtime(settings, provisioning_result, crypto, create_socket_channel))
+        .block_on(M::make_runtime(
+            settings,
+            provisioning_result,
+            crypto,
+            create_socket_channel,
+        ))
         .context(ErrorKind::Initialize(InitializeErrorReason::ModuleRuntime))?;
     info!("Finished initializing the module runtime.");
 
@@ -2116,80 +2124,24 @@ where
             let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
 
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(tls_params), MGMT_SOCKET_DEFAULT_PERMISSION)
+                .bind_url(
+                    url.clone(),
+                    service,
+                    Some(tls_params),
+                    MGMT_SOCKET_DEFAULT_PERMISSION,
+                )
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
                     ))
                 })?
-                .run_until(shutdown.map_err(|_| ()))
+                .run_until(shutdown.map_err(|_| ()), ConcurrencyThrottling::NoLimit)
                 .map_err(|err| Error::from(err.context(ErrorKind::ManagementService)));
             info!("Listening on {} with 1 thread for management API.", url);
             Ok(run)
         })
         .flatten()
 }
-/* 
-fn start_workload<K, C, CE, W, M>(
-    settings: &M::Settings,
-    key_store: &K,
-    runtime: &M::ModuleRuntime,
-    shutdown: Receiver<()>,
-    crypto: &C,
-    cert_manager: Arc<CertificateManager<CE>>,
-    config: W,
-) -> impl Future<Item = (), Error = Error>
-where
-    K: KeyStore + Clone + Send + Sync + 'static,
-    C: CreateCertificate
-        + Decrypt
-        + Encrypt
-        + GetTrustBundle
-        + MasterEncryptionKey
-        + Clone
-        + Send
-        + Sync
-        + 'static,
-    CE: CreateCertificate + Clone,
-    W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: MakeModuleRuntime + 'static,
-    M::Settings: 'static,
-    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
-        Clone + DeserializeOwned + Serialize,
-    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
-{
-    info!("Starting workload API...");
-
-    let label = "work".to_string();
-    let url = settings.listen().workload_uri().clone();
-    let min_protocol_version = settings.listen().min_tls_version();
-
-    WorkloadService::new(key_store, crypto.clone(), runtime, config)
-        .then(move |service| -> Result<_, Error> {
-            let service = service.context(ErrorKind::Initialize(
-                InitializeErrorReason::WorkloadService,
-            ))?;
-            let service = LoggingService::new(label, service);
-
-            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
-
-            let run = Http::new()
-                .bind_url(url.clone(), service, Some(tls_params))
-                .map_err(|err| {
-                    err.context(ErrorKind::Initialize(
-                        InitializeErrorReason::WorkloadService,
-                    ))
-                })?
-                .run_until(shutdown.map_err(|_| ()))
-                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
-            info!("Listening on {} with 1 thread for workload API.", url);
-            Ok(run)
-        })
-        .flatten()
-}*/
 
 #[cfg(test)]
 mod tests {
@@ -2481,7 +2433,8 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
@@ -2524,7 +2477,8 @@ mod tests {
         )
         .unwrap();
         let state = ModuleRuntimeState::default();
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
 
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
@@ -2571,7 +2525,8 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
@@ -2653,7 +2608,8 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),
@@ -2726,7 +2682,8 @@ mod tests {
         let state = ModuleRuntimeState::default();
         let module: TestModule<Error, _> =
             TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
         let runtime = TestRuntime::make_runtime(
             settings.clone(),
             TestProvisioningResult::new(),

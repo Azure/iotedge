@@ -22,8 +22,8 @@ use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
+    MobyNetwork, Module, ModuleAction, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ModuleSpec, ProvisioningInfo, RegistryOperation, RuntimeOperation, RuntimeSettings,
     SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
@@ -1143,7 +1143,7 @@ mod tests {
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use futures::sync::mpsc::UnboundedSender;
-    
+
     use json_patch::merge;
     use serde_json::{self, json, Value as JsonValue};
 
@@ -1218,11 +1218,17 @@ mod tests {
                 "uri": "foo:///this/is/not/valid"
             }
         })));
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
 
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-            .wait()
-            .unwrap_err();
+        let err = DockerModuleRuntime::make_runtime(
+            settings,
+            provisioning_result(),
+            crypto(),
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap_err();
         assert!(failure::Fail::iter_chain(&err).any(|err| err
             .to_string()
             .contains("URL does not have a recognized scheme")));
@@ -1236,11 +1242,17 @@ mod tests {
                 "uri": "unix:///this/file/does/not/exist"
             }
         })));
-        let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
 
-        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto(), create_socket_channel_snd)
-            .wait()
-            .unwrap_err();
+        let err = DockerModuleRuntime::make_runtime(
+            settings,
+            provisioning_result(),
+            crypto(),
+            create_socket_channel_snd,
+        )
+        .wait()
+        .unwrap_err();
         assert!(failure::Fail::iter_chain(&err)
             .any(|err| err.to_string().contains("Socket file could not be found")));
     }
