@@ -52,13 +52,6 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login beariotedgedevcontainerreg1
-        inputs:
-          command: login
-          containerRegistry: beariotedgedevcontainerreg1
-
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
@@ -148,13 +141,6 @@ jobs:
       demands:
         - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
-      # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
-      - task: Docker@2
-        displayName: Docker login beariotedgedevcontainerreg1
-        inputs:
-          command: login
-          containerRegistry: beariotedgedevcontainerreg1
-
       - task: Docker@2
         displayName: Docker login edgerelease
         inputs:
