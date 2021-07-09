@@ -21,7 +21,7 @@ describes properties set by the IoT Edge runtime and reported back to the servic
 ## Set by IoT Hub service
 
 The Configuration and Desired Properties sections are set in \$edgeAgent twin by the IoT Hub service 
-and are read by the IoT Edge runtime:
+and the Desired Properties are read by the IoT Edge runtime:
 
 ### Configuration section
 
@@ -57,8 +57,8 @@ for more details on IoT Edge deployments and priority.
 ### Desired Properties section
 
 This is the \$edgeAgent section of the *modulesContent* in an edge deployment. This represents the 
-modules we want to deploy to this IoT Edge device. All actions an IoT Edge runtime will take will be
-based on this data.
+modules we want to deploy to this IoT Edge device. All reconciliation actions an IoT Edge runtime 
+will take will be based on this data.
 
 Example:
 
@@ -111,7 +111,7 @@ Example:
  
 | Relevant Field | Meaning |
 |------------------------------------------|-------------------------------------------------------|
-| .properties.desired."\$version"          | This number is monotonically increasing and updated on any change to the twin. Even a rollback will increase this number. |
+| .properties.desired."\$version"          | This number is monotonically increasing and updated on any change to desired properties. Even a rollback will increase this number. |
 | .properties.desired.systemModules.edgeAgent.settings.image | \$edgeAgent’s desired image tag. |
 | .properties.desired.systemModules.edgeHub.status | \$edgeHub’s desired status, “running” or “stopped”. |
 | .properties.desired.systemModules.edgeHub.settings.image | \$edgeHub’s desired image tag. |
@@ -217,7 +217,7 @@ Example:
 
 | Relevant Field | Meaning |
 |------------------------------------------|-------------------------------------------------------|
-| .properties.reported.lastDesiredVersion | The last deployment version number received and acted on. |
+| .properties.reported.lastDesiredVersion  | The last deployment version number received and acted on. |
 | .properties.reported.lastDesiredStatus.code | The current status of the deployment (see [table below](#last-desired-status-codes)).   |
 | .properties.reported.lastDesiredStatus.description | Text describing the deployment status. |
 | .properties.reported.systemModules.edgeAgent.runtimeStatus | \$edgeAgent should normally be "running" and will be "unknown" if not. |
@@ -281,8 +281,8 @@ not received and processed it.
 
 ### Completely successful
 
-A deployment may report a `200` code, which means it successfully deployed all modules, and all modules
-have come into the correct state.
+A deployment is completely successful when it reports a `200` code, which means it successfully 
+completed all deployment reconciliation steps, and all modules have come into the correct state.
 
 
 ```
@@ -315,7 +315,7 @@ once the first deployment is applied. These may occur if \$edgeAgent is being up
 ### Deployment succeeded, module failed after launch. 
 
 In this state, the IoT Edge runtime has successfuly deployed all modules, but the modules went into
-a incorrect state after being deployed.
+an incorrect state after being deployed.
 
 ```
 .configurations.<deployment name>.Status: "Applied" && 
