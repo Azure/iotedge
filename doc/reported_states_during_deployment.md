@@ -246,9 +246,9 @@ will be set to `406` when \$edgeAgent shuts down.
 Once connected, the code may be `417(ConfigEmptyError)` until \$edgeAgent receives a non-empty 
 deployment.
 
-Once all deployment steps are successfully run, the code will be `200(Ok)`.
+Once all steps in the reconciliation plan are successfully run, the code will be `200(Ok)`.
 
-If all deployment steps are not successfully run, the code will either be `400`, `412`, `417` or `500`, 
+If the reconciliation plan is not successfully run, the code will either be `400`, `412`, `417` or `500`, 
 based on the reason why it failed. More discussion for each code is in [the next section](#how-these-fields-relate-when-applying-a-deployment).
 
 #### Module and system module runtime status
