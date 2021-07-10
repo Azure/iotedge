@@ -21,7 +21,7 @@ impl Service {
 
         let key_connector = http_common::Connector::new(endpoints.aziot_keyd_url())?;
         let key_client = aziot_key_client_async::Client::new(
-            aziot_key_common_http::ApiVersion::V2021_05_01,
+            aziot_key_common_http::ApiVersion::V2020_09_01,
             key_connector,
         );
         let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));

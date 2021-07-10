@@ -96,7 +96,7 @@ impl http_common::server::Route for Route {
                 let ciphertext = base64::encode(ciphertext);
 
                 Ok((http::StatusCode::OK, Some(EncryptResponse { ciphertext })))
-            },
+            }
             Err(err) => Err(edgelet_http::error::server_error(format!(
                 "encryption failed: {}",
                 err
