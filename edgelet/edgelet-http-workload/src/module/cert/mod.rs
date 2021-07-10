@@ -18,7 +18,9 @@ pub(crate) enum PrivateKey {
 
 #[derive(Debug, serde::Serialize)]
 pub(crate) struct CertificateResponse {
+    #[serde(rename = "privateKey")]
     private_key: PrivateKey,
+
     certificate: String,
     expiration: String,
 }

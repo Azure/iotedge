@@ -69,6 +69,8 @@ http_common::make_service! {
         module::cert::identity::Route,
         module::cert::server::Route,
 
+        module::data::decrypt::Route,
+
         trust_bundle::Route,
     ],
 }
