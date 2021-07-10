@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 mod module;
+mod trust_bundle;
 
 #[derive(Clone)]
 pub struct Service {}
@@ -16,5 +17,7 @@ http_common::make_service! {
     api_version: edgelet_http::ApiVersion,
     routes: [
         module::list::Route,
+
+        trust_bundle::Route,
     ],
 }
