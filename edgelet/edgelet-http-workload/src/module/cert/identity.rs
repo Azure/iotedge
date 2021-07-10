@@ -19,7 +19,7 @@ impl http_common::server::Route for Route {
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
-        let uri_regex = regex::Regex::new("^/modules/(?P<moduleId>[^/]+)/certificate/identity")
+        let uri_regex = regex::Regex::new("^/modules/(?P<moduleId>[^/]+)/certificate/identity$")
             .expect("hard-coded regex must compile");
         let captures = uri_regex.captures(path)?;
 

@@ -26,7 +26,7 @@ impl http_common::server::Route for Route {
         extensions: &http::Extensions,
     ) -> Option<Self> {
         let uri_regex = regex::Regex::new(
-            "^/modules/(?P<moduleId>[^/]+)/genid/(?P<genId>[^/]+)/certificate/server",
+            "^/modules/(?P<moduleId>[^/]+)/genid/(?P<genId>[^/]+)/certificate/server$",
         )
         .expect("hard-coded regex must compile");
         let captures = uri_regex.captures(path)?;
