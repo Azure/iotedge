@@ -12,7 +12,8 @@ pub(crate) async fn start(
     let connector = http_common::Connector::new(&socket)
         .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
-    let service = edgelet_http_workload::Service::new();
+    let service = edgelet_http_workload::Service::new(settings)
+        .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
     let mut incoming = connector
         .incoming()

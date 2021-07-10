@@ -19,4 +19,6 @@ url = "2"
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 
+aziot-cert-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-cert-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }

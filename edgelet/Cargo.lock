@@ -68,6 +68,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
+name = "aziot-cert-client-async"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
+dependencies = [
+ "aziot-cert-common-http",
+ "aziot-key-common",
+ "http 0.2.4",
+ "http-common",
+ "hyper 0.14.7",
+ "percent-encoding 2.1.0",
+]
+
+[[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
 source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
@@ -601,6 +614,8 @@ name = "edgelet-http-workload"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "aziot-cert-client-async",
+ "aziot-cert-common-http",
  "edgelet-core",
  "edgelet-http",
  "futures-util",
