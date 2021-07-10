@@ -3,8 +3,6 @@
 mod module;
 mod trust_bundle;
 
-use edgelet_core::RuntimeSettings;
-
 #[derive(Clone)]
 pub struct Service {
     cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,

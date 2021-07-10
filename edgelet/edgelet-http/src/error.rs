@@ -9,6 +9,15 @@ pub fn bad_request(
     }
 }
 
+pub fn not_found(
+    message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
+) -> http_common::server::Error {
+    http_common::server::Error {
+        status_code: http::StatusCode::NOT_FOUND,
+        message: message.into(),
+    }
+}
+
 #[allow(clippy::module_name_repetitions)]
 pub fn server_error(
     message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
