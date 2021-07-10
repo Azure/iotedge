@@ -109,8 +109,9 @@ async fn run() -> Result<(), EdgedError> {
         .send(())
         .expect("workload API receiver was dropped");
 
-    // Wait for all server tasks to exit.
-    let poll_period = std::time::Duration::from_secs(1);
+    // Wait up to 10 seconds for all server tasks to exit.
+    let poll_period = std::time::Duration::from_millis(100);
+    let mut wait_time = 0;
 
     loop {
         let tasks = tasks.load(atomic::Ordering::Acquire);
@@ -119,8 +120,14 @@ async fn run() -> Result<(), EdgedError> {
             break;
         }
 
-        log::info!("Waiting for {} more task(s) to exit...", tasks);
+        if wait_time >= 10000 {
+            log::warn!("{} task(s) have not exited in time for shutdown", tasks);
+
+            break;
+        }
+
         tokio::time::sleep(poll_period).await;
+        wait_time += 100;
     }
 
     Ok(())
