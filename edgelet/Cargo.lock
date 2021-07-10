@@ -601,6 +601,7 @@ name = "edgelet-http-workload"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "edgelet-core",
  "edgelet-http",
  "futures-util",
  "http 0.2.4",

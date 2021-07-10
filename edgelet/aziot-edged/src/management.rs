@@ -13,7 +13,7 @@ pub(crate) async fn start(
         .map_err(|err| EdgedError::from_err("Invalid management API URL", err))?;
 
     let service =
-        edgelet_http_mgmt::Service::new(&settings.base.endpoints.aziot_identityd_url, sender)
+        edgelet_http_mgmt::Service::new(&settings.endpoints().aziot_identityd_url(), sender)
             .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
 
     let mut incoming = connector

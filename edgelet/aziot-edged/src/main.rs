@@ -41,7 +41,7 @@ async fn main() {
 async fn run() -> Result<(), EdgedError> {
     let settings = edgelet_docker::Settings::new()?;
 
-    let cache_dir = std::path::Path::new(&settings.base.homedir).join("cache");
+    let cache_dir = std::path::Path::new(&settings.homedir()).join("cache");
     std::fs::create_dir_all(cache_dir.clone()).map_err(|err| {
         EdgedError::from_err(
             format!(

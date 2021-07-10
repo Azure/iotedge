@@ -2,6 +2,8 @@
 
 use sha2::Digest;
 
+use edgelet_core::RuntimeSettings;
+
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn get_device_info(
@@ -9,7 +11,7 @@ pub(crate) async fn get_device_info(
     cache_dir: &std::path::Path,
 ) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
     let identity_connector =
-        http_common::Connector::new(&settings.base.endpoints.aziot_identityd_url)
+        http_common::Connector::new(&settings.endpoints().aziot_identityd_url())
             .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
     let identity_client = aziot_identity_client_async::Client::new(
         aziot_identity_common_http::ApiVersion::V2020_09_01,
@@ -17,7 +19,7 @@ pub(crate) async fn get_device_info(
     );
 
     if let edgelet_core::settings::AutoReprovisioningMode::AlwaysOnStartup =
-        settings.base.auto_reprovisioning_mode
+        settings.auto_reprovisioning_mode()
     {
         reprovision(&identity_client, cache_dir)
             .await
