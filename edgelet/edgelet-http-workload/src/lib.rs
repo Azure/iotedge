@@ -71,6 +71,7 @@ http_common::make_service! {
 
         module::data::decrypt::Route,
         module::data::encrypt::Route,
+        module::data::sign::Route,
 
         trust_bundle::Route,
     ],
