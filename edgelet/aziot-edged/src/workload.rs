@@ -4,6 +4,7 @@ use crate::error::Error as EdgedError;
 
 pub(crate) async fn start(
     settings: &edgelet_docker::Settings,
+    tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError> {
     // TODO: fix support in http_common for fd://
     let socket = url::Url::parse("unix:///tmp/workload_test.sock").unwrap();
@@ -27,6 +28,7 @@ pub(crate) async fn start(
             log::error!("Failed to start workload API: {}", err);
         }
 
+        tasks.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
         log::info!("Workload API stopped");
     });
 

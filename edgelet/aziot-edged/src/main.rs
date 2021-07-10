@@ -73,11 +73,20 @@ async fn run() -> Result<(), EdgedError> {
         .agent_mut()
         .parent_hostname_resolve(&device_info.gateway_host);
 
-    let (sender, mut receiver) =
+    let (shutdown_tx, mut shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
+    // Keep track of running tasks to determine when all server tasks have shut down.
+    // Workload and management API each have one task, so start with 2 tasks total.
+    let tasks = atomic::AtomicUsize::new(1); // TODO: change to 2 when management API is fixed
+    let tasks = std::sync::Arc::new(tasks);
+
+    // Start management and workload sockets.
+    management::start(&settings, shutdown_tx.clone()).await?;
+    let workload_shutdown = workload::start(&settings, tasks.clone()).await?;
+
     // Set the signal handler to listen for CTRL+C (SIGINT).
-    let sigint_sender = sender.clone();
+    let sigint_sender = shutdown_tx.clone();
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
@@ -88,19 +97,31 @@ async fn run() -> Result<(), EdgedError> {
         let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
     });
 
-    // Start management and workload sockets.
-    management::start(&settings, sender.clone()).await?;
-    let workload_shutdown = workload::start(&settings).await?;
-
-    let shutdown = receiver.recv().await.expect("shutdown channel closed");
+    // Wait for any running task to send a shutdown signal.
+    let shutdown = shutdown_rx.recv().await.expect("shutdown channel closed");
     log::info!("{}", shutdown);
+
+    // TODO
+    log::info!("Stopping management API...");
 
     log::info!("Stopping workload API...");
     workload_shutdown
         .send(())
         .expect("workload API receiver was dropped");
 
-    // TODO: make sure all mgmt and workload server tasks have exited
+    // Wait for all server tasks to exit.
+    let poll_period = std::time::Duration::from_secs(1);
+
+    loop {
+        let tasks = tasks.load(atomic::Ordering::Acquire);
+
+        if tasks == 0 {
+            break;
+        }
+
+        log::info!("Waiting for {} more task(s) to exit...", tasks);
+        tokio::time::sleep(poll_period).await;
+    }
 
     Ok(())
 }
