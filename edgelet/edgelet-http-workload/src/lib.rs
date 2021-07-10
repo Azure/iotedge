@@ -70,6 +70,7 @@ http_common::make_service! {
         module::cert::server::Route,
 
         module::data::decrypt::Route,
+        module::data::encrypt::Route,
 
         trust_bundle::Route,
     ],
