@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub(crate) struct Route {
+    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
+    identity_client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
     module_id: String,
     pid: libc::pid_t,
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub(crate) struct SignRequest {
-    #[serde(rename = "keyId")]
-    key_id: String,
-
-    algo: String,
     data: String,
 }
 
@@ -49,6 +47,8 @@ impl http_common::server::Route for Route {
         };
 
         Some(Route {
+            key_client: service.key_client.clone(),
+            identity_client: service.identity_client.clone(),
             module_id: module_id.into_owned(),
             pid,
         })
@@ -67,14 +67,58 @@ impl http_common::server::Route for Route {
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
         edgelet_http::auth_caller(&self.module_id, self.pid)?;
 
-        let body = match body {
-            Some(body) => body,
+        let data = match body {
+            Some(body) => super::base64_decode(body.data)?,
             None => return Err(edgelet_http::error::bad_request("missing request body")),
         };
 
-        todo!()
+        let module_key = get_module_key(self.identity_client, &self.module_id).await?;
+
+        let key_client = self.key_client.lock().await;
+
+        let digest = key_client
+            .sign(
+                &module_key,
+                aziot_key_common::SignMechanism::HmacSha256,
+                &data,
+            )
+            .await
+            .map_err(|err| edgelet_http::error::server_error(format!("failed to sign: {}", err)))?;
+        let digest = base64::encode(digest);
+
+        Ok((http::StatusCode::OK, Some(SignResponse { digest })))
     }
 
     type PutBody = serde::de::IgnoredAny;
     type PutResponse = ();
+}
+
+async fn get_module_key(
+    client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    module_id: &str,
+) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
+    let identity = {
+        let client = client.lock().await;
+
+        client.get_identity(module_id).await.map_err(|err| {
+            edgelet_http::error::server_error(format!(
+                "failed to get module identity for {}: {}",
+                module_id, err
+            ))
+        })
+    }?;
+
+    let identity = match identity {
+        aziot_identity_common::Identity::Aziot(identity) => identity,
+        aziot_identity_common::Identity::Local(_) => {
+            return Err(edgelet_http::error::server_error("invalid identity type"))
+        }
+    };
+
+    let auth = identity
+        .auth
+        .ok_or_else(|| edgelet_http::error::server_error("module identity missing auth"))?;
+
+    auth.key_handle
+        .ok_or_else(|| edgelet_http::error::server_error("module identity missing key"))
 }
