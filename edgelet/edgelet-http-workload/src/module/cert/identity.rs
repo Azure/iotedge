@@ -3,6 +3,10 @@
 pub(crate) struct Route {
     module_id: String,
     pid: libc::pid_t,
+    hub_name: String,
+    device_id: String,
+    edge_ca_cert: String,
+    edge_ca_key: String,
 }
 
 #[async_trait::async_trait]
@@ -36,6 +40,10 @@ impl http_common::server::Route for Route {
         Some(Route {
             module_id: module_id.into_owned(),
             pid,
+            hub_name: service.hub_name.clone(),
+            device_id: service.device_id.clone(),
+            edge_ca_cert: service.edge_ca_cert.clone(),
+            edge_ca_key: service.edge_ca_key.clone(),
         })
     }
 
@@ -52,9 +60,39 @@ impl http_common::server::Route for Route {
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
         edgelet_http::auth_caller(&self.module_id, self.pid)?;
 
+        let cert_name = format!("aziot-edged/module/{}:identity", &self.module_id);
+        let module_uri = format!(
+            "URI: azureiot://{}/devices/{}/modules/{}",
+            &self.hub_name, &self.device_id, &self.module_id
+        );
+        let subject_alt_name = super::SubjectAltName::DNS(module_uri);
+
+        let csr_extensions = identity_cert_extensions().map_err(|_| {
+            edgelet_http::error::server_error("failed to set identity csr extensions")
+        })?;
+
+        let (private_key, public_key, csr) =
+            super::new_keys_and_csr(&self.module_id, vec![subject_alt_name], csr_extensions)
+                .map_err(|_| {
+                    edgelet_http::error::server_error("failed to generate identity cert csr")
+                })?;
+
         todo!()
     }
 
     type PutBody = serde::de::IgnoredAny;
     type PutResponse = ();
+}
+
+fn identity_cert_extensions(
+) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+    let mut csr_extensions = openssl::stack::Stack::new()?;
+
+    let mut ext_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();
+    ext_key_usage.client_auth();
+
+    let ext_key_usage = ext_key_usage.build()?;
+    csr_extensions.push(ext_key_usage)?;
+
+    Ok(csr_extensions)
 }

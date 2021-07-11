@@ -4,6 +4,7 @@ use crate::error::Error as EdgedError;
 
 pub(crate) async fn start(
     settings: &edgelet_docker::Settings,
+    device_info: &aziot_identity_common::AzureIoTSpec,
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError> {
     // TODO: fix support in http_common for fd://
@@ -12,7 +13,7 @@ pub(crate) async fn start(
     let connector = http_common::Connector::new(&socket)
         .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
-    let service = edgelet_http_workload::Service::new(settings)
+    let service = edgelet_http_workload::Service::new(settings, device_info)
         .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
     let mut incoming = connector
