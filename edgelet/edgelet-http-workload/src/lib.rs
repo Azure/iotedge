@@ -3,12 +3,9 @@
 mod module;
 mod trust_bundle;
 
+// The subset of the aziot-edged config needed for workload APIs.
 #[derive(Clone)]
-pub struct Service {
-    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
-
+struct WorkloadConfig {
     hub_name: String,
     device_id: String,
 
@@ -19,34 +16,11 @@ pub struct Service {
     edge_ca_key: String,
 }
 
-impl Service {
+impl WorkloadConfig {
     pub fn new(
         settings: &impl edgelet_core::RuntimeSettings,
         device_info: &aziot_identity_common::AzureIoTSpec,
-    ) -> Result<Self, http_common::ConnectorError> {
-        let endpoints = settings.endpoints();
-
-        let key_connector = http_common::Connector::new(endpoints.aziot_keyd_url())?;
-        let key_client = aziot_key_client_async::Client::new(
-            aziot_key_common_http::ApiVersion::V2020_09_01,
-            key_connector,
-        );
-        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
-
-        let cert_connector = http_common::Connector::new(endpoints.aziot_certd_url())?;
-        let cert_client = aziot_cert_client_async::Client::new(
-            aziot_cert_common_http::ApiVersion::V2020_09_01,
-            cert_connector,
-        );
-        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
-
-        let identity_connector = http_common::Connector::new(endpoints.aziot_identityd_url())?;
-        let identity_client = aziot_identity_client_async::Client::new(
-            aziot_identity_common_http::ApiVersion::V2020_09_01,
-            identity_connector,
-        );
-        let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
-
+    ) -> Self {
         let trust_bundle = settings
             .trust_bundle_cert()
             .unwrap_or(edgelet_core::crypto::TRUST_BUNDLE_ALIAS)
@@ -66,16 +40,67 @@ impl Service {
             .unwrap_or(edgelet_core::crypto::AZIOT_EDGED_CA_ALIAS)
             .to_string();
 
+        WorkloadConfig {
+            hub_name: device_info.hub_name.clone(),
+            device_id: device_info.device_id.0.clone(),
+
+            trust_bundle,
+            manifest_trust_bundle,
+
+            edge_ca_cert,
+            edge_ca_key,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Service {
+    // This connector is needed to contruct sync aziot_key_clients when using aziot_key_openssl_engine.
+    key_connector: http_common::Connector,
+
+    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
+    cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
+    identity_client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+
+    config: WorkloadConfig,
+}
+
+impl Service {
+    pub fn new(
+        settings: &impl edgelet_core::RuntimeSettings,
+        device_info: &aziot_identity_common::AzureIoTSpec,
+    ) -> Result<Self, http_common::ConnectorError> {
+        let endpoints = settings.endpoints();
+
+        let key_connector = http_common::Connector::new(endpoints.aziot_keyd_url())?;
+        let key_client = aziot_key_client_async::Client::new(
+            aziot_key_common_http::ApiVersion::V2020_09_01,
+            key_connector.clone(),
+        );
+        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+
+        let cert_connector = http_common::Connector::new(endpoints.aziot_certd_url())?;
+        let cert_client = aziot_cert_client_async::Client::new(
+            aziot_cert_common_http::ApiVersion::V2020_09_01,
+            cert_connector,
+        );
+        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+
+        let identity_connector = http_common::Connector::new(endpoints.aziot_identityd_url())?;
+        let identity_client = aziot_identity_client_async::Client::new(
+            aziot_identity_common_http::ApiVersion::V2020_09_01,
+            identity_connector,
+        );
+        let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
+
+        let config = WorkloadConfig::new(settings, device_info);
+
         Ok(Service {
+            key_connector,
             key_client,
             cert_client,
             identity_client,
-            hub_name: device_info.hub_name.clone(),
-            device_id: device_info.device_id.0.clone(),
-            trust_bundle,
-            manifest_trust_bundle,
-            edge_ca_cert,
-            edge_ca_key,
+            config,
         })
     }
 }

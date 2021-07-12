@@ -149,6 +149,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "aziot-key-client"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
+dependencies = [
+ "aziot-key-common",
+ "aziot-key-common-http",
+ "http 0.2.4",
+ "http-common",
+ "httparse",
+ "percent-encoding 2.1.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "aziot-key-client-async"
 version = "0.1.0"
 source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
@@ -177,6 +192,24 @@ dependencies = [
  "aziot-key-common",
  "http-common",
  "serde",
+]
+
+[[package]]
+name = "aziot-key-openssl-engine"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
+dependencies = [
+ "aziot-key-client",
+ "aziot-key-common",
+ "base64 0.13.0",
+ "foreign-types-shared",
+ "log",
+ "openssl",
+ "openssl-build",
+ "openssl-errors",
+ "openssl-sys",
+ "openssl-sys2",
+ "openssl2",
 ]
 
 [[package]]
@@ -642,9 +675,11 @@ dependencies = [
  "aziot-identity-client-async",
  "aziot-identity-common",
  "aziot-identity-common-http",
+ "aziot-key-client",
  "aziot-key-client-async",
  "aziot-key-common",
  "aziot-key-common-http",
+ "aziot-key-openssl-engine",
  "base64 0.13.0",
  "edgelet-core",
  "edgelet-http",
@@ -1654,6 +1689,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "openssl-build"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "openssl-errors"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "896a63b50d065ba042e1ca4db8b0f85c0ce2c84ce64d666429bb96a1f503286d"
+dependencies = [
+ "libc",
+ "openssl-sys",
+]
+
+[[package]]
 name = "openssl-sys"
 version = "0.9.63"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1664,6 +1717,28 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "openssl-sys2"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
+dependencies = [
+ "openssl-build",
+ "openssl-sys",
+]
+
+[[package]]
+name = "openssl2"
+version = "0.1.0"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#97e37701ef83b31ef79282ac5cb66794c5c201d8"
+dependencies = [
+ "foreign-types",
+ "foreign-types-shared",
+ "openssl",
+ "openssl-build",
+ "openssl-sys",
+ "openssl-sys2",
 ]
 
 [[package]]

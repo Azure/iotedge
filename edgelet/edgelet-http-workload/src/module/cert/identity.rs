@@ -1,14 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub(crate) struct Route {
-    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
     module_id: String,
+    module_uri: String,
     pid: libc::pid_t,
-    hub_name: String,
-    device_id: String,
-    edge_ca_cert: String,
-    edge_ca_key: String,
+    api: super::CertApi,
 }
 
 #[async_trait::async_trait]
@@ -34,20 +30,28 @@ impl http_common::server::Route for Route {
             .decode_utf8()
             .ok()?;
 
+        let module_uri = format!(
+            "URI: azureiot://{}/devices/{}/modules/{}",
+            service.config.hub_name, service.config.device_id, module_id
+        );
+
         let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
             Some(pid) => pid,
             None => return None,
         };
 
+        let api = super::CertApi::new(
+            service.key_connector.clone(),
+            service.key_client.clone(),
+            service.cert_client.clone(),
+            &service.config,
+        );
+
         Some(Route {
-            key_client: service.key_client.clone(),
-            cert_client: service.cert_client.clone(),
             module_id: module_id.into_owned(),
+            module_uri,
             pid,
-            hub_name: service.hub_name.clone(),
-            device_id: service.device_id.clone(),
-            edge_ca_cert: service.edge_ca_cert.clone(),
-            edge_ca_key: service.edge_ca_key.clone(),
+            api,
         })
     }
 
@@ -65,11 +69,7 @@ impl http_common::server::Route for Route {
         edgelet_http::auth_caller(&self.module_id, self.pid)?;
 
         let cert_name = format!("aziot-edged/module/{}:identity", &self.module_id);
-        let module_uri = format!(
-            "URI: azureiot://{}/devices/{}/modules/{}",
-            &self.hub_name, &self.device_id, &self.module_id
-        );
-        let subject_alt_name = vec![super::SubjectAltName::DNS(module_uri)];
+        let subject_alt_names = vec![super::SubjectAltName::DNS(self.module_uri)];
 
         let csr_extensions = identity_cert_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set identity csr extensions")
@@ -79,17 +79,11 @@ impl http_common::server::Route for Route {
             edgelet_http::error::server_error("failed to generate identity csr keys")
         })?;
 
-        let csr = super::new_csr(&self.module_id, keys, subject_alt_name, csr_extensions)
+        let csr = super::new_csr(&self.module_id, keys, subject_alt_names, csr_extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate identity csr"))?;
 
-        let edge_ca_key = super::get_edge_ca(
-            self.key_client,
-            self.cert_client,
-            self.edge_ca_cert,
-            self.edge_ca_key,
-            self.device_id,
-        )
-        .await?;
+        let edge_ca_key_handle = self.api.edge_ca_key_handle().await?;
+        self.api.check_edge_ca(&edge_ca_key_handle).await?;
 
         todo!()
     }

@@ -25,8 +25,8 @@ impl http_common::server::Route for Route {
         _extensions: &http::Extensions,
     ) -> Option<Self> {
         let trust_bundle = match path {
-            "/trust-bundle" => service.trust_bundle.clone(),
-            "/manifest-trust-bundle" => service.manifest_trust_bundle.clone(),
+            "/trust-bundle" => service.config.trust_bundle.clone(),
+            "/manifest-trust-bundle" => service.config.manifest_trust_bundle.clone(),
             _ => return None,
         };
 
