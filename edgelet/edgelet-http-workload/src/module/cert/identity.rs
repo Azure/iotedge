@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 pub(crate) struct Route {
+    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
+    cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
     module_id: String,
     pid: libc::pid_t,
     hub_name: String,
@@ -38,6 +40,8 @@ impl http_common::server::Route for Route {
         };
 
         Some(Route {
+            key_client: service.key_client.clone(),
+            cert_client: service.cert_client.clone(),
             module_id: module_id.into_owned(),
             pid,
             hub_name: service.hub_name.clone(),
@@ -65,17 +69,27 @@ impl http_common::server::Route for Route {
             "URI: azureiot://{}/devices/{}/modules/{}",
             &self.hub_name, &self.device_id, &self.module_id
         );
-        let subject_alt_name = super::SubjectAltName::DNS(module_uri);
+        let subject_alt_name = vec![super::SubjectAltName::DNS(module_uri)];
 
         let csr_extensions = identity_cert_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set identity csr extensions")
         })?;
 
-        let (private_key, public_key, csr) =
-            super::new_keys_and_csr(&self.module_id, vec![subject_alt_name], csr_extensions)
-                .map_err(|_| {
-                    edgelet_http::error::server_error("failed to generate identity cert csr")
-                })?;
+        let keys = super::new_keys().map_err(|_| {
+            edgelet_http::error::server_error("failed to generate identity csr keys")
+        })?;
+
+        let csr = super::new_csr(&self.module_id, keys, subject_alt_name, csr_extensions)
+            .map_err(|_| edgelet_http::error::server_error("failed to generate identity csr"))?;
+
+        let edge_ca_key = super::get_edge_ca(
+            self.key_client,
+            self.cert_client,
+            self.edge_ca_cert,
+            self.edge_ca_key,
+            self.device_id,
+        )
+        .await?;
 
         todo!()
     }
