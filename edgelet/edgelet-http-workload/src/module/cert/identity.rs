@@ -68,7 +68,7 @@ impl http_common::server::Route for Route {
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
         edgelet_http::auth_caller(&self.module_id, self.pid)?;
 
-        let cert_name = format!("aziot-edged/module/{}:identity", &self.module_id);
+        let cert_id = format!("aziot-edged/module/{}:identity", &self.module_id);
         let subject_alt_names = vec![super::SubjectAltName::DNS(self.module_uri)];
 
         let csr_extensions = identity_cert_extensions().map_err(|_| {
@@ -79,13 +79,35 @@ impl http_common::server::Route for Route {
             edgelet_http::error::server_error("failed to generate identity csr keys")
         })?;
 
+        let private_key = keys
+            .0
+            .private_key_to_pem_pkcs8()
+            .expect("newly generated private key is invalid");
+
+        let private_key = std::str::from_utf8(&private_key)
+            .expect("newly generated private key is invalid")
+            .to_string();
+
         let csr = super::new_csr(&self.module_id, keys, subject_alt_names, csr_extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate identity csr"))?;
 
         let edge_ca_key_handle = self.api.edge_ca_key_handle().await?;
         self.api.check_edge_ca(&edge_ca_key_handle).await?;
 
-        todo!()
+        let identity_cert = self
+            .api
+            .create_cert(&cert_id, &csr, &edge_ca_key_handle)
+            .await?;
+
+        let expiration = super::get_expiration(&identity_cert)?;
+
+        let response = super::CertificateResponse {
+            private_key: super::PrivateKey::Bytes { bytes: private_key },
+            certificate: identity_cert,
+            expiration,
+        };
+
+        Ok((http::StatusCode::OK, Some(response)))
     }
 
     type PutBody = serde::de::IgnoredAny;

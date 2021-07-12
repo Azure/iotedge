@@ -681,6 +681,7 @@ dependencies = [
  "aziot-key-common-http",
  "aziot-key-openssl-engine",
  "base64 0.13.0",
+ "chrono",
  "edgelet-core",
  "edgelet-http",
  "futures-util",

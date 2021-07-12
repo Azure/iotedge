@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1"
 base64 = "0.13"
+chrono = "0.4"
 futures-util = "0.3"
 http = "0.2"
 hyper = "0.14"

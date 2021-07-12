@@ -35,7 +35,6 @@ struct CertApi {
     key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
     cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
 
-    hub_name: String,
     device_id: String,
     edge_ca_cert: String,
     edge_ca_key: String,
@@ -52,7 +51,6 @@ impl CertApi {
             key_connector,
             key_client,
             cert_client,
-            hub_name: config.hub_name.clone(),
             device_id: config.device_id.clone(),
             edge_ca_cert: config.edge_ca_cert.clone(),
             edge_ca_key: config.edge_ca_key.clone(),
@@ -89,15 +87,38 @@ impl CertApi {
 
             cert_client
                 .create_cert(
-                    &edge_ca_cert,
+                    &self.edge_ca_cert,
                     &csr,
-                    Some((&edge_ca_cert, edge_ca_key_handle)),
+                    Some((&self.edge_ca_cert, key_handle)),
                 )
                 .await
                 .map_err(|_| edgelet_http::error::server_error("failed to create edge ca cert"))?;
         }
 
         Ok(())
+    }
+
+    pub async fn create_cert(
+        &self,
+        cert_id: &str,
+        csr: &[u8],
+        edge_ca_key_handle: &aziot_key_common::KeyHandle,
+    ) -> Result<String, http_common::server::Error> {
+        let cert = {
+            let cert_client = self.cert_client.lock().await;
+
+            cert_client
+                .create_cert(cert_id, csr, Some((&self.edge_ca_cert, edge_ca_key_handle)))
+                .await
+                .map_err(|_| {
+                    edgelet_http::error::server_error(format!("failed to create cert {}", cert_id))
+                })
+        }?;
+
+        let cert = std::str::from_utf8(&cert)
+            .map_err(|_| edgelet_http::error::server_error("invalid cert created"))?;
+
+        Ok(cert.to_string())
     }
 
     fn edge_ca_keys(
@@ -165,6 +186,13 @@ fn new_csr(
     let mut csr = openssl::x509::X509Req::builder()?;
     csr.set_version(0)?;
 
+    let mut subject_name = openssl::x509::X509Name::builder()?;
+    subject_name.append_entry_by_text("CN", common_name)?;
+    let subject_name = subject_name.build();
+    csr.set_subject_name(&subject_name)?;
+
+    csr.set_pubkey(&public_key)?;
+
     let mut names = openssl::x509::extension::SubjectAlternativeName::new();
 
     for name in subject_alt_names {
@@ -184,6 +212,22 @@ fn new_csr(
     let csr = csr.build().to_pem()?;
 
     Ok(csr)
+}
+
+fn get_expiration(cert: &str) -> Result<String, http_common::server::Error> {
+    let cert = openssl::x509::X509::from_pem(cert.as_bytes())
+        .map_err(|_| edgelet_http::error::server_error("failed to parse cert"))?;
+
+    // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+    //
+    // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+    // into a chrono::DateTime<chrono::Utc>
+    let expiration = cert.not_after().to_string();
+    let expiration = chrono::NaiveDateTime::parse_from_str(&expiration, "%b %e %H:%M:%S %Y GMT")
+        .expect("cert not_after should parse");
+    let expiration = chrono::DateTime::<chrono::Utc>::from_utc(expiration, chrono::Utc);
+
+    Ok(expiration.to_rfc3339())
 }
 
 async fn should_renew(
