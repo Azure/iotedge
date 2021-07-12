@@ -62,10 +62,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::{self, MakeModuleRuntime, ModuleRuntimeState};
+    use edgelet_core::{self, MakeModuleRuntime, ModuleAction, ModuleRuntimeState};
     use edgelet_http::route::Parameters;
     use edgelet_test_utils::module::{TestConfig, TestModule, TestRuntime, TestSettings};
-    use futures::Stream;
+    use futures::{sync::mpsc, Stream};
     use management::models::SystemInfo;
 
     use super::{Body, Future, GetSystemInfo, Handler, Request};
@@ -78,7 +78,11 @@ mod tests {
         let config = TestConfig::new("microsoft/test-image".to_string());
         let module: TestModule<Error, _> =
             TestModule::new("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(TestSettings::new())
+
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
             .with_module(Ok(module));
@@ -114,8 +118,11 @@ mod tests {
 
     #[test]
     fn system_info_failed() {
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
         // arrange
-        let runtime = TestRuntime::make_runtime(TestSettings::new())
+        let runtime = TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
             .with_module(Err(Error::General));
