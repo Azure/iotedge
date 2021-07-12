@@ -4,6 +4,7 @@
 #    to.registry.address: ''
 #    to.registry.namespace: ''
 #    pool.linux.name: ''
+#    pool.windows.name: ''
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
@@ -12,7 +13,7 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Images Release YAML'
-    branch: 'release/1.2'
+    branch: 'release/1.1'
 
 jobs:
 ################################################################################
@@ -151,6 +152,97 @@ jobs:
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
+
+################################################################################
+  - deployment: publish_windows_images
+################################################################################
+    timeoutInMinutes: 180
+    displayName: Publish Linux Images
+    dependsOn: safe_guard
+    environment: 'Azure-IoT-Edge-Core Release Env'
+    pool:
+      name: $(pool.windows.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-winserver-2019dc-build
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              clean: true
+              fetchDepth: 100
+
+            - task: Docker@2
+              displayName: Docker login edgerelease
+              inputs:
+                command: login
+                containerRegistry: iotedge-release-acr
+
+            - task: Docker@2
+              displayName: Docker login $(to.registry.address)
+              inputs:
+                command: login
+                containerRegistry: $(to.registry.serviceConnection)
+
+            - powershell: |
+                echo "Pulling agent image"
+                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Tagging agent image"
+                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Pushing agent image"
+                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Cleaning up"
+                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
+                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
+              displayName: 'Publishing Edge Agent - Windows amd64'
+
+            - powershell: |
+                echo "Pulling hub image"
+                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Tagging hub image"
+                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Pushing hub image"
+                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Cleaning up"
+                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
+                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
+              displayName: 'Publishing Edge Hub - Windows amd64'
+
+            - powershell: |
+                echo "Pulling temp sensor image"
+                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Tagging temp sensor image"
+                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Pushing temp sensor image"
+                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Cleaning up"
+                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
+                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
+              displayName: 'Publishing Temp Sensor - Windows amd64'
+
+            - powershell: |
+                echo "Pulling diagnostics"
+                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Tagging diagnostics"
+                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Pushing diagnostics"
+                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
+                
+                echo "Cleaning up"
+                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
+                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
+              displayName: 'Publishing diagnostics - Windows amd64'
 
 ################################################################################
   - deployment: publish_manifest_images
