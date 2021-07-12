@@ -63,49 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         [Fact]
         [TestPriority(102)]
-        public async void Receive_C2D_OfflineSingleMessage_ShouldSucceed()
-        {
-            // Arrange
-            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
-            string edgeDeviceId = ConnectionStringHelper.GetDeviceId(ConfigHelper.TestConfig[Service.Constants.ConfigKey.IotHubConnectionString]);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
-            var edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
-            (string deviceName, string deviceConnectionString) = await RegistryManagerHelper.CreateDevice(DeviceNamePrefix, iotHubConnectionString, rm, scope: edgeDevice.Scope);
-
-            ServiceClient serviceClient = null;
-            DeviceClient deviceClient = null;
-            try
-            {
-                serviceClient = ServiceClient.CreateFromConnectionString(iotHubConnectionString);
-                await serviceClient.OpenAsync();
-
-                ITransportSettings[] settings = this.GetTransportSettings();
-                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
-                // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
-                await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(1));
-                await deviceClient.CloseAsync();
-                // wait for the connection to be closed on the Edge side
-                await Task.Delay(TimeSpan.FromSeconds(20));
-
-                // Act
-                // Send message before device is listening
-                Message message = this.CreateMessage(out string payload);
-                await serviceClient.SendAsync(deviceName, message);
-
-                deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
-                await deviceClient.OpenAsync();
-
-                // Assert
-                await this.VerifyReceivedC2DMessage(deviceClient, payload, message.Properties[MessagePropertyName]);
-            }
-            finally
-            {
-                await this.Cleanup(deviceClient, serviceClient, rm, deviceName);
-            }
-        }
-
-        [Fact]
-        [TestPriority(103)]
         public async void Receive_C2D_SingleMessage_AfterOfflineMessage_ShouldSucceed()
         {
             // Arrange
@@ -128,8 +85,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
                 await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(1));
                 await deviceClient.CloseAsync();
-                // wait for the connection to be closed on the Edge side
-                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                // Wait for the connection to be closed on the Edge side by checking device connection state
+                Task timerTask = Task.Delay(TimeSpan.FromSeconds(60));
+                Task checkTask = WaitForDeviceDisconnected(rm, deviceName);
+
+                Task completedTask = await Task.WhenAny(checkTask, timerTask);
+                if (completedTask == timerTask)
+                {
+                    throw new TimeoutException("Wait for device to disconnect timed out");
+                }
 
                 // Act
                 // Send message before device is listening
@@ -156,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         }
 
         [Fact]
-        [TestPriority(104)]
+        [TestPriority(103)]
         public async void Receive_C2D_NotSubscribed_OfflineSingleMessage_ShouldThrow()
         {
             // Arrange
@@ -202,6 +167,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             };
             ITransportSettings[] settings = { mqttSetting };
             return settings;
+        }
+
+        async Task WaitForDeviceDisconnected(RegistryManager rm, string deviceName)
+        {
+            var device = await rm.GetDeviceAsync(deviceName);
+            while (device.ConnectionState != DeviceConnectionState.Disconnected)
+            {
+                device = await rm.GetDeviceAsync(deviceName);
+                await Task.Delay(TimeSpan.FromSeconds(5));
+            }
         }
 
         Message CreateMessage(out string payload)
