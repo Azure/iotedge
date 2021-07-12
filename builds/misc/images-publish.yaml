@@ -6,6 +6,9 @@
 #    pool.linux.name: ''
 #    pool.windows.name: ''
 
+trigger: none
+pr: none
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
 
@@ -250,7 +253,9 @@ jobs:
     timeoutInMinutes: 180
     displayName: Publish Manifest Images
     environment: 'Azure-IoT-Edge-Core Release Env'
-    dependsOn: publish_linux_images
+    dependsOn: 
+      - publish_linux_images
+      - publish_windows_images
     pool:
       name: $(pool.linux.name)
       demands:
