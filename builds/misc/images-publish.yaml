@@ -160,7 +160,7 @@ jobs:
   - deployment: publish_windows_images
 ################################################################################
     timeoutInMinutes: 180
-    displayName: Publish Linux Images
+    displayName: Publish Windows Images
     dependsOn: safe_guard
     environment: 'Azure-IoT-Edge-Core Release Env'
     pool:
