@@ -192,17 +192,19 @@ fn new_csr(
 
     csr.set_pubkey(&public_key)?;
 
-    let mut names = openssl::x509::extension::SubjectAlternativeName::new();
+    if !subject_alt_names.is_empty() {
+        let mut names = openssl::x509::extension::SubjectAlternativeName::new();
 
-    for name in subject_alt_names {
-        match name {
-            SubjectAltName::DNS(name) => names.dns(&name),
-            SubjectAltName::IP(name) => names.ip(&name),
-        };
+        for name in subject_alt_names {
+            match name {
+                SubjectAltName::DNS(name) => names.dns(&name),
+                SubjectAltName::IP(name) => names.ip(&name),
+            };
+        }
+
+        let names = names.build(&csr.x509v3_context(None))?;
+        extensions.push(names)?;
     }
-
-    let names = names.build(&csr.x509v3_context(None))?;
-    extensions.push(names)?;
 
     csr.add_extensions(&extensions)?;
 
