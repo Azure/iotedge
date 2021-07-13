@@ -79,14 +79,7 @@ impl http_common::server::Route for Route {
             edgelet_http::error::server_error("failed to generate identity csr keys")
         })?;
 
-        let private_key = keys
-            .0
-            .private_key_to_pem_pkcs8()
-            .expect("newly generated private key is invalid");
-
-        let private_key = std::str::from_utf8(&private_key)
-            .expect("newly generated private key is invalid")
-            .to_string();
+        let private_key = super::key_to_pem(&keys.0);
 
         let csr = super::new_csr(&self.module_id, keys, subject_alt_names, csr_extensions)
             .map_err(|_| edgelet_http::error::server_error("failed to generate identity csr"))?;
@@ -102,7 +95,7 @@ impl http_common::server::Route for Route {
         let expiration = super::get_expiration(&identity_cert)?;
 
         let response = super::CertificateResponse {
-            private_key: super::PrivateKey::Bytes { bytes: private_key },
+            private_key: super::PrivateKey::Key { bytes: private_key },
             certificate: identity_cert,
             expiration,
         };
