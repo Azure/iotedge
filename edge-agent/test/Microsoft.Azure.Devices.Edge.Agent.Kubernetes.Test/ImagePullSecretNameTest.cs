@@ -75,6 +75,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     "dockeruser-any-acr-server.azurecr.io-3030",
                     new AuthConfig { Username = "dockeruser", Password = "password", ServerAddress = "any-acr-server.azurecr.io:3030" }
                 ),
+                (
+                    "thisisavalidusername-thisisavalidcontainerregistrynamewith50characters",
+                    new AuthConfig { Username = "thisisavalidusername", Password = "password", ServerAddress = "thisisavalidcontainerregistrynamewith50characters.azurecr.io" }
+                ),
             };
             return data.Select(
                 d => new object[]
