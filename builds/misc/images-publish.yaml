@@ -121,37 +121,37 @@ jobs:
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8'
 
             - task: ShellScript@2
-              displayName: 'Publish Temp Sensor - Linux amd64'
+              displayName: 'Publish Temperature Sensor - Linux amd64'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64'
 
             - task: ShellScript@2
-              displayName: 'Publish Temp Sensor - Linux arm32v7'
+              displayName: 'Publish Temperature Sensor - Linux arm32v7'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7'
 
             - task: ShellScript@2
-              displayName: 'Publish Temp Sensor - Linux arm64v8'
+              displayName: 'Publish Temperature Sensor - Linux arm64v8'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
 
             - task: ShellScript@2
-              displayName: 'Publish diagnostics - Linux amd64'
+              displayName: 'Publish Diagnostic Module - Linux amd64'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64'
 
             - task: ShellScript@2
-              displayName: 'Publish diagnostics - Linux arm32v7'
+              displayName: 'Publish Diagnostic Module - Linux arm32v7'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7'
 
             - task: ShellScript@2
-              displayName: 'Publish diagnostics - Linux arm64v8'
+              displayName: 'Publish Diagnostic Module - Linux arm64v8'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
@@ -187,65 +187,41 @@ jobs:
                 command: login
                 containerRegistry: $(to.registry.serviceConnection)
 
-            - powershell: |
-                echo "Pulling agent image"
-                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Tagging agent image"
-                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Pushing agent image"
-                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Cleaning up"
-                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
-                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64
+            - task: PowerShell@2
               displayName: 'Publishing Edge Agent - Windows amd64'
+              inputs:
+                targetType: 'filePath'
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1'
+                arguments: >
+                  -FromImage "$(from.registry.address)/$(from.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64"
+                  -ToImage "$(to.registry.address)/$(to.registry.namespace)/azureiotedge-agent:$(resources.pipeline.images.runName)-windows-amd64"
 
-            - powershell: |
-                echo "Pulling hub image"
-                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Tagging hub image"
-                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Pushing hub image"
-                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Cleaning up"
-                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
-                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64
+            - task: PowerShell@2
               displayName: 'Publishing Edge Hub - Windows amd64'
+              inputs:
+                targetType: 'filePath'
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1'
+                arguments: >
+                  -FromImage "$(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64"
+                  -ToImage "$(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-windows-amd64"
 
-            - powershell: |
-                echo "Pulling temp sensor image"
-                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Tagging temp sensor image"
-                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Pushing temp sensor image"
-                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Cleaning up"
-                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
-                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64
-              displayName: 'Publishing Temp Sensor - Windows amd64'
+            - task: PowerShell@2
+              displayName: 'Publishing Temperature Sensor - Windows amd64'
+              inputs:
+                targetType: 'filePath'
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1'
+                arguments: >
+                  -FromImage "$(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64"
+                  -ToImage "$(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-windows-amd64"
 
-            - powershell: |
-                echo "Pulling diagnostics"
-                docker pull $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Tagging diagnostics"
-                docker tag $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64 $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Pushing diagnostics"
-                docker push $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
-                
-                echo "Cleaning up"
-                docker rmi $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
-                docker rmi $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64
-              displayName: 'Publishing diagnostics - Windows amd64'
+            - task: PowerShell@2
+              displayName: 'Publishing Diagnostic Module - Windows amd64'
+              inputs:
+                targetType: 'filePath'
+                filePath: '$(System.DefaultWorkingDirectory)/scripts/windows/build/Move-Image.ps1'
+                arguments: >
+                  -FromImage "$(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
+                  -ToImage "$(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-windows-amd64"
 
 ################################################################################
   - deployment: publish_manifest_images
@@ -322,7 +298,7 @@ jobs:
                 BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
             - task: Bash@3
-              displayName: 'Publish diagnostics Manifest'
+              displayName: 'Publish Diagnostic Module Manifest'
               inputs:
                 targetType: filePath
                 filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'

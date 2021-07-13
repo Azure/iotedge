@@ -31,3 +31,15 @@ Invoke-Expression $PushCommand
 if ($LASTEXITCODE) {
     throw "'$PushCommand' failed with exit code $LASTEXITCODE"
 }
+
+Write-Host "Cleaning up"
+$CleanupCommand = "docker rmi $ToImage"
+Invoke-Expression $CleanupCommand
+if ($LASTEXITCODE) {
+    throw "'$CleanupCommand' failed with exit code $LASTEXITCODE"
+}
+$CleanupCommand = "docker rmi $FromImage"
+Invoke-Expression $CleanupCommand
+if ($LASTEXITCODE) {
+    throw "'$CleanupCommand' failed with exit code $LASTEXITCODE"
+}
