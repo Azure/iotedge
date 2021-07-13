@@ -4,6 +4,10 @@
 #    to.registry.address: ''
 #    to.registry.namespace: ''
 #    pool.linux.name: ''
+#    pool.windows.name: ''
+
+trigger: none
+pr: none
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
@@ -117,37 +121,37 @@ jobs:
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-hub:$(resources.pipeline.images.runName)-linux-arm64v8'
 
             - task: ShellScript@2
-              displayName: 'Publish Temp Sensor - Linux amd64'
+              displayName: 'Publish Temperature Sensor - Linux amd64'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-amd64'
 
             - task: ShellScript@2
-              displayName: 'Publish Temp Sensor - Linux arm32v7'
+              displayName: 'Publish Temperature Sensor - Linux arm32v7'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm32v7'
 
             - task: ShellScript@2
-              displayName: 'Publish Temp Sensor - Linux arm64v8'
+              displayName: 'Publish Temperature Sensor - Linux arm64v8'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-simulated-temperature-sensor:$(resources.pipeline.images.runName)-linux-arm64v8'
 
             - task: ShellScript@2
-              displayName: 'Publish diagnostics - Linux amd64'
+              displayName: 'Publish Diagnostic Module - Linux amd64'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-amd64'
 
             - task: ShellScript@2
-              displayName: 'Publish diagnostics - Linux arm32v7'
+              displayName: 'Publish Diagnostic Module - Linux arm32v7'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm32v7'
 
             - task: ShellScript@2
-              displayName: 'Publish diagnostics - Linux arm64v8'
+              displayName: 'Publish Diagnostic Module - Linux arm64v8'
               inputs:
                 scriptPath: '$(System.DefaultWorkingDirectory)/scripts/linux/moveImage.sh'
                 args: '--from $(from.registry.address)/$(from.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8 --to $(to.registry.address)/$(to.registry.namespace)/azureiotedge-diagnostics:$(resources.pipeline.images.runName)-linux-arm64v8'
@@ -225,7 +229,7 @@ jobs:
                 BUILD_REPOSITORY_LOCALPATH: $(System.DefaultWorkingDirectory)
 
             - task: Bash@3
-              displayName: 'Publish diagnostics Manifest'
+              displayName: 'Publish Diagnostic Module Manifest'
               inputs:
                 targetType: filePath
                 filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
