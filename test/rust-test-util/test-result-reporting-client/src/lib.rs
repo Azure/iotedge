@@ -9,7 +9,8 @@
     clippy::match_same_arms,
     clippy::must_use_candidate,
     clippy::missing_errors_doc,
-    clippy::missing_panics_doc
+    clippy::missing_panics_doc,
+    clippy::expl_impl_clone_on_copy, // needed for `EnumSetType` derive
 )]
 
 use std::fmt;
