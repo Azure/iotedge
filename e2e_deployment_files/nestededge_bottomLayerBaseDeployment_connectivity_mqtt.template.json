@@ -645,6 +645,27 @@
               "image": "$upstream:443/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
+          },
+          "genericMqttTester": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "TEST_SCENARIO": {
+                "value": "InitiateAndReceiveRelayed"
+              },
+              "TRACKING_ID": {
+                "value": "<TrackingId>"
+              },
+              "TEST_START_DELAY": {
+                "value": "120s"
+              }
+            },
+            "settings": {
+              "image": "$upstream:443/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
           }
         }
       }
@@ -677,6 +698,21 @@
                   "resources": [
                     "#"
                   ]
+                }
+              ]
+            }
+          ],
+          "bridges": [
+            {
+              "endpoint": "$upstream",
+              "settings": [
+                {
+                  "direction": "in",
+                  "topic": "relay/#"
+                },
+                {
+                  "direction": "out",
+                  "topic": "initiate/#"
                 }
               ]
             }
@@ -775,16 +811,24 @@
             "TolerancePeriod": "00:01:00",
             "TestDescription": "edge agent ping"
           },
-          "reportMetadata15": {
+          "reportMetadata13": {
+            "TestReportType": "CountingReport",
+            "TestOperationResultType": "Messages",
+            "ExpectedSource": "genericMqttTester.send",
+            "ActualSource": "genericMqttTester.receive",
+            "LongHaulEventHubMode": "false",
+            "TestDescription": "messages | local | mqtt | generic"
+          },
+          "reportMetadata14": {
             "TestReportType": "NetworkControllerReport",
             "Source": "networkController",
             "TestDescription": "network controller"
           },
-          "reportMetadata16": {
+          "reportMetadata15": {
             "TestReportType": "ErrorReport",
             "TestDescription": "test configuration"
           },
-          "reportMetadata17": {
+          "reportMetadata16": {
             "TestReportType": "TestInfoReport",
             "TestDescription": "test info"
           }

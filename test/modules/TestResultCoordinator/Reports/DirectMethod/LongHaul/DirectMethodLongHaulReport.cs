@@ -17,6 +17,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             long senderSuccesses,
             long receiverSuccesses,
             long statusCodeZero,
+            long unauthorized,
             long deviceNotFound,
             long transientError,
             long resourceError,
@@ -28,6 +29,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             this.SenderSuccesses = senderSuccesses;
             this.ReceiverSuccesses = receiverSuccesses;
             this.StatusCodeZero = statusCodeZero;
+            this.Unauthorized = unauthorized;
             this.DeviceNotFound = deviceNotFound;
             this.TransientError = transientError;
             this.ResourceError = resourceError;
@@ -39,6 +41,7 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
         public long SenderSuccesses { get; }
         public long ReceiverSuccesses { get; }
         public long StatusCodeZero { get; }
+        public long Unauthorized { get; }
         public long DeviceNotFound { get; }
         public long TransientError { get; }
         public long ResourceError { get; }
@@ -64,12 +67,13 @@ namespace TestResultCoordinator.Reports.DirectMethod.LongHaul
             // TODO: When the SDK allows edgehub to de-register from subscriptions and we make the fix in edgehub, then we can fail tests for any status code 0.
             long allStatusCount = this.SenderSuccesses + this.StatusCodeZero + this.Other.Sum(x => x.Value);
             bool statusCodeZeroBelowThreshold = (this.StatusCodeZero == 0) || (this.StatusCodeZero < ((double)allStatusCount / 1000));
+            bool unauthorizedBelowThreshold = (this.Unauthorized == 0) || (this.Unauthorized < ((double)allStatusCount / 1000));
             bool deviceNotFoundBelowThreshold = (this.DeviceNotFound == 0) || (this.DeviceNotFound < ((double)allStatusCount / 100));
             bool transientErrorBelowThreshold = (this.TransientError == 0) || (this.TransientError < ((double)allStatusCount / 100));
             bool resourceErrorBelowThreshold = (this.ResourceError == 0) || (this.ResourceError < ((double)allStatusCount / 100));
 
             // Pass if below the thresholds, and sender and receiver got same amount of successess (or receiver has no results)
-            return statusCodeZeroBelowThreshold && deviceNotFoundBelowThreshold && transientErrorBelowThreshold && senderAndReceiverSuccessesPass;
+            return statusCodeZeroBelowThreshold && unauthorizedBelowThreshold && deviceNotFoundBelowThreshold && transientErrorBelowThreshold && senderAndReceiverSuccessesPass;
         }
     }
 }
