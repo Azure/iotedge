@@ -41,6 +41,7 @@ jobs:
         - new-e2e-proxy
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
+        - damon
 
     variables:
       os: linux
@@ -71,6 +72,7 @@ jobs:
         - new-e2e-proxy
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
+        - damon
 
     variables:
       os: windows
