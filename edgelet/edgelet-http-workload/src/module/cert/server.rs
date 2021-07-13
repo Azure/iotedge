@@ -2,7 +2,9 @@
 
 pub(crate) struct Route {
     module_id: String,
+    gen_id: String,
     pid: libc::pid_t,
+    api: super::CertApi,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -36,14 +38,28 @@ impl http_common::server::Route for Route {
             .decode_utf8()
             .ok()?;
 
+        let gen_id = &captures["genId"];
+        let gen_id = percent_encoding::percent_decode_str(gen_id)
+            .decode_utf8()
+            .ok()?;
+
         let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
             Some(pid) => pid,
             None => return None,
         };
 
+        let api = super::CertApi::new(
+            service.key_connector.clone(),
+            service.key_client.clone(),
+            service.cert_client.clone(),
+            &service.config,
+        );
+
         Some(Route {
             module_id: module_id.into_owned(),
+            gen_id: gen_id.into_owned(),
             pid,
+            api,
         })
     }
 
@@ -64,6 +80,11 @@ impl http_common::server::Route for Route {
             Some(body) => body.common_name,
             None => return Err(edgelet_http::error::bad_request("missing request body")),
         };
+
+        let cert_id = format!(
+            "aziot-edged/module/{}:{}:server",
+            &self.module_id, &self.gen_id
+        );
 
         todo!()
     }

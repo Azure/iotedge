@@ -69,7 +69,9 @@ impl http_common::server::Route for Route {
         edgelet_http::auth_caller(&self.module_id, self.pid)?;
 
         let cert_id = format!("aziot-edged/module/{}:identity", &self.module_id);
-        let subject_alt_names = vec![super::SubjectAltName::DNS(self.module_uri)];
+
+        let module_uri = super::sanitize_dns_name(self.module_uri);
+        let subject_alt_names = vec![super::SubjectAltName::DNS(module_uri)];
 
         let csr_extensions = identity_cert_extensions().map_err(|_| {
             edgelet_http::error::server_error("failed to set identity csr extensions")
