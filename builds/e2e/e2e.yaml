@@ -31,27 +31,6 @@ variables:
 jobs:
 
 ################################################################################
-  - job: centos7_amd64
-################################################################################
-    displayName: CentOs7 amd64
-
-    pool:
-      name: $(pool.linux.name)
-      demands:
-        - ImageOverride -equals agent-aziotedge-centos-7
-
-    variables:
-      os: linux
-      arch: amd64
-      artifactName: iotedged-centos7-amd64
-
-    steps:
-    - template: templates/e2e-clean-directory.yaml
-    - template: templates/e2e-setup.yaml
-    - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml 
-
-################################################################################
   - job: linux_amd64_proxy
 ################################################################################
     displayName: Linux amd64 behind a proxy
