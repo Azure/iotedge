@@ -88,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 // Wait for the connection to be closed on the Edge side by checking device connection state
                 Task timerTask = Task.Delay(TimeSpan.FromSeconds(60));
-                Task checkTask = WaitForDeviceDisconnected(rm, deviceName);
+                Task checkTask = this.WaitForDeviceDisconnected(rm, deviceName);
 
                 Task completedTask = await Task.WhenAny(checkTask, timerTask);
                 if (completedTask == timerTask)
