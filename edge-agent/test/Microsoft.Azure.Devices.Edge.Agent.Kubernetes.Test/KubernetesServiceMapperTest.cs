@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
-            AssertPort(new V1ServicePort(10, "hostport-10-tcp", null, "TCP", 10), service.Spec.Ports.First());
+            AssertPort(new V1ServicePort(10, name: "hostport-10-tcp", protocol: "TCP", targetPort: 10), service.Spec.Ports.First());
             Assert.Equal("ClusterIP", service.Spec.Type);
         }
 
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
-            AssertPort(new V1ServicePort(10, "exposedport-10-tcp", null, "TCP"), service.Spec.Ports.First());
+            AssertPort(new V1ServicePort(10, name: "exposedport-10-tcp", protocol: "TCP"), service.Spec.Ports.First());
             Assert.Equal("ClusterIP", service.Spec.Type);
         }
 
@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
-            AssertPort(new V1ServicePort(10, "hostport-10-tcp", null, "TCP", 10), service.Spec.Ports.First());
+            AssertPort(new V1ServicePort(10, name: "hostport-10-tcp", protocol: "TCP", targetPort: 10), service.Spec.Ports.First());
             Assert.Equal("ClusterIP", service.Spec.Type);
         }
 
