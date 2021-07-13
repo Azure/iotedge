@@ -77,32 +77,9 @@ impl http_common::server::Route for Route {
             edgelet_http::error::server_error("failed to set identity csr extensions")
         })?;
 
-        let keys = super::new_keys().map_err(|_| {
-            edgelet_http::error::server_error("failed to generate identity csr keys")
-        })?;
-
-        let private_key = super::key_to_pem(&keys.0);
-
-        let csr = super::new_csr(&self.module_id, keys, subject_alt_names, csr_extensions)
-            .map_err(|_| edgelet_http::error::server_error("failed to generate identity csr"))?;
-
-        let edge_ca_key_handle = self.api.edge_ca_key_handle().await?;
-        self.api.check_edge_ca(&edge_ca_key_handle).await?;
-
-        let identity_cert = self
-            .api
-            .create_cert(&cert_id, &csr, &edge_ca_key_handle)
-            .await?;
-
-        let expiration = super::get_expiration(&identity_cert)?;
-
-        let response = super::CertificateResponse {
-            private_key: super::PrivateKey::Key { bytes: private_key },
-            certificate: identity_cert,
-            expiration,
-        };
-
-        Ok((http::StatusCode::OK, Some(response)))
+        self.api
+            .issue_cert(cert_id, self.module_id, subject_alt_names, csr_extensions)
+            .await
     }
 
     type PutBody = serde::de::IgnoredAny;

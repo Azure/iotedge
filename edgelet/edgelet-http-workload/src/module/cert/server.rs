@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::str::FromStr;
+
 pub(crate) struct Route {
     module_id: String,
     gen_id: String,
@@ -86,9 +88,45 @@ impl http_common::server::Route for Route {
             &self.module_id, &self.gen_id
         );
 
-        todo!()
+        // SANs take precedence over CN. The CN must be in the SAN list to be considered.
+        let common_name_san = common_name.clone();
+
+        let common_name_san = if std::net::IpAddr::from_str(&common_name_san).is_ok() {
+            super::SubjectAltName::IP(common_name_san)
+        } else {
+            let common_name_san = super::sanitize_dns_name(common_name_san);
+
+            super::SubjectAltName::DNS(common_name_san)
+        };
+
+        // Server certificates have the module ID and certificate CN as the SANs.
+        let module_id_san = super::sanitize_dns_name(self.module_id);
+        let module_id_san = super::SubjectAltName::DNS(module_id_san);
+
+        let subject_alt_names = vec![common_name_san, module_id_san];
+
+        let csr_extensions = server_cert_extensions().map_err(|_| {
+            edgelet_http::error::server_error("failed to set server csr extensions")
+        })?;
+
+        self.api
+            .issue_cert(cert_id, common_name, subject_alt_names, csr_extensions)
+            .await
     }
 
     type PutBody = serde::de::IgnoredAny;
     type PutResponse = ();
+}
+
+fn server_cert_extensions(
+) -> Result<openssl::stack::Stack<openssl::x509::X509Extension>, openssl::error::ErrorStack> {
+    let mut csr_extensions = openssl::stack::Stack::new()?;
+
+    let mut ext_key_usage = openssl::x509::extension::ExtendedKeyUsage::new();
+    ext_key_usage.server_auth();
+
+    let ext_key_usage = ext_key_usage.build()?;
+    csr_extensions.push(ext_key_usage)?;
+
+    Ok(csr_extensions)
 }

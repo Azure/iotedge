@@ -56,7 +56,39 @@ impl CertApi {
         }
     }
 
-    pub async fn edge_ca_key_handle(
+    pub async fn issue_cert(
+        self,
+        cert_id: String,
+        common_name: String,
+        subject_alt_names: Vec<SubjectAltName>,
+        extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
+    ) -> Result<(http::StatusCode, Option<CertificateResponse>), http_common::server::Error> {
+        let keys = new_keys()
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
+        let private_key = key_to_pem(&keys.0);
+
+        let csr = new_csr(common_name, keys, subject_alt_names, extensions)
+            .map_err(|_| edgelet_http::error::server_error("failed to generate csr"))?;
+
+        let edge_ca_key_handle = self.edge_ca_key_handle().await?;
+        self.check_edge_ca(&edge_ca_key_handle).await?;
+
+        let cert = self
+            .create_cert(&cert_id, &csr, &edge_ca_key_handle)
+            .await?;
+
+        let expiration = get_expiration(&cert)?;
+
+        let response = CertificateResponse {
+            private_key: PrivateKey::Key { bytes: private_key },
+            certificate: cert,
+            expiration,
+        };
+
+        Ok((http::StatusCode::OK, Some(response)))
+    }
+
+    async fn edge_ca_key_handle(
         &self,
     ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
         let key_client = self.key_client.lock().await;
@@ -64,10 +96,10 @@ impl CertApi {
         key_client
             .create_key_pair_if_not_exists(&self.edge_ca_key, Some("rsa-2048:*"))
             .await
-            .map_err(|err| edgelet_http::error::server_error("failed to retrieve edge ca key"))
+            .map_err(|_| edgelet_http::error::server_error("failed to retrieve edge ca key"))
     }
 
-    pub async fn check_edge_ca(
+    async fn check_edge_ca(
         &self,
         key_handle: &aziot_key_common::KeyHandle,
     ) -> Result<(), http_common::server::Error> {
@@ -81,7 +113,7 @@ impl CertApi {
                 edgelet_http::error::server_error("failed to set edge ca csr extensions")
             })?;
 
-            let csr = new_csr(&common_name, keys, Vec::new(), extensions)
+            let csr = new_csr(common_name, keys, Vec::new(), extensions)
                 .map_err(|_| edgelet_http::error::server_error("failed to generate edge ca csr"))?;
 
             cert_client
@@ -97,7 +129,7 @@ impl CertApi {
         Ok(())
     }
 
-    pub async fn create_cert(
+    async fn create_cert(
         &self,
         cert_id: &str,
         csr: &[u8],
@@ -187,7 +219,7 @@ fn new_keys() -> Result<
 }
 
 fn new_csr(
-    common_name: &str,
+    common_name: String,
     keys: (
         openssl::pkey::PKey<openssl::pkey::Private>,
         openssl::pkey::PKey<openssl::pkey::Public>,
@@ -202,7 +234,7 @@ fn new_csr(
     csr.set_version(0)?;
 
     let mut subject_name = openssl::x509::X509Name::builder()?;
-    subject_name.append_entry_by_text("CN", common_name)?;
+    subject_name.append_entry_by_text("CN", &common_name)?;
     let subject_name = subject_name.build();
     csr.set_subject_name(&subject_name)?;
 
