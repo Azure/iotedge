@@ -47,10 +47,10 @@ steps:
     elseif ($test_type -eq 'http_proxy')
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
-      # $filter += '&FullyQualifiedName!~PriorityQueue&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+      $filter += '&FullyQualifiedName!~PriorityQueue&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
 
       #Disable tests that timeout in proxy self-host environment
-      # $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
+      $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
 
       #Disable nested edge tests
       $filter += '&Category!=NestedEdgeOnly'
@@ -60,7 +60,7 @@ steps:
       $filter += '&Category!=NestedEdgeOnly'
     }
 
-    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
+    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName~PriorityQueue"
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
