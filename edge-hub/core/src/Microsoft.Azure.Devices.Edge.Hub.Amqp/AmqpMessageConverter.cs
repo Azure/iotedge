@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     {
         public IMessage ToMessage(AmqpMessage sourceMessage)
         {
+            Console.WriteLine($"AMQP To {Newtonsoft.Json.JsonConvert.SerializeObject(sourceMessage)}");
+
             byte[] GetMessageBody()
             {
                 using (var ms = new MemoryStream())
@@ -105,6 +107,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
 
         public AmqpMessage FromMessage(IMessage message)
         {
+            Console.WriteLine($"AMQP From {Newtonsoft.Json.JsonConvert.SerializeObject(message)}");
+
             AmqpMessage amqpMessage = AmqpMessage.Create(
                 new Data
                 {
