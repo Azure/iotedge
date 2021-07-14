@@ -1,0 +1,123 @@
+<Playlist Version="2.0">
+  <Rule Name="Includes" Match="Any">
+    <Rule Match="All">
+      <Property Name="Solution" />
+      <Rule Match="Any">
+        <Rule Match="All">
+          <Property Name="Project" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test" />
+          <Rule Match="Any">
+            <Rule Match="All">
+              <Property Name="Namespace" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test" />
+              <Rule Match="Any">
+                <Rule Match="All">
+                  <Property Name="Class" Value="ProtocolGatewayMessageConverterTest" />
+                  <Rule Match="Any">
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.RpSenderTest" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.RpSenderTest" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestFromMessage_AllSystemProperties" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestFromMessage_AllSystemProperties" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestFromMessage_DuplicateSystemProperties" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestFromMessage_DuplicateSystemProperties" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage_AllSystemProperties" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage_AllSystemProperties" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage_Module" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage_Module" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage_NoTopicMatch" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test.ProtocolGatewayMessageConverterTest.TestToMessage_NoTopicMatch" />
+                      </Rule>
+                    </Rule>
+                  </Rule>
+                </Rule>
+              </Rule>
+            </Rule>
+          </Rule>
+        </Rule>
+        <Rule Match="All">
+          <Property Name="Project" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test" />
+          <Rule Match="Any">
+            <Rule Match="All">
+              <Property Name="Namespace" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test" />
+              <Rule Match="Any">
+                <Rule Match="All">
+                  <Property Name="Class" Value="AmqpMessageConverterTest" />
+                  <Rule Match="Any">
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.FromMessageTest" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.FromMessageTest" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.FromMessageTest_AllProperties" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.FromMessageTest_AllProperties" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.TestConnectionDeviceIdTest" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.TestConnectionDeviceIdTest" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageNoAppPropsTest" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageNoAppPropsTest" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageTest" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageTest" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageTest_AllProperties" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageTest_AllProperties" />
+                      </Rule>
+                    </Rule>
+                    <Rule Match="All">
+                      <Property Name="TestWithNormalizedFullyQualifiedName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageTest_InterfaceId" />
+                      <Rule Match="Any">
+                        <Property Name="DisplayName" Value="Microsoft.Azure.Devices.Edge.Hub.Amqp.Test.AmqpMessageConverterTest.ToMessageTest_InterfaceId" />
+                      </Rule>
+                    </Rule>
+                  </Rule>
+                </Rule>
+              </Rule>
+            </Rule>
+          </Rule>
+        </Rule>
+      </Rule>
+    </Rule>
+  </Rule>
+</Playlist>
