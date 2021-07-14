@@ -115,11 +115,14 @@ steps:
     Write-Output "##vso[task.setvariable variable=$manifestSigningbinDir]$manifestSigningbinDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
+    $manifestSigningRootCa = $env:ROOT_CA_CERT
     $env:ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/root_ca.pem"
     $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
     $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.crt"
     $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
     Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
+    echo "Root CA contents: $manifestSigningRootCa"
+
   displayName: Build Manifest Signer Client and set up certificates
   env:
     ROOT_CA_CERT: $(TestManifestSigningRootCa)
@@ -173,10 +176,6 @@ steps:
       $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
       $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
-      Get-Content -Path "$(manifestSigningCertDir)/root_ca.pem"
-      Get-Content -Path '$manifestSigningCertDir/intermediate_ca.crt'
-      Get-Content -Path '$manifestSigningCertDir/signer_cert.crt'
-      Get-Content -Path '$manifestSigningCertDir/signer_key.key'
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -237,7 +236,7 @@ steps:
       $context['testManifestSigningSignerKeyPath'] = "$testManifestSigningSignerKeyPath"
       $context['testManifestSigningSignerAlgorithm'] = $env:ALGORITHM
     }
-
+                                                                                                                                                                                                                                                                                         
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
