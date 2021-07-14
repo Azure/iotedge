@@ -6,6 +6,10 @@ parameters:
   quickstart.artifactName: ''
 
 steps:
+  - script: |
+      sudo iotedge system stop || true
+      sudo systemctl stop iotedge || true
+    displayName: Immediately attempt to stop iotedge service (needed for arm)
   - checkout: self
     clean: true
     fetchDepth: 100
