@@ -1,9 +1,11 @@
-use std::{iter::FromIterator, vec};
+use std::{iter::FromIterator, time::Duration, vec};
 
 use chrono::{DateTime, Utc};
 use enumset::EnumSet;
 use hyper::{body, client::HttpConnector, Body, Client, Request};
-use tracing::info;
+use rand::Rng;
+use tokio::time;
+use tracing::warn;
 
 use crate::{
     models::{message_result::MessageTestResult, test_result_dto::TestOperationResultDto},
@@ -43,13 +45,35 @@ impl TrcClient {
             return Err(ReportResultError::UnsupportedTestType);
         }
 
-        let body = TestOperationResultDto::new(source, result, test_type, created_at);
-        let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;
-        let request = Request::post(self.uri.clone())
-            .header(CONTENT_TYPE, APPLICATION_JSON)
-            .body(Body::from(body.clone()))
-            .map_err(ReportResultError::ConstructRequest)?;
+        // exponential randomized backoff for max ~3 mins (plus whatever internal time taken by http calls)
+        let mut retries: u32 = 11;
+        let mut base_wait = Duration::from_millis(100);
+        loop {
+            let body =
+                TestOperationResultDto::new(source.clone(), result.clone(), test_type, created_at);
+            let body = serde_json::to_string(&body).map_err(ReportResultError::CreateJsonString)?;
+            let request = Request::post(self.uri.clone())
+                .header(CONTENT_TYPE, APPLICATION_JSON)
+                .body(Body::from(body.clone()))
+                .map_err(ReportResultError::ConstructRequest)?;
 
+            match self.trc_request(request).await {
+                Err(e) if retries > 0 => {
+                    warn!("request to trc failed: {:?}", e);
+
+                    let rand_num = rand::thread_rng().gen_range(1..10);
+                    let sleep_duration = base_wait + Duration::from_millis(rand_num * 100);
+
+                    retries -= 1;
+                    time::sleep(sleep_duration).await;
+                    base_wait *= 2
+                }
+                response => return response,
+            }
+        }
+    }
+
+    async fn trc_request(&self, request: Request<Body>) -> Result<(), ReportResultError> {
         let response = self
             .client
             .request(request)
@@ -63,7 +87,7 @@ impl TrcClient {
         match status.as_u16() {
             204 | 200 => Ok(()),
             fail_status => {
-                info!("failed response body: {:?}", body);
+                warn!("failed response body: {:?}", body);
                 Err(ReportResultError::ResponseStatus(fail_status))
             }
         }

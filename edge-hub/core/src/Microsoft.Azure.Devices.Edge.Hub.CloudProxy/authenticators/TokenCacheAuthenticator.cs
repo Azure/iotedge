@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;

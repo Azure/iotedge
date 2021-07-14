@@ -278,13 +278,9 @@ namespace TestResultCoordinator.Reports.DirectMethod.Connectivity
                         networkOffFailure++;
                     }
                 }
-                else if (HttpStatusCode.InternalServerError.Equals(statusCode))
-                {
-                    networkOffFailure++;
-                }
                 else
                 {
-                    throw new InvalidDataException($"Unexpected HttpStatusCode of {statusCode}");
+                    networkOffFailure++;
                 }
             }
 

@@ -74,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public Task IterateBatch(int batchSize, Func<TK, TV, Task> callback, CancellationToken cancellationToken)
             => this.IterateBatch(Option.None<TK>(), batchSize, callback, cancellationToken);
 
+        public Task<ulong> Count() => this.underlyingStore.Count();
+
         Task IterateBatch(Option<TK> startKey, int batchSize, Func<TK, TV, Task> callback, CancellationToken cancellationToken)
         {
             Preconditions.CheckRange(batchSize, 1, nameof(batchSize));

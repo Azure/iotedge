@@ -214,7 +214,7 @@ impl PumpBuilder {
 fn make_topics(rules: &[TopicRule]) -> Result<HashMap<String, TopicMapper>, BridgeError> {
     let topic_filters: Vec<TopicMapper> = rules
         .iter()
-        .map(|topic| topic.to_owned().try_into())
+        .map(|topic| topic.clone().try_into())
         .collect::<Result<Vec<_>, _>>()?;
 
     let topic_filters = topic_filters

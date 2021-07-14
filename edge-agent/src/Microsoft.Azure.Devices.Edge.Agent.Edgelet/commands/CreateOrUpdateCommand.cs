@@ -180,6 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Commands
                     envVars.Add(new EnvVar(Constants.NetworkIdKey, networkId));
                 }
 
+                string workloadListenMnt = configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadListenMntUriVariableName);
+                if (!string.IsNullOrEmpty(workloadListenMnt))
+                {
+                    envVars.Add(new EnvVar(Constants.EdgeletWorkloadListenMntUriVariableName, workloadListenMnt));
+                }
+
                 envVars.Add(new EnvVar(Constants.ModeKey, Constants.IotedgedMode));
             }
 

@@ -68,7 +68,7 @@ fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule
         if !current.contains_key(&sub.subscribe_to())
             || current
                 .get(&sub.subscribe_to())
-                .filter(|curr| curr.to_owned().eq(&sub))
+                .filter(|curr| (*curr).eq(&sub))
                 == None
         {
             added.push(sub);
@@ -78,7 +78,7 @@ fn diff_topic_rules(updated: Vec<TopicRule>, current: &HashMap<String, TopicRule
     for sub in current.keys() {
         if !subs_map.contains_key(sub) {
             if let Some(curr) = current.get(sub) {
-                removed.push(curr.to_owned())
+                removed.push(curr.clone())
             }
         }
     }
@@ -105,12 +105,12 @@ impl BridgeControllerUpdate {
     pub fn from_bridge_topic_rules(name: &str, subs: &[TopicRule], forwards: &[TopicRule]) -> Self {
         let subscriptions = subs
             .iter()
-            .map(|s| Direction::In(s.to_owned()))
-            .chain(forwards.iter().map(|s| Direction::Out(s.to_owned())))
+            .map(|s| Direction::In(s.clone()))
+            .chain(forwards.iter().map(|s| Direction::Out(s.clone())))
             .collect();
 
         let bridge_update = BridgeUpdate {
-            endpoint: name.to_owned(),
+            endpoint: name.to_string(),
             subscriptions,
         };
         Self(vec![bridge_update])
@@ -936,7 +936,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");
-        let (forwards, subscriptions) = bridge_update.to_owned().into_parts();
+        let (forwards, subscriptions) = bridge_update.clone().into_parts();
         assert_eq!(subscriptions, vec![sub_rule]);
         assert_eq!(forwards, vec![forward_rule]);
     }
@@ -971,7 +971,7 @@ mod tests {
         let bridge_update = updates.first().take().unwrap();
 
         assert_eq!(bridge_update.clone().endpoint(), "$upstream");
-        let (forwards, subscriptions) = bridge_update.to_owned().into_parts();
+        let (forwards, subscriptions) = bridge_update.clone().into_parts();
         assert_eq!(subscriptions, vec![sub_rule]);
         assert_eq!(forwards, vec![forward_rule]);
     }

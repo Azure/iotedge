@@ -82,7 +82,7 @@ fn storage_mounted_from_host(
         return Ok(CheckResult::Skipped);
     };
 
-    let inspect_result = inspect_container(docker_host_arg, container_name)?;
+    let inspect_result = inspect_container(docker_host_arg, container_name, check.verbose)?;
 
     let temp_dir = inspect_result
         .config()
@@ -141,6 +141,7 @@ fn storage_mounted_from_host(
 fn inspect_container(
     docker_host_arg: &str,
     name: &str,
+    verbose: bool,
 ) -> Result<docker::models::InlineResponse200, failure::Error> {
     Ok(super::docker(docker_host_arg, &["inspect", name])
         .map_err(|(_, err)| err)
@@ -150,5 +151,15 @@ fn inspect_container(
                     .context("Could not parse result of docker inspect")?;
             Ok(inspect_result)
         })
-        .with_context(|_| format!("Could not check current state of {} container", name))?)
+        .with_context(|_| {
+            format!(
+                "Could not check current state of {} container{}",
+                name,
+                if verbose {
+                    "\nCheck that you have made a deployment to device"
+                } else {
+                    ""
+                }
+            )
+        })?)
 }

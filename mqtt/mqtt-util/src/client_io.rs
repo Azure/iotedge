@@ -284,7 +284,7 @@ impl TrustBundleSource {
                     )
                 })?;
                 let cert = trust_bundle.certificate();
-                Some(cert.to_owned())
+                Some(cert.clone())
             }
             Credentials::PlainText(cred_settings) => {
                 cred_settings.trust_bundle().map(str::to_string)

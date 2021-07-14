@@ -254,6 +254,8 @@ cargo test --all
 
     Note that we've manually fixed up the generated code so that it satisfies rustfmt and clippy. As such, if you ever need to run `swagger-codegen-cli` against new definitions, or need to regenerate existing ones, you will want to perform the same fixups manually. Make sure to run clippy and rustfmt against the new code yourself, and inspect the diffs of modified files before checking in.
 
+    For more details, please visit [**How to build Management API using Swagger-Codegen**](../api/README.md)
+
 - IDE
 
     [VS Code](https://code.visualstudio.com/) has good support for Rust. Consider installing the following extensions:

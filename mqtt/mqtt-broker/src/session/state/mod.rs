@@ -336,8 +336,8 @@ impl SessionState {
                 let packet = proto::Publish {
                     packet_identifier_dup_qos: proto::PacketIdentifierDupQoS::AtMostOnce,
                     retain: publication.retain,
-                    topic_name: publication.topic_name.to_owned(),
-                    payload: publication.payload.to_owned(),
+                    topic_name: publication.topic_name.clone(),
+                    payload: publication.payload.clone(),
                 };
                 Publish::QoS0(id, packet)
             }
@@ -348,8 +348,8 @@ impl SessionState {
                         id, false,
                     ),
                     retain: publication.retain,
-                    topic_name: publication.topic_name.to_owned(),
-                    payload: publication.payload.to_owned(),
+                    topic_name: publication.topic_name.clone(),
+                    payload: publication.payload.clone(),
                 };
                 Publish::QoS12(id, packet)
             }
@@ -360,8 +360,8 @@ impl SessionState {
                         id, false,
                     ),
                     retain: publication.retain,
-                    topic_name: publication.topic_name.to_owned(),
-                    payload: publication.payload.to_owned(),
+                    topic_name: publication.topic_name.clone(),
+                    payload: publication.payload.clone(),
                 };
                 Publish::QoS12(id, packet)
             }

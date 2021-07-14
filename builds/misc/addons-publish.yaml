@@ -20,13 +20,19 @@ jobs:
           - checkout: self
             clean: true
             fetchDepth: 100
-        
-          - task: Bash@3
-            displayName: Log into Registries
+
+          # Both docker logins needed for if we need to test this job. In this case images should go to edgebuilds.
+          - task: Docker@2
+            displayName: Docker login edgebuilds
             inputs:
-              targetType: Inline
-              script: |
-                docker login $(registry.address) --username $(registry.user) --password $(registry.password)
+              command: login
+              containerRegistry: iotedge-edgebuilds-acr
+
+          - task: Docker@2
+            displayName: Docker login edgerelease
+            inputs:
+              command: login
+              containerRegistry: iotedge-release-acr
         
           - task: Bash@3
             displayName: 'Publish Api Proxy - Linux amd64'
@@ -51,4 +57,4 @@ jobs:
             inputs:
               targetType: filePath
               filePath: '$(System.DefaultWorkingDirectory)/scripts/linux/buildManifest.sh'
-              arguments: '-r $(registry.address) -u $(registry.user) -p $(registry.password) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'
+              arguments: '-r $(registry.address) -v $(version) -t $(System.DefaultWorkingDirectory)/edge-modules/api-proxy-module/docker/manifest.yaml.template -n $(to.registry.namespace) --tags "$(tags)"'

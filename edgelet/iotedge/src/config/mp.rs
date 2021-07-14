@@ -33,6 +33,8 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert: None,
 
         auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
@@ -57,6 +59,10 @@ To reconfigure IoT Edge, run:
             },
 
             localid: None,
+
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
             aziot_keys: Default::default(),
 

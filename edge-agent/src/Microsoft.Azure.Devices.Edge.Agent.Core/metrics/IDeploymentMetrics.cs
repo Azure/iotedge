@@ -9,6 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         void ComputeAvailability(ModuleSet desired, ModuleSet current);
         void IndicateCleanShutdown();
         void ReportIotHubSync(bool successful);
+        void ReportManifestIntegrity(bool manifestCaPresent, bool integrtySectionPresent);
+        void ReportTwinSignatureResult(bool success, string algorithm = "unknown");
+        IDisposable StartTwinSignatureTimer();
         IDisposable ReportDeploymentTime();
     }
 }

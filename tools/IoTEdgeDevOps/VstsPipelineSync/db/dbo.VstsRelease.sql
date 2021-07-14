@@ -1,5 +1,4 @@
-﻿/****** Object:  Table [dbo].[VstsRelease]    Script Date: 2/14/2020 2:56:09 PM ******/
-SET ANSI_NULLS ON
+﻿SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON

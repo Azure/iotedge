@@ -944,7 +944,7 @@ where
             } else {
                 let maybe_retained = self
                     .retained
-                    .insert(publication.topic_name.to_owned(), publication.clone());
+                    .insert(publication.topic_name.clone(), publication.clone());
                 if maybe_retained.is_none() {
                     info!(
                         "new retained message for topic \"{}\"",

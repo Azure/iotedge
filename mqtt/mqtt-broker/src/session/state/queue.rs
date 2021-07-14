@@ -106,7 +106,7 @@ impl BoundedQueue {
 impl Extend<proto::Publication> for BoundedQueue {
     fn extend<T: IntoIterator<Item = proto::Publication>>(&mut self, iter: T) {
         iter.into_iter().for_each(|item| {
-            let _ = self.enqueue(item);
+            drop(self.enqueue(item));
         });
     }
 }

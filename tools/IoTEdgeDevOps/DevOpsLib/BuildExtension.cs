@@ -10,7 +10,7 @@ namespace DevOpsLib
             {
                 BuildDefinitionId.CI,
                 BuildDefinitionId.EdgeletCI,
-                BuildDefinitionId.LibiohsmCI,
+                BuildDefinitionId.LibiothsmCI,
                 BuildDefinitionId.BuildImages,
                 BuildDefinitionId.EdgeletPackages,
                 BuildDefinitionId.EndToEndTest,
@@ -35,7 +35,7 @@ namespace DevOpsLib
             { BuildDefinitionId.EndToEndTest, "New E2E Test" },
             { BuildDefinitionId.NestedEndToEndTest, "Nested E2E Test" },
             { BuildDefinitionId.ImageRelease, "Image Release" },
-            { BuildDefinitionId.LibiohsmCI, "Libiothsm CI" },
+            { BuildDefinitionId.LibiothsmCI, "Libiothsm CI" },
             { BuildDefinitionId.ConnectivityTest, "Connectivity Test" },
             { BuildDefinitionId.NestedConnectivityTest, "Nested Connectivity Test" },
             { BuildDefinitionId.LonghaulTestEnv1, "Longhaul Test" },

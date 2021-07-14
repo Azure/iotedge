@@ -36,6 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string InterfaceId = "iothub-interface-id";
         public const string ModelId = "modelId";
 
+        public const string RpConnectionDeviceIdInternal = "rpSenderDeviceId";
+        public const string RpConnectionModuleIdInternal = "rpSenderModuleId";
+
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
         {
             { OnTheWireSystemPropertyNames.ExpiryTimeUtcOnTheWireName, ExpiryTimeUtc },
@@ -67,7 +70,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { Operation, OnTheWireSystemPropertyNames.OperationOnTheWireName },
             { CreationTime, OnTheWireSystemPropertyNames.CreationTimeOnTheWireName },
             { ConnectionDeviceId, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName },
-            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName }
+            { ConnectionModuleId, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName },
+            { RpConnectionDeviceIdInternal, OnTheWireSystemPropertyNames.ConnectionDeviceIdOnTheWireName },
+            { RpConnectionModuleIdInternal, OnTheWireSystemPropertyNames.ConnectionModuleIdOnTheWireName }
         };
 
         static class OnTheWireSystemPropertyNames

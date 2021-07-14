@@ -12,7 +12,7 @@ impl State {
         keep_alive: std::time::Duration,
     ) -> Option<crate::proto::Packet> {
         if let Some(crate::proto::Packet::PingResp(crate::proto::PingResp)) = packet {
-            let _ = packet.take();
+            let _ping = packet.take();
 
             match self {
                 State::BeginWaitingForNextPing => (),

@@ -517,11 +517,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         {
             if (ex is ValidationException ve)
             {
-                return this.SendResponseAsync(ve.StatusCode, ve.Message);
+                return this.SendResponseAsync(ve.StatusCode, FormatErrorResponseMessage(ve.Message));
             }
             else
             {
-                return this.SendResponseAsync(HttpStatusCode.InternalServerError, ex.Message);
+                return this.SendResponseAsync(HttpStatusCode.InternalServerError, FormatErrorResponseMessage(ex.Message));
             }
         }
 

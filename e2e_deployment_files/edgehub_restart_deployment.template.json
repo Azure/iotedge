@@ -54,6 +54,9 @@
               },
               "NestedEdgeEnabled": {
                 "value": "false"
+              },
+              "SslProtocols": {
+                "value": "tls1.2"
               }
             },
             "status": "running",
@@ -215,7 +218,7 @@
                 "value": "<TestResultCoordinator.ConsumerGroupId>"
               },
               "optimizeForPerformance": {
-                "value": "<TestResultCoordinator.OptimizeForPerformance>"
+                "value": "<OptimizeForPerformance>"
               },
               "logAnalyticsWorkspaceId": {
                 "value": "<LogAnalyticsWorkspaceId>"

@@ -72,23 +72,6 @@ TARGET_AMD64_MUSL="x86_64-unknown-linux-musl"
 TARGET_AMD64_GNU="x86_64-unknown-linux-gnu"
 
 case "$ARTIFACT_NAME" in
-generic-mqtt-tester)
-    ARTIFACTS_SOURCE="test/modules/$ARTIFACT_NAME"
-    ARTIFACTS_DEST="${BUILD_BINARIESDIRECTORY}/publish/$ARTIFACT_NAME"
-
-    # make build context structure
-    mkdir "$ARTIFACTS_DEST"
-    mkdir -p "$ARTIFACTS_DEST/$TARGET_AMD64_GNU/release"
-    mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM32V7/release"
-    mkdir -p "$ARTIFACTS_DEST/$TARGET_ARM64V8/release"
-
-    # copy artifacts
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_AMD64_GNU/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_AMD64_GNU/release" || true
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM32V7/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM32V7/release" || true
-    cp "$ARTIFACTS_SOURCE/target/$TARGET_ARM64V8/release/$ARTIFACT_NAME" "$ARTIFACTS_DEST/$TARGET_ARM64V8/release" || true
-    cp -r "$ARTIFACTS_SOURCE/docker" "$ARTIFACTS_DEST"
-    ;;
-
 edge-hub)
     EDGEHUB_ARTIFACTS_SOURCE="$BUILD_BINARIESDIRECTORY/publish/Microsoft.Azure.Devices.Edge.Hub.Service"
     MQTT_ARTIFACTS_SOURCE="mqtt"

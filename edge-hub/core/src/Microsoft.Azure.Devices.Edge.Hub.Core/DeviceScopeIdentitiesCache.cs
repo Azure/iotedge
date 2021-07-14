@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         readonly string edgeDeviceId;
         readonly IServiceProxy serviceProxy;
-        readonly IKeyValueStore<string, string> encryptedStore;
+        readonly ServiceIdentityStore store;
         readonly IServiceIdentityHierarchy serviceIdentityHierarchy;
         readonly Timer refreshCacheTimer;
         readonly TimeSpan periodicRefreshRate;
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         DeviceScopeIdentitiesCache(
             IServiceIdentityHierarchy serviceIdentityHierarchy,
             IServiceProxy serviceProxy,
-            IKeyValueStore<string, string> encryptedStorage,
+            ServiceIdentityStore identityStore,
             TimeSpan periodicRefreshRate,
             TimeSpan refreshDelay,
             TimeSpan initializationRefreshDelay,
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.serviceIdentityHierarchy = serviceIdentityHierarchy;
             this.edgeDeviceId = serviceIdentityHierarchy.GetActorDeviceId();
             this.serviceProxy = serviceProxy;
-            this.encryptedStore = encryptedStorage;
+            this.store = identityStore;
             this.periodicRefreshRate = periodicRefreshRate;
             this.refreshDelay = refreshDelay;
             this.initializationRefreshDelay = initializationRefreshDelay;
@@ -88,7 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Preconditions.CheckNotNull(serviceProxy, nameof(serviceProxy));
             Preconditions.CheckNotNull(encryptedStorage, nameof(encryptedStorage));
             Preconditions.CheckNotNull(serviceIdentityHierarchy, nameof(serviceIdentityHierarchy));
-            IDictionary<string, StoredServiceIdentity> cache = await ReadCacheFromStore(encryptedStorage);
+
+            var identityStore = new ServiceIdentityStore(encryptedStorage);
+            IDictionary<string, StoredServiceIdentity> cache = await identityStore.ReadCacheFromStore(encryptedStorage, serviceIdentityHierarchy.GetActorDeviceId());
 
             // Populate the serviceIdentityHierarchy
             foreach (KeyValuePair<string, StoredServiceIdentity> kvp in cache)
@@ -96,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await kvp.Value.ServiceIdentity.ForEachAsync(serviceIdentity => serviceIdentityHierarchy.AddOrUpdate(serviceIdentity));
             }
 
-            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, encryptedStorage, refreshRate, refreshDelay, initializationRefreshDelay, cache.Count > 0);
+            var deviceScopeIdentitiesCache = new DeviceScopeIdentitiesCache(serviceIdentityHierarchy, serviceProxy, identityStore, refreshRate, refreshDelay, initializationRefreshDelay, cache.Count > 0);
 
             Events.Created();
             return deviceScopeIdentitiesCache;
@@ -292,7 +294,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public void Dispose()
         {
-            this.encryptedStore?.Dispose();
+            this.store?.Dispose();
             this.refreshCacheTimer?.Dispose();
             this.refreshCacheTask?.Dispose();
         }
@@ -309,19 +311,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             {
                 return this.serviceProxy.GetServiceIdentity(targetId, onBehalfOfDevice);
             }
-        }
-
-        static async Task<IDictionary<string, StoredServiceIdentity>> ReadCacheFromStore(IKeyValueStore<string, string> encryptedStore)
-        {
-            IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
-            await encryptedStore.IterateBatch(
-                int.MaxValue,
-                (key, value) =>
-                {
-                    cache.Add(key, JsonConvert.DeserializeObject<StoredServiceIdentity>(value));
-                    return Task.CompletedTask;
-                });
-            return cache;
         }
 
         async Task<bool> ShouldRefreshIdentity(string id)
@@ -460,7 +449,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             // Remove the target identity
             await this.serviceIdentityHierarchy.Remove(id);
-            await this.encryptedStore.Remove(id);
+            await this.store.Remove(id);
             Events.NotInScope(id);
 
             if (hasValidServiceIdentity)
@@ -478,7 +467,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             if (hasChanged)
             {
                 Events.AddInScope(serviceIdentity.Id);
-                await this.SaveServiceIdentityToStore(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
+                await this.store.Save(serviceIdentity.Id, new StoredServiceIdentity(serviceIdentity));
 
                 if (existing.HasValue)
                 {
@@ -487,10 +476,77 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task SaveServiceIdentityToStore(string id, StoredServiceIdentity storedServiceIdentity)
+        internal class ServiceIdentityStore : IDisposable
         {
-            string serviceIdentityString = JsonConvert.SerializeObject(storedServiceIdentity);
-            await this.encryptedStore.Put(id, serviceIdentityString);
+            static readonly string DeviceScopeFormat = "ms-azure-iot-edge://{0}-{1}";
+            readonly IKeyValueStore<string, string> entityStore;
+
+            public ServiceIdentityStore(IKeyValueStore<string, string> entityStore)
+            {
+                this.entityStore = entityStore;
+            }
+
+            public async Task Save(string id, StoredServiceIdentity storedServiceIdentity)
+            {
+                string serviceIdentityString = JsonConvert.SerializeObject(storedServiceIdentity);
+                await this.entityStore.Put(id, serviceIdentityString);
+            }
+
+            public Task Remove(string id) => this.entityStore.Remove(id);
+
+            public async Task<IDictionary<string, StoredServiceIdentity>> ReadCacheFromStore(IKeyValueStore<string, string> encryptedStore, string actorDeviceId)
+            {
+                IDictionary<string, StoredServiceIdentity> cache = new Dictionary<string, StoredServiceIdentity>();
+                await encryptedStore.IterateBatch(
+                    int.MaxValue,
+                    (key, value) =>
+                    {
+                        var storedIdentity = JsonConvert.DeserializeObject<StoredServiceIdentity>(value);
+                        cache.Add(key, storedIdentity);
+                        return Task.CompletedTask;
+                    });
+
+                await this.RestoreDeviceScope(encryptedStore, actorDeviceId, cache);
+
+                return cache;
+            }
+
+            public void Dispose() => this.entityStore?.Dispose();
+
+            // Version 1.1 didn't have deviceScope in store, this method sets the deviceScope for edge device from deviceId and generationid
+            // for leaf devices set the DeviceScope and ParentScopes to the edge device scope because if they are present in store they must be children of the edge device
+            async Task RestoreDeviceScope(IKeyValueStore<string, string> encryptedStore, string actorDeviceId, IDictionary<string, StoredServiceIdentity> cache)
+            {
+                if (cache.TryGetValue(actorDeviceId, out StoredServiceIdentity storedServiceIdentity))
+                {
+                    string edgeDeviceScope = null;
+                    storedServiceIdentity.ServiceIdentity.ForEach(si => edgeDeviceScope = si.DeviceScope.OrDefault());
+
+                    if (string.IsNullOrEmpty(edgeDeviceScope) && storedServiceIdentity.ServiceIdentity.HasValue)
+                    {
+                        var edgeServiceIdentity = storedServiceIdentity.ServiceIdentity.OrDefault();
+                        edgeDeviceScope = string.Format(DeviceScopeFormat, edgeServiceIdentity.DeviceId, edgeServiceIdentity.GenerationId);
+                        List<string> keys = new List<string>(cache.Keys);
+                        foreach (var key in keys)
+                        {
+                            if (key.Equals(actorDeviceId))
+                            {
+                                cache[key] = new StoredServiceIdentity(new ServiceIdentity(edgeServiceIdentity.DeviceId, edgeServiceIdentity.ModuleId.OrDefault(), edgeDeviceScope, edgeServiceIdentity.ParentScopes, edgeServiceIdentity.GenerationId, edgeServiceIdentity.Capabilities, edgeServiceIdentity.Authentication, edgeServiceIdentity.Status));
+                            }
+                            else
+                            {
+                                cache[key].ServiceIdentity.Filter(si => !si.IsEdgeDevice && !si.IsModule && !si.DeviceScope.HasValue && si.ParentScopes.Count == 0).ForEach(si =>
+                                {
+                                    cache[key] = new StoredServiceIdentity(new ServiceIdentity(si.DeviceId, si.ModuleId.OrDefault(), edgeDeviceScope, new List<string> { edgeDeviceScope }, si.GenerationId, si.Capabilities, si.Authentication, si.Status));
+                                });
+                            }
+
+                            string serviceIdentityString = JsonConvert.SerializeObject(cache[key]);
+                            await encryptedStore.Put(key, serviceIdentityString);
+                        }
+                    }
+                }
+            }
         }
 
         internal class StoredServiceIdentity

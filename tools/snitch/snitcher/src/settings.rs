@@ -30,7 +30,6 @@ pub struct Alert {
     host: String,
     path: String,
     query: HashMap<String, String>,
-    #[serde(with = "url_serde")]
     url: Url,
 }
 
@@ -79,12 +78,10 @@ pub struct Settings {
     build_id: String,
     test_duration: Duration,
     alert: Alert,
-    #[serde(with = "url_serde")]
     analyzer_url: Url,
     blob_storage_account: String,
     blob_storage_master_key: String,
     reporting_interval: Option<Duration>,
-    #[serde(with = "url_serde")]
     management_uri: Url,
 }
 

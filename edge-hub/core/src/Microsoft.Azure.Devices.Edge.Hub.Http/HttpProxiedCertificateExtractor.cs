@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Azure.Devices.Common.Security;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http.Extensions;

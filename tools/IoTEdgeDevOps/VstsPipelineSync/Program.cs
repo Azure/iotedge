@@ -14,8 +14,8 @@ namespace VstsPipelineSync
         {
             (HashSet<string> branches, TimeSpan waitPeriodBeforeNextUpdate, string pat, string dbConnectionString) = GetInputsFromArgs(args);
             Console.WriteLine($"Wait period before next update=[{waitPeriodBeforeNextUpdate}]");
-            
-            HashSet<BugQuery> bugQueries = BugQueryGenerator.GenerateBugQueries();
+
+            HashSet<BugWiqlQuery> bugQueries = BugWiqlQueryGenerator.GenerateBugQueries();
 
             VstsBuildBatchUpdate vstsBuildBatchUpdate = new VstsBuildBatchUpdate(new DevOpsAccessSetting(pat), dbConnectionString, branches, bugQueries);
             await vstsBuildBatchUpdate.RunAsync(waitPeriodBeforeNextUpdate, CancellationToken.None);
@@ -48,8 +48,8 @@ namespace VstsPipelineSync
             }
             else
             {
-               pat = GetSecretFromKeyVault_ManagedIdentity_TokenProvider("TestDashboardVstsPat");
-               dbConnectionString = GetSecretFromKeyVault_ManagedIdentity_TokenProvider("TestDashboardDbConnectionString");
+                pat = GetSecretFromKeyVault_ManagedIdentity_TokenProvider("TestDashboardVstsPat");
+                dbConnectionString = GetSecretFromKeyVault_ManagedIdentity_TokenProvider("TestDashboardDbConnectionString");
             }
 
             return (branches, waitPeriodBeforeNextUpdate, pat, dbConnectionString);

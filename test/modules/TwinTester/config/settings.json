@@ -1,7 +1,7 @@
 {
     "jitterFactor": 0.5,
     "twinUpdateSize": 1,
-    "twinUpdateFrequency": "00:00:10",
+    "twinUpdateFrequency": "00:00:15",
     "twinUpdateFailureThreshold": "00:01:00",
     "transportType": "amqp",
     "analyzerURL": "http://analyzer:15000",

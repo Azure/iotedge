@@ -40,15 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             CancellationToken token,
             bool nestedEdge)
         {
-            (string, string)[] hubEnvVar;
+            (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
 
             if (nestedEdge == true)
             {
-                hubEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("DeviceScopeCacheRefreshDelaySecs", "0") };
+                hubEnvVar.Append(("DeviceScopeCacheRefreshDelaySecs", "0"));
             }
             else
             {
-                hubEnvVar = new[] { ("RuntimeLogLevel", "debug"), ("NestedEdgeEnabled", "false"), };
+                hubEnvVar.Append(("NestedEdgeEnabled", "false"));
             }
 
             var builder = new EdgeConfigBuilder(this.DeviceId);

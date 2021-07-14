@@ -29,3 +29,5 @@ steps:
     inputs:
       filePath: scripts/linux/cross-platform-rust-build.sh
       arguments: --os ubuntu18.04 --arch aarch64 --build-path edge-hub/watchdog
+  - script: scripts/linux/consolidate-build-artifacts.sh --build-binaries-dir '$(Build.BinariesDirectory)' --artifact-name 'edge-hub'
+    displayName: Consolidate Edge Hub Artifacts

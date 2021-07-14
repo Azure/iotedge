@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use url::Url;
+use url::{ParseError, Url};
 
 use crate::module::ModuleSpec;
 
@@ -64,8 +64,16 @@ pub struct Listen {
 }
 
 impl Listen {
-    pub fn workload_uri(&self) -> &Url {
+    pub fn legacy_workload_uri(&self) -> &Url {
         &self.workload_uri
+    }
+
+    pub fn workload_mnt_uri(home_dir: &str) -> String {
+        "unix://".to_string() + home_dir + "/mnt"
+    }
+
+    pub fn workload_uri(home_dir: &str, module_id: &str) -> Result<Url, ParseError> {
+        Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + ".sock"))
     }
 
     pub fn management_uri(&self) -> &Url {
@@ -347,6 +355,9 @@ pub struct Settings<T> {
 
     pub homedir: PathBuf,
 
+    #[serde(default = "true_func")]
+    pub allow_elevated_docker_permissions: bool,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub manifest_trust_bundle_cert: Option<String>,
 
@@ -364,6 +375,11 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
+}
+
+// Serde default requires a function: https://github.com/serde-rs/serde/issues/1030
+fn true_func() -> bool {
+    true
 }
 
 impl<T> RuntimeSettings for Settings<T>

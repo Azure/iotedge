@@ -124,6 +124,57 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             yield return new object[]
             {
                 new TwinCollection(JsonConvert.SerializeObject(new
+                    {
+                        ok = "ok",
+                        level1 = new
+                        {
+                            // level 2
+                            array1 = new[]
+                                {
+                                    // level 3
+                                    new[]
+                                    {
+                                        // level 4
+                                        new[]
+                                        {
+                                            // level 5
+                                            new[]
+                                            {
+                                                // level 6
+                                                new[]
+                                                {
+                                                    // level 7
+                                                    new[]
+                                                    {
+                                                        // level 8
+                                                        new[]
+                                                        {
+                                                            // level 9
+                                                            new[]
+                                                            {
+                                                                // level 10
+                                                                new[]
+                                                                {
+                                                                    // level 11
+                                                                    new[] { "one", "two", "three" },
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                }
+                        }
+                    })),
+                typeof(InvalidOperationException),
+                "Nested depth of twin property exceeds 10"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
                 {
                     array = new[] { 0, 1, 2 }
                 })),
@@ -197,8 +248,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
             yield return new object[]
             {
                 new TwinCollection("{ \"ok\": [\"good\"], \"ok2\": [], \"level1\": [{ \"field1\": null }] }"),
-                null,
-                string.Empty
+                typeof(InvalidOperationException),
+                "Property field1 of an object in an array cannot be 'null'"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
+                    ok = "ok",
+                    complex = new
+                            {
+                                array1 = new object[]
+                                {
+                                    "one",
+                                    "two",
+                                    new
+                                    {
+                                        array2 = new[]
+                                        {
+                                            new { hello = (string)null }
+                                        }
+                                    },
+                                }
+                            }
+                })),
+                typeof(InvalidOperationException),
+                "Property hello of an object in an array cannot be 'null'"
             };
 
             yield return new object[]
@@ -266,6 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                                 {
                                     new[] { "one", "two", "three" },
                                     new[] { "four", "five", "six" },
+                                    new object[] { "seven", new { ok = "ok" } },
                                 },
                                 pi = 3.14,
                                 sometime = new DateTime(2021, 1, 20),

@@ -106,9 +106,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Events.UpdateReportedPropertiesReceived(identity);
             Task cloudSendMessageTask = this.twinManager.UpdateReportedPropertiesAsync(identity.Id, reportedPropertiesMessage);
 
-            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionDeviceId] = this.edgeDeviceId;
-            reportedPropertiesMessage.SystemProperties[SystemProperties.ConnectionModuleId] = this.edgeModuleId;
-
             IRoutingMessage routingMessage = this.ProcessMessageInternal(reportedPropertiesMessage, false);
             Task routingSendMessageTask = this.router.RouteAsync(routingMessage);
 

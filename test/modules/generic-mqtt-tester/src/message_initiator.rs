@@ -10,6 +10,7 @@ use tokio::{
     sync::mpsc::{self, Receiver},
     time,
 };
+use tracing::error;
 use tracing::info;
 use uuid::{self, Uuid};
 
@@ -114,12 +115,16 @@ impl MessageInitiator {
 
             let test_type = trc_client::TestType::Messages;
             let created_at = chrono::Utc::now();
-            self.reporting_client
+
+            if let Err(e) = self
+                .reporting_client
                 .report_result(self.report_source.clone(), result, test_type, created_at)
                 .await
-                .map_err(MessageTesterError::ReportResult)?;
-            seq_num += 1;
+            {
+                error!("error reporting result to trc: {:?}", e);
+            }
 
+            seq_num += 1;
             time::sleep(self.message_frequency).await;
         }
 

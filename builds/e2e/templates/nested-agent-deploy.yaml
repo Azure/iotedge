@@ -30,7 +30,8 @@ steps:
       Write-Output ">> Package Build ID=$packageBuildId"
       Write-Output ">> Image Build ID=$imageBuildId"
     displayName: Override artifacts with user-supplied args   
-    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))      
+    condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
+
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Images Artifacts'
     condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
@@ -52,6 +53,7 @@ steps:
          $(az.pipeline.images.artifacts)/scripts/linux/trcE2ETest.sh
          $(az.pipeline.images.artifacts)/artifactInfo.txt
          $(az.pipeline.images.artifacts)/scripts/local/test/DownloadIdentityService.ps1
+
   - task: DownloadBuildArtifacts@0
     displayName: 'Download Edgelet Artifacts'
     condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
@@ -63,7 +65,8 @@ steps:
       buildId: $(packageBuildId)
       downloadPath: '$(Build.StagingDirectory)'
       allowPartiallySucceededBuilds: true
-      artifactName: $(artifactName)   
+      artifactName: $(artifactName)
+
   - task: PowerShell@2
     displayName: 'Download aziot-identity-service'
     condition: or(eq(variables['run.flag'], ''), eq(variables['run.flag'], 1))
@@ -76,6 +79,7 @@ steps:
       PACKAGE_FILTER: $(identityServicePackageFilter)
       DOWNLOAD_PATH: $(Build.StagingDirectory) 
       IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+
   - ${{ if not(parameters.skipInstall) }}:
     - task: Bash@3     
       displayName: 'Install artifacts'
@@ -90,14 +94,18 @@ steps:
           sudo systemctl stop iotedge || true        
           sudo systemctl stop aziot-keyd aziot-certd aziot-identityd aziot-edged || true
           sudo dpkg --purge aziot-edge aziot-identity-service
+          echo;
 
+          echo 'Remove previous run config files'
           sudo rm -rf /var/lib/aziot/
           sudo rm -rf /var/lib/iotedge/
           sudo rm -rf /etc/aziot/
-          sudo rm -rf /etc/systemd/system/aziot-*.service.d/ 
+          sudo rm -rf /etc/systemd/system/aziot-*.service.d/
+          echo;
 
           echo 'Restart docker'
           sudo systemctl restart docker # needed due to https://github.com/moby/moby/issues/23302
+          echo;
 
           echo "Install artifacts"            
           iotedge_library=$( find $(Build.SourcesDirectory)/aziot-identity-service -type f -iname "$(identityServicePackageFilter)")
@@ -108,9 +116,12 @@ steps:
           iotedge_package="${pkg_list[*]}"
 
           echo "  Install library"
-          sudo apt-get install ${iotedge_library}
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_library}
+          echo;
+
           echo "  Install edgelet"
-          sudo apt-get install ${iotedge_package}          
+          sudo apt-get --yes --allow-downgrades --allow-unauthenticated install ${iotedge_package}
+          echo;
   - ${{ if not(parameters.skipInstall) }}:
     - template: nested-deploy-config.yaml
       parameters:

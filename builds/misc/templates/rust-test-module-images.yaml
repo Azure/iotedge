@@ -1,0 +1,33 @@
+parameters:
+  os: 'linux'
+  module.path: ''
+  module.name: ''
+
+steps:
+  - task: Docker@2
+    displayName: Build amd64 image for ${{ parameters['module.name'] }}
+    inputs:
+      repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
+      command: buildAndPush
+      containerRegistry: iotedge-edgebuilds-acr
+      Dockerfile: ${{ parameters['module.path'] }}/docker/${{ parameters['os'] }}/amd64/Dockerfile
+      buildContext: ${{ parameters['module.path'] }}/target
+      tags: $(Build.BuildNumber)-linux-amd64
+  - task: Docker@2
+    displayName: Build arm32 image for ${{ parameters['module.name'] }}
+    inputs:
+      repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
+      command: buildAndPush
+      containerRegistry: iotedge-edgebuilds-acr
+      Dockerfile: ${{ parameters['module.path'] }}/docker/${{ parameters['os'] }}/arm32v7/Dockerfile
+      buildContext: ${{ parameters['module.path'] }}/target
+      tags: $(Build.BuildNumber)-linux-arm32v7
+  - task: Docker@2
+    displayName: Build arm64 image for ${{ parameters['module.name'] }}
+    inputs:
+      repository: microsoft/azureiotedge-${{ parameters['module.name'] }}
+      command: buildAndPush
+      containerRegistry: iotedge-edgebuilds-acr
+      Dockerfile: ${{ parameters['module.path'] }}/docker/${{ parameters['os'] }}/arm64v8/Dockerfile
+      buildContext: ${{ parameters['module.path'] }}/target
+      tags: $(Build.BuildNumber)-linux-arm64v8

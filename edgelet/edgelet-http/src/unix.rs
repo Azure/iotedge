@@ -3,10 +3,11 @@
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
+use std::os::unix::prelude::PermissionsExt;
 use std::path::Path;
 
 use failure::ResultExt;
-use log::debug;
+use log::{debug, error};
 #[cfg(unix)]
 use nix::sys::stat::{umask, Mode};
 #[cfg(unix)]
@@ -17,7 +18,7 @@ use tokio_uds::UnixListener;
 use crate::error::{Error, ErrorKind};
 use crate::util::{incoming::Incoming, socket_file_exists};
 
-pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
+pub fn listener<P: AsRef<Path>>(path: P, unix_socket_permission: u32) -> Result<Incoming, Error> {
     let listener = if socket_file_exists(path.as_ref()) {
         // get the previous file's metadata
         #[cfg(unix)]
@@ -34,14 +35,35 @@ pub fn listener<P: AsRef<Path>>(path: P) -> Result<Incoming, Error> {
         defer! {{ umask(prev); }}
 
         debug!("binding {}...", path.as_ref().display());
+
         let listener = UnixListener::bind(&path)
             .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
         debug!("bound {}", path.as_ref().display());
 
         Incoming::Unix(listener)
     } else {
+        // If parent doesn't exist, create it and socket will be created inside.
+        if let Some(parent) = path.as_ref().parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent).with_context(|err| {
+                    error!("Cannot create directory, error: {}", err);
+                    ErrorKind::Path(path.as_ref().display().to_string())
+                })?;
+            }
+        }
+
         let listener = UnixListener::bind(&path)
             .with_context(|_| ErrorKind::Path(path.as_ref().display().to_string()))?;
+
+        fs::set_permissions(
+            path.as_ref(),
+            fs::Permissions::from_mode(unix_socket_permission),
+        )
+        .map_err(|err| {
+            error!("Cannot set directory permissions: {}", err);
+            ErrorKind::Path(path.as_ref().display().to_string())
+        })?;
+
         Incoming::Unix(listener)
     };
 
@@ -100,7 +122,7 @@ mod tests {
         assert_eq!(0o600, file.metadata().unwrap().mode() & 0o7777);
         drop(file);
 
-        let listener = listener(&path).unwrap();
+        let listener = listener(&path, 0o666).unwrap();
         let _srv = listener.for_each(move |(_socket, _addr)| Ok(()));
 
         let file_stat = stat(&path).unwrap();

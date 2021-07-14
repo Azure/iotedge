@@ -160,9 +160,9 @@ impl Session {
         publication: &proto::Publication,
     ) -> Result<Option<ClientEvent>, Error> {
         match self {
-            Self::Transient(connected) => connected.publish_to(publication.to_owned()),
-            Self::Persistent(connected) => connected.publish_to(publication.to_owned()),
-            Self::Offline(offline) => offline.publish_to(publication.to_owned()),
+            Self::Transient(connected) => connected.publish_to(publication.clone()),
+            Self::Persistent(connected) => connected.publish_to(publication.clone()),
+            Self::Offline(offline) => offline.publish_to(publication.clone()),
             Self::Disconnecting(_) => Err(Error::SessionOffline),
         }
     }

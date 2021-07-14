@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetJsonLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.None;
             LogsContentType contentType = LogsContentType.Json;
 
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetTextLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.None;
             LogsContentType contentType = LogsContentType.Text;
 
@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetJsonGzipLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.Gzip;
             LogsContentType contentType = LogsContentType.Json;
 
@@ -212,7 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
         [Fact]
         public async Task GetTextGzipLogsTest()
         {
-            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.Some("ERR"));
+            var filter = new ModuleLogFilter(Option.Some(100), Option.Some("1501000"), Option.None<string>(), Option.Some(3), Option.None<bool>(), Option.Some("ERR"));
             LogsContentEncoding contentEncoding = LogsContentEncoding.Gzip;
             LogsContentType contentType = LogsContentType.Text;
 

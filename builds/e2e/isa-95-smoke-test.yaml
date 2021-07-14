@@ -11,10 +11,16 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: master
+    trigger:
+      branches:
+      - master
+      - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: master
+    trigger:
+      branches:
+      - master
+      - release/*
 
 stages:
 - stage: SetupVM
@@ -177,8 +183,8 @@ stages:
       - template: templates/e2e-setup.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
-          IotHubConnectionString: $(IotHubStressConnString)  
+          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: $(test_type)
 
   - job:  Clean_up     

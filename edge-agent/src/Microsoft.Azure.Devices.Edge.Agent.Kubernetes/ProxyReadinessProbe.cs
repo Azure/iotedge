@@ -25,8 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             try
             {
-                HttpResponseMessage response = await this.client.GetAsync($"/systeminfo?api-version={this.apiVersion}", token);
-                return response.StatusCode == HttpStatusCode.OK ? ProxyReadiness.Ready : ProxyReadiness.Failed;
+                using (HttpResponseMessage response = await this.client.GetAsync($"/systeminfo?api-version={this.apiVersion}", token))
+                {
+                    return response.StatusCode == HttpStatusCode.OK ? ProxyReadiness.Ready : ProxyReadiness.Failed;
+                }
             }
             catch
             {

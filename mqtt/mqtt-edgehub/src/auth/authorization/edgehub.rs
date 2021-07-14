@@ -652,7 +652,7 @@ mod tests {
         let mut authorizer =
             EdgeHubAuthorizer::without_ready_handle(inner, "this_edge", "myhub.azure-devices.net");
 
-        let _ = authorizer.update(Box::new(AuthorizerUpdate(identities)));
+        let _result = authorizer.update(Box::new(AuthorizerUpdate(identities)));
         authorizer
     }
 }

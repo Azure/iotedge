@@ -59,7 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             IRunnableGraph<Task<IImmutableList<ModuleLogMessage>>> graph = graphBuilder.GetMaterializingGraph(m => (ModuleLogMessage)m);
 
             IImmutableList<ModuleLogMessage> result = await graph.Run(this.materializer);
-            return result;
+            return filter.Tail.Match<IReadOnlyList<ModuleLogMessage>>(
+                t =>
+                {
+                    return result.Skip(Math.Max(0, result.Count - t)).ToList().AsReadOnly();
+                },
+                () => result);
         }
 
         // Gzip encoding or output framing don't apply to this method.
@@ -86,7 +91,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
             IRunnableGraph<Task<IImmutableList<string>>> graph = GetGraph();
             IImmutableList<string> result = await graph.Run(this.materializer);
-            return result;
+
+            return filter.Tail.Match<IReadOnlyList<string>>(
+                t =>
+                {
+                    return result.Skip(Math.Max(0, result.Count - t)).ToList().AsReadOnly();
+                },
+                () => result);
         }
 
         public async Task ProcessLogsStream(string id, Stream stream, ModuleLogOptions logOptions, Func<ArraySegment<byte>, Task> callback)

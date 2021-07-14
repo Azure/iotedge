@@ -9,8 +9,8 @@ use futures_util::{
 use log::{error, info, warn};
 use tokio::{sync::Notify, task::JoinHandle, time};
 
-use super::file;
-use super::shutdown_handle;
+use crate::utils::file;
+use crate::utils::shutdown_handle;
 use edgelet_client::CertificateResponse;
 use shutdown_handle::ShutdownHandle;
 

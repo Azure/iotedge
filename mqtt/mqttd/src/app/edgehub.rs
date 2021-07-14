@@ -227,7 +227,7 @@ fn make_sidecars(
 
     let bridge_controller = BridgeController::new(
         system_address.clone(),
-        device_id.to_owned(),
+        device_id.clone(),
         config.bridge().clone(),
     );
     let bridge_controller_handle = bridge_controller.handle();

@@ -316,6 +316,11 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(0UL, report.TotalDuplicateExpectedResultCount);
             Assert.Equal(0UL, report.TotalDuplicateActualResultCount);
             Assert.Equal(0UL, report.TotalMisorderedActualResultCount);
+
+            Assert.Equal(0, report.UnmatchedResults.Count);
+            Assert.Equal(0, report.DuplicateExpectedResults.Count);
+            Assert.Equal(0, report.DuplicateActualResults.Count);
+            Assert.Equal(0, report.MisorderedActualResults.Count);
         }
 
         [Theory]
@@ -378,6 +383,11 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal(expectedTotalDuplicateExpectedResultCount, report.TotalDuplicateExpectedResultCount);
             Assert.Equal(expectedTotalDuplicateActualResultCount, report.TotalDuplicateActualResultCount);
             Assert.Equal(expectedTotalMisorderedActualResultCount, report.TotalMisorderedActualResultCount);
+
+            Assert.Equal((int)expectedMissingResultsCount, report.UnmatchedResults.Count);
+            Assert.Equal((int)expectedTotalDuplicateExpectedResultCount, report.DuplicateExpectedResults.Count);
+            Assert.Equal((int)expectedTotalDuplicateActualResultCount, report.DuplicateActualResults.Count);
+            Assert.Equal((int)expectedTotalMisorderedActualResultCount, report.MisorderedActualResults.Count);
         }
 
         static List<(long, TestOperationResult)> GetStoreData(string source, string resultType, IEnumerable<string> resultValues, int start = 0)

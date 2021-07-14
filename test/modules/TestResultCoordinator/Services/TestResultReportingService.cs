@@ -23,6 +23,7 @@ namespace TestResultCoordinator.Services
         readonly ITestOperationResultStorage storage;
         readonly TestResultReportingServiceSettings serviceSpecificSettings;
         readonly TimeSpan sendReportFrequency;
+        readonly Option<TimeSpan> logUploadDuration;
         Timer timer;
 
         public TestResultReportingService(ITestOperationResultStorage storage)
@@ -39,16 +40,19 @@ namespace TestResultCoordinator.Services
                             connectivitySettings.TestVerificationDelay;
                         // Set sendReportFrequency to -1ms to indicate that the sending report Timer won't repeat
                         this.sendReportFrequency = TimeSpan.FromMilliseconds(-1);
+                        this.logUploadDuration = Option.None<TimeSpan>();
                         break;
                     }
 
                 case TestMode.LongHaul:
                     {
+                        // In long haul mode, wait 1 report frequency before starting
                         this.sendReportFrequency = Settings.Current.LongHaulSpecificSettings
                             .Expect(() => new ArgumentException("LongHaulSpecificSettings must be supplied."))
                             .SendReportFrequency;
-                        // In long haul mode, wait 1 report frequency before starting
                         this.delayBeforeWork = this.sendReportFrequency;
+                        // Add 10 minute buffer to duration to ensure we capture all logs
+                        this.logUploadDuration = Option.Some(this.sendReportFrequency + TimeSpan.FromMinutes(10));
                         break;
                     }
             }
@@ -103,7 +107,8 @@ namespace TestResultCoordinator.Services
                 {
                     Uri blobContainerWriteUriForLog = await TestReportUtil.GetOrCreateBlobContainerSasUriForLogAsync(this.serviceSpecificSettings.StorageAccountConnectionString);
                     blobContainerUri = $"{blobContainerWriteUriForLog.Scheme}{Uri.SchemeDelimiter}{blobContainerWriteUriForLog.Authority}{blobContainerWriteUriForLog.AbsolutePath}";
-                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logger);
+
+                    await TestReportUtil.UploadLogsAsync(Settings.Current.IoTHubConnectionString, blobContainerWriteUriForLog, this.logUploadDuration, this.logger);
                 }
                 catch (Exception ex)
                 {

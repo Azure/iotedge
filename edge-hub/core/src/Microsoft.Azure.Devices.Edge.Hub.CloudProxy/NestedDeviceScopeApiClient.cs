@@ -24,6 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         const string NestedApiVersion = "2020-06-30-preview";
 
+        static readonly TimeSpan OperationTimeout = TimeSpan.FromMinutes(2);
+        // Timeout set to HttpClient is > OperationTimeout because HttpClient throws TaskCanceledException when it timeouts and retry policy won't retry it in that case
+        static readonly TimeSpan HttpOperationTimeout = TimeSpan.FromMinutes(5);
+
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
 
         static readonly RetryStrategy TransientRetryStrategy =
@@ -124,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 return await ExecuteWithRetry(
-                    () => this.GetIdentityOnBehalfOfInternalAsync(uri, deviceId, moduleId, onBehalfOfDevice),
+                    () => this.GetIdentityOnBehalfOfInternalAsync(uri, deviceId, moduleId, onBehalfOfDevice).TimeoutAfter(OperationTimeout),
                     Events.RetryingGetIdentities,
                     this.retryStrategy);
             }
@@ -143,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             try
             {
                 return await ExecuteWithRetry(
-                    () => this.GetIdentitiesInTargetScopeInternalAsync(uri, continuation),
+                    () => this.GetIdentitiesInTargetScopeInternalAsync(uri, continuation).TimeoutAfter(OperationTimeout),
                     Events.RetryingGetIdentities,
                     this.retryStrategy);
             }
@@ -159,15 +163,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             HttpClient client = this.proxy
                 .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
                 .GetOrElse(() => new HttpClient());
+            client.Timeout = HttpOperationTimeout;
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 // Get the auth-chain for the Edge we're acting OnBehalfOf
                 Option<string> maybeAuthChain = await this.serviceIdentityHierarchy.GetAuthChain(onBehalfOfDevice);
                 string authChain = maybeAuthChain.Expect(() => new InvalidOperationException($"No valid authentication chain for {onBehalfOfDevice}"));
-
-                // We must pass the origin Edge ID along upstream, so the root
-                // can know which Edge to act OnBehalfOf when calling IoT Hub
-                msg.Headers.Add(Constants.OriginEdgeHeaderKey, onBehalfOfDevice);
 
                 var payload = new IdentityOnBehalfOfRequest(deviceId, moduleId.OrDefault(), authChain);
                 string token = await this.edgeHubTokenProvider.GetTokenAsync(Option.None<TimeSpan>());
@@ -194,6 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             HttpClient client = this.proxy
                 .Map(p => new HttpClient(new HttpClientHandler { Proxy = p }, disposeHandler: true))
                 .GetOrElse(() => new HttpClient());
+            client.Timeout = HttpOperationTimeout;
             using (var msg = new HttpRequestMessage(HttpMethod.Post, uri))
             {
                 // Get the auth-chain for the target device

@@ -490,6 +490,8 @@ mod tests {
     use std::path::PathBuf;
     use std::str;
 
+    use edgelet_core::ModuleAction;
+    use futures::sync::mpsc;
     use regex::Regex;
     use tempfile::tempdir;
 
@@ -633,7 +635,10 @@ mod tests {
         let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
-        TestRuntime::make_runtime(TestSettings::new())
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
             .with_module(Ok(module))
