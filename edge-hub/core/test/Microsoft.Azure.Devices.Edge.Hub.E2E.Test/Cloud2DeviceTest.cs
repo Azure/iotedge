@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using JetBrains.Annotations;
     using Microsoft.Azure.Devices.Client;
@@ -84,17 +85,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString, settings);
                 // Dummy ReceiveAsync to ensure mqtt subscription registration before SendAsync() is called on service client.
                 await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(1));
+
+                var device = await rm.GetDeviceAsync(deviceName);
+                // Wait for device to be connected to cloud
+                await this.WaitForDeviceConnectionStateTimeoutAfter(rm, deviceName, DeviceConnectionState.Connected, TimeSpan.FromSeconds(60));
                 await deviceClient.CloseAsync();
 
                 // Wait for the connection to be closed on the Edge side by checking device connection state
-                Task timerTask = Task.Delay(TimeSpan.FromMinutes(4));
-                Task checkTask = this.WaitForDeviceDisconnected(rm, deviceName);
-
-                Task completedTask = await Task.WhenAny(checkTask, timerTask);
-                if (completedTask == timerTask)
-                {
-                    throw new TimeoutException("Wait for device to disconnect timed out");
-                }
+                await this.WaitForDeviceConnectionStateTimeoutAfter(rm, deviceName, DeviceConnectionState.Disconnected, TimeSpan.FromSeconds(60));
 
                 // Act
                 // Send message before device is listening
@@ -169,10 +167,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return settings;
         }
 
-        async Task WaitForDeviceDisconnected(RegistryManager rm, string deviceName)
+        async Task WaitForDeviceConnectionStateTimeoutAfter(RegistryManager rm, string deviceName, DeviceConnectionState state, TimeSpan timespan)
+        {
+            Task timerTask = Task.Delay(timespan);
+            CancellationTokenSource cts = new CancellationTokenSource();
+
+            Task completedTask = await Task.WhenAny(this.WaitForDeviceConnectionState(rm, deviceName, state, cts.Token), timerTask);
+            if (completedTask == timerTask)
+            {
+                cts.Cancel();
+                throw new TimeoutException(string.Format("Wait for device to be in {0} state timed out", state));
+            }
+        }
+
+        async Task WaitForDeviceConnectionState(RegistryManager rm, string deviceName, DeviceConnectionState state, CancellationToken cancellationToken)
         {
             var device = await rm.GetDeviceAsync(deviceName);
-            while (device.ConnectionState != DeviceConnectionState.Disconnected)
+            while (device.ConnectionState != state && !cancellationToken.IsCancellationRequested)
             {
                 device = await rm.GetDeviceAsync(deviceName);
                 await Task.Delay(TimeSpan.FromSeconds(5));
@@ -199,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [AssertionMethod]
         async Task VerifyReceivedC2DMessage(DeviceClient deviceClient, string payload, string p1Value)
         {
-            Client.Message receivedMessage = await deviceClient.ReceiveAsync();
+            Client.Message receivedMessage = await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(20));
 
             if (receivedMessage != null)
             {
