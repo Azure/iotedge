@@ -128,12 +128,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 double maxWait = TimeSpan.FromSeconds(60).TotalMilliseconds;
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
-                while(stopwatch.ElapsedMilliseconds < maxWait && (messagesCount != receivedMessagesInput1.Count || messagesCount != receivedMessagesInput2.Count))
+                while (stopwatch.ElapsedMilliseconds < maxWait && (messagesCount != receivedMessagesInput1.Count || messagesCount != receivedMessagesInput2.Count))
                 {
                     receivedMessagesInput1 = receiver.GetReceivedMessageIndices("input1");
                     receivedMessagesInput2 = receiver.GetReceivedMessageIndices("input2");
                     await Task.Delay(TimeSpan.FromMilliseconds(300));
                 }
+
                 stopwatch.Stop();
 
                 Assert.Equal(messagesCount, receivedMessagesInput1.Count);
