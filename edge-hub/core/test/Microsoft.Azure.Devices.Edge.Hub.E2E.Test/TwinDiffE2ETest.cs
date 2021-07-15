@@ -377,6 +377,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             }
 
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    var device = await rm.GetDeviceAsync(deviceName);
+                    if (device.ConnectionState != DeviceConnectionState.Connected)
+                        throw new Exception("Device not connected to cloud");
+                    break;
+                }
+                catch (Exception)
+                {
+                    if (i == 4)
+                    {
+                        throw;
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                }
+            }
+
             return (deviceClient, deviceName);
         }
 
