@@ -23,7 +23,7 @@ foreach ($artifact in $content)
 
     # Download and Expand each artifact
     Invoke-WebRequest -Uri $artifactUrl -Headers $header -OutFile "$artifactPath$artifactExtension"
-    Expand-Archive -Path $artifactPath -DestinationPath $workDir
+    Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir
 
     # Each artifact is a directory, fetch the packages within it.
     $packages = $(Get-ChildItem -Path $artifactPath)
@@ -39,7 +39,11 @@ foreach ($artifact in $content)
         # Reconstruct the new name from the segments. 
         $finalName = @($name, $version, $os, $arch) -join '_'
         $finalName = "$finalName.$ext"
+        $newPath = $(Join-Path -Path "$($package.Directory)" -ChildPath "$finalName")
+
+        # Rename
+        Rename-Item -Path $package.FullName -NewName $newPath
     }
 
-    Remove-Item -Path $artifactPath
+    #Remove-Item -Path $artifactPath
 }
