@@ -23,8 +23,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
 
         public IMessage ToMessage(IProtocolGatewayMessage sourceMessage)
         {
-            Console.WriteLine($"\n\nProtocol To\n{Newtonsoft.Json.JsonConvert.SerializeObject(sourceMessage.Properties)}");
-
             if (!this.addressConvertor.TryParseProtocolMessagePropsFromAddress(sourceMessage))
             {
                 throw new InvalidOperationException("Topic name could not be matched against any of the configured routes.");
@@ -63,12 +61,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
                 .SetProperties(properties)
                 .SetSystemProperties(systemProperties)
                 .Build();
+
             return hubMessage;
         }
 
         public IProtocolGatewayMessage FromMessage(IMessage message)
         {
-            Console.WriteLine($"\n\nProtocol From\n{Newtonsoft.Json.JsonConvert.SerializeObject(message.SystemProperties)}\n{Newtonsoft.Json.JsonConvert.SerializeObject(message.Properties)}\n\n");
             message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken);
 
             DateTime createdTimeUtc = DateTime.UtcNow;
