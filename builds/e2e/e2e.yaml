@@ -38,10 +38,9 @@ jobs:
     pool:
       name: $(pool.custom.name)
       demands:
-        - new-e2e-proxy
+        - damon-e2e-proxy
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - damon
 
     variables:
       os: linux
@@ -69,10 +68,9 @@ jobs:
     pool:
       name: $(pool.custom.name)
       demands:
-        - new-e2e-proxy
+        - damon-e2e-proxy
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
-        - damon
 
     variables:
       os: windows
