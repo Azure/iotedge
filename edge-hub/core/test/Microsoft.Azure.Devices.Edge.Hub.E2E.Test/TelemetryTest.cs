@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -36,31 +37,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 int sentMessagesCount = await task1;
                 Assert.Equal(messagesCount, sentMessagesCount);
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                double maxWait = TimeSpan.FromSeconds(5).TotalMilliseconds;
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
+                while (stopwatch.ElapsedMilliseconds < maxWait && messagesCount != receivedMessages.Count)
+                {
+                    receivedMessages = receiver.GetReceivedMessageIndices();
+                }
 
                 Assert.Equal(messagesCount, receivedMessages.Count);
             }
             finally
             {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                }
+                await this.Cleanup(rm, sender, receiver);
             }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -87,31 +78,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 int sentMessagesCount = await task1;
                 Assert.Equal(messagesCount, sentMessagesCount);
 
-                await Task.Delay(TimeSpan.FromSeconds(3));
+                double maxWait = TimeSpan.FromSeconds(3).TotalMilliseconds;
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
+                while (stopwatch.ElapsedMilliseconds < maxWait && messagesCount != receivedMessages.Count)
+                {
+                    receivedMessages = receiver.GetReceivedMessageIndices();
+                }
 
                 Assert.Equal(messagesCount, receivedMessages.Count);
             }
             finally
             {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                }
+                await this.Cleanup(rm, sender, receiver);
             }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -141,33 +122,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(messagesCount, sentMessagesCounts[0]);
                 Assert.Equal(messagesCount, sentMessagesCounts[1]);
 
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices("input1");
-                Assert.Equal(messagesCount, receivedMessages.Count);
+                ISet<int> receivedMessagesInput1 = receiver.GetReceivedMessageIndices("input1");
+                ISet<int> receivedMessagesInput2 = receiver.GetReceivedMessageIndices("input2");
 
-                receivedMessages = receiver.GetReceivedMessageIndices("input2");
-                Assert.Equal(messagesCount, receivedMessages.Count);
+                double maxWait = TimeSpan.FromSeconds(60).TotalMilliseconds;
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+                while(stopwatch.ElapsedMilliseconds < maxWait && (messagesCount != receivedMessagesInput1.Count || messagesCount != receivedMessagesInput2.Count))
+                {
+                    receivedMessagesInput1 = receiver.GetReceivedMessageIndices("input1");
+                    receivedMessagesInput2 = receiver.GetReceivedMessageIndices("input2");
+                    await Task.Delay(TimeSpan.FromMilliseconds(300));
+                }
+                stopwatch.Stop();
+
+                Assert.Equal(messagesCount, receivedMessagesInput1.Count);
+                Assert.Equal(messagesCount, receivedMessagesInput2.Count);
             }
             finally
             {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                }
+                await this.Cleanup(rm, sender, receiver);
             }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -200,14 +175,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
             finally
             {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                }
+                await this.Cleanup(rm, sender, null);
             }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
         }
 
         [Theory]
@@ -238,6 +207,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
             finally
             {
+                await this.Cleanup(rm, sender, receiver);
+            }
+        }
+
+        async Task Cleanup(RegistryManager rm, TestModule sender, TestModule receiver)
+        {
+            try
+            {
                 if (rm != null)
                 {
                     await rm.CloseAsync();
@@ -252,6 +229,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     await receiver.Disconnect();
                 }
+            }
+            catch
+            {
+                // ignore
             }
 
             // wait for the connection to be closed on the Edge side
