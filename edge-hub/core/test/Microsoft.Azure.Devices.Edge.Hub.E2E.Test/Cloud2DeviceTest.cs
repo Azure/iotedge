@@ -210,7 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [AssertionMethod]
         async Task VerifyReceivedC2DMessage(DeviceClient deviceClient, string payload, string p1Value)
         {
-            Client.Message receivedMessage = await deviceClient.ReceiveAsync(TimeSpan.FromSeconds(20));
+            Client.Message receivedMessage = await deviceClient.ReceiveAsync();
 
             if (receivedMessage != null)
             {
