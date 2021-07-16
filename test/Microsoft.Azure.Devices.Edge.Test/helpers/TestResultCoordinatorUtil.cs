@@ -32,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             ("NetworkControllerRunProfile", "Online"),
                             ("StartAfter", "00:00:00")
                         })
-                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
+                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") })
+                        .WithProxy(Context.Current.TestRunnerProxy);
                 });
         }
 
