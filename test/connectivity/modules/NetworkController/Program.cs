@@ -102,6 +102,7 @@ namespace NetworkController
                     settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
                     return new ITransportSettings[] { settings };
                 case TransportType.Http1:
+                    Console.WriteLine("Http1 :)");
                     Http1TransportSettings httpSettings = new Http1TransportSettings();
                     Settings.Current.Proxy.ForEach(p => httpSettings.Proxy = p);
                     return new ITransportSettings[] { httpSettings };
