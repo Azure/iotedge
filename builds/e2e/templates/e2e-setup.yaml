@@ -111,7 +111,7 @@ steps:
 - pwsh: |
     $manifestSigningtestDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
     dotnet build $manifestSigningtestDir
-    $manifestSigningbinDir = Convert-Path "$manifestSigningtestDir/bin/Debug/netcoreapp3.1"
+    $manifestSigningbinDir = Convert-Path "$manifestSigningtestDir/bin/Release/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=$manifestSigningbinDir]$manifestSigningbinDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
@@ -168,11 +168,35 @@ steps:
     }
 
     if ('$(manifestSigningFlag)' -eq 'true')
-    {
+    {  
       $testManifestSigningRootCaPath = Convert-Path "$(manifestSigningCertDir)/root_ca.pem";
       $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
       $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
+      
+      $launchSettings = @{
+        profiles = @{
+          ManifestSignerClient = @{
+            commandName = "Project";
+            environmentVariables = @{  
+              USE_TESTING_CA = "true";
+              MANIFEST_TRUST_DEVICE_ROOT_CA_PATH = "$testManifestSigningRootCaPath";
+              MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
+              MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
+              MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
+              DSA_ALGORITHM = $env:ALGORITHM  
+            }
+          }
+        }
+      };
+      
+      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 '$(manifestSigningbinDir)/Properties/launchSettings.json'
+      Get-Content -Path '$(manifestSigningbinDir)/Properties/launchSettings.json'
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_DEVICE_ROOT_CA_PATH'] = $testManifestSigningRootCaPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_INTERMEDIATE_CA_PATH'] = $testManifestSigningIntermediateCaPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH'] = $testManifestSigningSignerKeyPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_SIGNER_CERT_PATH'] = $testManifestSigningSignerCertPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['DSA_ALGORITHM'] = $env:ALGORITHM  
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -211,20 +235,16 @@ steps:
       logFile = Join-Path '$(binDir)' 'testoutput.log';
     }
 
-    $launchSettings = @{
-      @{
-        profiles = @{
-           ManifestSignerClient 
-              @{
-                commandName = "Project";
-                environmentVariables = @(
-                  @{
-                    USE_TESTING_CA = "true"
-                  }
-              }
-           }
-        }
-    );
+    #$launchSettings = @{
+    #  profiles = @{
+    #     ManifestSignerClient = @{
+    #       commandName = "Project";
+    #       environmentVariables = @{  
+    #         USE_TESTING_CA = "true"
+    #       }
+    #     }
+    #  }
+    #};
     
     if ('$(nestededge)' -eq 'true')
     {
@@ -242,16 +262,17 @@ steps:
 
     if ('$(manifestSigningFlag)' -eq 'true')
     {
-      $context['testManifestSigningRootCaPath'] = "$testManifestSigningRootCaPath"
-      $context['testManifestSigningIntermediateCaPath'] = "$testManifestSigningIntermediateCaPath"
-      $context['testManifestSigningSignerCertPath'] = "$testManifestSigningSignerCertPath"
-      $context['testManifestSigningSignerKeyPath'] = "$testManifestSigningSignerKeyPath"
-      $context['testManifestSigningSignerAlgorithm'] = $env:ALGORITHM
-      #$launchSettings['MANIFEST_TRUST_DEVICE_ROOT_CA_PATH'] = "$testManifestSigningRootCaPath"
-      #$launchSettings['MANIFEST_TRUST_INTERMEDIATE_CA_PATH'] = "$testManifestSigningIntermediateCaPath"
-      #$launchSettings['MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH'] = "$testManifestSigningSignerCertPath"
-      #$launchSettings['MANIFEST_TRUST_SIGNER_CERT_PATH'] = "$testManifestSigningSignerKeyPath"
-      #$launchSettings['DSA_ALGORITHM'] = $env:ALGORITHM    
+      $context['manifestSigningFlag'] = "true";
+      #$context['testManifestSigningRootCaPath'] = "$testManifestSigningRootCaPath"
+      #$context['testManifestSigningIntermediateCaPath'] = "$testManifestSigningIntermediateCaPath"
+      #$context['testManifestSigningSignerCertPath'] = "$testManifestSigningSignerCertPath"
+      #$context['testManifestSigningSignerKeyPath'] = "$testManifestSigningSignerKeyPath"
+      #$context['testManifestSigningSignerAlgorithm'] = $env:ALGORITHM
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_DEVICE_ROOT_CA_PATH'] = $testManifestSigningRootCaPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_INTERMEDIATE_CA_PATH'] = $testManifestSigningIntermediateCaPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH'] = $testManifestSigningSignerKeyPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['MANIFEST_TRUST_SIGNER_CERT_PATH'] = $testManifestSigningSignerCertPath"
+      #$launchSettings.profiles.ManifestSignerClient.environmentVariables['DSA_ALGORITHM'] = $env:ALGORITHM    
     }
                                                                                                                                                                                                                                                                                          
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
@@ -270,8 +291,6 @@ steps:
 
     $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
     Get-Content -Path '$(binDir)/context.json'
-    $launchSettings | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/launchSettings.json'
-    Get-Content -Path '$(binDir)/launchSettings.json'
   displayName: Create test arguments file (context.json)
 
   env:
