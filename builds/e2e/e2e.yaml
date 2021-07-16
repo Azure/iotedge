@@ -179,7 +179,7 @@ jobs:
 
     pool:
       name: $(pool.custom.name)
-      demands: new-e2e-proxy
+      demands: andrew-needs-this
 
     variables:
       os: linux
