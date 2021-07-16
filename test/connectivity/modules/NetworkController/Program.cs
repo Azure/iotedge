@@ -88,27 +88,25 @@ namespace NetworkController
 
         private static ITransportSettings[] GetTransportSettings(TransportType transportType)
         {
-            ITransportSettings settings;
             switch (transportType)
             {
                 case TransportType.Mqtt:
                 case TransportType.Mqtt_Tcp_Only:
-                    settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                    return new ITransportSettings[] { settings };
+                    MqttTransportSettings settings_mqtt = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_mqtt.Proxy = p);
+                    return new ITransportSettings[] { settings_mqtt };
                 case TransportType.Mqtt_WebSocket_Only:
-                    settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
-                    return new ITransportSettings[] { settings };
+                    MqttTransportSettings settings_mqttws = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_mqttws.Proxy = p);
+                    return new ITransportSettings[] { settings_mqttws };
                 case TransportType.Amqp_WebSocket_Only:
-                    settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
-                    return new ITransportSettings[] { settings };
-                case TransportType.Http1:
-                    Console.WriteLine("Http1 :)");
-                    Http1TransportSettings httpSettings = new Http1TransportSettings();
-                    Settings.Current.Proxy.ForEach(p => httpSettings.Proxy = p);
-                    return new ITransportSettings[] { httpSettings };
+                    AmqpTransportSettings settings_amqpws = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_amqpws.Proxy = p);
+                    return new ITransportSettings[] { settings_amqpws };
                 default:
-                    settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
-                    return new ITransportSettings[] { settings };
+                    AmqpTransportSettings settings_amqp = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_amqp.Proxy = p);
+                    return new ITransportSettings[] { settings_amqp };
             }
         }
 
