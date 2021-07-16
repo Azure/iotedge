@@ -111,7 +111,7 @@ steps:
 - pwsh: |
     $manifestSigningtestDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
     dotnet build $manifestSigningtestDir
-    $manifestSigningbinDir = Convert-Path "$manifestSigningtestDir/bin/Release/netcoreapp3.1"
+    $manifestSigningbinDir = Convert-Path "$manifestSigningtestDir/bin/Debug/netcoreapp3.1"
     Write-Output "##vso[task.setvariable variable=$manifestSigningbinDir]$manifestSigningbinDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
