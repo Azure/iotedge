@@ -146,6 +146,10 @@ function Prepare-GitHub-Artifacts
         $artifactExtension = ".zip"
 
         Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
+        Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath
+
+        # Within each directory, rename the artifacts
+        $component,$os,$suffix = $artifactName.split('_')
     }
 
 }
