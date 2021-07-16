@@ -139,7 +139,6 @@ function Prepare-GitHub-Artifacts
 
     foreach ($artifact in $artifacts)
     {
-        
         $downloadUrl = $artifact.archive_download_url
         $artifactName = $artifact.name
         $artifactPath = "$workDir$artifactName"
@@ -148,8 +147,28 @@ function Prepare-GitHub-Artifacts
         Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
         Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath
 
-        # Within each directory, rename the artifacts
+        # Within each directory, rename the artifacts (i.e. "packages_debian-10-slim_aarch64")
         $component,$os,$suffix = $artifactName.split('_')
+        $os = $os.replace('-','')
+
+        # Each artifact is a directory, let's get only packages in them.
+        $packages = $(Get-ChildItem -Path $artifactPath -Recurse | where { ! $_.PSIsContainer })
+
+        foreach ($package in $packages)
+        {
+            echo "Processing : $($package.FullName)"
+            # Deconstruct the artifact name
+            $name,$version,$arch,$suffix = $package.Name.split("_")
+            $arch,$ext,$suffix = $arch.split(".")
+
+            # Reconstruct the new name from the segments.
+            $finalName = @($name, $version, $os, $arch) -join '_'
+            $finalName = "$finalName.$ext"
+            $newPath = $(Join-Path -Path "$($package.Directory)" -ChildPath "$finalName")
+
+            # Rename
+            Rename-Item -Path $package.FullName -NewName $newPath
+        }
     }
 
 }
