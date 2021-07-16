@@ -5,12 +5,10 @@ namespace NetworkController
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Net;
-    using System.Net.NetworkInformation;
     using System.Threading;
     using System.Threading.Tasks;
-    using Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -88,12 +86,38 @@ namespace NetworkController
             handler.ForEach(h => GC.KeepAlive(h));
         }
 
+        private static ITransportSettings[] GetTransportSettings(TransportType transportType)
+        {
+            ITransportSettings settings;
+            switch (transportType)
+            {
+                case TransportType.Mqtt:
+                case TransportType.Mqtt_Tcp_Only:
+                    settings = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                    return new ITransportSettings[] { settings };
+                case TransportType.Mqtt_WebSocket_Only:
+                    settings = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                    return new ITransportSettings[] { settings };
+                case TransportType.Amqp_WebSocket_Only:
+                    settings = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                    return new ITransportSettings[] { settings };
+                case TransportType.Http1:
+                    Http1TransportSettings httpSettings = new Http1TransportSettings();
+                    Settings.Current.Proxy.ForEach(p => httpSettings.Proxy = p);
+                    return new ITransportSettings[] { httpSettings };
+                default:
+                    settings = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                    return new ITransportSettings[] { settings };
+            }
+        }
+
         private static async Task SetToggleConnectivityMethod(string networkInterfaceName, CancellationToken token)
         {
             // Setting GatewayHostname to empty, since the module will be talking directly to IoTHub, bypassing edge
             // NetworkController is on the host, so it should always have connection
             Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, new ClientOptions(), ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+            ITransportSettings[] settings = GetTransportSettings(Settings.Current.TransportType);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(networkInterfaceName, token));
         }
 
