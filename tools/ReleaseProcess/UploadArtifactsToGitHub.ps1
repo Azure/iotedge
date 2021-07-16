@@ -140,6 +140,12 @@ function Prepare-GitHub-Artifacts
     foreach ($artifact in $artifacts)
     {
         
+        $downloadUrl = $artifact.archive_download_url
+        $artifactName = $artifact.name
+        $artifactPath = "$workDir$artifactName"
+        $artifactExtension = ".zip"
+
+        Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
     }
 
 }
