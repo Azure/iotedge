@@ -74,6 +74,7 @@ function Prepare-DevOps-Artifacts
             Rename-Item -Path $package.FullName -NewName $newPath
         }
 
+        # TODO: Clean up
         #Remove-Item -Path $artifactPath
     }
 }
@@ -151,8 +152,18 @@ function Prepare-GitHub-Artifacts
         $component,$os,$suffix = $artifactName.split('_')
         $os = $os.replace('-','')
 
+        # CentOs7 packages do not need renaming.
+        if ($os -eq "centos7")
+        {
+            echo "Skip renaming :"
+            echo $($packages.FullName)
+            continue;
+        }
+
         # Each artifact is a directory, let's get only packages in them.
-        $packages = $(Get-ChildItem -Path $artifactPath -Recurse | where { ! $_.PSIsContainer })
+        # BEARWASHERE -- Figure out how to filter only the file ext you want, also need to get rid of the debug ones
+        # Note: Get-ChildItem $originalPath\* -Include *.gif, *.jpg, *.xls*, *.doc*, *.pdf*, *.wav*, .ppt*
+        $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse -Include "*.deb", "*.rpm" | where { ! $_.PSIsContainer })
 
         foreach ($package in $packages)
         {
@@ -168,7 +179,11 @@ function Prepare-GitHub-Artifacts
 
             # Rename
             Rename-Item -Path $package.FullName -NewName $newPath
+
+            # Copy file with a particular extension to the target directory
         }
+
+        # TODO: Clean up
     }
 
 }
