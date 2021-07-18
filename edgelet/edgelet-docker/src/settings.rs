@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
+#[cfg(windows)]
+use std::fs;
 use std::path::Path;
+#[cfg(windows)]
+use std::path::PathBuf;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
@@ -11,7 +15,8 @@ use edgelet_core::{
 };
 use edgelet_utils::YamlFileSource;
 use failure::{Context, Fail, ResultExt};
-
+#[cfg(windows)]
+use log::error;
 use url::Url;
 
 use crate::config::DockerConfig;
@@ -160,6 +165,7 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     ] {
         if connect_uri.scheme() == UNIX_SCHEME {
             let source_path = get_path_from_uri(listen_uri)?;
+
             let target_path = get_path_from_uri(connect_uri)?;
 
             let bind = format!("{}:{}", &source_path, &target_path);
@@ -186,14 +192,31 @@ fn get_path_from_uri(uri: &Url) -> Result<String, LoadSettingsError> {
     let path = uri
         .to_uds_file_path()
         .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
+
     #[cfg(windows)]
-    let path = path
-        .parent()
-        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?;
+    let path = create_parent_folder(&path, uri)?;
+
     Ok(path
         .to_str()
         .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
         .to_string())
+}
+
+#[cfg(windows)]
+fn create_parent_folder(path: &PathBuf, uri: &Url) -> Result<PathBuf, LoadSettingsError> {
+    let path = path
+        .parent()
+        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
+        .to_path_buf();
+
+    if !path.exists() {
+        fs::create_dir_all(&path).with_context(|err| {
+            error!("Cannot create directory, error: {}", err);
+            ErrorKind::InvalidSocketUri(uri.to_string())
+        })?;
+    }
+
+    Ok(path)
 }
 
 fn agent_env(settings: &mut Settings) {

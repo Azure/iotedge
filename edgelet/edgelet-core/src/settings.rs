@@ -501,7 +501,7 @@ impl Listen {
 
     pub fn workload_uri(home_dir: &str, module_id: &str) -> Result<Url, ParseError> {
         #[cfg(windows)]
-        let url = Url::parse(&("unix:///".to_string() + home_dir + "/mnt/" + module_id + ".sock"))?;
+        let url = Url::parse(&("unix:///".to_string() + home_dir + "/mnt/" + module_id + "/sock"))?;
         #[cfg(unix)]
         let url = Url::parse(&("unix://".to_string() + home_dir + "/mnt/" + module_id + ".sock"))?;
 

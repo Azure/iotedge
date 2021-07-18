@@ -177,7 +177,10 @@ where
 
             let run = run
                 .run_until(shutdown_receiver.map_err(|_| ()), concurrency)
-                .map_err(|err| Error::from(err.context(ErrorKind::WorkloadService)));
+                .map_err(|err| {
+                    error!("Closing listener, error {}", err);
+                    Error::from(err.context(ErrorKind::WorkloadService))
+                });
             info!(
                 "Listening on {} with 1 thread for workload API.",
                 workload_uri
