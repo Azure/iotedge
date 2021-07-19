@@ -28,7 +28,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     true,
-                    7, 0, 0, 0, 0, 0
+                    7, 0, 0, 0, 0, 0, 0
                 },
             new object[]
                 {
@@ -47,7 +47,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    6, 0, 0, 0, 0, 1
+                    6, 0, 0, 0, 0, 0, 1
                 },
             new object[]
                 {
@@ -66,7 +66,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    6, 1, 0, 0, 0, 0
+                    6, 1, 0, 0, 0, 0, 0
                 },
             new object[]
                 {
@@ -85,7 +85,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    6, 0, 1, 0, 0, 0
+                    6, 0, 0, 1, 0, 0, 0
                 },
             new object[]
                 {
@@ -104,7 +104,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    6, 0, 0, 1, 0, 0
+                    6, 0, 0, 0, 1, 0, 0
                 },
             new object[]
                 {
@@ -123,16 +123,13 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    6, 0, 0, 0, 1, 0
+                    6, 0, 0, 0, 0, 1, 0
                 },
-        };
-
-        public static object[] GetStatusCodeTestData =>
             new object[]
                 {
                     Enumerable.Range(1, 7).Select(v => (ulong)v),
                     Enumerable.Range(1, 7).Select(v => (ulong)v),
-                    new List<HttpStatusCode> { HttpStatusCode.OK, (HttpStatusCode)Enum.Parse(typeof(HttpStatusCode), "0"), HttpStatusCode.InternalServerError, HttpStatusCode.NotFound, HttpStatusCode.FailedDependency, HttpStatusCode.InternalServerError, HttpStatusCode.ServiceUnavailable },
+                    new List<HttpStatusCode> { HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.Unauthorized, HttpStatusCode.OK, HttpStatusCode.OK },
                     new DateTime[]
                     {
                         new DateTime(2020, 1, 1, 9, 10, 12, 10),
@@ -145,8 +142,30 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                     },
                     7,
                     false,
-                    1L, 1L, 1L, 1L, 1L,
-                    new Dictionary<HttpStatusCode, long> { { HttpStatusCode.InternalServerError, 2 } }
+                    6, 0, 1, 0, 0, 0, 0
+                },
+        };
+
+        public static object[] GetStatusCodeTestData =>
+            new object[]
+                {
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    Enumerable.Range(1, 7).Select(v => (ulong)v),
+                    new List<HttpStatusCode> { HttpStatusCode.OK, (HttpStatusCode)Enum.Parse(typeof(HttpStatusCode), "0"), HttpStatusCode.Unauthorized, HttpStatusCode.NotFound, HttpStatusCode.FailedDependency, HttpStatusCode.InternalServerError, HttpStatusCode.ServiceUnavailable },
+                    new DateTime[]
+                    {
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 21, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 22, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 23, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15)
+                    },
+                    7,
+                    false,
+                    1L, 1L, 1L, 1L, 1L, 1L,
+                    new Dictionary<HttpStatusCode, long> { { HttpStatusCode.InternalServerError, 1 } }
                 };
     }
 }

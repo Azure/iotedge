@@ -173,6 +173,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             bool expectedIsPassed,
             long expectedOk,
             long expectedStatusCodeZero,
+            long expectedUnauthorizedError,
             long expectedDeviceNotFound,
             long expectedTransientError,
             long expectedResourceError,
@@ -216,6 +217,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
+            Assert.Equal(expectedUnauthorizedError, report.Unauthorized);
             Assert.Equal(expectedDeviceNotFound, report.DeviceNotFound);
             Assert.Equal(expectedTransientError, report.TransientError);
             Assert.Equal(expectedResourceError, report.ResourceError);
@@ -235,9 +237,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             long expectedOk = (long)x[6];
             long expectedStatusCodeZero = (long)x[7];
             long expectedDeviceNotFound = (long)x[8];
-            long expectedTransientError = (long)x[9];
-            long expectedResourceError = (long)x[10];
-            Dictionary<HttpStatusCode, long> expectedOtherDict = (Dictionary<HttpStatusCode, long>)x[11];
+            long expectedUnauthorized = (long)x[9];
+            long expectedTransientError = (long)x[10];
+            long expectedResourceError = (long)x[11];
+            Dictionary<HttpStatusCode, long> expectedOtherDict = (Dictionary<HttpStatusCode, long>)x[12];
 
             string senderSource = "senderSource";
             string receiverSource = "receiverSource";
@@ -277,6 +280,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedIsPassed, report.IsPassed);
             Assert.Equal(expectedOk, report.SenderSuccesses);
             Assert.Equal(expectedStatusCodeZero, report.StatusCodeZero);
+            Assert.Equal(expectedUnauthorized, report.Unauthorized);
             Assert.Equal(expectedDeviceNotFound, report.DeviceNotFound);
             Assert.Equal(expectedTransientError, report.TransientError);
             Assert.Equal(expectedResourceError, report.ResourceError);
@@ -310,7 +314,10 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(0L, report.ReceiverSuccesses);
             Assert.Equal(0L, report.SenderSuccesses);
             Assert.Equal(0L, report.StatusCodeZero);
+            Assert.Equal(0L, report.Unauthorized);
             Assert.Equal(0L, report.DeviceNotFound);
+            Assert.Equal(0L, report.TransientError);
+            Assert.Equal(0L, report.ResourceError);
             Assert.Equal(0L, report.Other.Sum(x => x.Value));
             Assert.True(report.IsPassed);
         }

@@ -213,16 +213,24 @@ where
             .runtime
             .list_with_details()
             .collect()
+            // Getting modules requires the management socket, which might not be available if
+            // aziot-edged hasn't started. Require this operation to complete within a timeout
+            // so it doesn't block forever on an unavailable socket.
+            .timeout(std::time::Duration::from_secs(30))
             .then(move |result| {
-                future::ok(match result {
-                    Ok(modules) => modules
+                future::ok(if let Ok(modules) = result {
+                    modules
                         .into_iter()
                         .map(|(module, _s)| module.name().to_owned())
                         .filter(move |name| {
                             !include_ms_only || MS_MODULES.iter().any(|ms| ms == name)
                         })
-                        .collect(),
-                    Err(_) => Vec::new(),
+                        .collect()
+                } else {
+                    println!(
+                        "Warning: Unable to call management socket. Module list not available."
+                    );
+                    Vec::new()
                 })
             });
 
@@ -490,6 +498,8 @@ mod tests {
     use std::path::PathBuf;
     use std::str;
 
+    use edgelet_core::ModuleAction;
+    use futures::sync::mpsc;
     use regex::Regex;
     use tempfile::tempdir;
 
@@ -633,7 +643,10 @@ mod tests {
         let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
-        TestRuntime::make_runtime(TestSettings::new())
+        let (create_socket_channel_snd, _create_socket_channel_rcv) =
+            mpsc::unbounded::<ModuleAction>();
+
+        TestRuntime::make_runtime(TestSettings::new(), create_socket_channel_snd)
             .wait()
             .unwrap()
             .with_module(Ok(module))

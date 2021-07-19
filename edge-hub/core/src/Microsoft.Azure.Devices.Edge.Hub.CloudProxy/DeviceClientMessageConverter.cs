@@ -70,6 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     message.MessageSchema = messageSchema;
                 }
 
+                if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.ComponentName, out string componentName))
+                {
+                    message.ComponentName = componentName;
+                }
+
                 if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.InterfaceId, out string interfaceId)
                     && interfaceId.Equals(Constants.SecurityMessageIoTHubInterfaceId, StringComparison.OrdinalIgnoreCase))
                 {
@@ -95,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             message.SystemProperties.AddIfNonEmpty(SystemProperties.MessageSchema, sourceMessage.MessageSchema);
             message.SystemProperties.AddIfNonEmpty(SystemProperties.LockToken, sourceMessage.LockToken);
             message.SystemProperties.AddIfNonEmpty(SystemProperties.DeliveryCount, sourceMessage.DeliveryCount.ToString());
+            message.SystemProperties.AddIfNonEmpty(SystemProperties.ComponentName, sourceMessage.ComponentName);
 
             if (sourceMessage.SequenceNumber > 0)
             {
