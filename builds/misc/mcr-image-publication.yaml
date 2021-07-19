@@ -1,0 +1,21 @@
+trigger: none
+pr: none
+
+stages:
+  - stage:
+    displayName: Stage1
+
+    jobs:
+    - job: test1
+      displayName: Linux amd64
+
+      pool:
+        vmImage: ubuntu-18.04
+
+      steps:
+      - bash: |
+          VERSION_INFO=$(<$BUILD_SOURCESDIRECTORY/versionInfo.json)
+          FULL_VERSION=$(echo "$VERSION_INFO" | grep -Po '"version":.*?[^\\]",' | sed 's/^.*: "\(.*\)",/\1/')
+          MAJOR_VERSION= $(cut -d '.' -f 1,2 <<< $(echo $FULL_VERSION))
+
+          echo "##vso[build.updatebuildnumber]$FULL_VERSION"
