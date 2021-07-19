@@ -10,10 +10,12 @@ use std::time::Duration;
 
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
+use futures::sync::mpsc::UnboundedSender;
 use futures::{Future, Stream};
 use serde_derive::Serialize;
 
 use edgelet_utils::ensure_not_empty_with_context;
+use futures::sync::oneshot::Sender;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::RuntimeSettings;
@@ -25,6 +27,12 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+}
+
+pub enum ModuleAction {
+    Start(String, Sender<()>),
+    Stop(String),
+    Remove(String),
 }
 
 impl FromStr for ModuleStatus {
@@ -311,6 +319,7 @@ impl ToString for LogTail {
 pub struct LogOptions {
     follow: bool,
     tail: LogTail,
+    timestamps: bool,
     since: i32,
     until: Option<i32>,
 }
@@ -320,6 +329,7 @@ impl LogOptions {
         LogOptions {
             follow: false,
             tail: LogTail::All,
+            timestamps: false,
             since: 0,
             until: None,
         }
@@ -345,6 +355,11 @@ impl LogOptions {
         self
     }
 
+    pub fn with_timestamps(mut self, timestamps: bool) -> Self {
+        self.timestamps = timestamps;
+        self
+    }
+
     pub fn follow(&self) -> bool {
         self.follow
     }
@@ -359,6 +374,10 @@ impl LogOptions {
 
     pub fn until(&self) -> Option<i32> {
         self.until
+    }
+
+    pub fn timestamps(&self) -> bool {
+        self.timestamps
     }
 }
 
@@ -504,7 +523,10 @@ pub trait MakeModuleRuntime {
     type Error: Fail;
     type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
 
-    fn make_runtime(settings: Self::Settings) -> Self::Future;
+    fn make_runtime(
+        settings: Self::Settings,
+        create_socket_channel: UnboundedSender<ModuleAction>,
+    ) -> Self::Future;
 }
 
 pub trait ModuleRuntime: Sized {

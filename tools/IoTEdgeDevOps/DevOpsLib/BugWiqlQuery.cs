@@ -3,9 +3,9 @@ namespace DevOpsLib
 {
     using System;
 
-    public class BugQuery
+    public class BugWiqlQuery
     {
-        public BugQuery(string area, BugPriorityGrouping bugPriorityGrouping, bool inProgress)
+        public BugWiqlQuery(string area, BugPriorityGrouping bugPriorityGrouping, bool inProgress)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(area, nameof(area));
             ValidationUtil.ThrowIfNull(bugPriorityGrouping, nameof(bugPriorityGrouping));
