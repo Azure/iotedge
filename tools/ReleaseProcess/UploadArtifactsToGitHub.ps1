@@ -45,6 +45,7 @@ function Prepare-DevOps-Artifacts
         Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir
 
         # Each artifact is a directory, fetch the packages within it.
+        # BEARWASHERE -- This needs an update.
         $packages = $(Get-ChildItem -Path $artifactPath)
 
         # Within each directory, rename the artifacts
@@ -137,6 +138,7 @@ function Prepare-GitHub-Artifacts
     $artifactUrl = $artifactRun.artifacts_url
     $artifacts = $(Invoke-WebRequest -Headers $header -Uri "$artifactUrl" | ConvertFrom-JSON)
     $artifacts = $artifacts.artifacts
+    $artifactFinalists = @();
 
     foreach ($artifact in $artifacts)
     {
@@ -148,23 +150,28 @@ function Prepare-GitHub-Artifacts
         Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
         Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath
 
+        # Each artifact is a directory, let's get only packages in them.
+        # BEARWASHERE -- Figure out how to filter only the file ext you want, also need to get rid of the debug ones
+        $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse `
+            -Include "*.deb", "*.rpm" `
+            -Exclude "*.src*", "*dev*", "*dbg*" `
+            | where { ! $_.PSIsContainer })
+
         # Within each directory, rename the artifacts (i.e. "packages_debian-10-slim_aarch64")
         $component,$os,$suffix = $artifactName.split('_')
-        $os = $os.replace('-','')
+        $osName,$osVersion,$osType,$suffix = $os.split('-')
+        $os = @($osName,$osVersion) -join ''
 
         # CentOs7 packages do not need renaming.
         if ($os -eq "centos7")
         {
             echo "Skip renaming :"
-            echo $($packages.FullName)
+            echo $artifactPath
+            $artifactFinalists += $packages;
             continue;
         }
 
-        # Each artifact is a directory, let's get only packages in them.
-        # BEARWASHERE -- Figure out how to filter only the file ext you want, also need to get rid of the debug ones
-        # Note: Get-ChildItem $originalPath\* -Include *.gif, *.jpg, *.xls*, *.doc*, *.pdf*, *.wav*, .ppt*
-        $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse -Include "*.deb", "*.rpm" | where { ! $_.PSIsContainer })
-
+        # Renaming
         foreach ($package in $packages)
         {
             echo "Processing : $($package.FullName)"
@@ -180,10 +187,14 @@ function Prepare-GitHub-Artifacts
             # Rename
             Rename-Item -Path $package.FullName -NewName $newPath
 
-            # Copy file with a particular extension to the target directory
+            # Record renamed files
+            $artifactFinalists += $(Get-Item $newPath)
         }
 
         # TODO: Clean up
     }
+        # To be uploaded
+        $artifactFinalists
+
 
 }
