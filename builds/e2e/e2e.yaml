@@ -81,6 +81,8 @@ jobs:
       ###'agent.disablelogplugin.testresultlogplugin': true
       # because we aren't publishing test artifacts for this job, turn on verbose logging instead
       verbose: true
+      # temporarily make this a minimal pipeline
+      minimal: true
 
     timeoutInMinutes: 120
 
