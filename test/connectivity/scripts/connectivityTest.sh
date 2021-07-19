@@ -25,7 +25,11 @@ function prepare_test_from_artifacts() {
     rm -rf "$working_folder"
     mkdir -p "$working_folder"
 
-    declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    if [ "$is_mariner" = "true" ]; then
+        declare -a pkg_list=( $iotedged_artifact_folder/*.rpm )
+    else
+        declare -a pkg_list=( $iotedged_artifact_folder/*.deb )
+    fi
     iotedge_package="${pkg_list[*]}"
     echo "iotedge_package=$iotedge_package"
 
@@ -540,6 +544,7 @@ TIME_FOR_REPORT_GENERATION="${TIME_FOR_REPORT_GENERATION:-00:10:00}"
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
 get_image_architecture_label
+is_system_using_mariner
 optimize_for_performance=true
 log_upload_enabled=true
 if [ "$image_architecture_label" = 'arm32v7' ] ||
