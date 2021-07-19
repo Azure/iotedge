@@ -12,5 +12,4 @@ members = [
     #"iotedge",
     #"management",
     "support-bundle",
-    #"systemd",
 ]
