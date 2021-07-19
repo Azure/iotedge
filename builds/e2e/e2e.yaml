@@ -77,8 +77,8 @@ jobs:
       arch: amd64
       artifactName: iotedged-windows
       # workaround, see https://github.com/Microsoft/azure-pipelines-agent/issues/2138#issuecomment-470166671
-      'agent.disablelogplugin.testfilepublisherplugin': true
-      'agent.disablelogplugin.testresultlogplugin': true
+      ###'agent.disablelogplugin.testfilepublisherplugin': true
+      ###'agent.disablelogplugin.testresultlogplugin': true
       # because we aren't publishing test artifacts for this job, turn on verbose logging instead
       verbose: true
 
