@@ -1,14 +1,14 @@
-﻿ARG base_tag=3.1.16-alpine3.13
+﻿ARG base_tag=3.1-alpine
 # base dockerfile is located at \edge-util\docker\linux\amd64
 FROM azureiotedge/azureiotedge-runtime-base:1.2-linux-amd64 as builder
 
-FROM mcr.microsoft.com/dotnet/aspnet:${base_tag}
+FROM mcr.microsoft.com/dotnet/sdk:${base_tag}
 
 ARG EXE_DIR=.	
 
 # RocksDB requires snappy	
 RUN apk update && \	
-    apk add --no-cache snappy libcap	
+    apk add --no-cache snappy libcap
 
 # Add an unprivileged user account for running Edge Hub	
 ARG EDGEHUBUSER_ID=1000	
@@ -16,7 +16,7 @@ RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser
 
 # Add the CAP_NET_BIND_SERVICE capability to the dotnet binary because	
 # we are starting Edge Hub as a non-root user	
-RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet	
+RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet
 
 # Install RocksDB	
 COPY --from=builder publish/* /usr/local/lib/	
@@ -30,7 +30,7 @@ EXPOSE 8883/tcp
 EXPOSE 5671/tcp	
 EXPOSE 443/tcp	
 
-USER edgehubuser	
+USER root
 
 CMD echo "$(date --utc +"%Y-%m-%d %H:%M:%S %:z") Starting Edge Hub" && \	
     exec /usr/bin/dotnet Microsoft.Azure.Devices.Edge.Hub.Service.dll
