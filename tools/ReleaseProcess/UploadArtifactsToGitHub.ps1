@@ -1,5 +1,5 @@
 $BuildId = "44098637"
-$workDir = "C:\Users\yophilav\Downloads\release_test\test\"
+$workDir = "C:\Users\yophilav\Downloads\release_test\test1\"
 
 function Prepare-DevOps-Artifacts
 {
@@ -33,6 +33,10 @@ function Prepare-DevOps-Artifacts
     $response = $(Invoke-WebRequest -Uri "https://dev.azure.com/msazure/One/_apis/build/builds/$BuildId/artifacts?api-version=6.0" -Headers $header)
     $content = ($response.Content | ConvertFrom-Json).value
 
+    $artifactFinalists = @();
+    $workDir = "$(Join-Path -Path $workDir -ChildPath 'IE')\"
+    New-Item -ItemType Directory -Force -Path $workDir
+
     foreach ($artifact in $content)
     {
         $artifactName = $artifact.name
@@ -41,12 +45,16 @@ function Prepare-DevOps-Artifacts
         $artifactExtension = ".zip"
 
         # Download and Expand each artifact
-        Invoke-WebRequest -Uri $artifactUrl -Headers $header -OutFile "$artifactPath$artifactExtension"
-        Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir
+        Retry-Command -ScriptBlock {
+            Invoke-WebRequest -Uri $artifactUrl -Headers $header -OutFile "$artifactPath$artifactExtension" | Out-Null
+            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir
+        }
 
         # Each artifact is a directory, fetch the packages within it.
-        # BEARWASHERE -- This needs an update.
-        $packages = $(Get-ChildItem -Path $artifactPath)
+        $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse `
+            -Include "*.deb", "*.rpm" `
+            -Exclude "*.src*", "*dev*", "*dbg*" `
+            | where { ! $_.PSIsContainer })
 
         # Within each directory, rename the artifacts
         $component,$os,$suffix = $artifactName.split('-')
@@ -56,6 +64,7 @@ function Prepare-DevOps-Artifacts
         {
             echo "Skip renaming :"
             echo $($packages.FullName)
+            $artifactFinalists += $packages;
             continue;
         }
 
@@ -73,6 +82,9 @@ function Prepare-DevOps-Artifacts
 
             # Rename
             Rename-Item -Path $package.FullName -NewName $newPath
+
+            # Record renamed files
+            $artifactFinalists += $(Get-Item $newPath)
         }
 
         # TODO: Clean up
@@ -134,6 +146,9 @@ function Prepare-GitHub-Artifacts
         }
     }
 
+    $workDir = "$(Join-Path -Path $workDir -ChildPath 'IIS')\"
+    New-Item -ItemType Directory -Force -Path $workDir
+
     # Let's look at the artifacts
     $artifactUrl = $artifactRun.artifacts_url
     $artifacts = $(Invoke-WebRequest -Headers $header -Uri "$artifactUrl" | ConvertFrom-JSON)
@@ -147,11 +162,13 @@ function Prepare-GitHub-Artifacts
         $artifactPath = "$workDir$artifactName"
         $artifactExtension = ".zip"
 
-        Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
-        Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath
+        echo "Downloading $artifactName"
+        Retry-Command -ScriptBlock {
+            Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
+            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath
+        }
 
         # Each artifact is a directory, let's get only packages in them.
-        # BEARWASHERE -- Figure out how to filter only the file ext you want, also need to get rid of the debug ones
         $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse `
             -Include "*.deb", "*.rpm" `
             -Exclude "*.src*", "*dev*", "*dbg*" `
@@ -190,11 +207,50 @@ function Prepare-GitHub-Artifacts
             # Record renamed files
             $artifactFinalists += $(Get-Item $newPath)
         }
-
-        # TODO: Clean up
     }
-        # To be uploaded
-        $artifactFinalists
+
+    # To be uploaded
+    $artifactFinalists
+
+    # https://docs.github.com/en/rest/reference/repos#upload-a-release-asset
+    # https://docs.github.com/en/rest/reference/repos#create-a-release
+
+    # TODO: Clean up
+}
 
 
+# Referred from https://stackoverflow.com/questions/45470999/powershell-try-catch-and-retry
+function Retry-Command {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Position=0, Mandatory=$true)]
+        [scriptblock]$ScriptBlock,
+
+        [Parameter(Position=1, Mandatory=$false)]
+        [int]$Maximum = 5,
+
+        [Parameter(Position=2, Mandatory=$false)]
+        [int]$Delay = 100
+    )
+
+    Begin {
+        $cnt = 0
+    }
+
+    Process {
+        do {
+            $cnt++
+            try {
+                $ScriptBlock.Invoke()
+                return
+            } catch {
+                Write-Error $_.Exception.InnerException.Message -ErrorAction Continue
+                Start-Sleep -Milliseconds $Delay
+            }
+        } while ($cnt -lt $Maximum)
+
+        # Throw an error after $Maximum unsuccessful invocations. Doesn't need
+        # a condition, since the function returns upon successful invocation.
+        throw 'Execution failed.'
+    }
 }
