@@ -34,16 +34,15 @@ pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
-    PrivateKey, AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS,
+    PrivateKey,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 //pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
-    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState,
-    ModuleStatus, ModuleTop, ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo,
-    SystemResources,
+    DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ModuleTop,
+    ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;

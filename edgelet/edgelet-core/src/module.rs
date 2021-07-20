@@ -12,8 +12,8 @@ use failure::{Fail, ResultExt};
 use futures::Stream;
 use serde::{Deserialize, Serialize};
 
-use edgelet_settings::RuntimeSettings;
 use edgelet_settings::module::Settings as ModuleSpec;
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::{Error, ErrorKind, Result as EdgeletResult};
 

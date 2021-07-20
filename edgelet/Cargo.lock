@@ -102,6 +102,7 @@ dependencies = [
  "edgelet-docker",
  "edgelet-http-mgmt",
  "edgelet-http-workload",
+ "edgelet-settings",
  "futures-util",
  "http-common",
  "log",
@@ -609,7 +610,7 @@ dependencies = [
  "docker",
  "edgelet-core",
  "edgelet-http",
- "edgelet-test-utils",
+ "edgelet-settings",
  "edgelet-utils",
  "failure",
  "futures 0.1.31",
@@ -652,7 +653,6 @@ dependencies = [
  "aziot-identity-common-http",
  "edgelet-core",
  "edgelet-http",
- "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
  "http-common",
@@ -684,8 +684,8 @@ dependencies = [
  "aziot-key-openssl-engine",
  "base64 0.13.0",
  "chrono",
- "edgelet-core",
  "edgelet-http",
+ "edgelet-settings",
  "futures-util",
  "http 0.2.4",
  "http-common",
@@ -707,27 +707,6 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "test-case",
- "url 2.2.2",
-]
-
-[[package]]
-name = "edgelet-test-utils"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "edgelet-core",
- "edgelet-http",
- "failure",
- "futures 0.3.15",
- "http 0.2.4",
- "http-common",
- "hyper 0.14.10",
- "mktemp",
- "serde",
- "serde_derive",
- "serde_json",
- "tokio 1.8.2",
  "url 2.2.2",
 ]
 
@@ -1530,15 +1509,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mktemp"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "975de676448231fcde04b9149d2543077e166b78fc29eae5aa219e7928410da2"
-dependencies = [
- "uuid",
-]
-
-[[package]]
 name = "net2"
 version = "0.2.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2217,7 +2187,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "edgelet-core",
- "edgelet-test-utils",
  "failure",
  "futures 0.3.15",
  "regex",
@@ -2790,15 +2759,6 @@ checksum = "74e7d099f1ee52f823d4bdd60c93c3602043c728f5db3b97bdb548467f7bddea"
 dependencies = [
  "serde",
  "url 1.7.2",
-]
-
-[[package]]
-name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom",
 ]
 
 [[package]]

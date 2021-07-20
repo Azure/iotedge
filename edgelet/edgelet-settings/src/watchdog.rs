@@ -26,6 +26,21 @@ impl Default for MaxRetries {
     }
 }
 
+impl std::cmp::PartialEq<u32> for MaxRetries {
+    fn eq(&self, other: &u32) -> bool {
+        match self {
+            MaxRetries::Infinite => false,
+            MaxRetries::Num(num) => num == other,
+        }
+    }
+}
+
+impl std::cmp::PartialOrd<u32> for MaxRetries {
+    fn partial_cmp(&self, other: &u32) -> Option<std::cmp::Ordering> {
+        todo!()
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for MaxRetries {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

@@ -6,8 +6,8 @@ use std::path::Path;
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
 use edgelet_core::{MobyNetwork, UrlExt};
 use edgelet_settings::{
-    aziot::AutoReprovisioningMode, aziot::Endpoints, uri::Connect, uri::Listen, RuntimeSettings,
-    module::Settings as ModuleSpec, watchdog::Settings as WatchdogSettings
+    aziot::AutoReprovisioningMode, aziot::Endpoints, module::Settings as ModuleSpec, uri::Connect,
+    uri::Listen, watchdog::Settings as WatchdogSettings, RuntimeSettings,
 };
 
 use failure::{Context, Fail, ResultExt};

@@ -39,5 +39,3 @@ time = "0.1"
 tempdir = "0.3.7"
 tempfile = "3"
 typed-headers = "0.1"
-
-edgelet-test-utils = { path = "../edgelet-test-utils" }

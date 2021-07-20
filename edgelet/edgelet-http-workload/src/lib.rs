@@ -18,26 +18,26 @@ struct WorkloadConfig {
 
 impl WorkloadConfig {
     pub fn new(
-        settings: &impl edgelet_core::RuntimeSettings,
+        settings: &impl edgelet_settings::RuntimeSettings,
         device_info: &aziot_identity_common::AzureIoTSpec,
     ) -> Self {
         let trust_bundle = settings
             .trust_bundle_cert()
-            .unwrap_or(edgelet_core::crypto::TRUST_BUNDLE_ALIAS)
+            .unwrap_or("aziot-edged-trust-bundle")
             .to_string();
 
         let manifest_trust_bundle = settings
             .manifest_trust_bundle_cert()
-            .unwrap_or(edgelet_core::crypto::MANIFEST_TRUST_BUNDLE_ALIAS)
+            .unwrap_or("aziot-edged-manifest-trust-bundle")
             .to_string();
 
         let edge_ca_cert = settings
             .edge_ca_cert()
-            .unwrap_or(edgelet_core::crypto::AZIOT_EDGED_CA_ALIAS)
+            .unwrap_or("aziot-edged-ca")
             .to_string();
         let edge_ca_key = settings
             .edge_ca_key()
-            .unwrap_or(edgelet_core::crypto::AZIOT_EDGED_CA_ALIAS)
+            .unwrap_or("aziot-edged-ca")
             .to_string();
 
         WorkloadConfig {
@@ -67,7 +67,7 @@ pub struct Service {
 
 impl Service {
     pub fn new(
-        settings: &impl edgelet_core::RuntimeSettings,
+        settings: &impl edgelet_settings::RuntimeSettings,
         device_info: &aziot_identity_common::AzureIoTSpec,
     ) -> Result<Self, http_common::ConnectorError> {
         let endpoints = settings.endpoints();
