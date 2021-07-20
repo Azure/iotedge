@@ -49,6 +49,7 @@ function Prepare-DevOps-Artifacts
 
         # Download and Expand each artifact
         Retry-Command -ScriptBlock {
+            echo "Downloading $artifactName"
             Invoke-WebRequest -Uri $artifactUrl -Headers $header -OutFile "$artifactPath$artifactExtension" | Out-Null
             Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir -Force
         }
@@ -56,7 +57,7 @@ function Prepare-DevOps-Artifacts
         # Each artifact is a directory, fetch the packages within it.
         $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse `
             -Include "*.deb", "*.rpm" `
-            -Exclude "*.src*", "*dev*", "*dbg*" `
+            -Exclude "*.src*", "*dev*", "*dbg*", "*debug*" `
             | where { ! $_.PSIsContainer })
 
         # Within each directory, rename the artifacts
@@ -89,12 +90,17 @@ function Prepare-DevOps-Artifacts
             # Record renamed files
             $artifactFinalists += $(Get-Item $newPath)
         }
+
+        echo ""
     }
+
+    echo ""
 
     # Stage uploading files
     foreach ($artifact in $artifactFinalists)
     {
         echo "Moving : $($artifact.FullName)"
+        echo "To : $(Join-Path -Path $outputDir -ChildPath $artifact.Name)"
         Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
     }
 }
@@ -180,7 +186,7 @@ function Prepare-GitHub-Artifacts
         # Each artifact is a directory, let's get only packages in them.
         $packages = $(Get-ChildItem -Path $artifactPath/* -Recurse `
             -Include "*.deb", "*.rpm" `
-            -Exclude "*.src*", "*dev*", "*dbg*" `
+            -Exclude "*.src*", "*dev*", "*dbg*", "*debug*" `
             | where { ! $_.PSIsContainer })
 
         # Within each directory, rename the artifacts (i.e. "packages_debian-10-slim_aarch64")
@@ -216,12 +222,17 @@ function Prepare-GitHub-Artifacts
             # Record renamed files
             $artifactFinalists += $(Get-Item $newPath)
         }
+
+        echo ""
     }
+
+    echo ""
 
     # Stage uploading files
     foreach ($artifact in $artifactFinalists)
     {
         echo "Moving : $($artifact.FullName)"
+        echo "To : $(Join-Path -Path $outputDir -ChildPath $artifact.Name)"
         Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
     }
 
