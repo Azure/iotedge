@@ -70,7 +70,7 @@ steps:
   inputs:
     command: 'test'
     projects: '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
-    arguments: '--no-build --logger 'trx' --filter "$(filter)"'
+    arguments: '--no-build --logger "trx" --filter "$(dotnetTestFilter)"'
   displayName: Run tests ${{ parameters.test_type }}
   continueOneError: true
   env:
