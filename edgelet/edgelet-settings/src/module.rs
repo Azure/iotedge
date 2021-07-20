@@ -5,7 +5,7 @@ pub struct Settings<ModuleConfig> {
     name: String,
 
     #[serde(rename = "type")]
-    type_: String,
+    r#type: String,
 
     #[serde(default, rename = "imagePullPolicy")]
     image_pull_policy: ImagePullPolicy,
@@ -23,11 +23,94 @@ where
     fn clone(&self) -> Self {
         Self {
             name: self.name.clone(),
-            type_: self.type_.clone(),
+            r#type: self.r#type.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
             image_pull_policy: self.image_pull_policy,
         }
+    }
+}
+
+impl<ModuleConfig> Settings<ModuleConfig> {
+    pub fn new(
+        name: String,
+        r#type: String,
+        config: ModuleConfig,
+        env: std::collections::BTreeMap<String, String>,
+        image_pull_policy: ImagePullPolicy,
+    ) -> Result<Self, String> {
+        if name.is_empty() {
+            return Err("module name cannot be empty".to_string());
+        }
+
+        if r#type.is_empty() {
+            return Err("module type cannot be empty".to_string());
+        }
+
+        Ok(Settings {
+            name,
+            r#type,
+            image_pull_policy,
+            config,
+            env,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = name;
+        self
+    }
+
+    pub fn r#type(&self) -> &str {
+        &self.r#type
+    }
+
+    pub fn with_type(mut self, r#type: String) -> Self {
+        self.r#type = r#type;
+        self
+    }
+
+    pub fn image_pull_policy(&self) -> ImagePullPolicy {
+        self.image_pull_policy
+    }
+
+    pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {
+        self.image_pull_policy = image_pull_policy;
+        self
+    }
+
+    pub fn config(&self) -> &ModuleConfig {
+        &self.config
+    }
+
+    pub fn config_mut(&mut self) -> &mut ModuleConfig {
+        &mut self.config
+    }
+
+    pub fn with_config(mut self, config: ModuleConfig) -> Self {
+        self.config = config;
+        self
+    }
+
+    pub fn set_config(&mut self, config: ModuleConfig) {
+        self.config = config;
+    }
+
+    pub fn env(&self) -> &std::collections::BTreeMap<String, String> {
+        &self.env
+    }
+
+    pub fn env_mut(&mut self) -> &mut std::collections::BTreeMap<String, String> {
+        &mut self.env
+    }
+
+    pub fn with_env(mut self, env: std::collections::BTreeMap<String, String>) -> Self {
+        self.env = env;
+        self
     }
 }
 

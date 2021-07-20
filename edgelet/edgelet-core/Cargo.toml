@@ -27,6 +27,7 @@ tokio-util = { version = "0.6", features = ["codec"] }
 url = { version = "2", features = ["serde"] }
 
 edgelet-utils = { path = "../edgelet-utils" }
+edgelet-settings = { path = "../edgelet-settings" }
 
 [dev-dependencies]
 test-case = "1.1"

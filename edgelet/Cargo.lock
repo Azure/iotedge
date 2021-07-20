@@ -579,6 +579,7 @@ dependencies = [
  "bytes 1.0.1",
  "chrono",
  "consistenttime",
+ "edgelet-settings",
  "edgelet-utils",
  "failure",
  "futures 0.3.15",
