@@ -3,10 +3,10 @@
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn start(
-    settings: &edgelet_docker::Settings,
+    settings: &impl edgelet_settings::RuntimeSettings,
     sender: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
-) -> Result<(), EdgedError> {
-    // TODO: fix support in http_common for fd://
+) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError> {
+    // TODO: use settings
     /*let socket = url::Url::parse("unix:///tmp/mgmt_test.sock").unwrap();
 
     let connector = http_common::Connector::new(&socket)
@@ -27,5 +27,7 @@ pub(crate) async fn start(
         }
     });*/
 
-    Ok(())
+    let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+
+    Ok(shutdown_tx)
 }

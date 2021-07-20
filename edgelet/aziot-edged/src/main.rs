@@ -6,12 +6,12 @@
 mod error;
 mod management;
 mod provision;
+mod watchdog;
 mod workload;
 
 use std::sync::atomic;
 
-// TODO: Remove this with parent_hostname_resolve
-use edgelet_core::RuntimeSettings;
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
@@ -68,10 +68,10 @@ async fn run() -> Result<(), EdgedError> {
     provision::update_device_cache(&cache_dir, &device_info)?;
 
     // TODO: Rework settings so this isn't needed.
-    let mut settings = settings;
-    settings
-        .agent_mut()
-        .parent_hostname_resolve(&device_info.gateway_host);
+    // let mut settings = settings;
+    // settings
+    //     .agent_mut()
+    //     .parent_hostname_resolve(&device_info.gateway_host);
 
     let (shutdown_tx, mut shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
@@ -82,7 +82,7 @@ async fn run() -> Result<(), EdgedError> {
     let tasks = std::sync::Arc::new(tasks);
 
     // Start management and workload sockets.
-    management::start(&settings, shutdown_tx.clone()).await?;
+    let management_shutdown = management::start(&settings, shutdown_tx.clone()).await?;
     let workload_shutdown = workload::start(&settings, &device_info, tasks.clone()).await?;
 
     // Set the signal handler to listen for CTRL+C (SIGINT).
@@ -97,17 +97,17 @@ async fn run() -> Result<(), EdgedError> {
         let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
     });
 
-    // Wait for any running task to send a shutdown signal.
-    let shutdown = shutdown_rx.recv().await.expect("shutdown channel closed");
-    log::info!("{}", shutdown);
+    watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
 
-    // TODO
     log::info!("Stopping management API...");
+    // management_shutdown
+    //     .send(())
+    //     .expect("management API shutdown receiver was dropped");
 
     log::info!("Stopping workload API...");
     workload_shutdown
         .send(())
-        .expect("workload API receiver was dropped");
+        .expect("workload API shutdown receiver was dropped");
 
     // Wait up to 10 seconds for all server tasks to exit.
     let poll_period = std::time::Duration::from_millis(100);

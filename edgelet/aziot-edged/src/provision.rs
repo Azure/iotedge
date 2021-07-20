@@ -2,7 +2,7 @@
 
 use sha2::Digest;
 
-use edgelet_core::RuntimeSettings;
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
@@ -18,7 +18,7 @@ pub(crate) async fn get_device_info(
         identity_connector,
     );
 
-    if let edgelet_core::settings::AutoReprovisioningMode::AlwaysOnStartup =
+    if let edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup =
         settings.auto_reprovisioning_mode()
     {
         reprovision(&identity_client, cache_dir)
