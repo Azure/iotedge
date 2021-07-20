@@ -10,10 +10,12 @@ use std::time::Duration;
 
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
+use futures::sync::mpsc::UnboundedSender;
 use futures::{Future, Stream};
 use serde_derive::Serialize;
 
 use edgelet_utils::{deserialize_map_with_default_values, ensure_not_empty_with_context};
+use futures::sync::oneshot::Sender;
 
 use crate::error::{Error, ErrorKind, Result};
 use crate::settings::{Provisioning, RuntimeSettings};
@@ -26,6 +28,12 @@ pub enum ModuleStatus {
     Running,
     Stopped,
     Failed,
+}
+
+pub enum ModuleAction {
+    Start(String, Sender<()>),
+    Stop(String),
+    Remove(String),
 }
 
 impl FromStr for ModuleStatus {
@@ -505,6 +513,7 @@ pub trait MakeModuleRuntime {
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
         crypto: impl GetTrustBundle + Send + 'static,
+        create_socket_channel: UnboundedSender<ModuleAction>,
     ) -> Self::Future;
 }
 

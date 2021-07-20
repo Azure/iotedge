@@ -11,7 +11,9 @@ use std::env;
 use std::str;
 
 use chrono::{Duration, Utc};
+use edgelet_core::ModuleAction;
 use failure::Fail;
+use futures::sync::mpsc;
 use futures::{Future, Stream};
 use hyper::service::Service;
 use hyper::{Body, Request};
@@ -162,10 +164,12 @@ fn generate_server_cert(
 fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
     let key_store = MemoryKeyStore::new();
     let crypto = init_crypto();
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
     let runtime = TestRuntime::<Error, _>::make_runtime(
         TestSettings::new(),
         TestProvisioningResult::new(),
         TestHsm::default(),
+        create_socket_channel_snd,
     )
     .wait()
     .unwrap()

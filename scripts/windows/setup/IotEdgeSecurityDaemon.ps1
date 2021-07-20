@@ -66,7 +66,7 @@ enum ContainerOs {
 }
 
 function New-Sockets([string] $EdgeDataDirectory) {
-    foreach ($name in 'mgmt', 'workload') {
+    foreach ($name in 'mgmt', 'workload','mnt') {
         # We can't bind socket files directly in Windows, so create a folder
         # and bind to that. The folder needs to give Modify rights to a
         # well-known group that will exist in any container so that
