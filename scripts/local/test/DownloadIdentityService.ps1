@@ -1,16 +1,59 @@
-# Downloads the aziot-identity-service package. Run this script from the iotedge repo's root directory.
-#
-# Set the following environment variables before running:
-# - GITHUB_TOKEN: GitHub personal access token. Must have public repo read permissions.
-# - ARTIFACT_NAME: Name of the GitHub artifact. Example: packages_ubuntu-20.04_amd64
-# - PACKAGE_FILTER: Filter for the package in the GitHub artifact. Example: aziot-identity-service_*_amd64.deb
-# - DOWNLOAD_PATH: Where to save the aziot-identity-service package.
-# - AGENT_PROXYURL: HTTP proxy and port, if needed.
-# - IDENTITY_SERVICE_COMMIT: Commit of iot-identity-service to use. If not set, the script will try to determine
-# the commit from Cargo.lock.
-#
-# GitHub artifacts expire after 90 days. So if this script runs more than 90 days after the aziot submodule's
-# commit, it will fail.
+#!/bin/pwsh
+
+<#
+    .SYNOPSIS
+        Downloads the aziot-identity-service package. Run this script from the iotedge repo's root directory.
+
+        GitHub artifacts expire after 90 days. So if this script runs more than 90 days after the aziot submodule's
+        commit, it will fail.
+
+        Set the following environment variables before running:
+        - ARTIFACT_NAME: Name of the GitHub artifact. 
+          Example: packages_ubuntu-20.04_amd64
+        - PACKAGE_FILTER: Filter for the package in the GitHub artifact. 
+          Example: aziot-identity-service_*_amd64.deb
+        - DOWNLOAD_PATH: Where to save the aziot-identity-service package.
+        - VAULT_NAME: Name of the key vault to get the github access token from.
+        - AGENT_PROXYURL: HTTP proxy and port, if needed.
+        - IDENTITY_SERVICE_COMMIT: Commit of iot-identity-service to use. 
+          If not set, the script will try to determine the commit from Cargo.lock.
+#>
+
+$artifactName = if($env:ARTIFACT_NAME) 
+{
+    $env:ARTIFACT_NAME
+}
+else 
+{
+    "packages_ubuntu-20.04_amd64"
+}
+
+$packageFilter = if($env:PACKAGE_FILTER) 
+{
+    $env:PACKAGE_FILTER 
+}
+else 
+{
+    "aziot-identity-service_*_amd64.deb"
+}
+
+$vaultName = if($env:VAULT_NAME) 
+{
+    $env:VAULT_NAME
+}
+else
+{
+    "edge-e2e-kv"
+}
+
+$downloadPath = if($env:DOWNLOAD_PATH) 
+{
+    $env:DOWNLOAD_PATH
+}
+else 
+{
+    "~/aziot-packages"
+}
 
 $proxy = ''
 if($env:AGENT_PROXYURL)
@@ -23,7 +66,7 @@ else
     Write-Output "Downloading without proxy"
 }
 
-$aziot_commit = if($env:IDENTITY_SERVICE_COMMIT)
+$aziotCommit = if($env:IDENTITY_SERVICE_COMMIT)
 {
     $env:IDENTITY_SERVICE_COMMIT
 }
@@ -46,9 +89,13 @@ else
     $commit.Value
 }
 
-Write-Output "Downloading aziot-identity-service $aziot_commit"
+Write-Output "Getting github token from key vault"
 
-$github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization" = "token ' + $env:GITHUB_TOKEN + '"}'
+$gitHubToken = (az keyvault secret show --vault-name $vaultName -n "TestGitHubAccessToken" -o tsv --query value)
+
+Write-Output "Downloading aziot-identity-service $aziotCommit"
+
+$github_headers = '@{"Accept" = "application/vnd.github.v3+json"; "Authorization" = "token ' + $gitHubToken + '"}'
 
 for($page = 1; ; $page++)
 {
@@ -60,12 +107,12 @@ for($page = 1; ; $page++)
     if($actions_size.Count -eq 0)
     {
         # Searched all pages and could not find artifact for submodule commit.
-        Write-Output "Package for $aziot_commit not found"
+        Write-Output "Package for $aziotCommit not found"
         exit 1
     }
 
     $artifacts_link = $actions_runs.workflow_runs | `
-    where {($_.head_sha -eq $aziot_commit) -and ($_.name -eq 'packages')} | `
+    Where-Object {($_.head_sha -eq $aziotCommit) -and ($_.name -eq 'packages')} | `
     Select-Object -First 1 -ExpandProperty artifacts_url
 
     if([string]::IsNullOrEmpty($artifacts_link))
@@ -76,7 +123,7 @@ for($page = 1; ; $page++)
 
     Write-Output "GET $artifacts_link"
     $artifacts = Invoke-Expression "Invoke-WebRequest $proxy -Headers $github_headers -Uri '$artifacts_link'" | ConvertFrom-JSON
-    $download_link = $artifacts.artifacts | where {$_.name -eq $env:ARTIFACT_NAME} | `
+    $download_link = $artifacts.artifacts | Where-Object {$_.name -eq $artifactName} | `
     Select-Object -ExpandProperty archive_download_url
 
     Write-Output "GET $download_link"
@@ -85,11 +132,15 @@ for($page = 1; ; $page++)
     Write-Output "Extract aziot-identity-service.zip"
     Expand-Archive -Path aziot-identity-service.zip -DestinationPath aziot-identity-service -Force
 
-    $packages = Get-ChildItem -Recurse aziot-identity-service -Filter $env:PACKAGE_FILTER
-    $packagePath = Convert-Path $env:DOWNLOAD_PATH
+    $packages = Get-ChildItem -Recurse aziot-identity-service -Filter $packageFilter
+    New-Item -ItemType Directory -Force -Path $downloadPath
+    $packagePath = Convert-Path $downloadPath
 
     Write-Output "Copy $packages to $packagePath"
     Copy-Item $packages -Destination $packagePath
+
+    Write-Output "Cleaning up..."
+    Remove-Item aziot-identity-service -Recurse
 
     Write-Output "Done"
     exit 0

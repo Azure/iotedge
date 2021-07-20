@@ -13,7 +13,6 @@ steps:
       TestContainerRegistryPassword,
       TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
-      TestGitHubAccessToken,
       TestPreviewEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
@@ -70,17 +69,23 @@ steps:
     artifactName: $(artifactName)
     allowPartiallySucceededBuilds: true
 
-- task: PowerShell@2
+- task: AzureCLI@2
   displayName: 'Download aziot-identity-service'
   inputs:
-    filePath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
+    azureSubscription: $(az.subscription)
+    scriptType: pscore
+    scriptLocation: scriptPath
+    scriptPath: $(Build.SourcesDirectory)/scripts/local/test/DownloadIdentityService.ps1
     workingDirectory: $(Build.SourcesDirectory)
   env:
-    GITHUB_TOKEN: $(TestGitHubAccessToken)
+    VAULT_NAME: $(kv.name)
     ARTIFACT_NAME: $(identityServiceArtifactName)
     PACKAGE_FILTER: $(identityServicePackageFilter)
     DOWNLOAD_PATH: $(System.ArtifactsDirectory)/$(artifactName)
     IDENTITY_SERVICE_COMMIT: $(aziotis.commit)
+    http_proxy: $(AGENT_PROXYURL)
+    https_proxy: $(AGENT_PROXYURL)
+
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
     New-Item "$certsDir" -ItemType Directory -Force | Out-Null

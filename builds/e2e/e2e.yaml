@@ -45,7 +45,7 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+    #- template: templates/e2e-run.yaml
 
 ################################################################################
   - job: linux_amd64
@@ -64,7 +64,7 @@ jobs:
 
     steps:
     - template: templates/e2e-setup.yaml
-    - template: templates/e2e-run.yaml
+    #- template: templates/e2e-run.yaml
 
 ################################################################################
   - job: centos7_amd64
@@ -90,7 +90,7 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
+    #- template: templates/e2e-run.yaml
 
 ################################################################################
   - job: linux_amd64_proxy
@@ -117,6 +117,6 @@ jobs:
     - template: templates/e2e-clean-directory.yaml
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-clear-docker-cached-images.yaml
-    - template: templates/e2e-run.yaml
-      parameters:
-        test_type: http_proxy
+    #- template: templates/e2e-run.yaml
+    #  parameters:
+    #    test_type: http_proxy
