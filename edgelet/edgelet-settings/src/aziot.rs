@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize)]
 pub enum AutoReprovisioningMode {
     Dynamic,
     AlwaysOnStartup,
