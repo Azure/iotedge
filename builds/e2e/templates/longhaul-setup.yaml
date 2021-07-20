@@ -6,6 +6,12 @@ parameters:
   quickstart.artifactName: ''
 
 steps:
+  # We need to stop iotedge to facilitate large downloads.
+  # There is a stop command running in quickstart, which will get called later. But this is too late.
+  - script: |
+      sudo iotedge system stop || true
+      sudo systemctl stop iotedge || true
+    displayName: Immediately attempt to stop iotedge service (needed for arm)
   - checkout: self
     clean: true
     fetchDepth: 100

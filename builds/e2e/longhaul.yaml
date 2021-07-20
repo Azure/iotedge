@@ -90,6 +90,7 @@ jobs:
           test.useTRC: '$(useTRC)'
           test.deploymentFileName: 'long_haul_deployment.template.json'
           testResultCoordinator.storageAccountConnectionString: '$(EdgeLonghaulStorageAccountConnString)'
+          clientModuleTransportType: 'All'
 
 ################################################################################
   - job: linux_arm32v7_moby_amqp

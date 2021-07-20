@@ -107,6 +107,7 @@ steps:
         testInfo="$testInfo,TestName=${{ parameters['testInfo.testName'] }}"
         testInfo="$testInfo,CustomEdgeAgentImage=${{ parameters['customEdgeAgent.image'] }}"
         testInfo="$testInfo,CustomEdgeHubImage=${{ parameters['customEdgeHub.image'] }}"
+        testInfo="$testInfo,ClientProtocol=All"
 
         sudo --preserve-env ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh \
           -testName 'Connectivity' \
