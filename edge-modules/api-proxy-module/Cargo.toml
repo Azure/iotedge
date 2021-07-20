@@ -17,7 +17,7 @@ log = "0.4"
 md5 = "0.7"
 regex = "1.4"
 serde_json = "1.0"
-tokio = { version = "1.5", features = ["signal", "rt-multi-thread"] }
+tokio = { version = "1", features = ["signal", "rt-multi-thread"] }
 percent-encoding = "2.1"
 url = "2.2"
 
