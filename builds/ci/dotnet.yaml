@@ -12,7 +12,7 @@ variables:
 jobs:
   - job: linux
     displayName: Linux
-    timeoutInMinutes: 120
+    timeoutInMinutes: 300
     pool:
       vmImage: ubuntu-18.04
     variables:
