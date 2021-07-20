@@ -37,7 +37,10 @@ impl std::cmp::PartialEq<u32> for MaxRetries {
 
 impl std::cmp::PartialOrd<u32> for MaxRetries {
     fn partial_cmp(&self, other: &u32) -> Option<std::cmp::Ordering> {
-        todo!()
+        match self {
+            MaxRetries::Infinite => Some(std::cmp::Ordering::Greater),
+            MaxRetries::Num(num) => num.partial_cmp(other),
+        }
     }
 }
 
@@ -122,5 +125,20 @@ impl serde::Serialize for MaxRetries {
             MaxRetries::Infinite => serializer.serialize_str("infinite"),
             MaxRetries::Num(num) => serializer.serialize_u32(num),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn max_retries_cmp() {
+        let max_retries = super::MaxRetries::Infinite;
+        assert!(max_retries > 0);
+        assert!(max_retries > u32::MAX);
+
+        let max_retries = super::MaxRetries::Num(10);
+        assert!(max_retries > 9);
+        assert!(max_retries == 10);
+        assert!(max_retries < 11);
     }
 }
