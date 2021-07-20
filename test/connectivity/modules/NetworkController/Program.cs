@@ -5,12 +5,10 @@ namespace NetworkController
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Net;
-    using System.Net.NetworkInformation;
     using System.Threading;
     using System.Threading.Tasks;
-    using Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -88,12 +86,37 @@ namespace NetworkController
             handler.ForEach(h => GC.KeepAlive(h));
         }
 
+        private static ITransportSettings[] GetTransportSettings(TransportType transportType)
+        {
+            switch (transportType)
+            {
+                case TransportType.Mqtt:
+                case TransportType.Mqtt_Tcp_Only:
+                    MqttTransportSettings settings_mqtt = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_mqtt.Proxy = p);
+                    return new ITransportSettings[] { settings_mqtt };
+                case TransportType.Mqtt_WebSocket_Only:
+                    MqttTransportSettings settings_mqttws = new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_mqttws.Proxy = p);
+                    return new ITransportSettings[] { settings_mqttws };
+                case TransportType.Amqp_WebSocket_Only:
+                    AmqpTransportSettings settings_amqpws = new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_amqpws.Proxy = p);
+                    return new ITransportSettings[] { settings_amqpws };
+                default:
+                    AmqpTransportSettings settings_amqp = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
+                    Settings.Current.Proxy.ForEach(p => settings_amqp.Proxy = p);
+                    return new ITransportSettings[] { settings_amqp };
+            }
+        }
+
         private static async Task SetToggleConnectivityMethod(string networkInterfaceName, CancellationToken token)
         {
             // Setting GatewayHostname to empty, since the module will be talking directly to IoTHub, bypassing edge
             // NetworkController is on the host, so it should always have connection
             Environment.SetEnvironmentVariable("IOTEDGE_GATEWAYHOSTNAME", string.Empty);
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(Settings.Current.TransportType, new ClientOptions(), ModuleUtil.DefaultTimeoutErrorDetectionStrategy, ModuleUtil.DefaultTransientRetryStrategy);
+            ITransportSettings[] settings = GetTransportSettings(Settings.Current.TransportType);
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await moduleClient.SetMethodHandlerAsync("toggleConnectivity", ToggleConnectivity, new Tuple<string, CancellationToken>(networkInterfaceName, token));
         }
 
