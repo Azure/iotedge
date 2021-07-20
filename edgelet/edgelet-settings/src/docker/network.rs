@@ -1,16 +1,36 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use crate::DEFAULT_NETWORKID;
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+pub enum MobyNetwork {
+    Network(Network),
+    Name(String),
+}
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+impl MobyNetwork {
+    pub fn name(&self) -> &str {
+        match self {
+            MobyNetwork::Name(name) => {
+                if name.is_empty() {
+                    "azure-iot-edge"
+                } else {
+                    name
+                }
+            }
+            MobyNetwork::Network(network) => &network.name,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Network {
-    pub name: String,
+    name: String,
 
     #[serde(rename = "ipv6", skip_serializing_if = "Option::is_none")]
-    pub ipv6: Option<bool>,
+    ipv6: Option<bool>,
 
     #[serde(rename = "ipam", skip_serializing_if = "Option::is_none")]
-    pub ipam: Option<Ipam>,
+    ipam: Option<Ipam>,
 }
 
 impl Network {
@@ -50,15 +70,15 @@ impl Network {
     }
 }
 
-#[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Ipam {
     #[serde(rename = "config", skip_serializing_if = "Option::is_none")]
-    pub config: Option<Vec<IpamConfig>>,
+    config: Option<Vec<IpamConfig>>,
 }
 
 impl Ipam {
     pub fn config(&self) -> Option<&[IpamConfig]> {
-        self.config.as_ref().map(AsRef::as_ref)
+        self.config.as_deref()
     }
 
     pub fn with_config(mut self, config: Vec<IpamConfig>) -> Self {
@@ -67,21 +87,21 @@ impl Ipam {
     }
 }
 
-#[derive(Clone, Debug, Default, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct IpamConfig {
     #[serde(rename = "gateway", skip_serializing_if = "Option::is_none")]
-    pub gateway: Option<String>,
+    gateway: Option<String>,
 
     #[serde(rename = "subnet", skip_serializing_if = "Option::is_none")]
-    pub subnet: Option<String>,
+    subnet: Option<String>,
 
     #[serde(rename = "ip_range", skip_serializing_if = "Option::is_none")]
-    pub ip_range: Option<String>,
+    ip_range: Option<String>,
 }
 
 impl IpamConfig {
     pub fn gateway(&self) -> Option<&str> {
-        self.gateway.as_ref().map(AsRef::as_ref)
+        self.gateway.as_deref()
     }
 
     pub fn with_gateway(mut self, gateway: String) -> Self {
@@ -90,7 +110,7 @@ impl IpamConfig {
     }
 
     pub fn subnet(&self) -> Option<&str> {
-        self.subnet.as_ref().map(AsRef::as_ref)
+        self.subnet.as_deref()
     }
 
     pub fn with_subnet(mut self, subnet: String) -> Self {
@@ -99,7 +119,7 @@ impl IpamConfig {
     }
 
     pub fn ip_range(&self) -> Option<&str> {
-        self.ip_range.as_ref().map(AsRef::as_ref)
+        self.ip_range.as_deref()
     }
 
     pub fn with_ip_range(mut self, ip_range: String) -> Self {
@@ -108,34 +128,12 @@ impl IpamConfig {
     }
 }
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
-#[serde(untagged)]
-pub enum MobyNetwork {
-    Network(Network),
-    Name(String),
-}
-
-impl MobyNetwork {
-    pub fn name(&self) -> &str {
-        match self {
-            MobyNetwork::Name(name) => {
-                if name.is_empty() {
-                    DEFAULT_NETWORKID
-                } else {
-                    name
-                }
-            }
-            MobyNetwork::Network(network) => &network.name,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{Ipam, IpamConfig, MobyNetwork, Network, DEFAULT_NETWORKID};
+    use super::{Ipam, IpamConfig, MobyNetwork, Network};
 
     #[test]
-    fn test_ipam_config_with_values() {
+    fn ipam_config_with_values() {
         let gateway = "172.18.0.1";
         let subnet = "172.18.0.0/16";
         let ip_range = "172.18.0.0/24";
@@ -151,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_network_with_values() {
+    fn network_with_values() {
         let ipam_config = IpamConfig::default()
             .with_gateway("172.18.0.1".to_string())
             .with_ip_range("172.18.0.0/16".to_string())
@@ -170,7 +168,7 @@ mod tests {
     }
 
     #[test]
-    fn test_moby_network_name() {
+    fn moby_network_name() {
         let moby_network_with_no_name = MobyNetwork::Name("".to_string());
 
         let moby_1 = "name-1";
@@ -179,7 +177,7 @@ mod tests {
         let moby_2 = "network-1";
         let moby_network_config = MobyNetwork::Network(Network::new(moby_2.to_string()));
 
-        assert_eq!(DEFAULT_NETWORKID, moby_network_with_no_name.name());
+        assert_eq!("azure-iot-edge", moby_network_with_no_name.name());
         assert_eq!(moby_1, moby_network_with_name.name());
         assert_eq!(moby_2, moby_network_config.name());
     }

@@ -24,7 +24,6 @@ pub mod error;
 mod identity;
 mod logs;
 pub mod module;
-mod network;
 mod parse_since;
 mod virtualization;
 pub mod workload;
@@ -44,7 +43,6 @@ pub use module::{
     ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ModuleTop,
     ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
-pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
 pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
@@ -88,9 +86,6 @@ impl UrlExt for Url {
 }
 
 pub const UNIX_SCHEME: &str = "unix";
-
-/// This is the name of the network created by the aziot-edged
-pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";
 
 pub enum ShutdownReason {
     Reprovision,
