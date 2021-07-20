@@ -12,7 +12,6 @@
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.33.1-NestedEdge" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="4.5.0" />
     <PackageReference Include="Nett" Version="0.15.0" />
   </ItemGroup>

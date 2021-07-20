@@ -76,8 +76,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     Device device = await iotHub.CreateEdgeDeviceIdentityAsync(deviceId, nestedEdgeConfig.ParentDeviceId, authType, x509Thumbprint, token);
                     return new EdgeDevice(device, true, iotHub, nestedEdgeConfig);
                 },
-                "Created edge device '{Device}' on hub '{IotHub}'",
+                "Created edge device '{Device}' with parent '{ParentDeviceId}' on hub '{IotHub}'",
                 deviceId,
+                nestedEdgeConfig.ParentDeviceId.GetOrElse("<none>"),
                 iotHub.Hostname);
         }
 

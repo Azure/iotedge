@@ -31,7 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     AuthenticationType.Sas,
                     null,
                     token);
-                Log.Information($"Device ID {this.device.Id}");
 
                 Context.Current.DeleteList.TryAdd(this.device.Id, this.device);
 
