@@ -33,9 +33,12 @@ function Prepare-DevOps-Artifacts
     $response = $(Invoke-WebRequest -Uri "https://dev.azure.com/msazure/One/_apis/build/builds/$BuildId/artifacts?api-version=6.0" -Headers $header)
     $content = ($response.Content | ConvertFrom-Json).value
 
-    $artifactFinalists = @();
+    $outputDir = "$(Join-Path -Path $workDir -ChildPath 'output')\"
+    New-Item -ItemType Directory -Force -Path $outputDir
     $workDir = "$(Join-Path -Path $workDir -ChildPath 'IE')\"
     New-Item -ItemType Directory -Force -Path $workDir
+
+    $artifactFinalists = @();
 
     foreach ($artifact in $content)
     {
@@ -47,7 +50,7 @@ function Prepare-DevOps-Artifacts
         # Download and Expand each artifact
         Retry-Command -ScriptBlock {
             Invoke-WebRequest -Uri $artifactUrl -Headers $header -OutFile "$artifactPath$artifactExtension" | Out-Null
-            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir
+            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir -Force
         }
 
         # Each artifact is a directory, fetch the packages within it.
@@ -86,9 +89,13 @@ function Prepare-DevOps-Artifacts
             # Record renamed files
             $artifactFinalists += $(Get-Item $newPath)
         }
+    }
 
-        # TODO: Clean up
-        #Remove-Item -Path $artifactPath
+    # Stage uploading files
+    foreach ($artifact in $artifactFinalists)
+    {
+        echo "Moving : $($artifact.FullName)"
+        Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
     }
 }
 
@@ -146,6 +153,8 @@ function Prepare-GitHub-Artifacts
         }
     }
 
+    $outputDir = "$(Join-Path -Path $workDir -ChildPath 'output')\"
+    New-Item -ItemType Directory -Force -Path $outputDir
     $workDir = "$(Join-Path -Path $workDir -ChildPath 'IIS')\"
     New-Item -ItemType Directory -Force -Path $workDir
 
@@ -165,7 +174,7 @@ function Prepare-GitHub-Artifacts
         echo "Downloading $artifactName"
         Retry-Command -ScriptBlock {
             Invoke-WebRequest -Headers $header -Uri "$downloadUrl" -OutFile "$artifactPath$artifactExtension"
-            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath
+            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $artifactPath -Force
         }
 
         # Each artifact is a directory, let's get only packages in them.
@@ -209,8 +218,12 @@ function Prepare-GitHub-Artifacts
         }
     }
 
-    # To be uploaded
-    $artifactFinalists
+    # Stage uploading files
+    foreach ($artifact in $artifactFinalists)
+    {
+        echo "Moving : $($artifact.FullName)"
+        Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
+    }
 
     # https://docs.github.com/en/rest/reference/repos#upload-a-release-asset
     # https://docs.github.com/en/rest/reference/repos#create-a-release
