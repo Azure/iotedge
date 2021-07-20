@@ -1,5 +1,18 @@
 trigger: none
 pr: none
+schedules:
+- cron: "0 3 * * *"
+  displayName: Daily morning build
+  branches:
+    include:
+    - release/1.2
+  always: true
+- cron: "0 15 * * *"
+  displayName: Daily nightly build
+  branches:
+    include:
+    - release/1.2
+  always: true
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
