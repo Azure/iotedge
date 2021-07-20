@@ -701,6 +701,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "edgelet-settings"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "test-case",
+ "url 2.2.2",
+]
+
+[[package]]
 name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
