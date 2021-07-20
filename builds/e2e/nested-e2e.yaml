@@ -1,13 +1,13 @@
 trigger: none
 pr: none
 schedules:
-- cron: "0 3 * * *"
+- cron: "0 6 * * *"
   displayName: Daily morning build
   branches:
     include:
     - release/1.2
   always: true
-- cron: "0 15 * * *"
+- cron: "0 18 * * *"
   displayName: Daily nightly build
   branches:
     include:

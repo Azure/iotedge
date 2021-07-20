@@ -1,14 +1,8 @@
 trigger: none
 pr: none
 schedules:
-- cron: "0 6 * * *"
-  displayName: Daily morning build
-  branches:
-    include:
-    - release/1.2
-  always: true
-- cron: "0 18 * * *"
-  displayName: Daily nightly build
+- cron: "0 23 * * 4"
+  displayName: Weekly run Thursday night
   branches:
     include:
     - release/1.2

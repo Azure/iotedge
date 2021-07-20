@@ -1,14 +1,14 @@
 trigger: none
 pr: none
 schedules:
-- cron: "0 6 * * *"
-  displayName: Daily morning build
+- cron: "0 0 * * *"
+  displayName: Daily midnight build
   branches:
     include:
     - release/1.2
   always: true
-- cron: "0 18 * * *"
-  displayName: Daily nightly build
+- cron: "0 12 * * *"
+  displayName: Daily noon build
   branches:
     include:
     - release/1.2
