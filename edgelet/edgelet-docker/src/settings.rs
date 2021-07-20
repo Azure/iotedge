@@ -4,10 +4,12 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
-use edgelet_core::{
-    settings::AutoReprovisioningMode, Connect, Endpoints, Listen, MobyNetwork, ModuleSpec,
-    RuntimeSettings, Settings as BaseSettings, UrlExt, WatchdogSettings,
+use edgelet_core::{MobyNetwork, UrlExt};
+use edgelet_settings::{
+    aziot::AutoReprovisioningMode, aziot::Endpoints, uri::Connect, uri::Listen, RuntimeSettings,
+    module::Settings as ModuleSpec, watchdog::Settings as WatchdogSettings
 };
+
 use failure::{Context, Fail, ResultExt};
 
 use url::Url;
@@ -61,7 +63,7 @@ impl ContentTrust {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
-    pub base: BaseSettings<DockerConfig>,
+    pub base: edgelet_settings::Settings<DockerConfig>,
     pub moby_runtime: MobyRuntime,
 }
 
@@ -98,7 +100,7 @@ impl Settings {
 }
 
 impl RuntimeSettings for Settings {
-    type Config = DockerConfig;
+    type ModuleConfig = DockerConfig;
 
     fn agent(&self) -> &ModuleSpec<DockerConfig> {
         self.base.agent()
@@ -148,7 +150,7 @@ impl RuntimeSettings for Settings {
         self.base.manifest_trust_bundle_cert()
     }
 
-    fn auto_reprovisioning_mode(&self) -> &AutoReprovisioningMode {
+    fn auto_reprovisioning_mode(&self) -> AutoReprovisioningMode {
         self.base.auto_reprovisioning_mode()
     }
 }

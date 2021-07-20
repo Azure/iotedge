@@ -19,7 +19,7 @@ mod error;
 // mod runtime;
 mod settings;
 
-pub use config::{DockerConfig, UPSTREAM_PARENT_KEYWORD};
+pub use config::{DockerConfig};
 pub use error::{Error, ErrorKind};
 // pub use module::{DockerModule, MODULE_TYPE};
 // pub use runtime::DockerModuleRuntime;
