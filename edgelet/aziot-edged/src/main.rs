@@ -73,7 +73,7 @@ async fn run() -> Result<(), EdgedError> {
     //     .agent_mut()
     //     .parent_hostname_resolve(&device_info.gateway_host);
 
-    let (shutdown_tx, mut shutdown_rx) =
+    let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
     // Keep track of running tasks to determine when all server tasks have shut down.

@@ -32,7 +32,9 @@ pub(crate) async fn run_until_shutdown(
                     watchdog_errors += 1;
 
                     if watchdog_retries <= watchdog_errors {
-                        return Err(EdgedError::new("Watchdog error count has exceeded allowed retries"));
+                        return Err(EdgedError::new(
+                            "Watchdog error count has exceeded allowed retries",
+                        ));
                     }
                 }
 
@@ -43,6 +45,8 @@ pub(crate) async fn run_until_shutdown(
                 let shutdown_reason = shutdown_reason.expect("shutdown channel closed");
                 log::info!("{}", shutdown_reason);
 
+                shutdown();
+
                 return Ok(());
             }
         }
@@ -50,7 +54,26 @@ pub(crate) async fn run_until_shutdown(
 }
 
 fn watchdog() -> Result<(), EdgedError> {
-    todo!()
+    log::info!("Watchdog checking Edge runtime status");
+
+    // TODO: get from edgelet-docker
+    let agent_status = edgelet_core::ModuleStatus::Running;
+
+    match agent_status {
+        edgelet_core::ModuleStatus::Running => {
+            log::info!("Edge runtime is running");
+        }
+
+        _ => {
+            log::info!("Edge runtime status is {}, starting module now...", agent_status);
+
+            // TODO: start module
+        }
+    }
+
+    Err(EdgedError::new("T"))
 }
 
-fn shutdown() {}
+fn shutdown() {
+    log::info!("Stopping watchdog");
+}

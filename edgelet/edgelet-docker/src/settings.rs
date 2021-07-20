@@ -63,7 +63,7 @@ impl ContentTrust {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
-    pub base: edgelet_settings::Settings<DockerConfig>,
+    pub base: edgelet_settings::base::Settings<DockerConfig>,
     pub moby_runtime: MobyRuntime,
 }
 
