@@ -18,14 +18,20 @@ steps:
     displayName: Build observability-agent client - amd64
     inputs:
       filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os alpine --arch amd64 --build-path test/modules/obsagent-client
+      arguments: >
+        --os alpine --arch amd64 --build-path test/modules/obsagent-client
+        --cargo-flags "--no-default-features --features otel,prom"
   - task: Bash@3
     displayName: Build observability-agent client - arm32
     inputs:
       filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch arm32v7 --build-path test/modules/obsagent-client
+      arguments: >
+        --os ubuntu18.04 --arch arm32v7 --build-path test/modules/obsagent-client
+        --cargo-flags "--no-default-features --features otel,prom"
   - task: Bash@3
     displayName: Build observability-agent client - arm64
     inputs:
       filePath: scripts/linux/cross-platform-rust-build.sh
-      arguments: --os ubuntu18.04 --arch aarch64 --build-path test/modules/obsagent-client
+      arguments: >
+        --os ubuntu18.04 --arch aarch64 --build-path test/modules/obsagent-client
+        --cargo-flags "--no-default-features --features otel,prom"

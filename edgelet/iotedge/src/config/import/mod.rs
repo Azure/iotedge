@@ -360,6 +360,8 @@ fn execute_inner(
     };
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert,
 
         auto_reprovisioning_mode,
@@ -375,6 +377,10 @@ fn execute_inner(
             provisioning,
 
             localid: None,
+
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
             aziot_keys: Default::default(),
 

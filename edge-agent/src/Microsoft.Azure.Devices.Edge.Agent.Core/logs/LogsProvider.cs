@@ -26,11 +26,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
         {
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
 
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, cancellationToken);
-            Events.ReceivedStream(id);
+            if (logOptions.ContentType == LogsContentType.Json)
+            {
+                logOptions.Filter.IncludeTimestamp = Option.Some(true);
+            }
 
-            byte[] logBytes = await this.GetProcessedLogs(id, logsStream, logOptions);
-            return logBytes;
+            using (Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, false, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, logOptions.Filter.IncludeTimestamp, cancellationToken))
+            {
+                Events.ReceivedStream(id);
+
+                byte[] logBytes = await this.GetProcessedLogs(id, logsStream, logOptions);
+                return logBytes;
+            }
         }
 
         // The id parameter is a regex. Logs for all modules that match this regex are processed.
@@ -60,10 +67,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             Preconditions.CheckNotNull(logOptions, nameof(logOptions));
             Preconditions.CheckNotNull(callback, nameof(callback));
 
-            Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, logOptions.Follow, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, cancellationToken);
-            Events.ReceivedStream(id);
+            using (Stream logsStream = await this.runtimeInfoProvider.GetModuleLogs(id, logOptions.Follow, logOptions.Filter.Tail, logOptions.Filter.Since, logOptions.Filter.Until, logOptions.Filter.IncludeTimestamp, cancellationToken))
+            {
+                Events.ReceivedStream(id);
 
-            await this.logsProcessor.ProcessLogsStream(id, logsStream, logOptions, callback);
+                await this.logsProcessor.ProcessLogsStream(id, logsStream, logOptions, callback);
+            }
         }
 
         static byte[] ProcessByContentEncoding(byte[] bytes, LogsContentEncoding contentEncoding) =>

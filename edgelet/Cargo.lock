@@ -99,7 +99,7 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 [[package]]
 name = "aziot-cert-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-key-common",
  "serde",
@@ -108,7 +108,7 @@ dependencies = [
 [[package]]
 name = "aziot-certd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "hex 0.4.2",
  "http-common",
@@ -160,7 +160,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempdir",
- "tokio 0.1.22",
+ "tokio",
  "tokio-signal",
  "url 2.1.1",
  "url_serde",
@@ -169,7 +169,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -179,7 +179,7 @@ dependencies = [
 [[package]]
 name = "aziot-identity-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-cert-common-http",
  "aziot-identity-common",
@@ -192,7 +192,7 @@ dependencies = [
 [[package]]
 name = "aziot-identityd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-identity-common",
  "http-common",
@@ -204,7 +204,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-client"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-key-common",
  "aziot-key-common-http",
@@ -219,7 +219,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "serde",
 ]
@@ -227,7 +227,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-common-http"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-key-common",
  "http-common",
@@ -237,7 +237,7 @@ dependencies = [
 [[package]]
 name = "aziot-key-openssl-engine"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "aziot-key-client",
  "aziot-key-common",
@@ -255,7 +255,7 @@ dependencies = [
 [[package]]
 name = "aziot-keyd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "http-common",
  "libc",
@@ -265,7 +265,7 @@ dependencies = [
 [[package]]
 name = "aziot-keys-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "pkcs11",
  "serde",
@@ -275,7 +275,7 @@ dependencies = [
 [[package]]
 name = "aziot-tpmd-config"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "http-common",
  "serde",
@@ -284,7 +284,7 @@ dependencies = [
 [[package]]
 name = "aziotctl-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "anyhow",
  "aziot-certd-config",
@@ -509,7 +509,7 @@ dependencies = [
 [[package]]
 name = "config-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "serde",
  "toml",
@@ -697,7 +697,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "test-case",
- "tokio 0.1.22",
+ "tokio",
  "url 2.1.1",
 ]
 
@@ -729,7 +729,7 @@ dependencies = [
  "tempdir",
  "tempfile",
  "time",
- "tokio 0.1.22",
+ "tokio",
  "tokio-process",
  "typed-headers",
  "url 2.1.1",
@@ -767,7 +767,7 @@ dependencies = [
  "systemd",
  "tempdir",
  "tempfile",
- "tokio 0.1.22",
+ "tokio",
  "tokio-tls",
  "tokio-uds",
  "typed-headers",
@@ -827,7 +827,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "tokio 0.1.22",
+ "tokio",
  "tokio-tls",
  "workload",
 ]
@@ -846,7 +846,7 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "tokio 0.1.22",
+ "tokio",
 ]
 
 [[package]]
@@ -1141,7 +1141,7 @@ dependencies = [
 [[package]]
 name = "http-common"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "async-trait",
  "base64 0.13.0",
@@ -1153,7 +1153,6 @@ dependencies = [
  "percent-encoding 2.1.0",
  "serde",
  "serde_json",
- "tokio-io-timeout",
  "tracing",
  "url 2.1.1",
 ]
@@ -1198,7 +1197,7 @@ dependencies = [
  "net2",
  "rustc_version",
  "time",
- "tokio 0.1.22",
+ "tokio",
  "tokio-buf",
  "tokio-executor",
  "tokio-io",
@@ -1248,7 +1247,7 @@ dependencies = [
  "futures",
  "hex 0.3.2",
  "hyper",
- "tokio 0.1.22",
+ "tokio",
  "tokio-io",
  "tokio-uds",
 ]
@@ -1357,7 +1356,7 @@ dependencies = [
  "tabwriter",
  "tempfile",
  "termcolor 0.3.6",
- "tokio 0.1.22",
+ "tokio",
  "toml",
  "typed-headers",
  "url 2.1.1",
@@ -1698,7 +1697,7 @@ dependencies = [
 [[package]]
 name = "openssl-build"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "cc",
 ]
@@ -1735,7 +1734,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "openssl-build",
  "openssl-sys",
@@ -1744,7 +1743,7 @@ dependencies = [
 [[package]]
 name = "openssl2"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "foreign-types",
  "foreign-types-shared",
@@ -1807,7 +1806,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 [[package]]
 name = "pkcs11"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 dependencies = [
  "foreign-types-shared",
  "lazy_static",
@@ -1824,7 +1823,7 @@ dependencies = [
 [[package]]
 name = "pkcs11-sys"
 version = "0.1.0"
-source = "git+https://github.com/Azure/iot-identity-service?branch=main#2df97b987c36a337fe143d12b3c6d38f32b3c0a5"
+source = "git+https://github.com/Azure/iot-identity-service?branch=main#4dbc2a5c9171b882c202fddb57e492987407107f"
 
 [[package]]
 name = "pkg-config"
@@ -2238,7 +2237,7 @@ dependencies = [
  "futures",
  "regex 0.2.11",
  "tempfile",
- "tokio 0.1.22",
+ "tokio",
  "zip",
 ]
 
@@ -2443,16 +2442,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokio"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83f0c8e7c0addab50b663055baf787d0af7f413a46e6e7fb9559a4e4db7137a5"
-dependencies = [
- "autocfg",
- "pin-project-lite",
-]
-
-[[package]]
 name = "tokio-buf"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2514,16 +2503,6 @@ dependencies = [
  "bytes 0.4.12",
  "futures",
  "log",
-]
-
-[[package]]
-name = "tokio-io-timeout"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90c49f106be240de154571dd31fbe48acb10ba6c6dd6f6517ad603abffa42de9"
-dependencies = [
- "pin-project-lite",
- "tokio 1.5.0",
 ]
 
 [[package]]

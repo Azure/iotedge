@@ -23,8 +23,6 @@ parameters:
   logAnalytics.sharedKey: ''
   logAnalytics.logType: ''
   twinTester.twinUpdateSize: ''
-  twinTester.twinUpdateFailureThreshold: ''
-  twinTester.edgeHubRestartFailureTolerance: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -181,7 +179,6 @@ steps:
             -testRuntimeLogLevel "${{ parameters['test.runtimeLogLevel'] }}" \
             -testInfo "$testInfo" \
             -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
-            -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
