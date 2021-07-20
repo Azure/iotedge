@@ -8,7 +8,7 @@ schedules:
     - release/1.2
   always: true
 - cron: "0 18 * * *"
-  displayName: Daily nightly build
+  displayName: Daily evening build
   branches:
     include:
     - release/1.2
