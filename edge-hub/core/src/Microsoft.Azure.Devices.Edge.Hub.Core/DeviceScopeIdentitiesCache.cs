@@ -157,7 +157,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 await this.RefreshServiceIdentityInternal(id, onBehalfOf, false);
             }
 
+            Events.PrintMe("Invoking service identities updated...");
             this.ServiceIdentitiesUpdated?.Invoke(this, await this.GetAllIds());
+            Events.PrintMe("Service identities sent successfully");
         }
 
         async Task RefreshServiceIdentityInternal(string refreshTarget, string onBehalfOfDevice, bool invokeServiceIdentitiesUpdated)
@@ -608,6 +610,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             public static void Created() =>
                 Log.LogInformation((int)EventIds.Created, "Created device scope identities cache");
+
+            public static void PrintMe(string printMe)
+            {
+                Log.LogInformation($"$DRB - {printMe}");
+            }
 
             public static void ErrorInRefreshCycle(Exception exception)
             {
