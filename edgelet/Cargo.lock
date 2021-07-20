@@ -705,7 +705,9 @@ dependencies = [
 name = "edgelet-settings"
 version = "0.1.0"
 dependencies = [
+ "docker",
  "serde",
+ "serde_json",
  "test-case",
  "url 2.2.2",
 ]

@@ -1,48 +1,41 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
-
-use docker::models::{AuthConfig, ContainerCreateBody};
-use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
-
-use crate::error::{ErrorKind, Result};
-
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
-    pub image: String,
+    image: String,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "imageHash")]
-    pub image_id: Option<String>,
-    #[serde(default = "ContainerCreateBody::new")]
-    pub create_options: ContainerCreateBody,
+    image_hash: Option<String>,
+
+    #[serde(default = "docker::models::ContainerCreateBody::new")]
+    create_options: docker::models::ContainerCreateBody,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub digest: Option<String>,
+    digest: Option<String>,
+
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub auth: Option<AuthConfig>,
+    auth: Option<docker::models::AuthConfig>,
 }
 
 impl DockerConfig {
     pub fn new(
         image: String,
-        create_options: ContainerCreateBody,
+        create_options: docker::models::ContainerCreateBody,
         digest: Option<String>,
-        auth: Option<AuthConfig>,
-    ) -> Result<Self> {
-        ensure_not_empty_with_context(&image, || ErrorKind::InvalidImage(image.clone()))?;
+        auth: Option<docker::models::AuthConfig>,
+    ) -> Result<Self, String> {
+        if image.trim().is_empty() {
+            return Err("image cannot be empty".to_string());
+        }
 
-        let config = DockerConfig {
+        Ok(DockerConfig {
             image,
-            image_id: None,
+            image_hash: None,
             create_options,
             digest,
             auth,
-        };
-        Ok(config)
-    }
-
-    pub fn clone_create_options(&self) -> Result<ContainerCreateBody> {
-        Ok(serde_clone(&self.create_options).context(ErrorKind::CloneCreateOptions)?)
+        })
     }
 
     pub fn image(&self) -> &str {
@@ -54,37 +47,40 @@ impl DockerConfig {
         self
     }
 
-    pub fn image_id(&self) -> Option<&str> {
-        self.image_id.as_ref().map(AsRef::as_ref)
+    pub fn image_hash(&self) -> Option<&str> {
+        self.image_hash.as_deref()
     }
 
-    pub fn with_image_id(mut self, image_id: String) -> Self {
-        self.image_id = Some(image_id);
+    pub fn with_image_hash(mut self, image_id: String) -> Self {
+        self.image_hash = Some(image_id);
         self
     }
 
-    pub fn create_options(&self) -> &ContainerCreateBody {
+    pub fn create_options(&self) -> &docker::models::ContainerCreateBody {
         &self.create_options
     }
 
-    pub fn with_create_options(mut self, create_options: ContainerCreateBody) -> Self {
+    pub fn with_create_options(
+        mut self,
+        create_options: docker::models::ContainerCreateBody,
+    ) -> Self {
         self.create_options = create_options;
         self
     }
 
-    pub fn set_create_options(&mut self, create_options: ContainerCreateBody) {
+    pub fn set_create_options(&mut self, create_options: docker::models::ContainerCreateBody) {
         self.create_options = create_options;
     }
 
     pub fn digest(&self) -> Option<&str> {
-        self.digest.as_ref().map(AsRef::as_ref)
+        self.digest.as_deref()
     }
 
-    pub fn auth(&self) -> Option<&AuthConfig> {
+    pub fn auth(&self) -> Option<&docker::models::AuthConfig> {
         self.auth.as_ref()
     }
 
-    pub fn with_auth(mut self, auth: AuthConfig) -> Self {
+    pub fn with_auth(mut self, auth: docker::models::AuthConfig) -> Self {
         self.auth = Some(auth);
         self
     }
@@ -114,32 +110,28 @@ impl DockerConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use docker::models::{ContainerCreateBody, HostConfig, HostConfigPortBindings};
+    use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, HostConfigPortBindings};
     use serde_json::json;
 
-    use super::{AuthConfig, DockerConfig};
+    use super::DockerConfig;
 
     #[test]
     fn empty_image_fails() {
-        let _ =
-            DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
+        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
     }
 
     #[test]
     fn white_space_image_fails() {
-        let _ = DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None, None)
-            .unwrap_err();
+        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None, None).unwrap_err();
     }
 
     #[test]
     fn docker_config_ser() {
-        let mut labels = BTreeMap::new();
+        let mut labels = std::collections::BTreeMap::new();
         labels.insert("k1".to_string(), "v1".to_string());
         labels.insert("k2".to_string(), "v2".to_string());
 
-        let mut port_bindings = BTreeMap::new();
+        let mut port_bindings = std::collections::BTreeMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
             vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],
@@ -151,7 +143,7 @@ mod tests {
 
         let config = DockerConfig::new("ubuntu".to_string(), create_options, None, None)
             .unwrap()
-            .with_image_id("42".to_string());
+            .with_image_hash("42".to_string());
         let actual_json = serde_json::to_string(&config).unwrap();
         let expected_json = json!({
             "image": "ubuntu",
@@ -180,11 +172,11 @@ mod tests {
 
     #[test]
     fn docker_config_ser_auth() {
-        let mut labels = BTreeMap::new();
+        let mut labels = std::collections::BTreeMap::new();
         labels.insert("k1".to_string(), "v1".to_string());
         labels.insert("k2".to_string(), "v2".to_string());
 
-        let mut port_bindings = BTreeMap::new();
+        let mut port_bindings = std::collections::BTreeMap::new();
         port_bindings.insert(
             "27017/tcp".to_string(),
             vec![HostConfigPortBindings::new().with_host_port("27017".to_string())],

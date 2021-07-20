@@ -65,7 +65,10 @@ fn watchdog() -> Result<(), EdgedError> {
         }
 
         _ => {
-            log::info!("Edge runtime status is {}, starting module now...", agent_status);
+            log::info!(
+                "Edge runtime status is {}, starting module now...",
+                agent_status
+            );
 
             // TODO: start module
         }

@@ -12,3 +12,6 @@ pub mod base;
 
 pub use base::RuntimeSettings;
 pub use base::{aziot, module, uri, watchdog};
+
+#[cfg(feature = "settings-docker")]
+pub mod docker;

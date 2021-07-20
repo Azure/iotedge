@@ -39,11 +39,11 @@ impl<ModuleConfig> Settings<ModuleConfig> {
         env: std::collections::BTreeMap<String, String>,
         image_pull_policy: ImagePullPolicy,
     ) -> Result<Self, String> {
-        if name.is_empty() {
+        if name.trim().is_empty() {
             return Err("module name cannot be empty".to_string());
         }
 
-        if r#type.is_empty() {
+        if r#type.trim().is_empty() {
             return Err("module type cannot be empty".to_string());
         }
 
