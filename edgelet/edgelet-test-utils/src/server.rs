@@ -8,7 +8,7 @@ pub struct TestServer {
 }
 
 impl TestServer {
-    pub async fn start<TServer>(service: TServer) -> TestServer
+    pub async fn start<TServer>(_service: TServer) -> TestServer
     where
         TServer: hyper::service::Service<
                 hyper::Request<hyper::Body>,
@@ -24,17 +24,17 @@ impl TestServer {
         let socket =
             url::Url::parse(&format!("unix://{}", socket)).expect("failed to parse socket path");
         let connector = http_common::Connector::new(&socket).expect("failed to create connector");
-        let mut incoming = connector
+        let mut _incoming = connector
             .incoming()
             .await
             .expect("failed to listen on socket");
 
-        tokio::spawn(async move {
+        /*tokio::spawn(async move {
             incoming
                 .serve(service)
                 .await
                 .expect("failed to serve socket");
-        });
+        });*/
 
         TestServer {
             _path: path,

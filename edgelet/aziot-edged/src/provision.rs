@@ -5,23 +5,23 @@ use sha2::Digest;
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn get_device_info(
-    settings: &edgelet_docker::Settings,
+    settings: &impl edgelet_settings::RuntimeSettings,
     cache_dir: &std::path::Path,
 ) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
     let identity_connector =
-        http_common::Connector::new(&settings.base.endpoints.aziot_identityd_url)
-            .map_err(|err| EdgedError::new(format!("Invalid Identity Service URL: {}", err)))?;
+        http_common::Connector::new(&settings.endpoints().aziot_identityd_url())
+            .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
     let identity_client = aziot_identity_client_async::Client::new(
         aziot_identity_common_http::ApiVersion::V2020_09_01,
         identity_connector,
     );
 
-    if let edgelet_core::settings::AutoReprovisioningMode::AlwaysOnStartup =
-        settings.base.auto_reprovisioning_mode
+    if let edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup =
+        settings.auto_reprovisioning_mode()
     {
         reprovision(&identity_client, cache_dir)
             .await
-            .map_err(|err| EdgedError::new(format!("Reprovision on startup failed: {}", err)))?;
+            .map_err(|err| EdgedError::from_err("Reprovision on startup failed: {}", err))?;
     }
 
     loop {
@@ -41,7 +41,7 @@ pub(crate) async fn get_device_info(
                 _ => {
                     // Identity Service should never return an invalid device identity.
                     // Treat this as a fatal error.
-                    return Err(EdgedError::new("Invalid device identity".to_string()));
+                    return Err(EdgedError::new("Invalid device identity"));
                 }
             },
             Err(err) => {
@@ -73,10 +73,10 @@ pub(crate) fn update_device_cache(
         Err(err) => match err.kind() {
             std::io::ErrorKind::NotFound => String::default(),
             _ => {
-                return Err(EdgedError::new(format!(
-                    "Failed to read cached provisioning state: {}",
-                    err
-                )));
+                return Err(EdgedError::from_err(
+                    "Failed to read cached provisioning state",
+                    err,
+                ));
             }
         },
     };
@@ -91,9 +91,8 @@ pub(crate) fn update_device_cache(
         log::info!("Removed all modules");
 
         log::info!("Updating cached device information");
-        std::fs::write(cache_path, current_device).map_err(|err| {
-            EdgedError::new(format!("Failed to save provisioning cache: {}", err))
-        })?;
+        std::fs::write(cache_path, current_device)
+            .map_err(|err| EdgedError::from_err("Failed to save provisioning cache", err))?;
     } else {
         log::info!("Device information has not changed");
     }

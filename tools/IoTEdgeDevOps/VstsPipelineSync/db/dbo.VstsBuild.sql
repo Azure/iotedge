@@ -1,5 +1,4 @@
-﻿/****** Object:  Table [dbo].[VstsBuildRun]    Script Date: 2/12/2020 4:56:48 PM ******/
-SET ANSI_NULLS ON
+﻿SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
@@ -19,11 +18,8 @@ CREATE TABLE [dbo].[VstsBuild](
 	[FinishTime] [datetime2](7) NOT NULL,
 	[InsertedAt] [datetime2](7) NOT NULL,
 	[UpdatedAt] [datetime2](7) NOT NULL,
- CONSTRAINT [PK_VstsBuild] PRIMARY KEY CLUSTERED 
-(
-	[BuildNumber] ASC,
-	[DefinitionId] ASC
-)WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
+ CONSTRAINT [PK_VstsBuild] PRIMARY KEY CLUSTERED (
+	 [BuildId] ASC
+) WITH (STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
-

@@ -6,9 +6,12 @@
 mod error;
 mod management;
 mod provision;
+mod watchdog;
+mod workload;
 
-// TODO: Remove this with parent_hostname_resolve
-use edgelet_core::RuntimeSettings;
+use std::sync::atomic;
+
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
@@ -36,15 +39,18 @@ async fn main() {
 }
 
 async fn run() -> Result<(), EdgedError> {
-    let settings = edgelet_docker::Settings::new()?;
+    let settings =
+        edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(&err))?;
 
-    let cache_dir = std::path::Path::new(&settings.base.homedir).join("cache");
+    let cache_dir = std::path::Path::new(&settings.homedir()).join("cache");
     std::fs::create_dir_all(cache_dir.clone()).map_err(|err| {
-        EdgedError::new(format!(
-            "Failed to create cache directory {}: {}",
-            cache_dir.as_path().display(),
-            err
-        ))
+        EdgedError::from_err(
+            format!(
+                "Failed to create cache directory {}",
+                cache_dir.as_path().display()
+            ),
+            err,
+        )
     })?;
 
     let device_info = provision::get_device_info(&settings, &cache_dir).await?;
@@ -63,16 +69,25 @@ async fn run() -> Result<(), EdgedError> {
     provision::update_device_cache(&cache_dir, &device_info)?;
 
     // TODO: Rework settings so this isn't needed.
-    let mut settings = settings;
-    settings
-        .agent_mut()
-        .parent_hostname_resolve(&device_info.gateway_host);
+    // let mut settings = settings;
+    // settings
+    //     .agent_mut()
+    //     .parent_hostname_resolve(&device_info.gateway_host);
 
-    let (sender, mut receiver) =
+    let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
+    // Keep track of running tasks to determine when all server tasks have shut down.
+    // Workload and management API each have one task, so start with 2 tasks total.
+    let tasks = atomic::AtomicUsize::new(1); // TODO: change to 2 when management API is fixed
+    let tasks = std::sync::Arc::new(tasks);
+
+    // Start management and workload sockets.
+    let management_shutdown = management::start(&settings, shutdown_tx.clone()).await?;
+    let workload_shutdown = workload::start(&settings, &device_info, tasks.clone()).await?;
+
     // Set the signal handler to listen for CTRL+C (SIGINT).
-    let sigint_sender = sender.clone();
+    let sigint_sender = shutdown_tx.clone();
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
@@ -83,11 +98,37 @@ async fn run() -> Result<(), EdgedError> {
         let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
     });
 
-    // Start management and workload sockets.
-    management::start(&settings, sender).await?;
+    watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
 
-    if let Some(shutdown) = receiver.recv().await {
-        log::info!("{}", shutdown);
+    log::info!("Stopping management API...");
+    // management_shutdown
+    //     .send(())
+    //     .expect("management API shutdown receiver was dropped");
+
+    log::info!("Stopping workload API...");
+    workload_shutdown
+        .send(())
+        .expect("workload API shutdown receiver was dropped");
+
+    // Wait up to 10 seconds for all server tasks to exit.
+    let poll_period = std::time::Duration::from_millis(100);
+    let mut wait_time = 0;
+
+    loop {
+        let tasks = tasks.load(atomic::Ordering::Acquire);
+
+        if tasks == 0 {
+            break;
+        }
+
+        if wait_time >= 10000 {
+            log::warn!("{} task(s) have not exited in time for shutdown", tasks);
+
+            break;
+        }
+
+        tokio::time::sleep(poll_period).await;
+        wait_time += 100;
     }
 
     Ok(())
