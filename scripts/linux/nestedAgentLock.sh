@@ -17,6 +17,7 @@ TIMEOUT_SECONDS=300
 
 AGENT_GROUP=
 PAT=
+BUILD_ID=
 
 ###############################################################################
 # Print usage information pertaining to this script and exit
@@ -28,6 +29,7 @@ usage()
     echo "options"
     echo " -p                 DevOps API PAT for booking the agents."
     echo " -a                 Agent Group from which we want to book agents."
+    echo " -b                 Devops build id used to tag locked agents."
     exit 1;
 }
 
@@ -45,11 +47,15 @@ process_args()
         elif [ $save_next_arg -eq 2 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 3 ]; then
+            BUILD_ID="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" ) usage;;
                 "-p" ) save_next_arg=1;;
                 "-a" ) save_next_arg=2;;
+                "-b" ) save_next_arg=3;;
                 * ) usage;;
             esac
         fi
@@ -62,6 +68,11 @@ process_args()
 
     if [[ -z ${AGENT_GROUP} ]]; then
         echo "Agent Group is a required parameter."
+        print_help_and_exit
+    fi
+
+    if [[ -z ${BUILD_ID} ]]; then
+        echo "Build id is a required parameter."
         print_help_and_exit
     fi
 }
@@ -143,7 +154,7 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
 
         for agentId in "${filteredAgents[@]}"; do
             agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; '\"_$(Build.BuildId)\"')')
+            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; '\"_$BUILD_ID\"')')
 
             update_capabilities "$agentId" "$newAgentUserCapabilities"
         done
@@ -153,9 +164,9 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
         agentsAllLockedCorrectly=true
         for agentId in "${filteredAgents[@]}"; do
             agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-            lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
+            lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status' | tr -d '[], "')
 
-            if [ $lockStatus != '"unlocked_$(Build.BuildId)"' ]; then
+            if [ $lockStatus != "unlocked_$BUILD_ID" ]; then
                 agentsAllLockedCorrectly=false
                 break
             fi

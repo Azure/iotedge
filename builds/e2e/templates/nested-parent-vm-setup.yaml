@@ -14,7 +14,7 @@ jobs:
        - status -equals unlocked
     steps:
     - template: nested-get-secrets.yaml
-    - script: scripts/linux/nestedAgentLock.sh -p $(edgebuild-1-PAT) -a $(agent.group)
+    - script: scripts/linux/nestedAgentLock.sh -p $(edgebuild-1-PAT) -a $(agent.group) -b $(Build.BuildId)
 
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
     dependsOn: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
