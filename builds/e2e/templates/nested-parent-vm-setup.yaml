@@ -4,7 +4,6 @@ parameters:
 jobs:
   - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
     displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
-    name: lock_test_agent
     timeoutInMinutes: 180
     pool:
      name: $(pool.name)
@@ -16,6 +15,7 @@ jobs:
     steps:
     - template: nested-get-secrets.yaml
     - script: scripts/linux/nestedAgentLock.sh -p $(edgebuild-1-PAT) -a $(agent.group) -b $(Build.BuildId)
+      name: lock_test_agent
 
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
     dependsOn: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
