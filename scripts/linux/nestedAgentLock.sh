@@ -143,7 +143,7 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
 
         for agentId in "${filteredAgents[@]}"; do
             agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; "_$(Build.BuildId)")')
+            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; '\"_$(Build.BuildId)\"')')
 
             update_capabilities "$agentId" "$newAgentUserCapabilities"
         done

@@ -3,7 +3,7 @@ parameters:
 
 jobs:
   - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
-    displayName: Lock Nested Agents for ${{ parameters['upstream.protocol'] }}
+    displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     pool:
      name: $(pool.name)
