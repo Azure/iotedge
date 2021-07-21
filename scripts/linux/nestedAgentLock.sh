@@ -183,3 +183,5 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
 
     echo "Failed to acquire $AGENTS_NEEDED agents from pool. Will retry soon."
 done
+
+exit 1
