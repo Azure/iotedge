@@ -29,6 +29,7 @@ jobs:
       parentName: ''
       parentDeviceId: ''
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['l5AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -36,7 +37,7 @@ jobs:
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked
-       - Agent.Name -equals $(l5AgentName)
+       - Agent.Name -equals $(agentName)
     steps:
      - template: nested-get-secrets.yaml
      - template: e2e-clean-directory.yaml            
@@ -58,6 +59,7 @@ jobs:
       deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['l4AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -65,7 +67,7 @@ jobs:
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked    
-       - Agent.Name -equals $(l4AgentName)
+       - Agent.Name -equals $(agentName)
     steps:
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
