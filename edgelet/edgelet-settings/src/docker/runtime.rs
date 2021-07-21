@@ -26,11 +26,11 @@ impl MobyRuntime {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct ContentTrust {
     #[serde(default)]
-    ca_certs: std::collections::BTreeMap<String, String>,
+    ca_certs: Option<std::collections::BTreeMap<String, String>>,
 }
 
 impl ContentTrust {
-    pub fn ca_certs(&self) -> &std::collections::BTreeMap<String, String> {
-        &self.ca_certs
+    pub fn ca_certs(&self) -> Option<&std::collections::BTreeMap<String, String>> {
+        self.ca_certs.as_ref()
     }
 }

@@ -603,6 +603,7 @@ version = "0.1.0"
 dependencies = [
  "config-common",
  "docker",
+ "lazy_static",
  "serde",
  "serde_json",
  "test-case",
