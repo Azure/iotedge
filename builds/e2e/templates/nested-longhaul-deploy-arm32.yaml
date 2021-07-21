@@ -15,6 +15,7 @@ jobs:
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
         - status -equals unlocked  
+        - Agent.Name -equals $(l3AgentName)
     variables:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ] 

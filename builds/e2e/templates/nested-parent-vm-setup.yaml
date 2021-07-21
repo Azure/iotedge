@@ -1,7 +1,10 @@
 parameters:
   upstream.protocol: 'amqp'
+  agent.group: ''
 
 jobs:
+  - script: scripts/linux/nestedAgentLock.sh --PAT $(edgebuild-1-PAT) --agent-group ${{ parameters['agent.group'] }}
+
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
@@ -21,10 +24,10 @@ jobs:
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked
+       - Agent.Name -equals $(l5AgentName)
     steps:
      - template: nested-get-secrets.yaml
      - template: e2e-clean-directory.yaml            
-     - template: lock-test-agent.yaml
      - template: nested-get-root-ca.yaml       
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
@@ -50,10 +53,10 @@ jobs:
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked    
+       - Agent.Name -equals $(l4AgentName)
     steps:
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
-      - template: lock-test-agent.yaml
       - template: nested-get-root-ca.yaml         
       - template: nested-create-identity.yaml          
       - template: nested-agent-deploy.yaml
