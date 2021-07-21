@@ -26,7 +26,6 @@ jobs:
       nestededge: true
     steps:   
       - template: nested-get-secrets.yaml     
-      - template: lock-test-agent.yaml     
       - template: nested-get-root-ca.yaml 
       - template: nested-longhaul-deploy.yaml
         parameters:
