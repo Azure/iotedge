@@ -15,6 +15,7 @@ jobs:
     steps:
     - template: nested-get-secrets.yaml
     - script: scripts/linux/nestedAgentLock.sh -p $(edgebuild-1-PAT) -a $(agent.group) -b $(Build.BuildId)
+      displayName: Lock agents for nested topology
       name: lock_test_agent
 
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
