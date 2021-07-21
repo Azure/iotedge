@@ -13,9 +13,11 @@ jobs:
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked
     steps:
+    - template: nested-get-secrets.yaml
     - script: scripts/linux/nestedAgentLock.sh --PAT $(edgebuild-1-PAT) --agent-group $(agent.group)
 
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    dependsOn: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     variables:
