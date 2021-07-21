@@ -4,6 +4,7 @@ parameters:
 jobs:
   - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
     displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
+    name: lock_test_agent
     timeoutInMinutes: 180
     pool:
      name: $(pool.name)
@@ -29,7 +30,7 @@ jobs:
       parentName: ''
       parentDeviceId: ''
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
-      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['l5AgentName'] ]
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l5AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -59,7 +60,7 @@ jobs:
       deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
-      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['l4AgentName'] ]
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l4AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
