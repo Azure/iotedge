@@ -1,5 +1,5 @@
 $BuildId = "44098637"
-$workDir = "C:\Users\yophilav\Downloads\release_test\test1\"
+$WorkDir = "C:\Users\yophilav\Downloads\release_test\test1\"
 
 function Prepare-DevOps-Artifacts
 {
@@ -17,7 +17,7 @@ function Prepare-DevOps-Artifacts
         #>
         [Parameter(Mandatory)]
         [string]
-        $workDir
+        $WorkDir
     )
 
     # Assume Az CLI is installed & logged in.
@@ -33,10 +33,10 @@ function Prepare-DevOps-Artifacts
     $response = $(Invoke-WebRequest -Uri "https://dev.azure.com/msazure/One/_apis/build/builds/$BuildId/artifacts?api-version=6.0" -Headers $header)
     $content = ($response.Content | ConvertFrom-Json).value
 
-    $outputDir = "$(Join-Path -Path $workDir -ChildPath 'output')\"
+    $outputDir = "$(Join-Path -Path $WorkDir -ChildPath 'output')\"
     New-Item -ItemType Directory -Force -Path $outputDir
-    $workDir = "$(Join-Path -Path $workDir -ChildPath 'IE')\"
-    New-Item -ItemType Directory -Force -Path $workDir
+    $WorkDir = "$(Join-Path -Path $WorkDir -ChildPath 'IE')\"
+    New-Item -ItemType Directory -Force -Path $WorkDir
 
     $artifactFinalists = @();
 
@@ -44,14 +44,14 @@ function Prepare-DevOps-Artifacts
     {
         $artifactName = $artifact.name
         $artifactUrl = $artifact.resource.downloadUrl
-        $artifactPath = "$workDir$artifactName"
+        $artifactPath = "$WorkDir$artifactName"
         $artifactExtension = ".zip"
 
         # Download and Expand each artifact
         Retry-Command -ScriptBlock {
             echo "Downloading $artifactName"
             Invoke-WebRequest -Uri $artifactUrl -Headers $header -OutFile "$artifactPath$artifactExtension" | Out-Null
-            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $workDir -Force
+            Expand-Archive -Path "$artifactPath$artifactExtension" -DestinationPath $WorkDir -Force
         }
 
         # Each artifact is a directory, fetch the packages within it.
@@ -122,7 +122,7 @@ function Prepare-GitHub-Artifacts
         #>
         [Parameter(Mandatory)]
         [string]
-        $workDir
+        $WorkDir
     )
 
     # Assume Az CLI is installed & logged in.
@@ -159,10 +159,10 @@ function Prepare-GitHub-Artifacts
         }
     }
 
-    $outputDir = "$(Join-Path -Path $workDir -ChildPath 'output')\"
+    $outputDir = "$(Join-Path -Path $WorkDir -ChildPath 'output')\"
     New-Item -ItemType Directory -Force -Path $outputDir
-    $workDir = "$(Join-Path -Path $workDir -ChildPath 'IIS')\"
-    New-Item -ItemType Directory -Force -Path $workDir
+    $WorkDir = "$(Join-Path -Path $WorkDir -ChildPath 'IIS')\"
+    New-Item -ItemType Directory -Force -Path $WorkDir
 
     # Let's look at the artifacts
     $artifactUrl = $artifactRun.artifacts_url
@@ -174,7 +174,7 @@ function Prepare-GitHub-Artifacts
     {
         $downloadUrl = $artifact.archive_download_url
         $artifactName = $artifact.name
-        $artifactPath = "$workDir$artifactName"
+        $artifactPath = "$WorkDir$artifactName"
         $artifactExtension = ".zip"
 
         echo "Downloading $artifactName"
@@ -236,10 +236,92 @@ function Prepare-GitHub-Artifacts
         Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
     }
 
+    return @($artifactRun, $pat)
+
+    # TODO: Clean up
+}
+
+
+function Upload-Artifacts-To-GitHub
+{
+    [CmdletBinding()]
+    param (
+        <# 
+        Path to CHANGELOG.md
+        #>
+        [Parameter(Mandatory)]
+        [string]
+        $ChangeLogPath,
+
+        <# 
+        Absolute path of current working directory
+        #>
+        [Parameter(Mandatory)]
+        [string]
+        $WorkDir,
+
+        <# 
+        Branch name of the targeting release
+        i.e. $ArtifactRun.head_branch
+        #>
+        [Parameter(Mandatory)]
+        [Object]
+        $BranchName,
+
+        <# 
+        GitHub Personal Access Token for azure-iotedge repository
+        #>
+        [Parameter(Mandatory=false)]
+        [string]
+        $Pat
+    )
+
+    if ($Pat.count -le 1)
+    {
+        # Assume Az CLI is installed & logged in.
+        $pat = $(az keyvault secret show -n TestGitHubAccessToken --vault-name edge-e2e-kv | ConvertFrom-Json)
+        $pat = $pat.value;
+    }
+    else
+    {
+        $pat = $Pat
+    }
+
+    # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
+    $header = @{
+        "Accept" = "application/vnd.github.v3+json"
+        "Authorization" = "token $pat"
+    }
+
     # https://docs.github.com/en/rest/reference/repos#upload-a-release-asset
     # https://docs.github.com/en/rest/reference/repos#create-a-release
 
-    # TODO: Clean up
+    # Get the latest release from a given branch
+    $url = "https://api.github.com/repos/yophilav/iotedge/releases"
+    $releaseList = $(Invoke-WebRequest -Headers $header -Uri "$url" -Method GET | ConvertFrom-JSON) `
+        | where {($_.target_commitish -eq $BranchName)}
+    $latestRelease = $releaseList[0]
+
+    # Generate a new version tag
+    $versionParts = $latestRelease.tag_name.split('.')
+    ([int]$versionParts[2])++ 
+    $version = $($versionParts -join('.'))
+
+    # Get content of changelog to be used a release message
+    $pattern = "(\#\s$version\s\(\d{4}-\d{2}-\d{2}\)\s[\S\s]*?)\s?(?=\#\s$($latestRelease.tag_name)\s\(\d{4}-\d{2}-\d{2}\)\s)"
+    $ChangeLogPath = "C:\Users\yophilav\Desktop\iotedge\CHANGELOG.md"  #BEARWASHERE -- Remove this line
+    $content = Get-Content $ChangeLogPath -Encoding UTF8 -Raw
+    $changeLogContent = [regex]::match($content, $pattern).Groups[1].Value
+
+    # Create a new release page
+    $url = "https://api.github.com/repos/yophilav/iotedge/releases"
+    $body = @{
+        tag_name = "$version"
+        target_commitish = "$BranchName"
+        name = "$version"
+        body = "$changeLogContent"
+    }
+    $release = $(Invoke-WebRequest -Headers $header -Uri "$url" -Method POST -Body "$($body | ConvertTo-Json)" | ConvertFrom-JSON)
 }
 
 
