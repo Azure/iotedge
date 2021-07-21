@@ -131,7 +131,7 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
     echo "Found these unlocked agents:"
     echo ${unlockedAgents[*]}
 
-    if [ ${#unlockedAgents[*]} >= $AGENTS_NEEDED ]; then
+    if [ ${#unlockedAgents[*]} -ge $AGENTS_NEEDED ]; then
         # If we have enough agents, get random agents and book them all.
         shuffledUnlockedAgents=($(shuf -e "${unlockedAgents[@]}"))
         filteredAgents=(${shuffledUnlockedAgents[@]:0:$AGENTS_NEEDED})
