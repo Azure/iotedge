@@ -38,9 +38,8 @@ jobs:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - status -equals unlocked
+       - Agent.Name -equals $(agentName)
     steps:
-     - script: echo $(agentName)
      - template: nested-get-secrets.yaml
      - template: e2e-clean-directory.yaml            
      - template: nested-get-root-ca.yaml       
@@ -68,7 +67,6 @@ jobs:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - status -equals unlocked    
        - Agent.Name -equals $(agentName)
     steps:
       - template: nested-get-secrets.yaml  
