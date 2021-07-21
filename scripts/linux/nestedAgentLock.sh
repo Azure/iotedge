@@ -80,7 +80,9 @@ function set_devops_output_vars() {
         agentId="${agents[$i]}"
 
         agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-        agentName=$(echo $agentCapabilities | jq '.systemCapabilities."Agent.Name"')
+        agentName=$(echo $agentCapabilities | jq '.systemCapabilities."Agent.Name"' | tr -d '[], "')
+
+        echo "Setting devops var for agent name: $agentName"
         echo "##vso[task.setvariable variable=${outputAgentNames[$i]};isOutput=true]$agentName"
     done
 }
