@@ -1,7 +1,5 @@
 trigger: none
 pr: none
-trigger: none
-pr: none
 schedules:
 - cron: "0 23 * * 4"
   displayName: Weekly run Thursday night
