@@ -124,7 +124,7 @@ startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
 while true && [ $((SECONDS)) -lt $endSeconds ]; do
     sleep 10
-    echo "Attempting to lock $AGENTS_NEEDED agents from the agent pool..."
+    echo "Attempting to lock $AGENTS_NEEDED agents from the agent group $AGENT_GROUP..."
 
     agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
     unlockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities.status=="unlocked" and .userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
