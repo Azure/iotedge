@@ -16,9 +16,7 @@ mod error;
 // mod module;
 // mod notary;
 // mod runtime;
-mod settings;
 
 pub use error::{Error, ErrorKind};
 // pub use module::{DockerModule, MODULE_TYPE};
 // pub use runtime::DockerModuleRuntime;
-pub use settings::{ContentTrust, LoadSettingsError, MobyRuntime, Settings, CONFIG_FILE_DEFAULT};

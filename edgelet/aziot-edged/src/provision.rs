@@ -2,12 +2,10 @@
 
 use sha2::Digest;
 
-use edgelet_settings::RuntimeSettings;
-
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn get_device_info(
-    settings: &edgelet_docker::Settings,
+    settings: &impl edgelet_settings::RuntimeSettings,
     cache_dir: &std::path::Path,
 ) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
     let identity_connector =
