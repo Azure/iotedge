@@ -16,13 +16,12 @@ use tokio::sync::Mutex;
 
 use docker::models::{ContainerCreateBody, Ipam}; // TODO: Move to settings crate?
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, SystemResources,
+    LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeState,
+    ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo,
+    SystemResources,
 };
 use edgelet_settings::{
-    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec,
-    Settings,
+    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
@@ -817,87 +816,6 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok(())
     }
 }
-
-// impl Authenticator for DockerModuleRuntime {
-//     type Error = Error;
-//     type Request = Request<Body>;
-
-//     fn authenticate(&self, req: &Self::Request) -> Result<AuthId> {
-//         // authenticate(self, req)
-//         Err(Error::from(ErrorKind::RuntimeOperation(
-//             RuntimeOperation::SystemResources,
-//         )))
-//     }
-// }
-
-// fn authenticate<MR>(
-//     runtime: &MR,
-//     req: &Request<Body>,
-// ) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
-// where
-//     MR: ModuleRuntime<Error = Error>,
-//     <MR as ModuleRuntime>::ListFuture: 'static,
-//     MR::Module: DockerModuleTop<Error = Error> + 'static,
-// {
-//     let pid = req
-//         .extensions()
-//         .get::<Pid>()
-//         .cloned()
-//         .unwrap_or_else(|| Pid::None);
-
-//     let expected_module_id = req.extensions().get::<ModuleId>().cloned();
-
-//     Box::new(match pid {
-//         Pid::None => Either::A(future::ok(AuthId::None)),
-//         Pid::Any => Either::A(future::ok(AuthId::Any)),
-//         Pid::Value(pid) => Either::B(
-//             // to authenticate request we need to determine whether given pid corresponds to
-//             // any pid from a module with provided module name. In order to do so, we are
-//             // load a list of all running modules and execute docker top command only for
-//             // the module that have corresponding name. There can be errors during requests,
-//             // so we are filtered out those modules that we active during docker inspect
-//             // operation but have gone after (NotFound and TopModule errors).
-//             match expected_module_id {
-//                 None => Either::A(future::ok(AuthId::None)),
-//                 Some(expected_module_id) => Either::B(
-//                     runtime
-//                         .list()
-//                         .map(move |list| {
-//                             list.into_iter()
-//                                 .find(|module| expected_module_id == module.name())
-//                         })
-//                         .and_then(|module| module.map(|module| module.top()))
-//                         .map(move |top| {
-//                             top.and_then(|top| {
-//                                 if top.process_ids().contains(&pid) {
-//                                     Some(top.name().to_string())
-//                                 } else {
-//                                     None
-//                                 }
-//                             })
-//                         })
-//                         .then(move |result| match result {
-//                             Ok(Some(m)) => Ok(AuthId::Value(m.into())),
-//                             Ok(None) => {
-//                                 info!("Unable to find a module for caller pid: {}", pid);
-//                                 Ok(AuthId::None)
-//                             }
-//                             Err(err) => match err.kind() {
-//                                 ErrorKind::NotFound(_)
-//                                 | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
-//                                     Ok(AuthId::None)
-//                                 }
-//                                 _ => {
-//                                     log_failure(Level::Warn, &err);
-//                                     Err(err)
-//                                 }
-//                             },
-//                         }),
-//                 ),
-//             },
-//         ),
-//     })
-// }
 
 // #[cfg(test)]
 // mod tests {
