@@ -18,12 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         readonly IRequestsUploader requestsUploader;
         readonly ILogsProvider logsProvider;
         readonly IRuntimeInfoProvider runtimeInfoProvider;
+        readonly TimeSpan supportTaskTimeout;
 
-        public ModuleLogsUploadRequestHandler(IRequestsUploader requestsUploader, ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider)
+        public ModuleLogsUploadRequestHandler(IRequestsUploader requestsUploader, ILogsProvider logsProvider, IRuntimeInfoProvider runtimeInfoProvider, TimeSpan supportTaskTimeout)
         {
             this.logsProvider = Preconditions.CheckNotNull(logsProvider, nameof(logsProvider));
             this.requestsUploader = Preconditions.CheckNotNull(requestsUploader, nameof(requestsUploader));
             this.runtimeInfoProvider = Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider));
+            this.supportTaskTimeout = supportTaskTimeout;
         }
 
         public override string RequestName => "UploadModuleLogs";
@@ -44,8 +46,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                 LogOutputFraming.None,
                 Option.Some(new LogsOutputGroupingConfig(100, TimeSpan.FromSeconds(10))),
                 false);
-            IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, cancellationToken);
-            IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, cancellationToken));
+
+            CancellationTokenSource supportCts = new CancellationTokenSource(this.supportTaskTimeout);
+            IList<(string id, ModuleLogOptions logOptions)> logOptionsList = await requestToOptionsMapper.MapToLogOptions(payload.Items, supportCts.Token);
+            IEnumerable<Task> uploadLogsTasks = logOptionsList.Select(l => this.UploadLogs(payload.SasUrl, l.id, l.logOptions, supportCts.Token));
             (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
                 () =>
                 {
@@ -60,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                     }
                 },
                 "upload logs",
-                cancellationToken);
+                supportCts.Token);
             return Option.Some(TaskStatusResponse.Create(correlationId, status));
         }
 

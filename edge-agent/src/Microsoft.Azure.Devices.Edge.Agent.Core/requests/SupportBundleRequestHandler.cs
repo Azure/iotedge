@@ -19,12 +19,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         readonly GetSupportBundle getSupportBundle;
         readonly IRequestsUploader requestsUploader;
         readonly string iotHubHostName;
+        readonly TimeSpan supportTaskTimeout;
 
-        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle, IRequestsUploader requestsUploader, string iotHubHostName)
+        public SupportBundleRequestHandler(GetSupportBundle getSupportBundle, IRequestsUploader requestsUploader, string iotHubHostName, TimeSpan supportTaskTimeout)
         {
             this.getSupportBundle = getSupportBundle;
             this.requestsUploader = requestsUploader;
             this.iotHubHostName = iotHubHostName;
+            this.supportTaskTimeout = supportTaskTimeout;
         }
 
         public override string RequestName => "UploadSupportBundle";
@@ -33,14 +35,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
         {
             SupportBundleRequest payload = payloadOption.Expect(() => new ArgumentException("Request payload not found"));
 
+            CancellationTokenSource supportCts = new CancellationTokenSource(this.supportTaskTimeout);
             (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
                 async () =>
                     {
-                        Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, cancellationToken);
-                        await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
+                        using (var backgroundCts = new CancellationTokenSource(this.supportTaskTimeout))
+                        {
+                            Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, supportCts.Token);
+                            await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
+                        }
                     },
                 "upload support bundle",
-                cancellationToken);
+                supportCts.Token);
 
             return Task.FromResult(Option.Some(TaskStatusResponse.Create(correlationId, status)));
         }

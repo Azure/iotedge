@@ -42,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly TimeSpan performanceMetricsUpdateFrequency;
+        readonly Option<TimeSpan> supportTaskTimeout;
         readonly bool useServerHeartbeat;
         readonly string backupConfigFilePath;
 
@@ -58,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             TimeSpan performanceMetricsUpdateFrequency,
+            TimeSpan supportTaskTimeout,
             bool useServerHeartbeat,
             string backupConfigFilePath)
         {
@@ -73,6 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
+            this.supportTaskTimeout = Option.Maybe<TimeSpan>(supportTaskTimeout);
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
         }
@@ -93,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, this.supportTaskTimeout))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()

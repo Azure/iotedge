@@ -17,12 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
-        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> managementApiTimeout)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
-            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
+            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, managementApiTimeout);
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
@@ -63,36 +63,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
             this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token);
 
-        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> managementApiTimeout)
         {
             ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
 
             if (supportedVersion == ApiVersion.Version20180628)
             {
-                return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
+                return new Version_2018_06_28.ModuleManagementHttpClient(managementUri, managementApiTimeout);
             }
 
             if (supportedVersion == ApiVersion.Version20190130)
             {
-                return new Version_2019_01_30.ModuleManagementHttpClient(managementUri);
+                return new Version_2019_01_30.ModuleManagementHttpClient(managementUri, managementApiTimeout);
             }
 
             if (supportedVersion == ApiVersion.Version20191022)
             {
-                return new Version_2019_10_22.ModuleManagementHttpClient(managementUri);
+                return new Version_2019_10_22.ModuleManagementHttpClient(managementUri, managementApiTimeout);
             }
 
             if (supportedVersion == ApiVersion.Version20191105)
             {
-                return new Version_2019_11_05.ModuleManagementHttpClient(managementUri);
+                return new Version_2019_11_05.ModuleManagementHttpClient(managementUri, managementApiTimeout);
             }
 
             if (supportedVersion == ApiVersion.Version20200707)
             {
-                return new Version_2020_07_07.ModuleManagementHttpClient(managementUri);
+                return new Version_2020_07_07.ModuleManagementHttpClient(managementUri, managementApiTimeout);
             }
 
-            return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);
+            return new Version_2018_06_28.ModuleManagementHttpClient(managementUri, managementApiTimeout);
         }
 
         static ApiVersion GetSupportedVersion(string serverSupportedApiVersion, string clientSupportedApiVersion)

@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string iotHubHostName;
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
+        readonly TimeSpan supportTaskTimeout;
         readonly ExperimentalFeatures experimentalFeatures;
         readonly Option<X509Certificate2> manifestTrustBundle;
 
@@ -46,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan configRefreshFrequency,
             bool enableStreams,
             TimeSpan requestTimeout,
+            TimeSpan supportTaskTimeout,
             ExperimentalFeatures experimentalFeatures,
             Option<X509Certificate2> manifestTrustBundle)
         {
@@ -56,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;
+            this.supportTaskTimeout = supportTaskTimeout;
             this.experimentalFeatures = experimentalFeatures;
             this.manifestTrustBundle = manifestTrustBundle;
         }
@@ -101,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var logsProviderTask = c.Resolve<Task<ILogsProvider>>();
                         IRuntimeInfoProvider runtimeInfoProvider = await runtimeInfoProviderTask;
                         ILogsProvider logsProvider = await logsProviderTask;
-                        return new ModuleLogsUploadRequestHandler(requestUploader, logsProvider, runtimeInfoProvider) as IRequestHandler;
+                        return new ModuleLogsUploadRequestHandler(requestUploader, logsProvider, runtimeInfoProvider, this.supportTaskTimeout) as IRequestHandler;
                     })
                 .As<Task<IRequestHandler>>()
                 .SingleInstance();
@@ -123,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
-                        IRequestHandler handler = new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName);
+                        IRequestHandler handler = new SupportBundleRequestHandler(c.Resolve<IModuleManager>().GetSupportBundle, c.Resolve<IRequestsUploader>(), this.iotHubHostName, this.supportTaskTimeout);
                         return Task.FromResult(handler);
                     })
                 .As<Task<IRequestHandler>>()

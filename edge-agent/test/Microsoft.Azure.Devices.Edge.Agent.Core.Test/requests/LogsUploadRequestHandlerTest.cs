@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetModules(It.IsAny<CancellationToken>()) == Task.FromResult(moduleRuntimeInfoList));
 
             // Act
-            var logsUploadRequestHandler = new ModuleLogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider);
+            var logsUploadRequestHandler = new ModuleLogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider, TimeSpan.FromSeconds(10));
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
@@ -156,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
                 .Returns(Task.CompletedTask);
 
             // Act
-            var logsUploadRequestHandler = new ModuleLogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider.Object);
+            var logsUploadRequestHandler = new ModuleLogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider.Object, TimeSpan.FromSeconds(10));
             Option<string> response = await logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None);
 
             // Assert
@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Requests
             var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>();
 
             // Act
-            var logsUploadRequestHandler = new ModuleLogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider);
+            var logsUploadRequestHandler = new ModuleLogsUploadRequestHandler(logsUploader.Object, logsProvider.Object, runtimeInfoProvider, TimeSpan.FromSeconds(10));
             await Assert.ThrowsAsync(exception, () => logsUploadRequestHandler.HandleRequest(Option.Maybe(payload), CancellationToken.None));
         }
     }
