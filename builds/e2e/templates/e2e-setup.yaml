@@ -109,10 +109,13 @@ steps:
     https_proxy: $(Agent.ProxyUrl)
 
 - pwsh: |
-    $manifestSigningtestDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
-    dotnet build $manifestSigningtestDir
-    $manifestSigningbinDir = Convert-Path "$manifestSigningtestDir/bin/Debug/netcoreapp3.1"
-    Write-Output "##vso[task.setvariable variable=manifestSigningbinDir]$manifestSigningbinDir"
+    $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
+    dotnet build $manifestSignerClientDir
+    $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/netcoreapp3.1"
+    Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
+    $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
+    $manifestSigningDeploymentDir = '$(System.ArtifactsDirectory)/manifest_signing/deployment'
+    Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
     $env:ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/root_ca.pem"
@@ -190,7 +193,7 @@ steps:
         }
       };
       
-      $launchSettingsPath  = Convert-Path "$(manifestSigningbinDir)/Properties/launchSettings.json";
+      $launchSettingsPath  = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
       $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$launchSettingsPath"
       Get-Content -Path "$launchSettingsPath"
     }
@@ -248,10 +251,10 @@ steps:
     if ('$(enableManifestSigning)' -eq 'true')
     {
       $context['enableManifestSigning'] = "true"
-      $context['manifestSigningBinDir'] = "$(manifestSigningbinDir)"
+      $context['manifestSigningDeploymentDir'] = "$(manifestSigningDeploymentDir)"
       $context['launchSettingsPath'] = "$launchSettingsPath"
     }
-                                                                                                                                                                                                                                                                                         
+
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
     {
       $context['optimizeForPerformance'] = 'false'
