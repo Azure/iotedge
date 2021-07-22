@@ -190,8 +190,8 @@ steps:
         }
       };
       
-      $launchSettingsPath  = Convert-Path "$(manifestSigningbinDir)/Properties/launchSettings.json"
-      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$launchSettingsPath""
+      $launchSettingsPath  = Convert-Path "$(manifestSigningbinDir)/Properties/launchSettings.json";
+      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$launchSettingsPath"
       Get-Content -Path "$launchSettingsPath"
     }
 
@@ -247,8 +247,8 @@ steps:
 
     if ('$(enableManifestSigning)' -eq 'true')
     {
-      $context['enableManifestSigning'] = "true";
-      $context['manifestSigningBinDir'] = "$(manifestSigningbinDir)";
+      $context['enableManifestSigning'] = "true"
+      $context['manifestSigningBinDir'] = "$(manifestSigningbinDir)"
       $context['launchSettingsPath'] = "$launchSettingsPath"
     }
                                                                                                                                                                                                                                                                                          
