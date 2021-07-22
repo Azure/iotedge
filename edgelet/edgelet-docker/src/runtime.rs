@@ -55,7 +55,7 @@ pub struct DockerModuleRuntime {
     client: DockerClient,
     system_resources: Arc<Mutex<System>>,
     notary_registries: BTreeMap<String, PathBuf>,
-    notary_lock: Arc<tokio::sync::Mutex<BTreeMap<String, String>>>,
+    notary_lock: Arc<Mutex<BTreeMap<String, String>>>,
 }
 
 impl DockerModuleRuntime {

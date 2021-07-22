@@ -17,14 +17,6 @@ impl DockerClient {
     }
 }
 
-// impl Deref for DockerClient {
-//     type Target = APIClient;
-
-//     fn deref(&self) -> &APIClient {
-//         self.docker.as_ref()
-//     }
-// }
-
 impl Clone for DockerClient {
     fn clone(&self) -> Self {
         DockerClient {
