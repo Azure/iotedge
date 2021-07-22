@@ -26,8 +26,8 @@ use edgelet_core::{
     SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_settings::{
-    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, RuntimeSettings,
-    Settings as ModuleSettings, Settings,
+    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
+    Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
@@ -430,13 +430,13 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    async fn create(&self, module: ModuleSettings) -> Result<()> {
+    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
-        if module.type_() != DOCKER_MODULE_TYPE {
+        if module.r#type() != DOCKER_MODULE_TYPE {
             return Err(Error::from(ErrorKind::InvalidModuleType(
-                module.type_().to_string(),
+                module.r#type().to_string(),
             )));
         }
 
@@ -449,11 +449,11 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         let merged_env =
-            DockerModuleRuntime::merge_env(module.config().create_options.env(), module.env());
+            DockerModuleRuntime::merge_env(module.config().create_options().env(), module.env());
         let mut labels: HashMap<&str, &str> =
             module
                 .config()
-                .create_options
+                .create_options()
                 .labels()
                 .map_or_else(HashMap::new, |old_labels| {
                     let new_labels = HashMap::with_capacity(old_labels.len() + 2);
@@ -512,9 +512,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let name = response.name.unwrap_or_else(|| id.to_owned());
         let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
-            .with_context(|_| {
-                ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
-            })?;
+            .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
         let module = DockerModule::new(self.client.clone(), name, config)?;
 
         let runtime_state = runtime_state(response.id, response.state.as_ref());
@@ -692,7 +690,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         // )
     }
 
-    fn system_resources(&self) -> Result<SystemResources> {
+    async fn system_resources(&self) -> Result<SystemResources> {
         info!("Querying system resources...");
 
         let options = bollard::container::StatsOptions {
@@ -1131,7 +1129,7 @@ mod tests {
         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
         Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
-        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSettings, Pid, Request, Stream,
+        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
         SystemResources,
     };
 
@@ -1334,11 +1332,11 @@ mod tests {
     impl RuntimeSettings for TestSettings {
         type Config = TestConfig;
 
-        fn agent(&self) -> &ModuleSettings {
+        fn agent(&self) -> &ModuleSpec {
             unimplemented!()
         }
 
-        fn agent_mut(&mut self) -> &mut ModuleSettings {
+        fn agent_mut(&mut self) -> &mut ModuleSpec {
             unimplemented!()
         }
 
@@ -1502,7 +1500,7 @@ mod tests {
         type RemoveAllFuture = FutureResult<(), Self::Error>;
         type StopAllFuture = FutureResult<(), Self::Error>;
 
-        fn create(&self, _module: ModuleSettings) -> Self::CreateFuture {
+        fn create(&self, _module: ModuleSpec) -> Self::CreateFuture {
             unimplemented!()
         }
 
