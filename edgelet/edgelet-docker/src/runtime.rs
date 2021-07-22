@@ -10,7 +10,7 @@ use std::time::Duration;
 use failure::{Fail, ResultExt};
 use futures::future::Either;
 use futures::prelude::*;
-use futures::{future, stream, Stream};
+use futures::{future, stream, Stream, StreamExt};
 use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
@@ -427,8 +427,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Config = DockerConfig;
     type Module = DockerModule;
     type ModuleRegistry = Self;
-    type Chunk = Chunk;
-    type Logs = Logs;
+    type Chunk = bytes::Bytes;
+    type Logs = dyn Stream<Item = Result<Self::Chunk>>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
@@ -787,6 +787,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
         let result = Vec::new();
         for module in self.list().await? {
+            // Note, if error calling just drop module from list
             if let Ok(module_with_details) = self.get(module.name()).await {
                 result.push(module_with_details);
             }
@@ -795,39 +796,30 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok(result)
     }
 
-    fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {
+    async fn logs(&self, id: &str, options: &LogOptions) -> Result<Box<Self::Logs>> {
         info!("Getting logs for module {}...", id);
-        let id = id.to_string();
 
-        let tail = &options.tail().to_string();
+        let options = bollard::container::LogsOptions {
+            follow: options.follow(),
+            tail: options.tail().to_string(),
+            timestamps: options.timestamps(),
+            since: options.since() as i64,
+            until: options.until().unwrap_or(0) as i64,
+            ..Default::default()
+        };
+
         let result = self
             .client
-            .container_api()
-            .container_logs(
-                &id,
-                options.follow(),
-                true,
-                true,
-                options.since(),
-                options.until(),
-                options.timestamps(),
-                tail,
-            )
-            .then(|result| match result {
-                Ok(logs) => {
-                    info!("Successfully got logs for module {}", id);
-                    Ok(Logs(id, logs))
-                }
-                Err(err) => {
-                    let err = Error::from_docker_error(
-                        err,
-                        ErrorKind::RuntimeOperation(RuntimeOperation::GetModuleLogs(id)),
-                    );
-                    log_failure(Level::Warn, &err);
-                    Err(err)
-                }
+            .docker
+            .logs(id, Some(options))
+            .map_ok(|chunk| chunk.into_bytes())
+            .map_err(|e| {
+                Error::from(ErrorKind::RuntimeOperation(
+                    RuntimeOperation::GetModuleLogs(e.to_string()),
+                ))
             });
-        Box::new(result)
+
+        Ok(Box::new(result))
     }
 
     fn registry(&self) -> &Self::ModuleRegistry {

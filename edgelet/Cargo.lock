@@ -685,6 +685,7 @@ dependencies = [
  "aziot-cert-common-http",
  "base64 0.9.3",
  "bollard",
+ "bytes 1.0.1",
  "chrono",
  "config-common",
  "docker",
