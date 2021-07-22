@@ -21,7 +21,8 @@ use edgelet_core::{
     SystemResources,
 };
 use edgelet_settings::{
-    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, Settings,
+    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
+    Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
@@ -78,6 +79,56 @@ impl DockerModuleRuntime {
             .iter()
             .map(|(key, value)| format!("{}={}", key, value))
             .collect()
+    }
+
+    async fn get_notary_registries(settings: &Settings) -> Result<BTreeMap<String, PathBuf>> {
+        let home_dir: Arc<Path> = settings.homedir().into();
+        let notary_registries = BTreeMap::new();
+        let certd_url = settings.endpoints().aziot_certd_url().clone();
+        let cert_client = aziot_cert_client_async::Client::new(
+            aziot_cert_common_http::ApiVersion::V2020_09_01,
+            http_common::Connector::new(&certd_url).map_err(|_| Error::from(ErrorKind::Docker))?, // TODO: Error Fix
+        );
+
+        // let notary_registries = if let Some(content_trust_map) = settings
+        //     .moby_runtime()
+        //     .content_trust()
+        //     .and_then(ContentTrust::ca_certs)
+        // {
+        //     debug!("Notary Content Trust is enabled");
+        //     future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
+        //         (notary_registries, cert_client),
+        //         move |(mut notary_registries, cert_client), (registry_server_hostname, cert_id)| {
+        //             let home_dir = home_dir.clone();
+        //             cert_client
+        //                 .get_cert(&cert_id)
+        //                 .then(move |cert_output| -> Result<_> {
+        //                     match cert_output {
+        //                         Ok(cert_buf) => {
+        //                             let config_path = notary::notary_init(
+        //                                 &home_dir,
+        //                                 &registry_server_hostname,
+        //                                 &cert_buf,
+        //                             )
+        //                             .context(ErrorKind::Initialization)?;
+        //                             notary_registries
+        //                                 .insert(registry_server_hostname.clone(), config_path);
+        //                             Ok((notary_registries, cert_client))
+        //                         }
+        //                         Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
+        //                             "Notary root CA read error".to_owned(),
+        //                         )
+        //                         .into()),
+        //                     }
+        //                 })
+        //         },
+        //     ))
+        // } else {
+        //     debug!("Notary Content Trust is disabled");
+        //     future::Either::B(future::ok((notary_registries, cert_client)))
+        // };
+
+        Ok(notary_registries)
     }
 
     async fn check_for_notary_image(&self, config: &DockerConfig) -> Result<(String, bool)> {
@@ -252,51 +303,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             })
             .await?;
 
-        // let home_dir: Arc<Path> = settings.homedir().into();
-        let notary_registries = BTreeMap::new();
-        // let certd_url = settings.endpoints().aziot_certd_url().clone();
-        // let cert_client = cert_client::CertificateClient::new(
-        //     aziot_cert_common_http::ApiVersion::V2020_09_01,
-        //     &certd_url,
-        // );
-
-        // let notary_registries = if let Some(content_trust_map) = settings
-        //     .moby_runtime()
-        //     .content_trust()
-        //     .and_then(ContentTrust::ca_certs)
-        // {
-        //     debug!("Notary Content Trust is enabled");
-        //     future::Either::A(futures::stream::iter_ok(content_trust_map.clone()).fold(
-        //         (notary_registries, cert_client),
-        //         move |(mut notary_registries, cert_client), (registry_server_hostname, cert_id)| {
-        //             let home_dir = home_dir.clone();
-        //             cert_client
-        //                 .get_cert(&cert_id)
-        //                 .then(move |cert_output| -> Result<_> {
-        //                     match cert_output {
-        //                         Ok(cert_buf) => {
-        //                             let config_path = notary::notary_init(
-        //                                 &home_dir,
-        //                                 &registry_server_hostname,
-        //                                 &cert_buf,
-        //                             )
-        //                             .context(ErrorKind::Initialization)?;
-        //                             notary_registries
-        //                                 .insert(registry_server_hostname.clone(), config_path);
-        //                             Ok((notary_registries, cert_client))
-        //                         }
-        //                         Err(_e) => Err(ErrorKind::NotaryRootCAReadError(
-        //                             "Notary root CA read error".to_owned(),
-        //                         )
-        //                         .into()),
-        //                     }
-        //                 })
-        //         },
-        //     ))
-        // } else {
-        //     debug!("Notary Content Trust is disabled");
-        //     future::Either::B(future::ok((notary_registries, cert_client)))
-        // };
+        let notary_registries = Self::get_notary_registries(&settings).await?;
 
         create_network_if_missing(&settings, &client).await?;
 
