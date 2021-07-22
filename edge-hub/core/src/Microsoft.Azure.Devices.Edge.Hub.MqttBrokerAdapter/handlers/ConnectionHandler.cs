@@ -152,6 +152,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
 
                 await this.RemoveConnectionsAsync(identitiesRemoved);
                 await this.AddConnectionsAsync(identitiesAdded);
+
+                // When a device connects indirectly, then disconnects and connects directly again, the following happens:
+                // As we don't have "indirect disconnection", the device proxy instance lingers for a while before gets deleted
+                // by idle-time. Because of that it may show up in the "knownIdentities" list, and the way added connections are
+                // calculated above, it will not be added as a "direct connection" but keeps existing as "indirect connection".
+                // As a result, the device proxy will use mqtt topics for indirect connections which will not be subscribed
+                // by the directly connected device. As a solution, check if the broker sent connection-list and the known
+                // connections match by 'IsDirect' flag. If not, remove the indirect connection and recreate them as direct.
+                // Note, that a (child) $edgeHub is a direct connection but uses indirect dialect, so it has the IsDirect flag
+                // turned off, so ignore those cases from the list.
+                var reconnectedCandidates = new HashSet<IIdentity>(updatedIdentities);
+                var indirectConnections = this.knownConnections.Values.OfType<IDeviceProxy>()
+                                                                      .Where(p => !p.IsDirectClient && !(p.Identity is ModuleIdentity i && string.Equals(i.ModuleId, Constants.EdgeHubModuleId)))
+                                                                      .Select(p => p.Identity);
+                reconnectedCandidates.IntersectWith(indirectConnections);
+                await this.ReplaceConnectionsAsync(reconnectedCandidates);
             }
         }
 
@@ -195,6 +211,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             }
 
             foreach (var identity in identitiesAdded)
+            {
+                await this.AddConnectionAsync(identity, true, connectionProvider);
+            }
+        }
+
+        async Task ReplaceConnectionsAsync(HashSet<IIdentity> identitiesReplaced)
+        {
+            var connectionProvider = await this.connectionProviderGetter;
+            if (connectionProvider == null)
+            {
+                Events.FailedToObtainConnectionProvider();
+                return;
+            }
+
+            foreach (var identity in identitiesReplaced)
             {
                 await this.AddConnectionAsync(identity, true, connectionProvider);
             }
@@ -333,7 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             public static void BadPayloadFormat(Exception e) => Log.LogError((int)EventIds.BadPayloadFormat, e, "Bad payload format: cannot deserialize connection update");
             public static void BadIdentityFormat(string identity) => Log.LogError((int)EventIds.BadIdentityFormat, $"Bad identity format: {identity}");
             public static void UnknownClientDisconnected(string identity) => Log.LogWarning((int)EventIds.UnknownClientDisconnected, $"Received disconnect notification about a not-connected client {identity}");
-            public static void ExistingClientAdded(string identity) => Log.LogWarning((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
+            public static void ExistingClientAdded(string identity) => Log.LogInformation((int)EventIds.ExistingClientAdded, $"Received connect notification about a already-connected client {identity}");
             public static void ErrorProcessingNotification(Exception e) => Log.LogError((int)EventIds.ErrorProcessingNotification, e, "Error processing [Connect] notification");
             public static void FailedToObtainConnectionProvider() => Log.LogError((int)EventIds.FailedToObtainConnectionProvider, "Failed to obtain ConnectionProvider");
             public static void CouldNotFindClientToClose(string identity) => Log.LogInformation((int)EventIds.CouldNotFindClientToClose, $"Could not find to close: {identity}. No signal will be sent to the broker");

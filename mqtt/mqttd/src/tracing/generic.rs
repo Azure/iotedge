@@ -1,8 +1,6 @@
 use tracing::Level;
 use tracing_subscriber::{fmt::Subscriber, EnvFilter};
 
-use super::Format;
-
 const BROKER_LOG_LEVEL_ENV: &str = "BROKER_LOG";
 
 pub fn init() {
@@ -13,7 +11,6 @@ pub fn init() {
     let subscriber = Subscriber::builder()
         .with_max_level(Level::TRACE)
         .with_env_filter(log_level)
-        .on_event(Format::default())
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 }

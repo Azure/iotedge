@@ -1,11 +1,9 @@
 use std::{collections::HashMap, convert::TryFrom, time::Duration};
 
 use async_trait::async_trait;
-use futures_util::StreamExt;
-use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time,
-};
+use futures_util::{stream::Stream, StreamExt};
+use mockall_double::double;
+use tokio::{sync::mpsc::UnboundedSender, time};
 use tracing::{debug, error, warn};
 
 use mqtt3::{
@@ -14,11 +12,7 @@ use mqtt3::{
 };
 use mqtt_broker::TopicFilter;
 
-// Import and use mocks when run tests, real implementation when otherwise
-#[cfg(test)]
-pub use crate::client::MockUpdateSubscriptionHandle as UpdateSubscriptionHandle;
-
-#[cfg(not(test))]
+#[double]
 use crate::client::UpdateSubscriptionHandle;
 
 use crate::{
@@ -165,9 +159,17 @@ where
                 if let Some(publication) = forward_publication {
                     debug!("saving message to store");
                     return match self.store.push(&publication) {
-                        Ok(_) |
-                        // If we are full we are dropping the message on ground.
-                        Err(PersistError::RingBuffer(RingBufferError::Full)) => Ok(Handled::Fully),
+                        Ok(_) => Ok(Handled::Fully),
+                        Err(
+                            err
+                            @
+                            PersistError::RingBuffer(RingBufferError::InsufficientSpace {
+                                ..
+                            }),
+                        ) => {
+                            error!(error = %err, "dropping incoming publication");
+                            Ok(Handled::Fully)
+                        }
                         Err(err) => Err(BridgeError::Store(err)),
                     };
                 }
@@ -202,8 +204,8 @@ where
     }
 }
 
-pub async fn retry_subscriptions(
-    retries: UnboundedReceiver<SubscribeTo>,
+pub async fn retry_subscriptions<S: Stream<Item = SubscribeTo> + Unpin>(
+    retries: S,
     topic_mappers_updates: TopicMapperUpdates,
     mut subscription_handle: UpdateSubscriptionHandle,
 ) {
@@ -227,7 +229,7 @@ pub async fn retry_subscriptions(
         }
 
         // wait for timeout before trying the next batch
-        time::delay_for(Duration::from_secs(10)).await;
+        time::sleep(Duration::from_secs(10)).await;
     }
 }
 
@@ -235,6 +237,7 @@ pub async fn retry_subscriptions(
 mod tests {
     use std::{
         collections::HashMap,
+        fmt::Debug,
         num::{NonZeroU64, NonZeroUsize},
         path::PathBuf,
         str::FromStr,
@@ -242,11 +245,8 @@ mod tests {
     };
 
     use bytes::Bytes;
-    use futures_util::{
-        future::{self, Either},
-        stream::StreamExt,
-        TryStreamExt,
-    };
+    use futures_util::{stream::Stream, StreamExt, TryStreamExt};
+
     use mqtt3::{
         proto::{Publication, QoS, SubscribeTo},
         Event, ReceivedPublication, SubscriptionUpdateEvent,
@@ -254,6 +254,7 @@ mod tests {
     use mqtt_broker::TopicFilter;
     use mqtt_util::{AuthenticationSettings, CredentialProviderSettings, Credentials};
     use test_case::test_case;
+    use tokio::time;
 
     use crate::{
         client::MqttEventHandler,
@@ -890,12 +891,7 @@ mod tests {
         handler.handle(Event::Publication(pub1)).await.unwrap();
         handler.handle(Event::Publication(pub2)).await.unwrap();
 
-        let mut loader = handler.store.loader(BATCH_SIZE);
-
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-        if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
-            panic!("Should not reach here");
-        }
+        assert_empty(handler.store.loader(BATCH_SIZE)).await;
     }
 
     #[test_case(MemoryPublicationStore::default())]
@@ -922,13 +918,7 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader(BATCH_SIZE);
-
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-
-        if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
-            panic!("Should not reach here");
-        }
+        assert_empty(handler.store.loader(BATCH_SIZE)).await;
     }
 
     #[test_case(MemoryPublicationStore::default())]
@@ -973,13 +963,13 @@ mod tests {
 
         handler.handle(Event::Publication(pub1)).await.unwrap();
 
-        let mut loader = handler.store.loader(BATCH_SIZE);
+        assert_empty(handler.store.loader(BATCH_SIZE)).await;
+    }
 
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-
-        if let Either::Right(_) = future::select(interval.next(), loader.next()).await {
-            panic!("Should not reach here");
-        }
+    async fn assert_empty<S: Stream<Item = T> + Unpin, T: Debug>(mut stream: S) {
+        time::timeout(Duration::from_millis(500), stream.next())
+            .await
+            .expect_err("expected empty stream");
     }
 
     fn test_bridge_settings() -> BridgeSettings {

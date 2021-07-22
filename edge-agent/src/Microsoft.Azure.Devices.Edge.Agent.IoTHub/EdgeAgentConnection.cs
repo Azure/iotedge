@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using System.Linq;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -26,9 +27,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
     public class EdgeAgentConnection : IEdgeAgentConnection
     {
+        const int PullFrequencyThreshold = 10;
+
         internal static readonly Version ExpectedSchemaVersion = new Version("1.1.0");
         static readonly TimeSpan DefaultConfigRefreshFrequency = TimeSpan.FromHours(1);
         static readonly TimeSpan DeviceClientInitializationWaitTime = TimeSpan.FromSeconds(5);
+        static readonly TimeSpan DefaultTwinPullOnConnectThrottleTime = TimeSpan.FromSeconds(30);
 
         static readonly ITransientErrorDetectionStrategy AllButFatalErrorDetectionStrategy = new DelegateErrorDetectionStrategy(ex => ex.IsFatal() == false);
 
@@ -45,10 +49,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly IDeviceManager deviceManager;
         readonly IDeploymentMetrics deploymentMetrics;
         readonly Option<X509Certificate2> manifestTrustBundle;
+        readonly TimeSpan twinPullOnConnectThrottleTime;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
         Option<DeploymentConfigInfo> deploymentConfigInfo;
+
+        DateTime lastTwinPullOnConnect = DateTime.MinValue;
+        AtomicBoolean isDelayedTwinPullInProgress = new AtomicBoolean(false);
+        int pullRequestCounter = 0;
 
         public EdgeAgentConnection(
             IModuleClientProvider moduleClientProvider,
@@ -57,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IDeviceManager deviceManager,
             IDeploymentMetrics deploymentMetrics,
             Option<X509Certificate2> manifestTrustBundle)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle, DefaultTwinPullOnConnectThrottleTime)
         {
         }
 
@@ -70,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             TimeSpan configRefreshFrequency,
             IDeploymentMetrics deploymentMetrics,
             Option<X509Certificate2> manifestTrustBundle)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy, deploymentMetrics, manifestTrustBundle, DefaultTwinPullOnConnectThrottleTime)
         {
         }
 
@@ -83,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy,
             IDeploymentMetrics deploymentMetrics,
-            Option<X509Certificate2> manifestTrustBundle)
+            Option<X509Certificate2> manifestTrustBundle,
+            TimeSpan twinPullOnConnectThrottleTime)
         {
             this.desiredPropertiesSerDe = Preconditions.CheckNotNull(desiredPropertiesSerDe, nameof(desiredPropertiesSerDe));
             this.deploymentConfigInfo = Option.None<DeploymentConfigInfo>();
@@ -97,6 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.deploymentMetrics = Preconditions.CheckNotNull(deploymentMetrics, nameof(deploymentMetrics));
             this.initTask = this.ForceRefreshTwin();
             this.manifestTrustBundle = manifestTrustBundle;
+            this.twinPullOnConnectThrottleTime = twinPullOnConnectThrottleTime;
         }
 
         public Option<TwinCollection> ReportedProperties => this.reportedProperties;
@@ -238,9 +249,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
                 if (this.pullOnReconnect && this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
+                    var delayedTwinPull = true;
                     using (await this.twinLock.LockAsync())
                     {
-                        await this.RefreshTwinAsync();
+                        var now = DateTime.Now;
+                        if (now - this.lastTwinPullOnConnect > this.twinPullOnConnectThrottleTime && !this.isDelayedTwinPullInProgress.Get())
+                        {
+                            this.lastTwinPullOnConnect = now;
+                            await this.RefreshTwinAsync();
+                            delayedTwinPull = false;
+                        }
+                    }
+
+                    if (delayedTwinPull)
+                    {
+                        if (this.isDelayedTwinPullInProgress.GetAndSet(true))
+                        {
+                            Interlocked.Increment(ref this.pullRequestCounter);
+                        }
+                        else
+                        {
+                            _ = this.DelayedRefreshTwinAsync();
+                        }
                     }
                 }
             }
@@ -248,6 +278,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             {
                 Events.ConnectionStatusChangedHandlingError(ex);
             }
+        }
+
+        async Task DelayedRefreshTwinAsync()
+        {
+            Events.StartedDelayedTwinPull();
+            await Task.Delay(this.twinPullOnConnectThrottleTime);
+
+            var requestCounter = default(int);
+            using (await this.twinLock.LockAsync())
+            {
+                this.lastTwinPullOnConnect = DateTime.Now;
+
+                try
+                {
+                    await this.RefreshTwinAsync();
+                }
+                catch
+                {
+                    // swallowing intentionally
+                }
+
+                requestCounter = Interlocked.Exchange(ref this.pullRequestCounter, 0);
+
+                this.isDelayedTwinPullInProgress.Set(false);
+            }
+
+            if (requestCounter > PullFrequencyThreshold)
+            {
+                Events.PullingTwinHasBeenTriggeredFrequently(requestCounter, Convert.ToInt32(this.twinPullOnConnectThrottleTime.TotalSeconds));
+            }
+
+            Events.FinishedDelayedTwinPull();
         }
 
         async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
@@ -439,7 +501,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             // If there is no integrity section in the desired twin properties and the manifest trust bundle is not configured then manifest signing is turned off
             // If we have integrity section or the configuration of manifest trust bundle then manifest signing is turned on
             JToken integrity = JObject.Parse(twinDesiredProperties.ToString())["integrity"];
-            return this.manifestTrustBundle.HasValue || (integrity != null && integrity.HasValues);
+            bool hasIntegrity = integrity != null && integrity.HasValues;
+            bool hasManifestCA = this.manifestTrustBundle.HasValue;
+            this.deploymentMetrics.ReportManifestIntegrity(hasManifestCA, hasIntegrity);
+            return hasManifestCA || hasIntegrity;
         }
 
         internal bool ExtractAgentTwinAndVerify(TwinCollection twinDesiredProperties)
@@ -492,23 +557,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 string intermediatecacertCombinedCert = signerCertJtoken.Aggregate(string.Empty, (res, next) => res + next);
                 X509Certificate2 intermediatecacert = new X509Certificate2(Convert.FromBase64String(intermediatecacertCombinedCert));
 
-                // Extract the manifest trust bundle certificate and verify chaining
-                if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
-                {
-                    throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
-                }
-
                 // Extract Signature bytes and algorithm section
                 JToken signature = integrity["signature"]["bytes"];
                 byte[] signatureBytes = Convert.FromBase64String(signature.ToString());
                 JToken algo = integrity["signature"]["algorithm"];
-                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algo.ToString());
-                Events.ExtractAgentTwinSucceeded();
+                string algoStr = algo.ToString();
+                KeyValuePair<string, HashAlgorithmName> algoResult = SignatureValidator.ParseAlgorithm(algoStr);
 
-                return SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+                // Extract the manifest trust bundle certificate and verify chaining
+                bool signatureVerified = false;
+                using (IDisposable verificationTimer = this.deploymentMetrics.StartTwinSignatureTimer())
+                {
+                    if (!CertificateHelper.VerifyManifestTrustBunldeCertificateChaining(signerCert, intermediatecacert, manifestTrustBundleRootCertificate))
+                    {
+                        throw new ManifestTrustBundleChainingFailedException("The signer cert with or without the intermediate CA cert in the twin does not chain up to the Manifest Trust Bundle Root CA configured in the device");
+                    }
+
+                    signatureVerified = SignatureValidator.VerifySignature(desiredProperties.ToString(), header.ToString(), signatureBytes, signerCert, algoResult.Key, algoResult.Value);
+                }
+
+                this.deploymentMetrics.ReportTwinSignatureResult(signatureVerified, algoStr);
+                if (signatureVerified)
+                {
+                    Events.ExtractAgentTwinSucceeded();
+                }
+
+                return signatureVerified;
             }
             catch (Exception ex)
             {
+                this.deploymentMetrics.ReportTwinSignatureResult(false);
                 Events.ExtractAgentTwinAndVerifyFailed(ex);
                 throw ex;
             }
@@ -556,7 +634,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 ManifestSigningIsEnabled,
                 ManifestSigningIsNotEnabled,
                 ManifestTrustBundleIsNotConfigured,
-                DeploymentManifestIsNotSigned
+                DeploymentManifestIsNotSigned,
+                PullingTwinHasBeenTriggeredFrequently,
+                StartedDelayedTwinPull,
+                FinishedDelayedTwinPull
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -739,6 +820,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void DeploymentManifestIsNotSigned()
             {
                 Log.LogWarning((int)EventIds.DeploymentManifestIsNotSigned, $"Manifest Trust bundle is configured but the Deployment manifest is not signed. Please sign it.");
+            }
+
+            internal static void PullingTwinHasBeenTriggeredFrequently(int count, int seconds)
+            {
+                Log.LogWarning((int)EventIds.PullingTwinHasBeenTriggeredFrequently, $"Pulling twin by 'Connected' event has been triggered frequently, {count} times in the last {seconds} seconds. This can be a sign when more edge devices use the same identity and they keep getting disconnected.");
+            }
+
+            internal static void StartedDelayedTwinPull()
+            {
+                Log.LogDebug((int)EventIds.StartedDelayedTwinPull, $"Started delayed twin-pull");
+            }
+
+            internal static void FinishedDelayedTwinPull()
+            {
+                Log.LogDebug((int)EventIds.FinishedDelayedTwinPull, $"Finished delayed twin-pull");
             }
         }
     }

@@ -2,7 +2,8 @@ use std::{collections::HashMap, convert::TryInto, panic};
 
 use chrono::{DateTime, Utc};
 use futures_util::StreamExt;
-use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{self, UnboundedSender};
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{debug, error, info, info_span, warn};
 
 use mqtt3::proto;
@@ -29,7 +30,7 @@ macro_rules! try_send {
 }
 
 pub struct Broker<Z> {
-    messages: SelectOrdered<UnboundedReceiver<Message>, UnboundedReceiver<Message>>,
+    messages: SelectOrdered<UnboundedReceiverStream<Message>, UnboundedReceiverStream<Message>>,
     handle: BrokerHandle,
     sessions: HashMap<ClientId, Session>,
     retained: HashMap<String, proto::Publication>,
@@ -87,6 +88,7 @@ where
                                 // TODO return an error instead?
                                 break;
                             }
+
                             self.reauthorize();
                             debug!("successfully updated authorization info");
                         }
@@ -942,7 +944,7 @@ where
             } else {
                 let maybe_retained = self
                     .retained
-                    .insert(publication.topic_name.to_owned(), publication.clone());
+                    .insert(publication.topic_name.clone(), publication.clone());
                 if maybe_retained.is_none() {
                     info!(
                         "new retained message for topic \"{}\"",
@@ -1094,7 +1096,10 @@ where
         let (message_sender, messages) = mpsc::unbounded_channel();
         let (ack_sender, acks) = mpsc::unbounded_channel();
 
-        let messages = stream::select_ordered(acks, messages);
+        let messages = stream::select_ordered(
+            UnboundedReceiverStream::new(acks),
+            UnboundedReceiverStream::new(messages),
+        );
         let handle = BrokerHandle {
             messages: message_sender,
             acks: ack_sender,

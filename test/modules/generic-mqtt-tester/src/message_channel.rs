@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use bytes::Buf;
 use futures_util::{
     future::{self, Either},
-    stream::StreamExt,
+    pin_mut,
 };
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::sync::mpsc;
@@ -15,9 +15,7 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{
-    parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle, RECEIVE_SOURCE,
-};
+use crate::{parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -30,15 +28,16 @@ pub trait MessageHandler {
 pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
     tracking_id: String,
-    batch_id: Uuid,
+    report_source: String,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(reporting_client: TrcClient, tracking_id: String, batch_id: Uuid) -> Self {
+    pub fn new(reporting_client: TrcClient, tracking_id: String, module_name: &str) -> Self {
+        let report_source = format!("{}{}", module_name, ".receive");
         Self {
             reporting_client,
             tracking_id,
-            batch_id,
+            report_source,
         }
     }
 }
@@ -52,25 +51,25 @@ impl MessageHandler for ReportResultMessageHandler {
         let sequence_number = parse_sequence_number(&received_publication);
         let batch_id = Uuid::from_u128_le(received_publication.payload.slice(4..20).get_u128_le());
 
-        if self.batch_id == batch_id {
-            info!(
-                "reporting result for publication with sequence number {}",
-                sequence_number,
-            );
-            let result = MessageTestResult::new(
-                self.tracking_id.clone(),
-                self.batch_id.to_string(),
-                sequence_number,
-            );
+        info!(
+            "reporting result for publication with sequence number {}",
+            sequence_number,
+        );
+        let result = MessageTestResult::new(
+            self.tracking_id.clone(),
+            batch_id.to_string(),
+            sequence_number,
+        );
 
-            let test_type = trc_client::TestType::Messages;
-            let created_at = chrono::Utc::now();
-            self.reporting_client
-                .report_result(RECEIVE_SOURCE.to_string(), result, test_type, created_at)
-                .await
-                .map_err(MessageTesterError::ReportResult)?;
-        } else {
-            error!("received publication with non-matching batch id");
+        let test_type = trc_client::TestType::Messages;
+        let created_at = chrono::Utc::now();
+
+        if let Err(e) = self
+            .reporting_client
+            .report_result(self.report_source.clone(), result, test_type, created_at)
+            .await
+        {
+            error!("error reporting result to trc: {:?}", e);
         }
 
         Ok(())
@@ -152,8 +151,9 @@ where
     pub async fn run(mut self) -> Result<ExitedWork, MessageTesterError> {
         info!("starting message channel");
         loop {
-            let received_pub = self.publication_receiver.next();
-            let shutdown_signal = self.shutdown_recv.next();
+            let received_pub = self.publication_receiver.recv();
+            let shutdown_signal = self.shutdown_recv.recv();
+            pin_mut!(received_pub, shutdown_signal);
 
             match future::select(received_pub, shutdown_signal).await {
                 Either::Left((received_publication, _)) => {
@@ -176,7 +176,7 @@ where
         }
     }
 
-    pub fn message_channel(&self) -> UnboundedSender<ReceivedPublication> {
+    pub fn send_handle(&self) -> UnboundedSender<ReceivedPublication> {
         self.publication_sender.clone()
     }
 

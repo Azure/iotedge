@@ -1,6 +1,7 @@
 use std::{collections::HashMap, convert::TryInto};
 
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 
 use crate::{
     bridge::BridgeError,
@@ -159,7 +160,7 @@ where
             .map_err(BridgeError::UpdateSubscriptionHandle)?;
 
         tokio::spawn(messages::retry_subscriptions(
-            retry_recv,
+            UnboundedReceiverStream::new(retry_recv),
             remote_topic_mappers_updates.clone(),
             retry_sub_handle,
         ));
@@ -213,7 +214,7 @@ impl PumpBuilder {
 fn make_topics(rules: &[TopicRule]) -> Result<HashMap<String, TopicMapper>, BridgeError> {
     let topic_filters: Vec<TopicMapper> = rules
         .iter()
-        .map(|topic| topic.to_owned().try_into())
+        .map(|topic| topic.clone().try_into())
         .collect::<Result<Vec<_>, _>>()?;
 
     let topic_filters = topic_filters

@@ -105,8 +105,8 @@ impl IncomingPacketProcessor for MqttIncomingPacketProcessor {
             Packet::PubAck(puback) => ClientEvent::PubAck(puback),
             Packet::PubComp(pubcomp) => ClientEvent::PubComp(pubcomp),
             Packet::Publish(publish) => {
-                let perm = self.incoming_pub_limit.clone().acquire_owned().await;
-                ClientEvent::PublishFrom(publish, Some(perm))
+                let permit = self.incoming_pub_limit.clone().acquire_owned().await.ok();
+                ClientEvent::PublishFrom(publish, permit)
             }
             Packet::PubRec(pubrec) => ClientEvent::PubRec(pubrec),
             Packet::PubRel(pubrel) => ClientEvent::PubRel(pubrel),

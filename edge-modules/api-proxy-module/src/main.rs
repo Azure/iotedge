@@ -7,12 +7,13 @@
     clippy::use_self,
     clippy::match_same_arms,
     clippy::must_use_candidate,
-    clippy::missing_errors_doc
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc
 )]
 use std::{process::Stdio, sync::Arc};
 
 use anyhow::{Context, Error, Result};
-use futures::select;
+use futures_util::select;
 use log::{error, info, warn, LevelFilter};
 use tokio::{
     process::{Child, Command},
@@ -21,8 +22,9 @@ use tokio::{
 };
 
 use api_proxy_module::{
-    monitors::{certs_monitor, config_monitor, shutdown_handle},
-    signals::shutdown,
+    monitors::{certs_monitor, config_monitor},
+    token_service::token_server,
+    utils::{shutdown, shutdown_handle},
 };
 use shutdown_handle::ShutdownHandle;
 
@@ -54,6 +56,8 @@ async fn main() -> Result<()> {
         notify_trust_bundle_reload_api_proxy.clone(),
     )
     .context("Failed running nginx controller")?;
+    let (token_server_handle, token_server_shutdown_handle) =
+        token_server::start().context("Failed running token server")?;
 
     //If one task closes, clean up everything
     if let Err(e) = nginx_controller_handle.await {
@@ -69,11 +73,15 @@ async fn main() -> Result<()> {
     cert_monitor_shutdown_handle.shutdown().await;
     config_monitor_shutdown_handle.shutdown().await;
     nginx_controller_shutdown_handle.shutdown().await;
+    token_server_shutdown_handle.shutdown().await;
 
     if let Err(e) = cert_monitor_handle.await {
         error!("error on finishing cert monitor: {}", e);
     }
     if let Err(e) = config_monitor_handle.await {
+        error!("error on finishing config monitor: {}", e);
+    }
+    if let Err(e) = token_server_handle.await {
         error!("error on finishing config monitor: {}", e);
     }
 
@@ -121,12 +129,13 @@ pub fn nginx_controller_start(
 
         //Start nginx
         loop {
-            let nginx_start =
-                nginx_command(proxy_name, program_path, &start_proxy_args, "start")?.fuse();
-            futures::pin_mut!(nginx_start);
+            let nginx_start = nginx_command(proxy_name, program_path, &start_proxy_args, "start")?;
+            futures_util::pin_mut!(nginx_start);
             info!("Starting/Restarting API-Proxy");
 
             loop {
+                let nginx_start = nginx_start.wait().fuse();
+
                 //Shutdown nginx on ctrl_c or signal
                 let wait_shutdown_ctrl_c = shutdown::shutdown().fuse();
                 let wait_shutdown_signal = shutdown_signal.notified().fuse();
@@ -135,7 +144,8 @@ pub fn nginx_controller_start(
                 let cert_reload = notify_server_cert_reload_api_proxy.notified().fuse();
                 let config_reload = notify_config_reload_api_proxy.notified().fuse();
 
-                futures::pin_mut!(
+                futures_util::pin_mut!(
+                    nginx_start,
                     wait_shutdown_ctrl_c,
                     wait_shutdown_signal,
                     cert_reload,
@@ -157,6 +167,7 @@ pub fn nginx_controller_start(
                         // Stop nginx and restart nginx
                         info!("Request to restart Nginx received");
                         nginx_command(proxy_name, program_path, &stop_proxy_args, "stop")?
+                            .wait()
                             .await
                             .context("Error running the command")?;
 
@@ -167,6 +178,7 @@ pub fn nginx_controller_start(
                         // Reload nginx config
                         info!("Request to reload Nginx received");
                         nginx_command(proxy_name, program_path, &reload_proxy_args, "reload")?
+                            .wait()
                             .await
                             .context("Error running the command")?;
                     }

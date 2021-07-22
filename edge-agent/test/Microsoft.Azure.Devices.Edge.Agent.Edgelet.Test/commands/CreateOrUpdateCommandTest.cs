@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.None<string>(),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -83,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.Some("parentEdgeHost999"),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -108,6 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.None<string>(),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -133,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.Some("parentEdgeHost999"),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -158,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.None<string>(),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -183,6 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                         Option.Some("parentEdgeHost999"),
                         "Amqp",
                         "Edgelet_Management_Uri",
+                        "Edgelet_Listen_workload_Uri",
                         "iotedge-network",
                         "2020.01.01",
                         new object())
@@ -200,48 +206,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
 
             foreach (string key in testData.EnvironmentVariables.Keys)
             {
-                Assert.Equal(testData.EnvironmentVariables[key].Value, environmentVariables.Where(v => v.Key.Equals(key)).First().Value);
+                Assert.Equal(testData.EnvironmentVariables[key].Value, environmentVariables.First(v => v.Key.Equals(key)).Value);
             }
 
-            Assert.Equal(testData.EdgeletWorkloadUri, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletWorkloadUriVariableName)).First().Value);
-            Assert.Equal(testData.EdgeletAuthScheme, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletAuthSchemeVariableName)).First().Value);
-            Assert.Equal(testData.ModuleGenerationId, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletModuleGenerationIdVariableName)).First().Value);
-            Assert.Equal(testData.IoTHubHostname, environmentVariables.Where(v => v.Key.Equals(Constants.IotHubHostnameVariableName)).First().Value);
-            Assert.Equal(testData.DeviceId, environmentVariables.Where(v => v.Key.Equals(Constants.DeviceIdVariableName)).First().Value);
-            Assert.Equal(testData.ModuleId, environmentVariables.Where(v => v.Key.Equals(Constants.ModuleIdVariableName)).First().Value);
-            Assert.Equal(LogEventLevel.Information.ToString(), environmentVariables.Where(v => v.Key.Equals(Logger.RuntimeLogLevelEnvKey)).First().Value);
-            Assert.Equal(testData.UpstreamProtocol, environmentVariables.Where(v => v.Key.Equals(Constants.UpstreamProtocolKey)).First().Value);
-            Assert.Equal(testData.EdgeletApiVersion, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletApiVersionVariableName)).First().Value);
+            Assert.Equal(testData.EdgeletWorkloadUri, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletWorkloadUriVariableName)).Value);
+            Assert.Equal(testData.EdgeletAuthScheme, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletAuthSchemeVariableName)).Value);
+            Assert.Equal(testData.ModuleGenerationId, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletModuleGenerationIdVariableName)).Value);
+            Assert.Equal(testData.IoTHubHostname, environmentVariables.First(v => v.Key.Equals(Constants.IotHubHostnameVariableName)).Value);
+            Assert.Equal(testData.DeviceId, environmentVariables.First(v => v.Key.Equals(Constants.DeviceIdVariableName)).Value);
+            Assert.Equal(testData.ModuleId, environmentVariables.First(v => v.Key.Equals(Constants.ModuleIdVariableName)).Value);
+            Assert.Equal(LogEventLevel.Information.ToString(), environmentVariables.First(v => v.Key.Equals(Logger.RuntimeLogLevelEnvKey)).Value);
+            Assert.Equal(testData.UpstreamProtocol, environmentVariables.First(v => v.Key.Equals(Constants.UpstreamProtocolKey)).Value);
+            Assert.Equal(testData.EdgeletApiVersion, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletApiVersionVariableName)).Value);
 
             if (testData.ModuleId.Equals(Constants.EdgeAgentModuleIdentityName))
             {
-                Assert.Equal("iotedged", environmentVariables.Where(v => v.Key.Equals(Constants.ModeKey)).First().Value);
-                Assert.Equal(testData.EdgeletManagementUri, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletManagementUriVariableName)).First().Value);
-                Assert.Equal(testData.NetworkId, environmentVariables.Where(v => v.Key.Equals(Constants.NetworkIdKey)).First().Value);
-                Assert.Equal(testData.EdgeDeviceHostname, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeDeviceHostNameKey)).First().Value);
+                Assert.Equal("iotedged", environmentVariables.First(v => v.Key.Equals(Constants.ModeKey)).Value);
+                Assert.Equal(testData.EdgeletManagementUri, environmentVariables.First(v => v.Key.Equals(Constants.EdgeletManagementUriVariableName)).Value);
+                Assert.Equal(testData.NetworkId, environmentVariables.First(v => v.Key.Equals(Constants.NetworkIdKey)).Value);
+                Assert.Equal(testData.EdgeDeviceHostname, environmentVariables.First(v => v.Key.Equals(Constants.EdgeDeviceHostNameKey)).Value);
                 testData.ParentEdgeHostname.ForEach(value =>
-                    Assert.Equal(value, environmentVariables.Where(v => v.Key.Equals(Constants.GatewayHostnameVariableName)).First().Value));
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.ParentEdgeHostnameVariableName)).FirstOrDefault());
+                    Assert.Equal(value, environmentVariables.First(v => v.Key.Equals(Constants.GatewayHostnameVariableName)).Value));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.ParentEdgeHostnameVariableName)));
             }
             else if (testData.ModuleId.Equals(Constants.EdgeHubModuleIdentityName))
             {
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.ModeKey)).FirstOrDefault());
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletManagementUriVariableName)).FirstOrDefault());
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.NetworkIdKey)).FirstOrDefault());
-                Assert.Equal(testData.EdgeDeviceHostname, environmentVariables.Where(v => v.Key.Equals(Constants.EdgeDeviceHostNameKey)).First().Value);
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.ModeKey)));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.EdgeletManagementUriVariableName)));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.NetworkIdKey)));
+                Assert.Equal(testData.EdgeDeviceHostname, environmentVariables.First(v => v.Key.Equals(Constants.EdgeDeviceHostNameKey)).Value);
                 testData.ParentEdgeHostname.ForEach(value =>
-                    Assert.Equal(value, environmentVariables.Where(v => v.Key.Equals(Constants.GatewayHostnameVariableName)).First().Value));
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.ParentEdgeHostnameVariableName)).FirstOrDefault());
+                    Assert.Equal(value, environmentVariables.First(v => v.Key.Equals(Constants.GatewayHostnameVariableName)).Value));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.ParentEdgeHostnameVariableName)));
             }
             else
             {
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.ModeKey)).FirstOrDefault());
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.EdgeletManagementUriVariableName)).FirstOrDefault());
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.NetworkIdKey)).FirstOrDefault());
-                Assert.Equal(testData.EdgeDeviceHostname, environmentVariables.Where(v => v.Key.Equals(Constants.GatewayHostnameVariableName)).First().Value);
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.ModeKey)));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.EdgeletManagementUriVariableName)));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.NetworkIdKey)));
+                Assert.Equal(testData.EdgeDeviceHostname, environmentVariables.First(v => v.Key.Equals(Constants.GatewayHostnameVariableName)).Value);
                 testData.ParentEdgeHostname.ForEach(value =>
-                    Assert.Equal(value, environmentVariables.Where(v => v.Key.Equals(Constants.ParentEdgeHostnameVariableName)).First().Value));
-                Assert.Null(environmentVariables.Where(v => v.Key.Equals(Constants.EdgeDeviceHostNameKey)).FirstOrDefault());
+                    Assert.Equal(value, environmentVariables.First(v => v.Key.Equals(Constants.ParentEdgeHostnameVariableName)).Value));
+                Assert.Null(environmentVariables.FirstOrDefault(v => v.Key.Equals(Constants.EdgeDeviceHostNameKey)));
             }
         }
 
@@ -272,6 +278,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 var edgeletManagementUriConfig = new Mock<IConfigurationSection>();
                 this.Configuration.Setup(c => c.GetSection(Constants.EdgeletManagementUriVariableName)).Returns(edgeletManagementUriConfig.Object);
                 edgeletManagementUriConfig.Setup(c => c.Value).Returns(testData.EdgeletManagementUri);
+                var edgeletWorkloadListenUriMntConfig = new Mock<IConfigurationSection>();
+                this.Configuration.Setup(c => c.GetSection(Constants.EdgeletWorkloadListenMntUriVariableName)).Returns(edgeletWorkloadListenUriMntConfig.Object);
+                edgeletWorkloadListenUriMntConfig.Setup(c => c.Value).Returns(testData.EdgeletWorkloadListenUriMnt);
                 var networkIdConfig = new Mock<IConfigurationSection>();
                 this.Configuration.Setup(c => c.GetSection(Constants.NetworkIdKey)).Returns(networkIdConfig.Object);
                 networkIdConfig.Setup(c => c.Value).Returns(testData.NetworkId);
@@ -308,6 +317,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 Option<string> parentEdgeHostname,
                 string upstreamProtocol,
                 string edgeletManagementUri,
+                string edgeletWorkloadListenUriMnt,
                 string networkId,
                 string edgeletApiVersion,
                 object settings)
@@ -326,6 +336,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
                 this.ParentEdgeHostname = parentEdgeHostname;
                 this.UpstreamProtocol = Preconditions.CheckNonWhiteSpace(upstreamProtocol, nameof(upstreamProtocol));
                 this.EdgeletManagementUri = Preconditions.CheckNonWhiteSpace(edgeletManagementUri, nameof(edgeletManagementUri));
+                this.EdgeletWorkloadListenUriMnt = Preconditions.CheckNonWhiteSpace(edgeletWorkloadListenUriMnt, nameof(edgeletWorkloadListenUriMnt));
                 this.NetworkId = Preconditions.CheckNonWhiteSpace(networkId, nameof(networkId));
                 this.EdgeletApiVersion = Preconditions.CheckNonWhiteSpace(edgeletApiVersion, nameof(edgeletApiVersion));
                 this.Settings = settings;
@@ -362,6 +373,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.Commands
             internal string UpstreamProtocol { get; }
 
             internal string EdgeletManagementUri { get; }
+
+            internal string EdgeletWorkloadListenUriMnt { get; }
 
             internal string NetworkId { get; }
 

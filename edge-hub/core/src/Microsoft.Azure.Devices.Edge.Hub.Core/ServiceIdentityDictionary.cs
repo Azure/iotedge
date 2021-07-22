@@ -57,11 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public Task<IList<ServiceIdentity>> GetImmediateChildren(string id) => throw new NotImplementedException("Nested Edge not enabled");
 
-        public Task InsertOrUpdate(ServiceIdentity identity)
+        public Task<bool> AddOrUpdate(ServiceIdentity identity)
         {
             Preconditions.CheckNotNull(identity, nameof(identity));
             this.identities[identity.Id] = identity;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public Task Remove(string id)

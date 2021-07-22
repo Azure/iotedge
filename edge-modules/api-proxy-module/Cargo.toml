@@ -7,19 +7,19 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0"
-base64 = "0.11"
+base64 = "0.13"
 chrono = "0.4"
-env_logger = "0.7"
+env_logger = "0.8"
 envsubst = "0.2"
-futures = "0.3"
 futures-util = "0.3"
+hyper = "0.14"
 log = "0.4"
 md5 = "0.7"
-regex = "1.3"
+regex = "1.4"
 serde_json = "1.0"
-tokio = { version = "0.2", features = ["tcp", "time", "process","signal","sync"] }
-percent-encoding = "1.0"
-url = "2.1"
+tokio = { version = "1", features = ["signal", "rt-multi-thread"] }
+percent-encoding = "2.1"
+url = "2.2"
 
 azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 edgelet-client = { path = "../../mqtt/edgelet-client" }
@@ -28,5 +28,5 @@ mqtt3 = { path = "../../mqtt/mqtt3" }
 [dev-dependencies]
 lazy_static = "1.4"
 matches = "0.1"
-mockito = "0.25"
-tokio = { version = "0.2", features = ["macros"] }
+mockito = "0.30"
+tokio = { version = "1.5", features = ["macros"] }

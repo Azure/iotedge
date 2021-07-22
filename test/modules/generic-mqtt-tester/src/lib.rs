@@ -21,15 +21,11 @@ use std::{
 use bytes::Buf;
 use mqtt3::{PublishError, ReceivedPublication, UpdateSubscriptionError};
 use tokio::{sync::mpsc::error::SendError, sync::mpsc::Sender, task::JoinError};
-use trc_client::ReportResultError;
 
 pub mod message_channel;
 pub mod message_initiator;
 pub mod settings;
 pub mod tester;
-
-const SEND_SOURCE: &str = "genericMqttTester.send";
-const RECEIVE_SOURCE: &str = "genericMqttTester.receive";
 
 #[derive(Debug, Clone)]
 pub struct ShutdownHandle(Sender<()>);
@@ -39,7 +35,7 @@ impl ShutdownHandle {
         Self(sender)
     }
 
-    pub async fn shutdown(mut self) -> Result<(), MessageTesterError> {
+    pub async fn shutdown(self) -> Result<(), MessageTesterError> {
         self.0
             .send(())
             .await
@@ -104,9 +100,6 @@ pub enum MessageTesterError {
 
     #[error("failed to parse publication payload: {0:?}")]
     DeserializePayload(#[from] serde_json::Error),
-
-    #[error("failed to report test result: {0:?}")]
-    ReportResult(#[from] ReportResultError),
 
     #[error("received rejected subscription: {0}")]
     RejectedSubscription(String),
