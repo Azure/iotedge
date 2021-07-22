@@ -10,8 +10,6 @@ jobs:
       - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
       - SetupVM_level4_${{ parameters['upstream.protocol'] }}
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
-    variables:
-      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l3AgentName'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -29,6 +27,7 @@ jobs:
       hostPlatform: 'linux_amd64_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l3AgentName'] ]
     steps:   
       - template: nested-get-secrets.yaml     
       - template: nested-get-root-ca.yaml 
