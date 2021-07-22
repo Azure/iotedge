@@ -193,9 +193,9 @@ steps:
         }
       };
       
-      $launchSettingsPath  = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
-      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$launchSettingsPath"
-      Get-Content -Path "$launchSettingsPath"
+      $manifestSigningLaunchSettingsPath  = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
+      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$manifestSigningLaunchSettingsPath"
+      Get-Content -Path "$manifestSigningLaunchSettingsPath"
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -252,7 +252,7 @@ steps:
     {
       $context['enableManifestSigning'] = "true"
       $context['manifestSigningDeploymentDir'] = "$(manifestSigningDeploymentDir)"
-      $context['launchSettingsPath'] = "$launchSettingsPath"
+      $context['manifestSigningLaunchSettingsPath'] = "$manifestSigningLaunchSettingsPath"
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
