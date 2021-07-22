@@ -306,13 +306,7 @@ function Upload-Artifacts-To-GitHub
     $version = $($versionParts -join('.'))
 
     # Get content of changelog to be used a release message
-    $pattern = "(\#\s$version\s\(\d{4}-\d{2}-\d{2}\)\s[\S\s]*?)\s?(?=\#\s$($latestRelease.tag_name)\s\(\d{4}-\d{2}-\d{2}\)\s)"
-    #BEARWASHERE -- Remove this line; 
-    #  Maybe we can have it fetch the value from github directly instead of having the repo be checkedout
-    #$ChangeLogPath = "C:\Users\yophilav\Desktop\iotedge\CHANGELOG.md"
-
-    # BEARWASHERE -- This needs to be triggered agaist Azure/iotedge repository.
-    $url = "https://api.github.com/repos/yophilav/iotedge/contents/"
+    $url = "https://api.github.com/repos/Azure/iotedge/contents/"
     $body = @{
         path = "iotedge/"
         ref = "$BranchName"
@@ -320,10 +314,16 @@ function Upload-Artifacts-To-GitHub
     $changeLog = $((Invoke-WebRequest -Headers $header -Uri "$url" -Method GET -Body $body).Content | ConvertFrom-JSON) `
         | where {($_.name -eq "CHANGELOG.md")}
     $changeLogUrl = $changeLog.download_url
-    $changeLogContent = $(Invoke-WebRequest -Headers $header -Uri "$changeLogUrl" -Method GET).Content
 
-    $content = Get-Content $ChangeLogPath -Encoding UTF8 -Raw
-    $changeLogContent = [regex]::match($content, $pattern).Groups[1].Value
+    $utf8Header = @{
+        "Accept" = "application/vnd.github.v3+json"
+        "Authorization" = "token $pat"
+        "Content-Type"="application/json; charset=utf-8"
+    }
+    # $pattern = "(\#\s1.2.3\s\(\d{4}-\d{2}-\d{2}\)\n[\S\s]*?)\n?(?=\#\s1.2.2\s\(\d{4}-\d{2}-\d{2}\)\n)"
+    $pattern = "(\#\s$version\s\(\d{4}-\d{2}-\d{2}\)\s[\S\s]*?)\s?(?=\#\s$($latestRelease.tag_name)\s\(\d{4}-\d{2}-\d{2}\)\s)"
+    $changeLogContent = $(Invoke-WebRequest -Headers $utf8Header -Uri "$changeLogUrl" -Method GET).Content
+    $changeLogContent = [regex]::match($changeLogContent, $pattern).Groups[1].Value
 
     # Create a new release page
     # Ref: https://docs.github.com/en/rest/reference/repos#create-a-release
