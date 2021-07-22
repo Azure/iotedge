@@ -181,18 +181,13 @@ impl Module for DockerModule {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_top_response, Utc, MIN_DATE};
+    use super::parse_top_response;
 
     use std::string::ToString;
 
-    use bollard::service::{ContainerState, ContainerStateStatusEnum, ContainerTopResponse};
-    use hyper::Client;
-    use serde::Serialize;
-    use time::Duration;
+    use bollard::service::ContainerTopResponse;
 
-    use docker::apis::client::APIClient;
-    use docker::apis::configuration::Configuration;
-    use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
+    use docker::models::ContainerCreateBody;
 
     use edgelet_core::{Module, ModuleStatus};
     use edgelet_settings::DockerConfig;
@@ -243,20 +238,20 @@ mod tests {
         .unwrap_err();
     }
 
-    fn get_inputs() -> Vec<(&'static str, i64, ModuleStatus)> {
-        vec![
-            ("created", 0, ModuleStatus::Stopped),
-            ("paused", 0, ModuleStatus::Stopped),
-            ("restarting", 0, ModuleStatus::Stopped),
-            ("removing", 0, ModuleStatus::Stopped),
-            ("dead", 0, ModuleStatus::Stopped),
-            ("exited", 0, ModuleStatus::Stopped),
-            ("removing", -1, ModuleStatus::Failed),
-            ("dead", -2, ModuleStatus::Failed),
-            ("exited", -42, ModuleStatus::Failed),
-            ("running", 0, ModuleStatus::Running),
-        ]
-    }
+    // fn get_inputs() -> Vec<(&'static str, i64, ModuleStatus)> {
+    //     vec![
+    //         ("created", 0, ModuleStatus::Stopped),
+    //         ("paused", 0, ModuleStatus::Stopped),
+    //         ("restarting", 0, ModuleStatus::Stopped),
+    //         ("removing", 0, ModuleStatus::Stopped),
+    //         ("dead", 0, ModuleStatus::Stopped),
+    //         ("exited", 0, ModuleStatus::Stopped),
+    //         ("removing", -1, ModuleStatus::Failed),
+    //         ("dead", -2, ModuleStatus::Failed),
+    //         ("exited", -42, ModuleStatus::Failed),
+    //         ("running", 0, ModuleStatus::Running),
+    //     ]
+    // }
 
     #[test]
     fn parse_top_response_returns_pid_array() {

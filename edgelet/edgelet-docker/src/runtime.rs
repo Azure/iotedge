@@ -33,13 +33,10 @@ use crate::notary;
 
 use edgelet_core::DiskInfo;
 use std::convert::TryInto;
-#[cfg(target_os = "linux")]
 use std::mem;
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, System, SystemExt};
-
-type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
 const OWNER_LABEL_KEY: &str = "net.azure-devices.edge.owner";
 const OWNER_LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
@@ -187,22 +184,13 @@ impl ModuleRegistry for DockerModuleRuntime {
             ..Default::default()
         };
 
-        let docker_credentials = config.auth().cloned().map(
-            |docker::models::AuthConfig {
-                 username,
-                 password,
-                 email,
-                 serveraddress,
-             }| {
-                bollard::auth::DockerCredentials {
-                    username,
-                    password,
-                    email,
-                    serveraddress,
-                    ..Default::default()
-                }
-            },
-        );
+        let docker_credentials = config.auth().map(|c| bollard::auth::DockerCredentials {
+            username: c.username().map(ToOwned::to_owned),
+            password: c.password().map(ToOwned::to_owned),
+            email: c.email().map(ToOwned::to_owned),
+            serveraddress: c.serveraddress().map(ToOwned::to_owned),
+            ..Default::default()
+        });
 
         self.client
             .docker
@@ -259,13 +247,13 @@ impl MakeModuleRuntime for DockerModuleRuntime {
         info!("Initializing module runtime...");
 
         let client = DockerClient::new(settings.moby_runtime().uri())
-            .map_err(|e| {
+            .map_err(|_| {
                 // log_failure(Level::Warn, &e);
                 Error::from(ErrorKind::Docker)
             })
             .await?;
 
-        let home_dir: Arc<Path> = settings.homedir().into();
+        // let home_dir: Arc<Path> = settings.homedir().into();
         let notary_registries = BTreeMap::new();
         // let certd_url = settings.endpoints().aziot_certd_url().clone();
         // let cert_client = cert_client::CertificateClient::new(
@@ -345,7 +333,7 @@ async fn create_network_if_missing(settings: &Settings, client: &DockerClient) -
         .docker
         .list_networks(list_options)
         .await
-        .map_err(|e| Error::from(ErrorKind::Docker))?;
+        .map_err(|_| Error::from(ErrorKind::Docker))?;
 
     if existing_iotedge_networks.is_empty() {
         let ipam = ipam.map_or_else(Default::default, |ipam| bollard::models::Ipam {
@@ -365,7 +353,7 @@ async fn create_network_if_missing(settings: &Settings, client: &DockerClient) -
             .docker
             .create_network(config)
             .await
-            .map_err(|e| Error::from(ErrorKind::Docker))?;
+            .map_err(|_| Error::from(ErrorKind::Docker))?;
     }
 
     Ok(())
@@ -604,8 +592,8 @@ impl ModuleRuntime for DockerModuleRuntime {
             })?;
 
         let system_info = CoreSystemInfo {
-            os_type: info.os_type.unwrap_or(String::from("Unknown")),
-            architecture: info.architecture.unwrap_or(String::from("Unknown")),
+            os_type: info.os_type.unwrap_or_else(|| String::from("Unknown")),
+            architecture: info.architecture.unwrap_or_else(|| String::from("Unknown")),
             version: edgelet_core::version_with_source_version(),
             provisioning,
             cpus: info.ncpu.unwrap_or_default() as i32,
@@ -738,14 +726,13 @@ impl ModuleRuntime for DockerModuleRuntime {
             .await
             .map_err(|_| Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))?;
 
-        let modules = containers
+        containers
             .into_iter()
             .map(|container| {
                 let name = container
                     .names
                     .unwrap_or_default()
-                    .iter()
-                    .next()
+                    .get(0)
                     .map_or("Unknown", |s| &s[1..])
                     .to_string();
 
@@ -763,9 +750,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
                 DockerModule::new(self.client.clone(), name, config)
             })
-            .collect::<Result<Vec<DockerModule>>>();
-
-        modules
+            .collect::<Result<Vec<DockerModule>>>()
     }
 
     async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
@@ -812,7 +797,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     async fn remove_all(&self) -> Result<()> {
         stream::iter(self.list().await?)
-            .then(|module| ModuleRuntime::remove(self, module.name()))
+            .then(|module| async move { ModuleRuntime::remove(self, module.name()).await })
             .collect::<Vec<Result<_>>>()
             .await
             .into_iter()
@@ -823,7 +808,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<()> {
         stream::iter(self.list().await?)
-            .then(|module| self.stop(module.name(), wait_before_kill))
+            .then(|module| async move { self.stop(module.name(), wait_before_kill).await })
             .collect::<Vec<Result<_>>>()
             .await
             .into_iter()
