@@ -24,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
-                Context.Current.TestRunnerProxy);
+                Context.Current.TestRunnerProxy,
+                Context.Current.ManifestSigningFlag);
         }
 
         string DeriveDeviceKey(byte[] groupKey, string registrationId)
