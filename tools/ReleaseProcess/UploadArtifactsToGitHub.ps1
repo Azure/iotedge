@@ -341,7 +341,7 @@ function Upload-Artifacts-To-GitHub
             default {$artifactMimeType = "application/octet-stream"}
         }
 
-        # Upload the artifacts from the $workDir
+        # Construct the request header & body
         # Ref:
         #   GitHub API ________________ https://docs.github.com/en/rest/reference/repos#upload-a-release-asset
         $multiUploadHeader = @{
@@ -351,6 +351,13 @@ function Upload-Artifacts-To-GitHub
             "Content-Type" = "$artifactMimeType"
         }
         $body = [System.IO.File]::ReadAllBytes($($artifact.FullName))
+
+        # Upload the artifacts from the $workDir
+        # BEARWASHERE -- Need to update the upload URL by replacing the name.
+        #     $rel = Invoke-WebRequest -Headers $rel_arg -Method POST -Body $body -Uri https://uploads.github.com/repos/$user/$project/releases/$rel_id/assets?name=$fname
+        $uploadUrl = [regex]::match($release.upload_url, "^(.+?)assets").Groups[0].Value
+        $uploadUrl += "?name=$artifactName"
+        Invoke-WebRequest -Headers $multiUploadHeader -Uri "$uploadUrl" -Method POST -Body $body
     }
 
 }
