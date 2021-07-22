@@ -19,7 +19,8 @@ jobs:
       name: lock_test_agent
 
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
-    dependsOn: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     variables:
@@ -47,7 +48,9 @@ jobs:
      - template: nested-agent-deploy.yaml
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
-    dependsOn: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
+      - SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
     condition: succeeded()
     timeoutInMinutes: 180
