@@ -126,7 +126,7 @@ function Prepare-GitHub-Artifacts
     )
 
     # Assume Az CLI is installed & logged in.
-    $pat = $(az keyvault secret show -n TestGitHubAccessToken --vault-name edge-e2e-kv | ConvertFrom-Json)
+    $pat = $(az keyvault secret show -n GitHubAccessToken --vault-name edgebuildkv | ConvertFrom-Json)
     $pat = $pat.value;
 
     # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
@@ -236,7 +236,7 @@ function Prepare-GitHub-Artifacts
         Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
     }
 
-    return @($artifactRun, $pat)
+    return @($pat)
 
     # TODO: Clean up
 }
@@ -261,8 +261,9 @@ function Upload-Artifacts-To-GitHub
         $WorkDir,
 
         <# 
-        Branch name of the targeting release
-        i.e. $ArtifactRun.head_branch
+        Branch name of "iotedge" repository.
+        This parameter is used for the script to figure out the releasing version.
+        i.e. "master" or $artifactRun.head_branch
         #>
         [Parameter(Mandatory)]
         [Object]
@@ -279,7 +280,7 @@ function Upload-Artifacts-To-GitHub
     if ($Pat.count -le 1)
     {
         # Assume Az CLI is installed & logged in.
-        $pat = $(az keyvault secret show -n TestGitHubAccessToken --vault-name edge-e2e-kv | ConvertFrom-Json)
+        $pat = $(az keyvault secret show -n GitHubAccessToken --vault-name edgebuildkv | ConvertFrom-Json)
         $pat = $pat.value;
     }
     else
@@ -287,17 +288,13 @@ function Upload-Artifacts-To-GitHub
         $pat = $Pat
     }
 
+    # Get the latest release from a given branch
+    $url = "https://api.github.com/repos/yophilav/iotedge/releases"
     # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
     $header = @{
         "Accept" = "application/vnd.github.v3+json"
         "Authorization" = "token $pat"
     }
-
-    # https://docs.github.com/en/rest/reference/repos#upload-a-release-asset
-    # https://docs.github.com/en/rest/reference/repos#create-a-release
-
-    # Get the latest release from a given branch
-    $url = "https://api.github.com/repos/yophilav/iotedge/releases"
     $releaseList = $(Invoke-WebRequest -Headers $header -Uri "$url" -Method GET | ConvertFrom-JSON) `
         | where {($_.target_commitish -eq $BranchName)}
     $latestRelease = $releaseList[0]
@@ -309,19 +306,53 @@ function Upload-Artifacts-To-GitHub
 
     # Get content of changelog to be used a release message
     $pattern = "(\#\s$version\s\(\d{4}-\d{2}-\d{2}\)\s[\S\s]*?)\s?(?=\#\s$($latestRelease.tag_name)\s\(\d{4}-\d{2}-\d{2}\)\s)"
-    $ChangeLogPath = "C:\Users\yophilav\Desktop\iotedge\CHANGELOG.md"  #BEARWASHERE -- Remove this line
+    #BEARWASHERE -- Remove this line; 
+    #  Maybe we can have it fetch the value from github directly instead of having the repo be checkedout
+    $ChangeLogPath = "C:\Users\yophilav\Desktop\iotedge\CHANGELOG.md"
     $content = Get-Content $ChangeLogPath -Encoding UTF8 -Raw
     $changeLogContent = [regex]::match($content, $pattern).Groups[1].Value
 
     # Create a new release page
+    # Ref: https://docs.github.com/en/rest/reference/repos#create-a-release
+    # BEARWASHERE -- This needs to be triggered agaist azure-iotedge repository.
     $url = "https://api.github.com/repos/yophilav/iotedge/releases"
     $body = @{
         tag_name = "$version"
-        target_commitish = "$BranchName"
+        target_commitish = "master"
         name = "$version"
         body = "$changeLogContent"
     }
     $release = $(Invoke-WebRequest -Headers $header -Uri "$url" -Method POST -Body "$($body | ConvertTo-Json)" | ConvertFrom-JSON)
+
+    $artifacts = $(Get-ChildItem -Path $WorkDir)
+    foreach ($artifact in $artifacts)
+    {
+        $artifactName = $artifact.Name
+
+        # Extract the MIMEType from the file extension
+        # Ref:
+        #   Content-Type ______________ https://www.iana.org/assignments/media-types/media-types.xhtml
+        #                |_____________ https://stackoverflow.com/questions/20508788/do-i-need-content-type-application-octet-stream-for-file-download
+        $artifactMimeType = "application/octet-stream"
+        Switch ($artifact.Extension)
+        {
+            ".deb"  {$artifactMimeType = "application/vnd.debian.binary-package"}
+            ".rpm"  {$artifactMimeType = "application/x-rpm"}
+            default {$artifactMimeType = "application/octet-stream"}
+        }
+
+        # Upload the artifacts from the $workDir
+        # Ref:
+        #   GitHub API ________________ https://docs.github.com/en/rest/reference/repos#upload-a-release-asset
+        $multiUploadHeader = @{
+            "Accept" = "application/vnd.github.v3+json"
+            "Authorization" = "token $pat"
+            "Name" = "$artifactName"
+            "Content-Type" = "$artifactMimeType"
+        }
+        $body = [System.IO.File]::ReadAllBytes($($artifact.FullName))
+    }
+
 }
 
 
