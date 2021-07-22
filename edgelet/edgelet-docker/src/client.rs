@@ -1,17 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use url::Uri;
-use bollard::Docker;
+use bollard::{Docker, API_DEFAULT_VERSION};
+use url::Url;
 
 pub struct DockerClient {
     pub docker: Docker,
 }
 
 impl DockerClient {
-    pub fn new(_docker_uri: &Uri) -> Result<Self, Box<dyn std::error::Error>> {
-        Ok(DockerClient {
-            docker: Docker::connect_with_local_defaults()?, // TODO: use docker url
-        })
+    pub async fn new(docker_uri: &Url) -> Result<Self, Box<dyn std::error::Error>> {
+        let docker = Docker::connect_with_local(docker_uri.as_str(), 120, API_DEFAULT_VERSION)?
+            .negotiate_version()
+            .await?;
+
+        Ok(DockerClient { docker })
     }
 }
 

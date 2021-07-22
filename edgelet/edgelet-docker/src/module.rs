@@ -8,10 +8,10 @@ use chrono::prelude::*;
 use edgelet_core::{
     Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
 };
+use edgelet_settings::DockerConfig;
 use edgelet_utils::ensure_not_empty_with_context;
 
 use crate::client::DockerClient;
-use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
 
 pub const MODULE_TYPE: &str = "docker";
@@ -193,27 +193,23 @@ mod tests {
     use docker::apis::client::APIClient;
     use docker::apis::configuration::Configuration;
     use docker::models::{ContainerCreateBody, InlineResponse200, InlineResponse200State};
+
     use edgelet_core::{Module, ModuleStatus};
+    use edgelet_settings::DockerConfig;
 
     use crate::client::DockerClient;
-    use crate::config::DockerConfig;
     use crate::module::DockerModule;
 
-    // fn create_api_client<T: Serialize>(body: T) -> DockerClient<JsonConnector> {
-    //     let client = Client::builder().build(JsonConnector::new(&body));
+    async fn get_client() -> DockerClient {
+        DockerClient::new(&url::Url::parse("unix:///var/run/docker.sock").unwrap())
+            .await
+            .unwrap()
+    }
 
-    //     let mut config = Configuration::new(client);
-    //     config.base_path = "http://localhost/".to_string();
-    //     config.uri_composer =
-    //         Box::new(|base_path, path| Ok(format!("{}{}", base_path, path).parse().unwrap()));
-
-    //     DockerClient::new(APIClient::new(config))
-    // }
-
-    #[test]
-    fn new_instance() {
+    #[tokio::test]
+    async fn new_instance() {
         let docker_module = DockerModule::new(
-            DockerClient::new().unwrap(),
+            get_client().await,
             "mod1".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
                 .unwrap(),
@@ -225,10 +221,10 @@ mod tests {
         assert_eq!("ubuntu", docker_module.config().image());
     }
 
-    #[test]
-    fn empty_name_fails() {
+    #[tokio::test]
+    async fn empty_name_fails() {
         let _ = DockerModule::new(
-            DockerClient::new().unwrap(),
+            get_client().await,
             "".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
                 .unwrap(),
@@ -236,10 +232,10 @@ mod tests {
         .unwrap_err();
     }
 
-    #[test]
-    fn white_space_name_fails() {
+    #[tokio::test]
+    async fn white_space_name_fails() {
         let _ = DockerModule::new(
-            DockerClient::new().unwrap(),
+            get_client().await,
             "     ".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None, None)
                 .unwrap(),
