@@ -738,11 +738,61 @@ impl ModuleRuntime for DockerModuleRuntime {
     async fn list(&self) -> Result<Vec<Self::Module>> {
         debug!("Listing modules...");
 
-        Ok(Vec::new())
+        let filters: HashMap<&str, Vec<&str>> = HashMap::new();
+        filters.insert("labels", LABELS.to_vec());
+        let options = bollard::container::ListContainersOptions {
+            all: true,
+            limit: None,
+            size: false,
+            filters,
+        };
+
+        let containers = self
+            .client
+            .docker
+            .list_containers(Some(options))
+            .await
+            .map_err(|_| Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))?;
+
+        let modules = containers
+            .iter()
+            .map(|container| {
+                let name = container
+                    .names
+                    .unwrap_or_default()
+                    .iter()
+                    .next()
+                    .map_or("Unknown", |s| &s[1..])
+                    .to_string();
+
+                let config = DockerConfig::new(
+                    container.image.unwrap_or_default(),
+                    ContainerCreateBody::new()
+                        .with_labels(container.labels.unwrap_or_default().into_iter().collect()),
+                    None,
+                    None,
+                )
+                .map_err(|_| {
+                    Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
+                })?;
+                let config = config.with_image_hash(container.image_id.unwrap_or_default());
+
+                DockerModule::new(self.client.clone(), name, config)
+            })
+            .collect::<Result<Vec<DockerModule>>>();
+
+        modules
     }
 
-    fn list_with_details(&self) -> Self::ListWithDetailsStream {
-        list_with_details(self)
+    async fn list_with_details(&self) -> Result<Vec<(Self::Module, ModuleRuntimeState)>> {
+        let result = Vec::new();
+        for module in self.list().await? {
+            if let Ok(module_with_details) = self.get(module.name()).await {
+                result.push(module_with_details);
+            }
+        }
+
+        Ok(result)
     }
 
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture {

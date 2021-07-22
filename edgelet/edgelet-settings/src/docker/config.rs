@@ -5,7 +5,7 @@
 pub struct DockerConfig {
     image: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "imageHash")]
     image_hash: Option<String>,
 
     #[serde(default = "docker::models::ContainerCreateBody::new")]
