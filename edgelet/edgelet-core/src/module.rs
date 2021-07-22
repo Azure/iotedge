@@ -405,7 +405,7 @@ pub trait ModuleRuntime: Sized {
     async fn list_with_details(
         &self,
     ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<Self::Logs, Self::Error>;
+    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
 

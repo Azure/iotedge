@@ -3,6 +3,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
+use std::pin::Pin;
 use std::str;
 use std::sync::Arc;
 use std::time::Duration;
@@ -428,7 +429,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Module = DockerModule;
     type ModuleRegistry = Self;
     type Chunk = bytes::Bytes;
-    type Logs = dyn Stream<Item = Result<Self::Chunk>>;
+    type Logs = Pin<Box<dyn Stream<Item = Result<Self::Chunk>>>>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
@@ -796,7 +797,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         Ok(result)
     }
 
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<Box<Self::Logs>> {
+    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs {
         info!("Getting logs for module {}...", id);
 
         let options = bollard::container::LogsOptions {
@@ -819,7 +820,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 ))
             });
 
-        Ok(Box::new(result))
+        Box::pin(result)
     }
 
     fn registry(&self) -> &Self::ModuleRegistry {
@@ -852,175 +853,83 @@ impl ModuleRuntime for DockerModuleRuntime {
 impl Authenticator for DockerModuleRuntime {
     type Error = Error;
     type Request = Request<Body>;
-    type AuthenticateFuture = Box<dyn Future<Item = AuthId, Error = Self::Error> + Send>;
 
-    fn authenticate(&self, req: &Self::Request) -> Self::AuthenticateFuture {
-        authenticate(self, req)
+    fn authenticate(&self, req: &Self::Request) -> Result<AuthId> {
+        // authenticate(self, req)
+        Err(Error::from(ErrorKind::RuntimeOperation(
+            RuntimeOperation::SystemResources,
+        )))
     }
 }
 
-#[derive(Debug)]
-pub struct Logs(String, Body);
+// fn authenticate<MR>(
+//     runtime: &MR,
+//     req: &Request<Body>,
+// ) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
+// where
+//     MR: ModuleRuntime<Error = Error>,
+//     <MR as ModuleRuntime>::ListFuture: 'static,
+//     MR::Module: DockerModuleTop<Error = Error> + 'static,
+// {
+//     let pid = req
+//         .extensions()
+//         .get::<Pid>()
+//         .cloned()
+//         .unwrap_or_else(|| Pid::None);
 
-impl Stream for Logs {
-    type Item = Chunk;
-    type Error = Error;
+//     let expected_module_id = req.extensions().get::<ModuleId>().cloned();
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        match self.1.poll() {
-            Ok(Async::Ready(chunk)) => Ok(Async::Ready(chunk.map(Chunk))),
-            Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(err) => Err(Error::from(err.context(ErrorKind::RuntimeOperation(
-                RuntimeOperation::GetModuleLogs(self.0.clone()),
-            )))),
-        }
-    }
-}
-
-impl From<Logs> for Body {
-    fn from(logs: Logs) -> Self {
-        logs.1
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct Chunk(HyperChunk);
-
-impl IntoIterator for Chunk {
-    type Item = u8;
-    type IntoIter = <HyperChunk as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl Extend<u8> for Chunk {
-    fn extend<T>(&mut self, iter: T)
-    where
-        T: IntoIterator<Item = u8>,
-    {
-        self.0.extend(iter)
-    }
-}
-
-impl AsRef<[u8]> for Chunk {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
-    }
-}
-
-/// Invokes `ModuleRuntime::list`, then `Module::runtime_state` on each Module.
-/// Modules whose `runtime_state` returns `NotFound` are filtered out from the result,
-/// instead of letting the whole `list_with_details` call fail.
-fn list_with_details<MR, M>(
-    runtime: &MR,
-) -> Box<dyn Stream<Item = (M, ModuleRuntimeState), Error = Error> + Send>
-where
-    MR: ModuleRuntime<Error = Error, Config = <M as Module>::Config, Module = M>,
-    <MR as ModuleRuntime>::ListFuture: 'static,
-    M: Module<Error = Error> + Send + 'static,
-    <M as Module>::Config: Clone + Send,
-{
-    Box::new(remove_not_found(
-        runtime
-            .list()
-            .into_stream()
-            .map(|list| {
-                stream::futures_unordered(
-                    list.into_iter()
-                        .map(|module| module.runtime_state().map(|state| (module, state))),
-                )
-            })
-            .flatten(),
-    ))
-}
-
-fn remove_not_found<S>(stream: S) -> impl Stream<Item = S::Item> + Send
-where
-    S: Stream + Send + 'static,
-    S::Item: Send + 'static,
-{
-    stream
-        .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
-        .filter_map(|value| match value {
-            Ok(value) => Some(Ok(value)),
-            Err(err) => match err.kind() {
-                ErrorKind::NotFound(_) => None,
-                _ => Some(Err(err)),
-            },
-        })
-        .then(Result::unwrap) // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
-}
-
-fn authenticate<MR>(
-    runtime: &MR,
-    req: &Request<Body>,
-) -> Box<dyn Future<Item = AuthId, Error = Error> + Send>
-where
-    MR: ModuleRuntime<Error = Error>,
-    <MR as ModuleRuntime>::ListFuture: 'static,
-    MR::Module: DockerModuleTop<Error = Error> + 'static,
-{
-    let pid = req
-        .extensions()
-        .get::<Pid>()
-        .cloned()
-        .unwrap_or_else(|| Pid::None);
-
-    let expected_module_id = req.extensions().get::<ModuleId>().cloned();
-
-    Box::new(match pid {
-        Pid::None => Either::A(future::ok(AuthId::None)),
-        Pid::Any => Either::A(future::ok(AuthId::Any)),
-        Pid::Value(pid) => Either::B(
-            // to authenticate request we need to determine whether given pid corresponds to
-            // any pid from a module with provided module name. In order to do so, we are
-            // load a list of all running modules and execute docker top command only for
-            // the module that have corresponding name. There can be errors during requests,
-            // so we are filtered out those modules that we active during docker inspect
-            // operation but have gone after (NotFound and TopModule errors).
-            match expected_module_id {
-                None => Either::A(future::ok(AuthId::None)),
-                Some(expected_module_id) => Either::B(
-                    runtime
-                        .list()
-                        .map(move |list| {
-                            list.into_iter()
-                                .find(|module| expected_module_id == module.name())
-                        })
-                        .and_then(|module| module.map(|module| module.top()))
-                        .map(move |top| {
-                            top.and_then(|top| {
-                                if top.process_ids().contains(&pid) {
-                                    Some(top.name().to_string())
-                                } else {
-                                    None
-                                }
-                            })
-                        })
-                        .then(move |result| match result {
-                            Ok(Some(m)) => Ok(AuthId::Value(m.into())),
-                            Ok(None) => {
-                                info!("Unable to find a module for caller pid: {}", pid);
-                                Ok(AuthId::None)
-                            }
-                            Err(err) => match err.kind() {
-                                ErrorKind::NotFound(_)
-                                | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
-                                    Ok(AuthId::None)
-                                }
-                                _ => {
-                                    log_failure(Level::Warn, &err);
-                                    Err(err)
-                                }
-                            },
-                        }),
-                ),
-            },
-        ),
-    })
-}
+//     Box::new(match pid {
+//         Pid::None => Either::A(future::ok(AuthId::None)),
+//         Pid::Any => Either::A(future::ok(AuthId::Any)),
+//         Pid::Value(pid) => Either::B(
+//             // to authenticate request we need to determine whether given pid corresponds to
+//             // any pid from a module with provided module name. In order to do so, we are
+//             // load a list of all running modules and execute docker top command only for
+//             // the module that have corresponding name. There can be errors during requests,
+//             // so we are filtered out those modules that we active during docker inspect
+//             // operation but have gone after (NotFound and TopModule errors).
+//             match expected_module_id {
+//                 None => Either::A(future::ok(AuthId::None)),
+//                 Some(expected_module_id) => Either::B(
+//                     runtime
+//                         .list()
+//                         .map(move |list| {
+//                             list.into_iter()
+//                                 .find(|module| expected_module_id == module.name())
+//                         })
+//                         .and_then(|module| module.map(|module| module.top()))
+//                         .map(move |top| {
+//                             top.and_then(|top| {
+//                                 if top.process_ids().contains(&pid) {
+//                                     Some(top.name().to_string())
+//                                 } else {
+//                                     None
+//                                 }
+//                             })
+//                         })
+//                         .then(move |result| match result {
+//                             Ok(Some(m)) => Ok(AuthId::Value(m.into())),
+//                             Ok(None) => {
+//                                 info!("Unable to find a module for caller pid: {}", pid);
+//                                 Ok(AuthId::None)
+//                             }
+//                             Err(err) => match err.kind() {
+//                                 ErrorKind::NotFound(_)
+//                                 | ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(_)) => {
+//                                     Ok(AuthId::None)
+//                                 }
+//                                 _ => {
+//                                     log_failure(Level::Warn, &err);
+//                                     Err(err)
+//                                 }
+//                             },
+//                         }),
+//                 ),
+//             },
+//         ),
+//     })
+// }
 
 #[cfg(test)]
 mod tests {
