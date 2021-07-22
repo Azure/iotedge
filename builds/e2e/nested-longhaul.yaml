@@ -46,10 +46,10 @@ stages:
     variables:    
       deviceLvl5AmqpAgentName: $[ dependencies.Lock_Nested_Agents_amqp.outputs['lock_test_agent.l5AgentName'] ]
       deviceLvl5MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l5AgentName'] ]
-      deviceLvl4AmqpAgentName: $[ dependencies.Lock_Nested_Agents_mqtt_amqp.outputs['lock_test_agent.l4AgentName'] ]
-      deviceLvl4MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt_mqtt.outputs['lock_test_agent.l4AgentName'] ]
-      amd64AmqpAgentName: $[ dependencies.Lock_Nested_Agents_mqtt_amqp.outputs['lock_test_agent.l3AgentName'] ]
-      amd64MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt_amqp.outputs['lock_test_agent.l3AgentName'] ]
+      deviceLvl4AmqpAgentName: $[ dependencies.Lock_Nested_Agents_amqp.outputs['lock_test_agent.l4AgentName'] ]
+      deviceLvl4MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l4AgentName'] ]
+      amd64AmqpAgentName: $[ dependencies.Lock_Nested_Agents_amqp.outputs['lock_test_agent.l3AgentName'] ]
+      amd64MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l3AgentName'] ]
     pool:
       name: $(pool.name)
       demands:

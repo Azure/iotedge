@@ -21,7 +21,9 @@ stages:
       upstream.protocol: 'mqtt'
   - job:  Deploy_Connectivity_Linux_Amd64
     displayName: Set up and run connectivity tests on Linux Amd64
-    dependsOn: SetupVM_level4_mqtt
+    dependsOn:
+      - Lock_Nested_Agents_mqtt
+      - SetupVM_level4_mqtt
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     strategy:
       matrix:
@@ -68,7 +70,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked  
+        - Agent.Name -equals $(agentName)
     variables:
       parentName: $[ dependencies.SetupVM_level4_mqtt.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
@@ -83,6 +85,7 @@ stages:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb   
       artifactName: iotedged-ubuntu18.04-amd64
       upstream.protocol: 'mqtt'
+      agentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l3AgentName'] ]
     steps:  
       - template: templates/set-run-flag.yaml
       - task: Bash@3
@@ -157,10 +160,10 @@ stages:
       - Deploy_connectivity_Linux_Amd64
     condition: always()
     displayName: Clean up identities and unlock agents
-    variables:    
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]         
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]       
-      amd64AgentName: $[ dependencies.Deploy_connectivity_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
+    variables:
+      deviceLvl5AgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l5AgentName'] ]
+      deviceLvl4AgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l4AgentName'] ]
+      amd64AgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l3AgentName'] ]
     pool:
       name: $(pool.name)
       demands:
@@ -178,3 +181,7 @@ stages:
         parameters:
           agentName: $(deviceLvl4AgentName)
           lvl: 4
+      - template: templates/unlock-test-agent.yaml 
+        parameters:
+          agentName: $(amd64AgentName)
+          lvl: 3

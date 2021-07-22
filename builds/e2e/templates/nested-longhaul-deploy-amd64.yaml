@@ -3,7 +3,6 @@ parameters:
   testInfo.testName: ''
 
 jobs:
-  # TODO: fix for other platforms
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters['upstream.protocol'] }}
     displayName: Set up and run longhaul tests on Linux Amd64 for ${{ parameters['upstream.protocol'] }}
     dependsOn:
