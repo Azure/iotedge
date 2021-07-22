@@ -450,20 +450,19 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let merged_env =
             DockerModuleRuntime::merge_env(module.config().create_options().env(), module.env());
-        let mut labels: HashMap<&str, &str> =
-            module
-                .config()
-                .create_options()
-                .labels()
-                .map_or_else(HashMap::new, |old_labels| {
-                    let new_labels = HashMap::with_capacity(old_labels.len() + 2);
+        let mut labels: HashMap<&str, &str> = module
+            .config()
+            .create_options()
+            .labels()
+            .map_or_else(HashMap::new, |old_labels| {
+                let new_labels = HashMap::with_capacity(old_labels.len() + 2);
 
-                    for (key, value) in old_labels {
-                        new_labels.insert(key.as_str(), value.as_str());
-                    }
+                for (key, value) in old_labels {
+                    new_labels.insert(key.as_str(), value.as_str());
+                }
 
-                    new_labels
-                });
+                new_labels
+            });
         labels.insert(OWNER_LABEL_KEY, OWNER_LABEL_VALUE);
         labels.insert(ORIGINAL_IMAGE_LABEL_KEY, module.config().image());
 
@@ -638,242 +637,108 @@ impl ModuleRuntime for DockerModuleRuntime {
         };
 
         Ok(system_info)
-
-        // Box::new(
-        //     self.client
-        //         .system_api()
-        //         .system_info()
-        //         .then(move |result| match result {
-        //             Ok(system_info) => {
-        //                 let system_info = CoreSystemInfo {
-        //                     os_type: system_info
-        //                         .os_type()
-        //                         .unwrap_or(&String::from("Unknown"))
-        //                         .to_string(),
-        //                     architecture: system_info
-        //                         .architecture()
-        //                         .unwrap_or(&String::from("Unknown"))
-        //                         .to_string(),
-        //                     version: edgelet_core::version_with_source_version(),
-        //                     provisioning,
-        //                     cpus: system_info.NCPU().unwrap_or_default(),
-        //                     virtualized: match edgelet_core::is_virtualized_env() {
-        //                         Ok(Some(true)) => "yes",
-        //                         Ok(Some(false)) => "no",
-        //                         Ok(None) | Err(_) => "unknown",
-        //                     },
-        //                     kernel_version: system_info
-        //                         .kernel_version()
-        //                         .map(std::string::ToString::to_string)
-        //                         .unwrap_or_default(),
-        //                     operating_system: system_info
-        //                         .operating_system()
-        //                         .map(std::string::ToString::to_string)
-        //                         .unwrap_or_default(),
-        //                     server_version: system_info
-        //                         .server_version()
-        //                         .map(std::string::ToString::to_string)
-        //                         .unwrap_or_default(),
-        //                 };
-        //                 info!("Successfully queried system info");
-        //                 Ok(system_info)
-        //             }
-        //             Err(err) => {
-        //                 let err = Error::from_docker_error(
-        //                     err,
-        //                     ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo),
-        //                 );
-        //                 log_failure(Level::Warn, &err);
-        //                 Err(err)
-        //             }
-        //         }),
-        // )
     }
 
     async fn system_resources(&self) -> Result<SystemResources> {
         info!("Querying system resources...");
 
-        let options = bollard::container::StatsOptions {
-            stream: false,
-            one_shot: false,
+        let uptime: u64 = {
+            let mut info: libc::sysinfo = unsafe { mem::zeroed() };
+            let ret = unsafe { libc::sysinfo(&mut info) };
+            if ret == 0 {
+                info.uptime.try_into().unwrap_or_default()
+            } else {
+                0
+            }
         };
 
-        let stats = self
-            .client
-            .docker
-            .stats(id, Some(options))
-            .await
-            .map_err(|_| Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))?;
+        // Get system resources
+        let mut system_resources = self.system_resources.as_ref().lock().await;
+        system_resources.refresh_system();
+        let start_time = process::id()
+            .try_into()
+            .map(|id| {
+                system_resources.refresh_process(id);
+                system_resources
+                    .get_process(id)
+                    .map(|p| p.start_time())
+                    .unwrap_or_default()
+            })
+            .unwrap_or_default();
 
-        // let client = self.client.clone();
-        // let docker_stats = self
-        //     .list() // Get all modules
-        //     .and_then(|modules: Vec<Self::Module>| {
-        //         // Get iterable of stats
-        //         remove_not_found(
-        //             stream::iter_ok(modules)
-        //                 .and_then(move |module| {
-        //                     client.container_api().container_stats(module.name(), false)
-        //                 })
-        //                 .map_err(|err| {
-        //                     Error::from_docker_error(
-        //                         err,
-        //                         ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
-        //                     )
-        //                 }),
-        //         )
-        //         .collect()
-        //     })
-        //     .map(serde_json::Value::Array) // Condense into single json value
-        //     .and_then(|stats| {
-        //         // convert to string
-        //         serde_json::to_string(&stats).map_err(|_| {
-        //             Error::from(ErrorKind::RuntimeOperation(
-        //                 RuntimeOperation::SystemResources,
-        //             ))
-        //         })
-        //     });
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
 
-        // #[cfg(not(any(windows, target_os = "linux")))]
-        // let uptime: u64 = 0;
+        let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
+        let total_memory = system_resources.get_total_memory() * 1000;
+        let used_memory = system_resources.get_used_memory() * 1000;
 
-        // #[cfg(target_os = "linux")]
-        // let uptime: u64 = {
-        //     let mut info: libc::sysinfo = unsafe { mem::zeroed() };
-        //     let ret = unsafe { libc::sysinfo(&mut info) };
-        //     if ret == 0 {
-        //         info.uptime.try_into().unwrap_or_default()
-        //     } else {
-        //         0
-        //     }
-        // };
+        system_resources.refresh_disks();
+        let disks = system_resources
+            .get_disks()
+            .iter()
+            .map(|disk| {
+                DiskInfo::new(
+                    disk.get_name().to_string_lossy().into_owned(),
+                    disk.get_available_space(),
+                    disk.get_total_space(),
+                    String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                    format!("{:?}", disk.get_type()),
+                )
+            })
+            .collect();
 
-        // let mut system_resources = self
-        //     .system_resources
-        //     .as_ref()
-        //     .lock()
-        //     .expect("Could not acquire system resources lock");
+        // Get Docker Stats
+        // Note a for_each loop is used for simplicity with async operations
+        // While a stream could be used for parallel operations, it isn't necessary here
+        let modules = self.list().await?;
+        let docker_stats: Vec<bollard::container::Stats> = Vec::with_capacity(modules.len());
+        for module in modules {
+            let options = bollard::container::StatsOptions {
+                stream: false,
+                one_shot: false,
+            };
 
-        // let current_time = SystemTime::now()
-        //     .duration_since(UNIX_EPOCH)
-        //     .unwrap_or_default()
-        //     .as_secs();
-        // let start_time = process::id()
-        //     .try_into()
-        //     .map(|id| {
-        //         system_resources.refresh_process(id);
-        //         system_resources
-        //             .get_process(id)
-        //             .map(|p| p.start_time())
-        //             .unwrap_or_default()
-        //     })
-        //     .unwrap_or_default();
+            let stats = self
+                .client
+                .docker
+                .stats(module.name(), Some(options))
+                .into_future()
+                .await;
 
-        // system_resources.refresh_system();
-        // let used_cpu = system_resources.get_global_processor_info().get_cpu_usage();
-        // let total_memory = system_resources.get_total_memory() * 1000;
-        // let used_memory = system_resources.get_used_memory() * 1000;
+            let stats = if let (Some(Ok(s)), _) = stats {
+                s
+            } else {
+                return Err(Error::from(ErrorKind::RuntimeOperation(
+                    RuntimeOperation::SystemInfo,
+                )));
+            };
 
-        // system_resources.refresh_disks();
-        // let disks = system_resources
-        //     .get_disks()
-        //     .iter()
-        //     .map(|disk| {
-        //         DiskInfo::new(
-        //             disk.get_name().to_string_lossy().into_owned(),
-        //             disk.get_available_space(),
-        //             disk.get_total_space(),
-        //             String::from_utf8_lossy(disk.get_file_system()).into_owned(),
-        //             format!("{:?}", disk.get_type()),
-        //         )
-        //     })
-        //     .collect();
+            docker_stats.push(stats);
+        }
+        let docker_stats = serde_json::to_string(&docker_stats).map_err(|_| {
+            Error::from(ErrorKind::RuntimeOperation(
+                RuntimeOperation::SystemResources,
+            ))
+        })?;
 
-        // let result = docker_stats.map(move |stats: String| {
-        //     SystemResources::new(
-        //         uptime,
-        //         current_time - start_time,
-        //         used_cpu.into(),
-        //         used_memory,
-        //         total_memory,
-        //         disks,
-        //         stats,
-        //     )
-        // });
-
-        // Box::new(result)
+        Ok(SystemResources::new(
+            uptime,
+            current_time - start_time,
+            used_cpu.into(),
+            used_memory,
+            total_memory,
+            disks,
+            docker_stats,
+        ))
     }
 
-    fn list(&self) -> Self::ListFuture {
+    async fn list(&self) -> Result<Vec<Self::Module>> {
         debug!("Listing modules...");
 
-        let mut filters = HashMap::new();
-        filters.insert("label", LABELS.deref());
-
-        let client_copy = self.client.clone();
-
-        let result = serde_json::to_string(&filters)
-            .context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules))
-            .map_err(Error::from)
-            .map(|filters| {
-                self.client
-                    .container_api()
-                    .container_list(true, 0, false, &filters)
-                    .map(move |containers| {
-                        containers
-                            .iter()
-                            .flat_map(|container| {
-                                DockerConfig::new(
-                                    container.image().to_string(),
-                                    ContainerCreateBody::new().with_labels(
-                                        container
-                                            .labels()
-                                            .iter()
-                                            .map(|(k, v)| (k.to_string(), v.to_string()))
-                                            .collect(),
-                                    ),
-                                    None,
-                                    None,
-                                )
-                                .map(|config| {
-                                    (
-                                        container,
-                                        config.with_image_id(container.image_id().clone()),
-                                    )
-                                })
-                            })
-                            .flat_map(|(container, config)| {
-                                DockerModule::new(
-                                    client_copy.clone(),
-                                    container
-                                        .names()
-                                        .iter()
-                                        .next()
-                                        .map_or("Unknown", |s| &s[1..])
-                                        .to_string(),
-                                    config,
-                                )
-                            })
-                            .collect()
-                    })
-                    .map_err(|err| {
-                        Error::from_docker_error(
-                            err,
-                            ErrorKind::RuntimeOperation(RuntimeOperation::ListModules),
-                        )
-                    })
-            })
-            .into_future()
-            .flatten()
-            .then(|result| {
-                match result {
-                    Ok(_) => debug!("Successfully listed modules"),
-                    Err(ref err) => log_failure(Level::Warn, err),
-                }
-
-                result
-            });
-        Box::new(result)
+        Ok(Vec::new())
     }
 
     fn list_with_details(&self) -> Self::ListWithDetailsStream {
@@ -1037,9 +902,9 @@ where
     ))
 }
 
-fn remove_not_found<S>(stream: S) -> impl Stream<Item = S::Item, Error = S::Error> + Send
+fn remove_not_found<S>(stream: S) -> impl Stream<Item = S::Item> + Send
 where
-    S: Stream<Error = Error> + Send + 'static,
+    S: Stream + Send + 'static,
     S::Item: Send + 'static,
 {
     stream
