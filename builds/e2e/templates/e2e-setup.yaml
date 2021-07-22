@@ -167,7 +167,7 @@ steps:
       $edgeHubImage = "$imagePrefix-hub:$imageTag";
     }
 
-    if ('$(manifestSigningFlag)' -eq 'true')
+    if ('$(enableManifestSigning)' -eq 'true')
     {  
       $testManifestSigningRootCaPath = Convert-Path "$(manifestSigningCertDir)/root_ca.pem";
       $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
@@ -190,8 +190,9 @@ steps:
         }
       };
       
-      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 '$(manifestSigningbinDir)/Properties/launchSettings.json'
-      Get-Content -Path '$(manifestSigningbinDir)/Properties/launchSettings.json' 
+      $launchSettingsPath  = Convert-Path "$(manifestSigningbinDir)/Properties/launchSettings.json"
+      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$launchSettingsPath""
+      Get-Content -Path "$launchSettingsPath"
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -243,9 +244,11 @@ steps:
       }
     }
 
-    if ('$(manifestSigningFlag)' -eq 'true')
+    if ('$(enableManifestSigning)' -eq 'true')
     {
-      $context['manifestSigningFlag'] = "true";
+      $context['enableManifestSigning'] = "true";
+      $context['manifestSigningBinDir'] = "$(manifestSigningbinDir)";
+      $context['launchSettingsPath'] = "$launchSettingsPath"
     }
                                                                                                                                                                                                                                                                                          
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')

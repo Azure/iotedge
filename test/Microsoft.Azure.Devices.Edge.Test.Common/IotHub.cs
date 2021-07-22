@@ -142,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 // dotnet run manifestclient
                 // read back and update the config
             }
+
             return this.RegistryManager.ApplyConfigurationContentOnDeviceAsync(deviceId, config, token);
         }
 
