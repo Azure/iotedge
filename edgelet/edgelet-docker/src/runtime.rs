@@ -14,14 +14,14 @@ use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use tokio::sync::Mutex;
 
-use docker::models::{ContainerCreateBody, Ipam};
+use docker::models::{ContainerCreateBody, Ipam}; // TODO: Move to settings crate?
 use edgelet_core::{
     AuthId, Authenticator, LogOptions, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
     SystemInfo as CoreSystemInfo, SystemResources,
 };
 use edgelet_settings::{
-    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec, RuntimeSettings,
+    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, ModuleSpec,
     Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
