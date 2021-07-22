@@ -772,7 +772,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .client
             .docker
             .logs(id, Some(options))
-            .map_ok(|chunk| chunk.into_bytes())
+            .map_ok(bollard::container::LogOutput::into_bytes)
             .map_err(|e| {
                 Error::from(ErrorKind::RuntimeOperation(
                     RuntimeOperation::GetModuleLogs(e.to_string()),
@@ -806,6 +806,47 @@ impl ModuleRuntime for DockerModuleRuntime {
             .collect::<Result<Vec<_>>>()?;
 
         Ok(())
+    }
+
+    async fn module_top(&self, id: &str) -> Result<Vec<i32>> {
+        let error = |msg: &str| {
+            Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
+                id.to_owned(),
+                msg.to_owned(),
+            )))
+        };
+
+        let top_response = self
+            .client
+            .docker
+            .top_processes::<&str>(id, None)
+            .await
+            .map_err(|e| error(&e.to_string()))?;
+
+        let pids: Vec<i32> = if let Some(titles) = &top_response.titles {
+            let pid_index: usize = titles
+                .iter()
+                .position(|s| s.as_str() == "PID")
+                .ok_or_else(|| error("Expected Title 'PID'"))?;
+
+            if let Some(processes) = &top_response.processes {
+                processes
+                    .iter()
+                    .map(|process| {
+                        let str_pid = process
+                            .get(pid_index)
+                            .ok_or_else(|| error("PID index empty"))?;
+                        str_pid.parse::<i32>().map_err(|e| error(&e.to_string()))
+                    })
+                    .collect::<Result<Vec<i32>>>()?
+            } else {
+                return Err(error("Expected 'Processes' field"));
+            }
+        } else {
+            return Err(error("Expected 'Title' field"));
+        };
+
+        Ok(pids)
     }
 }
 

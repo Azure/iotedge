@@ -408,6 +408,7 @@ pub trait ModuleRuntime: Sized {
     async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
+    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
 }
