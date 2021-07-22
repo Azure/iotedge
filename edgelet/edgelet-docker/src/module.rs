@@ -189,7 +189,7 @@ mod tests {
 
     use docker::models::ContainerCreateBody;
 
-    use edgelet_core::{Module, ModuleStatus};
+    use edgelet_core::Module;
     use edgelet_settings::DockerConfig;
 
     use crate::client::DockerClient;

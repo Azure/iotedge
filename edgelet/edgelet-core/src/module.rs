@@ -483,7 +483,9 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
             RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
-            RuntimeOperation::TopModule(name, reason) => write!(f, "Could not top module {}.\n{}", name, reason),
+            RuntimeOperation::TopModule(name, reason) => {
+                write!(f, "Could not top module {}.\n{}", name, reason)
+            }
         }
     }
 }
