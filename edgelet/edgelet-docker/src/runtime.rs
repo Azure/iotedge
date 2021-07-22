@@ -826,34 +826,26 @@ impl ModuleRuntime for DockerModuleRuntime {
         self
     }
 
-    fn remove_all(&self) -> Self::RemoveAllFuture {
-        let self_for_remove = self.clone();
-        Box::new(self.list().and_then(move |list| {
-            let n = list.into_iter().map(move |c| {
-                <DockerModuleRuntime as ModuleRuntime>::remove(&self_for_remove, c.name())
-            });
-            future::join_all(n).map(|_| ())
-        }))
+    async fn remove_all(&self) -> Result<()> {
+        stream::iter(self.list().await?)
+            .then(|module| ModuleRuntime::remove(self, module.name()))
+            .collect::<Vec<Result<_>>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(())
     }
 
-    fn stop_all(&self, wait_before_kill: Option<Duration>) -> Self::StopAllFuture {
-        let self_for_stop = self.clone();
-        Box::new(self.list().and_then(move |list| {
-            let n = list.into_iter().map(move |c| {
-                <DockerModuleRuntime as ModuleRuntime>::stop(
-                    &self_for_stop,
-                    c.name(),
-                    wait_before_kill,
-                )
-                .or_else(|err| {
-                    match <dyn Fail>::find_root_cause(&err).downcast_ref::<ErrorKind>() {
-                        Some(ErrorKind::NotFound(_)) | Some(ErrorKind::NotModified) => Ok(()),
-                        _ => Err(err),
-                    }
-                })
-            });
-            future::join_all(n).map(|_| ())
-        }))
+    async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<()> {
+        stream::iter(self.list().await?)
+            .then(|module| self.stop(module.name(), wait_before_kill))
+            .collect::<Vec<Result<_>>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(())
     }
 }
 
