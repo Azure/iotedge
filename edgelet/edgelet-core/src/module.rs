@@ -346,28 +346,6 @@ impl DiskInfo {
     }
 }
 
-#[derive(Debug)]
-pub struct ModuleTop {
-    /// Name of the module. Example: tempSensor
-    name: String,
-    /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
-    process_ids: Vec<i32>,
-}
-
-impl ModuleTop {
-    pub fn new(name: String, process_ids: Vec<i32>) -> Self {
-        ModuleTop { name, process_ids }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn process_ids(&self) -> &[i32] {
-        &self.process_ids
-    }
-}
-
 pub trait ProvisioningResult {
     fn device_id(&self) -> &str;
     fn hub_name(&self) -> &str;

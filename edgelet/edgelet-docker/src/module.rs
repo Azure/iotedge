@@ -2,12 +2,10 @@
 
 use std::str::FromStr;
 
-use bollard::service::{ContainerState, ContainerStateStatusEnum, ContainerTopResponse};
+use bollard::service::{ContainerState, ContainerStateStatusEnum};
 use chrono::prelude::*;
 
-use edgelet_core::{
-    Module, ModuleOperation, ModuleRuntimeState, ModuleStatus, ModuleTop, RuntimeOperation,
-};
+use edgelet_core::{Module, ModuleOperation, ModuleRuntimeState, ModuleStatus};
 use edgelet_settings::DockerConfig;
 use edgelet_utils::ensure_not_empty_with_context;
 
@@ -39,65 +37,6 @@ impl DockerModule {
             config,
         })
     }
-}
-
-#[async_trait::async_trait]
-pub trait DockerModuleTop {
-    async fn top(&self) -> Result<ModuleTop>;
-}
-
-#[async_trait::async_trait]
-impl DockerModuleTop for DockerModule {
-    async fn top(&self) -> Result<ModuleTop> {
-        let top_response = self
-            .client
-            .docker
-            .top_processes::<&str>(&self.name, None)
-            .await
-            .map_err(|e| {
-                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
-                    self.name.clone(),
-                    e.to_string(),
-                )))
-            })?;
-
-        let pids = parse_top_response(&self.name(), &top_response)?;
-
-        Ok(ModuleTop::new(self.name.clone(), pids))
-    }
-}
-
-fn parse_top_response(name: &str, top_response: &ContainerTopResponse) -> Result<Vec<i32>> {
-    let error = |msg: &str| {
-        Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::TopModule(
-            name.to_owned(),
-            msg.to_owned(),
-        )))
-    };
-    let pids: Vec<i32> = if let Some(titles) = &top_response.titles {
-        let pid_index: usize = titles
-            .iter()
-            .position(|s| s.as_str() == "PID")
-            .ok_or_else(|| error("Expected Title 'PID'"))?;
-
-        if let Some(processes) = &top_response.processes {
-            processes
-                .iter()
-                .map(|process| {
-                    let str_pid = process
-                        .get(pid_index)
-                        .ok_or_else(|| error("PID index empty"))?;
-                    str_pid.parse::<i32>().map_err(|e| error(&e.to_string()))
-                })
-                .collect::<Result<Vec<i32>>>()?
-        } else {
-            return Err(error("Expected 'Processes' field"));
-        }
-    } else {
-        return Err(error("Expected 'Title' field"));
-    };
-
-    Ok(pids)
 }
 
 fn status_from_exit_code(exit_code: Option<i64>) -> Option<ModuleStatus> {

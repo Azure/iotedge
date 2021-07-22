@@ -40,8 +40,8 @@ pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, Ident
 //pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
     DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation, ModuleRegistry,
-    ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ModuleTop,
-    ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ProvisioningInfo,
+    RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
 pub use parse_since::parse_since;
 pub use virtualization::is_virtualized_env;
