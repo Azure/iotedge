@@ -1,19 +1,3 @@
-# 1.2.4 (2021-06-23)
-## Edge Agent
-### Bug Fixes
-* TEST1 load Client. ( [472cee5](https://github.com/Azure/iotedge/commit/472cee580101cfd5999492ef3760d5038679680e), [f9cdb59](https://github.com/Azure/iotedge/commit/f9cdb5902a8e13b80bbd8040323fb0729f085dc3) )
-* TEST1 ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
-
-### Features
-* TEST1 log. ( [d336d08](https://github.com/Azure/iotedge/commit/d336d085f5503747fb5f194e3cd261c0d2b91aea) )
-
-
-## Edge Hub
-### Bug Fixes
-* TEST1 ( [d0e6113](https://github.com/Azure/iotedge/commit/d0e6113e4454ef5f23909c396f793833f14649e1) )
-* TEST1 ( [421347d](https://github.com/Azure/iotedge/commit/421347dff842eff6e552462b967f6c84e1982b29) )
-
-
 # 1.2.3 (2021-06-30)
 ## aziot-edge
 ### Bug Fixes

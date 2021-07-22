@@ -289,6 +289,7 @@ function Upload-Artifacts-To-GitHub
     }
 
     # Get the latest release from a given branch
+    # BEARWASHERE -- This needs to be triggered agaist Azure/iotedge repository.
     $url = "https://api.github.com/repos/yophilav/iotedge/releases"
     # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
     $header = @{
@@ -308,13 +309,25 @@ function Upload-Artifacts-To-GitHub
     $pattern = "(\#\s$version\s\(\d{4}-\d{2}-\d{2}\)\s[\S\s]*?)\s?(?=\#\s$($latestRelease.tag_name)\s\(\d{4}-\d{2}-\d{2}\)\s)"
     #BEARWASHERE -- Remove this line; 
     #  Maybe we can have it fetch the value from github directly instead of having the repo be checkedout
-    $ChangeLogPath = "C:\Users\yophilav\Desktop\iotedge\CHANGELOG.md"
+    #$ChangeLogPath = "C:\Users\yophilav\Desktop\iotedge\CHANGELOG.md"
+
+    # BEARWASHERE -- This needs to be triggered agaist Azure/iotedge repository.
+    $url = "https://api.github.com/repos/yophilav/iotedge/contents/"
+    $body = @{
+        path = "iotedge/"
+        ref = "$BranchName"
+    }
+    $changeLog = $((Invoke-WebRequest -Headers $header -Uri "$url" -Method GET -Body $body).Content | ConvertFrom-JSON) `
+        | where {($_.name -eq "CHANGELOG.md")}
+    $changeLogUrl = $changeLog.download_url
+    $changeLogContent = $(Invoke-WebRequest -Headers $header -Uri "$changeLogUrl" -Method GET).Content
+
     $content = Get-Content $ChangeLogPath -Encoding UTF8 -Raw
     $changeLogContent = [regex]::match($content, $pattern).Groups[1].Value
 
     # Create a new release page
     # Ref: https://docs.github.com/en/rest/reference/repos#create-a-release
-    # BEARWASHERE -- This needs to be triggered agaist azure-iotedge repository.
+    # BEARWASHERE -- This needs to be triggered agaist Azure/azure-iotedge repository.
     $url = "https://api.github.com/repos/yophilav/iotedge/releases"
     $body = @{
         tag_name = "$version"
@@ -353,13 +366,11 @@ function Upload-Artifacts-To-GitHub
         $body = [System.IO.File]::ReadAllBytes($($artifact.FullName))
 
         # Upload the artifacts from the $workDir
-        # BEARWASHERE -- Need to update the upload URL by replacing the name.
-        #     $rel = Invoke-WebRequest -Headers $rel_arg -Method POST -Body $body -Uri https://uploads.github.com/repos/$user/$project/releases/$rel_id/assets?name=$fname
+        echo "Uploading : $artifactName"
         $uploadUrl = [regex]::match($release.upload_url, "^(.+?)assets").Groups[0].Value
         $uploadUrl += "?name=$artifactName"
         Invoke-WebRequest -Headers $multiUploadHeader -Uri "$uploadUrl" -Method POST -Body $body
     }
-
 }
 
 
