@@ -16,3 +16,10 @@ pub use base::{aziot, module, uri, watchdog};
 
 #[cfg(feature = "settings-docker")]
 pub mod docker;
+#[cfg(feature = "settings-docker")]
+pub use crate::docker::{
+    config::DockerConfig,
+    network::{Ipam, MobyNetwork},
+    runtime::ContentTrust,
+    Settings,
+};

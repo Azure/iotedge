@@ -29,7 +29,7 @@ config-common = {git = "https://github.com/Azure/iot-identity-service", branch =
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
 edgelet-http = {path = "../edgelet-http"}
-edgelet-settings = { path = "../edgelet-settings" }
+edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
 
 [target.'cfg(not(windows))'.dependencies]

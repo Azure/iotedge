@@ -21,21 +21,22 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
-    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningInfo,
-    RegistryOperation, RuntimeOperation, RuntimeSettings, SystemInfo as CoreSystemInfo,
-    SystemResources, UrlExt,
+    AuthId, Authenticator, LogOptions, MakeModuleRuntime, Module, ModuleId, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeState, ProvisioningInfo, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+};
+use edgelet_settings::{
+    ContentTrust, DockerConfig, Ipam as CoreIpam, MobyNetwork, RuntimeSettings,
+    Settings as ModuleSettings, Settings,
 };
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
 
 use crate::client::DockerClient;
-use crate::config::DockerConfig;
 use crate::error::{Error, ErrorKind, Result};
 use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
 use crate::notary;
-use crate::settings::{ContentTrust, Settings};
 
 use edgelet_core::DiskInfo;
 use std::convert::TryInto;
@@ -429,7 +430,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Chunk = Chunk;
     type Logs = Logs;
 
-    async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
+    async fn create(&self, module: ModuleSettings) -> Result<()> {
         info!("Creating module {}...", module.name());
 
         // we only want "docker" modules
@@ -616,17 +617,29 @@ impl ModuleRuntime for DockerModuleRuntime {
             always_reprovision_on_startup: false,
         };
 
-        let options = bollard::container::StatsOptions {
-            stream: false,
-            one_shot: false,
+        let info =
+            self.client.docker.info().await.map_err(|_| {
+                Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))
+            })?;
+
+        let system_info = CoreSystemInfo {
+            os_type: info.os_type.unwrap_or(String::from("Unknown")),
+            architecture: info.architecture.unwrap_or(String::from("Unknown")),
+            version: edgelet_core::version_with_source_version(),
+            provisioning,
+            cpus: info.ncpu.unwrap_or_default() as i32,
+            virtualized: match edgelet_core::is_virtualized_env() {
+                Ok(Some(true)) => "yes",
+                Ok(Some(false)) => "no",
+                Ok(None) | Err(_) => "unknown",
+            }
+            .to_owned(),
+            kernel_version: info.kernel_version.unwrap_or_default(),
+            operating_system: info.operating_system.unwrap_or_default(),
+            server_version: info.server_version.unwrap_or_default(),
         };
 
-        let stats = self
-            .client
-            .docker
-            .stats(id, Some(options))
-            .await
-            .map_err(|_| Error::from(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))?;
+        Ok(system_info)
 
         // Box::new(
         //     self.client
@@ -679,8 +692,13 @@ impl ModuleRuntime for DockerModuleRuntime {
         // )
     }
 
-    fn system_resources(&self) -> Self::SystemResourcesFuture {
+    fn system_resources(&self) -> Result<SystemResources> {
         info!("Querying system resources...");
+
+        let options = bollard::container::StatsOptions {
+            stream: false,
+            one_shot: false,
+        };
 
         let stats = self
             .client
@@ -1113,13 +1131,12 @@ mod tests {
         authenticate, future, list_with_details, parse_get_response, AuthId, Authenticator,
         BTreeMap, Body, CoreSystemInfo, Deserializer, DockerModuleRuntime, DockerModuleTop,
         Duration, Error, ErrorKind, Future, InlineResponse200, LogOptions, MakeModuleRuntime,
-        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSpec, Pid, Request, Stream,
+        Module, ModuleId, ModuleRuntime, ModuleRuntimeState, ModuleSettings, Pid, Request, Stream,
         SystemResources,
     };
 
     use std::path::Path;
 
-    use futures::future::FutureResult;
     use futures::stream::Empty;
 
     use edgelet_core::{
@@ -1317,11 +1334,11 @@ mod tests {
     impl RuntimeSettings for TestSettings {
         type Config = TestConfig;
 
-        fn agent(&self) -> &ModuleSpec<Self::Config> {
+        fn agent(&self) -> &ModuleSettings {
             unimplemented!()
         }
 
-        fn agent_mut(&mut self) -> &mut ModuleSpec<Self::Config> {
+        fn agent_mut(&mut self) -> &mut ModuleSettings {
             unimplemented!()
         }
 
@@ -1485,7 +1502,7 @@ mod tests {
         type RemoveAllFuture = FutureResult<(), Self::Error>;
         type StopAllFuture = FutureResult<(), Self::Error>;
 
-        fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
+        fn create(&self, _module: ModuleSettings) -> Self::CreateFuture {
             unimplemented!()
         }
 
