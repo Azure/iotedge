@@ -3,10 +3,15 @@ parameters:
   testInfo.testName: ''
 
 jobs:
+  # TODO: fix for other platforms
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters['upstream.protocol'] }}
     displayName: Set up and run longhaul tests on Linux Amd64 for ${{ parameters['upstream.protocol'] }}
-    dependsOn: SetupVM_level4_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
+      - SetupVM_level4_${{ parameters['upstream.protocol'] }}
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
+    variables:
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l3AgentName'] ]
     pool:
       name: $(pool.name)
       demands:
