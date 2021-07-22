@@ -8,10 +8,10 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: master
+    branch: 'master'
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: master
+    branch: 'master'
 
 stages:
 - stage: SetupVM
@@ -62,8 +62,8 @@ stages:
       - template: templates/e2e-clear-docker-cached-images.yaml
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
-          IotHubConnectionString: $(IotHubStressConnString)
+          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_mqtt
       - template: templates/nested-deploy-config.yaml
         parameters:
@@ -81,8 +81,8 @@ stages:
           name: 4
       - template: templates/e2e-run.yaml
         parameters:
-          EventHubCompatibleEndpoint: $(EventHubStressConnStr)
-          IotHubConnectionString: $(IotHubStressConnString)
+          EventHubCompatibleEndpoint: '$(IotHub-EventHubConnStr)'
+          IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_amqp
 
 
@@ -109,6 +109,7 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked_$(Build.BuildId)
+        - $(agent.cleanIdentity)
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/unlock-test-agent.yaml

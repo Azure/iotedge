@@ -10,10 +10,10 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: master
+    branch: 'master'
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: master
+    branch: 'master'
 
 jobs:
 ################################################################################
@@ -105,11 +105,25 @@ jobs:
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
         condition: eq(variables['run.flag'], 1)
-        displayName: 'Azure Key Vault'
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeConnectivityStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString,GitHubAccessToken'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -168,11 +182,10 @@ jobs:
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
-          eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'
@@ -283,12 +296,26 @@ jobs:
         submodules: recursive
         condition: and(succeeded(), eq(variables['run.flag'], 1))
       - task: AzureKeyVault@1
-        condition: and(succeeded(), eq(variables['run.flag'], 1))
-        displayName: 'Azure Key Vault'
+        condition: eq(variables['run.flag'], 1)
+        displayName: 'Azure Key Vault: EdgeBuildkv'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: 'edgebuildkv'
+          SecretsFilter: >- 
+            edgebuilds-azurecr-io-username,
+            edgebuilds-azurecr-io-pwd,
+            kvLogAnalyticWorkspaceId,
+            kvLogAnalyticSharedKey,
+            EdgeConnectivityStorageAccountConnString,
+            GitHubAccessToken
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault: $(azure.keyVault)'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubARM32ConnString,EdgeConnectivityEventHubARM32ConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey,EdgeConnectivityStorageAccountConnString,GitHubAccessToken'
+          SecretsFilter: >- 
+            IotHub-ConnStr,
+            IotHub-EventHubConnStr
       - task: DownloadBuildArtifacts@0
         condition: and(succeeded(), eq(variables['run.flag'], 1))
         displayName: 'Download Edgelet Artifacts'
@@ -339,7 +366,6 @@ jobs:
           eventHub.connectionString: '$(EdgeConnectivityEventHubARM32ConnString)'
           deploymentFileName: '$(deploymentFileName)'
           upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'

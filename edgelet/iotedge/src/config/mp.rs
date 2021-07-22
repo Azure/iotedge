@@ -33,11 +33,15 @@ To reconfigure IoT Edge, run:
     }
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert: None,
 
         auto_reprovisioning_mode: edgelet_core::settings::AutoReprovisioningMode::OnErrorOnly,
 
         imported_master_encryption_key: None,
+
+        manifest_trust_bundle_cert: None,
 
         aziot: common_config::super_config::Config {
             hostname: None,
@@ -46,12 +50,19 @@ To reconfigure IoT Edge, run:
             provisioning: common_config::super_config::Provisioning {
                 provisioning: common_config::super_config::ProvisioningType::Manual {
                     inner: common_config::super_config::ManualProvisioning::ConnectionString {
-                        connection_string,
+                        connection_string: common_config::super_config::ConnectionString::new(
+                            connection_string,
+                        )
+                        .map_err(|e| format!("invalid connection string: {}", e))?,
                     },
                 },
             },
 
             localid: None,
+
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
             aziot_keys: Default::default(),
 

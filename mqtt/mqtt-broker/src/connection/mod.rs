@@ -102,6 +102,8 @@ where
     timeout.set_read_timeout(Some(*DEFAULT_TIMEOUT));
     timeout.set_write_timeout(Some(*DEFAULT_TIMEOUT));
 
+    pin_mut!(timeout);
+
     let mut codec = Framed::new(timeout, PacketCodec::default());
 
     // [MQTT-3.1.0-1] - After a Network Connection is established by a Client to a Server,
@@ -132,10 +134,10 @@ where
                 let keep_alive = connect.keep_alive.mul_f32(KEEPALIVE_MULT);
                 if keep_alive == Duration::from_secs(0) {
                     debug!("received 0 length keepalive from client. disabling keepalive timeout");
-                    codec.get_mut().set_read_timeout(None);
+                    codec.get_mut().as_mut().set_read_timeout_pinned(None);
                 } else {
                     debug!("using keepalive timeout of {:?}", keep_alive);
-                    codec.get_mut().set_read_timeout(Some(keep_alive));
+                    codec.get_mut().as_mut().set_read_timeout_pinned(Some(keep_alive));
                 }
 
                 // [MQTT-3.1.4-3] - The Server MAY check that the contents of the CONNECT
@@ -323,8 +325,8 @@ where
 fn client_id(client_id: &proto::ClientId) -> ClientId {
     let id = match client_id {
         proto::ClientId::ServerGenerated => Uuid::new_v4().to_string(),
-        proto::ClientId::IdWithCleanSession(ref id) => id.to_owned(),
-        proto::ClientId::IdWithExistingSession(ref id) => id.to_owned(),
+        proto::ClientId::IdWithCleanSession(ref id) => id.clone(),
+        proto::ClientId::IdWithExistingSession(ref id) => id.clone(),
     };
     ClientId::from(id)
 }

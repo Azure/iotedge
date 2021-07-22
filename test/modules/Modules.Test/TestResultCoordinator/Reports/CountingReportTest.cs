@@ -26,11 +26,16 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 945,
                 923,
                 33,
+                34,
+                0,
                 new List<TestOperationResult>
                 {
                     new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                     new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                 },
+                new List<TestOperationResult> { },
+                new List<TestOperationResult> { },
+                new List<TestOperationResult> { },
                 Option.None<EventHubSpecificReportComponents>(),
                 Option.None<DateTime>());
 
@@ -41,7 +46,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
             Assert.Equal("resultType1", report.ResultType);
             Assert.Equal(945UL, report.TotalExpectCount);
             Assert.Equal(923UL, report.TotalMatchCount);
-            Assert.Equal(33UL, report.TotalDuplicateResultCount);
+            Assert.Equal(33UL, report.TotalDuplicateExpectedResultCount);
+            Assert.Equal(34UL, report.TotalDuplicateActualResultCount);
+            Assert.Equal(0UL, report.TotalMisorderedActualResultCount);
+
+            Assert.Equal(2, report.UnmatchedResults.Count);
+            Assert.Equal(0, report.DuplicateExpectedResults.Count);
+            Assert.Equal(0, report.DuplicateActualResults.Count);
+            Assert.Equal(0, report.MisorderedActualResults.Count);
 
             Assert.Equal("expectedSource", report.UnmatchedResults[0].Source);
             Assert.Equal("resultType1", report.UnmatchedResults[0].Type);
@@ -69,11 +81,16 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     945,
                     923,
                     33,
+                    34,
+                    0,
                     new List<TestOperationResult>
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -95,11 +112,16 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     945,
                     923,
                     33,
+                    34,
+                    0,
                     new List<TestOperationResult>
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -121,11 +143,16 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     945,
                     923,
                     33,
+                    34,
+                    0,
                     new List<TestOperationResult>
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -147,11 +174,16 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     945,
                     923,
                     33,
+                    34,
+                    0,
                     new List<TestOperationResult>
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 
@@ -173,11 +205,16 @@ namespace Modules.Test.TestResultCoordinator.Reports
                     945,
                     923,
                     33,
+                    34,
+                    0,
                     new List<TestOperationResult>
                     {
                         new TestOperationResult("expectedSource", "resultType1", "332", new DateTime(2019, 12, 4, 10, 15, 15)),
                         new TestOperationResult("expectedSource", "resultType1", "734", new DateTime(2019, 12, 4, 10, 15, 18)),
                     },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
+                    new List<TestOperationResult> { },
                     Option.None<EventHubSpecificReportComponents>(),
                     Option.None<DateTime>()));
 

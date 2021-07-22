@@ -1,8 +1,6 @@
-use std::future::Future;
-
 pub(super) enum State {
     BeginWaitingForNextPing,
-    WaitingForNextPing(tokio::time::Delay),
+    WaitingForNextPing(std::pin::Pin<Box<tokio::time::Sleep>>),
 }
 
 impl State {
@@ -14,13 +12,13 @@ impl State {
         keep_alive: std::time::Duration,
     ) -> Option<crate::proto::Packet> {
         if let Some(crate::proto::Packet::PingResp(crate::proto::PingResp)) = packet {
-            let _ = packet.take();
+            let _ping = packet.take();
 
             match self {
                 State::BeginWaitingForNextPing => (),
-                State::WaitingForNextPing(ping_timer) => {
-                    ping_timer.reset(deadline(tokio::time::Instant::now(), keep_alive))
-                }
+                State::WaitingForNextPing(ping_timer) => ping_timer
+                    .as_mut()
+                    .reset(deadline(tokio::time::Instant::now(), keep_alive)),
             }
         }
 
@@ -29,14 +27,16 @@ impl State {
 
             match self {
                 State::BeginWaitingForNextPing => {
-                    let ping_timer = tokio::time::delay_for(keep_alive);
-                    *self = State::WaitingForNextPing(ping_timer);
+                    let ping_timer = tokio::time::sleep(keep_alive);
+                    *self = State::WaitingForNextPing(Box::pin(ping_timer));
                 }
 
                 State::WaitingForNextPing(ping_timer) => {
-                    match std::pin::Pin::new(&mut *ping_timer).poll(cx) {
+                    use futures_util::FutureExt;
+                    match ping_timer.poll_unpin(cx) {
                         std::task::Poll::Ready(()) => {
-                            ping_timer.reset(deadline(ping_timer.deadline(), keep_alive));
+                            let now = ping_timer.deadline();
+                            ping_timer.as_mut().reset(deadline(now, keep_alive));
                             return Some(crate::proto::Packet::PingReq(crate::proto::PingReq));
                         }
 

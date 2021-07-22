@@ -104,9 +104,9 @@ pub struct ConnectivityError(#[from] PumpError);
 
 #[cfg(test)]
 mod tests {
+    use futures_util::FutureExt;
     use matches::assert_matches;
     use mqtt3::{proto::QoS, proto::SubscribeTo, ConnectionError, Event, SubscriptionUpdateEvent};
-    use tokio::sync::mpsc::error::TryRecvError;
 
     use crate::{
         client::Handled,
@@ -125,7 +125,7 @@ mod tests {
         };
         let res = ch.handle(event).await.unwrap();
 
-        let msg = connectivity_receiver.try_recv().unwrap();
+        let msg = connectivity_receiver.recv().await.unwrap();
         assert_eq!(
             msg,
             PumpMessage::Event(LocalUpstreamPumpEvent::ConnectivityUpdate(
@@ -148,14 +148,14 @@ mod tests {
             })
             .await
             .unwrap();
-        let _msg = connectivity_receiver.try_recv().unwrap();
+        let _msg = connectivity_receiver.recv().await.unwrap();
 
         let res_disconnected = ch
             .handle(Event::Disconnected(ConnectionError::ServerClosedConnection))
             .await
             .unwrap();
 
-        let msg = connectivity_receiver.try_recv().unwrap();
+        let msg = connectivity_receiver.recv().await.unwrap();
 
         assert_eq!(
             msg,
@@ -188,9 +188,8 @@ mod tests {
             .await
             .unwrap();
 
-        let _msg = connectivity_receiver.try_recv().unwrap();
-        let msg = connectivity_receiver.try_recv();
-        assert_eq!(msg, Err(TryRecvError::Empty));
+        let _msg = connectivity_receiver.recv().await.unwrap();
+        assert!(connectivity_receiver.recv().now_or_never().is_none());
         assert_eq!(ch.state, ConnectivityState::Connected);
         assert_eq!(res_connected1, Handled::Fully);
         assert_eq!(res_connected2, Handled::Fully);
@@ -207,8 +206,7 @@ mod tests {
             .await
             .unwrap();
 
-        let msg = connectivity_receiver.try_recv();
-        assert_eq!(msg, Err(TryRecvError::Empty));
+        assert!(connectivity_receiver.recv().now_or_never().is_none());
         assert_eq!(ch.state, ConnectivityState::Disconnected);
         assert_eq!(res_disconnected, Handled::Fully)
     }

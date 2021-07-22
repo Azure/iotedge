@@ -269,9 +269,7 @@ fn execute_inner(
                         global_endpoint,
                         id_scope: scope_id,
                         attestation: common_config::super_config::DpsAttestationMethod::X509 {
-                            // TODO: Remove this when IS supports registration ID being optional for DPS-X509
-                            registration_id: registration_id
-                                .ok_or_else(|| "registration ID is currently required")?,
+                            registration_id,
                             identity: common_config::super_config::X509Identity::Preloaded {
                                 identity_cert,
                                 identity_pk: {
@@ -342,7 +340,7 @@ fn execute_inner(
             }) = device_cert
             {
                 (
-                    Some(super_config::EdgeCa::Explicit {
+                    Some(super_config::EdgeCa::Preloaded {
                         cert: device_ca_cert,
                         pk: device_ca_pk,
                     }),
@@ -362,11 +360,15 @@ fn execute_inner(
     };
 
     let config = super_config::Config {
+        allow_elevated_docker_permissions: None,
+
         trust_bundle_cert,
 
         auto_reprovisioning_mode,
 
         imported_master_encryption_key: old_master_encryption_key_path,
+
+        manifest_trust_bundle_cert: None,
 
         aziot: common_config::super_config::Config {
             hostname: Some(hostname),
@@ -375,6 +377,10 @@ fn execute_inner(
             provisioning,
 
             localid: None,
+
+            cloud_timeout_sec: aziot_identityd_config::Settings::default_cloud_timeout(),
+
+            cloud_retries: aziot_identityd_config::Settings::default_cloud_retries(),
 
             aziot_keys: Default::default(),
 

@@ -8,10 +8,10 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: master
+    branch: 'master'
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: master
+    branch: 'master'
 
 stages:
 - stage: SetupVMs
@@ -119,11 +119,10 @@ stages:
           container.registry: '$(cr.address)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
-          iotHub.connectionString: '$(IotHubStressConnString)'
-          eventHub.connectionString: '$(EventHubStressConnStr)'
+          iotHub.connectionString: '$(IotHub-ConnStr)'
+          eventHub.connectionString: '$(IotHub-EventHubConnStr)'
           deploymentFileName: 'nestededge_bottomLayerBaseDeployment_connectivity_mqtt.template.json'
           upstream.protocol: '$(upstream.protocol)'
-          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           edgeHubRestartTest.restartPeriod: '$(edgeHubRestartTest.restartPeriod)'
           edgeHubRestartTest.sdkOperationTimeout: '$(edgeHubRestartTest.sdkOperationTimeout)'
           testDuration: '$(testrun.duration)'
