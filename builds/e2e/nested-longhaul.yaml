@@ -40,6 +40,8 @@ stages:
 
   - job:  Clean_up      
     dependsOn:
+      - Lock_Nested_Agents_amqp
+      - Lock_Nested_Agents_mqtt
       - SetupVM_level5_amqp
       - SetupVM_level5_mqtt
       - SetupVM_level4_amqp
@@ -49,12 +51,12 @@ stages:
     condition: eq(variables['test.pipeline'], 'true')
     displayName: Clean up identities and unlock agents
     variables:    
-      deviceLvl5AmqpAgentName: $[ dependencies.SetupVM_level5_amqp.outputs['lock_test_agent.agentName'] ]
-      deviceLvl5MqttAgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]
-      deviceLvl4AmqpAgentName: $[ dependencies.SetupVM_level4_amqp.outputs['lock_test_agent.agentName'] ]
-      deviceLvl4MqttAgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]
-      amd64AmqpAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_amqp.outputs['lock_test_agent.agentName'] ]
-      amd64MqttAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_mqtt.outputs['lock_test_agent.agentName'] ]
+      deviceLvl5AmqpAgentName: $[ dependencies.Lock_Nested_Agents_amqp.outputs['lock_test_agent.l5AgentName'] ]
+      deviceLvl5MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l5AgentName'] ]
+      deviceLvl4AmqpAgentName: $[ dependencies.Lock_Nested_Agents_amqp.outputs['lock_test_agent.l4AgentName'] ]
+      deviceLvl4MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l4AgentName'] ]
+      amd64AmqpAgentName: $[ dependencies.Lock_Nested_Agents_amqp.outputs['lock_test_agent.l3AgentName'] ]
+      amd64MqttAgentName: $[ dependencies.Lock_Nested_Agents_mqtt.outputs['lock_test_agent.l3AgentName'] ]
     pool:
       name: $(pool.name)
       demands:

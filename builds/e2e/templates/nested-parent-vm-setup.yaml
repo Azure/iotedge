@@ -2,7 +2,25 @@ parameters:
   upstream.protocol: 'amqp'
 
 jobs:
+  - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
+    displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
+    timeoutInMinutes: 180
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - status -equals unlocked
+    steps:
+    - template: nested-get-secrets.yaml
+    - script: scripts/linux/nestedAgentLock.sh -p $(edgebuild-1-PAT) -a $(agent.group) -b $(Build.BuildId)
+      displayName: Lock agents for nested topology
+      name: lock_test_agent
+
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     variables:
@@ -14,23 +32,25 @@ jobs:
       parentName: ''
       parentDeviceId: ''
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l5AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - status -equals unlocked
+       - Agent.Name -equals $(agentName)
     steps:
      - template: nested-get-secrets.yaml
      - template: e2e-clean-directory.yaml            
-     - template: lock-test-agent.yaml
      - template: nested-get-root-ca.yaml       
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
-    dependsOn: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
+      - SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
     condition: succeeded()
     timeoutInMinutes: 180
@@ -43,17 +63,17 @@ jobs:
       deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l4AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - status -equals unlocked    
+       - Agent.Name -equals $(agentName)
     steps:
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
-      - template: lock-test-agent.yaml
       - template: nested-get-root-ca.yaml         
       - template: nested-create-identity.yaml          
       - template: nested-agent-deploy.yaml
