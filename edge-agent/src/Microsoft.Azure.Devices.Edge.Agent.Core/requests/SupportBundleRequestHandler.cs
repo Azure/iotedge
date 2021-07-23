@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
                     {
                         using (var backgroundCts = new CancellationTokenSource(this.supportTaskTimeout))
                         {
-                            Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, supportCts.Token);
+                            Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, backgroundCts.Token);
                             await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
                         }
                     },
