@@ -1,5 +1,6 @@
-$BuildId = "44098637"
-$WorkDir = "C:\Users\yophilav\Downloads\release_test\test1\"
+# $BuildId = "44098637"
+# $WorkDir = "C:\Users\yophilav\Downloads\release_test\test2\"
+# $CommitId = "15f59c8bd33b1fd8581a74ae6e5ea145c8cb1b9b"
 
 function Prepare-DevOps-Artifacts
 {
@@ -247,13 +248,6 @@ function Upload-Artifacts-To-GitHub
     [CmdletBinding()]
     param (
         <# 
-        Path to CHANGELOG.md
-        #>
-        [Parameter(Mandatory)]
-        [string]
-        $ChangeLogPath,
-
-        <# 
         Absolute path of current working directory
         #>
         [Parameter(Mandatory)]
@@ -266,30 +260,16 @@ function Upload-Artifacts-To-GitHub
         i.e. "master" or $artifactRun.head_branch
         #>
         [Parameter(Mandatory)]
-        [Object]
-        $BranchName,
-
-        <# 
-        GitHub Personal Access Token for azure-iotedge repository
-        #>
-        [Parameter(Mandatory=false)]
         [string]
-        $Pat
+        $BranchName
     )
 
-    if ($Pat.count -le 1)
-    {
-        # Assume Az CLI is installed & logged in.
-        $pat = $(az keyvault secret show -n GitHubAccessToken --vault-name edgebuildkv | ConvertFrom-Json)
-        $pat = $pat.value;
-    }
-    else
-    {
-        $pat = $Pat
-    }
+    $pat = $(az keyvault secret show -n GitHubAccessToken --vault-name edgebuildkv | ConvertFrom-Json)
+    $pat = $pat.value;
 
     # Get the latest release from a given branch
     # BEARWASHERE -- This needs to be triggered agaist Azure/iotedge repository.
+    echo "Fetch the latest release: "
     $url = "https://api.github.com/repos/yophilav/iotedge/releases"
     # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
     $header = @{
@@ -299,13 +279,18 @@ function Upload-Artifacts-To-GitHub
     $releaseList = $(Invoke-WebRequest -Headers $header -Uri "$url" -Method GET | ConvertFrom-JSON) `
         | where {($_.target_commitish -eq $BranchName)}
     $latestRelease = $releaseList[0]
+    echo "    $($latestRelease.tag_name)"
+    echo ""
 
     # Generate a new version tag
     $versionParts = $latestRelease.tag_name.split('.')
     ([int]$versionParts[2])++ 
     $version = $($versionParts -join('.'))
+    echo "Target release: $version"
+    echo ""
 
     # Get content of changelog to be used a release message
+    echo "Fetch Changelog"
     $url = "https://api.github.com/repos/Azure/iotedge/contents/"
     $body = @{
         path = "iotedge/"
@@ -320,7 +305,6 @@ function Upload-Artifacts-To-GitHub
         "Authorization" = "token $pat"
         "Content-Type"="application/json; charset=utf-8"
     }
-    # $pattern = "(\#\s1.2.3\s\(\d{4}-\d{2}-\d{2}\)\n[\S\s]*?)\n?(?=\#\s1.2.2\s\(\d{4}-\d{2}-\d{2}\)\n)"
     $pattern = "(\#\s$version\s\(\d{4}-\d{2}-\d{2}\)\s[\S\s]*?)\s?(?=\#\s$($latestRelease.tag_name)\s\(\d{4}-\d{2}-\d{2}\)\s)"
     $changeLogContent = $(Invoke-WebRequest -Headers $utf8Header -Uri "$changeLogUrl" -Method GET).Content
     $changeLogContent = [regex]::match($changeLogContent, $pattern).Groups[1].Value
