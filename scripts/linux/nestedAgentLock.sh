@@ -130,6 +130,49 @@ EOF
     fi
 }
 
+function attempt_agent_lock() {
+    agents=("$@")
+
+    # Lock the agents.
+    for agentId in "${agents[@]}"; do
+        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; '\"_$BUILD_ID\"')')
+
+        update_capabilities "$agentId" "$newAgentUserCapabilities"
+    done
+
+    # Wait a while then check to make sure there were no overlapping bookings.
+    sleep 10
+    agentsAllLockedCorrectly=true
+    for agentId in "${filteredAgents[@]}"; do
+        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status' | tr -d '[], "')
+
+        if [ $lockStatus != "unlocked_$BUILD_ID" ]; then
+            agentsAllLockedCorrectly=false
+            break
+        fi
+    done
+
+    echo $agentsAllLockedCorrectly
+}
+
+function unlock_agents() {
+    agents=("$@")
+
+    for agentId in "${agents[@]}"; do
+        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
+
+        if [ $lockStatus = '"unlocked_$(Build.BuildId)"' ]; then
+            echo "Unlocking agent $agentId"
+
+            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
+            update_capabilities "$agentId" "$newAgentUserCapabilities"
+        fi
+    done
+}
+
 process_args $@
 
 # Install pre-requisite 'jq'
@@ -155,7 +198,7 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
     unlockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities.status=="unlocked" and .userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
 
     echo "Found these unlocked agents:"
-    echo ${unlockedAgents[*]}
+    echo ${unlockedAgents[@]}
 
     if [ ${#unlockedAgents[*]} -ge $AGENTS_NEEDED ]; then
         # If we have enough agents, get random agents and book them all.
@@ -163,48 +206,19 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
         filteredAgents=(${shuffledUnlockedAgents[@]:0:$AGENTS_NEEDED})
 
         echo "Locking these agents:"
-        echo ${filteredAgents[*]}
+        echo ${filteredAgents[@]}
 
-        for agentId in "${filteredAgents[@]}"; do
-            agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-            newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= sub("$"; '\"_$BUILD_ID\"')')
-
-            update_capabilities "$agentId" "$newAgentUserCapabilities"
-        done
-
-        # Wait a while then check to make sure there were no overlapping bookings.
-        sleep 10
-        agentsAllLockedCorrectly=true
-        for agentId in "${filteredAgents[@]}"; do
-            agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-            lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status' | tr -d '[], "')
-
-            if [ $lockStatus != "unlocked_$BUILD_ID" ]; then
-                agentsAllLockedCorrectly=false
-                break
-            fi
-        done
+        agentsAllLockedCorrectly=$(attempt_agent_lock "${filteredAgents[@]}")
 
         # If something went wrong and we don't have all the agents locked, release the ones we still have booked.
         # Else set the agent names as output to be used in the pipeline downstream.
         if [ $agentsAllLockedCorrectly = false ]; then
             echo "Conflicting agent lock detected. Unlocking all booked agents made here."
+            unlock_agents "${filteredAgents[@]}"
 
-            for agentId in "${filteredAgents[@]}"; do
-                agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
-                lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
-
-                if [ $lockStatus = '"unlocked_$(Build.BuildId)"' ]; then
-                    echo "Unlocking agent $agentId"
-
-                    newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
-                    update_capabilities "$agentId" "$newAgentUserCapabilities"
-                fi
-            done
         else
             echo "Successfully locked agents"
             set_devops_output_vars "${filteredAgents[@]}"
-
             exit 0
         fi
     fi
