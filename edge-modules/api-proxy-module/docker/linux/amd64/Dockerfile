@@ -11,6 +11,9 @@ RUN	apk update && \
     apk add nginx && \
 	mkdir /run/nginx
 
+RUN adduser -Ds /bin/sh moduleuser 
+USER moduleuser    
+
 #expose ports
 EXPOSE 443/tcp	
 EXPOSE 80/tcp
@@ -18,6 +21,5 @@ EXPOSE 80/tcp
 EXPOSE 5000/tcp
 #used by blob storage
 EXPOSE 11002/tcp
-#use for custom defining ports
-EXPOSE 7000-8000/tcp
+
 ENTRYPOINT ["/app/api-proxy-module"]
