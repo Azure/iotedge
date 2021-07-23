@@ -1,20 +1,37 @@
-# $BuildId = "44098637"
-# $WorkDir = "C:\Users\yophilav\Downloads\release_test\test2\"
-# $CommitId = "15f59c8bd33b1fd8581a74ae6e5ea145c8cb1b9b"
+## Copyright (c) Microsoft. All rights reserved.
+## Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+<#
+    .SYNOPSIS
+        This function downloads and prepares the Iot Edgelet artifacts from DevOps pipeline for a release. 
+        The final artifacts are collected under "<WorkDir>/output" path.
+    .NOTES
+        Requires Azure CLI to be login
+    .DESCRIPTION
+        1) Download edgelet artifacts from a given BuildId from a DevOps pipeline
+        2) Extract the *.zip artifacts into their own directories
+        3) Traverse the directories and rename a relavant artifact into the following format: 
+              .DEB _________________ {component}_{version}_{os}_{arch}.deb 
+              .RPM _________________ {component}-{version}.{os}.{arch}.rpm  (No name change)
+        4) Move the renamed artifacts to a staging directory at "<WorkDir>/output"
+    .PARAMETER BuildId
+        DevOps build ID for the downloading artifacts
+    .PARAMETER WorkDir
+        Absolute path of the working directory
+#>
 function Prepare-DevOps-Artifacts
 {
     [CmdletBinding()]
     param (
         <# 
-        DevOps BuildID 
+        DevOps build ID for the downloading artifacts
         #>
         [Parameter(Mandatory)]
         [string]
         $BuildId,
 
         <# 
-        Absolute path of current working directory
+        Absolute path of the working directory
         #>
         [Parameter(Mandatory)]
         [string]
@@ -107,12 +124,31 @@ function Prepare-DevOps-Artifacts
 }
 
 
+<#
+    .SYNOPSIS
+        This function downloads and prepares the IoT Identity Service artifacts from Github Action for a release.
+        The final artifacts are collected under "<WorkDir>/output" path.
+    .NOTES
+        Requires Azure CLI to be login
+    .DESCRIPTION
+        1) Download edgelet artifacts from a given commit off of the Github build action:
+              https://github.com/Azure/iot-identity-service/actions/workflows/packages.yaml
+        2) Extract the *.zip artifacts into their own directories
+        3) Traverse the directories and rename a relavant artifact into the following format: 
+              .DEB _________________ {component}_{version}_{os}_{arch}.deb 
+              .RPM _________________ {component}-{version}.{os}.{arch}.rpm  (No name change)
+        4) Move the renamed artifacts to a staging directory at "<WorkDir>/output"
+    .PARAMETER CommitId
+        Github SHA256 commit id
+    .PARAMETER WorkDir
+        Absolute path of the working directory
+#>
 function Prepare-GitHub-Artifacts
 {
     [CmdletBinding()]
     param (
         <# 
-        Commit ID
+        Github SHA256 commit id
         #>
         [Parameter(Mandatory)]
         [string]
@@ -236,13 +272,28 @@ function Prepare-GitHub-Artifacts
         echo "To : $(Join-Path -Path $outputDir -ChildPath $artifact.Name)"
         Move-Item -Path $artifact.FullName -Destination $(Join-Path -Path $outputDir -ChildPath $artifact.Name) -Force
     }
-
-    return @($pat)
-
-    # TODO: Clean up
 }
 
 
+<#
+    .SYNOPSIS
+        This function downloads and prepares the IoT Identity Service artifacts from Github Action for a release.
+        The final artifacts are collected under "<WorkDir>/output" path.
+    .NOTES
+        Requires Azure CLI to be login
+    .DESCRIPTION
+        1) Download edgelet artifacts from a given commit off of the Github build action:
+              https://github.com/Azure/iot-identity-service/actions/workflows/packages.yaml
+        2) Extract the *.zip artifacts into their own directories
+        3) Traverse the directories and rename a relavant artifact into the following format: 
+              .DEB _________________ {component}_{version}_{os}_{arch}.deb 
+              .RPM _________________ {component}-{version}.{os}.{arch}.rpm  (No name change)
+        4) Move the renamed artifacts to a staging directory at "<WorkDir>/output"
+    .PARAMETER CommitId
+        Github SHA256 commit id
+    .PARAMETER WorkDir
+        Absolute path of the working directory
+#>
 function Upload-Artifacts-To-GitHub
 {
     [CmdletBinding()]
@@ -257,7 +308,7 @@ function Upload-Artifacts-To-GitHub
         <# 
         Branch name of "iotedge" repository.
         This parameter is used for the script to figure out the releasing version.
-        i.e. "master" or $artifactRun.head_branch
+        i.e. "master", "release/1.1", "release/1.2", etc.
         #>
         [Parameter(Mandatory)]
         [string]
@@ -268,9 +319,8 @@ function Upload-Artifacts-To-GitHub
     $pat = $pat.value;
 
     # Get the latest release from a given branch
-    # BEARWASHERE -- This needs to be triggered agaist Azure/iotedge repository.
     echo "Fetch the latest release: "
-    $url = "https://api.github.com/repos/yophilav/iotedge/releases"
+    $url = "https://api.github.com/repos/Azure/iotedge/releases"
     # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
     $header = @{
         "Accept" = "application/vnd.github.v3+json"
@@ -311,8 +361,7 @@ function Upload-Artifacts-To-GitHub
 
     # Create a new release page
     # Ref: https://docs.github.com/en/rest/reference/repos#create-a-release
-    # BEARWASHERE -- This needs to be triggered agaist Azure/azure-iotedge repository.
-    $url = "https://api.github.com/repos/yophilav/iotedge/releases"
+    $url = "https://api.github.com/repos/Azure/azure-iotedge/releases"
     $body = @{
         tag_name = "$version"
         target_commitish = "master"
