@@ -58,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Category("UnstableOnArm")]
         public async Task PriorityQueueModuleToHubMessages()
         {
+            Log.Information("Custom log test: Module to Hub");
             CancellationToken token = this.TestToken;
             string trcImage = Context.Current.TestResultCoordinatorImage.Expect(() => new ArgumentException("testResultCoordinatorImage parameter is required for Priority Queues test"));
             string loadGenImage = Context.Current.LoadGenImage.Expect(() => new ArgumentException("loadGenImage parameter is required for Priority Queues test"));
@@ -126,12 +127,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         startTime,
                         data =>
                         {
+                            Log.Information("Information received");
+
                             if (data.Properties.ContainsKey("trackingId") &&
                                 data.Properties.ContainsKey("batchId") &&
                                 data.Properties.ContainsKey("sequenceNumber"))
                             {
                                 int sequenceNumber = int.Parse(data.Properties["sequenceNumber"].ToString());
-                                Log.Verbose($"Received message from IoTHub with sequence number: {sequenceNumber}");
+                                Log.Information($"Received message from IoTHub with sequence number: {sequenceNumber}");
 
                                 var receivedTrackingId = (string)data.Properties["trackingId"];
                                 if (!receivedTrackingId.IsNullOrWhiteSpace() && receivedTrackingId.Equals(trackingId))
@@ -147,12 +150,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 else
                                 {
                                     var message = receivedTrackingId.IsNullOrWhiteSpace() ? "EMPTY" : receivedTrackingId;
-                                    Log.Verbose($"Message contains incorrect tracking id: {message}. Ignoring.");
+                                    Log.Information($"Message contains incorrect tracking id: {message}. Ignoring.");
                                 }
                             }
                             else
                             {
-                                Log.Warning("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
+                                Log.Information("Message is missing information. Needs to have trackingId, batchId, and sequenceNumber. Not enqueuing.");
                             }
 
                             return results.Count == loadGenTestStatus.ResultCount;

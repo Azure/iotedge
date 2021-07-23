@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             if (!isPassed)
             {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
             }
 
             Assert.IsTrue(isPassed);
