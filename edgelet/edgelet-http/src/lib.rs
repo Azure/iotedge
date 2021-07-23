@@ -20,6 +20,7 @@ use std::net;
 use std::net::ToSocketAddrs;
 #[cfg(target_os = "linux")]
 use std::os::unix::io::FromRawFd;
+use std::sync::atomic::{AtomicU32, Ordering};
 #[cfg(windows)]
 use std::sync::Arc;
 #[cfg(unix)]
@@ -80,6 +81,12 @@ const PIPE_SCHEME: &str = "npipe";
 const TCP_SCHEME: &str = "tcp";
 #[cfg(target_os = "linux")]
 const FD_SCHEME: &str = "fd";
+
+#[derive(Clone, Copy)]
+pub enum ConcurrencyThrottling {
+    Limited(u32),
+    NoLimit,
+}
 
 #[derive(Clone)]
 pub struct PemCertificate {
@@ -219,10 +226,10 @@ where
     <S::Service as Service>::Future: Send + 'static,
 {
     pub fn run(self) -> Run {
-        self.run_until(future::empty())
+        self.run_until(future::empty(), ConcurrencyThrottling::NoLimit)
     }
 
-    pub fn run_until<F>(self, shutdown_signal: F) -> Run
+    pub fn run_until<F>(self, shutdown_signal: F, concurrency: ConcurrencyThrottling) -> Run
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
     {
@@ -234,34 +241,64 @@ where
 
         let protocol = Arc::new(protocol);
 
-        let srv = incoming.for_each(move |(socket, addr)| {
-            let protocol = protocol.clone();
+        let lock = if let ConcurrencyThrottling::Limited(limit) = concurrency {
+            Some((Arc::new(AtomicU32::new(limit)), limit))
+        } else {
+            None
+        };
 
+        let srv = incoming.for_each(move |(socket, addr)| {
+
+            if let Some((lock, limit)) = lock.clone() {
+                let limit_reached = lock.fetch_update( Ordering::AcqRel,
+                    Ordering::Acquire,
+                    |current| current.checked_sub(1),
+                    ).is_err();
+
+                if limit_reached {
+                    error!("Maximum concurrency reached, {} simultaneous connections, dropping the connection request", limit);
+                    // Return Ok so the stream is not stopped.
+                    return Ok(());
+                }
+            }
+
+            let protocol = protocol.clone();
             debug!("accepted new connection ({})", addr);
             let pid = socket.pid()?;
             let fut = new_service
                 .new_service()
-                .then(move |srv| match srv {
+                .then({
+                    let lock = lock.clone();
+                    move |srv| match srv {
                     Ok(srv) => Ok((srv, addr)),
                     Err(err) => {
                         error!("server connection error: ({})", addr);
+                        if let Some((lock, _)) = lock {
+                            lock.fetch_add(1, Ordering::AcqRel);
+                        }
                         log_failure(Level::Error, &err);
                         Err(())
                     }
-                })
-                .and_then(move |(srv, addr)| {
+                }})
+                .and_then({
+                    let lock = lock.clone();
+                    move |(srv, addr)| {
                     let service = PidService::new(pid, srv);
                     protocol
                         .serve_connection(socket, service)
-                        .then(move |result| match result {
+                        .then(move |result| {
+                            if let Some((lock, _)) = lock {
+                                lock.fetch_add(1, Ordering::AcqRel);
+                            }
+                            match result {
                             Ok(_) => Ok(()),
                             Err(err) => {
                                 error!("server connection error: ({})", addr);
                                 log_failure(Level::Error, &err);
                                 Err(())
                             }
-                        })
-                });
+                        }})
+                }});
             tokio::spawn(fut);
             Ok(())
         });
@@ -298,6 +335,7 @@ pub trait HyperExt {
         url: Url,
         new_service: S,
         cert_manager: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -312,6 +350,7 @@ impl HyperExt for Http {
         url: Url,
         new_service: S,
         tls_params: Option<TlsAcceptorParams<'_, C>>,
+        unix_socket_permission: u32,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -380,7 +419,7 @@ impl HyperExt for Http {
                 let path = url
                     .to_uds_file_path()
                     .map_err(|_| ErrorKind::InvalidUrl(url.to_string()))?;
-                unix::listener(path)?
+                unix::listener(path, unix_socket_permission)?
             }
             #[cfg(target_os = "linux")]
             FD_SCHEME => {

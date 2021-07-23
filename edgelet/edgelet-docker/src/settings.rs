@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::BTreeMap;
+#[cfg(windows)]
+use std::fs;
 use std::path::Path;
+#[cfg(windows)]
+use std::path::PathBuf;
 
 use config::{Config, Environment};
 use docker::models::{ContainerCreateBodyNetworkingConfig, EndpointSettings, HostConfig};
@@ -11,7 +15,8 @@ use edgelet_core::{
 };
 use edgelet_utils::YamlFileSource;
 use failure::{Context, Fail, ResultExt};
-
+#[cfg(windows)]
+use log::error;
 use url::Url;
 
 use crate::config::DockerConfig;
@@ -139,26 +144,31 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
         .unwrap_or_else(HostConfig::new);
     let mut binds = host_config.binds().map_or_else(Vec::new, ToOwned::to_owned);
 
+    let home_dir = settings
+        .homedir()
+        .to_str()
+        .ok_or_else(|| ErrorKind::InvalidHomeDirPath)?;
+
+    let workload_listen_uri = &Listen::workload_uri(home_dir, settings.agent().name())
+        .map_err(|err| err.context(ErrorKind::InvalidHomeDirPath))?;
+
+    let workload_connect_uri = settings.connect().workload_uri();
+
+    let management_listen_uri = settings.connect().management_uri();
+
+    let management_connect_uri = settings.connect().management_uri();
+
     // if the url is a domain socket URL then vol mount it into the container
-    for uri in &[
-        settings.connect().management_uri(),
-        settings.connect().workload_uri(),
+    for (listen_uri, connect_uri) in &[
+        (management_listen_uri, management_connect_uri),
+        (workload_listen_uri, workload_connect_uri),
     ] {
-        if uri.scheme() == UNIX_SCHEME {
-            let path = uri
-                .to_uds_file_path()
-                .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
-            // On Windows we mount the parent folder because we can't mount the
-            // socket files directly
-            #[cfg(windows)]
-            let path = path
-                .parent()
-                .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?;
-            let path = path
-                .to_str()
-                .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
-                .to_string();
-            let bind = format!("{}:{}", &path, &path);
+        if connect_uri.scheme() == UNIX_SCHEME {
+            let source_path = get_path_from_uri(listen_uri)?;
+
+            let target_path = get_path_from_uri(connect_uri)?;
+
+            let bind = format!("{}:{}", &source_path, &target_path);
             if !binds.contains(&bind) {
                 binds.push(bind);
             }
@@ -176,6 +186,37 @@ fn agent_vol_mount(settings: &mut Settings) -> Result<(), LoadSettingsError> {
     }
 
     Ok(())
+}
+
+fn get_path_from_uri(uri: &Url) -> Result<String, LoadSettingsError> {
+    let path = uri
+        .to_uds_file_path()
+        .context(ErrorKind::InvalidSocketUri(uri.to_string()))?;
+
+    #[cfg(windows)]
+    let path = create_parent_folder(&path, uri)?;
+
+    Ok(path
+        .to_str()
+        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
+        .to_string())
+}
+
+#[cfg(windows)]
+fn create_parent_folder(path: &PathBuf, uri: &Url) -> Result<PathBuf, LoadSettingsError> {
+    let path = path
+        .parent()
+        .ok_or_else(|| ErrorKind::InvalidSocketUri(uri.to_string()))?
+        .to_path_buf();
+
+    if !path.exists() {
+        fs::create_dir_all(&path).with_context(|err| {
+            error!("Cannot create directory, error: {}", err);
+            ErrorKind::InvalidSocketUri(uri.to_string())
+        })?;
+    }
+
+    Ok(path)
 }
 
 fn agent_env(settings: &mut Settings) {
@@ -283,7 +324,9 @@ impl From<ErrorKind> for LoadSettingsError {
 
 #[cfg(test)]
 mod tests {
-    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url};
+    use crate::settings::get_path_from_uri;
+
+    use super::{MobyNetwork, MobyRuntime, Path, RuntimeSettings, Settings, Url, UNIX_SCHEME};
 
     use std::cmp::Ordering;
     use std::fs::File;
@@ -293,7 +336,8 @@ mod tests {
     use tempdir::TempDir;
 
     use edgelet_core::{
-        AttestationMethod, IpamConfig, ManualAuthMethod, ProvisioningType, DEFAULT_NETWORKID,
+        AttestationMethod, IpamConfig, Listen, ManualAuthMethod, ProvisioningType,
+        DEFAULT_NETWORKID,
     };
 
     #[cfg(unix)]
@@ -935,6 +979,42 @@ mod tests {
             .expect("Test settings file could not be written");
 
         settings_yaml
+    }
+
+    #[test]
+    fn test() {
+        let home_dir = "C:\\ProgramData\\iotedge";
+
+        let workload_connect_uri =
+            Url::parse("unix:///C:/ProgramData/iotedge/workload/sock").unwrap();
+
+        let management_listen_uri = Url::parse("unix:///C:/ProgramData/iotedge/mgmt/sock").unwrap();
+
+        let management_connect_uri =
+            Url::parse("unix:///C:/ProgramData/iotedge/mgmt/sock").unwrap();
+
+        let workload_listen_uri = Listen::workload_uri(home_dir, "edgeAgent").unwrap();
+
+        let test = Listen::workload_mnt_uri(home_dir);
+
+        //Tmp
+        println!("{:?}", workload_connect_uri);
+        println!("{:?}", management_listen_uri);
+        println!("{:?}", management_connect_uri);
+        println!("{:?}", workload_listen_uri);
+        println!("{:?}", test);
+        // if the url is a domain socket URL then vol mount it into the container
+        for (listen_uri, connect_uri) in &[
+            (management_listen_uri, management_connect_uri),
+            (workload_listen_uri, workload_connect_uri),
+        ] {
+            if connect_uri.scheme() == UNIX_SCHEME {
+                let source_path = get_path_from_uri(listen_uri).unwrap();
+                let target_path = get_path_from_uri(connect_uri).unwrap();
+                println!("{:?}", source_path);
+                println!("{:?}", target_path);
+            }
+        }
     }
 
     #[test]

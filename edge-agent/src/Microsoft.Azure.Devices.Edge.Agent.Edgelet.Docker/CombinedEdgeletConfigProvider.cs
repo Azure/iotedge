@@ -47,12 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 ? JsonConvert.DeserializeObject<CreateContainerParameters>(JsonConvert.SerializeObject(createOptions))
                 : new CreateContainerParameters();
 
-        static void SetMountOptions(CreateContainerParameters createOptions, Uri uri)
+        static void SetMountOptions(CreateContainerParameters createOptions, Uri listenUri, Uri connectUri)
         {
             HostConfig hostConfig = createOptions.HostConfig ?? new HostConfig();
             IList<string> binds = hostConfig.Binds ?? new List<string>();
-            string path = BindPath(uri);
-            binds.Add($"{path}:{path}");
+            string sourcePath = BindPath(listenUri);
+            string targetPath = BindPath(connectUri);
+
+            binds.Add($"{sourcePath}:{targetPath}");
 
             hostConfig.Binds = binds;
             createOptions.HostConfig = hostConfig;
@@ -125,10 +127,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
         void MountSockets(IModule module, CreateContainerParameters createOptions)
         {
-            var workloadUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
-            if (workloadUri.Scheme == "unix")
+            var workloadListenUriMntString = this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadListenMntUriVariableName);
+            var workloadConnectUri = new Uri(this.configSource.Configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName));
+            Uri workloadListenUri;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) )
             {
-                SetMountOptions(createOptions, workloadUri);
+                workloadListenUri = !string.IsNullOrEmpty(workloadListenUriMntString)
+                  ? new Uri($"{workloadListenUriMntString}/{module.Name}/sock")
+                  : workloadConnectUri;
+            }
+            else
+            {
+                workloadListenUri = !string.IsNullOrEmpty(workloadListenUriMntString)
+                  ? new Uri($"{workloadListenUriMntString}/{module.Name}.sock")
+                  : workloadConnectUri;
+            }
+
+            if (workloadConnectUri.Scheme == "unix")
+            {
+                SetMountOptions(createOptions, workloadListenUri, workloadConnectUri);
             }
 
             // If Management URI is Unix domain socket, and the module is the EdgeAgent, then mount it into the container.
@@ -136,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             if (managementUri.Scheme == "unix"
                 && module.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
             {
-                SetMountOptions(createOptions, managementUri);
+                SetMountOptions(createOptions, managementUri, managementUri);
             }
         }
     }
