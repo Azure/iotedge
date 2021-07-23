@@ -1,7 +1,17 @@
 #! /bin/bash
 
 ###############################################################################
-# This script is used to lock agents for nested tests.
+# This script is used to lock agents for nested tests. Locking agents is not
+# an atomic operation so this script has to account for race conditions.
+#
+# We will attempt to lock 3 agents, then wait a bit for the booked agents
+# lock-state to become non-volatile. If all agents are still locked with the 
+# build id this script is using, then we know we can proceed safely. 
+#
+# If instead, another build somehow booked some of our previously-booked agents
+# after we did, we can unlock all the agents we still have booked. Then wait a
+# random duration to avoid multiple instances of the script thrashing on the
+# next booking attempt.
 ###############################################################################
 
 set -e
@@ -141,9 +151,9 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
     sleep $[ ( $RANDOM % 10 )  + 1 ]s
 
     echo "Attempting to lock $AGENTS_NEEDED agents from the agent group $AGENT_GROUP..."
-
     agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
     unlockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities.status=="unlocked" and .userCapabilities."agent-group"=='\"$AGENT_GROUP\"') | .id' | tr -d '[], "'))
+
     echo "Found these unlocked agents:"
     echo ${unlockedAgents[*]}
 
