@@ -484,8 +484,8 @@ impl Check {
                 aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
             }
 
-             // If a proxy is configured, pass along the proxy-uri
-             if let Some(proxy_uri) = &self.proxy_uri {
+            // If a proxy is configured, pass along the proxy-uri
+            if let Some(proxy_uri) = &self.proxy_uri {
                 aziot_check.arg("--proxy-uri").arg(proxy_uri.clone());
             }
 
@@ -674,8 +674,8 @@ fn get_proxy_uri(arg: Option<String>) -> Option<String> {
     }
     //Otherwise, pull it from the environment
     std::env::var("HTTPS_PROXY")
-    .ok()
-    .or_else(|| std::env::var("https_proxy").ok())
+        .ok()
+        .or_else(|| std::env::var("https_proxy").ok())
 }
 
 fn write_lines<'a>(
@@ -907,18 +907,19 @@ mod tests {
     fn pickup_proxy_uri_from_the_right_place() {
         //Setup the environment
         let env_proxy_uri = "https://environment:123";
-        std::env::set_var(
-            "HTTPS_PROXY",
-            env_proxy_uri,
-        );
+        std::env::set_var("HTTPS_PROXY", env_proxy_uri);
         let proxy_uri = super::get_proxy_uri(Option::None);
         //Validate that the uri is picked up from the environment.
-        assert!(proxy_uri.is_some(), "Unable to get proxy_uri from the environment");
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the environment"
+        );
         assert_eq!(
             proxy_uri.unwrap(),
             env_proxy_uri.to_string(),
             "proxy _uri fetched from the environment did not match expected value: '{};",
-            env_proxy_uri);
+            env_proxy_uri
+        );
 
         //Point to a test config
         std::env::set_var(
@@ -935,24 +936,30 @@ mod tests {
         let config_proxy_uri = "https://config:123";
         let proxy_uri = super::get_proxy_uri(Option::None);
         //Validate that the uri is picked up from the config which overrides the value in the env.
-        assert!(proxy_uri.is_some(), "Unable to get proxy_uri from the config");
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the config"
+        );
         assert_eq!(
             proxy_uri.unwrap(),
             config_proxy_uri.to_string(),
             "proxy_uri fetched from the config did not match expected value: '{}'",
             config_proxy_uri,
-            );
+        );
 
         //Get config by passing in the uri as the parameter
         let parm_proxy_uri = "https://commandline:123";
-        let proxy_uri= super::get_proxy_uri(Some(parm_proxy_uri.to_string()));
+        let proxy_uri = super::get_proxy_uri(Some(parm_proxy_uri.to_string()));
         //Validate that uri is picked up from the passed in parameter which overrides the value in the env and config
-        assert!(proxy_uri.is_some(), "Unable to get proxy_uri from the command line paramter");
+        assert!(
+            proxy_uri.is_some(),
+            "Unable to get proxy_uri from the command line paramter"
+        );
         assert_eq!(
             proxy_uri.unwrap(),
             parm_proxy_uri.to_string(),
             "proxy_uri fetched from the config did not match expected value: '{}'",
             config_proxy_uri,
-            );
+        );
     }
 }
