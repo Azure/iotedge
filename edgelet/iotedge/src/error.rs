@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt;
 use std::fmt::Display;
+use std::{fmt, process::ExitStatus};
 
 use failure::{Backtrace, Context, Fail};
 
@@ -29,6 +29,22 @@ pub enum ErrorKind {
         _0
     )]
     FetchLatestVersions(FetchLatestVersionsReason),
+
+    #[fail(
+        display = "Could not determine versions of installed edge components: {}",
+        _0
+    )]
+    DetermineEdgeVersion(DetermineEdgeVersionReason),
+
+    #[fail(
+        display = "Unknown platform. OS: {}, Arch: {}, Bitness: {}",
+        os, arch, bitness
+    )]
+    UnknownPlatform {
+        os: String,
+        arch: String,
+        bitness: String,
+    },
 
     #[fail(display = "Command failed: {}", _0)]
     Config(std::borrow::Cow<'static, str>),
@@ -113,6 +129,44 @@ impl Display for FetchLatestVersionsReason {
             ),
             FetchLatestVersionsReason::ResponseStatusCode(status_code) => {
                 write!(f, "response failed with status code {}", status_code)
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum DetermineEdgeVersionReason {
+    DockerInspectExitCode(ExitStatus, String),
+    DockerInspectFailed(String),
+    JsonParseError(String),
+    ImageKeyNotFound,
+    ImageValueUnexpectedFormat,
+}
+
+// TODO Consider making DetermineEdgeReason stateless as suggested in failure module documentation
+impl Display for DetermineEdgeVersionReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DetermineEdgeVersionReason::DockerInspectExitCode(exit_code, stderr) => write!(
+                f,
+                "docker inspect failed with exit code {}, stderr = {}",
+                exit_code, stderr
+            ),
+            DetermineEdgeVersionReason::DockerInspectFailed(module_name) => write!(
+                f,
+                "docker inspect {} command failed to execute",
+                module_name
+            ),
+            DetermineEdgeVersionReason::JsonParseError(module_name) => write!(
+                f,
+                "Error parsing JSON output from docker inspect {}",
+                module_name
+            ),
+            DetermineEdgeVersionReason::ImageKeyNotFound => {
+                write!(f, "'Image' key not found in docker inspect output")
+            }
+            DetermineEdgeVersionReason::ImageValueUnexpectedFormat => {
+                write!(f, "'Image' value does not have expected sha256 format")
             }
         }
     }

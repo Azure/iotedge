@@ -17,7 +17,7 @@
 )]
 
 use futures::Future;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 
 mod check;
 pub mod config;
@@ -46,8 +46,32 @@ pub trait Command {
     fn execute(self) -> Self::Future;
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct LatestVersions {
     #[serde(rename = "aziot-edge")]
     pub aziot_edge: String,
+    #[serde(rename = "azureiotedge-agent")]
+    pub aziot_edge_agent: AziotEdgeModuleVersion,
+    #[serde(rename = "azureiotedge-hub")]
+    pub aziot_edge_hub: AziotEdgeModuleVersion,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize)]
+pub struct AziotEdgeModuleVersion {
+    #[serde(rename = "linux-amd64")]
+    pub linux_amd64: DockerImageInfo,
+    #[serde(rename = "linux-arm32v7")]
+    pub linux_arm32v7: DockerImageInfo,
+    #[serde(rename = "linux-arm64v8")]
+    pub linux_arm64v8: DockerImageInfo,
+    #[serde(rename = "windows-amd64")]
+    pub windows_amd64: DockerImageInfo,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct DockerImageInfo {
+    #[serde(rename = "image-tag")]
+    pub image_tag: String,
+    #[serde(rename = "sha256")]
+    pub sha256: String,
 }

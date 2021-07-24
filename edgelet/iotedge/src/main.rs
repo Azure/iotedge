@@ -107,6 +107,20 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                 )
                 .arg(
+                    Arg::with_name("expected-aziot-edge-agent-sha256")
+                    .long("expected-aziot-edge-agent-sha256")
+                    .value_name("SHA256")
+                    .help("Sets the expected SHA256 of the edgeAgent module. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
+                    .takes_value(true),
+                )
+                .arg(
+                    Arg::with_name("expected-aziot-edge-hub-sha256")
+                    .long("expected-aziot-edge-hub-sha256")
+                    .value_name("SHA256")
+                    .help("Sets the expected SHA256 of the edgeHub module. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
+                    .takes_value(true),
+                )
+                .arg(
                     Arg::with_name("aziot-edged")
                         .long("aziot-edged")
                         .value_name("PATH_TO_AZIOT_EDGED")
@@ -412,6 +426,10 @@ fn run() -> Result<(), Error> {
                 args.value_of("expected-aziot-edged-version")
                     .map(ToOwned::to_owned),
                 args.value_of("expected-aziot-version")
+                    .map(ToOwned::to_owned),
+                args.value_of("expected-aziot-edge-agent-sha256")
+                    .map(ToOwned::to_owned),
+                args.value_of("expected-aziot-edge-hub-sha256")
                     .map(ToOwned::to_owned),
                 args.value_of_os("aziot-edged")
                     .expect("arg has a default value")

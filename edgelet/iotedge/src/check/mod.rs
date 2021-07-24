@@ -36,6 +36,8 @@ pub struct Check {
     aziot_edged: PathBuf,
     expected_aziot_edged_version: Option<String>,
     expected_aziot_version: Option<String>,
+    expected_aziot_edge_agent_sha256: Option<String>,
+    expected_aziot_edge_hub_sha256: Option<String>,
     output_format: OutputFormat,
     verbose: bool,
     warnings_as_errors: bool,
@@ -92,6 +94,8 @@ impl Check {
         dont_run: BTreeSet<String>,
         expected_aziot_edged_version: Option<String>,
         expected_aziot_version: Option<String>,
+        expected_aziot_edge_agent_sha256: Option<String>,
+        expected_aziot_edge_hub_sha256: Option<String>,
         aziot_edged: PathBuf,
         output_format: OutputFormat,
         verbose: bool,
@@ -107,6 +111,8 @@ impl Check {
             aziot_edged,
             expected_aziot_edged_version,
             expected_aziot_version,
+            expected_aziot_edge_agent_sha256,
+            expected_aziot_edge_hub_sha256,
             output_format,
             verbose,
             warnings_as_errors,
@@ -715,8 +721,10 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()),  // unused for this test
-                Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
+                Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
@@ -765,8 +773,10 @@ mod tests {
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
                 Default::default(),
-                Some("1.0.0".to_owned()),  // unused for this test
-                Some("1.0.0".to_owned()),  // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                Some("1.0.0".to_owned()), // unused for this test
+                Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
+                Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
                 "aziot-edged".into(),      // unused for this test
                 super::OutputFormat::Text, // unused for this test
                 false,
@@ -816,8 +826,10 @@ mod tests {
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()), // unused for this test
+            Some("1.0.0".to_owned()), // unused for this test
+            Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
+            Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
@@ -855,8 +867,10 @@ mod tests {
             "daemon.json".into(), // unused for this test
             "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
             Default::default(),
-            Some("1.0.0".to_owned()),  // unused for this test
-            Some("1.0.0".to_owned()),  // unused for this test
+            Some("1.0.0".to_owned()), // unused for this test
+            Some("1.0.0".to_owned()), // unused for this test
+            Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
+            Some("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb".to_owned()), // unused for this test
             "aziot-edged".into(),      // unused for this test
             super::OutputFormat::Text, // unused for this test
             false,
