@@ -662,7 +662,7 @@ impl Check {
 
 fn get_proxy_uri(arg: Option<String>) -> Option<String> {
     //If proxy address was passed in as command line argument, we are good
-    if let Some(_) = arg {
+    if arg.is_some() {
         return arg;
     }
     //proxy_address wasn't passed in on the command line. Pull it from the aziot-edged settings
@@ -932,7 +932,7 @@ mod tests {
             ),
         );
 
-        //Get config again
+        //Get proxy_uri again
         let config_proxy_uri = "https://config:123";
         let proxy_uri = super::get_proxy_uri(Option::None);
         //Validate that the uri is picked up from the config which overrides the value in the env.
@@ -947,7 +947,7 @@ mod tests {
             config_proxy_uri,
         );
 
-        //Get config by passing in the uri as the parameter
+        //Get proxy-uri by passing in the uri as the parameter
         let parm_proxy_uri = "https://commandline:123";
         let proxy_uri = super::get_proxy_uri(Some(parm_proxy_uri.to_string()));
         //Validate that uri is picked up from the passed in parameter which overrides the value in the env and config
