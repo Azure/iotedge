@@ -115,7 +115,7 @@ impl Check {
             additional_info: AdditionalInfo::new(),
 
             iothub_hostname,
-            proxy_uri,
+            proxy_uri: get_proxy_uri(proxy_uri),
             parent_hostname: None,
             settings: None,
             docker_host_arg: None,
@@ -484,15 +484,9 @@ impl Check {
                 aziot_check.arg("--iothub-hostname").arg(iothub_hostname);
             }
 
-            // Prioritize proxy address passed in as command line argument
-            // before searching aziot-edged settings for Edge Agent's
-            // environment variables.
-            if let Some(proxy_uri) = &self.proxy_uri {
+             // If a proxy is configured, pass along the proxy-uri
+             if let Some(proxy_uri) = &self.proxy_uri {
                 aziot_check.arg("--proxy-uri").arg(proxy_uri.clone());
-            } else if let Ok(settings) = Settings::new() {
-                if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
-                    aziot_check.arg("--proxy-uri").arg(agent_proxy_uri.clone());
-                }
             }
 
             if !self.dont_run.is_empty() {
@@ -664,6 +658,24 @@ impl Check {
 
         result
     }
+}
+
+fn get_proxy_uri(arg: Option<String>) -> Option<String> {
+    //If proxy address was passed in as command line argument, we are good
+    if let Some(_) = arg {
+        return arg;
+    }
+    //proxy_address wasn't passed in on the command line. Pull it from the aziot-edged settings
+    //for Edge Agent's environment variables.
+    if let Ok(settings) = Settings::new() {
+        if let Some(agent_proxy_uri) = settings.base.agent.env().get("https_proxy") {
+            return Some(agent_proxy_uri.clone());
+        }
+    }
+    //Otherwise, pull it from the environment
+    std::env::var("HTTPS_PROXY")
+    .ok()
+    .or_else(|| std::env::var("https_proxy").ok())
 }
 
 fn write_lines<'a>(
@@ -889,5 +901,58 @@ mod tests {
                 filename, check_result
             ),
         }
+    }
+
+    #[test]
+    fn pickup_proxy_uri_from_the_right_place() {
+        //Setup the environment
+        let env_proxy_uri = "https://environment:123";
+        std::env::set_var(
+            "HTTPS_PROXY",
+            env_proxy_uri,
+        );
+        let proxy_uri = super::get_proxy_uri(Option::None);
+        //Validate that the uri is picked up from the environment.
+        assert!(proxy_uri.is_some(), "Unable to get proxy_uri from the environment");
+        assert_eq!(
+            proxy_uri.unwrap(),
+            env_proxy_uri.to_string(),
+            "proxy _uri fetched from the environment did not match expected value: '{};",
+            env_proxy_uri);
+
+        //Point to a test config
+        std::env::set_var(
+            "AZIOT_EDGED_CONFIG",
+            format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                "linux",
+                "sample_settings_with_proxy_uri.toml",
+            ),
+        );
+
+        //Get config again
+        let config_proxy_uri = "https://config:123";
+        let proxy_uri = super::get_proxy_uri(Option::None);
+        //Validate that the uri is picked up from the config which overrides the value in the env.
+        assert!(proxy_uri.is_some(), "Unable to get proxy_uri from the config");
+        assert_eq!(
+            proxy_uri.unwrap(),
+            config_proxy_uri.to_string(),
+            "proxy_uri fetched from the config did not match expected value: '{}'",
+            config_proxy_uri,
+            );
+
+        //Get config by passing in the uri as the parameter
+        let parm_proxy_uri = "https://commandline:123";
+        let proxy_uri= super::get_proxy_uri(Some(parm_proxy_uri.to_string()));
+        //Validate that uri is picked up from the passed in parameter which overrides the value in the env and config
+        assert!(proxy_uri.is_some(), "Unable to get proxy_uri from the command line paramter");
+        assert_eq!(
+            proxy_uri.unwrap(),
+            parm_proxy_uri.to_string(),
+            "proxy_uri fetched from the config did not match expected value: '{}'",
+            config_proxy_uri,
+            );
     }
 }
