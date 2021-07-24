@@ -1,6 +1,7 @@
 parameters:
   upstream.protocol: 'amqp'
   testRunnerCount: '1'
+  test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json'
 
 jobs:
   - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
@@ -62,7 +63,7 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       parentName: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
+      deploymentFile: "${{ parameters['test.l4DeploymentFileName'] }}"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
     pool:

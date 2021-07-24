@@ -37,14 +37,14 @@
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"100m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
+              "DeviceScopeCacheRefreshDelaySecs": {
+                "value": 0
+              },
               "experimentalFeatures__enabled": {
                 "value": "true"
               },
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
-              },
-              "DeviceScopeCacheRefreshDelaySecs": {
-                "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
@@ -72,30 +72,6 @@
               "NGINX_DEFAULT_PORT": {
                 "value": "443"
               }
-            }
-          },
-          "genericMqttTester": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "always",
-            "env": {
-              "TEST_SCENARIO": {
-                "value": "Relay"
-              },
-              "TRACKING_ID": {
-                "value": "AForgottenVariableLostToTimeAndSpace-PleaseRememberToRemoveMeSomedayFromTheRelayerScenarioOfGenericMqttTesterOrAlternativelyAddValidationInTheTesterAndGenerateTheTrackingIdFromAHigherYaml"
-              },
-              "TEST_START_DELAY": {
-                "value": "10s"
-              },
-              "SslProtocols": {
-                "value": "tls1.2"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-generic-mqtt-tester:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}}}"
             }
           }
         }

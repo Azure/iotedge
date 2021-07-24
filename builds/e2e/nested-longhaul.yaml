@@ -33,6 +33,7 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt
+      test.l4DeploymentFileName: 'nestededge_middleLayer_messaging_mqtt.json'
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       upstream.protocol: mqtt

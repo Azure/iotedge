@@ -100,7 +100,7 @@ stages:
       - template: templates/nested-deploy-config.yaml
         parameters:
           deviceId: $(parentDeviceId)
-          deploymentFile: nestededge_middleLayerBaseDeployment_amqp.json
+          deploymentFile: nestededge_middleLayer_messaging_amqp.json
           changeDeployConfigOnly: true
           level: 4
           name: 4
