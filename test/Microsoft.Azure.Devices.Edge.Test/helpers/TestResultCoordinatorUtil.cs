@@ -98,6 +98,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 isPassed = false;
             }
 
+            Log.Information("Test Result Coordinator response: {Response}", jsonstring);
+
             if (!isPassed)
             {
                 Log.Information("Test Result Coordinator response: {Response}", jsonstring);
