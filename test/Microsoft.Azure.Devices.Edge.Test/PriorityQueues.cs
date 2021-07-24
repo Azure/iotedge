@@ -86,6 +86,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 await testResultReportingClient.ReportResultAsync(messageTestResult.ToTestOperationResultDto());
             }
 
+            await Task.Delay(TimeSpan.FromMinutes(4));
+
             await TestResultCoordinatorUtil.ValidateResultsAsync();
         }
 
