@@ -388,11 +388,11 @@ mod tests {
                     \"azureiotedge-agent\": {
                         \"linux-amd64\": {
                             \"image-tag\": \"1.2.3-linux-amd64\",
-                            \"sha256\":  \"bcf70e8dc21c682ca082173afa64904ea2083ee2cfbf4d3561b212aa649b3897\"
+                            \"sha256\":  \"ff4aa7c74767e1fed2d3775a5fa2fcb506b5b2662a71dbdd48c8373d83a0e749\"
                         },
                         \"linux-arm32v7\": {
                             \"image-tag\": \"1.2.3-linux-arm32v7\",
-                            \"sha256\":  \"cd1dfa082becc835457f15a8ed5c27e7143d13a28e2f34623012f5b48abf0a8f\"
+                            \"sha256\":  \"817f78c4771d2d39955d89fb0a5949b1ad7a9e250f5604e5d03842a993af7a76\"
                         },
                         \"linux-arm64v8\": {
                             \"image-tag\": \"1.2.3-linux-arm64v8\",
@@ -402,15 +402,15 @@ mod tests {
                     \"azureiotedge-hub\": {
                         \"linux-amd64\": {
                             \"image-tag\": \"1.2.3-linux-amd64\",
-                            \"sha256\":  \"735e482f7fcd7d857429799de2fddf9368a732a0a4e424a08b6de362291a6daa\"
+                            \"sha256\":  \"23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7\"
                         },
                         \"linux-arm32v7\": {
                             \"image-tag\": \"1.2.3-linux-arm32v7\",
-                            \"sha256\":  \"bf1bb004de7e3987d57da5c91d5b7cddb4b446d31fa3ac8348e46d071266c9b3\"
+                            \"sha256\":  \"74d64b3d279f7a6d975a1be20d2a0afb32cd1142ef612f7831659403eaff728b\"
                         },
                         \"linux-arm64v8\": {
                             \"image-tag\": \"1.2.3-linux-arm64v8\",
-                            \"sha256\":  \"018d47c0cf545832df2006adf53b29a5408763695f73267207929e91514adcc6\"
+                            \"sha256\":  \"2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9\"
                         } 
                     }
                 }");
@@ -422,10 +422,30 @@ mod tests {
         print!("init_result: {:?}", init_result);
 
         assert!(matches!(init_result, CheckResult::Ok));
-
+        assert_eq!(check.latest_versions.aziot_edge, "1.2.3");
         assert_eq!(
             check.latest_versions.aziot_edge_agent.linux_amd64.sha256,
-            "bcf70e8dc21c682ca082173afa64904ea2083ee2cfbf4d3561b212aa649b3897".to_owned()
-        )
+            "ff4aa7c74767e1fed2d3775a5fa2fcb506b5b2662a71dbdd48c8373d83a0e749".to_owned()
+        );
+        assert_eq!(
+            check.latest_versions.aziot_edge_agent.linux_arm32v7.sha256,
+            "817f78c4771d2d39955d89fb0a5949b1ad7a9e250f5604e5d03842a993af7a76".to_owned()
+        );
+        assert_eq!(
+            check.latest_versions.aziot_edge_agent.linux_arm64v8.sha256,
+            "49934927d721e4a16cb57e2b83270ceec886b4b824f5445e8228c8e87f0de95b".to_owned()
+        );
+        assert_eq!(
+            check.latest_versions.aziot_edge_hub.linux_amd64.sha256,
+            "23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7".to_owned()
+        );
+        assert_eq!(
+            check.latest_versions.aziot_edge_hub.linux_arm32v7.sha256,
+            "74d64b3d279f7a6d975a1be20d2a0afb32cd1142ef612f7831659403eaff728b".to_owned()
+        );
+        assert_eq!(
+            check.latest_versions.aziot_edge_hub.linux_arm64v8.sha256,
+            "2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9".to_owned()
+        );
     }
 }
