@@ -66,3 +66,4 @@ sysinfo = "0.14.10"
 [dev-dependencies]
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 tempfile = "3.1.0"
+httpmock = "0.5"

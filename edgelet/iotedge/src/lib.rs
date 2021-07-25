@@ -64,8 +64,8 @@ pub struct AziotEdgeModuleVersion {
     pub linux_arm32v7: DockerImageInfo,
     #[serde(rename = "linux-arm64v8")]
     pub linux_arm64v8: DockerImageInfo,
-    #[serde(rename = "windows-amd64")]
-    pub windows_amd64: DockerImageInfo,
+    // #[serde(rename = "windows-amd64")]
+    // pub windows_amd64: DockerImageInfo,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

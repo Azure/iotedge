@@ -42,17 +42,17 @@ impl Checker for AziotEdgeVersion {
         // Determine actual running versions of iotedge daemon, agent, and hub
         self.actual_edge_agent_version.sha256 =
             match AziotEdgeVersion::actual_module_sha256("edgeAgent") {
-                Ok(v) => v.to_owned(),
+                Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
         // TODO: Consider ignoring errors caused by EdgeHub not currently running
         self.actual_edge_hub_version.sha256 =
             match AziotEdgeVersion::actual_module_sha256("edgeHub") {
-                Ok(v) => v.to_owned(),
+                Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
         self.actual_edged_version = match AziotEdgeVersion::actual_edged_version(check) {
-            Ok(v) => v.to_owned(),
+            Ok(v) => v,
             Err(e) => return CheckResult::Failed(e),
         };
 
@@ -67,7 +67,8 @@ impl Checker for AziotEdgeVersion {
                 return CheckResult::Ignored;
             }
 
-            let check_result = self.init_latest_versions(tokio_runtime);
+            let check_result =
+                self.init_latest_versions(tokio_runtime, "https://aka.ms/latest-aziot-edge");
             match check_result {
                 CheckResult::Ok => (),
                 _ => return check_result,
@@ -261,7 +262,11 @@ impl AziotEdgeVersion {
             .to_owned())
     }
 
-    fn init_latest_versions(&mut self, tokio_runtime: &mut tokio::runtime::Runtime) -> CheckResult {
+    fn init_latest_versions(
+        &mut self,
+        tokio_runtime: &mut tokio::runtime::Runtime,
+        latest_versions_url: &str,
+    ) -> CheckResult {
         // Pull expected versions from https://aka.ms/latest-aziot-edge
         let proxy = std::env::var("HTTPS_PROXY")
             .ok()
@@ -281,7 +286,7 @@ impl AziotEdgeVersion {
             Err(err) => return CheckResult::Failed(err.into()),
         };
 
-        let request = hyper::Request::get("https://aka.ms/latest-aziot-edge")
+        let request = hyper::Request::get(latest_versions_url)
             .body(hyper::Body::default())
             .expect("can't fail to create request");
 
@@ -353,6 +358,74 @@ impl AziotEdgeVersion {
             },
         };
 
-        return CheckResult::Ok;
+        CheckResult::Ok
+    }
+}
+
+#[cfg(test)]
+
+mod tests {
+    use super::*;
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
+
+    #[test]
+    fn test_init_latest_versions() {
+        let server = MockServer::start();
+        let _latest_versions_mock = server.mock(|when, then| {
+            when.method(GET).path("/latest_versions");
+            then.status(302)
+                .header("Location", &server.url("/redirected_latest_versions"))
+                .body("");
+        });
+        let _redirect_mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/redirected_latest_versions");
+            then.status(200)
+                .header("Content-Type", "text/html")
+                .body("{
+                    \"aziot-edge\": \"1.2.3\",
+                    \"azureiotedge-agent\": {
+                        \"linux-amd64\": {
+                            \"image-tag\": \"1.2.3-linux-amd64\",
+                            \"sha256\":  \"bcf70e8dc21c682ca082173afa64904ea2083ee2cfbf4d3561b212aa649b3897\"
+                        },
+                        \"linux-arm32v7\": {
+                            \"image-tag\": \"1.2.3-linux-arm32v7\",
+                            \"sha256\":  \"cd1dfa082becc835457f15a8ed5c27e7143d13a28e2f34623012f5b48abf0a8f\"
+                        },
+                        \"linux-arm64v8\": {
+                            \"image-tag\": \"1.2.3-linux-arm64v8\",
+                            \"sha256\":  \"49934927d721e4a16cb57e2b83270ceec886b4b824f5445e8228c8e87f0de95b\"
+                        }
+                    },
+                    \"azureiotedge-hub\": {
+                        \"linux-amd64\": {
+                            \"image-tag\": \"1.2.3-linux-amd64\",
+                            \"sha256\":  \"735e482f7fcd7d857429799de2fddf9368a732a0a4e424a08b6de362291a6daa\"
+                        },
+                        \"linux-arm32v7\": {
+                            \"image-tag\": \"1.2.3-linux-arm32v7\",
+                            \"sha256\":  \"bf1bb004de7e3987d57da5c91d5b7cddb4b446d31fa3ac8348e46d071266c9b3\"
+                        },
+                        \"linux-arm64v8\": {
+                            \"image-tag\": \"1.2.3-linux-arm64v8\",
+                            \"sha256\":  \"018d47c0cf545832df2006adf53b29a5408763695f73267207929e91514adcc6\"
+                        } 
+                    }
+                }");
+        });
+
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+        let mut check = AziotEdgeVersion::default();
+        let init_result = check.init_latest_versions(&mut runtime, &server.url("/latest_versions"));
+        print!("init_result: {:?}", init_result);
+
+        assert!(matches!(init_result, CheckResult::Ok));
+
+        assert_eq!(
+            check.latest_versions.aziot_edge_agent.linux_amd64.sha256,
+            "bcf70e8dc21c682ca082173afa64904ea2083ee2cfbf4d3561b212aa649b3897".to_owned()
+        )
     }
 }
