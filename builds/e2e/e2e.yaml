@@ -218,7 +218,7 @@ jobs:
     pool:
       name: $(pool.linux.name)
       demands:
-        - ImageOverride -equals agent-aziotedge-centos-7
+        - ImageOverride -equals agent-aziotedge-centos-7-msmoby
 
     variables:
       os: linux
