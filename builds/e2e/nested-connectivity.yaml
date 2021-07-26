@@ -172,6 +172,7 @@ stages:
           testInfo.testName: '$(testInfo.testName)'
   - job:  Clean_up      
     dependsOn:
+      - Lock_Nested_Agents_mqtt
       - SetupVM_level5_mqtt
       - SetupVM_level4_mqtt
       - Deploy_connectivity_Linux_Amd64

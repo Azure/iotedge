@@ -107,6 +107,7 @@ stages:
 
   - job:  Clean_up
     dependsOn:
+      - Lock_Nested_Agents_mqtt
       - SetupVM_level5_mqtt 
       - SetupVM_level4_mqtt
       - SetupVM_and_RunTest_level3
