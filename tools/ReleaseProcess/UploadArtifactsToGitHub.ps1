@@ -5,8 +5,6 @@
     .SYNOPSIS
         This function downloads and prepares the Iot Edge Daemon artifacts from DevOps pipeline for a release. 
         The final artifacts are collected under "<WorkDir>/output" path.
-    .NOTES
-        Requires Azure CLI to be login
     .DESCRIPTION
         1) Download edgelet artifacts from a given BuildId from a DevOps pipeline
         2) Extract the *.zip artifacts into their own directories
@@ -136,8 +134,6 @@ function Prepare-DevOps-Artifacts
     .SYNOPSIS
         This function downloads and prepares the IoT Identity Service artifacts from Github Action for a release.
         The final artifacts are collected under "<WorkDir>/output" path.
-    .NOTES
-        Requires Azure CLI to be login
     .DESCRIPTION
         1) Download edgelet artifacts from a given commit off of the Github build action:
               https://github.com/Azure/iot-identity-service/actions/workflows/packages.yaml
@@ -294,8 +290,6 @@ function Prepare-GitHub-Artifacts
 <#
     .SYNOPSIS
         This function upload the artifacts from a given "workDir" to a new GitHub release page.
-    .NOTES
-        Requires Azure CLI to be login
     .DESCRIPTION
         1) Derived a new version string from the latest release in 'Azure/iotedge' repository
         2) Extract a relavant CHANGELOG.md section for the release page description
