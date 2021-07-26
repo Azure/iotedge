@@ -39,6 +39,14 @@ impl Settings {
     pub fn moby_runtime(&self) -> &runtime::MobyRuntime {
         &self.moby_runtime
     }
+
+    pub fn agent_upstream_resolve(mut self, parent_hostname: &str) -> Self {
+        crate::RuntimeSettings::agent_mut(&mut self)
+            .config_mut()
+            .parent_hostname_resolve(parent_hostname);
+
+        self
+    }
 }
 
 impl crate::RuntimeSettings for Settings {

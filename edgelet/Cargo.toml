@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "aziot-edged",
-    #"docker-rs",
+    "docker-rs",
     "edgelet-core",
     # "edgelet-docker",
     "edgelet-http",

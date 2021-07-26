@@ -68,11 +68,9 @@ async fn run() -> Result<(), EdgedError> {
 
     provision::update_device_cache(&cache_dir, &device_info)?;
 
-    // TODO: Rework settings so this isn't needed.
-    // let mut settings = settings;
-    // settings
-    //     .agent_mut()
-    //     .parent_hostname_resolve(&device_info.gateway_host);
+    // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
+    // appropriate hostname.
+    let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
     let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
