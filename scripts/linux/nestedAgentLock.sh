@@ -1,8 +1,12 @@
 #! /bin/bash
 
 ###############################################################################
-# This script is used to lock agents for nested tests. Locking agents is not
-# an atomic operation so this script has to account for race conditions.
+# This script is used to "lock" agents for nested tests. When we lock an agent,
+# we alter the agent capability named "status" by appending the build id of
+# the current run.
+
+# Locking agents is not an atomic operation so this script has to account for
+# race conditions.
 #
 # We will attempt to lock 3 agents, then wait a bit for the booked agents
 # lock-state to become non-volatile. If all agents are still locked with the 
@@ -39,8 +43,8 @@ usage()
     echo "$SCRIPT_NAME [options]"
     echo ""
     echo "options"
-    echo " -p                 DevOps API PAT for booking the agents."
-    echo " -a                 Agent Group from which we want to book agents."
+    echo " -p                 DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
+    echo " -a                 Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
     echo " -b                 Devops build id used to tag locked agents."
     exit 1;
 }
