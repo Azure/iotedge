@@ -1,6 +1,23 @@
 trigger: none
 pr: none
 
+# Nested E2E and Nested Connectivity share test agents.
+# Thus the schedules are offset by 6 hours.
+# This will ensure that enough agents are avaiable to service all tests. 
+schedules:
+- cron: "0 0 * * *"
+  displayName: Daily midnight build
+  branches:
+    include:
+    - release/1.2
+  always: true
+- cron: "0 12 * * *"
+  displayName: Daily noon build
+  branches:
+    include:
+    - release/1.2
+  always: true
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
   
@@ -9,17 +26,9 @@ resources:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'release/1.2'
-    trigger:
-      branches:
-      - master
-      - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: 'release/1.2'
-    trigger:
-      branches:
-      - master
-      - release/*
 
 stages:
 - stage: SetupVMs

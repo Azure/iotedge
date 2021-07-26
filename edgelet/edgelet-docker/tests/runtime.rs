@@ -12,6 +12,7 @@ use std::time::Duration;
 use failure::Fail;
 use futures::future;
 use futures::prelude::*;
+use futures::sync::mpsc;
 use hyper::{Body, Method, Request, Response, StatusCode};
 use maplit::btreemap;
 use serde_json::{self, json};
@@ -25,8 +26,8 @@ use docker::models::{
 };
 
 use edgelet_core::{
-    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleRegistry, ModuleRuntime,
-    ModuleSpec, RegistryOperation, RuntimeOperation,
+    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleAction, ModuleRegistry,
+    ModuleRuntime, ModuleSpec, RegistryOperation, RuntimeOperation,
 };
 use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
 use edgelet_docker::{Error, ErrorKind};
@@ -57,6 +58,7 @@ fn make_settings(moby_runtime: &str) -> Settings {
             r#"
 hostname = "zoo"
 homedir = "/var/lib/aziot/edged"
+allow_elevated_docker_permissions = true
 
 [agent]
 name = "edgeAgent"
@@ -229,23 +231,26 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        let auth = AuthConfig::new()
-            .with_username("u1".to_string())
-            .with_password("bleh".to_string())
-            .with_email("u1@bleh.com".to_string())
-            .with_serveraddress("svr1".to_string());
-        let config = DockerConfig::new(
-            INVALID_IMAGE_NAME.to_string(),
-            ContainerCreateBody::new(),
-            None,
-            Some(auth),
-        )
-        .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            let auth = AuthConfig::new()
+                .with_username("u1".to_string())
+                .with_password("bleh".to_string())
+                .with_email("u1@bleh.com".to_string())
+                .with_serveraddress("svr1".to_string());
+            let config = DockerConfig::new(
+                INVALID_IMAGE_NAME.to_string(),
+                ContainerCreateBody::new(),
+                None,
+                Some(auth),
+            )
+            .unwrap();
 
-        runtime.pull(&config)
-    });
+            runtime.pull(&config)
+        },
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -333,23 +338,26 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        let auth = AuthConfig::new()
-            .with_username("u1".to_string())
-            .with_password("bleh".to_string())
-            .with_email("u1@bleh.com".to_string())
-            .with_serveraddress("svr1".to_string());
-        let config = DockerConfig::new(
-            INVALID_IMAGE_HOST.to_string(),
-            ContainerCreateBody::new(),
-            None,
-            Some(auth),
-        )
-        .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            let auth = AuthConfig::new()
+                .with_username("u1".to_string())
+                .with_password("bleh".to_string())
+                .with_email("u1@bleh.com".to_string())
+                .with_serveraddress("svr1".to_string());
+            let config = DockerConfig::new(
+                INVALID_IMAGE_HOST.to_string(),
+                ContainerCreateBody::new(),
+                None,
+                Some(auth),
+            )
+            .unwrap();
 
-        runtime.pull(&config)
-    });
+            runtime.pull(&config)
+        },
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -451,24 +459,27 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        // password is written to guarantee base64 encoding has '-' and/or '_'
-        let auth = AuthConfig::new()
-            .with_username("us1".to_string())
-            .with_password("ac?ac~aaac???".to_string())
-            .with_email("u1@bleh.com".to_string())
-            .with_serveraddress("svr1".to_string());
-        let config = DockerConfig::new(
-            IMAGE_NAME.to_string(),
-            ContainerCreateBody::new(),
-            None,
-            Some(auth),
-        )
-        .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            // password is written to guarantee base64 encoding has '-' and/or '_'
+            let auth = AuthConfig::new()
+                .with_username("us1".to_string())
+                .with_password("ac?ac~aaac???".to_string())
+                .with_email("u1@bleh.com".to_string())
+                .with_serveraddress("svr1".to_string());
+            let config = DockerConfig::new(
+                IMAGE_NAME.to_string(),
+                ContainerCreateBody::new(),
+                None,
+                Some(auth),
+            )
+            .unwrap();
 
-        runtime.pull(&config)
-    });
+            runtime.pull(&config)
+        },
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -553,23 +564,26 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        let auth = AuthConfig::new()
-            .with_username("u1".to_string())
-            .with_password("bleh".to_string())
-            .with_email("u1@bleh.com".to_string())
-            .with_serveraddress("svr1".to_string());
-        let config = DockerConfig::new(
-            IMAGE_NAME.to_string(),
-            ContainerCreateBody::new(),
-            None,
-            Some(auth),
-        )
-        .unwrap();
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            let auth = AuthConfig::new()
+                .with_username("u1".to_string())
+                .with_password("bleh".to_string())
+                .with_email("u1@bleh.com".to_string())
+                .with_serveraddress("svr1".to_string());
+            let config = DockerConfig::new(
+                IMAGE_NAME.to_string(),
+                ContainerCreateBody::new(),
+                None,
+                Some(auth),
+            )
+            .unwrap();
 
-        runtime.pull(&config)
-    });
+            runtime.pull(&config)
+        },
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -643,22 +657,26 @@ network = "azure-iot-edge"
         port
     ));
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        let auth = AuthConfig::new()
-            .with_username("u1".to_string())
-            .with_password("bleh".to_string())
-            .with_email("u1@bleh.com".to_string())
-            .with_serveraddress("svr1".to_string());
-        let config = DockerConfig::new(
-            IMAGE_NAME.to_string(),
-            ContainerCreateBody::new(),
-            None,
-            Some(auth),
-        )
-        .unwrap();
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-        runtime.pull(&config)
-    });
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            let auth = AuthConfig::new()
+                .with_username("u1".to_string())
+                .with_password("bleh".to_string())
+                .with_email("u1@bleh.com".to_string())
+                .with_serveraddress("svr1".to_string());
+            let config = DockerConfig::new(
+                IMAGE_NAME.to_string(),
+                ContainerCreateBody::new(),
+                None,
+                Some(auth),
+            )
+            .unwrap();
+
+            runtime.pull(&config)
+        },
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -709,7 +727,9 @@ network = "azure-iot-edge"
         port
     ));
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| ModuleRegistry::remove(&runtime, IMAGE_NAME));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -823,53 +843,57 @@ network = "azure-iot-edge"
         port
     ));
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        let mut env = BTreeMap::new();
-        env.insert("k1".to_string(), "v1".to_string());
-        env.insert("k2".to_string(), "v2".to_string());
-        env.insert("k3".to_string(), "v3".to_string());
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-        // add some create options
-        let mut port_bindings = BTreeMap::new();
-        port_bindings.insert(
-            "22/tcp".to_string(),
-            vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
-        );
-        port_bindings.insert(
-            "80/tcp".to_string(),
-            vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
-        );
-        let memory: i64 = 3_221_225_472;
-        let mut volumes = ::std::collections::BTreeMap::new();
-        volumes.insert("test1".to_string(), json!({}));
-        let create_options = ContainerCreateBody::new()
-            .with_host_config(
-                HostConfig::new()
-                    .with_port_bindings(port_bindings)
-                    .with_memory(memory),
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            let mut env = BTreeMap::new();
+            env.insert("k1".to_string(), "v1".to_string());
+            env.insert("k2".to_string(), "v2".to_string());
+            env.insert("k3".to_string(), "v3".to_string());
+
+            // add some create options
+            let mut port_bindings = BTreeMap::new();
+            port_bindings.insert(
+                "22/tcp".to_string(),
+                vec![HostConfigPortBindings::new().with_host_port("11022".to_string())],
+            );
+            port_bindings.insert(
+                "80/tcp".to_string(),
+                vec![HostConfigPortBindings::new().with_host_port("8080".to_string())],
+            );
+            let memory: i64 = 3_221_225_472;
+            let mut volumes = ::std::collections::BTreeMap::new();
+            volumes.insert("test1".to_string(), json!({}));
+            let create_options = ContainerCreateBody::new()
+                .with_host_config(
+                    HostConfig::new()
+                        .with_port_bindings(port_bindings)
+                        .with_memory(memory),
+                )
+                .with_cmd(vec![
+                    "/do/the/custom/command".to_string(),
+                    "with these args".to_string(),
+                ])
+                .with_entrypoint(vec![
+                    "/also/do/the/entrypoint".to_string(),
+                    "and this".to_string(),
+                ])
+                .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
+                .with_volumes(volumes);
+
+            let module_config = ModuleSpec::new(
+                "m1".to_string(),
+                "docker".to_string(),
+                DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
+                env,
+                ImagePullPolicy::default(),
             )
-            .with_cmd(vec![
-                "/do/the/custom/command".to_string(),
-                "with these args".to_string(),
-            ])
-            .with_entrypoint(vec![
-                "/also/do/the/entrypoint".to_string(),
-                "and this".to_string(),
-            ])
-            .with_env(vec!["k4=v4".to_string(), "k5=v5".to_string()])
-            .with_volumes(volumes);
+            .unwrap();
 
-        let module_config = ModuleSpec::new(
-            "m1".to_string(),
-            "docker".to_string(),
-            DockerConfig::new("nginx:latest".to_string(), create_options, None, None).unwrap(),
-            env,
-            ImagePullPolicy::default(),
-        )
-        .unwrap();
-
-        runtime.create(module_config)
-    });
+            runtime.create(module_config)
+        },
+    );
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -907,10 +931,24 @@ network = "azure-iot-edge"
         port
     ));
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.start("m1"));
+    let (create_socket_channel_snd, create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
+        .and_then(|runtime| runtime.start("m1"));
+
+    let simulate_workload_manager =
+        create_socket_channel_rcv.for_each(move |module_id: ModuleAction| match module_id {
+            ModuleAction::Start(_module_id, sender) => {
+                sender.send(()).unwrap();
+                Ok(())
+            }
+            ModuleAction::Stop(_module_id) | ModuleAction::Remove(_module_id) => Ok(()),
+        });
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
+    runtime.spawn(simulate_workload_manager);
+
     runtime.block_on(task).unwrap();
 }
 
@@ -945,8 +983,10 @@ network = "azure-iot-edge"
         port
     ));
 
-    let task =
-        DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.stop("m1", None));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
+        .and_then(|runtime| runtime.stop("m1", None));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -984,8 +1024,9 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.stop("m1", Some(Duration::from_secs(600))));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1023,8 +1064,9 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| ModuleRuntime::remove(&runtime, "m1"));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
@@ -1145,8 +1187,10 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.list());
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
+        .and_then(|runtime| runtime.list());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1228,16 +1272,19 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task = DockerModuleRuntime::make_runtime(settings).and_then(|runtime| {
-        let options = LogOptions::new()
-            .with_follow(true)
-            .with_tail(LogTail::All)
-            .with_since(100_000)
-            .with_until(200_000);
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd).and_then(
+        |runtime| {
+            let options = LogOptions::new()
+                .with_follow(true)
+                .with_tail(LogTail::All)
+                .with_since(100_000)
+                .with_until(200_000);
 
-        runtime.logs("mod1", &options)
-    });
+            runtime.logs("mod1", &options)
+        },
+    );
 
     let expected_body = [
         0x01_u8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x52, 0x6f, 0x73, 0x65, 0x73, 0x20,
@@ -1272,7 +1319,9 @@ network = "azure-iot-edge"
 
     let image_name = "     ";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| ModuleRegistry::remove(&runtime, image_name))
         .then(|res| match res {
             Ok(_) => Err("Expected error but got a result.".to_string()),
@@ -1310,7 +1359,9 @@ network = "azure-iot-edge"
 
     let name = "not_docker";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| {
             let module_config = ModuleSpec::new(
                 "m1".to_string(),
@@ -1358,7 +1409,9 @@ network = "azure-iot-edge"
 
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.start(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1394,7 +1447,9 @@ network = "azure-iot-edge"
 
     let name = "      ";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.start(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1430,7 +1485,9 @@ network = "azure-iot-edge"
 
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.stop(name, None))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1466,7 +1523,9 @@ network = "azure-iot-edge"
 
     let name = "     ";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.stop(name, None))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1502,7 +1561,9 @@ network = "azure-iot-edge"
 
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.restart(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1538,7 +1599,9 @@ network = "azure-iot-edge"
 
     let name = "      ";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.restart(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1574,7 +1637,9 @@ network = "azure-iot-edge"
 
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1610,7 +1675,9 @@ network = "azure-iot-edge"
 
     let name = "      ";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| ModuleRuntime::remove(&runtime, name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1646,7 +1713,9 @@ network = "azure-iot-edge"
 
     let name = "";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.get(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1682,7 +1751,9 @@ network = "azure-iot-edge"
 
     let name = "    ";
 
-    let task = DockerModuleRuntime::make_runtime(settings)
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
+
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
         .and_then(|runtime| runtime.get(name))
         .then(|result| match result {
             Ok(_) => panic!("Expected test to fail but it didn't!"),
@@ -1734,9 +1805,10 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings);
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1814,9 +1886,10 @@ ip_range = "172.20.0.0/24"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings);
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1878,9 +1951,10 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
     //act
-    let task = DockerModuleRuntime::make_runtime(settings);
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd);
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -1943,9 +2017,10 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task =
-        DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.system_info());
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
+        .and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -2003,9 +2078,10 @@ network = "azure-iot-edge"
 "#,
         port
     ));
+    let (create_socket_channel_snd, _create_socket_channel_rcv) = mpsc::unbounded::<ModuleAction>();
 
-    let task =
-        DockerModuleRuntime::make_runtime(settings).and_then(|runtime| runtime.system_info());
+    let task = DockerModuleRuntime::make_runtime(settings, create_socket_channel_snd)
+        .and_then(|runtime| runtime.system_info());
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);

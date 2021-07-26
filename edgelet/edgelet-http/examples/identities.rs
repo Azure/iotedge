@@ -92,7 +92,7 @@ fn main() {
     let addr = "tcp://0.0.0.0:8080".parse().unwrap();
 
     println!("Starting server on {}", addr);
-    let run = Http::new().bind_url(addr, router).unwrap().run();
+    let run = Http::new().bind_url(addr, router, 0o666).unwrap().run();
 
     tokio::runtime::current_thread::Runtime::new()
         .unwrap()
