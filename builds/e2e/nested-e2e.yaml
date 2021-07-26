@@ -65,7 +65,6 @@ stages:
         - Agent.Name -equals $(agentName)
     steps:
       - template: templates/nested-get-secrets.yaml
-      - template: templates/lock-test-agent.yaml
       - template: templates/e2e-clean-directory.yaml
 
       - task: Bash@3
