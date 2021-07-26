@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::fmt;
 use std::fmt::Display;
-use std::{fmt, process::ExitStatus};
 
 use failure::{Backtrace, Context, Fail};
 
@@ -136,8 +136,6 @@ impl Display for FetchLatestVersionsReason {
 
 #[derive(Clone, Debug)]
 pub enum DetermineEdgeVersionReason {
-    DockerInspectExitCode(ExitStatus, String),
-    DockerInspectFailed(String),
     JsonParseError(String),
     ImageKeyNotFound,
     ImageValueUnexpectedFormat,
@@ -147,16 +145,6 @@ pub enum DetermineEdgeVersionReason {
 impl Display for DetermineEdgeVersionReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DetermineEdgeVersionReason::DockerInspectExitCode(exit_code, stderr) => write!(
-                f,
-                "docker inspect failed with exit code {}, stderr = {}",
-                exit_code, stderr
-            ),
-            DetermineEdgeVersionReason::DockerInspectFailed(module_name) => write!(
-                f,
-                "docker inspect {} command failed to execute",
-                module_name
-            ),
             DetermineEdgeVersionReason::JsonParseError(module_name) => write!(
                 f,
                 "Error parsing JSON output from docker inspect {}",

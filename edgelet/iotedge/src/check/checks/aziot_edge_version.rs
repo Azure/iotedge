@@ -39,15 +39,21 @@ impl Checker for AziotEdgeVersion {
         check: &mut Check,
         tokio_runtime: &mut tokio::runtime::Runtime,
     ) -> CheckResult {
+        let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
+            docker_host_arg
+        } else {
+            return CheckResult::Skipped;
+        };
+
         // Determine actual running versions of iotedge daemon, agent, and hub
         self.actual_edge_agent_version.sha256 =
-            match AziotEdgeVersion::actual_module_sha256("edgeAgent") {
+            match AziotEdgeVersion::actual_module_sha256(docker_host_arg, "edgeAgent") {
                 Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
         // TODO: Consider ignoring errors caused by EdgeHub not currently running
         self.actual_edge_hub_version.sha256 =
-            match AziotEdgeVersion::actual_module_sha256("edgeHub") {
+            match AziotEdgeVersion::actual_module_sha256(docker_host_arg, "edgeHub") {
                 Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
@@ -176,26 +182,16 @@ impl Checker for AziotEdgeVersion {
 }
 
 impl AziotEdgeVersion {
-    fn actual_module_sha256(module_name: &str) -> Result<String, failure::Error> {
-        // Run docker inspect
-        // TODO Use super::docker() instead and remove new DetermineEdgeVersion and DetermineEdgeVersionReason types
-        let output = Command::new("docker inspect")
-            .arg(module_name)
-            .output()
-            .context(ErrorKind::DetermineEdgeVersion(
-                DetermineEdgeVersionReason::DockerInspectFailed(module_name.to_owned()),
-            ))?;
-        if !output.status.success() {
-            return Err(failure::Error::from(ErrorKind::DetermineEdgeVersion(
-                DetermineEdgeVersionReason::DockerInspectExitCode(
-                    output.status,
-                    String::from_utf8_lossy(&*output.stderr).into(),
-                ),
-            )));
-        }
+    fn actual_module_sha256(
+        docker_host_arg: &str,
+        module_name: &str,
+    ) -> Result<String, failure::Error> {
+        let stdout = super::docker(docker_host_arg, vec!["inspect", module_name])
+            .map_err(|(_, err)| err)
+            .context(format!("'docker inspect {}' failed", module_name))?;
 
         // Convert output text to json
-        let output = String::from_utf8(output.stdout).context(ErrorKind::DetermineEdgeVersion(
+        let output = String::from_utf8(stdout).context(ErrorKind::DetermineEdgeVersion(
             DetermineEdgeVersionReason::JsonParseError(module_name.to_owned()),
         ))?;
         let output_json: Value =
@@ -207,7 +203,7 @@ impl AziotEdgeVersion {
         let re = Regex::new(r"sha256:([0-9a-fA-F]{64})")
             .expect("This hard-coded regex is expected to be valid.");
         let image_value: &str =
-            output_json["Image"]
+            output_json[0]["Image"]
                 .as_str()
                 .ok_or(ErrorKind::DetermineEdgeVersion(
                     DetermineEdgeVersionReason::ImageKeyNotFound,
@@ -365,6 +361,7 @@ impl AziotEdgeVersion {
 #[cfg(test)]
 
 mod tests {
+    use super::super::docker;
     use super::*;
     use httpmock::Method::GET;
     use httpmock::MockServer;
@@ -419,7 +416,6 @@ mod tests {
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
         let mut check = AziotEdgeVersion::default();
         let init_result = check.init_latest_versions(&mut runtime, &server.url("/latest_versions"));
-        print!("init_result: {:?}", init_result);
 
         assert!(matches!(init_result, CheckResult::Ok));
         assert_eq!(check.latest_versions.aziot_edge, "1.2.3");
@@ -447,5 +443,41 @@ mod tests {
             check.latest_versions.aziot_edge_hub.linux_arm64v8.sha256,
             "2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9".to_owned()
         );
+    }
+
+    #[test]
+    fn test_actual_module_sha256() {
+        let docker_host_arg = "unix:///var/run/docker.sock";
+        let exp_hello_world_sha256 =
+            "d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726";
+
+        // TODO: cleanup/remove this container even if this test fails
+        docker(
+            docker_host_arg,
+            vec!["run", "--name", "hello-world", exp_hello_world_sha256],
+        )
+        .map_err(|(_, err)| err)
+        .context("Failed to run hello-world container")
+        .expect("docker run expected to succeed");
+
+        let actual_sha256_result =
+            AziotEdgeVersion::actual_module_sha256(docker_host_arg, "hello-world");
+        println!("actual_sha256_result: {:?}", actual_sha256_result);
+        assert!(actual_sha256_result.is_ok());
+
+        assert_eq!(
+            actual_sha256_result.unwrap(),
+            exp_hello_world_sha256.to_owned()
+        );
+
+        docker(docker_host_arg, vec!["stop", "hello-world"])
+            .map_err(|(_, err)| err)
+            .context("Failed to stop hello-world container")
+            .expect("docker stop expected to succeed");
+
+        docker(docker_host_arg, vec!["rm", "hello-world"])
+            .map_err(|(_, err)| err)
+            .context("Failed to remove hello-world container")
+            .expect("docker rm expected to succeed");
     }
 }
