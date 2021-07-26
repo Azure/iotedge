@@ -15,8 +15,11 @@ steps:
       script: |
         agentName="${{ parameters.agentName }}"
         if [ -z $agentName ]; then
-          exit 0
+          echo "DevOps agent name not defined. Exiting now."
+          exit 1
         fi
+
+        echo "Performing unlock for agent: $agentName"
 
         # Get info of Azure-IoT-Edge-Core pool (poolId=123) test agents
         agentsInfo=$(curl -s -u :$(edgebuild-1-PAT) --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?api-version=$API_VER")
