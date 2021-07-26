@@ -200,10 +200,12 @@ echo "Done validating jq"
 
 startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
+backoffSeconds=1
 while true && [ $((SECONDS)) -lt $endSeconds ]; do
     # Wait 1-10 seconds to retry locking agents.
     # Random delay to avoid multiple instances of the script thrashing.
-    sleep $[ ( $RANDOM % 10 )  + 1 ]s
+    sleep $[ ( $RANDOM % 10 )  + $backoffSeconds ]s
+    backoffSeconds=$(($backoffSeconds * 2))
 
     echo "Attempting to lock $AGENTS_NEEDED agents from the agent group $AGENT_GROUP..."
     agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
