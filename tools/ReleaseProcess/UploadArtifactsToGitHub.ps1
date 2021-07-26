@@ -3,7 +3,7 @@
 
 <#
     .SYNOPSIS
-        This function downloads and prepares the Iot Edgelet artifacts from DevOps pipeline for a release. 
+        This function downloads and prepares the Iot Edge Daemon artifacts from DevOps pipeline for a release. 
         The final artifacts are collected under "<WorkDir>/output" path.
     .NOTES
         Requires Azure CLI to be login
@@ -14,6 +14,8 @@
               .DEB _________________ {component}_{version}_{os}_{arch}.deb 
               .RPM _________________ {component}-{version}.{os}.{arch}.rpm  (No name change)
         4) Move the renamed artifacts to a staging directory at "<WorkDir>/output"
+    .INPUTS 
+        $DevOpsPat ____________ (String) Environment variable contains DevOps Personal Access Token (with Build:Read privilege) in UTF8 encoding
     .PARAMETER BuildId
         DevOps build ID for the downloading artifacts
     .PARAMETER WorkDir
@@ -38,9 +40,15 @@ function Prepare-DevOps-Artifacts
         $WorkDir
     )
 
-    # Assume Az CLI is installed & logged in.
-    $pat = $(az keyvault secret show -n IotEdge1-PAT-msazure --vault-name edgebuildkv | ConvertFrom-Json)
-    $pat = $pat.value;
+    if ([string]::IsNullOrEmpty($DevOpsPat))
+    {
+        echo 'Environment variable ($DevOpsPat) is required.'
+        return 1;
+    }
+    else
+    {
+        $pat = $DevOpsPat;
+    }
 
     $encoded64Pat = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(':'+$pat))
     $header = @{
@@ -138,6 +146,8 @@ function Prepare-DevOps-Artifacts
               .DEB _________________ {component}_{version}_{os}_{arch}.deb 
               .RPM _________________ {component}-{version}.{os}.{arch}.rpm  (No name change)
         4) Move the renamed artifacts to a staging directory at "<WorkDir>/output"
+    .INPUTS 
+        $GitHubPat ____________ (String) Environment variable contains BASE64 Github Personal Access Token (with Repos:Read&Write privilege) in UTF8 encoding
     .PARAMETER CommitId
         Github SHA256 commit id
     .PARAMETER WorkDir
@@ -162,9 +172,15 @@ function Prepare-GitHub-Artifacts
         $WorkDir
     )
 
-    # Assume Az CLI is installed & logged in.
-    $pat = $(az keyvault secret show -n GitHubAccessToken --vault-name edgebuildkv | ConvertFrom-Json)
-    $pat = $pat.value;
+    if ([string]::IsNullOrEmpty($GitHubPat))
+    {
+        echo 'Environment variable ($GitHubPat) is required.'
+        return 1;
+    }
+    else
+    {
+        $pat = $GitHubPat;
+    }
 
     # Remark: GitHub PAT in KeyVault is already base64. No need to encode it
     $header = @{
@@ -277,22 +293,20 @@ function Prepare-GitHub-Artifacts
 
 <#
     .SYNOPSIS
-        This function downloads and prepares the IoT Identity Service artifacts from Github Action for a release.
-        The final artifacts are collected under "<WorkDir>/output" path.
+        This function upload the artifacts from a given "workDir" to a new GitHub release page.
     .NOTES
         Requires Azure CLI to be login
     .DESCRIPTION
-        1) Download edgelet artifacts from a given commit off of the Github build action:
-              https://github.com/Azure/iot-identity-service/actions/workflows/packages.yaml
-        2) Extract the *.zip artifacts into their own directories
-        3) Traverse the directories and rename a relavant artifact into the following format: 
-              .DEB _________________ {component}_{version}_{os}_{arch}.deb 
-              .RPM _________________ {component}-{version}.{os}.{arch}.rpm  (No name change)
-        4) Move the renamed artifacts to a staging directory at "<WorkDir>/output"
-    .PARAMETER CommitId
-        Github SHA256 commit id
+        1) Derived a new version string from the latest release in 'Azure/iotedge' repository
+        2) Extract a relavant CHANGELOG.md section for the release page description
+        3) Create a new GitHub release page against 'Azure/azure-iotedge' repository
+        4) Upload an artifact from the directory with a corresponding MIMETYPE.
+    .INPUTS 
+        $GitHubPat ____________ (String) Environment variable contains BASE64 Github Personal Access Token (with Repos:Read&Write privilege) in UTF8 encoding
     .PARAMETER WorkDir
         Absolute path of the working directory
+    .PARAMETER BranchName
+        Branch name of 'Azure/iotedge' repository.
 #>
 function Upload-Artifacts-To-GitHub
 {
@@ -315,8 +329,15 @@ function Upload-Artifacts-To-GitHub
         $BranchName
     )
 
-    $pat = $(az keyvault secret show -n GitHubAccessToken --vault-name edgebuildkv | ConvertFrom-Json)
-    $pat = $pat.value;
+    if ([string]::IsNullOrEmpty($GitHubPat))
+    {
+        echo 'Environment variable ($GitHubPat) is required.'
+        return 1;
+    }
+    else
+    {
+        $pat = $GitHubPat;
+    }
 
     # Get the latest release from a given branch
     echo "Fetch the latest release: "
