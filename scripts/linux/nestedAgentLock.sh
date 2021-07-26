@@ -20,6 +20,8 @@ set -e
 # Define Environment Variables
 ###############################################################################
 
+SCRIPT_NAME=$(basename $0)
+
 POOL_ID=123
 API_VER=6.0
 AGENTS_NEEDED=3
@@ -41,6 +43,12 @@ usage()
     echo " -a                 Agent Group from which we want to book agents."
     echo " -b                 Devops build id used to tag locked agents."
     exit 1;
+}
+
+print_help_and_exit()
+{
+    echo "Run $SCRIPT_NAME --help for more information."
+    exit 1
 }
 
 ###############################################################################
