@@ -22,7 +22,9 @@ impl Error {
         }
     }
 
-    pub fn settings_err(err: &Box<dyn std::error::Error>) -> Self {
+    // Clippy wants the parameter to be &dyn std::error::Error, but that's not possible.
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn settings_err(err: Box<dyn std::error::Error>) -> Self {
         Error {
             message: format!("Failed to load settings: {}", err),
 
@@ -33,6 +35,9 @@ impl Error {
     }
 }
 
+// Clippy wants an implementation of From<i32> over Into<i32>. However, we don't want to convert
+// from any arbitrary i32 because only '1' and '153' have meaning for aziot-edged.
+#[allow(clippy::from_over_into)]
 impl std::convert::Into<i32> for Error {
     fn into(self) -> i32 {
         self.exit_code

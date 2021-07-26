@@ -25,8 +25,8 @@ pub(crate) struct CertificateResponse {
 }
 
 enum SubjectAltName {
-    DNS(String),
-    IP(String),
+    Dns(String),
+    Ip(String),
 }
 
 struct CertApi {
@@ -245,8 +245,8 @@ fn new_csr(
 
         for name in subject_alt_names {
             match name {
-                SubjectAltName::DNS(name) => names.dns(&name),
-                SubjectAltName::IP(name) => names.ip(&name),
+                SubjectAltName::Dns(name) => names.dns(&name),
+                SubjectAltName::Ip(name) => names.ip(&name),
             };
         }
 

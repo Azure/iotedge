@@ -47,7 +47,7 @@ pub(crate) async fn get_device_info(
 
                     return Ok(device_info);
                 }
-                _ => {
+                aziot_identity_common::Identity::Local(..) => {
                     // Identity Service should never return an invalid device identity.
                     // Treat this as a fatal error.
                     return Err(EdgedError::new("Invalid device identity"));

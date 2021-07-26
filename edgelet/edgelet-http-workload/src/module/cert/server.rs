@@ -92,16 +92,16 @@ impl http_common::server::Route for Route {
         let common_name_san = common_name.clone();
 
         let common_name_san = if std::net::IpAddr::from_str(&common_name_san).is_ok() {
-            super::SubjectAltName::IP(common_name_san)
+            super::SubjectAltName::Ip(common_name_san)
         } else {
             let common_name_san = super::sanitize_dns_name(common_name_san);
 
-            super::SubjectAltName::DNS(common_name_san)
+            super::SubjectAltName::Dns(common_name_san)
         };
 
         // Server certificates have the module ID and certificate CN as the SANs.
         let module_id_san = super::sanitize_dns_name(self.module_id);
-        let module_id_san = super::SubjectAltName::DNS(module_id_san);
+        let module_id_san = super::SubjectAltName::Dns(module_id_san);
 
         let subject_alt_names = vec![common_name_san, module_id_san];
 
