@@ -65,13 +65,13 @@ function Prepare-DevOps-Artifacts
     New-Item -ItemType Directory -Force -Path $WorkDir
 
     $artifactFinalists = @();
+    $artifactExtension = ".zip"
 
     foreach ($artifact in $content)
     {
         $artifactName = $artifact.name
         $artifactUrl = $artifact.resource.downloadUrl
         $artifactPath = "$WorkDir$artifactName"
-        $artifactExtension = ".zip"
 
         # Download and Expand each artifact
         Retry-Command -ScriptBlock {
@@ -149,7 +149,7 @@ function Prepare-DevOps-Artifacts
     .INPUTS 
         $GitHubPat ____________ (String) Environment variable contains BASE64 Github Personal Access Token (with Repos:Read&Write privilege) in UTF8 encoding
     .PARAMETER CommitId
-        Github SHA256 commit id
+        Github SHA1 commit id
     .PARAMETER WorkDir
         Absolute path of the working directory
 #>
@@ -158,7 +158,7 @@ function Prepare-GitHub-Artifacts
     [CmdletBinding()]
     param (
         <# 
-        Github SHA256 commit id
+        Github SHA1 commit id
         #>
         [Parameter(Mandatory)]
         [string]
@@ -222,13 +222,13 @@ function Prepare-GitHub-Artifacts
     $artifacts = $(Invoke-WebRequest -Headers $header -Uri "$artifactUrl" | ConvertFrom-JSON)
     $artifacts = $artifacts.artifacts
     $artifactFinalists = @();
+    $artifactExtension = ".zip"
 
     foreach ($artifact in $artifacts)
     {
         $downloadUrl = $artifact.archive_download_url
         $artifactName = $artifact.name
         $artifactPath = "$WorkDir$artifactName"
-        $artifactExtension = ".zip"
 
         echo "Downloading $artifactName"
         Retry-Command -ScriptBlock {
