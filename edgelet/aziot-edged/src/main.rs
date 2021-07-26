@@ -96,6 +96,7 @@ async fn run() -> Result<(), EdgedError> {
         let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
     });
 
+    // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
     watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
 
     log::info!("Stopping management API...");
@@ -110,7 +111,7 @@ async fn run() -> Result<(), EdgedError> {
 
     // Wait up to 10 seconds for all server tasks to exit.
     let poll_period = std::time::Duration::from_millis(100);
-    let mut wait_time = 0;
+    let mut wait_time = std::time::Duration::from_millis(0);
 
     loop {
         let tasks = tasks.load(atomic::Ordering::Acquire);
@@ -119,14 +120,14 @@ async fn run() -> Result<(), EdgedError> {
             break;
         }
 
-        if wait_time >= 10000 {
+        if wait_time >= std::time::Duration::from_secs(10) {
             log::warn!("{} task(s) have not exited in time for shutdown", tasks);
 
             break;
         }
 
         tokio::time::sleep(poll_period).await;
-        wait_time += 100;
+        wait_time += poll_period;
     }
 
     Ok(())
