@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[derive(Debug)]
 pub(crate) struct Error {
     message: String,
     exit_code: i32,

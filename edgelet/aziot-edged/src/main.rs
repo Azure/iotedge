@@ -97,7 +97,7 @@ async fn run() -> Result<(), EdgedError> {
     });
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
+    let shutdown_reason = watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
 
     log::info!("Stopping management API...");
     // management_shutdown
@@ -110,6 +110,7 @@ async fn run() -> Result<(), EdgedError> {
         .expect("workload API shutdown receiver was dropped");
 
     // Wait up to 10 seconds for all server tasks to exit.
+    let shutdown_timeout = std::time::Duration::from_secs(10);
     let poll_period = std::time::Duration::from_millis(100);
     let mut wait_time = std::time::Duration::from_millis(0);
 
@@ -120,7 +121,7 @@ async fn run() -> Result<(), EdgedError> {
             break;
         }
 
-        if wait_time >= std::time::Duration::from_secs(10) {
+        if wait_time >= shutdown_timeout {
             log::warn!("{} task(s) have not exited in time for shutdown", tasks);
 
             break;
@@ -128,6 +129,18 @@ async fn run() -> Result<(), EdgedError> {
 
         tokio::time::sleep(poll_period).await;
         wait_time += poll_period;
+    }
+
+    if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
+        // The initial provision on startup created an identity client. Since we have already
+        // validated and used identity clients, creating an identity client here should not fail.
+        let identity_client =
+            provision::identity_client(&settings).expect("failed to create identity client");
+
+        match provision::reprovision(&identity_client, &cache_dir).await {
+            Ok(()) => log::info!("Successfully reprovisioned"),
+            Err(err) => log::error!("Failed to reprovision: {}", err),
+        }
     }
 
     Ok(())

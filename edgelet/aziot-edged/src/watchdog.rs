@@ -5,7 +5,7 @@ use crate::error::Error as EdgedError;
 pub(crate) async fn run_until_shutdown(
     settings: &impl edgelet_settings::RuntimeSettings,
     mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
-) -> Result<(), EdgedError> {
+) -> Result<edgelet_core::ShutdownReason, EdgedError> {
     // Run the watchdog every 60 seconds while waiting for any running task to send a
     // shutdown signal.
     let watchdog_period = std::time::Duration::from_secs(5);
@@ -47,7 +47,7 @@ pub(crate) async fn run_until_shutdown(
 
                 shutdown();
 
-                return Ok(());
+                return Ok(shutdown_reason);
             }
         }
     }

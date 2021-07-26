@@ -4,17 +4,26 @@ use sha2::Digest;
 
 use crate::error::Error as EdgedError;
 
-pub(crate) async fn get_device_info(
+pub(crate) fn identity_client(
     settings: &impl edgelet_settings::RuntimeSettings,
-    cache_dir: &std::path::Path,
-) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
+) -> Result<aziot_identity_client_async::Client, EdgedError> {
     let identity_connector =
         http_common::Connector::new(&settings.endpoints().aziot_identityd_url())
             .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
+
     let identity_client = aziot_identity_client_async::Client::new(
         aziot_identity_common_http::ApiVersion::V2020_09_01,
         identity_connector,
     );
+
+    Ok(identity_client)
+}
+
+pub(crate) async fn get_device_info(
+    settings: &impl edgelet_settings::RuntimeSettings,
+    cache_dir: &std::path::Path,
+) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
+    let identity_client = identity_client(settings)?;
 
     if let edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup =
         settings.auto_reprovisioning_mode()
@@ -83,7 +92,9 @@ pub(crate) fn update_device_cache(
 
     let current_device = device_digest(device_info);
 
-    if current_device != cached_device {
+    if current_device == cached_device {
+        log::info!("Device information has not changed");
+    } else {
         log::info!("Change to device information detected");
 
         log::info!("Removing all modules...");
@@ -93,14 +104,12 @@ pub(crate) fn update_device_cache(
         log::info!("Updating cached device information");
         std::fs::write(cache_path, current_device)
             .map_err(|err| EdgedError::from_err("Failed to save provisioning cache", err))?;
-    } else {
-        log::info!("Device information has not changed");
     }
 
     Ok(())
 }
 
-async fn reprovision(
+pub(crate) async fn reprovision(
     identity_client: &aziot_identity_client_async::Client,
     cache_dir: &std::path::Path,
 ) -> Result<(), std::io::Error> {

@@ -7,8 +7,7 @@ pub(crate) async fn start(
     device_info: &aziot_identity_common::AzureIoTSpec,
     tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError> {
-    // TODO: use settings
-    let socket = url::Url::parse("unix:///tmp/workload_test.sock").unwrap();
+    let socket = settings.listen().workload_uri();
 
     let connector = http_common::Connector::new(&socket)
         .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
