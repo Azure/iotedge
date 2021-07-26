@@ -1,5 +1,12 @@
 trigger: none
 pr: none
+schedules:
+- cron: "0 23 * * 4"
+  displayName: Weekly run Thursday night
+  branches:
+    include:
+    - release/1.2
+  always: true
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
@@ -8,10 +15,10 @@ resources:
   pipelines:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
-    branch: master
+    branch: 'release/1.2'
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
-    branch: master
+    branch: 'release/1.2'
 
 stages:
 - stage: SetupVMs

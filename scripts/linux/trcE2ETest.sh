@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script is used to run Connectivity test for Linux.
+# This script is used to run TestResultCoordinator based tests for Linux.
 ###############################################################################
 set -eo pipefail
 
@@ -218,7 +218,6 @@ function prepare_test_from_artifacts() {
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
         sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
-        sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
 
         if [ "$image_architecture_label" = 'arm32v7' ] ||
             [ "$image_architecture_label" = 'arm64v8' ]; then
@@ -236,6 +235,8 @@ function prepare_test_from_artifacts() {
 
             sed -i -e "s@<EdgeHubMqttEnabled>@$EDGE_HUB_MQTT_ENABLED@g" "$deployment_working_file"
             sed -i -e "s@<EdgeHubAmqpEnabled>@$EDGE_HUB_AMQP_ENABLED@g" "$deployment_working_file"
+
+            sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
         fi
     fi
 

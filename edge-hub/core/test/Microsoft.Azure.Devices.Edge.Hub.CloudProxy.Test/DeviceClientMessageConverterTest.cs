@@ -134,7 +134,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 [SystemProperties.MsgCorrelationId] = "1234",
                 [SystemProperties.MessageId] = "m1",
                 [SystemProperties.CreationTime] = creationTime,
-                [SystemProperties.InterfaceId] = Constants.SecurityMessageIoTHubInterfaceId
+                [SystemProperties.InterfaceId] = Constants.SecurityMessageIoTHubInterfaceId,
+                [SystemProperties.ComponentName] = "Test Component"
             };
 
             var message = Mock.Of<IMessage>(
@@ -159,6 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal("m1", clientMessage.MessageId);
             Assert.Equal(creationTime, clientMessage.CreationTimeUtc.ToString("o"));
             Assert.True(clientMessage.IsSecurityMessage);
+            Assert.Equal("Test Component", clientMessage.ComponentName);
         }
 
         [Unit]
@@ -180,6 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             clientMessage.CorrelationId = "1234";
             clientMessage.MessageId = "m1";
             clientMessage.CreationTimeUtc = creationTime;
+            clientMessage.ComponentName = "Test Component";
 
             IMessageConverter<Message> messageConverter = new DeviceClientMessageConverter();
             IMessage message = messageConverter.ToMessage(clientMessage);
@@ -189,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal("Bar", message.Properties["Foo"]);
             Assert.Equal("Value2", message.Properties["Prop2"]);
 
-            Assert.Equal(10, message.SystemProperties.Count);
+            Assert.Equal(11, message.SystemProperties.Count);
             Assert.Equal("utf-8", message.SystemProperties[SystemProperties.ContentEncoding]);
             Assert.Equal("application/json", message.SystemProperties[SystemProperties.ContentType]);
             Assert.Equal("schema1", message.SystemProperties[SystemProperties.MessageSchema]);
@@ -199,6 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal(creationTime.ToString("o"), message.SystemProperties[SystemProperties.CreationTime]);
             Assert.Equal(DateTime.Parse(message.SystemProperties[SystemProperties.CreationTime], null, DateTimeStyles.RoundtripKind), creationTime);
             Assert.Equal("0", message.SystemProperties[SystemProperties.DeliveryCount]);
+            Assert.Equal("Test Component", message.SystemProperties[SystemProperties.ComponentName]);
         }
     }
 }

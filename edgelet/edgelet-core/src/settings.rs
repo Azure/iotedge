@@ -354,6 +354,9 @@ pub struct Settings<T> {
 
     pub homedir: PathBuf,
 
+    #[serde(default = "true_func")]
+    pub allow_elevated_docker_permissions: bool,
+
     pub agent: ModuleSpec<T>,
 
     pub connect: Connect,
@@ -368,6 +371,11 @@ pub struct Settings<T> {
     #[serde(default, skip_serializing)]
     #[cfg_attr(not(debug_assertions), serde(skip_deserializing))]
     pub endpoints: Endpoints,
+}
+
+// Serde default requires a function: https://github.com/serde-rs/serde/issues/1030
+fn true_func() -> bool {
+    true
 }
 
 impl<T> RuntimeSettings for Settings<T>
