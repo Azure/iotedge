@@ -6,7 +6,7 @@ where
 {
     reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
     pid: libc::pid_t,
-    _runtime: std::marker::PhantomData<M>,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
 #[async_trait::async_trait]
@@ -38,7 +38,7 @@ where
         Some(Route {
             reprovision: service.reprovision.clone(),
             pid,
-            _runtime: std::marker::PhantomData,
+            runtime: service.runtime.clone(),
         })
     }
 
@@ -53,7 +53,7 @@ where
         self,
         _body: Option<Self::PostBody>,
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_agent(self.pid)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime)?;
 
         match self
             .reprovision

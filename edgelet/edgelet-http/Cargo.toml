@@ -6,8 +6,11 @@ publish = false
 edition = "2018"
 
 [dependencies]
+futures-util = "0.3"
 http = "0.2"
 libc = "0.2"
 log = "0.4"
+
+edgelet-core = { path = "../edgelet-core" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

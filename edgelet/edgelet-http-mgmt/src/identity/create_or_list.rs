@@ -8,7 +8,7 @@ where
 {
     client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
     pid: libc::pid_t,
-    _runtime: std::marker::PhantomData<M>,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -54,7 +54,7 @@ where
         Some(Route {
             client: service.identity.clone(),
             pid,
-            _runtime: std::marker::PhantomData,
+            runtime: service.runtime.clone(),
         })
     }
 
@@ -63,7 +63,7 @@ where
 
     type GetResponse = ListIdentitiesResponse;
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
-        edgelet_http::auth_agent(self.pid)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime)?;
 
         let client = self.client.lock().await;
 
@@ -89,7 +89,7 @@ where
         self,
         body: Option<Self::PostBody>,
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_agent(self.pid)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime)?;
 
         let body = match body {
             Some(body) => body,

@@ -9,7 +9,7 @@ where
     client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
     pid: libc::pid_t,
     module_id: String,
-    _runtime: std::marker::PhantomData<M>,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
 #[async_trait::async_trait]
@@ -47,7 +47,7 @@ where
             client: service.identity.clone(),
             pid,
             module_id: module_id.into_owned(),
-            _runtime: std::marker::PhantomData,
+            runtime: service.runtime.clone(),
         })
     }
 
@@ -57,7 +57,7 @@ where
         self,
         _body: Option<Self::DeleteBody>,
     ) -> http_common::server::RouteResponse<Option<Self::DeleteResponse>> {
-        edgelet_http::auth_agent(self.pid)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime)?;
 
         let client = self.client.lock().await;
 
@@ -78,7 +78,7 @@ where
         self,
         _body: Self::PutBody,
     ) -> http_common::server::RouteResponse<Self::PutResponse> {
-        edgelet_http::auth_agent(self.pid)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime)?;
 
         let client = self.client.lock().await;
 
