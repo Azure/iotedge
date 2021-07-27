@@ -11,12 +11,12 @@
     clippy::use_self
 )]
 
-// mod client;
+mod client;
 mod error;
-// mod module;
-// mod notary;
-// mod runtime;
+mod module;
+mod notary;
+mod runtime;
 
 pub use error::{Error, ErrorKind};
-// pub use module::{DockerModule, MODULE_TYPE};
-// pub use runtime::DockerModuleRuntime;
+pub use module::{DockerModule, MODULE_TYPE};
+pub use runtime::DockerModuleRuntime;

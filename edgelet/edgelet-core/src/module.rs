@@ -54,7 +54,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Option<i32>,
+    pid: Option<i64>,
 }
 
 impl Default for ModuleRuntimeState {
@@ -126,11 +126,11 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Option<i32> {
+    pub fn pid(&self) -> Option<i64> {
         self.pid
     }
 
-    pub fn with_pid(mut self, pid: Option<i32>) -> Self {
+    pub fn with_pid(mut self, pid: Option<i64>) -> Self {
         self.pid = pid;
         self
     }
@@ -346,28 +346,6 @@ impl DiskInfo {
     }
 }
 
-#[derive(Debug)]
-pub struct ModuleTop {
-    /// Name of the module. Example: tempSensor
-    name: String,
-    /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
-    process_ids: Vec<i32>,
-}
-
-impl ModuleTop {
-    pub fn new(name: String, process_ids: Vec<i32>) -> Self {
-        ModuleTop { name, process_ids }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn process_ids(&self) -> &[i32] {
-        &self.process_ids
-    }
-}
-
 pub trait ProvisioningResult {
     fn device_id(&self) -> &str;
     fn hub_name(&self) -> &str;
@@ -391,7 +369,7 @@ pub trait ModuleRuntime: Sized {
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
-    type Logs: Stream<Item = Self::Chunk>;
+    type Logs: Stream<Item = Result<Self::Chunk, Self::Error>>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -405,9 +383,10 @@ pub trait ModuleRuntime: Sized {
     async fn list_with_details(
         &self,
     ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<Self::Logs, Self::Error>;
+    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
+    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
 }
@@ -463,7 +442,7 @@ pub enum RuntimeOperation {
     StopModule(String),
     SystemInfo,
     SystemResources,
-    TopModule(String),
+    TopModule(String, String),
 }
 
 impl fmt::Display for RuntimeOperation {
@@ -483,7 +462,9 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
             RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
-            RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
+            RuntimeOperation::TopModule(name, reason) => {
+                write!(f, "Could not top module {}.\n{}", name, reason)
+            }
         }
     }
 }

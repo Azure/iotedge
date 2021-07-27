@@ -3,7 +3,7 @@ members = [
     "aziot-edged",
     "docker-rs",
     "edgelet-core",
-    # "edgelet-docker",
+    "edgelet-docker",
     "edgelet-http",
     "edgelet-http-mgmt",
     "edgelet-http-workload",
