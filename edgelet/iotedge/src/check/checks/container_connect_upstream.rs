@@ -166,6 +166,7 @@ impl ContainerConnectUpstream {
         }
 
         if &port == "443" {
+            self.proxy = check.proxy_uri.clone();
             if let Some(proxy) = &check.proxy_uri {
                 args.extend(&["--proxy", proxy.as_str()]);
             }

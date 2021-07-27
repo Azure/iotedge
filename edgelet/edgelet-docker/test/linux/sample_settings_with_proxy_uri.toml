@@ -11,7 +11,7 @@ image = "microsoft/azureiotedge-agent:1.0"
 [agent.env]
 abc = "value1"
 acd = "value2"
-"https_proxy" = "https://config:123"
+https_proxy = "https://config:123"
 
 [connect]
 workload_uri = "http://localhost:8081"
