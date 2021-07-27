@@ -93,6 +93,8 @@ process_args()
         echo "Build id is a required parameter."
         print_help_and_exit
     fi
+
+    echo $PAT
 }
 
 ###############################################################################
