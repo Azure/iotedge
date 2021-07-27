@@ -38,9 +38,8 @@ jobs:
     displayName: CentOs7 amd64
 
     pool:
-      name: $(pool.linux.name)
-      demands:
-      - ImageOverride -equals agent-aziotedge-centos-7-msmoby
+      name: $(pool.custom.name)
+      demands: damonb
 
     variables:
       os: linux
