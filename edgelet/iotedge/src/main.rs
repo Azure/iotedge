@@ -107,17 +107,17 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                 )
                 .arg(
-                    Arg::with_name("expected-aziot-edge-agent-sha256")
-                    .long("expected-aziot-edge-agent-sha256")
+                    Arg::with_name("expected-aziot-edge-agent-image-id")
+                    .long("expected-aziot-edge-agent-image-id")
                     .value_name("SHA256")
-                    .help("Sets the expected SHA256 of the edgeAgent module. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
+                    .help("Sets the expected image ID of the edgeAgent module. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
                     .takes_value(true),
                 )
                 .arg(
-                    Arg::with_name("expected-aziot-edge-hub-sha256")
-                    .long("expected-aziot-edge-hub-sha256")
+                    Arg::with_name("expected-aziot-edge-hub-image-id")
+                    .long("expected-aziot-edge-hub-image-id")
                     .value_name("SHA256")
-                    .help("Sets the expected SHA256 of the edgeHub module. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
+                    .help("Sets the expected image ID of the edgeHub module. Defaults to the value contained in <https://aka.ms/latest-aziot-edge>")
                     .takes_value(true),
                 )
                 .arg(
@@ -427,9 +427,9 @@ fn run() -> Result<(), Error> {
                     .map(ToOwned::to_owned),
                 args.value_of("expected-aziot-version")
                     .map(ToOwned::to_owned),
-                args.value_of("expected-aziot-edge-agent-sha256")
+                args.value_of("expected-aziot-edge-agent-image-id")
                     .map(ToOwned::to_owned),
-                args.value_of("expected-aziot-edge-hub-sha256")
+                args.value_of("expected-aziot-edge-hub-image-id")
                     .map(ToOwned::to_owned),
                 args.value_of_os("aziot-edged")
                     .expect("arg has a default value")

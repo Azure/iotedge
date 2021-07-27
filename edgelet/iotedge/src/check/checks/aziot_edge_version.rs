@@ -46,14 +46,14 @@ impl Checker for AziotEdgeVersion {
         };
 
         // Determine actual running versions of iotedge daemon, agent, and hub
-        self.actual_edge_agent_version.sha256 =
-            match AziotEdgeVersion::actual_module_sha256(docker_host_arg, "edgeAgent") {
+        self.actual_edge_agent_version.image_id =
+            match AziotEdgeVersion::actual_module_image_id(docker_host_arg, "edgeAgent") {
                 Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
         // TODO: Consider ignoring errors caused by EdgeHub not currently running
-        self.actual_edge_hub_version.sha256 =
-            match AziotEdgeVersion::actual_module_sha256(docker_host_arg, "edgeHub") {
+        self.actual_edge_hub_version.image_id =
+            match AziotEdgeVersion::actual_module_image_id(docker_host_arg, "edgeHub") {
                 Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
@@ -63,8 +63,8 @@ impl Checker for AziotEdgeVersion {
         };
 
         if check.expected_aziot_edged_version.is_none()
-            || check.expected_aziot_edge_agent_sha256.is_none()
-            || check.expected_aziot_edge_hub_sha256.is_none()
+            || check.expected_aziot_edge_agent_image_id.is_none()
+            || check.expected_aziot_edge_hub_image_id.is_none()
         {
             if check.parent_hostname.is_some() {
                 // This is a nested Edge device so it may not be able to access aka.ms or github.com.
@@ -101,7 +101,7 @@ impl Checker for AziotEdgeVersion {
             };
 
             // Set expected edgeAgent version if not provided as cmd line arg
-            if check.expected_aziot_edge_agent_sha256.is_none() {
+            if check.expected_aziot_edge_agent_image_id.is_none() {
                 self.expected_edge_agent_version = match os_arch {
                     "linux-amd64" => self.latest_versions.aziot_edge_agent.linux_amd64.clone(),
                     "linux-arm32v7" => self.latest_versions.aziot_edge_agent.linux_arm32v7.clone(),
@@ -120,7 +120,7 @@ impl Checker for AziotEdgeVersion {
             }
 
             // Set expected edgeHub version if not provided as cmd line arg
-            if check.expected_aziot_edge_hub_sha256.is_none() {
+            if check.expected_aziot_edge_hub_image_id.is_none() {
                 self.expected_edge_hub_version = match os_arch {
                     "linux-amd64" => self.latest_versions.aziot_edge_hub.linux_amd64.clone(),
                     "linux-arm32v7" => self.latest_versions.aziot_edge_hub.linux_arm32v7.clone(),
@@ -155,21 +155,21 @@ impl Checker for AziotEdgeVersion {
            )))
         );
         }
-        if self.actual_edge_agent_version.sha256 != self.expected_edge_agent_version.sha256 {
+        if self.actual_edge_agent_version.image_id != self.expected_edge_agent_version.image_id {
             return CheckResult::Warning(
             failure::Error::from(Context::new(format!(
-                "Running edgeAgent module has sha256 {} but {} is the sha256 of the latest stable version available.\n\
+                "Running edgeAgent module has image ID {} but {} is the image ID of the latest released version.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                self.actual_edge_agent_version.sha256, self.expected_edge_agent_version.sha256,
+                self.actual_edge_agent_version.image_id, self.expected_edge_agent_version.image_id,
            )))
         );
         }
-        if self.actual_edge_hub_version.sha256 != self.expected_edge_hub_version.sha256 {
+        if self.actual_edge_hub_version.image_id != self.expected_edge_hub_version.image_id {
             return CheckResult::Warning(
             failure::Error::from(Context::new(format!(
-                "Running edgeHub module has sha256 {} but {} is the sha256 of the latest stable version available.\n\
+                "Running edgeHub module has image ID {} but {} is the image ID of the latest released version.\n\
                  Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                self.actual_edge_hub_version.sha256, self.expected_edge_hub_version.sha256,
+                self.actual_edge_hub_version.image_id, self.expected_edge_hub_version.image_id,
            )))
         );
         }
@@ -182,7 +182,7 @@ impl Checker for AziotEdgeVersion {
 }
 
 impl AziotEdgeVersion {
-    fn actual_module_sha256(
+    fn actual_module_image_id(
         docker_host_arg: &str,
         module_name: &str,
     ) -> Result<String, failure::Error> {
@@ -192,32 +192,22 @@ impl AziotEdgeVersion {
 
         // Convert output text to json
         let output = String::from_utf8(stdout).context(ErrorKind::DetermineEdgeVersion(
-            DetermineEdgeVersionReason::JsonParseError(module_name.to_owned()),
+            DetermineEdgeVersionReason::StdoutToStringConversionError(module_name.to_owned()),
         ))?;
         let output_json: Value =
             serde_json::from_str(&output).context(ErrorKind::DetermineEdgeVersion(
-                DetermineEdgeVersionReason::JsonParseError(module_name.to_owned()),
+                DetermineEdgeVersionReason::JsonDeserializationError(module_name.to_owned()),
             ))?;
 
-        // Grab sha256 value
-        let re = Regex::new(r"sha256:([0-9a-fA-F]{64})")
-            .expect("This hard-coded regex is expected to be valid.");
-        let image_value: &str =
-            output_json[0]["Image"]
-                .as_str()
-                .ok_or(ErrorKind::DetermineEdgeVersion(
-                    DetermineEdgeVersionReason::ImageKeyNotFound,
-                ))?;
-        let sha256_captures = re
-            .captures(image_value)
-            .ok_or(ErrorKind::DetermineEdgeVersion(
-                DetermineEdgeVersionReason::ImageValueUnexpectedFormat,
-            ))?;
-        Ok(sha256_captures
-            .get(1)
-            .expect("unreachable: regex defines one capturing group")
+        // Retrieve and return image ID
+        Ok(output_json[0]["Image"]
             .as_str()
-            .to_owned())
+            .map(std::borrow::ToOwned::to_owned)
+            .ok_or_else(|| {
+                ErrorKind::DetermineEdgeVersion(DetermineEdgeVersionReason::ImageKeyNotFound(
+                    module_name.to_owned(),
+                ))
+            })?)
     }
 
     fn actual_edged_version(check: &mut Check) -> Result<String, failure::Error> {
@@ -385,29 +375,29 @@ mod tests {
                     \"azureiotedge-agent\": {
                         \"linux-amd64\": {
                             \"image-tag\": \"1.2.3-linux-amd64\",
-                            \"sha256\":  \"ff4aa7c74767e1fed2d3775a5fa2fcb506b5b2662a71dbdd48c8373d83a0e749\"
+                            \"image-id\":  \"sha256:ff4aa7c74767e1fed2d3775a5fa2fcb506b5b2662a71dbdd48c8373d83a0e749\"
                         },
                         \"linux-arm32v7\": {
                             \"image-tag\": \"1.2.3-linux-arm32v7\",
-                            \"sha256\":  \"817f78c4771d2d39955d89fb0a5949b1ad7a9e250f5604e5d03842a993af7a76\"
+                            \"image-id\":  \"sha256:817f78c4771d2d39955d89fb0a5949b1ad7a9e250f5604e5d03842a993af7a76\"
                         },
                         \"linux-arm64v8\": {
                             \"image-tag\": \"1.2.3-linux-arm64v8\",
-                            \"sha256\":  \"49934927d721e4a16cb57e2b83270ceec886b4b824f5445e8228c8e87f0de95b\"
+                            \"image-id\":  \"sha256:49934927d721e4a16cb57e2b83270ceec886b4b824f5445e8228c8e87f0de95b\"
                         }
                     },
                     \"azureiotedge-hub\": {
                         \"linux-amd64\": {
                             \"image-tag\": \"1.2.3-linux-amd64\",
-                            \"sha256\":  \"23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7\"
+                            \"image-id\":  \"sha256:23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7\"
                         },
                         \"linux-arm32v7\": {
                             \"image-tag\": \"1.2.3-linux-arm32v7\",
-                            \"sha256\":  \"74d64b3d279f7a6d975a1be20d2a0afb32cd1142ef612f7831659403eaff728b\"
+                            \"image-id\":  \"sha256:74d64b3d279f7a6d975a1be20d2a0afb32cd1142ef612f7831659403eaff728b\"
                         },
                         \"linux-arm64v8\": {
                             \"image-tag\": \"1.2.3-linux-arm64v8\",
-                            \"sha256\":  \"2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9\"
+                            \"image-id\":  \"sha256:2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9\"
                         } 
                     }
                 }");
@@ -420,54 +410,61 @@ mod tests {
         assert!(matches!(init_result, CheckResult::Ok));
         assert_eq!(check.latest_versions.aziot_edge, "1.2.3");
         assert_eq!(
-            check.latest_versions.aziot_edge_agent.linux_amd64.sha256,
-            "ff4aa7c74767e1fed2d3775a5fa2fcb506b5b2662a71dbdd48c8373d83a0e749".to_owned()
+            check.latest_versions.aziot_edge_agent.linux_amd64.image_id,
+            "sha256:ff4aa7c74767e1fed2d3775a5fa2fcb506b5b2662a71dbdd48c8373d83a0e749".to_owned()
         );
         assert_eq!(
-            check.latest_versions.aziot_edge_agent.linux_arm32v7.sha256,
-            "817f78c4771d2d39955d89fb0a5949b1ad7a9e250f5604e5d03842a993af7a76".to_owned()
+            check
+                .latest_versions
+                .aziot_edge_agent
+                .linux_arm32v7
+                .image_id,
+            "sha256:817f78c4771d2d39955d89fb0a5949b1ad7a9e250f5604e5d03842a993af7a76".to_owned()
         );
         assert_eq!(
-            check.latest_versions.aziot_edge_agent.linux_arm64v8.sha256,
-            "49934927d721e4a16cb57e2b83270ceec886b4b824f5445e8228c8e87f0de95b".to_owned()
+            check
+                .latest_versions
+                .aziot_edge_agent
+                .linux_arm64v8
+                .image_id,
+            "sha256:49934927d721e4a16cb57e2b83270ceec886b4b824f5445e8228c8e87f0de95b".to_owned()
         );
         assert_eq!(
-            check.latest_versions.aziot_edge_hub.linux_amd64.sha256,
-            "23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7".to_owned()
+            check.latest_versions.aziot_edge_hub.linux_amd64.image_id,
+            "sha256:23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7".to_owned()
         );
         assert_eq!(
-            check.latest_versions.aziot_edge_hub.linux_arm32v7.sha256,
-            "74d64b3d279f7a6d975a1be20d2a0afb32cd1142ef612f7831659403eaff728b".to_owned()
+            check.latest_versions.aziot_edge_hub.linux_arm32v7.image_id,
+            "sha256:74d64b3d279f7a6d975a1be20d2a0afb32cd1142ef612f7831659403eaff728b".to_owned()
         );
         assert_eq!(
-            check.latest_versions.aziot_edge_hub.linux_arm64v8.sha256,
-            "2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9".to_owned()
+            check.latest_versions.aziot_edge_hub.linux_arm64v8.image_id,
+            "sha256:2b93201104098d913f6ffcfac0c7575bb22db72448d5c6ef0b38dc8583f2c9c9".to_owned()
         );
     }
 
     #[test]
-    fn test_actual_module_sha256() {
+    fn test_actual_module_image_id() {
         let docker_host_arg = "unix:///var/run/docker.sock";
-        let exp_hello_world_sha256 =
-            "d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726";
+        let exp_hello_world_image_id =
+            "sha256:d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726";
 
         // TODO: cleanup/remove this container even if this test fails
         docker(
             docker_host_arg,
-            vec!["run", "--name", "hello-world", exp_hello_world_sha256],
+            vec!["run", "--name", "hello-world", exp_hello_world_image_id],
         )
         .map_err(|(_, err)| err)
         .context("Failed to run hello-world container")
         .expect("docker run expected to succeed");
 
-        let actual_sha256_result =
-            AziotEdgeVersion::actual_module_sha256(docker_host_arg, "hello-world");
-        println!("actual_sha256_result: {:?}", actual_sha256_result);
-        assert!(actual_sha256_result.is_ok());
+        let actual_image_id_result =
+            AziotEdgeVersion::actual_module_image_id(docker_host_arg, "hello-world");
+        assert!(actual_image_id_result.is_ok());
 
         assert_eq!(
-            actual_sha256_result.unwrap(),
-            exp_hello_world_sha256.to_owned()
+            actual_image_id_result.unwrap(),
+            exp_hello_world_image_id.to_owned()
         );
 
         docker(docker_host_arg, vec!["stop", "hello-world"])

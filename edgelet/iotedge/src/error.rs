@@ -136,26 +136,29 @@ impl Display for FetchLatestVersionsReason {
 
 #[derive(Clone, Debug)]
 pub enum DetermineEdgeVersionReason {
-    JsonParseError(String),
-    ImageKeyNotFound,
-    ImageValueUnexpectedFormat,
+    ImageKeyNotFound(String),
+    JsonDeserializationError(String),
+    StdoutToStringConversionError(String),
 }
 
-// TODO Consider making DetermineEdgeReason stateless as suggested in failure module documentation
 impl Display for DetermineEdgeVersionReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DetermineEdgeVersionReason::JsonParseError(module_name) => write!(
+            DetermineEdgeVersionReason::ImageKeyNotFound(module_name) => write!(
                 f,
-                "Error parsing JSON output from docker inspect {}",
+                "'Image' key not found in 'docker inspect {}' output",
                 module_name
             ),
-            DetermineEdgeVersionReason::ImageKeyNotFound => {
-                write!(f, "'Image' key not found in docker inspect output")
-            }
-            DetermineEdgeVersionReason::ImageValueUnexpectedFormat => {
-                write!(f, "'Image' value does not have expected sha256 format")
-            }
+            DetermineEdgeVersionReason::JsonDeserializationError(module_name) => write!(
+                f,
+                "Error deserializing JSON output from 'docker inspect {}'",
+                module_name
+            ),
+            DetermineEdgeVersionReason::StdoutToStringConversionError(module_name) => write!(
+                f,
+                "Error converting utf8 stdout from 'docker inspect {}' to a string",
+                module_name
+            ),
         }
     }
 }
