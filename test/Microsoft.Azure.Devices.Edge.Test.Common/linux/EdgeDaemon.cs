@@ -44,7 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             switch (os)
             {
                 case "ubuntu":
-                    os = os.ToLower();
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
                 case "raspbian":
@@ -53,7 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
                 case "centos":
-                    os = os.ToLower();
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
 
