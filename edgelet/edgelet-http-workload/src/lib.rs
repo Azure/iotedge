@@ -71,7 +71,7 @@ where
 
 impl<M> Service<M>
 where
-    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    M: edgelet_core::ModuleRuntime,
 {
     pub fn new(
         settings: &impl edgelet_settings::RuntimeSettings,

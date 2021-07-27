@@ -56,6 +56,10 @@ async fn run() -> Result<(), EdgedError> {
 
     let device_info = provision::get_device_info(&settings, &cache_dir).await?;
 
+    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
+
     // Normally, aziot-edged will stop all modules when it shuts down. But if it crashed,
     // modules will continue to run. On Linux systems where aziot-edged is responsible for
     // creating/binding the socket (e.g., CentOS 7.5, which uses systemd but does not
@@ -73,22 +77,24 @@ async fn run() -> Result<(), EdgedError> {
     // appropriate hostname.
     let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
-    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
-        .await
-        .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
-
     let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
     // Keep track of running tasks to determine when all server tasks have shut down.
     // Workload and management API each have one task, so start with 2 tasks total.
-    let tasks = atomic::AtomicUsize::new(1); // TODO: change to 2 when management API is fixed
+    let tasks = atomic::AtomicUsize::new(2);
     let tasks = std::sync::Arc::new(tasks);
 
     // Start management and workload sockets.
-    let management_shutdown = management::start(&settings, shutdown_tx.clone()).await?;
+    let management_shutdown = management::start(
+        &settings,
+        runtime.clone(),
+        shutdown_tx.clone(),
+        tasks.clone(),
+    )
+    .await?;
     let workload_shutdown =
-        workload::start(&settings, runtime, &device_info, tasks.clone()).await?;
+        workload::start(&settings, runtime.clone(), &device_info, tasks.clone()).await?;
 
     // Set the signal handler to listen for CTRL+C (SIGINT).
     let sigint_sender = shutdown_tx.clone();
@@ -106,9 +112,9 @@ async fn run() -> Result<(), EdgedError> {
     let shutdown_reason = watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
 
     log::info!("Stopping management API...");
-    // management_shutdown
-    //     .send(())
-    //     .expect("management API shutdown receiver was dropped");
+    management_shutdown
+        .send(())
+        .expect("management API shutdown receiver was dropped");
 
     log::info!("Stopping workload API...");
     workload_shutdown
