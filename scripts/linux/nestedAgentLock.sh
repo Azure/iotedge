@@ -32,7 +32,6 @@ AGENTS_NEEDED=3
 TIMEOUT_SECONDS=300
 
 AGENT_GROUP=
-PAT=
 BUILD_ID=
 
 ###############################################################################
@@ -41,9 +40,10 @@ BUILD_ID=
 usage()
 {
     echo "$SCRIPT_NAME [options]"
+    echo "This script expects a variable 'PAT' to be availalable in the environment when running."
+    echo "This 'PAT' is a DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
     echo ""
     echo "options"
-    echo " -p                 DevOps API PAT for booking the agents. This PAT must have permissions to read builds in devops."
     echo " -a                 Agent Group from which we want to book agents. This agent group is a capability named 'agent-group'."
     echo " -b                 Devops build id used to tag locked agents."
     exit 1;
@@ -63,21 +63,17 @@ process_args()
     save_next_arg=0
     for arg in $@
     do
-        if [ $save_next_arg -eq 1 ]; then
-            PAT="$arg"
-            save_next_arg=0
-        elif [ $save_next_arg -eq 2 ]; then
+        elif [ $save_next_arg -eq 1 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
-        elif [ $save_next_arg -eq 3 ]; then
+        elif [ $save_next_arg -eq 2 ]; then
             BUILD_ID="$arg"
             save_next_arg=0
         else
             case "$arg" in
                 "-h" ) usage;;
-                "-p" ) save_next_arg=1;;
-                "-a" ) save_next_arg=2;;
-                "-b" ) save_next_arg=3;;
+                "-a" ) save_next_arg=1;;
+                "-b" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi

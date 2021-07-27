@@ -13,7 +13,7 @@ jobs:
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked
     steps:
-      - script: scripts/linux/nestedAgentLock.sh -p "$PAT" -a "$(agent.group)" -b "$(Build.BuildId)"
+      - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)"
         env:
           PAT: $(edgebuild-1-PAT)
         displayName: Lock agents for nested topology
