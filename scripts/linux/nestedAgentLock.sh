@@ -63,7 +63,7 @@ process_args()
     save_next_arg=0
     for arg in $@
     do
-        elif [ $save_next_arg -eq 1 ]; then
+        if [ $save_next_arg -eq 1 ]; then
             AGENT_GROUP="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
