@@ -278,7 +278,7 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type ModuleRuntime = Self;
     type Error = Error;
 
-    async fn make_runtime(settings: Settings) -> Result<Self::ModuleRuntime> {
+    async fn make_runtime(settings: &Settings) -> Result<Self::ModuleRuntime> {
         info!("Initializing module runtime...");
 
         let client = DockerClient::new(settings.moby_runtime().uri())
@@ -288,9 +288,9 @@ impl MakeModuleRuntime for DockerModuleRuntime {
             })
             .await?;
 
-        let notary_registries = Self::get_notary_registries(&settings).await?;
+        let notary_registries = Self::get_notary_registries(settings).await?;
 
-        create_network_if_missing(&settings, &client).await?;
+        create_network_if_missing(settings, &client).await?;
 
         // to avoid excessive FD usage, we will not allow sysinfo to keep files open.
         sysinfo::set_open_files_limit(0);

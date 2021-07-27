@@ -15,7 +15,7 @@ impl Error {
         }
     }
 
-    pub fn from_err(message: impl std::fmt::Display, err: impl std::error::Error) -> Self {
+    pub fn from_err(message: impl std::fmt::Display, err: impl std::fmt::Display) -> Self {
         Error {
             message: format!("{}: {}", message, err),
             exit_code: 1,

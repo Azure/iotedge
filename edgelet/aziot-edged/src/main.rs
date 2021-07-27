@@ -11,6 +11,7 @@ mod workload;
 
 use std::sync::atomic;
 
+use edgelet_core::MakeModuleRuntime;
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
@@ -71,6 +72,10 @@ async fn run() -> Result<(), EdgedError> {
     // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
     // appropriate hostname.
     let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
+
+    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
 
     let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();

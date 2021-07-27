@@ -358,7 +358,7 @@ pub trait MakeModuleRuntime {
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
 
-    async fn make_runtime(settings: Self::Settings) -> Result<Self::ModuleRuntime, Self::Error>;
+    async fn make_runtime(settings: &Self::Settings) -> Result<Self::ModuleRuntime, Self::Error>;
 }
 
 #[async_trait::async_trait]
