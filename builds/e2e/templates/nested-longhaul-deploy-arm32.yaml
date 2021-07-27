@@ -16,7 +16,7 @@ jobs:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
-        - Agent.Name -equals $(agentName)
+        - Agent.Name -equals $(lockedAgentName)
     variables:
       parentName: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ] 
@@ -26,7 +26,7 @@ jobs:
       hostPlatform: 'linux_arm32v7_moby'
       quickstart.package.name: 'IotEdgeQuickstart.linux-arm.tar.gz'
       nestededge: true
-      agentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l3AgentName'] ]
+      lockedAgentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l3AgentName'] ]
     steps:   
       - template: nested-get-secrets.yaml     
       - template: nested-get-root-ca.yaml 
