@@ -11,7 +11,7 @@ mod workload;
 
 use std::sync::atomic;
 
-use edgelet_core::MakeModuleRuntime;
+use edgelet_core::{MakeModuleRuntime, ModuleRuntime};
 use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
@@ -68,10 +68,13 @@ async fn run() -> Result<(), EdgedError> {
     // begin to fail. Resilient modules should be able to deal with this, but we'll
     // restart all modules to ensure a clean start.
     log::info!("Stopping all modules...");
-    // TODO
+    runtime
+        .stop_all(Some(std::time::Duration::from_secs(30)))
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to stop modules on startup", err))?;
     log::info!("All modules stopped");
 
-    provision::update_device_cache(&cache_dir, &device_info)?;
+    provision::update_device_cache(&cache_dir, &device_info, &runtime).await?;
 
     // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
     // appropriate hostname.

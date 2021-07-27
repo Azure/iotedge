@@ -69,9 +69,10 @@ pub(crate) async fn get_device_info(
     }
 }
 
-pub(crate) fn update_device_cache(
+pub(crate) async fn update_device_cache(
     cache_dir: &std::path::Path,
     device_info: &aziot_identity_common::AzureIoTSpec,
+    runtime: &impl edgelet_core::ModuleRuntime,
 ) -> Result<(), EdgedError> {
     log::info!("Detecting if device information has changed...");
 
@@ -98,7 +99,10 @@ pub(crate) fn update_device_cache(
         log::info!("Change to device information detected");
 
         log::info!("Removing all modules...");
-        // TODO
+        runtime
+            .remove_all()
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to remove old runtime modules", err))?;
         log::info!("Removed all modules");
 
         log::info!("Updating cached device information");
