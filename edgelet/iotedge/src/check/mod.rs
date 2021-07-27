@@ -906,8 +906,8 @@ mod tests {
     #[test]
     fn pickup_proxy_uri_from_the_right_place() {
         // Setup the https_proxy environment var
-        let env_proxy_uri = "https://environment1:123";
-        std::env::set_var("https_proxy", env_proxy_uri);
+        let env_proxy_uri1 = "https://environment1:123";
+        std::env::set_var("https_proxy", env_proxy_uri1);
         let proxy_uri = super::get_proxy_uri(Option::None);
         // Validate that the uri is picked up from the environment.
         assert!(
@@ -916,14 +916,14 @@ mod tests {
         );
         assert_eq!(
                     proxy_uri.unwrap(),
-                    env_proxy_uri.to_string(),
+                    env_proxy_uri1.to_string(),
                     "proxy _uri fetched from the environment var \"https_proxy\" did not match expected value: '{};",
-                    env_proxy_uri
+                    env_proxy_uri1
                 );
 
         // Setup the HTTPS_PROXY environment var
-        let env_proxy_uri = "https://environment2:123";
-        std::env::set_var("HTTPS_PROXY", env_proxy_uri);
+        let env_proxy_uri2 = "https://environment2:123";
+        std::env::set_var("HTTPS_PROXY", env_proxy_uri2);
         let proxy_uri = super::get_proxy_uri(Option::None);
         // Validate that the uri is picked up from the environment.
         assert!(
@@ -932,9 +932,9 @@ mod tests {
         );
         assert_eq!(
             proxy_uri.unwrap(),
-            env_proxy_uri.to_string(),
+            env_proxy_uri2.to_string(),
             "proxy _uri fetched from the environment var \"HTTPS_PROXY\" did not match expected value: '{};",
-            env_proxy_uri
+            env_proxy_uri2
         );
 
         // Point to a test config
