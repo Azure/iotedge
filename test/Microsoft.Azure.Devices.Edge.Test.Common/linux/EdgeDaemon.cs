@@ -18,28 +18,41 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public static async Task<EdgeDaemon> CreateAsync(CancellationToken token)
         {
-            string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
-            if (platformInfo.Length == 1)
+            string[] platformInfo = await Process.RunAsync("cat", @"/etc/os-release", token);
+            string os = Array.Find(platformInfo, element => element.StartsWith("ID="));
+            string version = Array.Find(platformInfo, element => element.StartsWith("VERSION_ID="));
+
+            // VERSION_ID is desired but it is an optional field
+            if (version == null)
             {
-                platformInfo = platformInfo[0].Split(' ');
+                version = Array.Find(platformInfo, element => element.StartsWith("VERSION="));
             }
 
-            string os = platformInfo[0].Trim();
-            string version = platformInfo[1].Trim();
+            if (os == null || version == null)
+            {
+                throw new NotImplementedException("Failed to gather operating system information from /etc/os-release file");
+            }
+
+            // Trim potential whitespaces and double quotes
+            char[] trimChr = { ' ', '"' };
+            os = os.Split('=').Last().Trim(trimChr).ToLower();
+            // Split potential version description (in case VERSION_ID was not available, the VERSION line can contain e.g. '7 (Core)')
+            version = version.Split('=').Last().Split(' ').First().Trim(trimChr);
+
             SupportedPackageExtension packageExtension;
 
             switch (os)
             {
-                case "Ubuntu":
+                case "ubuntu":
                     os = os.ToLower();
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
-                case "Raspbian":
+                case "raspbian":
                     os = "debian";
                     version = "stretch";
                     packageExtension = SupportedPackageExtension.Deb;
                     break;
-                case "CentOS":
+                case "centos":
                     os = os.ToLower();
                     version = version.Split('.')[0];
                     packageExtension = SupportedPackageExtension.Rpm;
