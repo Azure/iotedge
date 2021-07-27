@@ -87,7 +87,8 @@ async fn run() -> Result<(), EdgedError> {
 
     // Start management and workload sockets.
     let management_shutdown = management::start(&settings, shutdown_tx.clone()).await?;
-    let workload_shutdown = workload::start(&settings, &device_info, tasks.clone()).await?;
+    let workload_shutdown =
+        workload::start(&settings, runtime, &device_info, tasks.clone()).await?;
 
     // Set the signal handler to listen for CTRL+C (SIGINT).
     let sigint_sender = shutdown_tx.clone();

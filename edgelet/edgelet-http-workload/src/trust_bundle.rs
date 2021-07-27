@@ -1,8 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-pub(crate) struct Route {
+pub(crate) struct Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
     trust_bundle: String,
+    _runtime: std::marker::PhantomData<M>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -11,13 +15,16 @@ pub(crate) struct TrustBundleResponse {
 }
 
 #[async_trait::async_trait]
-impl http_common::server::Route for Route {
+impl<M> http_common::server::Route for Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
         &((edgelet_http::ApiVersion::V2018_06_28)..)
     }
 
-    type Service = crate::Service;
+    type Service = crate::Service<M>;
     fn from_uri(
         service: &Self::Service,
         path: &str,
@@ -33,6 +40,7 @@ impl http_common::server::Route for Route {
         Some(Route {
             client: service.cert_client.clone(),
             trust_bundle,
+            _runtime: std::marker::PhantomData,
         })
     }
 

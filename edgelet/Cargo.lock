@@ -689,6 +689,8 @@ dependencies = [
 name = "edgelet-http"
 version = "0.1.0"
 dependencies = [
+ "edgelet-core",
+ "futures-util",
  "http 0.2.4",
  "http-common",
  "libc",
@@ -736,6 +738,7 @@ dependencies = [
  "aziot-key-openssl-engine",
  "base64 0.13.0",
  "chrono",
+ "edgelet-core",
  "edgelet-http",
  "edgelet-settings",
  "futures-util",

@@ -54,7 +54,10 @@ impl WorkloadConfig {
 }
 
 #[derive(Clone)]
-pub struct Service {
+pub struct Service<M>
+where
+    M: edgelet_core::ModuleRuntime,
+{
     // This connector is needed to contruct sync aziot_key_clients when using aziot_key_openssl_engine.
     key_connector: http_common::Connector,
 
@@ -62,12 +65,17 @@ pub struct Service {
     cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
     identity_client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
 
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     config: WorkloadConfig,
 }
 
-impl Service {
+impl<M> Service<M>
+where
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+{
     pub fn new(
         settings: &impl edgelet_settings::RuntimeSettings,
+        runtime: M,
         device_info: &aziot_identity_common::AzureIoTSpec,
     ) -> Result<Self, http_common::ConnectorError> {
         let endpoints = settings.endpoints();
@@ -93,6 +101,7 @@ impl Service {
         );
         let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
 
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
         let config = WorkloadConfig::new(settings, device_info);
 
         Ok(Service {
@@ -100,24 +109,27 @@ impl Service {
             key_client,
             cert_client,
             identity_client,
+            runtime,
             config,
         })
     }
 }
 
 http_common::make_service! {
-    service: Service,
+    service: Service<M>,
+    { <M> }
+    { M: edgelet_core::ModuleRuntime + Send + Sync + 'static }
     api_version: edgelet_http::ApiVersion,
     routes: [
-        module::list::Route,
+        module::list::Route<M>,
 
-        module::cert::identity::Route,
-        module::cert::server::Route,
+        module::cert::identity::Route<M>,
+        module::cert::server::Route<M>,
 
-        module::data::decrypt::Route,
-        module::data::encrypt::Route,
-        module::data::sign::Route,
+        module::data::decrypt::Route<M>,
+        module::data::encrypt::Route<M>,
+        module::data::sign::Route<M>,
 
-        trust_bundle::Route,
+        trust_bundle::Route<M>,
     ],
 }
