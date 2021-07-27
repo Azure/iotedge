@@ -8,9 +8,8 @@ members = [
     "edgelet-http-mgmt",
     "edgelet-http-workload",
     "edgelet-settings",
-    # "edgelet-test-utils",
     "edgelet-utils",
     #"iotedge",
     #"management",
-    "support-bundle",
+    #"support-bundle",
 ]
