@@ -26,7 +26,7 @@ set -e
 
 SCRIPT_NAME=$(basename $0)
 
-POOL_ID=123
+POOL_ID=123 # Devops agent pool id corresponding to "Azure-IoT-Edge-Core"
 API_VER=6.0
 AGENTS_NEEDED=3
 TIMEOUT_SECONDS=300
