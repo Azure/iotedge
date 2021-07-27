@@ -81,7 +81,6 @@ impl Checker for AziotEdgeVersion {
             }
 
             // Determine OS and Arch
-            // TODO: Instead run docker image inspect
             let bitness = os_info::get().bitness();
             // TODO: Consider using an enum for os_arch instead of a string slice
             let os_arch: &str = if ARCH == "x86_64" && OS == "linux" {
@@ -90,8 +89,6 @@ impl Checker for AziotEdgeVersion {
                 "linux-arm32v7"
             } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X64 {
                 "linux-arm64v8"
-            // } else if ARCH == "x86_64" && OS == "windows" {
-            //     "windows-amd64"
             } else {
                 return CheckResult::Failed(failure::Error::from(ErrorKind::UnknownPlatform {
                     os: OS.to_string(),
@@ -106,7 +103,6 @@ impl Checker for AziotEdgeVersion {
                     "linux-amd64" => self.latest_versions.aziot_edge_agent.linux_amd64.clone(),
                     "linux-arm32v7" => self.latest_versions.aziot_edge_agent.linux_arm32v7.clone(),
                     "linux-arm64v8" => self.latest_versions.aziot_edge_agent.linux_arm64v8.clone(),
-                    // "windows-amd64" => self.latest_versions.aziot_edge_agent.windows_amd64.clone(),
                     _ => {
                         return CheckResult::Failed(failure::Error::from(
                             ErrorKind::UnknownPlatform {
@@ -125,7 +121,6 @@ impl Checker for AziotEdgeVersion {
                     "linux-amd64" => self.latest_versions.aziot_edge_hub.linux_amd64.clone(),
                     "linux-arm32v7" => self.latest_versions.aziot_edge_hub.linux_arm32v7.clone(),
                     "linux-arm64v8" => self.latest_versions.aziot_edge_hub.linux_arm64v8.clone(),
-                    // "windows-amd64" => self.latest_versions.aziot_edge_agent.windows_amd64.clone(),
                     _ => {
                         return CheckResult::Failed(failure::Error::from(
                             ErrorKind::UnknownPlatform {
@@ -443,38 +438,116 @@ mod tests {
         );
     }
 
+    struct TestHelper {
+        docker_host_arg: String,
+        containers_to_create: Vec<Container>,
+        _edged_package_name: Option<String>,
+    }
+
+    impl TestHelper {
+        fn new(
+            docker_host_arg: String,
+            containers_to_create: Vec<Container>,
+            _edged_package_name: Option<String>,
+        ) -> TestHelper {
+            for c in &containers_to_create {
+                docker(
+                    docker_host_arg.as_str(),
+                    vec![
+                        "run",
+                        "--name",
+                        c.container_name.as_str(),
+                        c.image_id.as_str(),
+                    ],
+                )
+                .map_err(|(_, err)| err)
+                .context("Failed to run hello-world container")
+                .expect("docker run expected to succeed");
+            }
+
+            TestHelper {
+                docker_host_arg,
+                containers_to_create,
+                _edged_package_name,
+            }
+        }
+
+        fn test_actual_module_image_id_helper(&self, module_name: &str, expected_image_id: &str) {
+            let actual_image_id_result = AziotEdgeVersion::actual_module_image_id(
+                self.docker_host_arg.as_str(),
+                module_name,
+            );
+            assert!(actual_image_id_result.is_ok());
+
+            assert_eq!(actual_image_id_result.unwrap(), expected_image_id,);
+        }
+    }
+
+    impl Drop for TestHelper {
+        fn drop(&mut self) {
+            for c in &self.containers_to_create {
+                docker(
+                    self.docker_host_arg.as_str(),
+                    vec!["stop", c.container_name.as_str()],
+                )
+                .map_err(|(_, err)| err)
+                .context(format!("Failed to stop {} container", c.container_name))
+                .expect("docker stop expected to succeed");
+
+                docker(
+                    self.docker_host_arg.as_str(),
+                    vec!["rm", c.container_name.as_str()],
+                )
+                .map_err(|(_, err)| err)
+                .context(format!("Failed to remove {} container", c.container_name))
+                .expect("docker rm expected to succeed");
+            }
+        }
+    }
+
+    struct Container {
+        image_id: String,
+        container_name: String,
+    }
+
     #[test]
     fn test_actual_module_image_id() {
-        let docker_host_arg = "unix:///var/run/docker.sock";
-        let exp_hello_world_image_id =
-            "sha256:d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726";
-
-        // TODO: cleanup/remove this container even if this test fails
-        docker(
-            docker_host_arg,
-            vec!["run", "--name", "hello-world", exp_hello_world_image_id],
-        )
-        .map_err(|(_, err)| err)
-        .context("Failed to run hello-world container")
-        .expect("docker run expected to succeed");
-
-        let actual_image_id_result =
-            AziotEdgeVersion::actual_module_image_id(docker_host_arg, "hello-world");
-        assert!(actual_image_id_result.is_ok());
-
-        assert_eq!(
-            actual_image_id_result.unwrap(),
-            exp_hello_world_image_id.to_owned()
+        let module_name = "hello_world".to_owned();
+        let expected_image_id =
+            "sha256:d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726".to_owned();
+        let helper = TestHelper::new(
+            "unix:///var/run/docker.sock".to_owned(),
+            vec![Container {
+                image_id: expected_image_id.clone(),
+                container_name: module_name.clone(),
+            }],
+            None,
         );
-
-        docker(docker_host_arg, vec!["stop", "hello-world"])
-            .map_err(|(_, err)| err)
-            .context("Failed to stop hello-world container")
-            .expect("docker stop expected to succeed");
-
-        docker(docker_host_arg, vec!["rm", "hello-world"])
-            .map_err(|(_, err)| err)
-            .context("Failed to remove hello-world container")
-            .expect("docker rm expected to succeed");
+        helper.test_actual_module_image_id_helper(module_name.as_str(), expected_image_id.as_str())
     }
+
+    // #[test]
+    // fn latest_version_check_passes() {
+    //     unimplemented!();
+    // }
+
+    // #[test]
+    // fn latest_edged_not_installed() {
+    //     unimplemented!();
+    // }
+
+    // #[test]
+    // fn latest_edge_agent_not_running() {
+    //     unimplemented!();
+    // }
+
+    // #[test]
+    // fn latest_edge_hub_not_running() {
+    //     unimplemented!();
+    // }
+
+    // #[test]
+    // fn latest_version_check_fails_if_edge_hub_missing() {
+    //     unimplemented!();
+    // }
 }
