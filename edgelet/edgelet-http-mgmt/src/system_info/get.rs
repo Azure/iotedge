@@ -42,7 +42,10 @@ where
 
         match runtime.system_info().await {
             Ok(sysinfo) => Ok((http::StatusCode::OK, sysinfo)),
-            Err(err) => todo!(),
+            Err(err) => Err(edgelet_http::error::server_error(format!(
+                "failed to query system info: {}",
+                err
+            ))),
         }
     }
 
