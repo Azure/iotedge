@@ -110,6 +110,22 @@ process_args()
 # Main Script Execution
 ###############################################################################
 
+function print_agent_names() {
+    agents=("$@")
+    outputAgentNames=(l5AgentName l4AgentName l3AgentName)
+
+    echo "Setting devops vars for agent names. Needed for future unlock."
+
+    for i in "${!agents[@]}"; do
+        agentId="${agents[$i]}"
+
+        agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
+        agentName=$(echo $agentCapabilities | jq '.systemCapabilities."Agent.Name"' | tr -d '[], "')
+
+        echo "Locked agent: $agentName"
+    done
+}
+
 function update_capabilities() {
     agentId=$1
     newAgentUserCapabilities=$2
@@ -236,6 +252,7 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
             unlock_agents "${filteredAgents[@]}"
 
         else
+            print_agent_names "${filteredAgents[@]}"
             echo "Successfully locked agents"
             exit 0
         fi
