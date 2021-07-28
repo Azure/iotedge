@@ -29,7 +29,7 @@ SCRIPT_NAME=$(basename $0)
 
 POOL_ID=123 # Devops agent pool id corresponding to "Azure-IoT-Edge-Core"
 API_VER=6.0
-TIMEOUT_SECONDS=300
+TIMEOUT_SECONDS=$((60*60*3)) # 3 hours
 
 AGENT_GROUP=
 BUILD_ID=
@@ -228,13 +228,11 @@ echo "Done validating jq"
 
 startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
-backoffSeconds=1
 agentsNeeded=$(($RUNNER_AGENTS_NEEDED + 2))
 while true && [ $((SECONDS)) -lt $endSeconds ]; do
     # Wait 1-10 seconds to retry locking agents.
     # Random delay to avoid multiple instances of the script thrashing.
-    sleep $[ ( $RANDOM % 10 )  + $backoffSeconds ]s
-    backoffSeconds=$(($backoffSeconds * 2))
+    sleep $[ ( $RANDOM % 10 ) + 30 ]s
 
     echo "Attempting to lock $agentsNeeded agents from the agent group $AGENT_GROUP..."
     agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
