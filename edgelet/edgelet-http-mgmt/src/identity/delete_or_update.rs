@@ -57,7 +57,7 @@ where
         self,
         _body: Option<Self::DeleteBody>,
     ) -> http_common::server::RouteResponse<Option<Self::DeleteResponse>> {
-        edgelet_http::auth_agent(self.pid, &self.runtime)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
@@ -78,7 +78,7 @@ where
         self,
         _body: Self::PutBody,
     ) -> http_common::server::RouteResponse<Self::PutResponse> {
-        edgelet_http::auth_agent(self.pid, &self.runtime)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 

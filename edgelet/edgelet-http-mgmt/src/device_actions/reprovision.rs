@@ -53,7 +53,7 @@ where
         self,
         _body: Option<Self::PostBody>,
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_agent(self.pid, &self.runtime)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         match self
             .reprovision

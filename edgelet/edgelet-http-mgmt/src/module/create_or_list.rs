@@ -65,7 +65,7 @@ where
         self,
         body: Option<Self::PostBody>,
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_agent(self.pid, &self.runtime)?;
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
             Some(body) => body,

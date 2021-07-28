@@ -661,7 +661,6 @@ dependencies = [
  "config-common",
  "docker",
  "edgelet-core",
- "edgelet-http",
  "edgelet-settings",
  "edgelet-utils",
  "failure",
@@ -690,6 +689,7 @@ name = "edgelet-http"
 version = "0.1.0"
 dependencies = [
  "edgelet-core",
+ "edgelet-docker",
  "futures-util",
  "http 0.2.4",
  "http-common",

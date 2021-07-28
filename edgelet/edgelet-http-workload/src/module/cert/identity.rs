@@ -74,7 +74,7 @@ where
         self,
         _body: Option<Self::PostBody>,
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_caller(&self.module_id, self.pid, &self.runtime)?;
+        edgelet_http::auth_caller(&self.module_id, self.pid, &self.runtime).await?;
 
         let cert_id = format!("aziot-edged/module/{}:identity", &self.module_id);
 

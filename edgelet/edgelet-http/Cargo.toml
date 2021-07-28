@@ -12,5 +12,6 @@ libc = "0.2"
 log = "0.4"
 
 edgelet-core = { path = "../edgelet-core" }
+edgelet-docker = { path = "../edgelet-docker" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

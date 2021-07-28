@@ -29,7 +29,6 @@ aziot-cert-common-http = {git = "https://github.com/Azure/iot-identity-service",
 config-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
 docker = {path = "../docker-rs"}
 edgelet-core = {path = "../edgelet-core"}
-edgelet-http = {path = "../edgelet-http"}
 edgelet-settings = {path = "../edgelet-settings", features = ["settings-docker"]}
 edgelet-utils = {path = "../edgelet-utils"}
 http-common = {git = "https://github.com/Azure/iot-identity-service", branch = "main"}
