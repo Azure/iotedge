@@ -297,12 +297,13 @@ fn message_handler(
     let tracking_id = settings.tracking_id();
     let relay_topic = settings.relay_topic();
     let module_name = settings.module_name();
+    let batch_id = settings.batch_id();
     let test_result_coordinator_url = settings.trc_url();
     let reporting_client = TrcClient::new(test_result_coordinator_url);
 
     match settings.test_scenario() {
         TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => Some(Box::new(
-            ReportResultMessageHandler::new(reporting_client, tracking_id, &module_name),
+            ReportResultMessageHandler::new(reporting_client, tracking_id, &module_name, batch_id),
         )),
         TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
             publish_handle,
