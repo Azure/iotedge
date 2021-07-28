@@ -30,11 +30,11 @@
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\",\"compress\":\"true\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "DeviceScopeCacheRefreshDelaySecs": {
-                "value": 0
-              },
               "experimentalFeatures__enabled": {
                 "value": "true"
+              },
+              "DeviceScopeCacheRefreshDelaySecs": {
+                "value": 0
               },
               "RuntimeLogLevel": {
                 "value": "debug"
