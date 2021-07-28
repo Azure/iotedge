@@ -5,7 +5,7 @@ steps:
     env:
       POOL_ID: 123
       API_VER: 6.0
-      PAT: $(IotEdge1.PAT)
+      PAT: "$(edgebuild-1-PAT)"
       BUILD_ID: $(Build.BuildId)
     inputs:
       targetType: inline
