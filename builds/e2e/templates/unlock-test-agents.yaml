@@ -25,7 +25,6 @@ steps:
             # Filter for user capabilities, access "status" field and remove buildId suffix
             agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
             newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
-            echo $newAgentUserCapabilities
 
             # Update the user capability on the agent pool for this agent
             responseCapabilities=$(curl -s -u :$PAT \
