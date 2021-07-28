@@ -114,8 +114,6 @@ function print_agent_names() {
     agents=("$@")
     outputAgentNames=(l5AgentName l4AgentName l3AgentName)
 
-    echo "Setting devops vars for agent names. Needed for future unlock."
-
     for i in "${!agents[@]}"; do
         agentId="${agents[$i]}"
 
