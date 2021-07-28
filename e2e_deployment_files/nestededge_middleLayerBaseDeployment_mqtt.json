@@ -37,11 +37,11 @@
               "createOptions": "{\"HostConfig\": {\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"100m\",\"max-file\":\"7\"}}, \"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
-              "DeviceScopeCacheRefreshDelaySecs": {
-                "value": 0
-              },
               "experimentalFeatures__enabled": {
                 "value": "true"
+              },
+              "DeviceScopeCacheRefreshDelaySecs": {
+                "value": 0
               },
               "experimentalFeatures__mqttBrokerEnabled": {
                 "value": "true"
