@@ -36,9 +36,11 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters: 
       upstream.protocol: 'mqtt'
+      testRunnerCount: 2
   - job:  Deploy_Connectivity_Linux_Amd64
     displayName: Set up and run connectivity tests on Linux Amd64
-    dependsOn: SetupVM_level4_mqtt
+    dependsOn:
+      - SetupVM_level4_mqtt
     condition: and(succeeded(), eq(variables['run.linux.amd64.moby'], 'true'))
     strategy:
       matrix:
@@ -85,7 +87,7 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked  
+        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     variables:
       parentName: $[ dependencies.SetupVM_level4_mqtt.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
@@ -167,31 +169,21 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
           connectivity.nested: 'true'
           testInfo.testName: '$(testInfo.testName)'
-  - job:  Clean_up      
+  - job:  Unlock_agents      
     dependsOn:
+      - Lock_Nested_Agents_mqtt
       - SetupVM_level5_mqtt
       - SetupVM_level4_mqtt
       - Deploy_connectivity_Linux_Amd64
-    condition: always()
-    displayName: Clean up identities and unlock agents
-    variables:    
-      deviceLvl5AgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]         
-      deviceLvl4AgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]       
-      amd64AgentName: $[ dependencies.Deploy_connectivity_Linux_Amd64.outputs['lock_test_agent.agentName'] ]  
+    condition: eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')
+    displayName: Unlock agents
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)  
+        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml     
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(deviceLvl5AgentName)
-          lvl: 5  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(deviceLvl4AgentName)
-          lvl: 4
+      - template: templates/unlock-test-agents.yaml 
