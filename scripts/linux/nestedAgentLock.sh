@@ -203,8 +203,8 @@ function unlock_agents() {
         lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status')
 
         if [ $lockStatus != "unlocked_${BUILD_ID}_L5_$UPSTREAM_PROTOCOL" ] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L4_$UPSTREAM_PROTOCOL"] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L3_$UPSTREAM_PROTOCOL"]; then
+           [ $lockStatus != "unlocked_${BUILD_ID}_L4_$UPSTREAM_PROTOCOL" ] &&
+           [ $lockStatus != "unlocked_${BUILD_ID}_L3_$UPSTREAM_PROTOCOL" ]; then
             echo "Unlocking agent $agentId"
 
             newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
