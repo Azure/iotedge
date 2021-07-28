@@ -9,6 +9,14 @@ pub fn bad_request(
     }
 }
 
+// This function is only used by auth, so it doesn't need to be externally callable.
+pub(crate) fn forbidden() -> http_common::server::Error {
+    http_common::server::Error {
+        status_code: http::StatusCode::FORBIDDEN,
+        message: "forbidden".into(),
+    }
+}
+
 pub fn not_found(
     message: impl std::convert::Into<std::borrow::Cow<'static, str>>,
 ) -> http_common::server::Error {
