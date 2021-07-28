@@ -10,28 +10,41 @@ steps:
     inputs:
       targetType: inline
       script: |
-        echo "Attempting to unlock all locked agents"
+      echo "Attempting to unlock all locked agents"
 
-        agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
-        lockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities."agent-group" | startswith('\"unlocked_$BUILD_ID\"')) | .id' | tr -d '[], "'))
+      agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+      lockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities.status != null) | select(.userCapabilities.status | startswith('\"unlocked_$BUILD_ID\"')) | .id' | tr -d '[], "'))
 
-        echo "Found these locked agents:"
-        echo ${lockedAgents[@]}
+      echo "Found these locked agents:"
+      echo ${lockedAgents[@]}
 
-        for agentId in "${lockedAgents[@]}"; do
+      exitCode=0
+      for agentId in "${lockedAgents[@]}"; do
+          echo "Unlocking agent: $agentId"
+
           # Filter for user capabilities, access "status" field and remove buildId suffix
+          agentCapabilities=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents/$agentId?includeCapabilities=true&api-version=$API_VER")
           newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
+          echo $newAgentUserCapabilities
 
           # Update the user capability on the agent pool for this agent
-          responseCapabilities=$(curl -s -u :$(edgebuild-1-PAT) \
-        --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
-        -H "Content-Type:application/json" \
-        -H "Accept: application/json;api-version=5.0;" \
-        --data @<(cat <<EOF
-        $newAgentUserCapabilities
-        EOF
-        ))
+          responseCapabilities=$(curl -s -u :$PAT \
+      --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
+      -H "Content-Type:application/json" \
+      -H "Accept: application/json;api-version=5.0;" \
+      --data @<(cat <<EOF
+      $newAgentUserCapabilities
+      EOF
+      ))
 
           # Validate the capability update was successful
           responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
-          [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && echo "Successfully unlocked agent: $agentId" || exit -1
+          if [ "$responseUserCapabilities" != "$newAgentUserCapabilities" ]
+          then
+              echo "Capabilities were not updated properly."
+              echo "$responseUserCapabilities"
+              exitCode=1
+          fi
+      done
+
+      exit $exitCode
