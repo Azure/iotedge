@@ -14,13 +14,11 @@ pub(crate) struct CreateModuleRequest {}
 #[derive(Debug, serde::Serialize)]
 pub(crate) struct CreateModuleResponse {}
 
-#[derive(Debug, serde::Serialize)]
-pub(crate) struct ListModulesResponse {}
-
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
+    M::Config: serde::Serialize,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -52,11 +50,15 @@ where
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
 
-    type GetResponse = ListModulesResponse;
+    type GetResponse = edgelet_http::ListModulesResponse;
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let runtime = self.runtime.lock().await;
 
-        todo!()
+        let modules = runtime.list_with_details().await.map_err(|err| {
+            edgelet_http::error::server_error(format!("could not list modules: {}", err))
+        })?;
+
+        Ok((http::StatusCode::OK, modules.into()))
     }
 
     type PostBody = CreateModuleRequest;

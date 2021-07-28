@@ -17,6 +17,6 @@ pub use auth::auth_agent;
 pub use auth::auth_caller;
 
 // The list_modules API is used by both management and workload APIs.
-pub use list_modules::ListResponse;
+pub use list_modules::ListModulesResponse;
 
 pub use version::ApiVersion;

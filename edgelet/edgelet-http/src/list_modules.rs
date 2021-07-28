@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 #[derive(Debug, serde::Serialize)]
-pub struct ListResponse {
+#[allow(clippy::module_name_repetitions)]
+pub struct ListModulesResponse {
     modules: Vec<ModuleDetails>,
 }
 
@@ -54,7 +55,7 @@ struct RuntimeStatus {
     description: Option<String>,
 }
 
-impl<M> std::convert::From<Vec<(M, edgelet_core::ModuleRuntimeState)>> for ListResponse
+impl<M> std::convert::From<Vec<(M, edgelet_core::ModuleRuntimeState)>> for ListModulesResponse
 where
     M: edgelet_core::Module,
     M::Config: serde::Serialize,
@@ -75,7 +76,7 @@ where
             });
         }
 
-        ListResponse { modules: response }
+        ListModulesResponse { modules: response }
     }
 }
 

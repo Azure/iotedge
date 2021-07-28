@@ -34,7 +34,7 @@ where
         })
     }
 
-    type GetResponse = edgelet_http::ListResponse;
+    type GetResponse = edgelet_http::ListModulesResponse;
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let runtime = self.runtime.lock().await;
 
