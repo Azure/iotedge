@@ -14,19 +14,23 @@ steps:
 
         agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
         lockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities."agent-group" | startswith('\"unlocked_$BUILD_ID\"')) | .id' | tr -d '[], "'))
+
+        echo "Found these locked agents:"
+        echo ${lockedAgents[@]}
+
         for agentId in "${lockedAgents[@]}"; do
           # Filter for user capabilities, access "status" field and remove buildId suffix
           newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
 
           # Update the user capability on the agent pool for this agent
           responseCapabilities=$(curl -s -u :$(edgebuild-1-PAT) \
-          --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
-          -H "Content-Type:application/json" \
-          -H "Accept: application/json;api-version=5.0;" \
-          --data @<(cat <<EOF
-          $newAgentUserCapabilities
-          EOF
-          ))
+        --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
+        -H "Content-Type:application/json" \
+        -H "Accept: application/json;api-version=5.0;" \
+        --data @<(cat <<EOF
+        $newAgentUserCapabilities
+        EOF
+        ))
 
           # Validate the capability update was successful
           responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
