@@ -702,7 +702,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         debug!("Listing modules...");
 
         let mut filters: HashMap<&str, Vec<&str>> = HashMap::new();
-        filters.insert("labels", LABELS.to_vec());
+        filters.insert("label", LABELS.to_vec());
         let options = bollard::container::ListContainersOptions {
             all: true,
             limit: None,
