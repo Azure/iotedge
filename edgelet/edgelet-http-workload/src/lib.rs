@@ -118,7 +118,10 @@ where
 http_common::make_service! {
     service: Service<M>,
     { <M> }
-    { M: edgelet_core::ModuleRuntime + Send + Sync + 'static }
+    {
+        M: edgelet_core::ModuleRuntime + Send + Sync + 'static,
+        M::Config: serde::Serialize,
+    }
     api_version: edgelet_http::ApiVersion,
     routes: [
         module::list::Route<M>,

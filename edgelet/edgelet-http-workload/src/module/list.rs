@@ -11,6 +11,7 @@ where
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
+    M::Config: serde::Serialize,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -33,7 +34,16 @@ where
         })
     }
 
-    type GetResponse = ();
+    type GetResponse = edgelet_http::ListResponse;
+    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+        let runtime = self.runtime.lock().await;
+
+        let modules = runtime.list_with_details().await.map_err(|err| {
+            edgelet_http::error::server_error(format!("could not list modules: {}", err))
+        })?;
+
+        Ok((http::StatusCode::OK, modules.into()))
+    }
 
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
