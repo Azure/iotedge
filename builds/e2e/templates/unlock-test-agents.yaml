@@ -1,0 +1,37 @@
+parameters:
+  agentName: ''
+  lvl: ''
+
+steps:
+  - task: Bash@3
+    displayName: 'Release ${{parameters.agentName}} on level ${{ parameters.lvl }}'
+    condition: always()
+    env:
+      POOL_ID: 123
+      API_VER: 6.0
+      PAT: $(IotEdge1.PAT)
+      BUILD_ID: $(Build.BuildId)
+    inputs:
+      targetType: inline
+      script: |
+        echo "Attempting to unlock all locked agents"
+
+        agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
+        lockedAgents=($(echo $agentsInfo | jq '.value | .[] | select(.userCapabilities."agent-group"^='\"unlocked_$BUILD_ID\"') | .id' | tr -d '[], "'))
+        for agentId in "${lockedAgents[@]}"; do
+          # Filter for user capabilities, access "status" field and remove buildId suffix
+          newAgentUserCapabilities=$(echo $agentCapabilities | jq '.userCapabilities | (.["status"]) |= "unlocked"')
+
+          # Update the user capability on the agent pool for this agent
+          responseCapabilities=$(curl -s -u :$(edgebuild-1-PAT) \
+          --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
+          -H "Content-Type:application/json" \
+          -H "Accept: application/json;api-version=5.0;" \
+          --data @<(cat <<EOF
+          $newAgentUserCapabilities
+          EOF
+          ))
+
+          # Validate the capability update was successful
+          responseUserCapabilities=$(echo $responseCapabilities | jq '.userCapabilities')
+          [[ $responseUserCapabilities == $newAgentUserCapabilities ]] && echo "Successfully unlocked agent: $agentId" || exit -1
