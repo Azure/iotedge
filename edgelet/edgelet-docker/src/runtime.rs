@@ -472,7 +472,9 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )))
             })?;
 
-        let name = response.name.unwrap_or_else(|| id.to_owned());
+        let name = response
+            .name
+            .map_or(id.to_owned(), |s| (&s[1..]).to_owned());
         let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
             .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
         let module = DockerModule::new(self.client.clone(), name, config)?;
