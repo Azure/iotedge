@@ -161,8 +161,8 @@ function attempt_agent_lock() {
         lockStatus=$(echo $agentCapabilities | jq '.userCapabilities | .status' | tr -d '[], "')
 
         if [ $lockStatus != "unlocked_${BUILD_ID}_L5" ] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L4"] &&
-           [ $lockStatus != "unlocked_${BUILD_ID}_L3"]; then
+           [ $lockStatus != "unlocked_${BUILD_ID}_L4" ] &&
+           [ $lockStatus != "unlocked_${BUILD_ID}_L3" ]; then
             agentsAllLockedCorrectly=false
             break
         fi
