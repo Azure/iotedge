@@ -38,7 +38,7 @@ stages:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
-  - job:  Clean_up      
+  - job:  Unlock_agents      
     dependsOn:
       - SetupVM_level5_amqp
       - SetupVM_level5_mqtt
@@ -46,45 +46,15 @@ stages:
       - SetupVM_level4_mqtt
       - Deploy_Longhaul_Linux_Amd64_amqp
       - Deploy_Longhaul_Linux_Amd64_mqtt
-    condition: eq(variables['test.pipeline'], 'true')
-    displayName: Clean up identities and unlock agents
-    variables:    
-      deviceLvl5AmqpAgentName: $[ dependencies.SetupVM_level5_amqp.outputs['lock_test_agent.agentName'] ]
-      deviceLvl5MqttAgentName: $[ dependencies.SetupVM_level5_mqtt.outputs['lock_test_agent.agentName'] ]
-      deviceLvl4AmqpAgentName: $[ dependencies.SetupVM_level4_amqp.outputs['lock_test_agent.agentName'] ]
-      deviceLvl4MqttAgentName: $[ dependencies.SetupVM_level4_mqtt.outputs['lock_test_agent.agentName'] ]
-      amd64AmqpAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_amqp.outputs['lock_test_agent.agentName'] ]
-      amd64MqttAgentName: $[ dependencies.Deploy_Longhaul_Linux_Amd64_mqtt.outputs['lock_test_agent.agentName'] ]
+    condition: and(or(eq(dependencies.Lock_Nested_Agents_amqp.result, 'succeeded'), eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')), eq(variables['test.pipeline'], 'true'))
+    displayName: Unlock agents
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)  
+        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml     
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(deviceLvl5AmqpAgentName)
-          lvl: 5  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(deviceLvl5MqttAgentName)
-          lvl: 5  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(deviceLvl4AmqpAgentName)
-          lvl: 4     
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(deviceLvl4MqttAgentName)
-          lvl: 4     
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(amd64AmqpAgentName)
-          lvl: 3  
-      - template: templates/unlock-test-agent.yaml 
-        parameters:
-          agentName: $(amd64MqttAgentName)
-          lvl: 3
+      - template: templates/unlock-test-agents.yaml 
