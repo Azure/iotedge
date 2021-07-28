@@ -11,5 +11,5 @@ members = [
     "edgelet-utils",
     #"iotedge",
     #"management",
-    #"support-bundle",
+    "support-bundle",
 ]

@@ -40,13 +40,18 @@ pub async fn write_logs(
     writer: &mut (impl Write + Send),
 ) -> Result<(), Error> {
     // Collect Logs
-    let logs = runtime
-        .logs(module_name, options)
-        .await
-        .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
+    let logs = runtime.logs(module_name, options).await;
 
     // Write all logs
-    let write = logs.map(|part| writer.write_all(part.as_ref()));
+    let write = logs.map(|part| {
+        let part = part.map_err(|err| {
+            println!("Warning: error gathering logs: {}", err);
+
+            std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
+        })?;
+
+        writer.write_all(part.as_ref())
+    });
 
     // Extract errors
     write
