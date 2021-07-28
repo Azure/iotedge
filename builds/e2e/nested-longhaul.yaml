@@ -26,6 +26,7 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: amqp
+      test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_amqp.json'
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       upstream.protocol: amqp
