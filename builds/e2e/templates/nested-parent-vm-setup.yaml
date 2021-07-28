@@ -1,7 +1,7 @@
 parameters:
   upstream.protocol: 'amqp'
   testRunnerCount: '1'
-  test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json'
+  test.l4DeploymentFileName: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
 
 jobs:
   - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
