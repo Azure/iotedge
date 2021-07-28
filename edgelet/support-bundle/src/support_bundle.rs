@@ -27,16 +27,14 @@ const SYSTEM_MODULES: &[(&str, &str)] = &[
 /// # Errors
 ///
 /// Will return `Err` if unable to collect support bundle
-pub async fn make_bundle<M>(
+pub async fn make_bundle(
     output_location: OutputLocation,
     log_options: LogOptions,
     include_ms_only: bool,
     verbose: bool,
     iothub_hostname: Option<String>,
-    runtime: M,
+    runtime: &impl ModuleRuntime,
 ) -> Result<(Box<dyn Read + Send>, u64), Error>
-where
-    M: ModuleRuntime + Clone + Send + Sync,
 {
     match output_location {
         OutputLocation::File(location) => {
@@ -75,17 +73,16 @@ where
     }
 }
 
-async fn write_all<W, M>(
+async fn write_all<W>(
     mut zip_writer: &mut ZipWriter<W>,
     log_options: LogOptions,
     include_ms_only: bool,
     verbose: bool,
     iothub_hostname: Option<String>,
-    runtime: M,
+    runtime: &impl ModuleRuntime,
 ) -> Result<(W, u64), Error>
 where
     W: Write + Seek + Send,
-    M: ModuleRuntime + Clone + Send + Sync,
 {
     let file_options = FileOptions::default().compression_method(CompressionMethod::Deflated);
 
@@ -96,12 +93,12 @@ where
     write_check(&mut zip_writer, iothub_hostname, verbose).await?;
 
     // Get all modules
-    for module_name in get_modules(&runtime, include_ms_only).await {
+    for module_name in get_modules(runtime, include_ms_only).await {
         // Write module logs
         zip_writer
             .start_file(format!("logs/{}_log.txt", module_name), file_options)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
-        write_logs(&runtime, &module_name, &log_options, &mut zip_writer).await?;
+        write_logs(runtime, &module_name, &log_options, &mut zip_writer).await?;
 
         // write module inspect
         write_inspect(&module_name, &mut zip_writer, &file_options, verbose).await?;
