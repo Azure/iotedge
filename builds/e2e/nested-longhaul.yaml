@@ -38,7 +38,7 @@ stages:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
-  - job:  Clean_up      
+  - job:  Unlock_agents      
     dependsOn:
       - SetupVM_level5_amqp
       - SetupVM_level5_mqtt
@@ -46,8 +46,8 @@ stages:
       - SetupVM_level4_mqtt
       - Deploy_Longhaul_Linux_Amd64_amqp
       - Deploy_Longhaul_Linux_Amd64_mqtt
-    condition: eq(variables['test.pipeline'], 'true')
-    displayName: Clean up identities and unlock agents
+    condition: and(or(eq(dependencies.Lock_Nested_Agents_amqp.result, 'succeeded'), eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')), eq(variables['test.pipeline'], 'true'))
+    displayName: Unlock agents
     pool:
       name: $(pool.name)
       demands:

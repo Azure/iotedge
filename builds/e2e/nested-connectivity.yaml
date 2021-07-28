@@ -169,13 +169,14 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
           connectivity.nested: 'true'
           testInfo.testName: '$(testInfo.testName)'
-  - job:  Clean_up      
+  - job:  Unlock_agents      
     dependsOn:
+      - Lock_Nested_Agents_mqtt
       - SetupVM_level5_mqtt
       - SetupVM_level4_mqtt
       - Deploy_connectivity_Linux_Amd64
     condition: eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')
-    displayName: Clean up identities and unlock agents
+    displayName: Unlock agents
     pool:
       name: $(pool.name)
       demands:
