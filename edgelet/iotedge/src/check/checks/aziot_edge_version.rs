@@ -74,7 +74,7 @@ impl Checker for AziotEdgeVersion {
             }
 
             let check_result =
-                self.init_latest_versions(tokio_runtime, "https://aka.ms/latest-aziot-edge");
+                self.init_latest_versions(tokio_runtime, "https://aka.ms/AAdb3gt");
             match check_result {
                 CheckResult::Ok => (),
                 _ => return check_result,
