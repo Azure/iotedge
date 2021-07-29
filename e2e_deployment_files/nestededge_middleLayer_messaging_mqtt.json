@@ -88,6 +88,9 @@
                             },
                             "SslProtocols": {
                                 "value": "tls1.2"
+                            },
+                            "TRC_URL": {
+                                "value": "<TrcUrl>"
                             }
                         },
                         "settings": {
