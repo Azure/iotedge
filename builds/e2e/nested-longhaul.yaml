@@ -50,6 +50,8 @@ stages:
           echo "Ip adress of L3 agent: $L3_IP_ADDRESS_MQTT"
           echo "##vso[task.setvariable variable=l3IpAddressMqtt;isOutput=true]${L3_IP_ADDRESS_MQTT}"
         displayName: Get ip address of L3 mqtt agent
+      - script: |
+          echo $(l3IpAddressMqtt)
 
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
