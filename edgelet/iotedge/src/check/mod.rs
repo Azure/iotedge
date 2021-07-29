@@ -905,6 +905,9 @@ mod tests {
 
     #[test]
     fn pickup_proxy_uri_from_the_right_place() {
+        // grab an env lock since we are going to be mucking with the environment.
+        let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
+
         // Setup the https_proxy environment var
         let env_proxy_uri1 = "https://environment1:123";
         std::env::set_var("https_proxy", env_proxy_uri1);
@@ -975,7 +978,7 @@ mod tests {
             proxy_uri.unwrap(),
             parm_proxy_uri.to_string(),
             "proxy_uri fetched from the config did not match expected value: '{}'",
-            config_proxy_uri,
+            parm_proxy_uri,
         );
     }
 }
