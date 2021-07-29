@@ -23,6 +23,31 @@ resources:
 stages:
 - stage: SetupVMs
   jobs:
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'amqp'
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'mqtt'
+
+  # Get the ip address of the L3 agent. Needed for test modules on the middle level L4 agent.
+  - job: Get_L3_IP_mqtt
+    dependsOn:
+      - Lock_Nested_Agents_mqtt
+    displayName: Get ip address of L3 mqtt agent
+    timeoutInMinutes: 180
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - status -equals unlocked_$(Build.BuildId)_L3_mqtt
+    steps:
+      - script: |
+        L3_IP_ADDRESS_MQTT=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+        echo "##vso[task.setvariable variable=L3_IP_ADDRESS_MQTT;isOutput=true]${L3_IP_ADDRESS_MQTT}"
+
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: amqp

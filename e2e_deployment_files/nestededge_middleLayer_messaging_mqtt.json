@@ -83,9 +83,6 @@
                             "TEST_SCENARIO": {
                                 "value": "Relay"
                             },
-                            "TRACKING_ID": {
-                                "value": "AForgottenVariableLostToTimeAndSpace-PleaseRememberToRemoveMeSomedayFromTheRelayerScenarioOfGenericMqttTesterOrAlternativelyAddValidationInTheTesterAndGenerateTheTrackingIdFromAHigherYaml"
-                            },
                             "TEST_START_DELAY": {
                                 "value": "10s"
                             },

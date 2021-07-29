@@ -42,6 +42,9 @@ resources:
 stages:
 - stage: SetupVM
   jobs:
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'mqtt'
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt

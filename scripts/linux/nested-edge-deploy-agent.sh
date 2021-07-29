@@ -111,6 +111,10 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<proxyAddress>@$PROXY_ADDRESS@g" "$deployment_working_file"
+    sed -i -e "s@<TrcUrl>@$@g" "${L3_IP_ADDRESS_MQTT}:5001/api/testoperationresult"
+
+    # TODO: Remove
+    echo "-------- ${L3_IP_ADDRESS_MQTT}:5001/api/testoperationresult"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
