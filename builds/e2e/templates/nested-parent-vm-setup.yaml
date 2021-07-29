@@ -58,6 +58,10 @@ jobs:
     steps:
       - script: |
           echo ${{ parameters['l3IpAddress'] }}
+      - script: |
+          echo $(l3IpAddress)
+      - script: |
+          echo $(l3IpAddressMqtt)
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
       - template: nested-get-root-ca.yaml         
