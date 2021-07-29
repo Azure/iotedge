@@ -39,11 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Requests
             (string correlationId, BackgroundTaskStatus status) = BackgroundTask.Run(
                 async () =>
                     {
-                        using (var backgroundCts = new CancellationTokenSource(this.supportTaskTimeout))
-                        {
-                            Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, backgroundCts.Token);
-                            await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
-                        }
+                        Stream source = await this.getSupportBundle(payload.Since, payload.Until, Option.Maybe(this.iotHubHostName), payload.EdgeRuntimeOnly, CancellationToken.None);
+                        await this.requestsUploader.UploadSupportBundle(payload.SasUrl, source);
                     },
                 "upload support bundle",
                 supportCts.Token);

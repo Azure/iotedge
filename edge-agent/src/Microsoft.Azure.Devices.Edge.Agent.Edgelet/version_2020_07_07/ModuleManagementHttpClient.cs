@@ -151,6 +151,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2020_07_07
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
+                // Set timeout to infinite so the Cancellation token is used.
+                httpClient.Timeout = Timeout.InfiniteTimeSpan;
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 FileResponse response = await this.Execute(() => edgeletHttpClient.GetSupportBundleAsync(this.Version.Name, since.OrDefault(), until.OrDefault(), null, iothubHostname.OrDefault(), edgeRuntimeOnly.Map<bool?>(e => e).OrDefault()), "getting the support bundle");
 

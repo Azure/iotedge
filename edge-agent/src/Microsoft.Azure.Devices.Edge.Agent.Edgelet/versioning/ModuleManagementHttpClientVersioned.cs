@@ -89,6 +89,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
+                // Set timeout to infinite so the Cancellation token is used.
+                httpClient.Timeout = Timeout.InfiniteTimeSpan;
                 string baseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri).TrimEnd('/');
                 var logsUrl = new StringBuilder();
                 logsUrl.AppendFormat(CultureInfo.InvariantCulture, LogsUrlTemplate, baseUrl, module, this.Version.Name, follow.ToString().ToLowerInvariant());
