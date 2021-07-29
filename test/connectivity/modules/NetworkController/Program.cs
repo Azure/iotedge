@@ -34,7 +34,7 @@ namespace NetworkController
                 {
                     await networkInterfaceName.ForEachAsync(async name =>
                     {
-                        string hubHostname = !string.IsNullOrEmpty(Settings.Current.ParentHostname) ? Settings.Current.ParentHostname : Settings.Current.IotHubHostname;
+                        string hubHostname = GetHostnameForExternalTraffic();
                         var offline = new OfflineController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var satellite = new SatelliteController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
                         var cellular = new CellularController(name, hubHostname, Settings.Current.NetworkRunProfile.ProfileSetting);
@@ -135,11 +135,32 @@ namespace NetworkController
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             NetworkProfileSetting customNetworkProfileSetting = Settings.Current.NetworkRunProfile.ProfileSetting;
             customNetworkProfileSetting.PackageLoss = 100;
-            string hubHostname = !string.IsNullOrEmpty(Settings.Current.ParentHostname) ? Settings.Current.ParentHostname : Settings.Current.IotHubHostname;
+            string hubHostname = GetHostnameForExternalTraffic();
             var controller = new OfflineController(networkInterfaceName, hubHostname, customNetworkProfileSetting);
             NetworkControllerStatus networkControllerStatus = networkOnValue ? NetworkControllerStatus.Disabled : NetworkControllerStatus.Enabled;
             await SetNetworkControllerStatus(controller, networkControllerStatus, reporter, token);
             return new MethodResponse((int)HttpStatusCode.OK);
+        }
+
+        private static string GetHostnameForExternalTraffic()
+        {
+            // TODO: clean up option syntax
+            string externalTrafficHostname = string.Empty;
+            if (Settings.Current.Proxy.HasValue)
+            {
+                externalTrafficHostname = Settings.Current.Proxy.Expect(() => new Exception("Proxy should have value")).ToString();
+            }
+            else if (!string.IsNullOrEmpty(Settings.Current.ParentHostname))
+            {
+                externalTrafficHostname = Settings.Current.ParentHostname;
+            }
+            else
+            {
+                externalTrafficHostname = Settings.Current.IotHubHostname;
+            }
+
+            Log.LogInformation("External traffic ip: {0}", externalTrafficHostname);
+            return externalTrafficHostname;
         }
 
         static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
