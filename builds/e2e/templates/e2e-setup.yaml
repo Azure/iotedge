@@ -48,7 +48,7 @@ steps:
     project: $(resources.pipeline.images.projectID)
     pipeline: $(resources.pipeline.images.pipelineName)
     buildVersionToDownload: specific
-    buildId: $(resources.pipeline.images.runID)
+    buildId: $(imageBuildId)
     downloadType: single
     artifactName: $(az.pipeline.images.artifacts)
     allowPartiallySucceededBuilds: true
