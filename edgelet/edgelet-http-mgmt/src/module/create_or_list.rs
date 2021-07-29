@@ -49,7 +49,7 @@ where
         let runtime = self.runtime.lock().await;
 
         let modules = runtime.list_with_details().await.map_err(|err| {
-            edgelet_http::error::server_error(format!("could not list modules: {}", err))
+            edgelet_http::error::server_error(err.to_string())
         })?;
 
         Ok((http::StatusCode::OK, modules.into()))

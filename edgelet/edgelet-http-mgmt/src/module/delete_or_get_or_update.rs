@@ -50,13 +50,26 @@ where
 
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
+    async fn delete(
+        self,
+        _body: Option<Self::DeleteBody>,
+    ) -> http_common::server::RouteResponse<Option<Self::DeleteResponse>> {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
+
+        let runtime = self.runtime.lock().await;
+
+        match runtime.remove(&self.module).await {
+            Ok(_) => Ok((http::StatusCode::NO_CONTENT, None)),
+            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
+        }
+    }
 
     type GetResponse = edgelet_http::ModuleDetails;
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let runtime = self.runtime.lock().await;
 
         let module_info = runtime.get(&self.module).await.map_err(|err| {
-            edgelet_http::error::server_error(format!("could not get module info: {}", err))
+            edgelet_http::error::server_error(err.to_string())
         })?;
 
         Ok((http::StatusCode::OK, module_info.into()))
