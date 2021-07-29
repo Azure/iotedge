@@ -1,4 +1,4 @@
-mod aziot_edge_version;
+mod aziot_edged_version;
 mod check_agent_image;
 mod connect_management_uri;
 mod container_connect_upstream;
@@ -9,12 +9,13 @@ mod container_engine_is_moby;
 mod container_engine_logrotate;
 mod container_local_time;
 mod container_resolve_parent_hostname;
+mod latest_runtime_modules;
 mod parent_hostname;
 mod storage_mounted_from_host;
 mod up_to_date_config;
 mod well_formed_config;
 
-pub(crate) use self::aziot_edge_version::AziotEdgeVersion;
+pub(crate) use self::aziot_edged_version::AziotEdgedVersion;
 pub(crate) use self::check_agent_image::CheckAgentImage;
 pub(crate) use self::connect_management_uri::ConnectManagementUri;
 pub(crate) use self::container_connect_upstream::get_host_container_upstream_tests;
@@ -25,6 +26,7 @@ pub(crate) use self::container_engine_is_moby::ContainerEngineIsMoby;
 pub(crate) use self::container_engine_logrotate::ContainerEngineLogrotate;
 pub(crate) use self::container_local_time::ContainerLocalTime;
 pub(crate) use self::container_resolve_parent_hostname::ContainerResolveParentHostname;
+pub(crate) use self::latest_runtime_modules::LatestRuntimeModules;
 pub(crate) use self::parent_hostname::ParentHostname;
 pub(crate) use self::storage_mounted_from_host::{EdgeAgentStorageMounted, EdgeHubStorageMounted};
 pub(crate) use self::up_to_date_config::UpToDateConfig;
@@ -84,7 +86,8 @@ pub(crate) fn built_in_checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
                 Box::new(ParentHostname::default()),
                 Box::new(ContainerResolveParentHostname::default()),
                 Box::new(ConnectManagementUri::default()),
-                Box::new(AziotEdgeVersion::default()),
+                Box::new(AziotEdgedVersion::default()),
+                Box::new(LatestRuntimeModules::default()),
                 Box::new(ContainerLocalTime::default()),
                 Box::new(ContainerEngineDns::default()),
                 Box::new(ContainerEngineIPv6::default()),

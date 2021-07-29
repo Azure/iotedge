@@ -16,7 +16,8 @@
     clippy::use_self
 )]
 
-use futures::Future;
+use failure::{self, Fail, ResultExt};
+use futures::{Future, Stream};
 use serde_derive::{Deserialize, Serialize};
 
 mod check;
@@ -29,6 +30,9 @@ mod support_bundle;
 mod system;
 mod unknown;
 mod version;
+
+use edgelet_http::client::ClientImpl;
+use edgelet_http::MaybeProxyClient;
 
 pub use crate::check::{Check, OutputFormat};
 pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
@@ -72,4 +76,179 @@ pub struct DockerImageInfo {
     pub image_tag: String,
     #[serde(rename = "image-id")]
     pub image_id: String,
+}
+
+impl LatestVersions {
+    pub fn get_latest_versions(
+        tokio_runtime: &mut tokio::runtime::Runtime,
+        latest_versions_url: &str,
+    ) -> Result<LatestVersions, crate::Error> {
+        // Pull expected versions from https://aka.ms/latest-aziot-edge
+        let proxy = std::env::var("HTTPS_PROXY")
+            .ok()
+            .or_else(|| std::env::var("https_proxy").ok())
+            .map(|proxy| proxy.parse::<hyper::Uri>())
+            .transpose()
+            .context(ErrorKind::FetchLatestVersions(
+                FetchLatestVersionsReason::CreateClient,
+            ));
+        let hyper_client = proxy.and_then(|proxy| {
+            MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
+                FetchLatestVersionsReason::CreateClient,
+            ))
+        })?;
+
+        let request = hyper::Request::get(latest_versions_url)
+            .body(hyper::Body::default())
+            .expect("can't fail to create request");
+
+        let latest_versions_fut = hyper_client
+            .call(request)
+            .then(|response| -> Result<_, Error> {
+                let response = response.context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::GetResponse,
+                ))?;
+                Ok(response)
+            })
+            .and_then(move |response| match response.status() {
+                status_code if status_code.is_redirection() => {
+                    let uri = response
+                        .headers()
+                        .get(hyper::header::LOCATION)
+                        .ok_or(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                        ))?
+                        .to_str()
+                        .context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::InvalidOrMissingLocationHeader,
+                        ))?;
+                    let request = hyper::Request::get(uri)
+                        .body(hyper::Body::default())
+                        .expect("can't fail to create request");
+                    Ok(hyper_client.call(request).map_err(|err| {
+                        err.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))
+                        .into()
+                    }))
+                }
+                status_code => Err(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::ResponseStatusCode(status_code),
+                )
+                .into()),
+            })
+            .flatten()
+            .and_then(|response| -> Result<_, Error> {
+                match response.status() {
+                    hyper::StatusCode::OK => Ok(response.into_body().concat2().map_err(|err| {
+                        err.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))
+                        .into()
+                    })),
+                    status_code => Err(ErrorKind::FetchLatestVersions(
+                        FetchLatestVersionsReason::ResponseStatusCode(status_code),
+                    )
+                    .into()),
+                }
+            })
+            .flatten()
+            .and_then(|body| {
+                Ok(
+                    serde_json::from_slice(&body).context(ErrorKind::FetchLatestVersions(
+                        FetchLatestVersionsReason::GetResponse,
+                    ))?,
+                )
+            });
+
+        tokio_runtime.block_on(latest_versions_fut)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
+
+    #[test]
+    fn test_get_latest_versions() {
+        let server = MockServer::start();
+        let _latest_versions_mock = server.mock(|when, then| {
+            when.method(GET).path("/latest_versions");
+            then.status(302)
+                .header("Location", &server.url("/redirected_latest_versions"))
+                .body("");
+        });
+        let _redirect_mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/redirected_latest_versions");
+            then.status(200)
+                .header("Content-Type", "text/html")
+                .body("{
+                    \"aziot-edge\": \"1.2.3\",
+                    \"azureiotedge-agent\": {
+                        \"linux-amd64\": {
+                            \"image-tag\": \"1.2.3-linux-amd64\",
+                            \"image-id\":  \"sha256:4d911da05d9497d975b400b464d64e42358d172f220fdbc4b0498beaa7c0154e\"
+                        },
+                        \"linux-arm32v7\": {
+                            \"image-tag\": \"1.2.3-linux-arm32v7\",
+                            \"image-id\":  \"sha256:41f939cdb2c42a1f96dadc39b03e6d02cfb1ecadca8d50ead7f2480d8b7a118a\"
+                        },
+                        \"linux-arm64v8\": {
+                            \"image-tag\": \"1.2.3-linux-arm64v8\",
+                            \"image-id\":  \"sha256:17b4f95bde627c7fe02267d4fcf7271e3ecab49f1e19bca2f4c5622f3dda5cec\"
+                        }
+                    },
+                    \"azureiotedge-hub\": {
+                        \"linux-amd64\": {
+                            \"image-tag\": \"1.2.3-linux-amd64\",
+                            \"image-id\":  \"sha256:23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7\"
+                        },
+                        \"linux-arm32v7\": {
+                            \"image-tag\": \"1.2.3-linux-arm32v7\",
+                            \"image-id\":  \"sha256:a8a47588d28c6f1ece90b3b7901a504693a4c46b1b950967e4859e70f2de606f\"
+                        },
+                        \"linux-arm64v8\": {
+                            \"image-tag\": \"1.2.3-linux-arm64v8\",
+                            \"image-id\":  \"sha256:8eb93ea054de87638ee9dcc22066a8454bdbbcc6e9857a1ea15c383b1085f781\"
+                        } 
+                    }
+                }");
+        });
+
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+        let latest_version_res =
+            LatestVersions::get_latest_versions(&mut runtime, &server.url("/latest_versions"));
+
+        assert!(latest_version_res.is_ok());
+
+        let latest_versions = latest_version_res.unwrap();
+        assert_eq!(latest_versions.aziot_edge, "1.2.3");
+        assert_eq!(
+            latest_versions.aziot_edge_agent.linux_amd64.image_id,
+            "sha256:4d911da05d9497d975b400b464d64e42358d172f220fdbc4b0498beaa7c0154e".to_owned()
+        );
+        assert_eq!(
+            latest_versions.aziot_edge_agent.linux_arm32v7.image_id,
+            "sha256:41f939cdb2c42a1f96dadc39b03e6d02cfb1ecadca8d50ead7f2480d8b7a118a".to_owned()
+        );
+        assert_eq!(
+            latest_versions.aziot_edge_agent.linux_arm64v8.image_id,
+            "sha256:17b4f95bde627c7fe02267d4fcf7271e3ecab49f1e19bca2f4c5622f3dda5cec".to_owned()
+        );
+        assert_eq!(
+            latest_versions.aziot_edge_hub.linux_amd64.image_id,
+            "sha256:23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7".to_owned()
+        );
+        assert_eq!(
+            latest_versions.aziot_edge_hub.linux_arm32v7.image_id,
+            "sha256:a8a47588d28c6f1ece90b3b7901a504693a4c46b1b950967e4859e70f2de606f".to_owned()
+        );
+        assert_eq!(
+            latest_versions.aziot_edge_hub.linux_arm64v8.image_id,
+            "sha256:8eb93ea054de87638ee9dcc22066a8454bdbbcc6e9857a1ea15c383b1085f781".to_owned()
+        );
+    }
 }
