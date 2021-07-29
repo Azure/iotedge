@@ -25,7 +25,6 @@ namespace NetworkController
         const string ParentHostnamePropertyName = "IOTEDGE_PARENTHOSTNAME";
         const string DefaultProfilesPropertyName = "DefaultProfiles";
         const string TransportTypePropertyName = "TransportType";
-        const string ProxyPropertyName = "https_proxy";
 
         Settings(
             TimeSpan startAfter,
@@ -38,8 +37,7 @@ namespace NetworkController
             string moduleId,
             string iothubHostname,
             string parentHostname,
-            TransportType transportType,
-            Option<IWebProxy> proxy)
+            TransportType transportType)
         {
             this.StartAfter = startAfter;
             this.Frequencies = frequencies;
@@ -53,7 +51,6 @@ namespace NetworkController
             this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
             this.ParentHostname = Preconditions.CheckNotNull(parentHostname, nameof(parentHostname));
             this.TransportType = transportType;
-            this.Proxy = proxy;
         }
 
         public TimeSpan StartAfter { get; }
@@ -77,8 +74,6 @@ namespace NetworkController
         public string ParentHostname { get; }
 
         public TransportType TransportType { get; }
-
-        public Option<IWebProxy> Proxy { get; }
 
         static Settings Create()
         {
@@ -109,8 +104,7 @@ namespace NetworkController
                 configuration.GetValue<string>(ModuleIdPropertyName),
                 configuration.GetValue<string>(IotHubHostnamePropertyName),
                 configuration.GetValue<string>(ParentHostnamePropertyName, string.Empty),
-                configuration.GetValue(TransportTypePropertyName, TransportType.Amqp_Tcp_Only),
-                configuration.GetValue(ProxyPropertyName, Option.None<IWebProxy>()));
+                configuration.GetValue(TransportTypePropertyName, TransportType.Amqp_Tcp_Only));
         }
     }
 
