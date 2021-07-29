@@ -7,6 +7,7 @@ where
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     pid: libc::pid_t,
     module: String,
+    start: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -24,7 +25,7 @@ where
     fn from_uri(
         service: &Self::Service,
         path: &str,
-        _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
+        query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
         let uri_regex = regex::Regex::new("^/modules/(?P<module>[^/]+)$")
@@ -36,6 +37,8 @@ where
             .decode_utf8()
             .ok()?;
 
+        let start = edgelet_http::find_query("start", query);
+
         let pid = match extensions.get::<Option<libc::pid_t>>().cloned().flatten() {
             Some(pid) => pid,
             None => return None,
@@ -45,6 +48,7 @@ where
             runtime: service.runtime.clone(),
             pid,
             module: module.into_owned(),
+            start,
         })
     }
 
@@ -68,9 +72,10 @@ where
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let runtime = self.runtime.lock().await;
 
-        let module_info = runtime.get(&self.module).await.map_err(|err| {
-            edgelet_http::error::server_error(err.to_string())
-        })?;
+        let module_info = runtime
+            .get(&self.module)
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
         Ok((http::StatusCode::OK, module_info.into()))
     }
@@ -80,4 +85,20 @@ where
 
     type PutBody = serde::de::IgnoredAny;
     type PutResponse = ();
+    async fn put(
+        self,
+        _body: Self::PutBody,
+    ) -> http_common::server::RouteResponse<Self::PutResponse> {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
+
+        let start = if let Some(start) = &self.start {
+            std::str::FromStr::from_str(start).map_err(|err| {
+                edgelet_http::error::bad_request("invalid parameter: start")
+            })?
+        } else {
+            false
+        };
+
+        todo!()
+    }
 }

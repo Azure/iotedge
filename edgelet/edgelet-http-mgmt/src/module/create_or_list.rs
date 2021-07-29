@@ -48,9 +48,10 @@ where
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let runtime = self.runtime.lock().await;
 
-        let modules = runtime.list_with_details().await.map_err(|err| {
-            edgelet_http::error::server_error(err.to_string())
-        })?;
+        let modules = runtime
+            .list_with_details()
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
         Ok((http::StatusCode::OK, modules.into()))
     }
