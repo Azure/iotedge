@@ -6,6 +6,28 @@ where
 {
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     module: String,
+    action: Action,
+}
+
+enum Action {
+    Restart,
+    Start,
+    Stop,
+}
+
+impl std::str::FromStr for Action {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.to_lowercase();
+
+        match &s[..] {
+            "restart" => Ok(Action::Restart),
+            "start" => Ok(Action::Start),
+            "stop" => Ok(Action::Stop),
+            _ => Err(()),
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -25,7 +47,7 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         _extensions: &http::Extensions,
     ) -> Option<Self> {
-        let uri_regex = regex::Regex::new("^/modules/(?P<module>[^/]+)/restart$")
+        let uri_regex = regex::Regex::new("^/modules/(?P<module>[^/]+)/(?P<action>[^/]+)$")
             .expect("hard-coded regex must compile");
         let captures = uri_regex.captures(path)?;
 
@@ -34,9 +56,16 @@ where
             .decode_utf8()
             .ok()?;
 
+        let action = &captures["action"];
+        let action = percent_encoding::percent_decode_str(action)
+            .decode_utf8()
+            .ok()?;
+        let action = std::str::FromStr::from_str(&action).ok()?;
+
         Some(Route {
             runtime: service.runtime.clone(),
             module: module.into_owned(),
+            action,
         })
     }
 
@@ -53,10 +82,14 @@ where
     ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
         let runtime = self.runtime.lock().await;
 
-        match runtime.restart(&self.module).await {
-            Ok(()) => Ok((http::StatusCode::NO_CONTENT, None)),
-            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
+        match self.action {
+            Action::Restart => runtime.restart(&self.module).await,
+            Action::Start => runtime.start(&self.module).await,
+            Action::Stop => runtime.stop(&self.module, None).await,
         }
+        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+        Ok((http::StatusCode::NO_CONTENT, None))
     }
 
     type PutBody = serde::de::IgnoredAny;
