@@ -57,7 +57,7 @@ stages:
 - stage: SetupVMs
   dependsOn: LockAgents
   variables: 
-    l3IpAddressMqtt: $[ stageDependencies.LockAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt' ]
+    l3IpAddressMqtt: $[ stageDependencies.LockAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt'] ]
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
@@ -77,6 +77,7 @@ stages:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
+  # TODO: If i don't revert this commit pls make sure this works in all cases
   - job:  Unlock_agents      
     dependsOn:
       - SetupVM_level5_amqp
