@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string iotHubHostName;
         readonly Uri managementUri;
         readonly Uri workloadUri;
+        readonly Option<TimeSpan> httpClientTimeout;
         readonly string apiVersion;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
@@ -59,7 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan idleTimeout,
             TimeSpan performanceMetricsUpdateFrequency,
             bool useServerHeartbeat,
-            string backupConfigFilePath)
+            string backupConfigFilePath,
+            Option<TimeSpan> httpClientTimeout)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -75,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.performanceMetricsUpdateFrequency = performanceMetricsUpdateFrequency;
             this.useServerHeartbeat = useServerHeartbeat;
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
+            this.httpClientTimeout = httpClientTimeout;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -93,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
+            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion, this.httpClientTimeout))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .As<IDeviceManager>()

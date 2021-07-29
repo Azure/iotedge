@@ -105,6 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string WorkloadApiVersion = "2020-10-10";
 
+        public const string HttpClientTimeoutSecs = "httpClientTimeoutSecs";
+
         public const uint HighestPriority = 0;
 
         public const uint DefaultStartupOrder = uint.MaxValue;
