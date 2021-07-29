@@ -38,5 +38,6 @@ steps:
           -deviceId "${{ parameters.deviceId }}" \
           -proxyAddress "$(proxyAddress)" \
           -changeDeployConfigOnly "${{ parameters.changeDeployConfigOnly }}" \
+          -l3IpAddress "$(l3IpAddress)" \
           -waitForTestComplete \
           -cleanAll
