@@ -51,8 +51,6 @@ stages:
           echo "##vso[task.setvariable variable=l3IpAddressMqtt;isOutput=true]${L3_IP_ADDRESS_MQTT}"
         displayName: Get ip address of L3 mqtt agent
         name: get_l3_ip_mqtt
-      - script: |
-          echo $(l3IpAddressMqtt)
 
 - stage: SetupVMs
   dependsOn: LockAgents
@@ -77,13 +75,14 @@ stages:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
+  # TODO: improve unlock for other nested pipelines
+- stage: SetupVMs
+  dependsOn:
+    - LockAgents
+    - SetupVMs
+  condition: eq(variables['test.pipeline'], 'true')
+  jobs:
   - job:  Unlock_agents      
-    dependsOn:
-      - SetupVM_level5_amqp
-      - SetupVM_level5_mqtt
-      - SetupVM_level4_amqp
-      - SetupVM_level4_mqtt
-    condition: eq(variables['test.pipeline'], 'true')
     displayName: Unlock agents
     pool:
       name: $(pool.name)
