@@ -13,7 +13,6 @@ where
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
-    M::Config: serde::Serialize,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
