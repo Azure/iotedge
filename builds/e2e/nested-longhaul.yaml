@@ -10,7 +10,7 @@ schedules:
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  l3IpAddressMqtt: ''
+  l3IpAddressMqtt: '' # TODO: see if we can remove
 
 resources:
   pipelines:
@@ -22,8 +22,7 @@ resources:
     branch: 'release/1.2'
 
 stages:
-- stage: SetupVMs
-  jobs:
+- stage: LockAgents 
   - template: templates/lock-test-agents.yaml
     parameters:
       upstream.protocol: 'amqp'
@@ -48,11 +47,16 @@ stages:
       - script: |
           L3_IP_ADDRESS_MQTT=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
           echo "Ip adress of L3 agent: $L3_IP_ADDRESS_MQTT"
-          echo "##vso[task.setvariable variable=l3IpAddressMqtt]${L3_IP_ADDRESS_MQTT}"
+          echo "##vso[task.setvariable variable=l3IpAddressMqtt;isOutput=true]${L3_IP_ADDRESS_MQTT}"
         displayName: Get ip address of L3 mqtt agent
+        name: get_l3_ip_mqtt
       - script: |
           echo $(l3IpAddressMqtt)
-
+- stage: SetupVMs
+  dependsOn: LockAgents
+  variables: 
+    l3IpAddressMqtt: $[ stageDependencies.LockAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt' ]
+  jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: amqp
