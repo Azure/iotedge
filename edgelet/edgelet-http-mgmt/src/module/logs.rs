@@ -6,6 +6,12 @@ where
 {
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     module: String,
+
+    follow: Option<String>,
+    tail: Option<String>,
+    since: Option<String>,
+    until: Option<String>,
+    timestamps: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -22,7 +28,7 @@ where
     fn from_uri(
         service: &Self::Service,
         path: &str,
-        _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
+        query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
         let uri_regex = regex::Regex::new("^/modules/(?P<module>[^/]+)/logs$")
@@ -34,9 +40,21 @@ where
             .decode_utf8()
             .ok()?;
 
+        let follow = edgelet_http::find_query("follow", query);
+        let tail = edgelet_http::find_query("tail", query);
+        let since = edgelet_http::find_query("since", query);
+        let until = edgelet_http::find_query("until", query);
+        let timestamps = edgelet_http::find_query("timestamps", query);
+
         Some(Route {
             runtime: service.runtime.clone(),
             module: module.into_owned(),
+
+            follow,
+            tail,
+            since,
+            until,
+            timestamps,
         })
     }
 
@@ -45,7 +63,11 @@ where
 
     type GetResponse = (); // TODO: text response
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+        let log_options = self.log_options()?;
+
         let runtime = self.runtime.lock().await;
+
+        let logs = runtime.logs(&self.module, &log_options).await;
 
         todo!()
     }
@@ -55,4 +77,50 @@ where
 
     type PutBody = serde::de::IgnoredAny;
     type PutResponse = ();
+}
+
+impl<M> Route<M>
+where
+    M: edgelet_core::ModuleRuntime + Send + Sync,
+{
+    fn log_options(&self) -> Result<edgelet_core::LogOptions, http_common::server::Error> {
+        let mut log_options = edgelet_core::LogOptions::new();
+
+        if let Some(follow) = &self.follow {
+            let follow = std::str::FromStr::from_str(follow)
+                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: follow"))?;
+
+            log_options = log_options.with_follow(follow);
+        }
+
+        if let Some(tail) = &self.tail {
+            let tail = std::str::FromStr::from_str(tail)
+                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: tail"))?;
+
+            log_options = log_options.with_tail(tail);
+        }
+
+        if let Some(since) = &self.since {
+            let since = edgelet_core::parse_since(&since)
+                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: since"))?;
+
+            log_options = log_options.with_since(since);
+        }
+
+        if let Some(until) = &self.until {
+            let until = edgelet_core::parse_since(&until)
+                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: until"))?;
+
+            log_options = log_options.with_until(until);
+        }
+
+        if let Some(timestamps) = &self.timestamps {
+            let timestamps = std::str::FromStr::from_str(timestamps)
+                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: timestamps"))?;
+
+            log_options = log_options.with_timestamps(timestamps);
+        }
+
+        Ok(log_options)
+    }
 }
