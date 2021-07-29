@@ -76,7 +76,7 @@ stages:
       testInfo.testName: 'longhaul (nested-broker)'
 
   # TODO: improve unlock for other nested pipelines
-- stage: Clean up 
+- stage: Cleanup 
   dependsOn:
     - LockAgents
     - SetupVMs
