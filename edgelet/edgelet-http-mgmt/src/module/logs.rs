@@ -29,7 +29,7 @@ where
         service: &Self::Service,
         path: &str,
         query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
-        extensions: &http::Extensions,
+        _extensions: &http::Extensions,
     ) -> Option<Self> {
         let uri_regex = regex::Regex::new("^/modules/(?P<module>[^/]+)/logs$")
             .expect("hard-coded regex must compile");
