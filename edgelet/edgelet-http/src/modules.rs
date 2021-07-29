@@ -15,7 +15,7 @@ pub struct ModuleDetails {
     status: ModuleStatus,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ModuleConfig {
     settings: serde_json::Value,
 
@@ -23,7 +23,7 @@ pub struct ModuleConfig {
     env: Option<Vec<EnvVar>>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 struct EnvVar {
     key: String,
     value: String,
@@ -63,20 +63,30 @@ where
     fn from(modules: Vec<(M, edgelet_core::ModuleRuntimeState)>) -> Self {
         let mut response = vec![];
 
-        for (module, state) in modules {
-            response.push(ModuleDetails {
-                id: "id".to_string(),
-                name: module.name().to_string(),
-                r#type: module.type_().to_string(),
-                config: ModuleConfig {
-                    settings: serde_json::to_value(module.config()).unwrap_or_default(),
-                    env: Some(vec![]),
-                },
-                status: state.into(),
-            });
+        for module in modules {
+            response.push(module.into());
         }
 
         ListModulesResponse { modules: response }
+    }
+}
+
+impl<M> std::convert::From<(M, edgelet_core::ModuleRuntimeState)> for ModuleDetails
+where
+    M: edgelet_core::Module,
+    M::Config: serde::Serialize,
+{
+    fn from((module, state): (M, edgelet_core::ModuleRuntimeState)) -> Self {
+        ModuleDetails {
+            id: "id".to_string(),
+            name: module.name().to_string(),
+            r#type: module.type_().to_string(),
+            config: ModuleConfig {
+                settings: serde_json::to_value(module.config()).unwrap_or_default(),
+                env: Some(vec![]),
+            },
+            status: state.into(),
+        }
     }
 }
 

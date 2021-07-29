@@ -52,6 +52,7 @@ http_common::make_service! {
     api_version: edgelet_http::ApiVersion,
     routes: [
         module::create_or_list::Route<M>,
+        module::delete_or_get_or_update::Route<M>,
 
         identity::create_or_list::Route<M>,
         identity::delete_or_update::Route<M>,

@@ -4,7 +4,6 @@
 pub struct Settings<ModuleConfig> {
     name: String,
 
-    #[serde(rename = "type")]
     r#type: String,
 
     #[serde(default, rename = "imagePullPolicy")]

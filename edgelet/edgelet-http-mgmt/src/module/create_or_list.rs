@@ -8,12 +8,6 @@ where
     pid: libc::pid_t,
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub(crate) struct CreateModuleRequest {}
-
-#[derive(Debug, serde::Serialize)]
-pub(crate) struct CreateModuleResponse {}
-
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
@@ -61,8 +55,8 @@ where
         Ok((http::StatusCode::OK, modules.into()))
     }
 
-    type PostBody = CreateModuleRequest;
-    type PostResponse = CreateModuleResponse;
+    type PostBody = ();
+    type PostResponse = edgelet_http::ModuleDetails;
     async fn post(
         self,
         body: Option<Self::PostBody>,

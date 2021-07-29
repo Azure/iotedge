@@ -742,6 +742,7 @@ dependencies = [
  "aziot-identity-common-http",
  "edgelet-core",
  "edgelet-http",
+ "edgelet-settings",
  "futures-util",
  "http 0.2.4",
  "http-common",

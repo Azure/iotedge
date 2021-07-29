@@ -34,8 +34,7 @@ pub async fn make_bundle(
     verbose: bool,
     iothub_hostname: Option<String>,
     runtime: &impl ModuleRuntime,
-) -> Result<(Box<dyn Read + Send>, u64), Error>
-{
+) -> Result<(Box<dyn Read + Send>, u64), Error> {
     match output_location {
         OutputLocation::File(location) => {
             let buffer = File::create(Path::new(&location))
