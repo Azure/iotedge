@@ -29,15 +29,22 @@ pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
     tracking_id: String,
     report_source: String,
+    batch_id: Option<Uuid>,
 }
 
 impl ReportResultMessageHandler {
-    pub fn new(reporting_client: TrcClient, tracking_id: String, module_name: &str) -> Self {
+    pub fn new(
+        reporting_client: TrcClient,
+        tracking_id: String,
+        module_name: &str,
+        batch_id: Option<Uuid>,
+    ) -> Self {
         let report_source = format!("{}{}", module_name, ".receive");
         Self {
             reporting_client,
             tracking_id,
             report_source,
+            batch_id,
         }
     }
 }
@@ -49,27 +56,32 @@ impl MessageHandler for ReportResultMessageHandler {
         received_publication: ReceivedPublication,
     ) -> Result<(), MessageTesterError> {
         let sequence_number = parse_sequence_number(&received_publication);
-        let batch_id = Uuid::from_u128_le(received_publication.payload.slice(4..20).get_u128_le());
+        let received_batch_id =
+            Uuid::from_u128_le(received_publication.payload.slice(4..20).get_u128_le());
 
-        info!(
-            "reporting result for publication with sequence number {}",
-            sequence_number,
-        );
-        let result = MessageTestResult::new(
-            self.tracking_id.clone(),
-            batch_id.to_string(),
-            sequence_number,
-        );
+        if Some(received_batch_id) == self.batch_id {
+            info!(
+                "reporting result for publication with sequence number {}",
+                sequence_number,
+            );
+            let result = MessageTestResult::new(
+                self.tracking_id.clone(),
+                received_batch_id.to_string(),
+                sequence_number,
+            );
 
-        let test_type = trc_client::TestType::Messages;
-        let created_at = chrono::Utc::now();
+            let test_type = trc_client::TestType::Messages;
+            let created_at = chrono::Utc::now();
 
-        if let Err(e) = self
-            .reporting_client
-            .report_result(self.report_source.clone(), result, test_type, created_at)
-            .await
-        {
-            error!("error reporting result to trc: {:?}", e);
+            if let Err(e) = self
+                .reporting_client
+                .report_result(self.report_source.clone(), result, test_type, created_at)
+                .await
+            {
+                error!("error reporting result to trc: {:?}", e);
+            }
+        } else {
+            error!("received publication with non-matching batch id")
         }
 
         Ok(())

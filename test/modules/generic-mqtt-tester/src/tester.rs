@@ -129,7 +129,7 @@ impl MessageTester {
             .publish_handle()
             .map_err(MessageTesterError::PublishHandle)?;
 
-        let message_handler = message_handler(&settings, publish_handle.clone());
+        let message_handler = message_handler(&settings, publish_handle.clone())?;
 
         let mut message_channel = None;
         let mut message_channel_shutdown = None;
@@ -293,22 +293,30 @@ impl MessageTester {
 fn message_handler(
     settings: &Settings,
     publish_handle: PublishHandle,
-) -> Option<Box<dyn MessageHandler + Send>> {
-    let tracking_id = settings.tracking_id();
+) -> Result<Option<Box<dyn MessageHandler + Send>>, MessageTesterError> {
     let relay_topic = settings.relay_topic();
     let module_name = settings.module_name();
+    let batch_id = settings.batch_id();
     let test_result_coordinator_url = settings.trc_url();
     let reporting_client = TrcClient::new(test_result_coordinator_url);
 
     match settings.test_scenario() {
-        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => Some(Box::new(
-            ReportResultMessageHandler::new(reporting_client, tracking_id, &module_name),
-        )),
-        TestScenario::Relay => Some(Box::new(RelayingMessageHandler::new(
+        TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
+            let tracking_id = settings
+                .tracking_id()
+                .ok_or(MessageTesterError::MissingTrackingId)?;
+            Ok(Some(Box::new(ReportResultMessageHandler::new(
+                reporting_client,
+                tracking_id,
+                &module_name,
+                batch_id,
+            ))))
+        }
+        TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(
             publish_handle,
             relay_topic,
-        ))),
-        TestScenario::Initiate => None,
+        )))),
+        TestScenario::Initiate => Ok(None),
     }
 }
 
