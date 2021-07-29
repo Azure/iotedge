@@ -53,6 +53,7 @@ http_common::make_service! {
     routes: [
         module::create_or_list::Route<M>,
         module::delete_or_get_or_update::Route<M>,
+        module::logs::Route<M>,
 
         identity::create_or_list::Route<M>,
         identity::delete_or_update::Route<M>,

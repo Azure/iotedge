@@ -92,9 +92,8 @@ where
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let start = if let Some(start) = &self.start {
-            std::str::FromStr::from_str(start).map_err(|err| {
-                edgelet_http::error::bad_request("invalid parameter: start")
-            })?
+            std::str::FromStr::from_str(start)
+                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: start"))?
         } else {
             false
         };
