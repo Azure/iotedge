@@ -51,7 +51,7 @@ where
     type DeleteBody = serde::de::IgnoredAny;
     type DeleteResponse = ();
 
-    type GetResponse = (); // TODO: change type to logs type
+    type GetResponse = (); // TODO: fix type
     async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
         let log_options = self.log_options()?;
 
@@ -64,6 +64,19 @@ where
         };
 
         let runtime = self.runtime.lock().await;
+
+        // let (support_bundle, bundle_size) = support_bundle::make_bundle(
+        //     support_bundle::OutputLocation::Memory,
+        //     log_options,
+        //     edge_only,
+        //     false,
+        //     self.iothub_hostname,
+        //     &runtime,
+        // )
+        // .await
+        // .map_err(|err| {
+        //     edgelet_http::error::server_error(format!("failed to create support bundle: {}", err))
+        // })?;
 
         todo!()
     }

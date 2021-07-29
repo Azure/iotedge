@@ -752,6 +752,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
+ "support-bundle",
  "tokio 1.9.0",
  "url 2.2.2",
 ]
