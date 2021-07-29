@@ -77,16 +77,13 @@ stages:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
-  # TODO: If i don't revert this commit pls make sure this works in all cases
   - job:  Unlock_agents      
     dependsOn:
       - SetupVM_level5_amqp
       - SetupVM_level5_mqtt
       - SetupVM_level4_amqp
       - SetupVM_level4_mqtt
-      - Deploy_Longhaul_Linux_Amd64_amqp
-      - Deploy_Longhaul_Linux_Amd64_mqtt
-    condition: and(or(eq(dependencies.Lock_Nested_Agents_amqp.result, 'succeeded'), eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')), eq(variables['test.pipeline'], 'true'))
+    condition: eq(variables['test.pipeline'], 'true')
     displayName: Unlock agents
     pool:
       name: $(pool.name)
@@ -94,7 +91,6 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agents.yaml 

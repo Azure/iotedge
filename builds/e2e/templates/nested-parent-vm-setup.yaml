@@ -31,6 +31,8 @@ jobs:
      - template: nested-agent-deploy.yaml
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
     condition: succeeded()
     timeoutInMinutes: 180
