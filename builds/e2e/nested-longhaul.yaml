@@ -23,6 +23,7 @@ resources:
 
 stages:
 - stage: LockAgents 
+  jobs:
   - template: templates/lock-test-agents.yaml
     parameters:
       upstream.protocol: 'amqp'
@@ -52,6 +53,7 @@ stages:
         name: get_l3_ip_mqtt
       - script: |
           echo $(l3IpAddressMqtt)
+
 - stage: SetupVMs
   dependsOn: LockAgents
   variables: 
