@@ -63,7 +63,7 @@ stages:
     parameters:
       upstream.protocol: mqtt
       test.l4DeploymentFileName: 'nestededge_middleLayer_messaging_mqtt.json'
-      l3IpAddress: '$(L3_IP_ADRESS_MQTT)'
+      l3IpAddress: '$(l3IpAddressMqtt)'
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       upstream.protocol: mqtt
