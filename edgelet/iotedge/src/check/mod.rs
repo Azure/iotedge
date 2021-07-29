@@ -908,6 +908,9 @@ mod tests {
         // grab an env lock since we are going to be mucking with the environment.
         let _env_lock = ENV_LOCK.lock().expect("env lock poisoned");
 
+        // unset var to make sure we have a clean start
+        std::env::remove_var("AZIOT_EDGED_CONFIG");
+
         // Setup the https_proxy environment var
         let env_proxy_uri1 = "https://environment1:123";
         std::env::set_var("https_proxy", env_proxy_uri1);
@@ -980,5 +983,10 @@ mod tests {
             "proxy_uri fetched from the config did not match expected value: '{}'",
             parm_proxy_uri,
         );
+
+        // clean up the env
+        std::env::remove_var("AZIOT_EDGED_CONFIG");
+        std::env::remove_var("HTTPS_PROXY");
+        std::env::remove_var("https_proxy");
     }
 }
