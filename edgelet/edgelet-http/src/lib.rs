@@ -10,14 +10,14 @@
 
 mod auth;
 pub mod error;
-mod list_modules;
+mod modules;
 mod version;
 
 pub use auth::auth_agent;
 pub use auth::auth_caller;
 
-// The list_modules API is used by both management and workload APIs.
-pub use list_modules::ListModulesResponse;
+// Common types shared between management and workload APIs.
+pub use modules::{ListModulesResponse, ModuleConfig, ModuleDetails};
 
 pub use version::ApiVersion;
 

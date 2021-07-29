@@ -7,16 +7,16 @@ pub struct ListModulesResponse {
 }
 
 #[derive(Debug, serde::Serialize)]
-struct ModuleDetails {
+pub struct ModuleDetails {
     id: String,
     name: String,
     r#type: String,
-    config: Config,
+    config: ModuleConfig,
     status: ModuleStatus,
 }
 
 #[derive(Debug, serde::Serialize)]
-struct Config {
+pub struct ModuleConfig {
     settings: serde_json::Value,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,7 +68,7 @@ where
                 id: "id".to_string(),
                 name: module.name().to_string(),
                 r#type: module.type_().to_string(),
-                config: Config {
+                config: ModuleConfig {
                     settings: serde_json::to_value(module.config()).unwrap_or_default(),
                     env: Some(vec![]),
                 },
