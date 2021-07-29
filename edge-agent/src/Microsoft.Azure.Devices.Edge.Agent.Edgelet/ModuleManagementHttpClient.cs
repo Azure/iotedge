@@ -17,12 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
-        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        public ModuleManagementHttpClient(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> httpClientTimeoutSecs)
         {
             Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             Preconditions.CheckNonWhiteSpace(serverSupportedApiVersion, nameof(serverSupportedApiVersion));
             Preconditions.CheckNonWhiteSpace(clientSupportedApiVersion, nameof(clientSupportedApiVersion));
-            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion);
+            this.inner = GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, httpClientTimeoutSecs);
         }
 
         public Task<Identity> CreateIdentityAsync(string name, string managedBy) => this.inner.CreateIdentityAsync(name, managedBy);
@@ -63,7 +63,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task<Stream> GetSupportBundle(Option<string> since, Option<string> until, Option<string> iothubHostname, Option<bool> edgeRuntimeOnly, CancellationToken token) =>
             this.inner.GetSupportBundle(since, until, iothubHostname, edgeRuntimeOnly, token);
 
-        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion)
+        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion) =>
+            GetVersionedModuleManagement(managementUri, serverSupportedApiVersion, clientSupportedApiVersion, Option.None<TimeSpan>());
+
+        internal static ModuleManagementHttpClientVersioned GetVersionedModuleManagement(Uri managementUri, string serverSupportedApiVersion, string clientSupportedApiVersion, Option<TimeSpan> httpClientTimeoutSecs)
         {
             ApiVersion supportedVersion = GetSupportedVersion(serverSupportedApiVersion, clientSupportedApiVersion);
 
@@ -89,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
             if (supportedVersion == ApiVersion.Version20200707)
             {
-                return new Version_2020_07_07.ModuleManagementHttpClient(managementUri);
+                return new Version_2020_07_07.ModuleManagementHttpClient(managementUri, httpClientTimeoutSecs);
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);

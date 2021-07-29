@@ -12,19 +12,23 @@ namespace Microsoft.Azure.Devices.Edge.Util
         const string HttpsScheme = "https";
         const string UnixScheme = "unix";
 
-        public static HttpClient GetHttpClient(Uri serverUri)
+        public static HttpClient GetHttpClient(Uri serverUri) => GetHttpClient(serverUri, Option.None<TimeSpan>());
+
+        public static HttpClient GetHttpClient(Uri serverUri, Option<TimeSpan> httpClientTimeout)
         {
             HttpClient client;
 
             if (serverUri.Scheme.Equals(HttpScheme, StringComparison.OrdinalIgnoreCase) || serverUri.Scheme.Equals(HttpsScheme, StringComparison.OrdinalIgnoreCase))
             {
                 client = new HttpClient();
+                httpClientTimeout.ForEach(httpClientTimeout => client.Timeout = httpClientTimeout);
                 return client;
             }
 
             if (serverUri.Scheme.Equals(UnixScheme, StringComparison.OrdinalIgnoreCase))
             {
                 client = new HttpClient(new HttpUdsMessageHandler(serverUri));
+                httpClientTimeout.ForEach(httpClientTimeout => client.Timeout = httpClientTimeout);
                 return client;
             }
 
