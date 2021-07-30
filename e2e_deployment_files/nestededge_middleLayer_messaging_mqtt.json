@@ -81,7 +81,7 @@
                         "restartPolicy": "always",
                         "env": {
                             "TEST_SCENARIO": {
-                                "value": "Relay"
+                                "value": "Receive"
                             },
                             "TEST_START_DELAY": {
                                 "value": "10s"
