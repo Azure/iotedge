@@ -6,7 +6,7 @@ use futures_util::{
 };
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
 use tokio::sync::mpsc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use mqtt3::{
@@ -81,7 +81,7 @@ impl MessageHandler for ReportResultMessageHandler {
                 error!("error reporting result to trc: {:?}", e);
             }
         } else {
-            error!("received publication with non-matching batch id")
+            warn!("received publication with non-matching batch id")
         }
 
         Ok(())
