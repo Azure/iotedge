@@ -43,14 +43,15 @@ impl Checker for AziotEdgedVersion {
                 return CheckResult::Ignored;
             }
 
-            let proxy = std::env::var("HTTPS_PROXY")
-                .ok()
-                .or_else(|| std::env::var("https_proxy").ok())
+            let proxy = check
+                .proxy_uri
+                .as_ref()
                 .map(|proxy| proxy.parse::<hyper::Uri>())
                 .transpose()
                 .context(ErrorKind::FetchLatestVersions(
                     FetchLatestVersionsReason::CreateClient,
                 ));
+
             let hyper_client = proxy.and_then(|proxy| {
                 MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
                     FetchLatestVersionsReason::CreateClient,
