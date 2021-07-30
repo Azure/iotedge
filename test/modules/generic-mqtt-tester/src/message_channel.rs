@@ -27,6 +27,7 @@ pub trait MessageHandler {
 }
 
 /// Responsible for receiving publications and reporting result to the Test Result Coordinator.
+/// Will filter messages by `batch_id` only if supplied.
 pub struct ReportResultMessageHandler {
     reporting_client: TrcClient,
     tracking_id: String,
@@ -61,7 +62,14 @@ impl MessageHandler for ReportResultMessageHandler {
         let received_batch_id =
             Uuid::from_u128_le(received_publication.payload.slice(4..20).get_u128_le());
 
-        if Some(received_batch_id) == self.batch_id {
+        // If there is a batch id to compare against, we are in
+        // `InitiateAndReceiveRelayed` mode. Messages should have
+        // originated from the same module so we should validate that.
+        //
+        // If there is no batch id then we are in a more basic `Receive`
+        // mode. Messages originated from a different module so we
+        // cannot validate batch id.
+        if self.batch_id == None || Some(received_batch_id) == self.batch_id {
             info!(
                 "reporting result for publication with sequence number {}",
                 sequence_number,
