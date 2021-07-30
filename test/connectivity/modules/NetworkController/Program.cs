@@ -124,7 +124,7 @@ namespace NetworkController
             string proxy = Environment.GetEnvironmentVariable("https_proxy");
             if (!string.IsNullOrEmpty(proxy))
             {
-                externalTrafficHostname = proxy;
+                externalTrafficHostname = proxy.Split(":")[0];
             }
             else if (!string.IsNullOrEmpty(Settings.Current.ParentHostname))
             {
@@ -135,6 +135,7 @@ namespace NetworkController
                 externalTrafficHostname = Settings.Current.IotHubHostname;
             }
 
+            externalTrafficHostname = "prx-proxy-vm.pg3k5b4tlvyehjt4ua14xlurec.yx.internal.cloudapp.net";
             Log.LogInformation("External traffic ip: {0}", externalTrafficHostname);
             return externalTrafficHostname;
         }
