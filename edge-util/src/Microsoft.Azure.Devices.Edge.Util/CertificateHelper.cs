@@ -379,6 +379,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         internal static (X509Certificate2, IEnumerable<X509Certificate2>) ParseCertificateAndKey(string certificateWithChain, string privateKey)
         {
+            Console.WriteLine($"ANCAN response \n {certificateWithChain} \n {privateKey}");
             IEnumerable<string> pemCerts = ParsePemCerts(certificateWithChain);
 
             if (pemCerts.FirstOrDefault() == null)
@@ -408,15 +409,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 if (certObject is AsymmetricCipherKeyPair keyPair)
                 {
                     certObject = keyPair.Private;
+                    Console.WriteLine($"ANCAN AsymmetricCipherKeyPair {certObject?.ToString()}");
                 }
 
                 if (certObject is RsaPrivateCrtKeyParameters rsaParameters)
                 {
                     keyParams = rsaParameters;
+                    Console.WriteLine($"ANCAN RsaPrivateCrtKeyParameters {rsaParameters}");
                 }
                 else if (certObject is ECPrivateKeyParameters ecParameters)
                 {
                     keyParams = ecParameters;
+                    Console.WriteLine($"ANCAN ECPrivateKeyParameters {ecParameters}");
                 }
 
                 certObject = pemReader.ReadObject();
@@ -432,7 +436,22 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 store.Save(p12File, new char[] { }, new SecureRandom());
 
-                var cert = new X509Certificate2(p12File.ToArray());
+                var certArray = p12File.ToArray();
+                var cert = new X509Certificate2(certArray, string.Empty, X509KeyStorageFlags.Exportable);
+
+                Console.WriteLine($"ANCAN certArray {certArray.Length}");
+
+                try
+                {
+                    // var certToImport = new X509Certificate2(certArray, string.Empty, X509KeyStorageFlags.Exportable);
+                    Console.WriteLine($"ANCAN PrivateKey {cert.PrivateKey}");
+                    Console.WriteLine($"ANCAN export {cert.Export(X509ContentType.Pkcs12, string.Empty)}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e + "\n" + e.StackTrace);
+                }
+
                 return (cert, certsChain);
             }
         }
