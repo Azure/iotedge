@@ -16,6 +16,8 @@
     clippy::use_self
 )]
 
+use std::fmt::{self, Display};
+
 use failure::{self, Fail, ResultExt};
 use futures::{Future, Stream};
 use serde_derive::{Deserialize, Serialize};
@@ -72,10 +74,30 @@ pub struct AziotEdgeModuleVersion {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DockerImageInfo {
+    #[serde(rename = "repository")]
+    pub repository: String,
     #[serde(rename = "image-tag")]
     pub image_tag: String,
     #[serde(rename = "image-id")]
     pub image_id: String,
+}
+
+impl Display for DockerImageInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut id_beg: usize = 0;
+        let mut id_end: usize = self.image_id.len();
+        if (self.image_id.len() > 18) && (&self.image_id[0..7] == "sha256:") {
+            id_beg = 7;
+            id_end = 19;
+        }
+        write!(
+            f,
+            "{}:{} (Image ID: {})",
+            self.repository,
+            self.image_tag,
+            &self.image_id[id_beg..id_end]
+        )
+    }
 }
 
 impl LatestVersions {
@@ -189,28 +211,34 @@ mod tests {
                     \"aziot-edge\": \"1.2.3\",
                     \"azureiotedge-agent\": {
                         \"linux-amd64\": {
+                            \"repository\": \"mcr.microsoft.com/azureiotedge-agent\",
                             \"image-tag\": \"1.2.3-linux-amd64\",
                             \"image-id\":  \"sha256:4d911da05d9497d975b400b464d64e42358d172f220fdbc4b0498beaa7c0154e\"
                         },
                         \"linux-arm32v7\": {
+                            \"repository\": \"mcr.microsoft.com/azureiotedge-agent\",                            
                             \"image-tag\": \"1.2.3-linux-arm32v7\",
                             \"image-id\":  \"sha256:41f939cdb2c42a1f96dadc39b03e6d02cfb1ecadca8d50ead7f2480d8b7a118a\"
                         },
                         \"linux-arm64v8\": {
+                            \"repository\": \"mcr.microsoft.com/azureiotedge-agent\",                            
                             \"image-tag\": \"1.2.3-linux-arm64v8\",
                             \"image-id\":  \"sha256:17b4f95bde627c7fe02267d4fcf7271e3ecab49f1e19bca2f4c5622f3dda5cec\"
                         }
                     },
                     \"azureiotedge-hub\": {
                         \"linux-amd64\": {
+                            \"repository\": \"mcr.microsoft.com/azureiotedge-hub\",                            
                             \"image-tag\": \"1.2.3-linux-amd64\",
                             \"image-id\":  \"sha256:23f633ecd57a212f010392e1e944d1e067b84e67460ed5f001390b9f001944c7\"
                         },
                         \"linux-arm32v7\": {
+                            \"repository\": \"mcr.microsoft.com/azureiotedge-hub\",                                                        
                             \"image-tag\": \"1.2.3-linux-arm32v7\",
                             \"image-id\":  \"sha256:a8a47588d28c6f1ece90b3b7901a504693a4c46b1b950967e4859e70f2de606f\"
                         },
                         \"linux-arm64v8\": {
+                            \"repository\": \"mcr.microsoft.com/azureiotedge-hub\",                                                        
                             \"image-tag\": \"1.2.3-linux-arm64v8\",
                             \"image-id\":  \"sha256:8eb93ea054de87638ee9dcc22066a8454bdbbcc6e9857a1ea15c383b1085f781\"
                         } 

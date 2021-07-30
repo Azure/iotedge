@@ -5,7 +5,7 @@ use os_info::Bitness;
 use serde_json::Value;
 
 use crate::check::{checker::Checker, Check, CheckResult};
-use crate::error::{DetermineEdgeVersionReason, ErrorKind};
+use crate::error::{DetermineModuleVersionReason, ErrorKind};
 use crate::{DockerImageInfo, LatestVersions};
 
 #[derive(Default, serde_derive::Serialize)]
@@ -19,11 +19,11 @@ pub(crate) struct LatestRuntimeModules {
 
 impl Checker for LatestRuntimeModules {
     fn id(&self) -> &'static str {
-        "aziot-edge-version"
+        "latest-runtime-modules"
     }
 
     fn description(&self) -> &'static str {
-        "aziot-edge package is up-to-date"
+        "edgeAgent and edgeHub runtime modules are up-to-date"
     }
 
     fn execute(
@@ -37,15 +37,14 @@ impl Checker for LatestRuntimeModules {
             return CheckResult::Skipped;
         };
 
-        // Determine actual running versions of iotedge daemon, agent, and hub
-        self.actual_edge_agent_version.image_id =
-            match LatestRuntimeModules::actual_module_image_id(docker_host_arg, "edgeAgent") {
+        // Determine actual running versions of edgeAgent and edgeHub
+        self.actual_edge_agent_version =
+            match LatestRuntimeModules::get_module_image_info(docker_host_arg, "edgeAgent") {
                 Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
-        // TODO: Consider ignoring errors caused by EdgeHub not currently running
-        self.actual_edge_hub_version.image_id =
-            match LatestRuntimeModules::actual_module_image_id(docker_host_arg, "edgeHub") {
+        self.actual_edge_hub_version =
+            match LatestRuntimeModules::get_module_image_info(docker_host_arg, "edgeHub") {
                 Ok(v) => v,
                 Err(e) => return CheckResult::Failed(e),
             };
@@ -128,19 +127,21 @@ impl Checker for LatestRuntimeModules {
         if self.actual_edge_agent_version.image_id != self.expected_edge_agent_version.image_id {
             return CheckResult::Warning(
             failure::Error::from(Context::new(format!(
-                "Running edgeAgent module has image ID {} but {} is the image ID of the latest released version.\n\
-                 Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                self.actual_edge_agent_version.image_id, self.expected_edge_agent_version.image_id,
-           )))
-        );
+                "Running an old version of edgeAgent.\n\
+                Deployed image: {}.\n\
+                Latest image:   {}\n\
+                Please see https://aka.ms/iotedge-update-runtime#update-the-runtime-containers for update instructions.", 
+                self.actual_edge_agent_version, self.expected_edge_agent_version) ))
+                );
         }
         if self.actual_edge_hub_version.image_id != self.expected_edge_hub_version.image_id {
             return CheckResult::Warning(
             failure::Error::from(Context::new(format!(
-                "Running edgeHub module has image ID {} but {} is the image ID of the latest released version.\n\
-                 Please see https://aka.ms/iotedge-update-runtime for update instructions.",
-                self.actual_edge_hub_version.image_id, self.expected_edge_hub_version.image_id,
-           )))
+                "Running an old version of edgeHub.\n\
+                Deployed image: {}.\n\
+                Latest image:   {}\n\
+                Please see https://aka.ms/iotedge-update-runtime#update-the-runtime-containers for update instructions.", 
+                self.actual_edge_hub_version, self.expected_edge_hub_version) ))
         );
         }
 
@@ -152,31 +153,44 @@ impl Checker for LatestRuntimeModules {
 }
 
 impl LatestRuntimeModules {
-    fn actual_module_image_id(
+    fn get_module_image_info(
         docker_host_arg: &str,
         module_name: &str,
-    ) -> Result<String, failure::Error> {
+    ) -> Result<DockerImageInfo, failure::Error> {
         let stdout = super::docker(docker_host_arg, vec!["inspect", module_name])
             .map_err(|(_, err)| err)
             .context(format!("'docker inspect {}' failed", module_name))?;
 
         // Convert output text to json
-        let output = String::from_utf8(stdout).context(ErrorKind::DetermineEdgeVersion(
-            DetermineEdgeVersionReason::StdoutToStringConversionError(module_name.to_owned()),
+        let output = String::from_utf8(stdout).context(ErrorKind::DetermineModuleVersion(
+            DetermineModuleVersionReason::StdoutToStringConversionError(module_name.to_owned()),
         ))?;
         let output_json: Value =
-            serde_json::from_str(&output).context(ErrorKind::DetermineEdgeVersion(
-                DetermineEdgeVersionReason::JsonDeserializationError(module_name.to_owned()),
+            serde_json::from_str(&output).context(ErrorKind::DetermineModuleVersion(
+                DetermineModuleVersionReason::JsonDeserializationError(module_name.to_owned()),
             ))?;
 
-        // Retrieve and return image ID
-        Ok(output_json[0]["Image"]
+        // Retrieve and return docker image info
+        let repo_and_tag = output_json[0]["Config"]["Image"]
             .as_str()
             .map(std::borrow::ToOwned::to_owned)
             .ok_or_else(|| {
-                ErrorKind::DetermineEdgeVersion(DetermineEdgeVersionReason::ImageKeyNotFound(
-                    module_name.to_owned(),
-                ))
-            })?)
+                ErrorKind::DetermineModuleVersion(
+                    DetermineModuleVersionReason::ConfigImageKeyNotFound(module_name.to_owned()),
+                )
+            })?;
+        let repo_and_tag: Vec<String> = repo_and_tag.split(':').map(std::borrow::ToOwned::to_owned).collect();
+        Ok(DockerImageInfo {
+            repository: repo_and_tag[0].clone(),
+            image_tag: repo_and_tag[1].clone(),
+            image_id: output_json[0]["Image"]
+                .as_str()
+                .map(std::borrow::ToOwned::to_owned)
+                .ok_or_else(|| {
+                    ErrorKind::DetermineModuleVersion(
+                        DetermineModuleVersionReason::ImageKeyNotFound(module_name.to_owned()),
+                    )
+                })?,
+        })
     }
 }

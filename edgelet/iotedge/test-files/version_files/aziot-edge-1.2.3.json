@@ -2,28 +2,34 @@
     "aziot-edge": "1.2.3",
     "azureiotedge-agent": {
         "linux-amd64": {
+            "repository": "mcr.microsoft.com/azureiotedge-agent",  
             "image-tag": "1.2.3-linux-amd64",
             "image-id":  "sha256:4d911da05d9497d975b400b464d64e42358d172f220fdbc4b0498beaa7c0154e"
         },
         "linux-arm32v7": {
+            "repository": "mcr.microsoft.com/azureiotedge-agent",              
             "image-tag": "1.2.3-linux-arm32v7",
             "image-id":  "sha256:41f939cdb2c42a1f96dadc39b03e6d02cfb1ecadca8d50ead7f2480d8b7a118a"
         },
         "linux-arm64v8": {
+            "repository": "mcr.microsoft.com/azureiotedge-agent",              
             "image-tag": "1.2.3-linux-arm64v8",
             "image-id":  "sha256:17b4f95bde627c7fe02267d4fcf7271e3ecab49f1e19bca2f4c5622f3dda5cec"
         }
     },
     "azureiotedge-hub": {
         "linux-amd64": {
+            "repository": "mcr.microsoft.com/azureiotedge-hub",            
             "image-tag": "1.2.3-linux-amd64",
             "image-id":  "sha256:5a753c133e631a512d04857af7b82b870840d0d376a3b6bbb0d4aa93802cdee6"
         },
         "linux-arm32v7": {
+            "repository": "mcr.microsoft.com/azureiotedge-hub",            
             "image-tag": "1.2.3-linux-arm32v7",
             "image-id":  "sha256:a8a47588d28c6f1ece90b3b7901a504693a4c46b1b950967e4859e70f2de606f"
         },
         "linux-arm64v8": {
+            "repository": "mcr.microsoft.com/azureiotedge-hub",            
             "image-tag": "1.2.3-linux-arm64v8",
             "image-id":  "sha256:8eb93ea054de87638ee9dcc22066a8454bdbbcc6e9857a1ea15c383b1085f781"
         } 

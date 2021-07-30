@@ -31,10 +31,10 @@ pub enum ErrorKind {
     FetchLatestVersions(FetchLatestVersionsReason),
 
     #[fail(
-        display = "Could not determine versions of installed edge components: {}",
+        display = "Could not determine version of installed edge module. Reason: {}",
         _0
     )]
-    DetermineEdgeVersion(DetermineEdgeVersionReason),
+    DetermineModuleVersion(DetermineModuleVersionReason),
 
     #[fail(
         display = "Unknown platform. OS: {}, Arch: {}, Bitness: {}",
@@ -141,26 +141,32 @@ impl Display for FetchLatestVersionsReason {
 }
 
 #[derive(Clone, Debug)]
-pub enum DetermineEdgeVersionReason {
+pub enum DetermineModuleVersionReason {
+    ConfigImageKeyNotFound(String),
     ImageKeyNotFound(String),
     JsonDeserializationError(String),
     StdoutToStringConversionError(String),
 }
 
-impl Display for DetermineEdgeVersionReason {
+impl Display for DetermineModuleVersionReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DetermineEdgeVersionReason::ImageKeyNotFound(module_name) => write!(
+            DetermineModuleVersionReason::ConfigImageKeyNotFound(module_name) => write!(
+                f,
+                "'Config'->'Image' key not found in 'docker inspect {}' output",
+                module_name
+            ),            
+            DetermineModuleVersionReason::ImageKeyNotFound(module_name) => write!(
                 f,
                 "'Image' key not found in 'docker inspect {}' output",
                 module_name
             ),
-            DetermineEdgeVersionReason::JsonDeserializationError(module_name) => write!(
+            DetermineModuleVersionReason::JsonDeserializationError(module_name) => write!(
                 f,
                 "Error deserializing JSON output from 'docker inspect {}'",
                 module_name
             ),
-            DetermineEdgeVersionReason::StdoutToStringConversionError(module_name) => write!(
+            DetermineModuleVersionReason::StdoutToStringConversionError(module_name) => write!(
                 f,
                 "Error converting utf8 stdout from 'docker inspect {}' to a string",
                 module_name
