@@ -91,6 +91,9 @@
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"
+                            },
+                            "TRACKING_ID": {
+                                "value": "<TrackingId>"
                             }
                         },
                         "settings": {

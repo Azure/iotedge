@@ -111,10 +111,8 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOT_HUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<proxyAddress>@$PROXY_ADDRESS@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$tracking_id@g" "$deployment_working_file"
     sed -i -e "s@<TrcUrl>@${L3_IP_ADDRESS}:5001/api/testoperationresult@g" "$deployment_working_file"
-
-    # TODO: Remove
-    echo "-------- ${L3_IP_ADDRESS}:5001/api/testoperationresult"
 
     if [[ ! -z "$CUSTOM_EDGE_AGENT_IMAGE" ]]; then
         sed -i -e "s@\"image\":.*azureiotedge-agent:.*\"@\"image\": \"$CUSTOM_EDGE_AGENT_IMAGE\"@g" "$deployment_working_file"
@@ -262,6 +260,7 @@ export TERM=linux
 process_args "$@"
 
 get_image_architecture_label
+tracking_id=$(cat /proc/sys/kernel/random/uuid)
 
 working_folder="$E2E_TEST_DIR/working"
 
