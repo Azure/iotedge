@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use bytes::Buf;
 use futures_util::{
@@ -5,7 +7,7 @@ use futures_util::{
     stream::StreamExt,
 };
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
-use tokio::sync::mpsc;
+use tokio::{sync::mpsc, time};
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -92,13 +94,15 @@ impl MessageHandler for ReportResultMessageHandler {
 pub struct RelayingMessageHandler {
     publish_handle: PublishHandle,
     topic: String,
+    message_frequency: Duration,
 }
 
 impl RelayingMessageHandler {
-    pub fn new(publish_handle: PublishHandle, topic: String) -> Self {
+    pub fn new(publish_handle: PublishHandle, topic: String, message_frequency: Duration) -> Self {
         Self {
             publish_handle,
             topic,
+            message_frequency,
         }
     }
 }
@@ -115,6 +119,12 @@ impl MessageHandler for RelayingMessageHandler {
             "relaying publication with sequence number {}",
             sequence_number,
         );
+
+        // Wait 1 second before relaying to mimic real use cases. This can help
+        // to surface some issues, as connection could drop between original
+        // message receipt and subsequent relay.
+        time::delay_for(self.message_frequency).await;
+
         let new_publication = Publication {
             topic_name: self.topic.clone(),
             qos: QoS::ExactlyOnce,

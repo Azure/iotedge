@@ -315,6 +315,7 @@ fn message_handler(
         TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(
             publish_handle,
             relay_topic,
+            settings.message_frequency(),
         )))),
         TestScenario::Initiate => Ok(None),
     }
