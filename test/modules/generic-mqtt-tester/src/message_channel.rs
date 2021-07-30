@@ -121,8 +121,8 @@ impl MessageHandler for RelayingMessageHandler {
         );
 
         // Wait 1 second before relaying to mimic real use cases. This can help
-        // to surface some issues, as connection could drop between original
-        // message receipt and subsequent relay.
+        // to surface some issues, as relevant connections (i.e. L3 Bridge to L4 Broker)
+        // could drop between original message receipt and subsequent relay.
         time::delay_for(self.message_frequency).await;
 
         let new_publication = Publication {
