@@ -220,11 +220,11 @@ mod tests {
                         "run",
                         "--name",
                         c.container_name.as_str(),
-                        c.image_id.as_str(),
+                        c.image_name.as_str(),
                     ],
                 )
                 .map_err(|(_, err)| err)
-                .context("Failed to run hello-world container")
+                .context(format!("Failed to run {} container", c.container_name))
                 .expect("docker run expected to succeed");
             }
 
@@ -235,14 +235,14 @@ mod tests {
             }
         }
 
-        fn test_actual_module_image_id_helper(&self, module_name: &str, expected_image_id: &str) {
-            let actual_image_id_result = LatestRuntimeModules::actual_module_image_id(
+        fn run_get_module_image_info_test(&self, module_name: &str, expected_image_info: &DockerImageInfo) {
+            let image_info_result = LatestRuntimeModules::get_module_image_info(
                 self.docker_host_arg.as_str(),
                 module_name,
             );
-            assert!(actual_image_id_result.is_ok());
+            assert!(image_info_result.is_ok());
 
-            assert_eq!(actual_image_id_result.unwrap(), expected_image_id,);
+            assert_eq!(image_info_result.unwrap(), *expected_image_info);
         }
     }
 
@@ -269,24 +269,28 @@ mod tests {
     }
 
     struct Container {
-        image_id: String,
+        image_name: String,
         container_name: String,
     }
 
     #[test]
-    fn test_actual_module_image_id() {
-        let module_name = "hello_world".to_owned();
-        let expected_image_id =
-            "sha256:d1165f2212346b2bab48cb01c1e39ee8ad1be46b87873d9ca7a4e434980a7726".to_owned();
+    fn test_get_module_image_info() {
+        let module_name = "alpine".to_owned();
+        let image_to_pull = "alpine:3.13.5".to_owned();
+        let expected_image_info = DockerImageInfo {
+            image_tag: "3.13.5".to_owned(),
+            repository: "alpine".to_owned(),
+            image_id: "sha256:6dbb9cc54074106d46d4ccb330f2a40a682d49dda5f4844962b7dce9fe44aaec".to_owned(),
+        };
         let helper = TestHelper::new(
             "unix:///var/run/docker.sock".to_owned(),
             vec![Container {
-                image_id: expected_image_id.clone(),
+                image_name: image_to_pull.clone(),
                 container_name: module_name.clone(),
             }],
             None,
         );
-        helper.test_actual_module_image_id_helper(module_name.as_str(), expected_image_id.as_str())
+        helper.run_get_module_image_info_test(module_name.as_str(), &expected_image_info)
     }
 
     // #[test]

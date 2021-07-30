@@ -72,7 +72,7 @@ pub struct AziotEdgeModuleVersion {
     pub linux_arm64v8: DockerImageInfo,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct DockerImageInfo {
     #[serde(rename = "repository")]
     pub repository: String,
