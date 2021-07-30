@@ -128,8 +128,8 @@ impl Checker for LatestRuntimeModules {
             return CheckResult::Warning(
             failure::Error::from(Context::new(format!(
                 "Running an old version of edgeAgent.\n\
-                Deployed image: {}.\n\
-                Latest image:   {}\n\
+                \tDeployed image: {}.\n\
+                \tLatest image:   {}\n\
                 Please see https://aka.ms/iotedge-update-runtime#update-the-runtime-containers for update instructions.", 
                 self.actual_edge_agent_version, self.expected_edge_agent_version) ))
                 );
@@ -138,8 +138,8 @@ impl Checker for LatestRuntimeModules {
             return CheckResult::Warning(
             failure::Error::from(Context::new(format!(
                 "Running an old version of edgeHub.\n\
-                Deployed image: {}.\n\
-                Latest image:   {}\n\
+                \tDeployed image: {}.\n\
+                \tLatest image:   {}\n\
                 Please see https://aka.ms/iotedge-update-runtime#update-the-runtime-containers for update instructions.", 
                 self.actual_edge_hub_version, self.expected_edge_hub_version) ))
         );
@@ -179,7 +179,10 @@ impl LatestRuntimeModules {
                     DetermineModuleVersionReason::ConfigImageKeyNotFound(module_name.to_owned()),
                 )
             })?;
-        let repo_and_tag: Vec<String> = repo_and_tag.split(':').map(std::borrow::ToOwned::to_owned).collect();
+        let repo_and_tag: Vec<String> = repo_and_tag
+            .split(':')
+            .map(std::borrow::ToOwned::to_owned)
+            .collect();
         Ok(DockerImageInfo {
             repository: repo_and_tag[0].clone(),
             image_tag: repo_and_tag[1].clone(),
@@ -235,7 +238,11 @@ mod tests {
             }
         }
 
-        fn run_get_module_image_info_test(&self, module_name: &str, expected_image_info: &DockerImageInfo) {
+        fn run_get_module_image_info_test(
+            &self,
+            module_name: &str,
+            expected_image_info: &DockerImageInfo,
+        ) {
             let image_info_result = LatestRuntimeModules::get_module_image_info(
                 self.docker_host_arg.as_str(),
                 module_name,
@@ -280,7 +287,8 @@ mod tests {
         let expected_image_info = DockerImageInfo {
             image_tag: "3.13.5".to_owned(),
             repository: "alpine".to_owned(),
-            image_id: "sha256:6dbb9cc54074106d46d4ccb330f2a40a682d49dda5f4844962b7dce9fe44aaec".to_owned(),
+            image_id: "sha256:6dbb9cc54074106d46d4ccb330f2a40a682d49dda5f4844962b7dce9fe44aaec"
+                .to_owned(),
         };
         let helper = TestHelper::new(
             "unix:///var/run/docker.sock".to_owned(),

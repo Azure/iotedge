@@ -155,7 +155,7 @@ impl Display for DetermineModuleVersionReason {
                 f,
                 "'Config'->'Image' key not found in 'docker inspect {}' output",
                 module_name
-            ),            
+            ),
             DetermineModuleVersionReason::ImageKeyNotFound(module_name) => write!(
                 f,
                 "'Image' key not found in 'docker inspect {}' output",
