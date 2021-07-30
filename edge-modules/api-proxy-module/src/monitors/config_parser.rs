@@ -6,7 +6,7 @@ use regex::{Captures, Regex};
 
 use crate::token_service::token_server;
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "8000")];
 
 pub struct ConfigParser {
     default_values: HashMap<String, String>,
@@ -349,7 +349,7 @@ mod tests {
             .unwrap();
 
         //Check the value is still equal to dummy value
-        assert_eq!("443", config);
+        assert_eq!("8000", config);
 
         // *** Environment variable
         std::env::set_var("NGINX_DEFAULT_PORT", "Dummy value");
