@@ -75,7 +75,6 @@ stages:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
 
-  # TODO: improve unlock for other nested pipelines
 - stage: Cleanup 
   dependsOn:
     - LockAgents
