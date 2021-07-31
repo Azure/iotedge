@@ -1,7 +1,6 @@
 use std::env::consts::{ARCH, OS};
 
 use failure::{self, Context, ResultExt};
-use os_info::Bitness;
 use serde_json::Value;
 
 use crate::check::{checker::Checker, Check, CheckResult};
@@ -25,18 +24,16 @@ enum PlatformType {
 
 impl PlatformType {
     fn get() -> Result<PlatformType, failure::Error> {
-        let bitness = os_info::get().bitness();
         if ARCH == "x86_64" && OS == "linux" {
             Ok(PlatformType::LinuxAmd64)
-        } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X32 {
+        } else if ARCH == "arm" && OS == "linux" {
             Ok(PlatformType::LinuxArm32v7)
-        } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X64 {
+        } else if ARCH == "aarch64" && OS == "linux" {
             Ok(PlatformType::LinuxArm64v8)
         } else {
             Err(failure::Error::from(ErrorKind::UnknownPlatform {
                 os: OS.to_string(),
                 arch: ARCH.to_string(),
-                bitness: bitness.to_string(),
             }))
         }
     }

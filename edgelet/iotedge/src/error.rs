@@ -37,13 +37,12 @@ pub enum ErrorKind {
     DetermineModuleVersion(DetermineModuleVersionReason),
 
     #[fail(
-        display = "Unknown platform. OS: {}, Arch: {}, Bitness: {}",
-        os, arch, bitness
+        display = "Unknown platform. OS: {}, Arch: {}",
+        os, arch
     )]
     UnknownPlatform {
         os: String,
         arch: String,
-        bitness: String,
     },
 
     #[fail(display = "Command failed: {}", _0)]
