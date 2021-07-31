@@ -62,13 +62,7 @@ impl MessageHandler for ReportResultMessageHandler {
         let received_batch_id =
             Uuid::from_u128_le(received_publication.payload.slice(4..20).get_u128_le());
 
-        // If there is a batch id to compare against, we are in
-        // `InitiateAndReceiveRelayed` mode. Messages should have
-        // originated from the same module so we should validate that.
-        //
-        // If there is no batch id then we are in a more basic `Receive`
-        // mode. Messages originated from a different module so we
-        // cannot validate batch id.
+        // Filter by batch id only if supplied.
         if self.batch_id == None || Some(received_batch_id) == self.batch_id {
             info!(
                 "reporting result for publication with sequence number {}",

@@ -294,17 +294,23 @@ fn message_handler(
     settings: &Settings,
     publish_handle: PublishHandle,
 ) -> Result<Option<Box<dyn MessageHandler + Send>>, MessageTesterError> {
-    let relay_topic = settings.relay_topic();
-    let module_name = settings.module_name();
-    let batch_id = settings.batch_id();
-    let test_result_coordinator_url = settings.trc_url();
-    let reporting_client = TrcClient::new(test_result_coordinator_url);
-
     match settings.test_scenario() {
         TestScenario::InitiateAndReceiveRelayed | TestScenario::Receive => {
+            let test_result_coordinator_url = settings.trc_url();
+            let reporting_client = TrcClient::new(test_result_coordinator_url);
+
+            // If there is a batch id to compare against, we are in
+            // `InitiateAndReceiveRelayed` mode. Messages should have
+            // originated from the same module so we should validate that.
+            //
+            // If there is no batch id then we are in a more basic `Receive`
+            // mode. Messages originated from a different module so we
+            // cannot validate batch id.
+            let batch_id = settings.batch_id();
             let tracking_id = settings
                 .tracking_id()
                 .ok_or(MessageTesterError::MissingTrackingId)?;
+            let module_name = settings.module_name();
             Ok(Some(Box::new(ReportResultMessageHandler::new(
                 reporting_client,
                 tracking_id,
@@ -312,11 +318,14 @@ fn message_handler(
                 batch_id,
             ))))
         }
-        TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(
-            publish_handle,
-            relay_topic,
-            settings.message_frequency(),
-        )))),
+        TestScenario::Relay => {
+            let relay_topic = settings.relay_topic();
+            Ok(Some(Box::new(RelayingMessageHandler::new(
+                publish_handle,
+                relay_topic,
+                settings.message_frequency(),
+            ))))
+        }
         TestScenario::Initiate => Ok(None),
     }
 }
