@@ -38,7 +38,7 @@ stages:
       upstream.protocol: 'mqtt'
       testRunnerCount: 2
 
-- stage: SetupVMs
+- stage: SetupNestedTopology
   dependsOn: LockAgents
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
@@ -182,7 +182,7 @@ stages:
 - stage: Cleanup 
   dependsOn:
     - LockAgents
-    - SetupVMs
+    - SetupNestedTopology
   jobs:
   - job:  Unlock_agents      
     condition: always()

@@ -46,7 +46,7 @@ stages:
     parameters:
       upstream.protocol: 'mqtt'
 
-- stage: SetupVMs
+- stage: SetupNestedTopology
   dependsOn: LockAgents
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
@@ -121,7 +121,7 @@ stages:
 - stage: Cleanup 
   dependsOn:
     - LockAgents
-    - SetupVMs
+    - SetupNestedTopology
   jobs:
   - job:  Unlock_agents
     condition: always()
@@ -142,10 +142,10 @@ stages:
     displayName: Clean up identities
     timeoutInMinutes: 2    
     variables:    
-      deviceLvl5DeviceId: $[ stageDependencies.SetupVMs.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl4DeviceId: $[ stageDependencies.SetupVMs.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl5IoTHubName: $[ stageDependencies.SetupVMs.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ] 
-      deviceLvl4IoTHubName: $[ stageDependencies.SetupVMs.SetupVM_level4_mqtt.outputs['createIdentity.iotHubName'] ]
+      deviceLvl5DeviceId: $[ stageDependencies.SetupNestedTopology.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl4DeviceId: $[ stageDependencies.SetupNestedTopology.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl5IoTHubName: $[ stageDependencies.SetupNestedTopology.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ] 
+      deviceLvl4IoTHubName: $[ stageDependencies.SetupNestedTopology.SetupVM_level4_mqtt.outputs['createIdentity.iotHubName'] ]
     pool:
       name: $(pool.name)
       demands:

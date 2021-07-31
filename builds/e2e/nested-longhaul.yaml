@@ -52,7 +52,7 @@ stages:
         displayName: Get ip address of L3 mqtt agent
         name: get_l3_ip_mqtt
 
-- stage: SetupVMs
+- stage: SetupNestedTopology
   dependsOn: LockAgents
   variables: 
     l3IpAddressMqtt: $[ stageDependencies.LockAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt'] ]
@@ -78,7 +78,7 @@ stages:
 - stage: Cleanup 
   dependsOn:
     - LockAgents
-    - SetupVMs
+    - SetupNestedTopology
   condition: eq(variables['test.pipeline'], 'true')
   jobs:
   - job:  Unlock_agents      
