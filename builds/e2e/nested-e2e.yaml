@@ -138,10 +138,6 @@ stages:
       - template: templates/unlock-test-agents.yaml
 
   - job:  Clean_up_identities
-    dependsOn:
-      - SetupVM_level5_mqtt 
-      - SetupVM_level4_mqtt
-      - SetupVM_and_RunTest_level3
     condition: always()
     displayName: Clean up identities
     timeoutInMinutes: 2    
