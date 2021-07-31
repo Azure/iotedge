@@ -141,7 +141,7 @@ impl Checker for LatestRuntimeModules {
             failure::Error::from(Context::new(format!(
                 "Running an old version of edgeAgent.\n\
                 \tDeployed image: {}.\n\
-                \tLatest image:   {}\n\
+                \tLatest image: {}\n\
                 Please see https://aka.ms/iotedge-update-runtime#update-the-runtime-containers for update instructions.", 
                 self.actual_edge_agent_version, self.expected_edge_agent_version) ))
                 );
@@ -151,7 +151,7 @@ impl Checker for LatestRuntimeModules {
             failure::Error::from(Context::new(format!(
                 "Running an old version of edgeHub.\n\
                 \tDeployed image: {}.\n\
-                \tLatest image:   {}\n\
+                \tLatest image: {}\n\
                 Please see https://aka.ms/iotedge-update-runtime#update-the-runtime-containers for update instructions.", 
                 self.actual_edge_hub_version, self.expected_edge_hub_version) ))
         );
@@ -222,10 +222,7 @@ mod tests {
     }
 
     impl TestHelper {
-        fn new(
-            docker_host_arg: String,
-            containers_to_create: Vec<Container>,
-        ) -> TestHelper {
+        fn new(docker_host_arg: String, containers_to_create: Vec<Container>) -> TestHelper {
             for c in &containers_to_create {
                 docker(
                     docker_host_arg.as_str(),
