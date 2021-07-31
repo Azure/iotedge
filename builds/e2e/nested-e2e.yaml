@@ -46,7 +46,7 @@ stages:
     parameters:
       upstream.protocol: 'mqtt'
 
-- stage: SetupVM
+- stage: SetupVMs
   dependsOn: LockAgents
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
