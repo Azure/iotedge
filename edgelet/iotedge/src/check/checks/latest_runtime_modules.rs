@@ -17,6 +17,31 @@ pub(crate) struct LatestRuntimeModules {
     pub latest_versions: crate::LatestVersions,
 }
 
+enum PlatformType {
+    LinuxAmd64,
+    LinuxArm32v7,
+    LinuxArm64v8,
+}
+
+impl PlatformType {
+    fn get() -> Result<PlatformType, failure::Error> {
+        let bitness = os_info::get().bitness();
+        if ARCH == "x86_64" && OS == "linux" {
+            Ok(PlatformType::LinuxAmd64)
+        } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X32 {
+            Ok(PlatformType::LinuxArm32v7)
+        } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X64 {
+            Ok(PlatformType::LinuxArm64v8)
+        } else {
+            Err(failure::Error::from(ErrorKind::UnknownPlatform {
+                os: OS.to_string(),
+                arch: ARCH.to_string(),
+                bitness: bitness.to_string(),
+            }))
+        }
+    }
+}
+
 impl Checker for LatestRuntimeModules {
     fn id(&self) -> &'static str {
         "latest-runtime-modules"
@@ -71,56 +96,46 @@ impl Checker for LatestRuntimeModules {
             };
 
             // Determine OS and Arch
-            let bitness = os_info::get().bitness();
-            // TODO: Consider using an enum for os_arch instead of a string slice
-            let os_arch: &str = if ARCH == "x86_64" && OS == "linux" {
-                "linux-amd64"
-            } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X32 {
-                "linux-arm32v7"
-            } else if ARCH == "arm" && OS == "linux" && bitness == Bitness::X64 {
-                "linux-arm64v8"
-            } else {
-                return CheckResult::Failed(failure::Error::from(ErrorKind::UnknownPlatform {
-                    os: OS.to_string(),
-                    arch: ARCH.to_string(),
-                    bitness: bitness.to_string(),
-                }));
-            };
+            let platform_res = PlatformType::get();
 
             // Set expected edgeAgent version if not provided as cmd line arg
             if check.expected_aziot_edge_agent_image_id.is_none() {
-                self.expected_edge_agent_version = match os_arch {
-                    "linux-amd64" => self.latest_versions.aziot_edge_agent.linux_amd64.clone(),
-                    "linux-arm32v7" => self.latest_versions.aziot_edge_agent.linux_arm32v7.clone(),
-                    "linux-arm64v8" => self.latest_versions.aziot_edge_agent.linux_arm64v8.clone(),
-                    _ => {
-                        return CheckResult::Failed(failure::Error::from(
-                            ErrorKind::UnknownPlatform {
-                                os: OS.to_string(),
-                                arch: ARCH.to_string(),
-                                bitness: bitness.to_string(),
-                            },
-                        ))
+                match platform_res {
+                    Ok(ref platform) => {
+                        self.expected_edge_agent_version = match platform {
+                            PlatformType::LinuxAmd64 => {
+                                self.latest_versions.aziot_edge_agent.linux_amd64.clone()
+                            }
+                            PlatformType::LinuxArm32v7 => {
+                                self.latest_versions.aziot_edge_agent.linux_arm32v7.clone()
+                            }
+                            PlatformType::LinuxArm64v8 => {
+                                self.latest_versions.aziot_edge_agent.linux_arm64v8.clone()
+                            }
+                        }
                     }
-                };
+                    Err(e) => return CheckResult::Failed(e),
+                }
             }
 
             // Set expected edgeHub version if not provided as cmd line arg
             if check.expected_aziot_edge_hub_image_id.is_none() {
-                self.expected_edge_hub_version = match os_arch {
-                    "linux-amd64" => self.latest_versions.aziot_edge_hub.linux_amd64.clone(),
-                    "linux-arm32v7" => self.latest_versions.aziot_edge_hub.linux_arm32v7.clone(),
-                    "linux-arm64v8" => self.latest_versions.aziot_edge_hub.linux_arm64v8.clone(),
-                    _ => {
-                        return CheckResult::Failed(failure::Error::from(
-                            ErrorKind::UnknownPlatform {
-                                os: OS.to_string(),
-                                arch: ARCH.to_string(),
-                                bitness: bitness.to_string(),
-                            },
-                        ))
+                match platform_res {
+                    Ok(ref platform) => {
+                        self.expected_edge_hub_version = match platform {
+                            PlatformType::LinuxAmd64 => {
+                                self.latest_versions.aziot_edge_hub.linux_amd64.clone()
+                            }
+                            PlatformType::LinuxArm32v7 => {
+                                self.latest_versions.aziot_edge_hub.linux_arm32v7.clone()
+                            }
+                            PlatformType::LinuxArm64v8 => {
+                                self.latest_versions.aziot_edge_hub.linux_arm64v8.clone()
+                            }
+                        }
                     }
-                };
+                    Err(e) => return CheckResult::Failed(e),
+                }
             }
         }
 
@@ -199,7 +214,6 @@ impl LatestRuntimeModules {
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::super::docker;
     use super::*;
