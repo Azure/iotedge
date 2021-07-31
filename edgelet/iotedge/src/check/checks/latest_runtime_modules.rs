@@ -219,14 +219,12 @@ mod tests {
     struct TestHelper {
         docker_host_arg: String,
         containers_to_create: Vec<Container>,
-        _edged_package_name: Option<String>,
     }
 
     impl TestHelper {
         fn new(
             docker_host_arg: String,
             containers_to_create: Vec<Container>,
-            _edged_package_name: Option<String>,
         ) -> TestHelper {
             for c in &containers_to_create {
                 docker(
@@ -246,7 +244,6 @@ mod tests {
             TestHelper {
                 docker_host_arg,
                 containers_to_create,
-                _edged_package_name,
             }
         }
 
@@ -308,7 +305,6 @@ mod tests {
                 image_name: image_to_pull.clone(),
                 container_name: module_name.clone(),
             }],
-            None,
         );
         helper.run_get_module_image_info_test(module_name.as_str(), &expected_image_info)
     }
