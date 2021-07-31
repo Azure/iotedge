@@ -36,14 +36,8 @@ pub enum ErrorKind {
     )]
     DetermineModuleVersion(DetermineModuleVersionReason),
 
-    #[fail(
-        display = "Unknown platform. OS: {}, Arch: {}",
-        os, arch
-    )]
-    UnknownPlatform {
-        os: String,
-        arch: String,
-    },
+    #[fail(display = "Unknown platform. OS: {}, Arch: {}", os, arch)]
+    UnknownPlatform { os: String, arch: String },
 
     #[fail(display = "Command failed: {}", _0)]
     Config(std::borrow::Cow<'static, str>),
