@@ -6,7 +6,7 @@ pub mod uri;
 pub mod watchdog;
 
 pub trait RuntimeSettings {
-    type ModuleConfig;
+    type ModuleConfig: Clone;
 
     fn hostname(&self) -> &str;
 

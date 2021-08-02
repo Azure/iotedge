@@ -54,7 +54,13 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
-    let device_info = provision::get_device_info(&settings, &cache_dir).await?;
+    let identity_client = provision::identity_client(&settings)?;
+    let device_info = provision::get_device_info(
+        &identity_client,
+        settings.auto_reprovisioning_mode(),
+        &cache_dir,
+    )
+    .await?;
 
     let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
         .await
@@ -112,7 +118,8 @@ async fn run() -> Result<(), EdgedError> {
     });
 
     // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
-    let shutdown_reason = watchdog::run_until_shutdown(&settings, shutdown_rx).await?;
+    let shutdown_reason =
+        watchdog::run_until_shutdown(settings, runtime, &identity_client, shutdown_rx).await?;
 
     log::info!("Stopping management API...");
     management_shutdown
@@ -147,11 +154,6 @@ async fn run() -> Result<(), EdgedError> {
     }
 
     if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
-        // The initial provision on startup created an identity client. Since we have already
-        // validated and used identity clients, creating an identity client here should not fail.
-        let identity_client =
-            provision::identity_client(&settings).expect("failed to create identity client");
-
         match provision::reprovision(&identity_client, &cache_dir).await {
             Ok(()) => log::info!("Successfully reprovisioned"),
             Err(err) => log::error!("Failed to reprovision: {}", err),

@@ -65,18 +65,16 @@ where
 
         let runtime = self.runtime.lock().await;
 
-        // let (support_bundle, bundle_size) = support_bundle::make_bundle(
-        //     support_bundle::OutputLocation::Memory,
-        //     log_options,
-        //     edge_only,
-        //     false,
-        //     self.iothub_hostname,
-        //     &runtime,
-        // )
-        // .await
-        // .map_err(|err| {
-        //     edgelet_http::error::server_error(format!("failed to create support bundle: {}", err))
-        // })?;
+        let (support_bundle, bundle_size) = support_bundle::make_bundle(
+            support_bundle::OutputLocation::Memory,
+            log_options,
+            edge_only,
+            false,
+            self.iothub_hostname,
+            &(*runtime),
+        )
+        .await
+        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
         todo!()
     }

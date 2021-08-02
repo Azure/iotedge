@@ -20,13 +20,12 @@ pub(crate) fn identity_client(
 }
 
 pub(crate) async fn get_device_info(
-    settings: &impl edgelet_settings::RuntimeSettings,
+    identity_client: &aziot_identity_client_async::Client,
+    auto_reprovisioning_mode: edgelet_settings::aziot::AutoReprovisioningMode,
     cache_dir: &std::path::Path,
 ) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
-    let identity_client = identity_client(settings)?;
-
     if let edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup =
-        settings.auto_reprovisioning_mode()
+        auto_reprovisioning_mode
     {
         reprovision(&identity_client, cache_dir)
             .await

@@ -42,10 +42,7 @@ where
 
         match runtime.system_resources().await {
             Ok(resources) => Ok((http::StatusCode::OK, resources)),
-            Err(err) => Err(edgelet_http::error::server_error(format!(
-                "failed to query system resources: {}",
-                err
-            ))),
+            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
 
