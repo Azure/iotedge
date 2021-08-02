@@ -86,7 +86,6 @@ stages:
     parameters:
       upstream.protocol: amqp
       testInfo.testName: 'longhaul (nested-non-broker)'
-      test.trackingId: '$(trackingId)'
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt
