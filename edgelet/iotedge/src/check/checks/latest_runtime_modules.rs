@@ -299,7 +299,7 @@ mod tests {
         let helper = TestHelper::new(
             "unix:///var/run/docker.sock".to_owned(),
             vec![Container {
-                image_name: image_to_pull.clone(),
+                image_name: image_to_pull,
                 container_name: module_name.clone(),
             }],
         );
