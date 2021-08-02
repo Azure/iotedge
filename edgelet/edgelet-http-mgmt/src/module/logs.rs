@@ -59,10 +59,8 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = (); // TODO: text response
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    async fn get(self) -> http_common::server::RouteResponse {
         let log_options = self.log_options()?;
 
         let runtime = self.runtime.lock().await;
@@ -73,10 +71,8 @@ where
     }
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }
 
 impl<M> Route<M>

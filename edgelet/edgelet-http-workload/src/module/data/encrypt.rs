@@ -70,17 +70,10 @@ where
         })
     }
 
-    type GetResponse = ();
-
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
     type PostBody = EncryptRequest;
-    type PostResponse = EncryptResponse;
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_caller(&self.module_id, self.pid, &self.runtime).await?;
 
         let (plaintext, iv) = match body {
@@ -103,15 +96,14 @@ where
             Ok(ciphertext) => {
                 let ciphertext = base64::encode(ciphertext);
 
-                Ok((http::StatusCode::OK, Some(EncryptResponse { ciphertext })))
+                let res = EncryptResponse { ciphertext };
+                let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+                Ok(res)
             }
-            Err(err) => Err(edgelet_http::error::server_error(format!(
-                "encryption failed: {}",
-                err
-            ))),
+            Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

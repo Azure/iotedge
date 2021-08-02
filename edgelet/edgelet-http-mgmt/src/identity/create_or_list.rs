@@ -59,10 +59,8 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = ListIdentitiesResponse;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    async fn get(self) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
@@ -80,15 +78,14 @@ where
             }
         };
 
-        Ok((http::StatusCode::OK, ListIdentitiesResponse { identities }))
+        let res = ListIdentitiesResponse { identities };
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+        Ok(res)
     }
 
     type PostBody = CreateIdentityRequest;
-    type PostResponse = crate::identity::Identity;
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
@@ -112,9 +109,10 @@ where
             }
         };
 
-        Ok((http::StatusCode::OK, Some(identity)))
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
+
+        Ok(res)
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

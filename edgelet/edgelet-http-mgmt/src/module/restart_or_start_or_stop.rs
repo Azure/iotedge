@@ -70,16 +70,9 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
-
-    type GetResponse = ();
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
-    async fn post(
-        self,
-        _body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, _body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
         match self.action {
@@ -89,9 +82,8 @@ where
         }
         .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
-        Ok((http::StatusCode::NO_CONTENT, None))
+        Ok(http_common::server::response::no_content())
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

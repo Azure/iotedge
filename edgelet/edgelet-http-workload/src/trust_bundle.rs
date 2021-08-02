@@ -44,8 +44,9 @@ where
         })
     }
 
-    type GetResponse = TrustBundleResponse;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    type DeleteBody = serde::de::IgnoredAny;
+
+    async fn get(self) -> http_common::server::RouteResponse {
         let client = self.client.lock().await;
 
         let certificate = client.get_cert(&self.trust_bundle).await.map_err(|_| {
@@ -58,15 +59,13 @@ where
             })?
             .to_string();
 
-        Ok((http::StatusCode::OK, TrustBundleResponse { certificate }))
+        let res = TrustBundleResponse { certificate };
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+        Ok(res)
     }
 
-    type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
-
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

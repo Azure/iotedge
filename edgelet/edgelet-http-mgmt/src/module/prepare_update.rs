@@ -48,16 +48,9 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
-
-    type GetResponse = ();
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
@@ -73,5 +66,4 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

@@ -63,17 +63,10 @@ where
         })
     }
 
-    type GetResponse = ();
-
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = super::CertificateResponse;
-    async fn post(
-        self,
-        _body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, _body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_caller(&self.module_id, self.pid, &self.runtime).await?;
 
         let cert_id = format!("aziot-edged/module/{}:identity", &self.module_id);
@@ -91,7 +84,6 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }
 
 fn identity_cert_extensions(

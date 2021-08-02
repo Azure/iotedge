@@ -73,17 +73,10 @@ where
         })
     }
 
-    type GetResponse = ();
-
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
     type PostBody = ServerCertificateRequest;
-    type PostResponse = super::CertificateResponse;
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_caller(&self.module_id, self.pid, &self.runtime).await?;
 
         let common_name = match body {
@@ -123,7 +116,6 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }
 
 fn server_cert_extensions(

@@ -43,23 +43,16 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
-
-    type GetResponse = ();
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
-    async fn post(
-        self,
-        _body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, _body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         match self
             .reprovision
             .send(edgelet_core::ShutdownReason::Reprovision)
         {
-            Ok(()) => Ok((http::StatusCode::OK, None)),
+            Ok(()) => Ok(http_common::server::response::no_content()),
             Err(_) => Err(edgelet_http::error::server_error(
                 "failed to send reprovision request",
             )),
@@ -67,5 +60,4 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

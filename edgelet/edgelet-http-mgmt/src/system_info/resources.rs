@@ -34,21 +34,20 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = edgelet_core::module::SystemResources;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    async fn get(self) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
         match runtime.system_resources().await {
-            Ok(resources) => Ok((http::StatusCode::OK, resources)),
+            Ok(resources) => Ok(http_common::server::response::json(
+                hyper::StatusCode::OK,
+                &resources,
+            )),
             Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

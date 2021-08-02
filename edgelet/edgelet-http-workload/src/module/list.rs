@@ -34,23 +34,22 @@ where
         })
     }
 
-    type GetResponse = edgelet_http::ListModulesResponse;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    type DeleteBody = serde::de::IgnoredAny;
+
+    async fn get(self) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
         let modules = runtime.list_with_details().await.map_err(|err| {
-            edgelet_http::error::server_error(format!("could not list modules: {}", err))
+            edgelet_http::error::server_error(err.to_string())
         })?;
 
-        Ok((http::StatusCode::OK, modules.into()))
+        let res: edgelet_http::ListModulesResponse = modules.into();
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+        Ok(res)
     }
 
-    type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
-
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

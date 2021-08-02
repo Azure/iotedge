@@ -62,7 +62,7 @@ impl CertApi {
         common_name: String,
         subject_alt_names: Vec<SubjectAltName>,
         extensions: openssl::stack::Stack<openssl::x509::X509Extension>,
-    ) -> Result<(http::StatusCode, Option<CertificateResponse>), http_common::server::Error> {
+    ) -> Result<hyper::Response<hyper::Body>, http_common::server::Error> {
         let keys = new_keys()
             .map_err(|_| edgelet_http::error::server_error("failed to generate csr keys"))?;
         let private_key = key_to_pem(&keys.0);
@@ -84,8 +84,9 @@ impl CertApi {
             certificate: cert,
             expiration,
         };
+        let response = http_common::server::response::json(hyper::StatusCode::OK, &response);
 
-        Ok((http::StatusCode::OK, Some(response)))
+        Ok(response)
     }
 
     async fn edge_ca_key_handle(

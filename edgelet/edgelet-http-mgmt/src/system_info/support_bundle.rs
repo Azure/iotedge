@@ -49,10 +49,8 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = (); // TODO: fix type
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    async fn get(self) -> http_common::server::RouteResponse {
         let log_options = self.log_options()?;
 
         let edge_only = if let Some(edge_only) = &self.edge_only {
@@ -65,25 +63,23 @@ where
 
         let runtime = self.runtime.lock().await;
 
-        let (support_bundle, bundle_size) = support_bundle::make_bundle(
-            support_bundle::OutputLocation::Memory,
-            log_options,
-            edge_only,
-            false,
-            self.iothub_hostname,
-            &(*runtime),
-        )
-        .await
-        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+        // let (support_bundle, bundle_size) = support_bundle::make_bundle(
+        //     support_bundle::OutputLocation::Memory,
+        //     log_options,
+        //     edge_only,
+        //     false,
+        //     self.iothub_hostname,
+        //     &(*runtime),
+        // )
+        // .await
+        // .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
         todo!()
     }
 
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }
 
 impl<M> Route<M>

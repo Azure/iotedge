@@ -42,10 +42,8 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = edgelet_http::ListModulesResponse;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    async fn get(self) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
         let modules = runtime
@@ -53,15 +51,14 @@ where
             .await
             .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
-        Ok((http::StatusCode::OK, modules.into()))
+        let res: edgelet_http::ListModulesResponse = modules.into();
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+        Ok(res)
     }
 
     type PostBody = ();
-    type PostResponse = edgelet_http::ModuleDetails;
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
@@ -77,5 +74,4 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }
