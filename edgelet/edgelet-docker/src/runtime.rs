@@ -472,11 +472,28 @@ impl ModuleRuntime for DockerModuleRuntime {
                 )))
             })?;
 
+        let config = if let Some(config) = response.config {
+            config
+        } else {
+            return Err(Error::from(ErrorKind::RuntimeOperation(
+                RuntimeOperation::GetModule(id.to_owned()),
+            )));
+        };
+
+        let create_options = ContainerCreateBody::new()
+            .with_labels(config.labels.unwrap_or_default().into_iter().collect());
+
+        let config =
+            DockerConfig::new(config.image.unwrap_or_default(), create_options, None, None)
+                .map_err(|_| {
+                    ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned()))
+                })?;
+        let config = config.with_image_hash(response.image.unwrap_or_default());
+
         let name = response
             .name
             .map_or(id.to_owned(), |s| (&s[1..]).to_owned());
-        let config = DockerConfig::new(name.clone(), ContainerCreateBody::new(), None, None)
-            .map_err(|_| ErrorKind::RuntimeOperation(RuntimeOperation::GetModule(id.to_owned())))?;
+
         let module = DockerModule::new(self.client.clone(), name, config)?;
 
         let runtime_state = runtime_state(response.id, response.state.as_ref());
