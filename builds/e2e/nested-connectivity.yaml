@@ -180,12 +180,12 @@ stages:
 
 
 - stage: Cleanup 
+  condition: always()
   dependsOn:
     - LockAgents
     - SetupNestedTopology
   jobs:
   - job:  Unlock_agents      
-    condition: always()
     displayName: Unlock agents
     pool:
       name: $(pool.name)
