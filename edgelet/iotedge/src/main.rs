@@ -50,6 +50,11 @@ fn run() -> Result<(), Error> {
         edgelet_core::version().replace("~", "-")
     );
 
+    let default_support_bundle_name = format!(
+        "support_bundle{}.zip",
+        chrono::Utc::now().format("_%Y_%m_%d_%H_%M_%S_%Z")
+    );
+
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .about(crate_description!())
@@ -339,7 +344,7 @@ fn run() -> Result<(), Error> {
                         .short("o")
                         .takes_value(true)
                         .value_name("FILENAME")
-                        .default_value("support_bundle.zip"),
+                        .default_value(&default_support_bundle_name),
                 )
                 .arg(
                     Arg::with_name("since")
