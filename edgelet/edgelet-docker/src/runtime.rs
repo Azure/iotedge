@@ -785,7 +785,8 @@ impl ModuleRuntime for DockerModuleRuntime {
             timestamps: options.timestamps(),
             since: options.since() as i64,
             until: options.until().unwrap_or(0) as i64,
-            ..Default::default()
+            stdout: true,
+            stderr: true,
         };
 
         let result = self

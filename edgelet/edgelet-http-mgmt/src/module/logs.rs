@@ -63,11 +63,14 @@ where
     async fn get(self) -> http_common::server::RouteResponse {
         let log_options = self.log_options()?;
 
-        let runtime = self.runtime.lock().await;
+        let logs = {
+            let runtime = self.runtime.lock().await;
 
-        let logs = runtime.logs(&self.module, &log_options).await;
+            runtime.logs(&self.module, &log_options).await
+        };
 
-        todo!()
+        let res = http_common::server::response::chunked(hyper::StatusCode::OK, logs);
+        Ok(res)
     }
 
     type PostBody = serde::de::IgnoredAny;
