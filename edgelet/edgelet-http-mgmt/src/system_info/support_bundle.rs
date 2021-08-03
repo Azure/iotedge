@@ -16,6 +16,7 @@ where
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
+    M::Logs: Send,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -63,16 +64,16 @@ where
 
         let runtime = self.runtime.lock().await;
 
-        // let (support_bundle, bundle_size) = support_bundle::make_bundle(
-        //     support_bundle::OutputLocation::Memory,
-        //     log_options,
-        //     edge_only,
-        //     false,
-        //     self.iothub_hostname,
-        //     &(*runtime),
-        // )
-        // .await
-        // .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+        let (support_bundle, bundle_size) = support_bundle::make_bundle(
+            support_bundle::OutputLocation::Memory,
+            log_options,
+            edge_only,
+            false,
+            self.iothub_hostname,
+            &(*runtime),
+        )
+        .await
+        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
         todo!()
     }

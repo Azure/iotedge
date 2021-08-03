@@ -391,7 +391,7 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Module = DockerModule;
     type ModuleRegistry = Self;
     type Chunk = bytes::Bytes;
-    type Logs = Pin<Box<dyn Stream<Item = Result<Self::Chunk>>>>;
+    type Logs = Pin<Box<dyn Stream<Item = Result<Self::Chunk>> + Send>>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());

@@ -369,7 +369,7 @@ pub trait ModuleRuntime: Sized {
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
-    type Logs: Stream<Item = Result<Self::Chunk, Self::Error>>;
+    type Logs: Stream<Item = Result<Self::Chunk, Self::Error>> + Send;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
