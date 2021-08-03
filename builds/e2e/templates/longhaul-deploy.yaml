@@ -34,6 +34,7 @@ parameters:
   test.deploymentFileName: ''
   testResultCoordinator.storageAccountConnectionString: ''
   clientModuleTransportType: ''
+  test.trackingId: ''
 
 steps:
   - task: Bash@3
@@ -100,6 +101,7 @@ steps:
             -testName "$testName" \
             -repoPath "${{ parameters['build.repo.path'] }}" \
             -clientModuleTransportType "${{ parameters['clientModuleTransportType'] }}" \
+            -trackingId "${{ parameters['test.trackingId'] }}" \
             -waitForTestComplete \
             -cleanAll
         else

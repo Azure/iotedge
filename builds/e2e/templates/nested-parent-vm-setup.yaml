@@ -2,6 +2,7 @@ parameters:
   upstream.protocol: 'amqp'
   test.l4DeploymentFileName: ""
   l3IpAddress: ''
+  test.trackingId: '' 
 
 jobs:
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
@@ -46,6 +47,7 @@ jobs:
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
       l3IpAddress: ${{ parameters['l3IpAddress'] }}
+      test.trackingId: ${{ parameters['test.trackingId'] }}
     pool:
      name: $(pool.name)
      demands:

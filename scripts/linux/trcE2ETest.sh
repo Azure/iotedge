@@ -52,6 +52,7 @@ function usage() {
     echo " -testMode                                Test mode for TestResultCoordinator to start up with correct settings. Value is either 'LongHaul' or 'Connectivity'."
     echo " -repoPath                                Path of the checked-out iotedge repository for getting the deployment file."
     echo " -clientModuleTransportType               Value for contrained long haul specifying transport type for all client modules."
+    echo " -trackingId                              Tracking id used to tag test events. Needed if running nested tests and test events are sent to TRC from L4 node. Otherwise generated."
     echo ' -cleanAll                                Do docker prune for containers, logs and volumes.'
     exit 1;
 }
@@ -515,6 +516,9 @@ function process_args() {
         elif [ $saveNextArg -eq 46 ]; then
             CLIENT_MODULE_TRANSPORT_TYPE="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 47 ]; then
+            TRACKING_ID="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -564,6 +568,7 @@ function process_args() {
                 '-testMode' ) saveNextArg=44;;
                 '-repoPath' ) saveNextArg=45;;
                 '-clientModuleTransportType' ) saveNextArg=46;;
+                '-trackingId' ) saveNextArg=47;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
@@ -596,6 +601,10 @@ function process_args() {
     [[ (-z "${CLIENT_MODULE_TRANSPORT_TYPE,,}") && ("${image_architecture_label,,}" == "arm32v7" || "${image_architecture_label,,}" == "arm64v8") ]] && { print_error 'Arm platform needs to run with client module transport type set'; exit 1; }
 
     echo 'Required parameters are provided'
+
+    if [ -z "$TRACKING_ID"]; then
+        TRACKING_ID=$(cat /proc/sys/kernel/random/uuid)
+    fi
 }
 
 function validate_test_parameters() {
