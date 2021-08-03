@@ -27,7 +27,7 @@ jobs:
       nestededge: true
     steps:   
       - script: |
-        echo "${{ parameters['test.trackingId'] }}"
+          echo "${{ parameters['test.trackingId'] }}"
       - template: nested-get-secrets.yaml     
       - template: nested-get-root-ca.yaml 
       - template: nested-longhaul-deploy.yaml
