@@ -365,7 +365,7 @@ pub trait MakeModuleRuntime {
 pub trait ModuleRuntime: Sized {
     type Error: Fail;
 
-    type Config: Clone + Send;
+    type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;

@@ -18,7 +18,6 @@ where
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
-    M::Logs: Send,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -105,14 +104,14 @@ where
 
         if let Some(since) = &self.since {
             let since = edgelet_core::parse_since(&since)
-                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: since"))?;
+                .map_err(|_| edgelet_http::error::bad_request("invalid parameter: since"))?;
 
             log_options = log_options.with_since(since);
         }
 
         if let Some(until) = &self.until {
             let until = edgelet_core::parse_since(&until)
-                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: until"))?;
+                .map_err(|_| edgelet_http::error::bad_request("invalid parameter: until"))?;
 
             log_options = log_options.with_until(until);
         }

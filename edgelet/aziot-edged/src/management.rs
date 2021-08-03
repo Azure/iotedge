@@ -10,7 +10,6 @@ pub(crate) async fn start<M>(
 ) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError>
 where
     M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
-    M::Config: serde::Serialize,
 {
     let socket = settings.listen().workload_uri();
 

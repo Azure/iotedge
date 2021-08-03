@@ -14,7 +14,6 @@ where
 impl<M> http_common::server::Route for Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
-    M::Config: serde::Serialize,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -86,7 +85,7 @@ where
 
         let start = if let Some(start) = &self.start {
             std::str::FromStr::from_str(start)
-                .map_err(|err| edgelet_http::error::bad_request("invalid parameter: start"))?
+                .map_err(|_| edgelet_http::error::bad_request("invalid parameter: start"))?
         } else {
             false
         };

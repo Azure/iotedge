@@ -120,7 +120,6 @@ http_common::make_service! {
     { <M> }
     {
         M: edgelet_core::ModuleRuntime + Send + Sync + 'static,
-        M::Config: serde::Serialize,
     }
     api_version: edgelet_http::ApiVersion,
     routes: [
