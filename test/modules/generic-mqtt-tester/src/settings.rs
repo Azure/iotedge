@@ -12,7 +12,7 @@ pub struct Settings {
 
     trc_url: String,
 
-    tracking_id: Option<String>,
+    tracking_id: String,
 
     batch_id: Option<String>,
 
@@ -72,7 +72,7 @@ impl Settings {
         self.trc_url.clone()
     }
 
-    pub fn tracking_id(&self) -> Option<String> {
+    pub fn tracking_id(&self) -> String {
         self.tracking_id.clone()
     }
 

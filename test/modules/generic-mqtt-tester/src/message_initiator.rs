@@ -62,9 +62,7 @@ impl MessageInitiator {
             initiate_topic: settings.initiate_topic(),
             message_frequency: settings.message_frequency(),
             batch_id,
-            tracking_id: settings
-                .tracking_id()
-                .ok_or(MessageTesterError::MissingTrackingId)?,
+            tracking_id: settings.tracking_id(),
             report_source,
         })
     }
