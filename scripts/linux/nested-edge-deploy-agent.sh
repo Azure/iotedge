@@ -223,7 +223,7 @@ function process_args() {
                 '-proxyAddress' ) saveNextArg=19;;
                 '-changeDeployConfigOnly' ) saveNextArg=20;;
                 '-l3IpAddress' ) saveNextArg=21;;
-                '-trackingId' ) saveNextArg=21;;
+                '-trackingId' ) saveNextArg=22;;
                 '-waitForTestComplete' ) WAIT_FOR_TEST_COMPLETE=1;;
                 '-cleanAll' ) CLEAN_ALL=1;;
 
