@@ -68,7 +68,7 @@ stages:
       - script: |
           tracking_id=$(cat /proc/sys/kernel/random/uuid)
           echo "Test tracking id: $tracking_id"
-          echo "##vso[task.setvariable variable=trackingId;isOutput=true]${trackingId}"
+          echo "##vso[task.setvariable variable=trackingId;isOutput=true]${tracking_id}"
         displayName: Generate Tracking Id
         name: generate_tracking_id
 
