@@ -25,13 +25,11 @@ steps:
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
     $packageBuildId = $(resources.pipeline.packages.runID)
-
     if ('$(az.pipeline.images.buildId)')
     {
       Write-Output '>> User supplied az.pipeline.images.buildId=$(az.pipeline.images.buildId)'
       $imageBuildId = '$(az.pipeline.images.buildId)'
     }
-
     if ('$(az.pipeline.packages.buildId)')
     {
       Write-Output '>> User supplied az.pipeline.packages.buildId=$(az.pipeline.packages.buildId)'
