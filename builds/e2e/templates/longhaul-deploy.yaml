@@ -70,6 +70,8 @@ steps:
         testInfo="$testInfo,TestName=longhaul (single-node)"
         testInfo="$testInfo,ClientProtocol=${{ parameters['clientModuleTransportType'] }}"
 
+        echo "${{ parameters['test.trackingId'] }}"
+
         if [ "${{ parameters['test.useTRC'] }}" == true ]; then
           chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
 

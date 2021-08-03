@@ -12,6 +12,8 @@ steps:
     inputs:
       targetType: inline
       script: |
+        echo "$(trackingId)"
+
         declare -a cnreg=( ${edgebuilds-azurecr-io-pwd} )
         . $(Build.StagingDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt
 

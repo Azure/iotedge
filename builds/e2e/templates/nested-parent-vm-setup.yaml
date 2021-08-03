@@ -47,7 +47,7 @@ jobs:
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
       l3IpAddress: ${{ parameters['l3IpAddress'] }}
-      test.trackingId: ${{ parameters['test.trackingId'] }}
+      trackingId: ${{ parameters['test.trackingId'] }}
     pool:
      name: $(pool.name)
      demands:
@@ -56,6 +56,10 @@ jobs:
        - Agent.OSArchitecture -equals X64
        - status -equals unlocked_$(Build.BuildId)_L4_${{ parameters['upstream.protocol'] }}
     steps:
+      - script: |
+        echo "$trackingId"
+      - script: |
+        echo "${{ parameters['test.trackingId'] }}"
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
       - template: nested-get-root-ca.yaml         
