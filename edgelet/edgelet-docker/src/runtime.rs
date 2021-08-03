@@ -391,7 +391,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type Module = DockerModule;
     type ModuleRegistry = Self;
     type Chunk = bytes::Bytes;
-    type Logs = Pin<Box<dyn Stream<Item = Result<Self::Chunk>> + Send>>;
+    type Logs =
+        Pin<Box<dyn Stream<Item = std::result::Result<Self::Chunk, std::io::Error>> + Send>>;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<()> {
         info!("Creating module {}...", module.name());
@@ -792,11 +793,7 @@ impl ModuleRuntime for DockerModuleRuntime {
             .docker
             .logs(id, Some(options))
             .map_ok(bollard::container::LogOutput::into_bytes)
-            .map_err(|e| {
-                Error::from(ErrorKind::RuntimeOperation(
-                    RuntimeOperation::GetModuleLogs(e.to_string()),
-                ))
-            });
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
 
         Box::pin(result)
     }

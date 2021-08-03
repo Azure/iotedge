@@ -368,8 +368,10 @@ pub trait ModuleRuntime: Sized {
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
-    type Chunk: AsRef<[u8]>;
-    type Logs: Stream<Item = Result<Self::Chunk, Self::Error>> + Send;
+    type Chunk: AsRef<[u8]> + Into<bytes::Bytes> + 'static;
+
+    // TODO: Remove failure and fix this error type.
+    type Logs: Stream<Item = Result<Self::Chunk, std::io::Error>> + Send + 'static;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
