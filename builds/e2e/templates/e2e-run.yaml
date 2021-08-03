@@ -60,7 +60,7 @@ steps:
       $filter += '&Category!=NestedEdgeOnly'
     }
 
-    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "FullyQualifiedName~Microsoft.Azure.Devices.Edge.Test.PriorityQueues.PriorityQueueModuleToHubMessages"
+    sudo --preserve-env dotnet test $testFile --no-build --logger 'trx' --filter "$filter"
 
   displayName: Run tests ${{ parameters.test_type }}
   env:
