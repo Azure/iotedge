@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::io::Read;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -55,27 +57,38 @@ where
         let log_options = self.log_options()?;
 
         let edge_only = if let Some(edge_only) = &self.edge_only {
-            std::str::FromStr::from_str(edge_only).map_err(|err| {
+            std::str::FromStr::from_str(edge_only).map_err(|_| {
                 edgelet_http::error::bad_request("invalid parameter: edge_runtime_only")
             })?
         } else {
             false
         };
 
-        let runtime = self.runtime.lock().await;
+        let (mut support_bundle, bundle_size) = {
+            let runtime = self.runtime.lock().await;
 
-        let (support_bundle, bundle_size) = support_bundle::make_bundle(
-            support_bundle::OutputLocation::Memory,
-            log_options,
-            edge_only,
-            false,
-            self.iothub_hostname,
-            &(*runtime),
-        )
-        .await
-        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+            support_bundle::make_bundle(
+                support_bundle::OutputLocation::Memory,
+                log_options,
+                edge_only,
+                false,
+                self.iothub_hostname,
+                &(*runtime),
+            )
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))
+        }?;
 
-        todo!()
+        let bundle_size: usize = std::convert::TryFrom::try_from(bundle_size)
+            .map_err(|_| edgelet_http::error::server_error("invalid size for support bundle"))?;
+
+        let mut buf: Vec<u8> = Vec::with_capacity(bundle_size);
+        support_bundle.read_to_end(&mut buf).map_err(|err| {
+            edgelet_http::error::server_error(format!("failed to create support bundle: {}", err))
+        })?;
+
+        let res = http_common::server::response::zip(hyper::StatusCode::OK, bundle_size, buf);
+        Ok(res)
     }
 
     type PostBody = serde::de::IgnoredAny;
