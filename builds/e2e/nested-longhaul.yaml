@@ -78,8 +78,6 @@ stages:
     l3IpAddressMqtt: $[ stageDependencies.SetupAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt'] ]
     trackingId: $[ stageDependencies.SetupAgents.Generate_Tracking_Id.outputs['generate_tracking_id.trackingId'] ]
   jobs:
-  - script: |
-      echo "$trackingId"
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: amqp
