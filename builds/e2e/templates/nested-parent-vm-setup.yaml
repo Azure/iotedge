@@ -57,9 +57,9 @@ jobs:
        - status -equals unlocked_$(Build.BuildId)_L4_${{ parameters['upstream.protocol'] }}
     steps:
       - script: |
-        echo "$trackingId"
+          echo "$trackingId"
       - script: |
-        echo "${{ parameters['test.trackingId'] }}"
+          echo "${{ parameters['test.trackingId'] }}"
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
       - template: nested-get-root-ca.yaml         
