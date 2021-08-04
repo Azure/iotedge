@@ -515,7 +515,7 @@
                 "value": "120s"
               },
               "INITIATE_TOPIC": {
-                "value": "intiate/1"
+                "value": "initiate/1"
               }
             },
             "settings": {
@@ -539,7 +539,7 @@
                 "value": "<TrackingId>"
               },
               "INITIATE_TOPIC": {
-                "value": "intiate/2"
+                "value": "initiate/2"
               }
             },
             "settings": {

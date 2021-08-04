@@ -90,7 +90,7 @@
                                 "value": "<TrackingId>"
                             },
                             "INITIATE_TOPIC": {
-                                "value": "intiate/2"
+                                "value": "initiate/2"
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"
@@ -117,7 +117,7 @@
                                 "value": "<TrackingId>"
                             },
                             "INITIATE_TOPIC": {
-                                "value": "intiate/1"
+                                "value": "initiate/1"
                             },
                             "TRC_URL": {
                                 "value": "<TrcUrl>"
