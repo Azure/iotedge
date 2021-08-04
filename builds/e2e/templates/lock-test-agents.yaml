@@ -12,6 +12,7 @@ jobs:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
+       - status -equals unlocked
     steps:
       - template: nested-get-secrets.yaml
       - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n ${{ parameters['testRunnerCount'] }} -u ${{ parameters['upstream.protocol'] }}
