@@ -84,7 +84,7 @@
                                 "value": "Initiate"
                             },
                             "TEST_START_DELAY": {
-                                "value": "120s"
+                                "value": "240s"
                             },
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
@@ -111,7 +111,7 @@
                                 "value": "Receive"
                             },
                             "TEST_START_DELAY": {
-                                "value": "10s"
+                                "value": "1s"
                             },
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
