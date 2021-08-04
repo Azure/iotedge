@@ -83,14 +83,17 @@
                             "TEST_SCENARIO": {
                                 "value": "Initiate"
                             },
-                            "TRACKING_ID": {
-                                "value": "<TrackingId>"
-                            },
                             "TEST_START_DELAY": {
                                 "value": "120s"
                             },
+                            "TRACKING_ID": {
+                                "value": "<TrackingId>"
+                            },
                             "INITIATE_TOPIC": {
                                 "value": "intiate/2"
+                            },
+                            "TRC_URL": {
+                                "value": "<TrcUrl>"
                             }
                         },
                         "settings": {
@@ -110,11 +113,14 @@
                             "TEST_START_DELAY": {
                                 "value": "10s"
                             },
-                            "TRC_URL": {
-                                "value": "<TrcUrl>"
-                            },
                             "TRACKING_ID": {
                                 "value": "<TrackingId>"
+                            },
+                            "INITIATE_TOPIC": {
+                                "value": "intiate/1"
+                            },
+                            "TRC_URL": {
+                                "value": "<TrcUrl>"
                             }
                         },
                         "settings": {
