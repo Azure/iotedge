@@ -75,6 +75,11 @@ async fn watchdog(
                     "Edge runtime status is {}; starting runtime now...",
                     agent_status
                 );
+
+                runtime
+                    .start(agent_name)
+                    .await
+                    .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
             }
         }
 
@@ -107,13 +112,15 @@ async fn watchdog(
             //     .create(agent_spec)
             //     .await
             //     .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
+
+            runtime
+                .start(agent_name)
+                .await
+                .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))?;
         }
     }
 
-    runtime
-        .start(agent_name)
-        .await
-        .map_err(|err| EdgedError::from_err("Failed to start Edge runtime", err))
+    Ok(())
 }
 
 async fn agent_gen_id(
