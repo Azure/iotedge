@@ -513,6 +513,9 @@
               },
               "TEST_START_DELAY": {
                 "value": "120s"
+              },
+              "INITIATE_TOPIC": {
+                "value": "intiate/1"
               }
             },
             "settings": {
