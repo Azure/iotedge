@@ -10,7 +10,6 @@ schedules:
 
 variables:
   NugetSecurityAnalysisWarningLevel: warn
-  l3IpAddressMqtt: '' # TODO: see if we can remove
 
 resources:
   pipelines:

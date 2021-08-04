@@ -26,8 +26,6 @@ jobs:
       quickstart.package.name: 'IotEdgeQuickstart.linux-x64.tar.gz'
       nestededge: true
     steps:   
-      - script: |
-          echo "${{ parameters['test.trackingId'] }}"
       - template: nested-get-secrets.yaml     
       - template: nested-get-root-ca.yaml 
       - template: nested-longhaul-deploy.yaml
