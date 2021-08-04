@@ -33,6 +33,7 @@ parameters:
   testResultCoordinator.storageAccountConnectionString: ''
   quickstart.package.name: ''
   upstream.protocol: ''
+  test.trackingId: ''
 
 steps:
   - checkout: self
@@ -183,6 +184,7 @@ steps:
             -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
             -sendReportFrequency "${{ parameters['longHaul.sendReportFrequency'] }}" \
             -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
+            -trackingId "${{ parameters['test.trackingId'] }}" \
             -waitForTestComplete \
             -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
