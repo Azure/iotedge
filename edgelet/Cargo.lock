@@ -175,6 +175,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "130aac562c0dd69c56b3b1cc8ffd2e17be31d0b6c25b61c96b76231aa23e39e1"
 
 [[package]]
+name = "bytes"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b700ce4376041dcd0a327fd0097c41095743c4c8af8887265942faf1100bd040"
+
+[[package]]
 name = "bzip2"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -429,7 +435,7 @@ dependencies = [
  "edgelet-http",
  "failure",
  "futures",
- "http 0.1.18",
+ "http 0.1.21",
  "hyper",
  "log",
  "percent-encoding 1.0.1",
@@ -893,7 +899,7 @@ dependencies = [
  "bytes 0.4.12",
  "fnv",
  "futures",
- "http 0.1.18",
+ "http 0.1.21",
  "indexmap",
  "log",
  "slab",
@@ -936,9 +942,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.1.18"
+version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "372bcb56f939e449117fb0869c2e8fd8753a8223d92a172c6e808cf123a5b6e4"
+checksum = "d6ccf5ede3a895d8856620237b2f02972c1bbc78d2965ad7fe8838d4a0ed41f0"
 dependencies = [
  "bytes 0.4.12",
  "fnv",
@@ -947,11 +953,11 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "0.2.1"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28d569972648b2c512421b5f2a405ad6ac9666547189d0c5477a3f200f3e02f9"
+checksum = "527e8c9ac747e28542699a951517aa9a6945af506cd1f2e1b53a576c17b6cc11"
 dependencies = [
- "bytes 0.5.4",
+ "bytes 1.0.1",
  "fnv",
  "itoa",
 ]
@@ -964,7 +970,7 @@ checksum = "6741c859c1b2463a423a1dbce98d418e6c3c3fc720fb0d45528657320920292d"
 dependencies = [
  "bytes 0.4.12",
  "futures",
- "http 0.1.18",
+ "http 0.1.21",
  "tokio-buf",
 ]
 
@@ -993,7 +999,7 @@ dependencies = [
  "futures",
  "futures-cpupool",
  "h2",
- "http 0.1.18",
+ "http 0.1.21",
  "http-body",
  "httparse",
  "iovec",
@@ -1038,7 +1044,7 @@ checksum = "5f3c9d4782c0eee5fe1e6333d72d37dbba6230dc50618117598ea5de9a90d017"
 dependencies = [
  "bytes 0.4.12",
  "futures",
- "http 0.1.18",
+ "http 0.1.21",
  "hyper",
  "hyper-tls",
  "native-tls",
@@ -1296,7 +1302,7 @@ dependencies = [
  "base64 0.11.0",
  "bytes 0.5.4",
  "chrono",
- "http 0.2.1",
+ "http 0.2.4",
  "percent-encoding 2.1.0",
  "serde",
  "serde-value",
@@ -2652,7 +2658,7 @@ dependencies = [
  "base64 0.10.1",
  "bytes 0.4.12",
  "chrono",
- "http 0.1.18",
+ "http 0.1.21",
  "mime",
 ]
 
