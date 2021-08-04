@@ -69,7 +69,7 @@ where
             runtime.logs(&self.module, &log_options).await
         };
 
-        let res = http_common::server::response::chunked(hyper::StatusCode::OK, logs);
+        let res = http_common::server::response::chunked(hyper::StatusCode::OK, logs, "text/plain");
         Ok(res)
     }
 
