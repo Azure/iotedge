@@ -151,6 +151,7 @@ steps:
         testInfo="$testInfo,ImagesSourceBranch=${{ parameters['images.source.branch'] }}"
         testInfo="$testInfo,HostPlatform=${{ parameters['metricsCollector.hostPlatform'] }}"
         testInfo="$testInfo,TestName=${{ parameters['testInfo.testName'] }}"
+        testInfo="$testInfo,ClientProtocol=All"
         
         chmod +x ${{ parameters['build.repo.path'] }}/scripts/linux/trcE2ETest.sh
         

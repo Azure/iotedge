@@ -81,14 +81,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 // Temporary. Only needed until edgeHub starts using asp.net to expose endpoints
                 endpoint = this.GetUriWithIpAddress(endpoint);
 
-                HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
-                if (result.IsSuccessStatusCode)
+                using (HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken))
                 {
-                    return await result.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
+                    if (result.IsSuccessStatusCode)
+                    {
+                        return await result.Content.ReadAsStringAsync();
+                    }
+                    else
+                    {
+                        Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
+                    }
                 }
             }
             catch (Exception e)

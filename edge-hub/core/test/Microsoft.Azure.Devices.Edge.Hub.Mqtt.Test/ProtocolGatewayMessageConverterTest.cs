@@ -140,6 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             address.Append($"&{HttpUtility.UrlEncode("$.schema")}=someschema");
             // creation time
             address.Append($"&{HttpUtility.UrlEncode("$.ctime")}={HttpUtility.UrlEncode("2018-01-31")}");
+            // component name
+            address.Append($"&{HttpUtility.UrlEncode("$.sub")}=testComponent");
 
             // add custom properties
             address.Append("&Foo=Bar&Prop2=Value2&Prop3=Value3/");
@@ -154,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             IMessage message = protocolGatewayMessageConverter.ToMessage(protocolGatewayMessage);
             Assert.NotNull(message);
 
-            Assert.Equal(10, message.SystemProperties.Count);
+            Assert.Equal(11, message.SystemProperties.Count);
             Assert.Equal("1234", message.SystemProperties[SystemProperties.MsgCorrelationId]);
             Assert.Equal("mid1", message.SystemProperties[SystemProperties.MessageId]);
             Assert.Equal("d2", message.SystemProperties[SystemProperties.To]);
@@ -165,6 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("someschema", message.SystemProperties[SystemProperties.MessageSchema]);
             Assert.Equal("2018-01-31", message.SystemProperties[SystemProperties.CreationTime]);
             Assert.Equal("Device_6", message.SystemProperties[SystemProperties.ConnectionDeviceId]);
+            Assert.Equal("testComponent", message.SystemProperties[SystemProperties.ComponentName]);
 
             Assert.Equal(3, message.Properties.Count);
             Assert.Equal("Bar", message.Properties["Foo"]);
@@ -215,7 +218,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
                 [SystemProperties.MsgCorrelationId] = "1234",
                 [SystemProperties.MessageId] = "m1",
                 [SystemProperties.ConnectionDeviceId] = "fromDevice1",
-                [SystemProperties.ConnectionModuleId] = "fromModule1"
+                [SystemProperties.ConnectionModuleId] = "fromModule1",
+                [SystemProperties.ComponentName] = "testComponent"
             };
 
             var message = Mock.Of<IMessage>(
@@ -227,8 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             var protocolGatewayMessageConverter = new ProtocolGatewayMessageConverter(converter, ByteBufferConverter);
             IProtocolGatewayMessage pgMessage = protocolGatewayMessageConverter.FromMessage(message);
             Assert.NotNull(pgMessage);
-            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1&%24.cdid=fromDevice1&%24.cmid=fromModule1", pgMessage.Address);
-            Assert.Equal(12, pgMessage.Properties.Count);
+            Assert.Equal(@"devices/Device1/modules/Module1/inputs/input1/Foo=Bar&Prop2=Value2&Prop3=Value3&%24.ce=utf-8&%24.ct=application%2Fjson&%24.schema=schema1&%24.to=foo&%24.uid=user1&%24.cid=1234&%24.mid=m1&%24.cdid=fromDevice1&%24.cmid=fromModule1&%24.sub=testComponent", pgMessage.Address);
+            Assert.Equal(13, pgMessage.Properties.Count);
             Assert.Equal("Bar", pgMessage.Properties["Foo"]);
             Assert.Equal("Value2", pgMessage.Properties["Prop2"]);
             Assert.Equal("Value3", pgMessage.Properties["Prop3"]);
@@ -241,6 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test
             Assert.Equal("m1", pgMessage.Properties["$.mid"]);
             Assert.Equal("fromDevice1", pgMessage.Properties["$.cdid"]);
             Assert.Equal("fromModule1", pgMessage.Properties["$.cmid"]);
+            Assert.Equal("testComponent", pgMessage.Properties["$.sub"]);
             Assert.False(pgMessage.Properties.ContainsKey("$.on"));
             Assert.True(DateTime.UtcNow - pgMessage.CreatedTimeUtc < TimeSpan.FromSeconds(3));
         }
