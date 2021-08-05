@@ -13,7 +13,7 @@ pub fn init() {
     let subscriber = Subscriber::builder()
         .with_max_level(Level::TRACE)
         .with_env_filter(log_level)
-        .on_event(Format::default())
+        .event_format(Format::default())
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);
 }

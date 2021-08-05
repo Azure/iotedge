@@ -14,7 +14,7 @@ tokio = { version = "0.2", features = ["blocking", "stream", "sync", "tcp", "dns
 tokio-io-timeout = "0.4"
 tokio-util = { version = "0.2", features = ["codec"] }
 tracing = "0.1"
-tracing-subscriber = "0.1"
+tracing-subscriber = {version = "0.2", features = ["fmt"]}
 
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-broker = { path = "../mqtt-broker" }
