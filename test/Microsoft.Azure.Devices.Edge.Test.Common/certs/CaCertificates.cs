@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     public class CaCertificates : IdCertificates
     {
         public string TrustedCertificatesPath { get; }
+        public Option<string> ManifestTrustedCertificatesPath { get; }
 
         public IEnumerable<X509Certificate2> TrustedCertificates =>
             new[]
@@ -43,6 +44,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             this.CertificatePath = certificatePath;
             this.KeyPath = keyPath;
             this.TrustedCertificatesPath = trustedCertsPath;
+        }
+
+        public CaCertificates(string certificatePath, string keyPath, string trustedCertsPath, string manifestSigningTrustBundlePath)
+        {
+            Preconditions.CheckArgument(File.Exists(certificatePath));
+            Preconditions.CheckArgument(File.Exists(keyPath));
+            Preconditions.CheckArgument(File.Exists(trustedCertsPath));
+            Preconditions.CheckArgument(File.Exists(manifestSigningTrustBundlePath));
+            this.CertificatePath = certificatePath;
+            this.KeyPath = keyPath;
+            this.TrustedCertificatesPath = trustedCertsPath;
+            this.ManifestTrustedCertificatesPath = Option.Maybe(manifestSigningTrustBundlePath);
         }
     }
 }

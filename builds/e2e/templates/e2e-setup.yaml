@@ -25,7 +25,8 @@ steps:
       TestManifestSigningIntermediateCa,
       TestManifestSigningSignerCert,
       TestManifestSigningSignerKey,
-      TestManifestSigningSignerAlgorithm
+      TestManifestSigningSignerAlgorithm,
+      TestManifestSigningBadRootCa
 
 - pwsh: |
     $imageBuildId = $(resources.pipeline.images.runID)
@@ -118,14 +119,16 @@ steps:
     Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
-    $env:ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/root_ca.pem"
+    $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
+    $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
     $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
     $env:SIGNER_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_cert.crt"
     $env:SIGNER_KEY | Out-File -Encoding Utf8 "$manifestSigningCertDir/signer_key.key"
     Write-Output "##vso[task.setvariable variable=manifestSigningCertDir]$manifestSigningCertDir"
   displayName: Build Manifest Signer Client and set up certificates
   env:
-    ROOT_CA_CERT: $(TestManifestSigningRootCa)
+    GOOD_ROOT_CA_CERT: $(TestManifestSigningRootCa)
+    BAD_ROOT_CA_CERT: $(TestManifestSigningBadRootCa)
     INTERMEDIATE_CA_CERT: $(TestManifestSigningIntermediateCa)
     SIGNER_CERT: $(TestManifestSigningSignerCert)
     SIGNER_KEY: $(TestManifestSigningSignerKey)
@@ -172,7 +175,8 @@ steps:
 
     if ('$(enableManifestSigning)' -eq 'true')
     {  
-      $testManifestSigningRootCaPath = Convert-Path "$(manifestSigningCertDir)/root_ca.pem";
+      $testManifestSigningGoodRootCaPath = Convert-Path "$(manifestSigningCertDir)/good_root_ca.pem";
+      $testManifestSigningBadRootCaPath = Convert-Path "$(manifestSigningCertDir)/bad_root_ca.pem";
       $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
       $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
@@ -183,7 +187,7 @@ steps:
             commandName = "Project";
             environmentVariables = @{  
               USE_TESTING_CA = "true";
-              MANIFEST_TRUST_DEVICE_ROOT_CA_PATH = "$testManifestSigningRootCaPath";
+              MANIFEST_TRUST_DEVICE_ROOT_CA_PATH = "$testManifestSigningGoodRootCaPath";
               MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
               MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
               MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
@@ -252,6 +256,8 @@ steps:
     {
       $context['enableManifestSigning'] = "true"
       $context['manifestSigningDeploymentDir'] = "$(manifestSigningDeploymentDir)"
+      $context['manifestSigningGoodRootCaPath'] = "$testManifestSigningGoodRootCaPath"
+      $context['manifestSigningBadRootCaPath'] = "$testManifestSigningBadRootCaPath"
       $context['manifestSigningLaunchSettingsPath'] = "$manifestSigningLaunchSettingsPath"
     }
 

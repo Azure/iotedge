@@ -38,7 +38,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public async Task<EdgeDeployment> DeployConfigurationAsync(
             Action<EdgeConfigBuilder> addConfig,
             CancellationToken token,
-            bool nestedEdge)
+            bool nestedEdge,
+            Option<ManifestSettings> enableManifestSigning = Option.None<ManifestSettings>()) // Deployment dir. path to lauchsettings, ca cert to use
         {
             (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
 
@@ -61,9 +62,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithProxy(this.proxy);
 
             addConfig(builder);
-
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
+
+            if (enableManifestSigning.HasValue)
+            {
+                // Write to a file
+                // Setup for the system call
+                // System call to to signing app.
+            }
+
             await edgeConfiguration.DeployAsync(this.iotHub, token);
             EdgeModule[] modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.DeviceId, this.iotHub))

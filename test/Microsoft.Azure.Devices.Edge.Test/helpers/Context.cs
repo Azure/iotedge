@@ -120,7 +120,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.NestedEdge = context.GetValue("nestededge", false);
             this.DeviceId = Option.Maybe(Get("deviceId"));
             this.ISA95Tag = context.GetValue("isa95Tag", false);
-            this.ManifestSigningFlag = Option.Maybe(Get("manifestSigningFlag"));
+            this.EnableManifestSigning = context.GetValue("enableManifestSigning", false);
+            this.ManifestSigningDeploymentDir = Option.Maybe(Get("manifestSigningDeploymentDir"));
+            this.ManifestSigningGoodRootCaPath = Option.Maybe(Get("manifestSigningGoodRootCaPath"));
+            this.ManifestSigningBadRootCaPath = Option.Maybe(Get("manifestSigningBadRootCaPath"));
+            this.ManifestSigningLaunchSettingsPath = Option.Maybe(Get("manifestSigningLaunchSettingsPath"));
         }
 
         static readonly Lazy<Context> Default = new Lazy<Context>(() => new Context());
@@ -207,6 +211,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public bool ISA95Tag { get; }
 
-        public Option<string> ManifestSigningFlag { get; }
+        public bool EnableManifestSigning { get; }
+
+        public Option<string> ManifestSigningDeploymentDir { get; }
+
+        public Option<string> ManifestSigningGoodRootCaPath { get; }
+
+        public Option<string> ManifestSigningBadRootCaPath { get; }
+
+        public Option<string> ManifestSigningLaunchSettingsPath { get; }
     }
 }

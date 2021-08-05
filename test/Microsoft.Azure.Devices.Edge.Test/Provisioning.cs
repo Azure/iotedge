@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
                 Context.Current.TestRunnerProxy,
-                Context.Current.ManifestSigningFlag);
+                Context.Current.EnableManifestSigning);
         }
 
         string DeriveDeviceKey(byte[] groupKey, string registrationId)
