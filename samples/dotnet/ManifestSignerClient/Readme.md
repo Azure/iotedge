@@ -1,28 +1,33 @@
-# Manifest Signer Client
+# Manifest Signing for Manifest Trust in IoT edge
+**Note: This feature is currently in experimental phase. Its is not released yet and not to be used in production**
+
+Manifest Trust is to protect the integrity of the deployment manifest JSON for the edge device. Signing the deployment is done by a tool called Manifest Signer client. 
 
 Manifest Signer Client is a tool that will be used for the Manifest Trust feature. The deployment manifest JSON will be signed using the tool Manifest Signer client and the signatures will be verified by the IoT Edge Runtime once the signed deployment manifest is deployed.
 
 Manifest Signer client gives a signed deployment JSON file as an end output. 
 
+### To try the feature, follow the 4 steps below
+1. Certificate Generator using scripts
+2. Configure LaunchSettings file
+3. Build and run Manifest Signer Client
+4. Configure the IoT edge Daemon to enable Manifest Signing
+
 ### Step 1: Certificate Generator
 OpenSSL is needed to generate the certificate. Please follow the instructions [here](https://github.com/Azure/iotedge/blob/master/edgelet/doc/devguide.md#windows-1).
 Manifest signer client needs a root Certificate Authority and a signer cert. To achieve that Certificate Generator scripts will be used. There are two folders in the CertificateGenerator folder. One for Windows and other for Linux.
 
-Under Windows, there are two scripts. One for RSA and other EDCDsa.
-1. Gen_RootCA_with_Signer_ECDsa.bat
-2. Gen_RootCA_with_Signer_RSA.bat
+Under Windows and Linux, there are two scripts with the naming for RSA and EDCDsa.
+1. Windows :`Gen_RootCA_with_Signer_ECDsa.bat` and `Gen_RootCA_with_Signer_RSA.bat`
+2. Linux : `Gen_RootCA_with_Signer_ECDsa.sh` and `Gen_RootCA_with_Signer_RSA.sh`
 
-Under Linux, same format is followed.
-1. Gen_RootCA_with_Signer_ECDsa.sh
-2. Gen_RootCA_with_Signer_RSA.sh
-
-##### Set of choices in DSA algorithms
+Set of choices in DSA algorithms
 1. The first decision to make is which DSA algorithm schemes to choose. We highly recommend using ECDSA as it generates smaller signatures. Choose the scripts accordingly with the corresponding labelled script. 
 2. Next choice is the different algorithmic parameters. For ECDsa, there are three EC parameters to choose from secp521r1 , secp384r1, prime256v1. Edit the parameter `ROOT_KEY_ALGO` and `SIGNER_KEY_ALGO`. Default value for root CA is `scep521r1` and signer cert is `prime256v1`
 3. Next choice is the different SHA algorithm. For RSA and ECDsa, there are three choices of SHA algorithm to choose from  SHA256, SHA384, SHA512. Recommendation is to use larger keys for root CA and smaller keys for signer certs. Edit the parameter `ROOT_SHA_ALGORITHM` and `SIGNER_SHA_ALGORITHM`. Default value is `SHA256`
 3. The file names of the root CA, root private key, signer cert, signer private key are also editable in the script. 
 
-Once the variables are set in the script. Run the script and the following files will be generated as a result.
+Once the variables are set in the scrip, run the script  and the following files will be generated as a result.
 
 1. `root_ca_private_<algo>_key.pem` - private root key
 2. `root_ca_public_<algo>_cert.pem` - public root key / root CA
@@ -37,7 +42,7 @@ The files that are needed to launch and sign deployment manifest JSON is as foll
 2. `signer_private_<algo>_key.pem` - private signer key
 3. `signer_public_<algo>_cert.pem` - public signer cert
 
-### Step 2: Launch Settings
+### Step 2: Configuring Launch Settings file
 Manifest Signer client has  `launchSettings.json` under `Properties` folder and the following values have to be set to sign the deployment manifest file. 
 1. `DSA_ALGORITHM` is the DSA algorithm scheme. The values supported for ECDsa are `ES256`, `ES384` and `ES512`. For RSA, it is `RS256`, `RS384` and `RS512`
 2. `USE_TESTING_CA` is set to true or false when using CA's signed by Unknown Authority. It is only used for testing and not for production.
@@ -50,3 +55,6 @@ Manifest Signer client has  `launchSettings.json` under `Properties` folder and 
 
 ### Step 3: Build and Run Manifest Signer Client
 Once the `launchSettings.json` file is configured, the solution can be built and run using `dotnet build` and `dotnet run`. If all the inputs are configured properly, then signed deployment JSON will be generated. 
+
+### Step 4. Configure the IoT edge daemon to enable Manifest Signing
+TBD
