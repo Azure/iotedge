@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use edgelet_core::ModuleRegistry;
+use edgelet_core::{ModuleRegistry, ModuleRuntime};
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
 pub(crate) async fn run_until_shutdown(
-    settings: impl edgelet_settings::RuntimeSettings,
-    runtime: impl edgelet_core::ModuleRuntime,
+    settings: edgelet_settings::docker::Settings,
+    runtime: edgelet_docker::DockerModuleRuntime,
     identity_client: &aziot_identity_client_async::Client,
     mut shutdown_rx: tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
 ) -> Result<edgelet_core::ShutdownReason, EdgedError> {
@@ -57,8 +58,8 @@ pub(crate) async fn run_until_shutdown(
 }
 
 async fn watchdog(
-    settings: &impl edgelet_settings::RuntimeSettings,
-    runtime: &impl edgelet_core::ModuleRuntime,
+    settings: &edgelet_settings::docker::Settings,
+    runtime: &edgelet_docker::DockerModuleRuntime,
     identity_client: &aziot_identity_client_async::Client,
 ) -> Result<(), EdgedError> {
     log::info!("Watchdog checking Edge runtime status");
@@ -96,22 +97,22 @@ async fn watchdog(
                 .env_mut()
                 .insert("IOTEDGE_MODULEGENERATIONID".to_string(), gen_id);
 
-            // if let edgelet_settings::module::ImagePullPolicy::OnCreate =
-            //     agent_spec.image_pull_policy()
-            // {
-            //     runtime
-            //         .registry()
-            //         .pull(agent_spec.config())
-            //         .await
-            //         .map_err(|err| {
-            //             EdgedError::from_err("Failed to pull Edge runtime module", err)
-            //         })?;
-            // }
+            if let edgelet_settings::module::ImagePullPolicy::OnCreate =
+                agent_spec.image_pull_policy()
+            {
+                runtime
+                    .registry()
+                    .pull(agent_spec.config())
+                    .await
+                    .map_err(|err| {
+                        EdgedError::from_err("Failed to pull Edge runtime module", err)
+                    })?;
+            }
 
-            // runtime
-            //     .create(agent_spec)
-            //     .await
-            //     .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
+            runtime
+                .create(agent_spec)
+                .await
+                .map_err(|err| EdgedError::from_err("Failed to create Edge runtime module", err))?;
 
             runtime
                 .start(agent_name)
