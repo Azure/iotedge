@@ -7,16 +7,21 @@ namespace DevOpsLib
     using Flurl;
     using Flurl.Http;
     using Newtonsoft.Json.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class BugManagement
     {
         const string WorkItemPathSegmentFormat = "{0}/{1}/{2}/_apis/wit/workitems/$Bug";
 
         readonly DevOpsAccessSetting accessSetting;
+        readonly CommitManagement commitManagement;
+        readonly UserManagement userManagement;
 
-        public BugManagement(DevOpsAccessSetting accessSetting)
+        public BugManagement(DevOpsAccessSetting accessSetting, CommitManagement commitManagement, UserManagement userManagement)
         {
             this.accessSetting = accessSetting;
+            this.commitManagement = commitManagement;
+            this.userManagement = userManagement;
         }
 
         /// <summary>
@@ -34,6 +39,8 @@ namespace DevOpsLib
                 .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT)
                 .WithHeader("Content-Type", "application/json-patch+json")
                 .SetQueryParam("api-version", "6.0");
+
+            Option<string> bugOwnerEmail = await GetBugOwnerEmailAsync(build.SourceVersion);
 
             var jsonBody = new object[]
             {
@@ -106,6 +113,11 @@ namespace DevOpsLib
             }
 
             return result["id"].ToString();
+        }
+
+        async Task<Option<string>> GetBugOwnerEmailAsync(string commit)
+        {
+
         }
     }
 }
