@@ -44,7 +44,7 @@ proptest = "0.9"
 tempfile = "3"
 test-case = "1.0"
 tokio = { version = "0.2", features = ["dns", "macros", "io-util"] }
-tracing-subscriber = "0.1"
+tracing-subscriber = {version = "0.2", features = ["fmt"]}
 
 mqtt-broker-tests-util = { path = "../mqtt-broker-tests-util" }
 
