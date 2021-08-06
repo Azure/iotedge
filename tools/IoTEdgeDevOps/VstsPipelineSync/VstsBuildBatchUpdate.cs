@@ -37,6 +37,9 @@ namespace VstsPipelineSync
             var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
             var bugWiqlManagement = new BugWiqlManagement(devOpsAccessSetting);
             var bugManagement = new BugManagement(devOpsAccessSetting);
+            var userManagement = new UserManagement(devOpsAccessSetting);
+
+            await userManagement.ListUsersAsync();
 
             while (!ct.IsCancellationRequested)
             {
@@ -67,8 +70,8 @@ namespace VstsPipelineSync
         {
             // Filter out the builds for which we have already made bugs
             builds = FilterBuildsByDate(builds);
-            builds = FilterBuildsByStatus(builds);
-            builds = FilterBuildsByExistingBugs(builds);
+            // builds = FilterBuildsByStatus(builds);
+            // builds = FilterBuildsByExistingBugs(builds);
             Console.WriteLine($"Filtering builds complete. Creating bugs for {builds.Count} builds");
 
             // Create the bugs
@@ -259,7 +262,8 @@ namespace VstsPipelineSync
             IList<VstsBuild> filteredBuilds = new List<VstsBuild>();
             foreach (VstsBuild build in builds)
             {
-                if (build.FinishTime > DateTime.UtcNow - TimeSpan.FromHours(1))
+                // TODO: revert
+                if (build.FinishTime > DateTime.UtcNow - TimeSpan.FromHours(12))
                 {
                     filteredBuilds.Add(build);
                 }

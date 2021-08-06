@@ -29,9 +29,9 @@ namespace DevOpsLib
         /// <returns>Work item id for the created bug.</returns>
         public async Task<string> CreateBugAsync(string branch, VstsBuild build)
         {
-            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project);
+            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject);
             IFlurlRequest workItemQueryRequest = ((Url)requestPath)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken)
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT)
                 .WithHeader("Content-Type", "application/json-patch+json")
                 .SetQueryParam("api-version", "6.0");
 
@@ -73,6 +73,12 @@ namespace DevOpsLib
                         rel = "Hyperlink",
                         url = $"{build.WebUri}"
                     }
+                },
+                new
+                {
+                    op = "add",
+                    path = "/fields/System.AssignedTo",
+                    value = "als5ev@virginia.edu"
                 }
             };
 
@@ -83,10 +89,14 @@ namespace DevOpsLib
                     .PostJsonAsync(jsonBody);
 
                 result = await response.GetJsonAsync<JObject>();
+
+                Console.WriteLine(result.ToString());
+                Console.ReadLine();
             }
             catch (FlurlHttpException e)
             {
                 string message = $"Failed making call to vsts work item api: {e.Message}";
+                Console.ReadLine();
                 Console.WriteLine(message);
                 Console.WriteLine(e.Call.RequestBody);
                 Console.WriteLine(e.Call.Response.StatusCode);
@@ -99,3 +109,4 @@ namespace DevOpsLib
         }
     }
 }
+

@@ -38,9 +38,9 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
+            string requestPath = string.Format(LatestBuildPathSegmentFormat, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject);
             IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, null, 1)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
             JObject result = JObject.Parse(resultJson);
@@ -60,9 +60,9 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
+            string requestPath = string.Format(LatestBuildPathSegmentFormat, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject);
             IFlurlRequest latestBuildRequest = GetBuildsRequestUri(buildDefinitionIds, branchName, requestPath, minTime, maxBuildsPerDefinition)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             string resultJson = await latestBuildRequest.GetStringAsync().ConfigureAwait(false);
             JObject result = JObject.Parse(resultJson);

@@ -5,38 +5,20 @@ namespace DevOpsLib
     {
         public const string BaseUrl = "https://dev.azure.com";
         public const string ReleaseManagementBaseUrl = "https://vsrm.dev.azure.com";
+        public const string UserManagementBaseUrl = "https://vssps.dev.azure.com";
         public const string AzureOrganization = "msazure";
         public const string AzureProject = "one";
         public const string IoTTeam = "IoT-Platform-Edge";
+        public const string IotedgeOrganization = "iotedge";
 
-        public DevOpsAccessSetting(string personalAccessToken)
-            : this(AzureOrganization, AzureProject, personalAccessToken, IoTTeam)
+        public DevOpsAccessSetting(string msazurePAT, string iotedgePAT = "")
         {
+            this.MsazurePAT = msazurePAT;
+            this.IotedgePAT = iotedgePAT;
         }
 
-        public DevOpsAccessSetting(
-            string organization,
-            string project,
-            string personalAccessToken,
-            string team)
-        {
-            ValidationUtil.ThrowIfNullOrWhiteSpace(organization, nameof(organization));
-            ValidationUtil.ThrowIfNullOrWhiteSpace(project, nameof(project));
-            ValidationUtil.ThrowIfNullOrWhiteSpace(personalAccessToken, nameof(personalAccessToken));
-            ValidationUtil.ThrowIfNullOrWhiteSpace(team, nameof(team));
+        public string MsazurePAT { get; }
 
-            this.Organization = organization;
-            this.Project = project;
-            this.PersonalAccessToken = personalAccessToken;
-            this.Team = team;
-        }
-
-        public string Organization { get; }
-
-        public string Project { get; }
-
-        public string PersonalAccessToken { get; }
-
-        public string Team { get; }
+        public string IotedgePAT { get; }
     }
 }

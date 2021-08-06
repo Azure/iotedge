@@ -35,7 +35,7 @@ namespace DevOpsLib
             ValidationUtil.ThrowIfNonPositive(top, nameof(top));
 
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(ReleasePathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
+            string requestPath = string.Format(ReleasePathSegmentFormat, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject);
             IFlurlRequest listReleasesRequest = DevOpsAccessSetting.ReleaseManagementBaseUrl
                 .AppendPathSegment(requestPath)
                 .SetQueryParam("definitionId", definitionId.IdString())
@@ -43,12 +43,12 @@ namespace DevOpsLib
                 .SetQueryParam("$top", top)
                 .SetQueryParam("api-version", "5.1")
                 .SetQueryParam("sourceBranchFilter", branchName)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
             string releasesJson = await listReleasesRequest.GetStringAsync().ConfigureAwait(false);
             JObject releasesJObject = JObject.Parse(releasesJson);
 
-            if (!releasesJObject.ContainsKey("count") || (int) releasesJObject["count"] <= 0)
+            if (!releasesJObject.ContainsKey("count") || (int)releasesJObject["count"] <= 0)
             {
                 return new List<IoTEdgeRelease>();
             }
@@ -56,13 +56,13 @@ namespace DevOpsLib
             VstsRelease[] vstsReleases = JsonConvert.DeserializeObject<VstsRelease[]>(releasesJObject["value"].ToString());
             var iotEdgeReleases = new List<IoTEdgeRelease>();
 
-            foreach(VstsRelease vstsRelease in vstsReleases)
+            foreach (VstsRelease vstsRelease in vstsReleases)
             {
                 IFlurlRequest getReleaseRequest = DevOpsAccessSetting.ReleaseManagementBaseUrl
                     .AppendPathSegment(requestPath)
                     .SetQueryParam("api-version", "5.1")
                     .SetQueryParam("releaseId", vstsRelease.Id)
-                    .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken);
+                    .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT);
 
                 string releaseJson = await getReleaseRequest.GetStringAsync().ConfigureAwait(false);
 
