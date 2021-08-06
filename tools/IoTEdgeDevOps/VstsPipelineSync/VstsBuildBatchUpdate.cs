@@ -36,9 +36,13 @@ namespace VstsPipelineSync
             var buildManagement = new BuildManagement(devOpsAccessSetting);
             var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
             var bugWiqlManagement = new BugWiqlManagement(devOpsAccessSetting);
-            var bugManagement = new BugManagement(devOpsAccessSetting);
-            // TODO ANDREW: Inject into bug management
+
             var userManagement = new UserManagement(devOpsAccessSetting);
+            var commitManagement = new CommitManagement();
+            var bugManagement = new BugManagement(devOpsAccessSetting);
+
+            Console.WriteLine(await commitManagement.GetAuthorFullNameFromCommitAsync("ce8a157cbecf6f9b68aa1a30c531e152aeccb79f"));
+            Console.ReadLine();
 
             while (!ct.IsCancellationRequested)
             {
