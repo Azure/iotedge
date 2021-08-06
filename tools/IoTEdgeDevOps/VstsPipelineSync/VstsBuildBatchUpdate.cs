@@ -37,9 +37,8 @@ namespace VstsPipelineSync
             var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
             var bugWiqlManagement = new BugWiqlManagement(devOpsAccessSetting);
             var bugManagement = new BugManagement(devOpsAccessSetting);
+            // TODO ANDREW: Inject into bug management
             var userManagement = new UserManagement(devOpsAccessSetting);
-
-            await userManagement.ListUsersAsync();
 
             while (!ct.IsCancellationRequested)
             {
@@ -262,7 +261,7 @@ namespace VstsPipelineSync
             IList<VstsBuild> filteredBuilds = new List<VstsBuild>();
             foreach (VstsBuild build in builds)
             {
-                // TODO: revert
+                // TODO ANDREW: revert
                 if (build.FinishTime > DateTime.UtcNow - TimeSpan.FromHours(12))
                 {
                     filteredBuilds.Add(build);
@@ -320,6 +319,7 @@ namespace VstsPipelineSync
             cmd.Parameters.Add(new SqlParameter("@DefinitionId", build.DefinitionId));
             cmd.Parameters.Add(new SqlParameter("@DefinitionName", build.DefinitionId.DisplayName()));
             cmd.Parameters.Add(new SqlParameter("@SourceBranch", build.SourceBranch));
+            cmd.Parameters.Add(new SqlParameter("@SourceVersion", build.SourceVersion));
             cmd.Parameters.Add(new SqlParameter("@SourceVersionDisplayUri", build.SourceVersionDisplayUri.AbsoluteUri));
             cmd.Parameters.Add(new SqlParameter("@WebUri", build.WebUri.AbsoluteUri));
             cmd.Parameters.Add(new SqlParameter("@Status", build.Status.ToString()));

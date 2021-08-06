@@ -2,10 +2,12 @@
 namespace DevOpsLib
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading.Tasks;
     using DevOpsLib.VstsModels;
     using Flurl;
     using Flurl.Http;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public class UserManagement
@@ -27,7 +29,7 @@ namespace DevOpsLib
         /// <param name="branch">Branch for which the bug is being created</param>
         /// <param name="build">Build for which the bug is being created</param>
         /// <returns>Work item id for the created bug.</returns>
-        public async Task ListUsersAsync()
+        public async Task<IList<VstsUser>> ListUsersAsync()
         {
             string requestPath = string.Format(UserPathSegmentFormat, DevOpsAccessSetting.UserManagementBaseUrl, DevOpsAccessSetting.IotedgeOrganization);
 
@@ -41,11 +43,7 @@ namespace DevOpsLib
             try
             {
                 IFlurlResponse response = await workItemQueryRequest.GetAsync();
-
                 result = await response.GetJsonAsync<JObject>();
-
-                Console.WriteLine(result.ToString());
-                Console.ReadLine();
             }
             catch (FlurlHttpException e)
             {
@@ -58,6 +56,14 @@ namespace DevOpsLib
 
                 throw new Exception(message);
             }
+
+            if (!result.ContainsKey("count") || (int)result["count"] <= 0)
+            {
+                return new VstsUser[0];
+            }
+
+            IList<VstsUser> users = JsonConvert.DeserializeObject<VstsUser[]>(result["value"].ToString());
+            return users;
         }
     }
 }

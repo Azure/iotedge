@@ -10,6 +10,7 @@ CREATE TABLE [dbo].[VstsBuild](
 	[DefinitionId] [int] NOT NULL,
 	[DefinitionName] [varchar](100) NOT NULL,
 	[SourceBranch] [varchar](100) NOT NULL,
+	[SourceVersion] [varchar](100) NOT NULL,
 	[SourceVersionDisplayUri] [varchar](500) NOT NULL,
 	[WebUri] [varchar](500) NOT NULL,
 	[Status] [varchar](20) NOT NULL,
