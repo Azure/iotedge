@@ -1,6 +1,7 @@
 parameters:
   upstream.protocol: ''
   testInfo.testName: ''
+  test.trackingId: ''
 
 jobs:
   - job:  Deploy_Longhaul_Linux_Amd64_${{ parameters['upstream.protocol'] }}
@@ -63,3 +64,4 @@ jobs:
           quickstart.package.name: '$(quickstart.package.name)'
           testInfo.testName: "${{ parameters['testInfo.testName'] }}"
           upstream.protocol: "${{ parameters['upstream.protocol'] }}"
+          test.trackingId: "${{ parameters['test.trackingId'] }}"

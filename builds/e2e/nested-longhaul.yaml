@@ -21,11 +21,66 @@ resources:
     branch: 'release/1.2'
 
 stages:
-- stage: SetupVMs
+- stage: SetupAgents 
+  jobs:
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'amqp'
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'mqtt'
+
+  # Get the ip address of the L3 agent. Needed for test modules on the middle level L4 agent.
+  - job: Get_L3_IP_mqtt
+    dependsOn:
+      - Lock_Nested_Agents_mqtt
+    displayName: Get ip address of L3 mqtt agent
+    timeoutInMinutes: 180
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+       - status -equals unlocked_$(Build.BuildId)_L3_mqtt
+    steps:
+      - script: |
+          L3_IP_ADDRESS_MQTT=$(ip route get 8.8.8.8 | sed -n '/src/{s/.*src *\([^ ]*\).*/\1/p;q}')
+          echo "Ip adress of L3 agent: $L3_IP_ADDRESS_MQTT"
+          echo "##vso[task.setvariable variable=l3IpAddressMqtt;isOutput=true]${L3_IP_ADDRESS_MQTT}"
+        displayName: Get ip address of L3 mqtt agent
+        name: get_l3_ip_mqtt
+
+  # Generate tracking id
+  - job: Generate_Tracking_Id
+    dependsOn:
+      - Lock_Nested_Agents_mqtt
+    displayName: Generate test tracking id
+    timeoutInMinutes: 180
+    pool:
+     name: $(pool.name)
+     demands:
+       - agent-group -equals $(agent.group)
+       - Agent.OS -equals Linux
+       - Agent.OSArchitecture -equals X64
+    steps:
+      - script: |
+          tracking_id=$(cat /proc/sys/kernel/random/uuid)
+          echo "Test tracking id: $tracking_id"
+          echo "##vso[task.setvariable variable=trackingId;isOutput=true]${tracking_id}"
+        displayName: Generate Tracking Id
+        name: generate_tracking_id
+
+- stage: RunNestedTests
+  dependsOn: SetupAgents
+  variables: 
+    l3IpAddressMqtt: $[ stageDependencies.SetupAgents.Get_L3_IP_mqtt.outputs['get_l3_ip_mqtt.l3IpAddressMqtt'] ]
+    trackingId: $[ stageDependencies.SetupAgents.Generate_Tracking_Id.outputs['generate_tracking_id.trackingId'] ]
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: amqp
+      test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_amqp.json'
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       upstream.protocol: amqp
@@ -33,20 +88,22 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt
+      test.l4DeploymentFileName: 'nestededge_middleLayer_messaging_mqtt.json'
+      l3IpAddress: '$(l3IpAddressMqtt)'
+      test.trackingId: '$(trackingId)'
   - template: templates/nested-longhaul-deploy-amd64.yaml
     parameters:
       upstream.protocol: mqtt
       testInfo.testName: 'longhaul (nested-broker)'
+      test.trackingId: '$(trackingId)'
 
+- stage: Cleanup 
+  dependsOn:
+    - SetupAgents
+    - RunNestedTests
+  condition: eq(variables['test.pipeline'], 'true')
+  jobs:
   - job:  Unlock_agents      
-    dependsOn:
-      - SetupVM_level5_amqp
-      - SetupVM_level5_mqtt
-      - SetupVM_level4_amqp
-      - SetupVM_level4_mqtt
-      - Deploy_Longhaul_Linux_Amd64_amqp
-      - Deploy_Longhaul_Linux_Amd64_mqtt
-    condition: and(or(eq(dependencies.Lock_Nested_Agents_amqp.result, 'succeeded'), eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')), eq(variables['test.pipeline'], 'true'))
     displayName: Unlock agents
     pool:
       name: $(pool.name)
@@ -54,7 +111,6 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agents.yaml 

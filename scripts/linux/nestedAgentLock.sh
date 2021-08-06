@@ -256,7 +256,6 @@ while true && [ $((SECONDS)) -lt $endSeconds ]; do
         if [ $agentsAllLockedCorrectly = false ]; then
             echo "Conflicting agent lock detected. Unlocking all booked agents made here."
             unlock_agents "${filteredAgents[@]}"
-
         else
             print_agent_names "${filteredAgents[@]}"
             echo "Successfully locked agents"
