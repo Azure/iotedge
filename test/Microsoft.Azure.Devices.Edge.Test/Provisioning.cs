@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
         [Test]
         [Category("CentOsSafe")]
+        [Ignore("PBI_10496372", Until = "2021-08-15 12:00:00Z"]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope (check dpsIdScope in context.json)"));
