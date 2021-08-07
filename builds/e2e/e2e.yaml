@@ -48,7 +48,7 @@ jobs:
       identityServiceArtifactName: packages_debian-9-slim_arm32v7
       identityServicePackageFilter: aziot-identity-service_*_armhf.deb
 
-    timeoutInMinutes: 120
+    timeoutInMinutes: 500
 
     steps:
     - template: templates/e2e-clean-directory.yaml
@@ -73,6 +73,8 @@ jobs:
       identityServiceArtifactName: packages_ubuntu-18.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
 
+    timeoutInMinutes: 250
+
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
@@ -95,6 +97,8 @@ jobs:
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
       minimal: true
 
+    timeoutInMinutes: 250
+
     steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
@@ -115,6 +119,8 @@ jobs:
       artifactName: iotedged-ubuntu20.04-amd64
       identityServiceArtifactName: packages_ubuntu-20.04_amd64
       identityServicePackageFilter: aziot-identity-service_*_amd64.deb
+
+    timeoutInMinutes: 250
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -193,7 +199,7 @@ jobs:
       # because we aren't publishing test artifacts for this job, turn on verbose logging instead
       verbose: true
 
-    timeoutInMinutes: 120
+    timeoutInMinutes: 375
 
     steps:
     - template: templates/e2e-clean-directory.yaml
