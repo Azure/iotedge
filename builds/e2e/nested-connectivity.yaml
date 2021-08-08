@@ -31,12 +31,20 @@ resources:
     branch: 'release/1.2'
 
 stages:
-- stage: SetupVMs
+- stage: LockAgents 
+  jobs:
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'mqtt'
+      testRunnerCount: 2
+
+- stage: RunNestedTests
+  dependsOn: LockAgents
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters: 
       upstream.protocol: 'mqtt'
-      testRunnerCount: 2
+      test.l4DeploymentFileName: 'nestededge_middleLayer_messaging_mqtt.json'
   - job:  Deploy_Connectivity_Linux_Amd64
     displayName: Set up and run connectivity tests on Linux Amd64
     dependsOn:
@@ -169,13 +177,15 @@ stages:
           aziotis.package.filter: '$(aziotis.package.filter)'
           connectivity.nested: 'true'
           testInfo.testName: '$(testInfo.testName)'
+
+
+- stage: Cleanup 
+  condition: always()
+  dependsOn:
+    - LockAgents
+    - RunNestedTests
+  jobs:
   - job:  Unlock_agents      
-    dependsOn:
-      - Lock_Nested_Agents_mqtt
-      - SetupVM_level5_mqtt
-      - SetupVM_level4_mqtt
-      - Deploy_connectivity_Linux_Amd64
-    condition: eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')
     displayName: Unlock agents
     pool:
       name: $(pool.name)
@@ -183,7 +193,6 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml     
       - template: templates/unlock-test-agents.yaml 

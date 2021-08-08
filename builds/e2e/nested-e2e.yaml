@@ -40,11 +40,19 @@ resources:
     branch: 'release/1.2'
 
 stages:
-- stage: SetupVM
+- stage: LockAgents 
+  jobs:
+  - template: templates/lock-test-agents.yaml
+    parameters:
+      upstream.protocol: 'mqtt'
+
+- stage: RunNestedTests
+  dependsOn: LockAgents
   jobs:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt
+      test.l4DeploymentFileName: 'nestededge_middleLayerBaseDeployment_mqtt.json'
   - job:  SetupVM_and_RunTest_level3
     dependsOn:
       - SetupVM_level5_mqtt
@@ -100,7 +108,7 @@ stages:
       - template: templates/nested-deploy-config.yaml
         parameters:
           deviceId: $(parentDeviceId)
-          deploymentFile: nestededge_middleLayerBaseDeployment_amqp.json
+          deploymentFile: nestededge_middleLayer_messaging_amqp.json
           changeDeployConfigOnly: true
           level: 4
           name: 4
@@ -110,13 +118,13 @@ stages:
           IotHubConnectionString: '$(IotHub-ConnStr)'
           test_type: nestededge_amqp
 
+- stage: Cleanup 
+  condition: always()
+  dependsOn:
+    - LockAgents
+    - RunNestedTests
+  jobs:
   - job:  Unlock_agents
-    dependsOn:
-      - Lock_Nested_Agents_mqtt
-      - SetupVM_level5_mqtt 
-      - SetupVM_level4_mqtt
-      - SetupVM_and_RunTest_level3
-    condition: eq(dependencies.Lock_Nested_Agents_mqtt.result, 'succeeded')
     displayName: Unlock agents
     timeoutInMinutes: 2    
     pool:
@@ -125,31 +133,24 @@ stages:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/unlock-test-agents.yaml
 
   - job:  Clean_up_identities
-    dependsOn:
-      - SetupVM_level5_mqtt 
-      - SetupVM_level4_mqtt
-      - SetupVM_and_RunTest_level3
-    condition: always()
     displayName: Clean up identities
     timeoutInMinutes: 2    
     variables:    
-      deviceLvl5DeviceId: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl4DeviceId: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
-      deviceLvl5IoTHubName: $[ dependencies.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ] 
-      deviceLvl4IoTHubName: $[ dependencies.SetupVM_level4_mqtt.outputs['createIdentity.iotHubName'] ]
+      deviceLvl5DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level5_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl4DeviceId: $[ stageDependencies.RunNestedTests.SetupVM_level4_mqtt.outputs['createIdentity.parentDeviceId'] ] 
+      deviceLvl5IoTHubName: $[ stageDependencies.RunNestedTests.SetupVM_level5_mqtt.outputs['createIdentity.iotHubName'] ] 
+      deviceLvl4IoTHubName: $[ stageDependencies.RunNestedTests.SetupVM_level4_mqtt.outputs['createIdentity.iotHubName'] ]
     pool:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - status -equals unlocked_$(Build.BuildId)_L3_mqtt
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/nested-clean-identity.yaml

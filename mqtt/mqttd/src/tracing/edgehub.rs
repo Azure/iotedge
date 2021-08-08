@@ -28,7 +28,7 @@ pub fn init() {
 
     let subscriber = fmt::Subscriber::builder()
         .with_max_level(Level::TRACE)
-        .on_event(Format::default())
+        .event_format(Format::default())
         .with_env_filter(EnvFilter::new(log_level.clone()))
         .finish();
     let _ = tracing::subscriber::set_global_default(subscriber);

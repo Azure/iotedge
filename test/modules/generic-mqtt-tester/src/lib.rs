@@ -105,6 +105,9 @@ pub enum MessageTesterError {
 
     #[error("expected settings to contain a batch id")]
     MissingBatchId,
+
+    #[error("expected settings to contain a tracking id")]
+    MissingTrackingId,
 }
 
 pub fn parse_sequence_number(publication: &ReceivedPublication) -> u32 {
