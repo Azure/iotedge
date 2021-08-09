@@ -18,6 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public static Action<EdgeConfigBuilder> BuildAddNetworkControllerConfig(string trackingId, string networkControllerImage)
         {
+            string transportType = "Amqp";
+            if (Context.Current.TestRunnerProxy.HasValue)
+            {
+                transportType = "Amqp_WebSocket_Only";
+            }
+
             return new Action<EdgeConfigBuilder>(
                 builder =>
                 {
@@ -30,9 +36,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             ("RunFrequencies__0__OnlineFrequency", "00:00:00"),
                             ("RunFrequencies__0__RunsCount", "0"),
                             ("NetworkControllerRunProfile", "Online"),
-                            ("StartAfter", "00:00:00")
+                            ("StartAfter", "00:00:00"),
+                            ("TransportType", transportType)
                         })
-                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") });
+                        .WithSettings(new[] { ("createOptions", "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"], \"NetworkMode\":\"host\", \"Privileged\":true},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}") })
+                        .WithProxy(Context.Current.TestRunnerProxy);
                 });
         }
 
@@ -98,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             if (!isPassed)
             {
-                Log.Verbose("Test Result Coordinator response: {Response}", jsonstring);
+                Log.Information("Test Result Coordinator response: {Response}", jsonstring);
             }
 
             Assert.IsTrue(isPassed);
