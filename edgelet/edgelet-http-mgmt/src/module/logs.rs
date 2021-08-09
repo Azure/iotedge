@@ -123,3 +123,24 @@ where
         Ok(log_options)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!("/modules/testModule/logs");
+        assert_eq!("testModule", &route.module);
+
+        // Missing module name
+        test_route_err!("/modules//logs");
+
+        // Extra character at beginning of URI
+        test_route_err!("a/modules/testModule/logs");
+
+        // Extra character at end of URI
+        test_route_err!("/modules/testModule/logsa");
+    }
+}
