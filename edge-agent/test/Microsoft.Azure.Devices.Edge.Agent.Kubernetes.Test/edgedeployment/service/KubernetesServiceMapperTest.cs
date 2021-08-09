@@ -177,11 +177,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             V1ServicePort port80 = service.Spec.Ports.Single(p => p.Port == 8080);
             Assert.Equal("hostport-80-tcp", port80.Name);
             Assert.Equal("TCP", port80.Protocol);
-            Assert.Equal(80, (int)port80.TargetPort);
+            Assert.Equal("80", port80.TargetPort.Value);
             V1ServicePort port5000 = service.Spec.Ports.Single(p => p.Port == 5050);
             Assert.Equal("hostport-5000-udp", port5000.Name);
             Assert.Equal("UDP", port5000.Protocol);
-            Assert.Equal(5000, (int)port5000.TargetPort);
+            Assert.Equal("5000", port5000.TargetPort.Value);
         }
 
         [Fact]
@@ -196,11 +196,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.EdgeDeployment.Serv
             V1ServicePort port80 = service.Spec.Ports.Single(p => p.Port == 8080);
             Assert.Equal("hostport-80-tcp", port80.Name);
             Assert.Equal("TCP", port80.Protocol);
-            Assert.Equal(80, (int)port80.TargetPort);
+            Assert.Equal("80", port80.TargetPort.Value);
             V1ServicePort port5000 = service.Spec.Ports.Single(p => p.Port == 5050);
             Assert.Equal("hostport-5000-udp", port5000.Name);
             Assert.Equal("UDP", port5000.Protocol);
-            Assert.Equal(5000, (int)port5000.TargetPort);
+            Assert.Equal("5000", port5000.TargetPort.Value);
         }
 
         [Fact]
