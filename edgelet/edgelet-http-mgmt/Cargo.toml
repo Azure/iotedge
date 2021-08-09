@@ -15,7 +15,7 @@ log = "0.4"
 percent-encoding = "2"
 regex = "1"
 serde = "1"
-serde_json = "1.0"
+serde_json = "1"
 tokio = { version = "1", features = ["macros", "sync"] }
 url = "2"
 
@@ -29,3 +29,6 @@ aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service",
 aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }
