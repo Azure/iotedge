@@ -86,7 +86,7 @@ where
         let mut log_options = edgelet_core::LogOptions::new();
 
         if let Some(follow) = &self.follow {
-            let follow = std::str::FromStr::from_str(follow)
+            let follow = std::str::FromStr::from_str(&follow.to_lowercase())
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: follow"))?;
 
             log_options = log_options.with_follow(follow);
@@ -142,5 +142,32 @@ mod tests {
 
         // Extra character at end of URI
         test_route_err!("/modules/testModule/logsa");
+    }
+
+    #[test]
+    fn parse_query_follow() {
+        let uri = "/modules/testModule/logs";
+
+        // Valid value, all lowercase
+        let route = test_route_ok!(uri, ("follow", "true"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(true, log_options.follow());
+
+        let route = test_route_ok!(uri, ("follow", "false"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(false, log_options.follow());
+
+        // Value should be case-insensitive
+        let route = test_route_ok!(uri, ("follow", "TrUe"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(true, log_options.follow());
+
+        let route = test_route_ok!(uri, ("follow", "FaLsE"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(false, log_options.follow());
+
+        // Invalid value
+        let route = test_route_ok!(uri, ("follow", "invalid"));
+        assert!(route.log_options().is_err());
     }
 }
