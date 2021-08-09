@@ -264,4 +264,24 @@ mod tests {
             assert!(route.log_options().is_err());
         }
     }
+
+    #[test]
+    fn parse_query_multi() {
+        // Check that all log options can be parsed together.
+        let route = test_route_ok!(
+            "/modules/testModule/logs",
+            ("follow", "true"),
+            ("tail", "100"),
+            ("since", "5"),
+            ("until", "10"),
+            ("timestamps", "true")
+        );
+        let log_options = route.log_options().unwrap();
+
+        assert_eq!(true, log_options.follow());
+        assert_eq!(&edgelet_core::LogTail::Num(100), log_options.tail());
+        assert_eq!(5, log_options.since());
+        assert_eq!(Some(10), log_options.until());
+        assert_eq!(true, log_options.timestamps());
+    }
 }
