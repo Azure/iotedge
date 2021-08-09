@@ -812,6 +812,7 @@ name = "edgelet-test-utils"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "aziot-identity-common",
  "bytes 1.0.1",
  "edgelet-core",
  "edgelet-settings",

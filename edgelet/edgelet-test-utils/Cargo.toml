@@ -13,3 +13,5 @@ serde = "1"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-settings = { path = "../edgelet-settings" }
+
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

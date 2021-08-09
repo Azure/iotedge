@@ -2,11 +2,17 @@
 
 use std::convert::TryFrom;
 
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+
+#[cfg(test)]
+use edgelet_test_utils::client::IdentityClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     pid: libc::pid_t,
     module_id: String,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,

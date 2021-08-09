@@ -5,12 +5,18 @@ mod identity;
 mod module;
 mod system_info;
 
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+
+#[cfg(test)]
+use edgelet_test_utils::client::IdentityClient;
+
 #[derive(Clone)]
 pub struct Service<M>
 where
     M: edgelet_core::ModuleRuntime,
 {
-    identity: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    identity: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     reprovision: tokio::sync::mpsc::UnboundedSender<edgelet_core::ShutdownReason>,
 }
@@ -19,6 +25,7 @@ impl<M> Service<M>
 where
     M: edgelet_core::ModuleRuntime,
 {
+    #[cfg(not(test))]
     pub fn new(
         identity_socket: &url::Url,
         runtime: M,
@@ -39,6 +46,27 @@ where
             runtime,
             reprovision,
         })
+    }
+
+    // Constructor used to create a test Management Service.
+    #[cfg(test)]
+    pub fn new(runtime: M) -> Self {
+        let identity = edgelet_test_utils::client::IdentityClient {};
+        let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
+
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
+        // We won't use the reprovision sender, but it must be created to construct the
+        // Service struct. Note that we drop the reprovision receiver, which will cause
+        // tests to panic if they use the reprovision sender.
+        let (reprovision, _) =
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+
+        Service {
+            identity,
+            runtime,
+            reprovision,
+        }
     }
 }
 
