@@ -93,7 +93,7 @@ where
         }
 
         if let Some(tail) = &self.tail {
-            let tail = std::str::FromStr::from_str(tail)
+            let tail = std::str::FromStr::from_str(&tail.to_lowercase())
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: tail"))?;
 
             log_options = log_options.with_tail(tail);
@@ -148,6 +148,11 @@ mod tests {
     fn parse_query_follow() {
         let uri = "/modules/testModule/logs";
 
+        // Default value when not provided
+        let route = test_route_ok!(uri);
+        let log_options = route.log_options().unwrap();
+        assert_eq!(false, log_options.follow());
+
         // Valid value, all lowercase
         let route = test_route_ok!(uri, ("follow", "true"));
         let log_options = route.log_options().unwrap();
@@ -168,6 +173,34 @@ mod tests {
 
         // Invalid value
         let route = test_route_ok!(uri, ("follow", "invalid"));
+        assert!(route.log_options().is_err());
+    }
+
+    #[test]
+    fn parse_query_tail() {
+        let uri = "/modules/testModule/logs";
+
+        // Default value when not provided
+        let route = test_route_ok!(uri);
+        let log_options = route.log_options().unwrap();
+        assert_eq!(&edgelet_core::LogTail::default(), log_options.tail());
+
+        // Valid value, all lowercase
+        let route = test_route_ok!(uri, ("tail", "all"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(&edgelet_core::LogTail::All, log_options.tail());
+
+        let route = test_route_ok!(uri, ("tail", "5"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(&edgelet_core::LogTail::Num(5), log_options.tail());
+
+        // Value should be case-insensitive
+        let route = test_route_ok!(uri, ("tail", "AlL"));
+        let log_options = route.log_options().unwrap();
+        assert_eq!(&edgelet_core::LogTail::All, log_options.tail());
+
+        // Invalid value
+        let route = test_route_ok!(uri, ("tail", "invalid"));
         assert!(route.log_options().is_err());
     }
 }
