@@ -9,7 +9,7 @@ macro_rules! test_route_ok {
             .expect("valid route wasn't parsed")
     };
 
-    ($path:expr, $(($key:literal, $value:literal)),+) => {
+    ($path:expr, $(($key:expr, $value:expr)),+) => {
         edgelet_test_utils::test_route!($path, $(($key, $value)),+)
             .expect("valid route wasn't parsed")
     }
@@ -36,7 +36,7 @@ macro_rules! test_route {
         route
     }};
 
-    ($path:expr, $(($key:literal, $value:literal)),+) => {{
+    ($path:expr, $(($key:expr, $value:expr)),+) => {{
         let mut query = vec![];
 
         $(

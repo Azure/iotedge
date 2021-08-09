@@ -100,21 +100,21 @@ where
         }
 
         if let Some(since) = &self.since {
-            let since = edgelet_core::parse_since(&since)
+            let since = edgelet_core::parse_since(&since.to_lowercase())
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: since"))?;
 
             log_options = log_options.with_since(since);
         }
 
         if let Some(until) = &self.until {
-            let until = edgelet_core::parse_since(&until)
+            let until = edgelet_core::parse_since(&until.to_lowercase())
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: until"))?;
 
             log_options = log_options.with_until(until);
         }
 
         if let Some(timestamps) = &self.timestamps {
-            let timestamps = std::str::FromStr::from_str(timestamps)
+            let timestamps = std::str::FromStr::from_str(&timestamps.to_lowercase())
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: timestamps"))?;
 
             log_options = log_options.with_timestamps(timestamps);
@@ -145,35 +145,47 @@ mod tests {
     }
 
     #[test]
-    fn parse_query_follow() {
+    fn parse_query_bools() {
         let uri = "/modules/testModule/logs";
 
-        // Default value when not provided
-        let route = test_route_ok!(uri);
-        let log_options = route.log_options().unwrap();
-        assert_eq!(false, log_options.follow());
+        // Boolean query keys to check, paired to a function pointer to get the parsed value.
+        let keys = vec![
+            (
+                "follow",
+                edgelet_core::LogOptions::follow
+                    as for<'r> fn(&'r edgelet_core::LogOptions) -> bool,
+            ),
+            ("timestamps", edgelet_core::LogOptions::timestamps),
+        ];
 
-        // Valid value, all lowercase
-        let route = test_route_ok!(uri, ("follow", "true"));
-        let log_options = route.log_options().unwrap();
-        assert_eq!(true, log_options.follow());
+        for (key, get_key) in keys {
+            // Default value when not provided
+            let route = test_route_ok!(uri);
+            let log_options = route.log_options().unwrap();
+            assert_eq!(false, get_key(&log_options));
 
-        let route = test_route_ok!(uri, ("follow", "false"));
-        let log_options = route.log_options().unwrap();
-        assert_eq!(false, log_options.follow());
+            // Valid value, all lowercase
+            let route = test_route_ok!(uri, (key, "true"));
+            let log_options = route.log_options().unwrap();
+            assert_eq!(true, get_key(&log_options));
 
-        // Value should be case-insensitive
-        let route = test_route_ok!(uri, ("follow", "TrUe"));
-        let log_options = route.log_options().unwrap();
-        assert_eq!(true, log_options.follow());
+            let route = test_route_ok!(uri, (key, "false"));
+            let log_options = route.log_options().unwrap();
+            assert_eq!(false, get_key(&log_options));
 
-        let route = test_route_ok!(uri, ("follow", "FaLsE"));
-        let log_options = route.log_options().unwrap();
-        assert_eq!(false, log_options.follow());
+            // Value should be case-insensitive
+            let route = test_route_ok!(uri, (key, "TrUe"));
+            let log_options = route.log_options().unwrap();
+            assert_eq!(true, get_key(&log_options));
 
-        // Invalid value
-        let route = test_route_ok!(uri, ("follow", "invalid"));
-        assert!(route.log_options().is_err());
+            let route = test_route_ok!(uri, (key, "FaLsE"));
+            let log_options = route.log_options().unwrap();
+            assert_eq!(false, get_key(&log_options));
+
+            // Invalid value
+            let route = test_route_ok!(uri, (key, "invalid"));
+            assert!(route.log_options().is_err());
+        }
     }
 
     #[test]
@@ -202,5 +214,54 @@ mod tests {
         // Invalid value
         let route = test_route_ok!(uri, ("tail", "invalid"));
         assert!(route.log_options().is_err());
+    }
+
+    #[test]
+    fn parse_query_since_until() {
+        let uri = "/modules/testModule/logs";
+
+        // Default value when not provided
+        let route = test_route_ok!(uri);
+        let log_options = route.log_options().unwrap();
+        assert_eq!(0, log_options.since());
+
+        let route = test_route_ok!(uri);
+        let log_options = route.log_options().unwrap();
+        assert_eq!(None, log_options.until());
+
+        // Time query keys to check, paired to a function pointer to get the parsed value.
+        // Wrap the until() function so its signature matches since()
+        fn get_until(opts: &edgelet_core::LogOptions) -> i32 {
+            opts.until().unwrap()
+        }
+
+        let keys = vec![
+            (
+                "since",
+                edgelet_core::LogOptions::since as for<'r> fn(&'r edgelet_core::LogOptions) -> i32,
+            ),
+            ("until", get_until),
+        ];
+
+        for (key, get_key) in keys {
+            // Valid value
+            let route = test_route_ok!(uri, (key, "5"));
+            let log_options = route.log_options().unwrap();
+            assert_eq!(5, get_key(&log_options));
+
+            let route = test_route_ok!(uri, (key, "-5"));
+            let log_options = route.log_options().unwrap();
+            assert_eq!(-5, get_key(&log_options));
+
+            // Value should be case-insensitive. Time parsing is tested elsewhere, so just
+            // check that the parsed value is something positive.
+            let route = test_route_ok!(uri, (key, "5 HoUrS"));
+            let log_options = route.log_options().unwrap();
+            assert!(get_key(&log_options) > 0);
+
+            // Invalid value
+            let route = test_route_ok!(uri, (key, "invalid"));
+            assert!(route.log_options().is_err());
+        }
     }
 }
