@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public class EdgeRuntime
@@ -86,7 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             if (!string.IsNullOrEmpty(signedConfig))
             {
-                // convert signedConfig to edgeConfiguration
+                // Convert signed config to EdgeConfiguration
+                edgeConfiguration = (EdgeConfiguration)JsonConvert.DeserializeObject(signedConfig);
             }
 
             await edgeConfiguration.DeployAsync(this.iotHub, token);
