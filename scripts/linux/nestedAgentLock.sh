@@ -114,6 +114,8 @@ process_args()
         echo "Upstream protocol is a required parameter."
         print_help_and_exit
     fi
+
+    echo "Curl version: $(curl --version)"
 }
 
 ###############################################################################
