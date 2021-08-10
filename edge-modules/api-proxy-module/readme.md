@@ -111,7 +111,9 @@ For easiness of use, the API proxy module comes with a default configuration tha
 
 | Config variable  | comments |
 | ------------- |  ------------- |
-| NGINX_DEFAULT_PORT  | Changes the port Nginx listens on. If you update this environment variable, make sure the port you select is also exposed in the module dockerfile and the port binding. Default is 443.  |
+| NGINX_DEFAULT_PORT  | Changes the port Nginx listens on. If you update this environment variable, make sure the port you select is also exposed in the module dockerfile and the port binding. Default is 8000.  |
+| NGINX_DEFAULT_TLS | Changes the ssl protocols nginx support. See http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_protocols for more details. |
+| NGINX_DEFAULT_CIPHERS | Changes the ciphers nginx support. See http://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_ciphers for more details. |
 | DOCKER_REQUEST_ROUTE_ADDRESS | Address to route docker requests. By default it points to the parent.  |
 | BLOB_UPLOAD_ROUTE_ADDRESS| Address to route blob registry requests. By default it points to the parent. |
 | IOTEDGE_PARENTHOSTNAME | Read only variable. Do not assign, its value is automatically assigned to Parent hostname when container starts |
