@@ -342,7 +342,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             }
         }
 
-
         static (IDictionary<string, EnvVal>, string) CreateEnv(params (string key, string value)[] pairs)
         {
             var dict = new Dictionary<string, EnvVal>();

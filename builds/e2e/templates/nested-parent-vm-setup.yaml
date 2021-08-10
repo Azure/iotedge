@@ -1,29 +1,11 @@
 parameters:
   upstream.protocol: 'amqp'
-  testRunnerCount: '1'
+  test.l4DeploymentFileName: ""
+  l3IpAddress: ''
+  test.trackingId: '' 
 
 jobs:
-  - job: Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
-    displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
-    timeoutInMinutes: 180
-    pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - status -equals unlocked
-    steps:
-      - template: nested-get-secrets.yaml
-      - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n ${{ parameters['testRunnerCount'] }} -u ${{ parameters['upstream.protocol'] }}
-        env:
-          PAT: "$(edgebuild-1-PAT)"
-        displayName: Lock agents for nested topology
-        name: lock_test_agent
-
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
-    dependsOn:
-      - Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 5 for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     variables:
@@ -35,7 +17,6 @@ jobs:
       parentName: ''
       parentDeviceId: ''
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
-      lockedAgentName: $[ dependencies.Lock_Nested_Agents_${{ parameters['upstream.protocol'] }}.outputs['lock_test_agent.l5AgentName'] ]
     pool:
      name: $(pool.name)
      demands:
@@ -62,9 +43,11 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       parentName: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
+      deploymentFile: "${{ parameters['test.l4DeploymentFileName'] }}"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      l3IpAddress: ${{ parameters['l3IpAddress'] }}
+      trackingId: ${{ parameters['test.trackingId'] }}
     pool:
      name: $(pool.name)
      demands:
