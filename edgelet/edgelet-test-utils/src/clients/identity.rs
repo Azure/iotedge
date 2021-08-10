@@ -22,6 +22,10 @@ impl IdentityClient {
         todo!()
     }
 
+    pub async fn get_identity(&self, module_name: &str) -> Result<Identity, std::io::Error> {
+        todo!()
+    }
+
     pub async fn update_module_identity(
         &self,
         module_name: &str,

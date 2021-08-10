@@ -1,10 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[cfg(not(test))]
+use aziot_key_client_async::Client as KeyClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
+    client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
     module_id: String,
     gen_id: String,
     pid: libc::pid_t,

@@ -780,6 +780,7 @@ dependencies = [
  "edgelet-core",
  "edgelet-http",
  "edgelet-settings",
+ "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
  "http-common",
@@ -814,6 +815,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-identity-common",
+ "aziot-key-common",
  "bytes 1.0.1",
  "edgelet-core",
  "edgelet-settings",

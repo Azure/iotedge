@@ -4,6 +4,12 @@ pub(crate) mod decrypt;
 pub(crate) mod encrypt;
 pub(crate) mod sign;
 
+#[cfg(not(test))]
+use aziot_key_client_async::Client as KeyClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyClient;
+
 fn base64_decode(data: String) -> Result<Vec<u8>, http_common::server::Error> {
     base64::decode(data).map_err(|err| {
         edgelet_http::error::bad_request(format!("invalid base64 encoding: {}", err))
@@ -11,7 +17,7 @@ fn base64_decode(data: String) -> Result<Vec<u8>, http_common::server::Error> {
 }
 
 async fn master_encryption_key(
-    client: &aziot_key_client_async::Client,
+    client: &KeyClient,
 ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
     client
         .create_key_if_not_exists(

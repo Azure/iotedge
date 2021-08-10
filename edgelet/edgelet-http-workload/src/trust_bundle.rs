@@ -1,10 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[cfg(not(test))]
+use aziot_cert_client_async::Client as CertClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::CertClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
+    client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
     trust_bundle: String,
     _runtime: std::marker::PhantomData<M>,
 }

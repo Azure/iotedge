@@ -1,11 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+#[cfg(not(test))]
+use aziot_key_client_async::Client as KeyClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::IdentityClient;
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     module_id: String,
     pid: libc::pid_t,
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
@@ -97,7 +107,7 @@ where
 }
 
 async fn get_module_key(
-    client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     module_id: &str,
 ) -> Result<aziot_key_common::KeyHandle, http_common::server::Error> {
     let identity = {

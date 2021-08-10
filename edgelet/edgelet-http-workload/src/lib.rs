@@ -3,6 +3,20 @@
 mod module;
 mod trust_bundle;
 
+#[cfg(not(test))]
+use aziot_cert_client_async::Client as CertClient;
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+#[cfg(not(test))]
+use aziot_key_client_async::Client as KeyClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::CertClient;
+#[cfg(test)]
+use edgelet_test_utils::clients::IdentityClient;
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyClient;
+
 // The subset of the aziot-edged config needed for workload APIs.
 #[derive(Clone)]
 struct WorkloadConfig {
@@ -61,9 +75,9 @@ where
     // This connector is needed to contruct sync aziot_key_clients when using aziot_key_openssl_engine.
     key_connector: http_common::Connector,
 
-    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
-    identity_client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
+    identity_client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
 
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
     config: WorkloadConfig,
@@ -73,6 +87,7 @@ impl<M> Service<M>
 where
     M: edgelet_core::ModuleRuntime,
 {
+    #[cfg(not(test))]
     pub fn new(
         settings: &impl edgelet_settings::RuntimeSettings,
         runtime: M,
@@ -112,6 +127,16 @@ where
             runtime,
             config,
         })
+    }
+
+    // Test constructor used to create a test Workload Service.
+    #[cfg(test)]
+    pub fn new() -> Self {
+        // Tests won't actually connect to keyd, so just put any URL in the key connector.
+        let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
+        let key_connector = http_common::Connector::new(&key_connector);
+
+        todo!()
     }
 }
 

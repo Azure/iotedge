@@ -40,3 +40,6 @@ aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service",
 aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }

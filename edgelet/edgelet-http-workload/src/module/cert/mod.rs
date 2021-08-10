@@ -3,14 +3,19 @@
 pub(crate) mod identity;
 pub(crate) mod server;
 
+#[cfg(not(test))]
+use aziot_cert_client_async::Client as CertClient;
+#[cfg(not(test))]
+use aziot_key_client_async::Client as KeyClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::CertClient;
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyClient;
+
 #[derive(Debug, serde::Serialize)]
 #[serde(tag = "type")]
 pub(crate) enum PrivateKey {
-    #[serde(rename = "ref")]
-    Reference {
-        #[serde(rename = "ref")]
-        reference: String,
-    },
     #[serde(rename = "key")]
     Key { bytes: String },
 }
@@ -31,8 +36,8 @@ enum SubjectAltName {
 
 struct CertApi {
     key_connector: http_common::Connector,
-    key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
-    cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
+    key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+    cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
 
     device_id: String,
     edge_ca_cert: String,
@@ -42,8 +47,8 @@ struct CertApi {
 impl CertApi {
     pub fn new(
         key_connector: http_common::Connector,
-        key_client: std::sync::Arc<futures_util::lock::Mutex<aziot_key_client_async::Client>>,
-        cert_client: std::sync::Arc<futures_util::lock::Mutex<aziot_cert_client_async::Client>>,
+        key_client: std::sync::Arc<futures_util::lock::Mutex<KeyClient>>,
+        cert_client: std::sync::Arc<futures_util::lock::Mutex<CertClient>>,
         config: &crate::WorkloadConfig,
     ) -> Self {
         CertApi {
@@ -292,7 +297,7 @@ fn key_to_pem(key: &openssl::pkey::PKey<openssl::pkey::Private>) -> String {
 }
 
 async fn should_renew(
-    cert_client: &aziot_cert_client_async::Client,
+    cert_client: &CertClient,
     cert_id: &str,
 ) -> Result<bool, http_common::server::Error> {
     match cert_client.get_cert(cert_id).await {
