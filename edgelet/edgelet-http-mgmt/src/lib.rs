@@ -48,7 +48,7 @@ where
         })
     }
 
-    // Constructor used to create a test Management Service.
+    // Test constructor used to create a test Management Service.
     #[cfg(test)]
     pub fn new(runtime: M) -> Self {
         let identity = edgelet_test_utils::client::IdentityClient {};
@@ -59,14 +59,41 @@ where
         // We won't use the reprovision sender, but it must be created to construct the
         // Service struct. Note that we drop the reprovision receiver, which will cause
         // tests to panic if they use the reprovision sender.
-        let (reprovision, _) =
+        let (reprovision_tx, _) =
             tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
         Service {
             identity,
             runtime,
-            reprovision,
+            reprovision: reprovision_tx,
         }
+    }
+
+    // Test constructor that returns the reprovision receiver. Only used by the reprovision
+    // API tests.
+    #[cfg(test)]
+    pub fn new_with_reprovision(
+        runtime: M,
+    ) -> (
+        Self,
+        tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
+    ) {
+        let identity = edgelet_test_utils::client::IdentityClient {};
+        let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
+
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
+        let (reprovision_tx, reprovision_rx) =
+            tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
+
+        (
+            Service {
+                identity,
+                runtime,
+                reprovision: reprovision_tx,
+            },
+            reprovision_rx,
+        )
     }
 }
 

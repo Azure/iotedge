@@ -750,6 +750,7 @@ dependencies = [
  "hyper 0.14.11",
  "libc",
  "log",
+ "nix 0.22.0",
  "percent-encoding 2.1.0",
  "regex",
  "serde",
@@ -817,6 +818,8 @@ dependencies = [
  "edgelet-core",
  "edgelet-settings",
  "futures 0.3.16",
+ "http 0.2.4",
+ "nix 0.22.0",
  "serde",
 ]
 
@@ -1230,7 +1233,7 @@ dependencies = [
  "hyper-proxy",
  "libc",
  "log",
- "nix",
+ "nix 0.18.0",
  "openssl",
  "openssl-sys",
  "percent-encoding 2.1.0",
@@ -1641,6 +1644,19 @@ dependencies = [
  "cc",
  "cfg-if 0.1.10",
  "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf1e25ee6b412c2a1e3fcb6a4499a5c1bfe7f43e014bdce9a6b6666e5aa2d187"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if 1.0.0",
+ "libc",
+ "memoffset 0.6.4",
 ]
 
 [[package]]

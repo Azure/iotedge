@@ -61,3 +61,21 @@ where
 
     type PutBody = serde::de::IgnoredAny;
 }
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!("/device/reprovision");
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Extra character at beginning of URI
+        test_route_err!("a/device/reprovision");
+
+        // Extra character at end of URI
+        test_route_err!("/device/reprovisiona");
+    }
+}

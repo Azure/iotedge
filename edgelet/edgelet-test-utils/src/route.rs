@@ -30,7 +30,7 @@ macro_rules! test_route {
                 &crate::Service::new(edgelet_test_utils::runtime::Runtime {}),
                 $path,
                 &vec![],
-                &http::Extensions::new(),
+                &edgelet_test_utils::route::extensions(),
             );
 
         route
@@ -48,9 +48,20 @@ macro_rules! test_route {
                 &crate::Service::new(edgelet_test_utils::runtime::Runtime {}),
                 $path,
                 query.as_slice(),
-                &http::Extensions::new(),
+                &edgelet_test_utils::route::extensions(),
             );
 
         route
     }}
+}
+
+// Constructs the http::Extensions containing this process ID, similar to what
+// http-common does.
+pub fn extensions() -> http::Extensions {
+    let pid = nix::unistd::getpid();
+
+    let mut extensions = http::Extensions::new();
+    assert!(extensions.insert(Some(pid.as_raw())).is_none());
+
+    extensions
 }
