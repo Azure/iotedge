@@ -3,7 +3,7 @@ use std::fs;
 use std::process;
 
 use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, SubCommand};
-use edgelet_http::UrlConnector;
+use http_common::Connector;
 use hyper::Client;
 use log::info;
 use url::Url;
@@ -126,7 +126,9 @@ fn run() -> Result<(), Error> {
         )
         .get_matches();
 
-    let mut tokio_runtime = tokio::runtime::current_thread::Runtime::new()?;
+    let mut tokio_runtime = tokio::runtime::Builder::new_current_thread()
+        .build()?;
+
     let url = Url::parse(
         matches
             .value_of("host")

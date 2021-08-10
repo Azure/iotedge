@@ -3,58 +3,32 @@
 use std::fmt::{self, Display};
 use std::io;
 
-use failure::{Backtrace, Context, Fail};
+use thiserror::Error;
 use hyper::Error as HyperError;
 use serde_json;
 use url::ParseError;
 
-use edgelet_http::Error as EdgeletHttpError;
+//use edgelet_http::Error as EdgeletHttpError;
 use workload::apis::Error as WorkloadError;
 
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
 
-#[derive(Debug, Fail)]
-pub enum ErrorKind {
-    #[fail(display = "Client error")]
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("Client error")]
     Client(WorkloadError<serde_json::Value>),
-    #[fail(display = "Error connecting to endpoint")]
+    #[error("Error connecting to endpoint")]
     Http,
-    #[fail(display = "Hyper error")]
+    #[error("Hyper error")]
     Hyper,
-    #[fail(display = "An IO error occurred.")]
+    #[error("An IO error occurred.")]
     Io,
-    #[fail(display = "Url parse error")]
+    #[error("Url parse error")]
     Parse,
-    #[fail(display = "Serde error")]
+    #[error("Serde error")]
     Serde,
 }
 
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
 
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.inner, f)
-    }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Self {
-        Error {
-            inner: Context::new(kind),
-        }
-    }
-}
 
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
