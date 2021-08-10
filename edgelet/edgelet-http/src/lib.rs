@@ -39,3 +39,33 @@ pub fn find_query(
         }
     })
 }
+
+#[cfg(test)]
+mod tests {
+    macro_rules! cow_tuple_vec {
+        ($(($key:expr, $value:expr)),+) => {{
+            vec![
+                $(
+                    (std::borrow::Cow::from($key), std::borrow::Cow::from($value)),
+                )+
+            ]
+        }};
+    }
+
+    #[test]
+    fn find_query() {
+        let query = cow_tuple_vec![("key1", "value1"), ("key2", "value%202")];
+
+        assert_eq!(
+            Some("value1".to_string()),
+            super::find_query("key1", query.as_slice())
+        );
+
+        assert_eq!(
+            Some("value 2".to_string()),
+            super::find_query("key2", query.as_slice())
+        );
+
+        assert_eq!(None, super::find_query("key3", query.as_slice()));
+    }
+}

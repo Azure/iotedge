@@ -37,11 +37,11 @@ macro_rules! test_route {
     }};
 
     ($path:expr, $(($key:expr, $value:expr)),+) => {{
-        let mut query = vec![];
-
-        $(
-            query.push((std::borrow::Cow::from($key), std::borrow::Cow::from($value)));
-        )+
+        let query = vec![
+            $(
+                (std::borrow::Cow::from($key), std::borrow::Cow::from($value)),
+            )+
+        ];
 
         let route: Option<super::Route<edgelet_test_utils::runtime::Runtime>> =
             http_common::server::Route::from_uri(
