@@ -41,9 +41,6 @@ namespace VstsPipelineSync
             var commitManagement = new CommitManagement();
             var bugManagement = new BugManagement(devOpsAccessSetting, commitManagement, userManagement);
 
-            Console.WriteLine(await commitManagement.GetAuthorFullNameFromCommitAsync("ce8a157cbecf6f9b68aa1a30c531e152aeccb79f"));
-            Console.ReadLine();
-
             while (!ct.IsCancellationRequested)
             {
                 await ImportVstsBugDataAsync(bugWiqlManagement, bugQueries);

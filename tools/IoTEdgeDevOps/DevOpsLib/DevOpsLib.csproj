@@ -14,8 +14,4 @@
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <Import Project="..\..\..\stylecop.props" />
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
-  </ItemGroup>
 </Project>

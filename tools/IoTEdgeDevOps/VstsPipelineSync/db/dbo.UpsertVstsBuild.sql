@@ -1,10 +1,10 @@
 ﻿CREATE PROCEDURE [dbo].[UpsertVstsBuild]
 	@BuildId varchar(20),
 	@BuildNumber varchar(20),
-	@SourceVersion varchar(100),
 	@DefinitionId int,
 	@DefinitionName varchar(100),
 	@SourceBranch varchar(100),
+	@SourceVersion varchar(100),
 	@SourceVersionDisplayUri varchar(500),
 	@WebUri varchar(500),
 	@Status varchar(20),
@@ -21,9 +21,9 @@ AS
 	BEGIN
 		UPDATE dbo.VstsBuild
 		SET BuildId = @BuildId,
-		    SourceVersion = @SourceVersion,
 		    DefinitionName = @DefinitionName,
 		    SourceBranch = @SourceBranch,
+		    SourceVersion = @SourceVersion,
 			SourceVersionDisplayUri = @SourceVersionDisplayUri,
 			WebUri = @WebUri,
 			[Status] = @Status,
