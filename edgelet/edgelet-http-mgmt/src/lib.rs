@@ -9,7 +9,7 @@ mod system_info;
 use aziot_identity_client_async::Client as IdentityClient;
 
 #[cfg(test)]
-use edgelet_test_utils::client::IdentityClient;
+use edgelet_test_utils::clients::IdentityClient;
 
 #[derive(Clone)]
 pub struct Service<M>
@@ -51,7 +51,7 @@ where
     // Test constructor used to create a test Management Service.
     #[cfg(test)]
     pub fn new(runtime: M) -> Self {
-        let identity = edgelet_test_utils::client::IdentityClient {};
+        let identity = edgelet_test_utils::clients::IdentityClient::default();
         let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
 
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
@@ -78,7 +78,7 @@ where
         Self,
         tokio::sync::mpsc::UnboundedReceiver<edgelet_core::ShutdownReason>,
     ) {
-        let identity = edgelet_test_utils::client::IdentityClient {};
+        let identity = edgelet_test_utils::clients::IdentityClient::default();
         let identity = std::sync::Arc::new(futures_util::lock::Mutex::new(identity));
 
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));

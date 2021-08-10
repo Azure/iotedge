@@ -6,7 +6,7 @@ use std::convert::TryFrom;
 use aziot_identity_client_async::Client as IdentityClient;
 
 #[cfg(test)]
-use edgelet_test_utils::client::IdentityClient;
+use edgelet_test_utils::clients::IdentityClient;
 
 pub(crate) struct Route<M>
 where

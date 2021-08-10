@@ -4,6 +4,12 @@ use aziot_identity_common::Identity;
 
 pub struct IdentityClient {}
 
+impl Default for IdentityClient {
+    fn default() -> Self {
+        IdentityClient {}
+    }
+}
+
 impl IdentityClient {
     pub async fn create_module_identity(
         &self,
