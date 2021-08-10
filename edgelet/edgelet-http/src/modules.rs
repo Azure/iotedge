@@ -169,7 +169,7 @@ mod tests {
     }
 
     // Common data set for tests.
-    fn modules() -> (
+    fn test_modules() -> (
         Vec<(edgelet_test_utils::runtime::Module, ModuleRuntimeState)>,
         chrono::DateTime<chrono::offset::Utc>,
     ) {
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn into_module_details() {
-        let (modules, timestamp) = modules();
+        let (modules, timestamp) = test_modules();
 
         for (module, state) in modules {
             let details: super::ModuleDetails = (module.clone(), state.clone()).into();
@@ -217,7 +217,4 @@ mod tests {
             assert_eq!(status, details.status);
         }
     }
-
-    #[test]
-    fn into_list_modules_response() {}
 }
