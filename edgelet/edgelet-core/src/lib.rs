@@ -87,6 +87,7 @@ impl UrlExt for Url {
 
 pub const UNIX_SCHEME: &str = "unix";
 
+#[derive(Debug, PartialEq)]
 pub enum ShutdownReason {
     Reprovision,
     SigInt,

@@ -64,6 +64,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use http_common::server::Route;
+
     use edgelet_test_utils::{test_route_err, test_route_ok};
 
     #[test]
@@ -77,5 +79,26 @@ mod tests {
 
         // Extra character at end of URI
         test_route_err!("/device/reprovisiona");
+    }
+
+    #[tokio::test]
+    async fn reprovision_tx_rx() {
+        let runtime = edgelet_test_utils::runtime::Runtime::default();
+        let (service, mut reprovision_rx) = crate::Service::new_with_reprovision(runtime);
+
+        let route = super::Route::from_uri(
+            &service,
+            "/device/reprovision",
+            &Vec::new(),
+            &edgelet_test_utils::route::extensions(),
+        )
+        .expect("valid route wasn't parsed");
+
+        let response = route.post(None).await.unwrap();
+        assert_eq!(hyper::StatusCode::NO_CONTENT, response.status());
+
+        // Calling reprovision should have sent a shutdown message now available on the receiver.
+        let shutdown_reason = reprovision_rx.recv().await.unwrap();
+        assert_eq!(edgelet_core::ShutdownReason::Reprovision, shutdown_reason);
     }
 }

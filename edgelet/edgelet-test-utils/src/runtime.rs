@@ -43,7 +43,29 @@ impl edgelet_core::ModuleRegistry for ModuleRegistry {
     }
 }
 
-pub struct Runtime {}
+pub struct Runtime {
+    pub module_top_resp: Option<Vec<i32>>,
+}
+
+impl Runtime {
+    /// Return a generic error. Most users of ModuleRuntime don't act on the error other
+    /// than passing it up the call stack, so it's fine to return any error.
+    fn test_error() -> std::io::Error {
+        std::io::Error::new(std::io::ErrorKind::Other, "test error")
+    }
+}
+
+impl Default for Runtime {
+    fn default() -> Self {
+        // The PID in module_top is used for auth. Bypass auth when testing by always placing
+        // this process's PID in the module_top response.
+        let pid = nix::unistd::getpid().as_raw();
+
+        Runtime {
+            module_top_resp: Some(vec![pid]),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 impl edgelet_core::ModuleRuntime for Runtime {
@@ -124,8 +146,12 @@ impl edgelet_core::ModuleRuntime for Runtime {
         todo!()
     }
 
-    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
-        todo!()
+    async fn module_top(&self, _id: &str) -> Result<Vec<i32>, Self::Error> {
+        if let Some(resp) = &self.module_top_resp {
+            Ok(resp.clone())
+        } else {
+            Err(Self::test_error())
+        }
     }
 
     fn registry(&self) -> &Self::ModuleRegistry {

@@ -27,7 +27,7 @@ macro_rules! test_route {
     ($path:expr) => {{
         let route: Option<super::Route<edgelet_test_utils::runtime::Runtime>> =
             http_common::server::Route::from_uri(
-                &crate::Service::new(edgelet_test_utils::runtime::Runtime {}),
+                &crate::Service::new(edgelet_test_utils::runtime::Runtime::default()),
                 $path,
                 &vec![],
                 &edgelet_test_utils::route::extensions(),
@@ -45,7 +45,7 @@ macro_rules! test_route {
 
         let route: Option<super::Route<edgelet_test_utils::runtime::Runtime>> =
             http_common::server::Route::from_uri(
-                &crate::Service::new(edgelet_test_utils::runtime::Runtime {}),
+                &crate::Service::new(edgelet_test_utils::runtime::Runtime::default()),
                 $path,
                 query.as_slice(),
                 &edgelet_test_utils::route::extensions(),
