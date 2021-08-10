@@ -114,3 +114,46 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use edgelet_core::ModuleRuntimeState;
+
+    #[test]
+    fn into_module_status() {
+        let timestamp = chrono::NaiveDateTime::from_timestamp(0, 0);
+        let timestamp =
+            chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
+
+        // Running module
+        let status = ModuleRuntimeState::default()
+            .with_status(edgelet_core::ModuleStatus::Running)
+            .with_started_at(Some(timestamp));
+        let status: super::ModuleStatus = status.into();
+
+        assert_eq!(Some(timestamp.to_rfc3339()), status.start_time);
+        assert!(status.exit_status.is_none());
+        assert_eq!("running", &status.runtime_status.status);
+
+        // Exited module
+        let status = ModuleRuntimeState::default()
+            .with_status(edgelet_core::ModuleStatus::Stopped)
+            .with_started_at(Some(timestamp))
+            .with_finished_at(Some(timestamp))
+            .with_exit_code(Some(0));
+        let status: super::ModuleStatus = status.into();
+
+        assert_eq!(Some(timestamp.to_rfc3339()), status.start_time);
+        assert_eq!("stopped", &status.runtime_status.status);
+
+        let exit_status = status.exit_status.unwrap();
+        assert_eq!(timestamp.to_rfc3339(), exit_status.exit_time);
+        assert_eq!("0".to_string(), exit_status.status_code);
+    }
+
+    #[test]
+    fn into_module_details() {}
+
+    #[test]
+    fn into_list_modules_response() {}
+}

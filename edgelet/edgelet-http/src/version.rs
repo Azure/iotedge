@@ -48,12 +48,30 @@ mod tests {
 
     #[test]
     fn parse_api_version() {
-        assert_eq!(ApiVersion::V2018_06_28, ApiVersion::from_str("2018-06-28").unwrap());
-        assert_eq!(ApiVersion::V2019_01_30, ApiVersion::from_str("2019-01-30").unwrap());
-        assert_eq!(ApiVersion::V2019_10_22, ApiVersion::from_str("2019-10-22").unwrap());
-        assert_eq!(ApiVersion::V2019_11_05, ApiVersion::from_str("2019-11-05").unwrap());
-        assert_eq!(ApiVersion::V2020_07_07, ApiVersion::from_str("2020-07-07").unwrap());
-        assert_eq!(ApiVersion::V2020_10_10, ApiVersion::from_str("2020-10-10").unwrap());
+        assert_eq!(
+            ApiVersion::V2018_06_28,
+            ApiVersion::from_str("2018-06-28").unwrap()
+        );
+        assert_eq!(
+            ApiVersion::V2019_01_30,
+            ApiVersion::from_str("2019-01-30").unwrap()
+        );
+        assert_eq!(
+            ApiVersion::V2019_10_22,
+            ApiVersion::from_str("2019-10-22").unwrap()
+        );
+        assert_eq!(
+            ApiVersion::V2019_11_05,
+            ApiVersion::from_str("2019-11-05").unwrap()
+        );
+        assert_eq!(
+            ApiVersion::V2020_07_07,
+            ApiVersion::from_str("2020-07-07").unwrap()
+        );
+        assert_eq!(
+            ApiVersion::V2020_10_10,
+            ApiVersion::from_str("2020-10-10").unwrap()
+        );
 
         assert!(ApiVersion::from_str("1900-01-01").is_err());
     }
