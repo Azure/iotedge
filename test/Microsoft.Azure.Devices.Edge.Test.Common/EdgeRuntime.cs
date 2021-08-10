@@ -3,11 +3,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json.Linq;
 
     public class EdgeRuntime
     {
@@ -39,8 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Action<EdgeConfigBuilder> addConfig,
             CancellationToken token,
             bool nestedEdge,
-            Option<ManifestSettings> enableManifestSigning = Option.None<ManifestSettings>()) // Deployment dir. path to lauchsettings, ca cert to use
+            ManifestSettings enableManifestSigning1 = null)
         {
+            var enableManifestSigning = Option.Maybe(enableManifestSigning1);
             (string, string)[] hubEnvVar = new (string, string)[] { ("RuntimeLogLevel", "debug"), ("SslProtocols", "tls1.2") };
 
             if (nestedEdge == true)
@@ -64,12 +67,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             addConfig(builder);
             DateTime deployTime = DateTime.Now;
             EdgeConfiguration edgeConfiguration = builder.Build();
+            string signedConfig = string.Empty;
 
             if (enableManifestSigning.HasValue)
             {
-                // Write to a file
-                // Setup for the system call
-                // System call to to signing app.
+                // Wrtie the current config into a file
+                string deploymentPath = enableManifestSigning.OrDefault().ManifestSigningDeploymentPath.OrDefault();
+                File.WriteAllText(deploymentPath, edgeConfiguration.ToString());
+
+                // start dotnet run ManifestSignerClient.exe process
+                string dotnetCmdText = "run " + enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
+                System.Diagnostics.Process.Start("dotnet.exe", dotnetCmdText);
+
+                // Read the signed deployment file back
+                string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
+                signedConfig = File.ReadAllText(signedDeploymentPath);
+            }
+
+            if (!string.IsNullOrEmpty(signedConfig))
+            {
+                // convert signedConfig to edgeConfiguration
             }
 
             await edgeConfiguration.DeployAsync(this.iotHub, token);

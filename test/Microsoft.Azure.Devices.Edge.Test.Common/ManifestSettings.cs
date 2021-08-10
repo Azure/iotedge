@@ -5,17 +5,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class ManifestSettings
     {
-        public Option<string> ManifestSigningDeploymentDir;
+        public Option<string> ManifestSigningDeploymentPath;
+
+        public Option<string> ManifestSigningSignedDeploymentPath;
 
         public Option<string> ManifestSigningRootCaPath;
 
-        public Option<string> ManifestSigningLaunchSettingsPath;
+        public Option<string> ManifestSignerClientBinPath;
 
-        public ManifestSettings(Option<string> manifestSigningDeploymentDir, Option<string> manifestSigningRootCaPath, Option<string> manifestSigningLaunchSettingsPath)
+        public ManifestSettings(Option<string> manifestSigningDeploymenPath, Option<string> manifestSigningSignedDeploymenPath, Option<string> manifestSigningRootCaPath, Option<string> manifestSignerClientBinPath)
         {
-            this.ManifestSigningDeploymentDir = manifestSigningDeploymentDir;
+            this.ManifestSigningDeploymentPath = manifestSigningDeploymenPath;
+            this.ManifestSigningSignedDeploymentPath = manifestSigningSignedDeploymenPath;
             this.ManifestSigningRootCaPath = manifestSigningRootCaPath;
-            this.ManifestSigningLaunchSettingsPath = manifestSigningLaunchSettingsPath;
+            this.ManifestSignerClientBinPath = manifestSignerClientBinPath;
         }
     }
 }

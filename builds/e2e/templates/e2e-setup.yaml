@@ -119,6 +119,9 @@ steps:
     Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$manifestSigningDeploymentDir/deployment.json" -ItemType File
+    New-Item -Path "$manifestSigningDeploymentDir/signed_deployment.json" -ItemType File
+    New-Item -Path "$manifestSignerClientBinDir/Properties/testManifestSigningDefaultLaunchSettings.json" -ItemType File
     $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
     $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
     $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
@@ -180,14 +183,18 @@ steps:
       $testManifestSigningIntermediateCaPath = Convert-Path "$(manifestSigningCertDir)/intermediate_ca.crt";
       $testManifestSigningSignerCertPath = Convert-Path "$(manifestSigningCertDir)/signer_cert.crt";
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
-      
-      $launchSettings = @{
+      $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
+      $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
+      $testManifestSignerClientBinPath = Convert-Path "$(manifestSignerClientBinDir)/ManifestSignerClient.exe";
+           
+      $testManifestSigningDefaultLaunchSettings = @{
         profiles = @{
           ManifestSignerClient = @{
             commandName = "Project";
             environmentVariables = @{  
               USE_TESTING_CA = "true";
-              MANIFEST_TRUST_DEVICE_ROOT_CA_PATH = "$testManifestSigningGoodRootCaPath";
+              DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningDeploymentPath";
+              SIGNED_DEPLOYMENT_MANIFEST_FILE_PATH = "$testManifestSigningSignedDeploymentPath";
               MANIFEST_TRUST_INTERMEDIATE_CA_PATH = "$testManifestSigningIntermediateCaPath";
               MANIFEST_TRUST_SIGNER_PRIVATE_KEY_PATH = "$testManifestSigningSignerKeyPath";
               MANIFEST_TRUST_SIGNER_CERT_PATH = "$testManifestSigningSignerCertPath";
@@ -197,9 +204,11 @@ steps:
         }
       };
       
-      $manifestSigningLaunchSettingsPath  = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
-      $launchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$manifestSigningLaunchSettingsPath"
-      Get-Content -Path "$manifestSigningLaunchSettingsPath"
+      $testManifestSigningDefaultLaunchSettings  = "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
+      $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningDefaultLaunchSettings"
+      Get-Content -Path "$testManifestSigningDefaultLaunchSettings"
+      $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
+
     }
 
     echo "Edge agent image: $edgeAgentImage"
@@ -255,10 +264,13 @@ steps:
     if ('$(enableManifestSigning)' -eq 'true')
     {
       $context['enableManifestSigning'] = "true"
-      $context['manifestSigningDeploymentDir'] = "$(manifestSigningDeploymentDir)"
+      $context['manifestSigningDeploymentPath'] = "$testManifestSigningDeploymentPath"
+      $context['manifestSigningSignedDeploymentPath'] = "$testManifestSigningSignedDeploymentPath"
       $context['manifestSigningGoodRootCaPath'] = "$testManifestSigningGoodRootCaPath"
       $context['manifestSigningBadRootCaPath'] = "$testManifestSigningBadRootCaPath"
-      $context['manifestSigningLaunchSettingsPath'] = "$manifestSigningLaunchSettingsPath"
+      $context['manifestSigningDefaultLaunchSettings'] = "$testManifestSigningDefaultLaunchSettings"
+      $context['manifestSigningLaunchSettingsPath'] = "$testManifestSigningLaunchSettingsPath"
+      $context['manifestSignerClientBinPath'] = "$testManifestSignerClientBinPath"
     }
 
     if ('$(arch)' -eq 'arm32v7' -Or '$(arch)' -eq 'arm64v8')
