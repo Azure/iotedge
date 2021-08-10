@@ -7,12 +7,9 @@ jobs:
     displayName: Lock nested agents for ${{ parameters['upstream.protocol'] }}
     timeoutInMinutes: 180
     pool:
-     name: $(pool.name)
-     demands:
-       - agent-group -equals $(agent.group)
-       - Agent.OS -equals Linux
-       - Agent.OSArchitecture -equals X64
-       - status -equals unlocked
+      name: $(pool.linux.name)
+      demands:
+        - ImageOverride -equals agent-aziotedge-ubuntu-18.04-docker
     steps:
       - template: nested-get-secrets.yaml
       - script: scripts/linux/nestedAgentLock.sh -a "$(agent.group)" -b "$(Build.BuildId)" -n ${{ parameters['testRunnerCount'] }} -u ${{ parameters['upstream.protocol'] }}

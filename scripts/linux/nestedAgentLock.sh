@@ -143,6 +143,11 @@ function update_capabilities() {
 --request PUT "https://msazure.visualstudio.com/_apis/distributedtask/pools/$POOL_ID/agents/$agentId/usercapabilities" \
 -H "Content-Type:application/json" \
 -H "Accept: application/json;api-version=5.0;" \
+--max-time 10 \
+--retry 5 \
+--retry-delay 0 \
+--retry-max-time 40 \
+--retry-all-errors \
 --data @<(cat <<EOF
 $newAgentUserCapabilities
 EOF
@@ -230,9 +235,9 @@ startSeconds=$((SECONDS))
 endSeconds=$((SECONDS + $TIMEOUT_SECONDS))
 agentsNeeded=$(($RUNNER_AGENTS_NEEDED + 2))
 while true && [ $((SECONDS)) -lt $endSeconds ]; do
-    # Wait 1-10 seconds to retry locking agents.
+    # Wait to retry locking agents.
     # Random delay to avoid multiple instances of the script thrashing.
-    sleep $[ ( $RANDOM % 10 ) + 30 ]s
+    sleep $[ ( $RANDOM % 10 ) + 60 ]s
 
     echo "Attempting to lock $agentsNeeded agents from the agent group $AGENT_GROUP..."
     agentsInfo=$(curl -s -u :$PAT --request GET "https://dev.azure.com/msazure/_apis/distributedtask/pools/$POOL_ID/agents?includeCapabilities=true&api-version=$API_VER")
