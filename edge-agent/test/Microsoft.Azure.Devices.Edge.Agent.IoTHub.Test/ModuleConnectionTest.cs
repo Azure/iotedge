@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
@@ -205,6 +206,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Assert
             Assert.True(optionResultModuleClient.HasValue);
+        }
+
+        [Fact]
+        public async Task FailingInitClosesModuleClient()
+        {
+            // Arrange
+            ConnectionStatusChangesHandler connectionStatusChangesHandler = (status, reason) => { };
+            DesiredPropertyUpdateCallback desiredPropertyUpdateCallback = (properties, context) => Task.CompletedTask;
+
+            var milestone = new SemaphoreSlim(0, 1);
+
+            var moduleClient = new Mock<IModuleClient>();
+            moduleClient.Setup(m => m.SetDefaultMethodHandlerAsync(It.IsAny<MethodCallback>())).Callback(() => milestone.Release()).Throws<TimeoutException>();
+
+            var moduleClientProvider = new Mock<IModuleClientProvider>();
+            moduleClientProvider.Setup(m => m.Create(connectionStatusChangesHandler)).ReturnsAsync(moduleClient.Object);
+
+            var requestManager = new Mock<IRequestManager>();
+            bool enableSubscriptions = true;
+
+            // Act
+            var moduleConnection = new ModuleConnection(moduleClientProvider.Object, requestManager.Object, connectionStatusChangesHandler, desiredPropertyUpdateCallback, enableSubscriptions);
+            await milestone.WaitAsync();
+            await Task.Delay(TimeSpan.FromSeconds(0.5)); // the milestone is released a bit earlier than the exception, so wait a tiny bit
+
+            // Assert
+            moduleClient.Verify(m => m.CloseAsync(), Times.Once);
         }
     }
 }
