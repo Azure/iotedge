@@ -39,13 +39,14 @@ steps:
       targetType: inline
       script: |
         sudo mkdir $(Agent.HomeDirectory)/../artifacts
-        sudo chmod 775 $(Agent.HomeDirectory)/../artifacts
 
         echo "Copy Edgelet Artifact"
-        cp -rf "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+        sudo cp -rf "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
 
         echo "Copy Images Artifact"
-        cp -rf "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+        sudo cp -rf "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+
+        sudo chmod 775 -R $(Agent.HomeDirectory)/../artifacts
 
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
