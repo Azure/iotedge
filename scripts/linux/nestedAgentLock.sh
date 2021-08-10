@@ -149,7 +149,7 @@ function update_capabilities() {
 --retry 5 \
 --retry-delay 0 \
 --retry-max-time 40 \
---retry-all-errors \
+--retry-connrefused \
 --data @<(cat <<EOF
 $newAgentUserCapabilities
 EOF
