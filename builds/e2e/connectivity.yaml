@@ -64,12 +64,9 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals X64
-        - run-connectivity -equals true
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu18.04-amd64'
     steps:
@@ -235,13 +232,9 @@ jobs:
           testrun.network.runProfile: "Cellular3G"
           testrun.duration: "01:00:00"
     pool:
-      name: $(pool.name)
+      name: $(pool.linux.name)
       demands:
-        - agent-group -equals $(agent.group)
-        - Agent.OS -equals Linux
-        - Agent.OSArchitecture -equals ARM
-        - agent-osbits -equals 32
-        - run-connectivity -equals true
+      - ImageOverride -equals agent-aziotedge-ubuntu-18.04-msmoby
     variables:
       edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
