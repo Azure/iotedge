@@ -46,6 +46,7 @@ steps:
 
         echo "Copy Images Artifact"
         cp -rf "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
