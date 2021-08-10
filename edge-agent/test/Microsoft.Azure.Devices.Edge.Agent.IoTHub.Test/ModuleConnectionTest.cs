@@ -228,8 +228,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             var moduleConnection = new ModuleConnection(moduleClientProvider.Object, requestManager.Object, connectionStatusChangesHandler, desiredPropertyUpdateCallback, enableSubscriptions);
-            await milestone.WaitAsync();
-            await Task.Delay(TimeSpan.FromSeconds(0.5)); // the milestone is released a bit earlier than the exception, so wait a tiny bit
+            await milestone.WaitAsync(TimeSpan.FromSeconds(10));
+            await Task.Delay(TimeSpan.FromSeconds(0.5)); // the milestone is hit a bit earlier than the exception, so wait a tiny bit
 
             // Assert
             moduleClient.Verify(m => m.CloseAsync(), Times.Once);
