@@ -51,7 +51,6 @@ stages:
         displayName: Get ip address of L3 mqtt agent
         name: get_l3_ip_mqtt
 
-  # Generate tracking id
   - job: Generate_Tracking_Id
     dependsOn:
       - Lock_Nested_Agents_mqtt
@@ -88,7 +87,7 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters:
       upstream.protocol: mqtt
-      test.l4DeploymentFileName: 'nestededge_middleLayer_messaging_mqtt.json'
+      test.l4DeploymentFileName: 'nestededge_middleLayer_long_haul_mqtt.json'
       l3IpAddress: '$(l3IpAddressMqtt)'
       test.trackingId: '$(trackingId)'
   - template: templates/nested-longhaul-deploy-amd64.yaml
