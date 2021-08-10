@@ -20,13 +20,11 @@ namespace DevOpsLib
         }
 
         /// <summary>
-        /// This method is used to create a bug in Azure Dev Ops.
-        /// If it cannot create the bug it will rethrow the exception from the DevOps api.
-        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/work%20items/create?view=azure-devops-rest-6.0
+        /// This method is used to get a commit author's full name via the github rest api.
+        /// Reference: https://docs.github.com/en/rest 
         /// </summary>
-        /// <param name="branch">Branch for which the bug is being created</param>
-        /// <param name="build">Build for which the bug is being created</param>
-        /// <returns>Work item id for the created bug.</returns>
+        /// <param name="commit">Commit for which to get the author's full name.</param>
+        /// <returns>Full name of author.</returns>
         public async Task<string> GetAuthorFullNameFromCommitAsync(string commit)
         {
             string requestPath = string.Format(UserPathSegmentFormat, commit);

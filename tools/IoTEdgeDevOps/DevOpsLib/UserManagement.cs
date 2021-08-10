@@ -22,13 +22,10 @@ namespace DevOpsLib
         }
 
         /// <summary>
-        /// This method is used to create a bug in Azure Dev Ops.
-        /// If it cannot create the bug it will rethrow the exception from the DevOps api.
-        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/work%20items/create?view=azure-devops-rest-6.0
+        /// This method is used to retrieve all the team members for the larger iotedge team.
+        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/graph/users/list?view=azure-devops-rest-6.0
         /// </summary>
-        /// <param name="branch">Branch for which the bug is being created</param>
-        /// <param name="build">Build for which the bug is being created</param>
-        /// <returns>Work item id for the created bug.</returns>
+        /// <returns>List of users. Each containing full name and email.</returns>
         public async Task<IList<VstsUser>> ListUsersAsync()
         {
             string requestPath = string.Format(UserPathSegmentFormat, DevOpsAccessSetting.UserManagementBaseUrl, DevOpsAccessSetting.IotedgeOrganization);

@@ -98,14 +98,10 @@ namespace DevOpsLib
                     .PostJsonAsync(jsonBody);
 
                 result = await response.GetJsonAsync<JObject>();
-
-                Console.WriteLine(result.ToString());
-                Console.ReadLine();
             }
             catch (FlurlHttpException e)
             {
                 string message = $"Failed making call to vsts work item api: {e.Message}";
-                Console.ReadLine();
                 Console.WriteLine(message);
                 Console.WriteLine(e.Call.RequestBody);
                 Console.WriteLine(e.Call.Response.StatusCode);
