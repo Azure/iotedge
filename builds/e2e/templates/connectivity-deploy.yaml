@@ -42,10 +42,10 @@ steps:
         sudo chmod 775 $(Agent.HomeDirectory)/../artifacts
 
         echo "Copy Edgelet Artifact"
-        cp "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+        cp -rf "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
 
         echo "Copy Images Artifact"
-        cp "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+        cp -rf "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}" "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
   - task: Bash@3
     condition: and(succeeded(), eq(variables['run.flag'], 1))
     displayName: 'Run Connectivity Deployment'
