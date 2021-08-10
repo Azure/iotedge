@@ -117,9 +117,10 @@ steps:
     Write-Output "##vso[task.setvariable variable=manifestSigningDeploymentDir]$manifestSigningDeploymentDir"
     $manifestSigningCertDir = '$(System.ArtifactsDirectory)/manifest_signing/certs'
     New-Item "$manifestSigningCertDir" -ItemType Directory -Force | Out-Null
+    New-Item "$manifestSigningDeploymentDir" -ItemType Directory -Force | Out-Null
     New-Item -Path "$manifestSigningDeploymentDir/deployment.json" -ItemType File
     New-Item -Path "$manifestSigningDeploymentDir/signed_deployment.json" -ItemType File
-    New-Item -Path "$manifestSignerClientBinDir/Properties/testManifestSigningDefaultLaunchSettings.json" -ItemType File
+    New-Item -Path "$manifestSignerClientBinDir/Properties/launchSettings.json" -ItemType File
     $env:GOOD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/good_root_ca.pem"
     $env:BAD_ROOT_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/bad_root_ca.pem"
     $env:INTERMEDIATE_CA_CERT | Out-File -Encoding Utf8 "$manifestSigningCertDir/intermediate_ca.crt"
