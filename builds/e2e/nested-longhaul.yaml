@@ -51,7 +51,6 @@ stages:
         displayName: Get ip address of L3 mqtt agent
         name: get_l3_ip_mqtt
 
-  # Generate tracking id
   - job: Generate_Tracking_Id
     dependsOn:
       - Lock_Nested_Agents_mqtt
