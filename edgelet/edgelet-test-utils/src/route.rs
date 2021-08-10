@@ -55,6 +55,20 @@ macro_rules! test_route {
     }}
 }
 
+#[macro_export]
+macro_rules! test_auth_required {
+    ($route:expr, $fn:tt) => {{
+        // Auth required: no PIDs should fail.
+        {
+            let mut runtime = $route.runtime.lock().await;
+            runtime.clear_auth();
+        }
+
+        let response = $fn.await.unwrap_err();
+        assert_eq!(hyper::StatusCode::FORBIDDEN, response.status_code);
+    }};
+}
+
 // Constructs the http::Extensions containing this process ID, similar to what
 // http-common does.
 pub fn extensions() -> http::Extensions {

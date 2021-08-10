@@ -53,6 +53,11 @@ impl Runtime {
     fn test_error() -> std::io::Error {
         std::io::Error::new(std::io::ErrorKind::Other, "test error")
     }
+
+    pub fn clear_auth(&mut self) {
+        // Empty PID array for auth will deny all requests.
+        self.module_top_resp = Some(vec![]);
+    }
 }
 
 impl Default for Runtime {

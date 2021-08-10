@@ -9,6 +9,8 @@ where
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
+const PATH: &str = "/device/reprovision";
+
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
@@ -26,7 +28,7 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != "/device/reprovision" {
+        if path != PATH {
             return None;
         }
 
@@ -71,7 +73,7 @@ mod tests {
     #[test]
     fn parse_uri() {
         // Valid URI
-        let route = test_route_ok!("/device/reprovision");
+        let route = test_route_ok!(super::PATH);
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
         // Extra character at beginning of URI
@@ -82,13 +84,21 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn auth() {
+        let route = edgelet_test_utils::test_route_ok!(super::PATH);
+
+        // Check that this route requires auth.
+        edgelet_test_utils::test_auth_required!(route, { route.post(None) });
+    }
+
+    #[tokio::test]
     async fn reprovision_tx_rx() {
         let runtime = edgelet_test_utils::runtime::Runtime::default();
         let (service, mut reprovision_rx) = crate::Service::new_with_reprovision(runtime);
 
         let route = super::Route::from_uri(
             &service,
-            "/device/reprovision",
+            super::PATH,
             &Vec::new(),
             &edgelet_test_utils::route::extensions(),
         )
