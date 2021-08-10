@@ -1,9 +1,24 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Default, serde::Serialize)]
 pub struct Config {}
 
-pub struct Module {}
+#[derive(Clone)]
+pub struct Module {
+    pub name: String,
+    pub type_: String,
+    pub config: Config,
+}
+
+impl Default for Module {
+    fn default() -> Self {
+        Module {
+            name: "testModule".to_string(),
+            type_: "test".to_string(),
+            config: Config::default(),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 impl edgelet_core::Module for Module {
@@ -11,15 +26,15 @@ impl edgelet_core::Module for Module {
     type Error = std::io::Error;
 
     fn name(&self) -> &str {
-        todo!()
+        &self.name
     }
 
     fn type_(&self) -> &str {
-        todo!()
+        &self.type_
     }
 
     fn config(&self) -> &Self::Config {
-        todo!()
+        &self.config
     }
 
     async fn runtime_state(&self) -> Result<edgelet_core::ModuleRuntimeState, Self::Error> {

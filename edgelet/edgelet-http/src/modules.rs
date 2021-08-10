@@ -30,6 +30,7 @@ struct EnvVar {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase")]
 struct ModuleStatus {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,6 +43,7 @@ struct ModuleStatus {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 #[serde(rename_all = "camelCase")]
 struct ExitStatus {
     exit_time: String,
@@ -49,6 +51,7 @@ struct ExitStatus {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(PartialEq))]
 struct RuntimeStatus {
     status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -117,7 +120,7 @@ impl std::convert::From<edgelet_core::ModuleRuntimeState> for ModuleStatus {
 
 #[cfg(test)]
 mod tests {
-    use edgelet_core::ModuleRuntimeState;
+    use edgelet_core::{Module, ModuleRuntimeState};
 
     #[test]
     fn into_module_status() {
@@ -129,11 +132,18 @@ mod tests {
         let status = ModuleRuntimeState::default()
             .with_status(edgelet_core::ModuleStatus::Running)
             .with_started_at(Some(timestamp));
-        let status: super::ModuleStatus = status.into();
 
-        assert_eq!(Some(timestamp.to_rfc3339()), status.start_time);
-        assert!(status.exit_status.is_none());
-        assert_eq!("running", &status.runtime_status.status);
+        assert_eq!(
+            super::ModuleStatus {
+                start_time: Some(timestamp.to_rfc3339()),
+                exit_status: None,
+                runtime_status: super::RuntimeStatus {
+                    status: "running".to_string(),
+                    description: None,
+                }
+            },
+            status.into()
+        );
 
         // Exited module
         let status = ModuleRuntimeState::default()
@@ -141,18 +151,72 @@ mod tests {
             .with_started_at(Some(timestamp))
             .with_finished_at(Some(timestamp))
             .with_exit_code(Some(0));
-        let status: super::ModuleStatus = status.into();
 
-        assert_eq!(Some(timestamp.to_rfc3339()), status.start_time);
-        assert_eq!("stopped", &status.runtime_status.status);
+        assert_eq!(
+            super::ModuleStatus {
+                start_time: Some(timestamp.to_rfc3339()),
+                exit_status: Some(super::ExitStatus {
+                    exit_time: timestamp.to_rfc3339(),
+                    status_code: "0".to_string(),
+                }),
+                runtime_status: super::RuntimeStatus {
+                    status: "stopped".to_string(),
+                    description: None,
+                }
+            },
+            status.into()
+        );
+    }
 
-        let exit_status = status.exit_status.unwrap();
-        assert_eq!(timestamp.to_rfc3339(), exit_status.exit_time);
-        assert_eq!("0".to_string(), exit_status.status_code);
+    // Common data set for tests.
+    fn modules() -> (
+        Vec<(edgelet_test_utils::runtime::Module, ModuleRuntimeState)>,
+        chrono::DateTime<chrono::offset::Utc>,
+    ) {
+        let timestamp = chrono::NaiveDateTime::from_timestamp(0, 0);
+        let timestamp =
+            chrono::DateTime::<chrono::offset::Utc>::from_utc(timestamp, chrono::offset::Utc);
+
+        let modules = vec![
+            // Running module
+            (
+                edgelet_test_utils::runtime::Module::default(),
+                ModuleRuntimeState::default()
+                    .with_status(edgelet_core::ModuleStatus::Running)
+                    .with_started_at(Some(timestamp)),
+            ),
+            // Exited module
+            (
+                edgelet_test_utils::runtime::Module::default(),
+                ModuleRuntimeState::default()
+                    .with_status(edgelet_core::ModuleStatus::Stopped)
+                    .with_started_at(Some(timestamp))
+                    .with_finished_at(Some(timestamp))
+                    .with_exit_code(Some(0)),
+            ),
+        ];
+
+        (modules, timestamp)
     }
 
     #[test]
-    fn into_module_details() {}
+    fn into_module_details() {
+        let (modules, timestamp) = modules();
+
+        for (module, state) in modules {
+            let details: super::ModuleDetails = (module.clone(), state.clone()).into();
+            assert_eq!("id", &details.id);
+            assert_eq!(module.name(), &details.name);
+            assert_eq!(module.type_(), &details.r#type);
+            assert_eq!(
+                serde_json::to_value(module.config()).unwrap(),
+                details.config.settings
+            );
+
+            let status: super::ModuleStatus = state.into();
+            assert_eq!(status, details.status);
+        }
+    }
 
     #[test]
     fn into_list_modules_response() {}

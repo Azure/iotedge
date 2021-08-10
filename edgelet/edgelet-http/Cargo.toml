@@ -19,3 +19,6 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-docker = { path = "../edgelet-docker" }
 
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }

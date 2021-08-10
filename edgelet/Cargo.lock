@@ -722,6 +722,7 @@ dependencies = [
  "chrono",
  "edgelet-core",
  "edgelet-docker",
+ "edgelet-test-utils",
  "futures-util",
  "http 0.2.4",
  "http-common",
