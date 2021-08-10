@@ -36,3 +36,62 @@ pub async fn auth_caller(
 
     Ok(())
 }
+
+#[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
+mod tests {
+    use super::{auth_agent, auth_caller};
+
+    fn assert_is_forbidden(res: Result<(), http_common::server::Error>) {
+        let res = res.unwrap_err();
+
+        assert_eq!(http::StatusCode::FORBIDDEN, res.status_code);
+    }
+
+    #[tokio::test]
+    async fn auth_err() {
+        // Arbitrary PID for testing.
+        let pid = 1000;
+
+        // Runtime errors should cause auth to return 403 errors.
+        let mut runtime = edgelet_test_utils::runtime::Runtime::default();
+        runtime.module_top_resp = None;
+
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
+        assert_is_forbidden(auth_agent(pid, &runtime).await);
+        assert_is_forbidden(auth_caller("testModule", pid, &runtime).await);
+    }
+
+    #[tokio::test]
+    async fn auth_no_match() {
+        // Arbitrary PID for testing.
+        let pid = 1000;
+
+        // Auth fails when no matching module is found.
+        let runtime = edgelet_test_utils::runtime::Runtime::default();
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
+        assert_is_forbidden(auth_agent(pid, &runtime).await);
+        assert_is_forbidden(auth_caller("testModule", pid, &runtime).await);
+    }
+
+    #[tokio::test]
+    async fn auth_pids() {
+        let mut modules = std::collections::BTreeMap::new();
+        modules.insert("edgeAgent".to_string(), vec![1000]);
+        modules.insert("testModule".to_string(), vec![1001]);
+
+        let mut runtime = edgelet_test_utils::runtime::Runtime::default();
+        runtime.module_top_resp = Some(modules);
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
+        // auth_agent
+        assert!(auth_agent(1000, &runtime).await.is_ok());
+        assert_is_forbidden(auth_agent(1001, &runtime).await);
+
+        // auth_caller
+        assert!(auth_caller("testModule", 1001, &runtime).await.is_ok());
+        assert_is_forbidden(auth_caller("testModule", 1000, &runtime).await);
+    }
+}

@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn into_module_details() {
-        let (modules, timestamp) = test_modules();
+        let (modules, _) = test_modules();
 
         for (module, state) in modules {
             let details: super::ModuleDetails = (module.clone(), state.clone()).into();
