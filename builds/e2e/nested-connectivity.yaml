@@ -27,7 +27,7 @@ stages:
   - template: templates/nested-parent-vm-setup.yaml
     parameters: 
       upstream.protocol: 'mqtt'
-      test.l4DeploymentFileName: 'nestededge_middleLayer_messaging_mqtt.json'
+      test.l4DeploymentFileName: 'nestededge_middleLayer_connectivity_mqtt.json'
   - job:  Deploy_Connectivity_Linux_Amd64
     displayName: Set up and run connectivity tests on Linux Amd64
     dependsOn:
