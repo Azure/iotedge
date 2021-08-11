@@ -17,57 +17,6 @@ use edgelet_test_utils::clients::IdentityClient;
 #[cfg(test)]
 use edgelet_test_utils::clients::KeyClient;
 
-// The subset of the aziot-edged config needed for workload APIs.
-#[derive(Clone, Debug)]
-#[cfg_attr(test, derive(PartialEq))]
-struct WorkloadConfig {
-    hub_name: String,
-    device_id: String,
-
-    trust_bundle: String,
-    manifest_trust_bundle: String,
-
-    edge_ca_cert: String,
-    edge_ca_key: String,
-}
-
-impl WorkloadConfig {
-    pub fn new(
-        settings: &impl edgelet_settings::RuntimeSettings,
-        device_info: &aziot_identity_common::AzureIoTSpec,
-    ) -> Self {
-        let trust_bundle = settings
-            .trust_bundle_cert()
-            .unwrap_or("aziot-edged-trust-bundle")
-            .to_string();
-
-        let manifest_trust_bundle = settings
-            .manifest_trust_bundle_cert()
-            .unwrap_or("aziot-edged-manifest-trust-bundle")
-            .to_string();
-
-        let edge_ca_cert = settings
-            .edge_ca_cert()
-            .unwrap_or("aziot-edged-ca")
-            .to_string();
-        let edge_ca_key = settings
-            .edge_ca_key()
-            .unwrap_or("aziot-edged-ca")
-            .to_string();
-
-        WorkloadConfig {
-            hub_name: device_info.hub_name.clone(),
-            device_id: device_info.device_id.0.clone(),
-
-            trust_bundle,
-            manifest_trust_bundle,
-
-            edge_ca_cert,
-            edge_ca_key,
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct Service<M>
 where
@@ -187,6 +136,57 @@ http_common::make_service! {
 
         trust_bundle::Route<M>,
     ],
+}
+
+// The subset of the aziot-edged config needed for workload APIs.
+#[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
+struct WorkloadConfig {
+    hub_name: String,
+    device_id: String,
+
+    trust_bundle: String,
+    manifest_trust_bundle: String,
+
+    edge_ca_cert: String,
+    edge_ca_key: String,
+}
+
+impl WorkloadConfig {
+    pub fn new(
+        settings: &impl edgelet_settings::RuntimeSettings,
+        device_info: &aziot_identity_common::AzureIoTSpec,
+    ) -> Self {
+        let trust_bundle = settings
+            .trust_bundle_cert()
+            .unwrap_or("aziot-edged-trust-bundle")
+            .to_string();
+
+        let manifest_trust_bundle = settings
+            .manifest_trust_bundle_cert()
+            .unwrap_or("aziot-edged-manifest-trust-bundle")
+            .to_string();
+
+        let edge_ca_cert = settings
+            .edge_ca_cert()
+            .unwrap_or("aziot-edged-ca")
+            .to_string();
+        let edge_ca_key = settings
+            .edge_ca_key()
+            .unwrap_or("aziot-edged-ca")
+            .to_string();
+
+        WorkloadConfig {
+            hub_name: device_info.hub_name.clone(),
+            device_id: device_info.device_id.0.clone(),
+
+            trust_bundle,
+            manifest_trust_bundle,
+
+            edge_ca_cert,
+            edge_ca_key,
+        }
+    }
 }
 
 #[cfg(test)]
