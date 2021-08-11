@@ -20,6 +20,9 @@ pub(crate) struct TrustBundleResponse {
     certificate: String,
 }
 
+const TRUST_BUNDLE_PATH: &str = "/trust-bundle";
+const MANIFEST_TRUST_BUNDLE_PATH: &str = "/manifest-trust-bundle";
+
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
@@ -38,8 +41,8 @@ where
         _extensions: &http::Extensions,
     ) -> Option<Self> {
         let trust_bundle = match path {
-            "/trust-bundle" => service.config.trust_bundle.clone(),
-            "/manifest-trust-bundle" => service.config.manifest_trust_bundle.clone(),
+            TRUST_BUNDLE_PATH => service.config.trust_bundle.clone(),
+            MANIFEST_TRUST_BUNDLE_PATH => service.config.manifest_trust_bundle.clone(),
             _ => return None,
         };
 
@@ -74,4 +77,24 @@ where
     type PostBody = serde::de::IgnoredAny;
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URIs
+        test_route_ok!(super::TRUST_BUNDLE_PATH);
+        test_route_ok!(super::MANIFEST_TRUST_BUNDLE_PATH);
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", super::TRUST_BUNDLE_PATH));
+        test_route_err!(&format!("a{}", super::MANIFEST_TRUST_BUNDLE_PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", super::TRUST_BUNDLE_PATH));
+        test_route_err!(&format!("a{}", super::MANIFEST_TRUST_BUNDLE_PATH));
+    }
 }
