@@ -43,7 +43,7 @@ jobs:
         displayName: Install Rust
       - bash: scripts/linux/generic-rust/build.sh --project-root "test/modules/generic-mqtt-tester" --packages "Cargo.toml" --manifest-path
         displayName: Build Generic Mqtt Tester Module
-      - task: PublishTestResults@2
+      - task: PublishTestResults@3
         displayName: Publish test results
         inputs:
           testResultsFormat: "JUnit"

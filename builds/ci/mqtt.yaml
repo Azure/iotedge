@@ -44,7 +44,7 @@ jobs:
         inputs:
           filePath: mqtt/build/linux/test.sh
           arguments: --report test-results.xml
-      - task: PublishTestResults@2
+      - task: PublishTestResults@3
         displayName: Publish test results
         inputs:
           testResultsFormat: "JUnit"
@@ -89,7 +89,7 @@ jobs:
         inputs:
           filePath: mqtt/build/linux/test.sh
           arguments: --target armv7-unknown-linux-gnueabihf --cargo cross --report test-results.xml
-      - task: PublishTestResults@2
+      - task: PublishTestResults@3
         displayName: Publish test results
         inputs:
           testResultsFormat: "JUnit"

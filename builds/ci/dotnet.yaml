@@ -79,7 +79,7 @@ jobs:
 #          sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category=Kubernetes" $(Build.Configuration)'
 #        displayName: Kubernetes Integration Tests
 #        condition: succeededOrFailed()
-      - task: PublishTestResults@2
+      - task: PublishTestResults@3
         displayName: Publish test results
         inputs:
           testRunner: VSTest
