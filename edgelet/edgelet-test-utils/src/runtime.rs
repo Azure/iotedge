@@ -95,7 +95,7 @@ impl edgelet_core::ModuleRuntime for Runtime {
 
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
         if id == "runtimeError" {
-            Err(test_error())
+            Err(crate::test_error())
         } else {
             let pids = if let Some(pids) = self.module_auth.get(id) {
                 pids.clone()
@@ -183,10 +183,4 @@ impl edgelet_core::ModuleRuntime for Runtime {
     fn registry(&self) -> &Self::ModuleRegistry {
         unimplemented!()
     }
-}
-
-/// Return a generic error. Most users of ModuleRuntime don't act on the error other
-/// than passing it up the call stack, so it's fine to return any error.
-fn test_error() -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::Other, "test error")
 }

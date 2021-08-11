@@ -1,11 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-pub struct CertClient {}
-
-impl Default for CertClient {
-    fn default() -> Self {
-        CertClient {}
-    }
+#[derive(Default)]
+pub struct CertClient {
+    pub certs: std::collections::BTreeMap<String, Vec<u8>>,
 }
 
 impl CertClient {
@@ -19,6 +16,9 @@ impl CertClient {
     }
 
     pub async fn get_cert(&self, id: &str) -> Result<Vec<u8>, std::io::Error> {
-        todo!()
+        match self.certs.get(id) {
+            Some(cert) => Ok(cert.clone()),
+            None => Err(crate::test_error()),
+        }
     }
 }
