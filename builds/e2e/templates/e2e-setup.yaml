@@ -111,6 +111,7 @@ steps:
     $manifestSignerClientDir = '$(Build.SourcesDirectory)/samples/dotnet/ManifestSignerClient'
     dotnet build $manifestSignerClientDir
     $manifestSignerClientBinDir = Convert-Path "$manifestSignerClientDir/bin/Debug/netcoreapp3.1"
+    dir $manifestSignerClientBinDir
     Write-Output "##vso[task.setvariable variable=manifestSignerClientBinDir]$manifestSignerClientBinDir"
     $manifestSigningTestDir = '$(System.ArtifactsDirectory)/manifest_signing'
     $manifestSigningDeploymentDir = '$(System.ArtifactsDirectory)/manifest_signing/deployment'
