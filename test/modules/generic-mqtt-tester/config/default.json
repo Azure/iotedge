@@ -3,7 +3,5 @@
     "trc_url": "http://testResultCoordinator:5001/api/testoperationresult",
     "message_frequency": "1s",
     "message_size_in_bytes": "1",
-    "test_start_delay": "3m",
-    "initiate_topic": "initiate/1",
-    "relay_topic": "relay/1"
+    "test_start_delay": "3m"
 }

@@ -26,6 +26,9 @@ pub mod message_initiator;
 pub mod settings;
 pub mod tester;
 
+pub const INITIATE_TOPIC_PREFIX: &str = "initiate";
+pub const RELAY_TOPIC_PREFIX: &str = "relay";
+
 #[derive(Debug, Clone)]
 pub struct ShutdownHandle(Sender<()>);
 

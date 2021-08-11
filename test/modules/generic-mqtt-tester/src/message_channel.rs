@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
 use bytes::Buf;
 use futures_util::{
@@ -7,7 +5,7 @@ use futures_util::{
     stream::StreamExt,
 };
 use mpsc::{Receiver, UnboundedReceiver, UnboundedSender};
-use tokio::{sync::mpsc, time};
+use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -92,19 +90,18 @@ impl MessageHandler for ReportResultMessageHandler {
     }
 }
 
-/// Responsible for receiving publications and sending them back to the downstream edge.
+/// Responsible for receiving publications on the initiate topic and sending
+/// them back on the relay topic.
 pub struct RelayingMessageHandler {
     publish_handle: PublishHandle,
-    topic: String,
-    message_frequency: Duration,
+    relay_topic: String,
 }
 
 impl RelayingMessageHandler {
-    pub fn new(publish_handle: PublishHandle, topic: String, message_frequency: Duration) -> Self {
+    pub fn new(publish_handle: PublishHandle, relay_topic: String) -> Self {
         Self {
             publish_handle,
-            topic,
-            message_frequency,
+            relay_topic,
         }
     }
 }
@@ -118,17 +115,12 @@ impl MessageHandler for RelayingMessageHandler {
         let sequence_number = parse_sequence_number(&received_publication);
 
         info!(
-            "relaying publication with sequence number {}",
-            sequence_number,
+            "relaying publication on topic {} with sequence number {}",
+            received_publication.topic_name, sequence_number,
         );
 
-        // Wait 1 second before relaying to mimic real use cases. This can help
-        // to surface some issues, as relevant connections (i.e. L3 Bridge to L4 Broker)
-        // could drop between original message receipt and subsequent relay.
-        time::delay_for(self.message_frequency).await;
-
         let new_publication = Publication {
-            topic_name: self.topic.clone(),
+            topic_name: self.relay_topic.clone(),
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: received_publication.payload,
