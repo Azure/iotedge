@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                 // start dotnet run ManifestSignerClient.exe process
                 string dotnetCmdText = "run " + enableManifestSigning.OrDefault().ManifestSignerClientBinPath.OrDefault();
-                System.Diagnostics.Process.Start("dotnet.exe", dotnetCmdText);
+                System.Diagnostics.Process.Start("dotnet", dotnetCmdText);
 
                 // Read the signed deployment file back
                 string signedDeploymentPath = enableManifestSigning.OrDefault().ManifestSigningSignedDeploymentPath.OrDefault();
