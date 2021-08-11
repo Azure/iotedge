@@ -364,27 +364,6 @@
               "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
             }
           },
-          "moduleRestarter": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "on-failure",
-            "env": {
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
-              },
-              "DesiredModulesToRestartCSV": {
-                "value": "<DesiredModulesToRestartCSV>"
-              },
-              "RestartIntervalInMins": {
-                "value": "<RestartIntervalInMins>"
-              }
-            },
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"LogConfig\":{\"Type\":\"json-file\",\"Config\":{\"max-size\":\"4m\",\"max-file\":\"7\"}}}}"
-            }
-          },
           "metricsCollector": {
             "version": "1.0",
             "type": "docker",
