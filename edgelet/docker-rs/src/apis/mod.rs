@@ -57,16 +57,6 @@ impl<T> From<serde_json::Error> for Error<T> {
     }
 }
 
-mod container_api;
-pub use self::container_api::{ContainerApi, ContainerApiClient};
-mod image_api;
-pub use self::image_api::{ImageApi, ImageApiClient};
-mod network_api;
-pub use self::network_api::{NetworkApi, NetworkApiClient};
-mod system_api;
-pub use self::system_api::{SystemApi, SystemApiClient};
-mod volume_api;
-pub use self::volume_api::{VolumeApi, VolumeApiClient};
-
-pub mod client;
+mod new_client;
+pub use self::new_client::{DockerApi, DockerApiClient};
 pub mod configuration;
