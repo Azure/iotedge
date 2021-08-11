@@ -34,12 +34,6 @@ EXPOSE 80/tcp
 EXPOSE 5000/tcp
 #used by blob storage
 EXPOSE 11002/tcp
-<<<<<<< HEAD
 #default
 EXPOSE 8000/tcp
 ENTRYPOINT ["/app/api-proxy-module"]
-=======
-#use for custom defining ports
-EXPOSE 7000-8000/tcp
-ENTRYPOINT ["/app/api-proxy-module"]
->>>>>>> 3b83e7f76... Update Base Images for a Security Patch (#5351)
