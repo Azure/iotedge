@@ -113,3 +113,51 @@ where
 
     type PutBody = serde::de::IgnoredAny;
 }
+
+#[cfg(test)]
+mod tests {
+    use http_common::server::Route;
+
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!("/modules/testModule/genid/1/encrypt");
+        assert_eq!("testModule", &route.module_id);
+        assert_eq!("1", &route.gen_id);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Missing module ID
+        test_route_err!("/modules//genid/1/encrypt");
+
+        // Missing generation ID
+        test_route_err!("/modules/testModule/genid//encrypt");
+
+        // Extra character at beginning of URI
+        test_route_err!("a/modules/testModule/genid/1/encrypt");
+
+        // Extra character at end of URI
+        test_route_err!("/modules/testModule/genid/1/encrypta");
+    }
+
+    #[tokio::test]
+    async fn auth() {
+        async fn post(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            let body = super::EncryptRequest {
+                plaintext: base64::encode("plaintext"),
+                iv: base64::encode("iv"),
+            };
+
+            route.post(Some(body)).await
+        }
+
+        edgelet_test_utils::test_auth_caller!(
+            "/modules/testModule/genid/1/encrypt",
+            "testModule",
+            post
+        );
+    }
+}
