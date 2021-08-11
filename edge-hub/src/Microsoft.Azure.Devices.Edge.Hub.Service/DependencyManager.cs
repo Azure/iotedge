@@ -79,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
+            bool usePooledBuffers = this.configuration.GetValue("usePooledBuffers", false);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward =
                 this.GetStoreAndForwardConfiguration();
 
@@ -97,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, authenticationMode);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures, authenticationMode == AuthenticationMode.Scope, trackDeviceState);
-            this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
+            this.RegisterMqttModule(builder, storeAndForward, usePooledBuffers);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
         }
@@ -114,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new AmqpModule(amqpSettings["scheme"], amqpSettings.GetValue<ushort>("port"), this.serverCertificate, this.iotHubHostname, clientCertAuthEnabled, this.sslProtocols));
         }
 
-        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward, bool optimizeForPerformance)
+        void RegisterMqttModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward, bool usePooledBuffers)
         {
             var topics = new MessageAddressConversionConfiguration(
                 this.configuration.GetSection(Constants.TopicNameConversionSectionName + ":InboundTemplates").Get<List<string>>(),
@@ -123,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool clientCertAuthEnabled = this.configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
             IConfiguration mqttSettingsConfiguration = this.configuration.GetSection("mqttSettings");
-            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance, this.sslProtocols));
+            builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, usePooledBuffers, this.sslProtocols));
         }
 
         void RegisterRoutingModule(
