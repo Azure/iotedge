@@ -18,7 +18,8 @@ use edgelet_test_utils::clients::IdentityClient;
 use edgelet_test_utils::clients::KeyClient;
 
 // The subset of the aziot-edged config needed for workload APIs.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 struct WorkloadConfig {
     hub_name: String,
     device_id: String,
@@ -186,4 +187,71 @@ http_common::make_service! {
 
         trust_bundle::Route<M>,
     ],
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn workload_config_defaults() {
+        let device_info = aziot_identity_common::AzureIoTSpec {
+            hub_name: "test-hub.test.net".to_string(),
+            gateway_host: "gateway-host.test.net".to_string(),
+            device_id: aziot_identity_common::DeviceId("test-device".to_string()),
+            module_id: None,
+            gen_id: None,
+            auth: None,
+        };
+
+        let settings = edgelet_test_utils::Settings::default();
+
+        // Check that default values are used when settings do not provide them.
+        let config = super::WorkloadConfig::new(&settings, &device_info);
+        assert_eq!(
+            super::WorkloadConfig {
+                hub_name: device_info.hub_name,
+                device_id: device_info.device_id.0,
+
+                trust_bundle: "aziot-edged-trust-bundle".to_string(),
+                manifest_trust_bundle: "aziot-edged-manifest-trust-bundle".to_string(),
+
+                edge_ca_cert: "aziot-edged-ca".to_string(),
+                edge_ca_key: "aziot-edged-ca".to_string(),
+            },
+            config
+        );
+    }
+
+    #[test]
+    fn workload_config_settings() {
+        let device_info = aziot_identity_common::AzureIoTSpec {
+            hub_name: "test-hub.test.net".to_string(),
+            gateway_host: "gateway-host.test.net".to_string(),
+            device_id: aziot_identity_common::DeviceId("test-device".to_string()),
+            module_id: None,
+            gen_id: None,
+            auth: None,
+        };
+
+        let mut settings = edgelet_test_utils::Settings::default();
+        settings.edge_ca_cert = Some("test-ca-cert".to_string());
+        settings.edge_ca_key = Some("test-ca-key".to_string());
+        settings.trust_bundle = Some("test-trust-bundle".to_string());
+        settings.manifest_trust_bundle = Some("test-manifest-trust-bundle".to_string());
+
+        // Check that values from settings are used when provided.
+        let config = super::WorkloadConfig::new(&settings, &device_info);
+        assert_eq!(
+            super::WorkloadConfig {
+                hub_name: device_info.hub_name,
+                device_id: device_info.device_id.0,
+
+                trust_bundle: "test-trust-bundle".to_string(),
+                manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
+
+                edge_ca_cert: "test-ca-cert".to_string(),
+                edge_ca_key: "test-ca-key".to_string(),
+            },
+            config
+        );
+    }
 }
