@@ -203,7 +203,6 @@ steps:
         }
       };
       
-      $testManifestSigningDefaultLaunchSettings  = "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
       $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningDefaultLaunchSettings"
       Get-Content -Path "$testManifestSigningDefaultLaunchSettings"
       $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
