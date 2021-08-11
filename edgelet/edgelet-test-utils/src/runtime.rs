@@ -63,20 +63,7 @@ impl edgelet_core::ModuleRegistry for ModuleRegistry {
 }
 
 pub struct Runtime {
-    pub module_top_resp: Option<std::collections::BTreeMap<String, Vec<i32>>>,
-}
-
-impl Runtime {
-    /// Return a generic error. Most users of ModuleRuntime don't act on the error other
-    /// than passing it up the call stack, so it's fine to return any error.
-    fn test_error() -> std::io::Error {
-        std::io::Error::new(std::io::ErrorKind::Other, "test error")
-    }
-
-    pub fn clear_auth(&mut self) {
-        // Empty PID array for auth will deny all requests.
-        self.module_top_resp = Some(std::collections::BTreeMap::new());
-    }
+    pub module_auth: std::collections::BTreeMap<String, Vec<i32>>,
 }
 
 impl Default for Runtime {
@@ -89,7 +76,7 @@ impl Default for Runtime {
         modules.insert("default".to_string(), vec![pid]);
 
         Runtime {
-            module_top_resp: Some(modules),
+            module_auth: modules,
         }
     }
 }
@@ -107,11 +94,13 @@ impl edgelet_core::ModuleRuntime for Runtime {
         std::pin::Pin<Box<dyn futures::Stream<Item = Result<Self::Chunk, Self::Error>> + Send>>;
 
     async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error> {
-        if let Some(modules) = &self.module_top_resp {
-            let pids = if let Some(pids) = modules.get(id) {
+        if id == "runtimeError" {
+            Err(test_error())
+        } else {
+            let pids = if let Some(pids) = self.module_auth.get(id) {
                 pids.clone()
             } else {
-                if let Some(default) = modules.get("default") {
+                if let Some(default) = self.module_auth.get("default") {
                     default.clone()
                 } else {
                     Vec::new()
@@ -119,8 +108,6 @@ impl edgelet_core::ModuleRuntime for Runtime {
             };
 
             Ok(pids)
-        } else {
-            Err(Self::test_error())
         }
     }
 
@@ -196,4 +183,10 @@ impl edgelet_core::ModuleRuntime for Runtime {
     fn registry(&self) -> &Self::ModuleRegistry {
         unimplemented!()
     }
+}
+
+/// Return a generic error. Most users of ModuleRuntime don't act on the error other
+/// than passing it up the call stack, so it's fine to return any error.
+fn test_error() -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, "test error")
 }

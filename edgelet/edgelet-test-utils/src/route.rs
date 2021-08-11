@@ -61,7 +61,7 @@ macro_rules! test_auth_required {
         // Auth required: no PIDs should fail.
         {
             let mut runtime = $route.runtime.lock().await;
-            runtime.clear_auth();
+            runtime.module_auth = std::collections::BTreeMap::new();
         }
 
         let response = $fn.await.unwrap_err();

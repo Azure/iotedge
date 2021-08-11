@@ -38,7 +38,6 @@ pub async fn auth_caller(
 }
 
 #[cfg(test)]
-#[allow(clippy::field_reassign_with_default)]
 mod tests {
     use super::{auth_agent, auth_caller};
 
@@ -49,18 +48,16 @@ mod tests {
     }
 
     #[tokio::test]
+    #[allow(clippy::field_reassign_with_default)]
     async fn auth_err() {
         // Arbitrary PID for testing.
         let pid = 1000;
 
         // Runtime errors should cause auth to return 403 errors.
-        let mut runtime = edgelet_test_utils::runtime::Runtime::default();
-        runtime.module_top_resp = None;
-
+        let runtime = edgelet_test_utils::runtime::Runtime::default();
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
 
-        assert_is_forbidden(auth_agent(pid, &runtime).await);
-        assert_is_forbidden(auth_caller("testModule", pid, &runtime).await);
+        assert_is_forbidden(auth_caller("runtimeError", pid, &runtime).await);
     }
 
     #[tokio::test]
@@ -78,12 +75,14 @@ mod tests {
 
     #[tokio::test]
     async fn auth_pids() {
-        let mut modules = std::collections::BTreeMap::new();
-        modules.insert("edgeAgent".to_string(), vec![1000]);
-        modules.insert("testModule".to_string(), vec![1001]);
-
         let mut runtime = edgelet_test_utils::runtime::Runtime::default();
-        runtime.module_top_resp = Some(modules);
+        runtime
+            .module_auth
+            .insert("edgeAgent".to_string(), vec![1000]);
+        runtime
+            .module_auth
+            .insert("testModule".to_string(), vec![1001]);
+
         let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
 
         // auth_agent
