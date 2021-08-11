@@ -6,4 +6,4 @@ The workload APIs are divided into the following groups:
 - [List Modules](doc/list_modules.md)
 - [Module Certificates](doc/module_certificates.md)
 - [Encryption](doc/encryption.md)
-- [Trust Bundles](doc/trust_bundle.md)
+- [Trust Bundles](doc/trust_bundles.md)
