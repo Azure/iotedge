@@ -185,7 +185,8 @@ steps:
       $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
       $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
       $testManifestSignerClientBinPath = Convert-Path "$(manifestSignerClientBinDir)/ManifestSignerClient";
-           
+      $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
+
       $testManifestSigningDefaultLaunchSettings = @{
         profiles = @{
           ManifestSignerClient = @{
@@ -203,9 +204,8 @@ steps:
         }
       };
       
-      $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningDefaultLaunchSettings"
-      Get-Content -Path "$testManifestSigningDefaultLaunchSettings"
-      $testManifestSigningLaunchSettingsPath = Convert-Path "$(manifestSignerClientBinDir)/Properties/launchSettings.json";
+      $testManifestSigningDefaultLaunchSettings | ConvertTo-Json -Depth 3 | Out-File -Encoding Utf8 "$testManifestSigningLaunchSettingsPath"
+      Get-Content -Path "$testManifestSigningLaunchSettingsPath"
 
     }
 
