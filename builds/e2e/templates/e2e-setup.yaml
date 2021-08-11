@@ -184,7 +184,7 @@ steps:
       $testManifestSigningSignerKeyPath = Convert-Path "$(manifestSigningCertDir)/signer_key.key";
       $testManifestSigningDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/deployment.json";
       $testManifestSigningSignedDeploymentPath = Convert-Path "$(manifestSigningDeploymentDir)/signed_deployment.json";
-      $testManifestSignerClientBinPath = Convert-Path "$(manifestSignerClientBinDir)/ManifestSignerClient.exe";
+      $testManifestSignerClientBinPath = Convert-Path "$(manifestSignerClientBinDir)/ManifestSignerClient";
            
       $testManifestSigningDefaultLaunchSettings = @{
         profiles = @{
