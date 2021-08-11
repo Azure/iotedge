@@ -57,8 +57,15 @@ macro_rules! test_route {
 
 #[macro_export]
 macro_rules! test_auth_agent {
-    ($path:expr, $fn:expr) => {{
-        // Agent not in authorized modules: fail.
+    ($path:expr, $fn:expr) => {
+        edgelet_test_utils::test_auth_caller!($path, "edgeAgent", $fn)
+    };
+}
+
+#[macro_export]
+macro_rules! test_auth_caller {
+    ($path:expr, $caller:expr, $fn:expr) => {{
+        // Caller not in authorized modules: fail.
         let route = edgelet_test_utils::test_route_ok!($path);
 
         {
@@ -69,7 +76,7 @@ macro_rules! test_auth_agent {
         let response = $fn(route).await.unwrap_err();
         assert_eq!(hyper::StatusCode::FORBIDDEN, response.status_code);
 
-        // Process doesn't match Agent PID: fail.
+        // Process doesn't match caller PID: fail.
         let route = edgelet_test_utils::test_route_ok!($path);
 
         {
@@ -78,15 +85,13 @@ macro_rules! test_auth_agent {
 
             let mut runtime = route.runtime.lock().await;
             runtime.module_auth = std::collections::BTreeMap::new();
-            runtime
-                .module_auth
-                .insert("edgeAgent".to_string(), vec![pid]);
+            runtime.module_auth.insert($caller.to_string(), vec![pid]);
         }
 
         let response = $fn(route).await.unwrap_err();
         assert_eq!(hyper::StatusCode::FORBIDDEN, response.status_code);
 
-        // Process doesn't match Agent name: fail.
+        // Process doesn't match caller name: fail.
         let route = edgelet_test_utils::test_route_ok!($path);
 
         {
@@ -97,13 +102,13 @@ macro_rules! test_auth_agent {
             runtime.module_auth = std::collections::BTreeMap::new();
             runtime
                 .module_auth
-                .insert("testModule".to_string(), vec![pid]);
+                .insert("otherModule".to_string(), vec![pid]);
         }
 
         let response = $fn(route).await.unwrap_err();
         assert_eq!(hyper::StatusCode::FORBIDDEN, response.status_code);
 
-        // Process matches Agent: succeed.
+        // Process matches caller: succeed.
         let route = edgelet_test_utils::test_route_ok!($path);
 
         {
@@ -112,9 +117,7 @@ macro_rules! test_auth_agent {
 
             let mut runtime = route.runtime.lock().await;
             runtime.module_auth = std::collections::BTreeMap::new();
-            runtime
-                .module_auth
-                .insert("edgeAgent".to_string(), vec![pid]);
+            runtime.module_auth.insert($caller.to_string(), vec![pid]);
         }
 
         let response = $fn(route).await;

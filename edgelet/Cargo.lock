@@ -789,6 +789,7 @@ dependencies = [
  "hyper 0.14.11",
  "libc",
  "log",
+ "nix 0.22.0",
  "openssl",
  "percent-encoding 2.1.0",
  "regex",
