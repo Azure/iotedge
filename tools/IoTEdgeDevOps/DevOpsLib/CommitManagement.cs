@@ -10,7 +10,6 @@ namespace DevOpsLib
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-    // TODO ANDREW: Update description here and elsewhere
     public class CommitManagement
     {
         const string UserPathSegmentFormat = "https://api.github.com/repos/Azure/iotedge/commits/{0}";
