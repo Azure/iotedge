@@ -131,12 +131,39 @@ where
 
     // Test constructor used to create a test Workload Service.
     #[cfg(test)]
-    pub fn new() -> Self {
+    pub fn new(runtime: M) -> Self {
         // Tests won't actually connect to keyd, so just put any URL in the key connector.
         let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
-        let key_connector = http_common::Connector::new(&key_connector);
+        let key_connector = http_common::Connector::new(&key_connector).unwrap();
 
-        todo!()
+        let key_client = edgelet_test_utils::clients::KeyClient::default();
+        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+
+        let cert_client = edgelet_test_utils::clients::CertClient::default();
+        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+
+        let identity_client = edgelet_test_utils::clients::IdentityClient::default();
+        let identity_client = std::sync::Arc::new(futures_util::lock::Mutex::new(identity_client));
+
+        let runtime = std::sync::Arc::new(futures_util::lock::Mutex::new(runtime));
+
+        let config = WorkloadConfig {
+            hub_name: "test-hub.test.net".to_string(),
+            device_id: "test-device".to_string(),
+            trust_bundle: "test-trust-bundle".to_string(),
+            manifest_trust_bundle: "test-manifest-trust-bundle".to_string(),
+            edge_ca_cert: "test-ca-cert".to_string(),
+            edge_ca_key: "test-ca-key".to_string(),
+        };
+
+        Service {
+            key_connector,
+            key_client,
+            cert_client,
+            identity_client,
+            runtime,
+            config,
+        }
     }
 }
 

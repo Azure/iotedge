@@ -77,10 +77,10 @@ mod tests {
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
         // Extra character at beginning of URI
-        test_route_err!("a/device/reprovision");
+        test_route_err!(&format!("a{}", super::PATH));
 
         // Extra character at end of URI
-        test_route_err!("/device/reprovisiona");
+        test_route_err!(&format!("{}a", super::PATH));
     }
 
     #[tokio::test]
