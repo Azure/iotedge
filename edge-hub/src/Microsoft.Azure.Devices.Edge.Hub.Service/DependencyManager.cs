@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 });
 
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
-            bool usePooledBuffers = this.configuration.GetValue("usePooledBuffers", false);
+            bool usePooledBuffers = this.configuration.GetValue("UsePooledBuffers", false);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath, Option<ulong> storageMaxTotalWalSize, Option<int> storageMaxOpenFiles, Option<StorageLogLevel> storageLogLevel) storeAndForward =
                 this.GetStoreAndForwardConfiguration();
 
