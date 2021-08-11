@@ -35,7 +35,6 @@ namespace DevOpsLib
                 .WithHeader("Content-Type", "application/json")
                 .SetQueryParam("api-version", "6.0-preview.1");
 
-
             JObject result;
             try
             {
@@ -64,4 +63,3 @@ namespace DevOpsLib
         }
     }
 }
-

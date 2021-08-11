@@ -14,4 +14,3 @@ namespace DevOpsLib.VstsModels
         public string Name { get; set; }
     }
 }
-

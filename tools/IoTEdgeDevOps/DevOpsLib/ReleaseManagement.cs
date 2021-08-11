@@ -10,7 +10,6 @@ namespace DevOpsLib
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-
     public class ReleaseManagement
     {
         const string ReleasePathSegmentFormat = "{0}/{1}/_apis/release/releases";

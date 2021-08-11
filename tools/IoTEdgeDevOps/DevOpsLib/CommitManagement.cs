@@ -20,7 +20,7 @@ namespace DevOpsLib
 
         /// <summary>
         /// This method is used to get a commit author's full name via the github rest api.
-        /// Reference: https://docs.github.com/en/rest 
+        /// Reference: https://docs.github.com/en/rest
         /// </summary>
         /// <param name="commit">Commit for which to get the author's full name.</param>
         /// <returns>Full name of author.</returns>
@@ -54,5 +54,3 @@ namespace DevOpsLib
         }
     }
 }
-
-
