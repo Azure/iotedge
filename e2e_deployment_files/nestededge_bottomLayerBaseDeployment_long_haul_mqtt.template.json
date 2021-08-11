@@ -514,8 +514,8 @@
               "TEST_START_DELAY": {
                 "value": "240s"
               },
-              "INITIATE_TOPIC": {
-                "value": "initiate/1"
+              "TOPIC_SUFFIX": {
+                "value": "1"
               }
             },
             "settings": {
@@ -538,8 +538,8 @@
               "TRACKING_ID": {
                 "value": "<TrackingId>"
               },
-              "INITIATE_TOPIC": {
-                "value": "initiate/2"
+              "TOPIC_SUFFIX": {
+                "value": "2"
               }
             },
             "settings": {
