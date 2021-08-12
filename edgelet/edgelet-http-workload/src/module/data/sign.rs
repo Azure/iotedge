@@ -207,4 +207,103 @@ mod tests {
         let response: super::SignResponse = serde_json::from_slice(&body).unwrap();
         base64::decode(response.digest).unwrap();
     }
+
+    #[tokio::test]
+    async fn get_module_key() {
+        // Identity doesn't exist: fail
+        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        let response = super::get_module_key(client, "invalid").await.unwrap_err();
+        assert_eq!(
+            hyper::StatusCode::INTERNAL_SERVER_ERROR,
+            response.status_code
+        );
+
+        // Invalid Identity type: fail
+        let identity = aziot_identity_common::Identity::Local(aziot_identity_common::LocalIdSpec {
+            module_id: "testModule".to_string(),
+            auth: aziot_identity_common::LocalAuthenticationInfo {
+                private_key: "key".to_string(),
+                certificate: "certificate".to_string(),
+                expiration: "expiration".to_string(),
+            },
+        });
+
+        let mut client = edgelet_test_utils::clients::IdentityClient::default();
+        client.identities.remove("testModule");
+        assert!(client
+            .identities
+            .insert("testModule".to_string(), identity)
+            .is_none());
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        let response = super::get_module_key(client, "testModule")
+            .await
+            .unwrap_err();
+        assert_eq!(
+            hyper::StatusCode::INTERNAL_SERVER_ERROR,
+            response.status_code
+        );
+
+        // Identity missing auth: fail
+        let mut client = edgelet_test_utils::clients::IdentityClient::default();
+
+        let mut identity = match client.identities.remove("testModule").unwrap() {
+            aziot_identity_common::Identity::Aziot(identity) => identity,
+            _ => panic!(),
+        };
+
+        identity.auth = None;
+        let identity = aziot_identity_common::Identity::Aziot(identity);
+
+        assert!(client
+            .identities
+            .insert("testModule".to_string(), identity)
+            .is_none());
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        let response = super::get_module_key(client, "testModule")
+            .await
+            .unwrap_err();
+        assert_eq!(
+            hyper::StatusCode::INTERNAL_SERVER_ERROR,
+            response.status_code
+        );
+
+        // Identity missing key: fail
+        let mut client = edgelet_test_utils::clients::IdentityClient::default();
+
+        let mut identity = match client.identities.remove("testModule").unwrap() {
+            aziot_identity_common::Identity::Aziot(identity) => identity,
+            _ => panic!(),
+        };
+
+        let mut auth = identity.auth.clone().unwrap();
+        auth.key_handle = None;
+        identity.auth = Some(auth);
+
+        let identity = aziot_identity_common::Identity::Aziot(identity);
+
+        assert!(client
+            .identities
+            .insert("testModule".to_string(), identity)
+            .is_none());
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        let response = super::get_module_key(client, "testModule")
+            .await
+            .unwrap_err();
+        assert_eq!(
+            hyper::StatusCode::INTERNAL_SERVER_ERROR,
+            response.status_code
+        );
+
+        // Valid identity: succeed
+        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        let response = super::get_module_key(client, "testModule").await.unwrap();
+        assert_eq!("testModule-key".to_string(), response.0);
+    }
 }
