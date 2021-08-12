@@ -58,6 +58,9 @@
                             },
                             "mqttSettings_enabled": {
                                 "value": "<EdgeHubMqttEnabled>"
+                            },
+                            "SslProtocols": {
+                                "value": "tls1.2"
                             }
                         },
                         "settings": {

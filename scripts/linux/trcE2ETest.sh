@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script is used to run Connectivity test for Linux.
+# This script is used to run TestResultCoordinator based tests for Linux.
 ###############################################################################
 set -eo pipefail
 
@@ -218,7 +218,6 @@ function prepare_test_from_artifacts() {
         sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
         sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
         sed -i -e "s@<SendReportFrequency>@$SEND_REPORT_FREQUENCY@g" "$deployment_working_file"
-        sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
 
         if [ "$image_architecture_label" = 'arm32v7' ] ||
             [ "$image_architecture_label" = 'arm64v8' ]; then
@@ -236,6 +235,8 @@ function prepare_test_from_artifacts() {
 
             sed -i -e "s@<EdgeHubMqttEnabled>@$EDGE_HUB_MQTT_ENABLED@g" "$deployment_working_file"
             sed -i -e "s@<EdgeHubAmqpEnabled>@$EDGE_HUB_AMQP_ENABLED@g" "$deployment_working_file"
+
+            sed -i -e "s@<ClientModuleTransportType>@$CLIENT_MODULE_TRANSPORT_TYPE@g" "$deployment_working_file"
         fi
     fi
 
@@ -894,7 +895,7 @@ function configure_longhaul_settings() {
         TWIN_TESTER_MEMORY_THRESHOLD=$((70 * $MB_CONSTANT))
         DIRECT_METHOD_SENDER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))
         DIRECT_METHOD_RECEIVER_MEMORY_THRESHOLD=$((40 * $MB_CONSTANT))
-        TRC_MEMORY_THRESHOLD=$((180 * $MB_CONSTANT))
+        TRC_MEMORY_THRESHOLD=$((200 * $MB_CONSTANT))
         NETWORK_CONTROLLER_MEMORY_THRESHOLD=$((10 * $MB_CONSTANT))
         METRICS_COLLECTOR_MEMORY_THRESHOLD=$((55 * $MB_CONSTANT))
         MODULE_RESTARTER_MEMORY_THRESHOLD=$((30 * $MB_CONSTANT))

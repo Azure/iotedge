@@ -26,14 +26,14 @@ steps:
       $filter += '&Category!=NestedEdgeAmqpOnly'
       $filter += '&Category!=LegacyMqttRequired'
     
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_amqp')
     {
       $filter += '&Category!=SingleNodeOnly'
       $filter += '&Category!=BrokerRequired'
 
-      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~PriorityQueueModuleToHubMessages&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
+      $filter += '&FullyQualifiedName!~Provisioning&FullyQualifiedName!~SasOutOfScope&FullyQualifiedName!~X509ManualProvision&FullyQualifiedName!~AuthorizationPolicyUpdateTest&FullyQualifiedName!~AuthorizationPolicyExplicitPolicyTest'
     }
     elseif ($test_type -eq 'nestededge_isa95')
     {
@@ -42,7 +42,7 @@ steps:
     elseif ($test_type -eq 'http_proxy')
     {
       #Disable tests that don't work in proxy environment. Renable post-investigation.
-      $filter += '&FullyQualifiedName!~PriorityQueue&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
+      $filter += '&FullyQualifiedName!~PlugAndPlay&FullyQualifiedName!~ValidateMetrics'
 
       #Disable tests that timeout in proxy self-host environment
       $filter += '&FullyQualifiedName!~TestGetModuleLogs&FullyQualifiedName!~TestUploadSupportBundle'
@@ -67,6 +67,7 @@ steps:
     E2E_BLOB_STORE_SAS: $(TestBlobStoreSas)
     http_proxy: $(Agent.ProxyUrl)
     https_proxy: $(Agent.ProxyUrl)
+    no_proxy: 'localhost'
 
 - task: PublishTestResults@2
   displayName: Publish test results
