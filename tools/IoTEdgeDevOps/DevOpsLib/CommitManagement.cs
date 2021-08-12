@@ -2,12 +2,9 @@
 namespace DevOpsLib
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
-    using DevOpsLib.VstsModels;
     using Flurl;
     using Flurl.Http;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     public class CommitManagement
@@ -21,6 +18,7 @@ namespace DevOpsLib
         /// <summary>
         /// This method is used to get a commit author's full name via the github rest api.
         /// Reference: https://docs.github.com/en/rest
+        /// For an example response: https://api.github.com/repos/Azure/iotedge/commits/704250b
         /// </summary>
         /// <param name="commit">Commit for which to get the author's full name.</param>
         /// <returns>Full name of author.</returns>
