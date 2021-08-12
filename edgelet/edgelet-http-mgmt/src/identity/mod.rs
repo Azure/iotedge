@@ -3,19 +3,19 @@
 pub(super) mod create_or_list;
 pub(super) mod delete_or_update;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct Identity {
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct Identity {
     #[serde(rename = "moduleId")]
-    pub module_id: String,
+    module_id: String,
 
     #[serde(rename = "managedBy")]
-    pub managed_by: String,
+    managed_by: String,
 
     #[serde(rename = "generationId")]
-    pub generation_id: String,
+    generation_id: String,
 
     #[serde(rename = "authType")]
-    pub auth_type: String,
+    auth_type: String,
 }
 
 impl std::convert::TryFrom<aziot_identity_common::Identity> for Identity {

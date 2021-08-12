@@ -4,20 +4,28 @@ use sha2::Digest;
 
 use crate::error::Error as EdgedError;
 
-pub(crate) async fn get_device_info(
-    settings: &edgelet_docker::Settings,
-    cache_dir: &std::path::Path,
-) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
+pub(crate) fn identity_client(
+    settings: &impl edgelet_settings::RuntimeSettings,
+) -> Result<aziot_identity_client_async::Client, EdgedError> {
     let identity_connector =
-        http_common::Connector::new(&settings.base.endpoints.aziot_identityd_url)
+        http_common::Connector::new(&settings.endpoints().aziot_identityd_url())
             .map_err(|err| EdgedError::from_err("Invalid Identity Service URL", err))?;
+
     let identity_client = aziot_identity_client_async::Client::new(
         aziot_identity_common_http::ApiVersion::V2020_09_01,
         identity_connector,
     );
 
-    if let edgelet_core::settings::AutoReprovisioningMode::AlwaysOnStartup =
-        settings.base.auto_reprovisioning_mode
+    Ok(identity_client)
+}
+
+pub(crate) async fn get_device_info(
+    identity_client: &aziot_identity_client_async::Client,
+    auto_reprovisioning_mode: edgelet_settings::aziot::AutoReprovisioningMode,
+    cache_dir: &std::path::Path,
+) -> Result<aziot_identity_common::AzureIoTSpec, EdgedError> {
+    if let edgelet_settings::aziot::AutoReprovisioningMode::AlwaysOnStartup =
+        auto_reprovisioning_mode
     {
         reprovision(&identity_client, cache_dir)
             .await
@@ -38,7 +46,7 @@ pub(crate) async fn get_device_info(
 
                     return Ok(device_info);
                 }
-                _ => {
+                aziot_identity_common::Identity::Local(..) => {
                     // Identity Service should never return an invalid device identity.
                     // Treat this as a fatal error.
                     return Err(EdgedError::new("Invalid device identity"));
@@ -60,9 +68,10 @@ pub(crate) async fn get_device_info(
     }
 }
 
-pub(crate) fn update_device_cache(
+pub(crate) async fn update_device_cache(
     cache_dir: &std::path::Path,
     device_info: &aziot_identity_common::AzureIoTSpec,
+    runtime: &impl edgelet_core::ModuleRuntime,
 ) -> Result<(), EdgedError> {
     log::info!("Detecting if device information has changed...");
 
@@ -83,24 +92,27 @@ pub(crate) fn update_device_cache(
 
     let current_device = device_digest(device_info);
 
-    if current_device != cached_device {
+    if current_device == cached_device {
+        log::info!("Device information has not changed");
+    } else {
         log::info!("Change to device information detected");
 
         log::info!("Removing all modules...");
-        // TODO
+        runtime
+            .remove_all()
+            .await
+            .map_err(|err| EdgedError::from_err("Failed to remove old runtime modules", err))?;
         log::info!("Removed all modules");
 
         log::info!("Updating cached device information");
         std::fs::write(cache_path, current_device)
             .map_err(|err| EdgedError::from_err("Failed to save provisioning cache", err))?;
-    } else {
-        log::info!("Device information has not changed");
     }
 
     Ok(())
 }
 
-async fn reprovision(
+pub(crate) async fn reprovision(
     identity_client: &aziot_identity_client_async::Client,
     cache_dir: &std::path::Path,
 ) -> Result<(), std::io::Error> {

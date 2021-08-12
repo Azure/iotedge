@@ -24,9 +24,7 @@ pub mod error;
 mod identity;
 mod logs;
 pub mod module;
-mod network;
 mod parse_since;
-pub mod settings;
 mod virtualization;
 pub mod workload;
 
@@ -35,22 +33,17 @@ pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
     Certificate, CreateCertificate, GetDeviceIdentityCertificate, GetIssuerAlias, KeyBytes,
-    PrivateKey, AZIOT_EDGED_CA_ALIAS, MANIFEST_TRUST_BUNDLE_ALIAS, TRUST_BUNDLE_ALIAS,
+    PrivateKey,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 //pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
-    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
-    ModuleStatus, ModuleTop, ProvisioningInfo, RegistryOperation, RuntimeOperation, SystemInfo,
-    SystemResources,
+    DiskInfo, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleStatus, ProvisioningInfo,
+    RegistryOperation, RuntimeOperation, SystemInfo, SystemResources,
 };
-pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use parse_since::parse_since;
-pub use settings::{
-    Connect, Endpoints, Listen, Protocol, RetryLimit, RuntimeSettings, Settings, WatchdogSettings,
-};
 pub use virtualization::is_virtualized_env;
 pub use workload::WorkloadConfig;
 
@@ -94,9 +87,7 @@ impl UrlExt for Url {
 
 pub const UNIX_SCHEME: &str = "unix";
 
-/// This is the name of the network created by the aziot-edged
-pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";
-
+#[derive(Debug, PartialEq)]
 pub enum ShutdownReason {
     Reprovision,
     SigInt,
@@ -105,7 +96,7 @@ pub enum ShutdownReason {
 impl std::fmt::Display for ShutdownReason {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ShutdownReason::Reprovision => f.write_str(""), // TODO
+            ShutdownReason::Reprovision => f.write_str("Edge daemon will reprovision and restart"),
             ShutdownReason::SigInt => f.write_str("Received SIGINT; shutting down"),
         }
     }

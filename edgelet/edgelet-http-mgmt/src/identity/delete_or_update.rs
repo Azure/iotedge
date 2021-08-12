@@ -2,14 +2,20 @@
 
 use std::convert::TryFrom;
 
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::IdentityClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     pid: libc::pid_t,
     module_id: String,
-    _runtime: std::marker::PhantomData<M>,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
 #[async_trait::async_trait]
@@ -47,38 +53,27 @@ where
             client: service.identity.clone(),
             pid,
             module_id: module_id.into_owned(),
-            _runtime: std::marker::PhantomData,
+            runtime: service.runtime.clone(),
         })
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
-    async fn delete(
-        self,
-        _body: Option<Self::DeleteBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::DeleteResponse>> {
-        edgelet_http::auth_agent(self.pid)?;
+    async fn delete(self, _body: Option<Self::DeleteBody>) -> http_common::server::RouteResponse {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
         match client.delete_identity(&self.module_id).await {
-            Ok(_) => Ok((http::StatusCode::NO_CONTENT, None)),
+            Ok(_) => Ok(http_common::server::response::no_content()),
             Err(err) => Err(edgelet_http::error::server_error(err.to_string())),
         }
     }
 
-    type GetResponse = ();
-
     type PostBody = serde::de::IgnoredAny;
-    type PostResponse = ();
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = crate::identity::Identity;
-    async fn put(
-        self,
-        _body: Self::PutBody,
-    ) -> http_common::server::RouteResponse<Self::PutResponse> {
-        edgelet_http::auth_agent(self.pid)?;
+    async fn put(self, _body: Self::PutBody) -> http_common::server::RouteResponse {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
@@ -89,6 +84,8 @@ where
             }
         };
 
-        Ok((http::StatusCode::OK, identity))
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
+
+        Ok(res)
     }
 }

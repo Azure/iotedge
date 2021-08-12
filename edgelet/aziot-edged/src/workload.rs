@@ -2,16 +2,23 @@
 
 use crate::error::Error as EdgedError;
 
-pub(crate) async fn start(
-    settings: &edgelet_docker::Settings,
-) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError> {
-    // TODO: fix support in http_common for fd://
-    let socket = url::Url::parse("unix:///tmp/workload_test.sock").unwrap();
+pub(crate) async fn start<M>(
+    settings: &impl edgelet_settings::RuntimeSettings,
+    runtime: M,
+    device_info: &aziot_identity_common::AzureIoTSpec,
+    tasks: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+) -> Result<tokio::sync::oneshot::Sender<()>, EdgedError>
+where
+    M: edgelet_core::ModuleRuntime + Clone + Send + Sync + 'static,
+    M::Config: serde::Serialize,
+{
+    let socket = settings.listen().workload_uri();
 
     let connector = http_common::Connector::new(&socket)
         .map_err(|err| EdgedError::from_err("Invalid workload API URL", err))?;
 
-    let service = edgelet_http_workload::Service::new();
+    let service = edgelet_http_workload::Service::new(settings, runtime, device_info)
+        .map_err(|err| EdgedError::from_err("Invalid service endpoint", err))?;
 
     let mut incoming = connector
         .incoming()
@@ -27,6 +34,7 @@ pub(crate) async fn start(
             log::error!("Failed to start workload API: {}", err);
         }
 
+        tasks.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
         log::info!("Workload API stopped");
     });
 

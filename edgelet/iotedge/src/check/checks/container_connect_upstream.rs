@@ -166,14 +166,9 @@ impl ContainerConnectUpstream {
         }
 
         if &port == "443" {
-            let proxy = settings
-                .agent()
-                .env()
-                .get("https_proxy")
-                .map(std::string::String::as_str);
-            self.proxy = proxy.map(ToOwned::to_owned);
-            if let Some(proxy) = proxy {
-                args.extend(&["--proxy", proxy]);
+            self.proxy = check.proxy_uri.clone();
+            if let Some(proxy) = &check.proxy_uri {
+                args.extend(&["--proxy", proxy.as_str()]);
             }
         }
 

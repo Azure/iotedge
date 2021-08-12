@@ -6,7 +6,7 @@ use regex::{Captures, Regex};
 
 use crate::token_service::token_server;
 
-const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "443")];
+const PROXY_CONFIG_DEFAULT_VALUES: &[(&str, &str)] = &[("NGINX_DEFAULT_PORT", "8000")];
 
 pub struct ConfigParser {
     default_values: HashMap<String, String>,
@@ -349,7 +349,7 @@ mod tests {
             .unwrap();
 
         //Check the value is still equal to dummy value
-        assert_eq!("443", config);
+        assert_eq!("8000", config);
 
         // *** Environment variable
         std::env::set_var("NGINX_DEFAULT_PORT", "Dummy value");
@@ -378,7 +378,10 @@ mod tests {
 
         //**************************Check ACR config***************************************
         std::env::set_var("NGINX_DEFAULT_PORT", "8000");
-        std::env::set_var("BLOB_UPLOAD_ROUTE_ADDRESS", "AzureBlobStorageonIoTEdge:11002");
+        std::env::set_var(
+            "BLOB_UPLOAD_ROUTE_ADDRESS",
+            "AzureBlobStorageonIoTEdge:11002",
+        );
         std::env::set_var("CONNECTED_ACR_ROUTE_ADDRESS", "connected-registry:8080");
         std::env::set_var("IOTEDGE_PARENTHOSTNAME", "10.0.0.1");
         let config_parser = ConfigParser::new().unwrap();
@@ -387,7 +390,9 @@ mod tests {
         let config = std::str::from_utf8(&byte_str).unwrap();
         assert_eq!(config, RAW_ACR_CONFIG_TEXT);
 
-        let config = config_parser.get_parsed_config(RAW_ACR_CONFIG_TEXT).unwrap();
+        let config = config_parser
+            .get_parsed_config(RAW_ACR_CONFIG_TEXT)
+            .unwrap();
 
         assert_eq!(&config, PARSED_ACR_CONFIG);
 
