@@ -43,8 +43,8 @@ impl Settings {
         let test_scenario: TestScenario = config.get("test_scenario")?;
         match test_scenario {
             TestScenario::Initiate | TestScenario::InitiateAndReceiveRelayed => {
-                let batch_id = &Uuid::new_v4().to_string()[..6];
-                config.set("batch_id", Some(batch_id))?;
+                let batch_id = Uuid::new_v4().to_string();
+                config.set("batch_id", Some(batch_id.clone()))?;
 
                 if config.get::<String>("topic_suffix").is_err() {
                     config.set("topic_suffix", batch_id)?;
@@ -104,11 +104,11 @@ impl Settings {
     }
 
     pub fn initiate_topic(&self) -> String {
-        INITIATE_TOPIC_PREFIX.to_string() + &self.topic_suffix.clone()
+        INITIATE_TOPIC_PREFIX.to_string() + "/" + &self.topic_suffix.clone()
     }
 
     pub fn relay_topic(&self) -> String {
-        RELAY_TOPIC_PREFIX.to_string() + &self.topic_suffix.clone()
+        RELAY_TOPIC_PREFIX.to_string() + "/" + &self.topic_suffix.clone()
     }
 
     pub fn messages_to_send(&self) -> Option<u32> {
