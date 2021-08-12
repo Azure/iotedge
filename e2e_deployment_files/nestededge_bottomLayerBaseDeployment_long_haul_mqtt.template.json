@@ -667,7 +667,7 @@
             "ExpectedSource": "genericMqttInitiator1.send",
             "ActualSource": "genericMqttReceiver1.receive",
             "LongHaulEventHubMode": "false",
-            "TestDescription": "messages | local | mqtt | generic"
+            "TestDescription": "messages | child-to-parent | mqtt | generic"
           },
           "reportMetadata10": {
             "TestReportType": "CountingReport",
@@ -675,7 +675,7 @@
             "ExpectedSource": "genericMqttInitiator2.send",
             "ActualSource": "genericMqttReceiver2.receive",
             "LongHaulEventHubMode": "false",
-            "TestDescription": "messages | local | mqtt | generic"
+            "TestDescription": "messages | parent-to-child | mqtt | generic"
           },
           "reportMetadata11": {
             "TestReportType": "NetworkControllerReport",
