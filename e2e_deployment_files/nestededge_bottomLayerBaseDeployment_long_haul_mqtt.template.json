@@ -506,7 +506,7 @@
             "restartPolicy": "always",
             "env": {
               "TEST_SCENARIO": {
-                "value": "InitiateAndReceiveRelayed"
+                "value": "Initiate"
               },
               "TRACKING_ID": {
                 "value": "<TrackingId>"
