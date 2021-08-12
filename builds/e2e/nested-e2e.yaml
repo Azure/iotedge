@@ -5,7 +5,7 @@ pr: none
 # Thus the schedules between master and release/1.2 branch are offset by 6 hours.
 # This will ensure that enough agents are avaiable to service all tests. 
 schedules:
-- cron: "0 18 * * *"
+- cron: "0 18 * * 1,2,3,4,5,6"
   displayName: Daily evening build
   branches:
     include:
