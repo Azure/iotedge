@@ -111,6 +111,9 @@ pub enum MessageTesterError {
 
     #[error("expected settings to contain a tracking id")]
     MissingTrackingId,
+
+    #[error("topic_suffix env var is needed to generate publish/subscribe topics")]
+    TopicSuffixNeeded,
 }
 
 pub fn parse_sequence_number(publication: &ReceivedPublication) -> u32 {

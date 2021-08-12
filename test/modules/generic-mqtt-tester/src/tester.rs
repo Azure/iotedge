@@ -270,7 +270,7 @@ impl MessageTester {
         match settings.test_scenario() {
             TestScenario::InitiateAndReceiveRelayed => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: settings.relay_topic(),
+                    topic_filter: settings.relay_topic()?,
                     qos: QoS::AtLeastOnce,
                 })
                 .await
@@ -284,7 +284,7 @@ impl MessageTester {
                 .map_err(MessageTesterError::UpdateSubscription)?,
             TestScenario::Receive => client_sub_handle
                 .subscribe(SubscribeTo {
-                    topic_filter: settings.initiate_topic(),
+                    topic_filter: settings.initiate_topic()?,
                     qos: QoS::AtLeastOnce,
                 })
                 .await
@@ -327,7 +327,7 @@ fn message_handler(
         }
         TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(
             publish_handle,
-            settings.relay_topic(),
+            settings.relay_topic()?,
         )))),
         TestScenario::Initiate => Ok(None),
     }

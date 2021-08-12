@@ -4,7 +4,7 @@ use config::{Config, ConfigError, Environment, File, FileFormat};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::{INITIATE_TOPIC_PREFIX, RELAY_TOPIC_PREFIX};
+use crate::{MessageTesterError, INITIATE_TOPIC_PREFIX, RELAY_TOPIC_PREFIX};
 
 pub const DEFAULTS: &str = include_str!("../config/default.json");
 
@@ -26,7 +26,7 @@ pub struct Settings {
 
     message_size_in_bytes: u32,
 
-    topic_suffix: String,
+    topic_suffix: Option<String>,
 
     messages_to_send: Option<u32>,
 
@@ -46,8 +46,8 @@ impl Settings {
                 let batch_id = Uuid::new_v4().to_string();
                 config.set("batch_id", Some(batch_id.clone()))?;
 
-                if config.get::<String>("topic_suffix").is_err() {
-                    config.set("topic_suffix", batch_id)?;
+                if let None = config.get::<Option<String>>("topic_suffix")? {
+                    config.set("topic_suffix", Some(batch_id))?;
                 }
             }
             _ => {}
@@ -103,12 +103,18 @@ impl Settings {
         self.message_size_in_bytes
     }
 
-    pub fn initiate_topic(&self) -> String {
-        INITIATE_TOPIC_PREFIX.to_string() + "/" + &self.topic_suffix.clone()
+    pub fn initiate_topic(&self) -> Result<String, MessageTesterError> {
+        match self.topic_suffix.clone() {
+            Some(topic_suffix) => Ok(INITIATE_TOPIC_PREFIX.to_string() + "/" + &topic_suffix),
+            None => Err(MessageTesterError::TopicSuffixNeeded),
+        }
     }
 
-    pub fn relay_topic(&self) -> String {
-        RELAY_TOPIC_PREFIX.to_string() + "/" + &self.topic_suffix.clone()
+    pub fn relay_topic(&self) -> Result<String, MessageTesterError> {
+        match self.topic_suffix.clone() {
+            Some(topic_suffix) => Ok(RELAY_TOPIC_PREFIX.to_string() + "/" + &topic_suffix),
+            None => Err(MessageTesterError::TopicSuffixNeeded),
+        }
     }
 
     pub fn messages_to_send(&self) -> Option<u32> {
