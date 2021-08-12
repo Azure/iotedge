@@ -135,20 +135,13 @@ impl KeyEngine {
         openssl::pkey::PKey<openssl::pkey::Private>,
         openssl::pkey::PKey<openssl::pkey::Public>,
     ) {
-        let rsa = openssl::rsa::Rsa::generate(2048).unwrap();
-        let private_key = openssl::pkey::PKey::from_rsa(rsa).unwrap();
-
-        let public_key = private_key.public_key_to_pem().unwrap();
-        let public_key = openssl::pkey::PKey::public_key_from_pem(&public_key).unwrap();
+        let keys = crate::new_keys();
 
         assert!(self
             .keys
-            .insert(
-                key_handle.to_string(),
-                (private_key.clone(), public_key.clone())
-            )
+            .insert(key_handle.to_string(), keys.clone())
             .is_none());
 
-        (private_key, public_key)
+        keys
     }
 }
