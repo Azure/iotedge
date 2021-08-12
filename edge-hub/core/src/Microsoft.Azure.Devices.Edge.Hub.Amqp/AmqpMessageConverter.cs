@@ -64,6 +64,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
                 systemProperties.AddIfNonEmpty(SystemProperties.InterfaceId, hubInterfaceId);
             }
 
+            if (sourceMessage.MessageAnnotations.Map.TryGetValue(SystemProperties.ComponentName, out string componentName))
+            {
+                systemProperties.AddIfNonEmpty(SystemProperties.ComponentName, componentName);
+            }
+
             if (sourceMessage.ApplicationProperties != null)
             {
                 foreach (KeyValuePair<MapKey, object> property in sourceMessage.ApplicationProperties.Map)
@@ -186,6 +191,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             else if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ConnectionModuleId, out string connectionModuleId))
             {
                 amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsConnectionModuleId] = connectionModuleId;
+            }
+
+            if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.ComponentName, out string componentName))
+            {
+                amqpMessage.MessageAnnotations.Map[Constants.MessageAnnotationsComponentName] = componentName;
             }
 
             if (message.SystemProperties.TryGetNonEmptyValue(SystemProperties.MessageSchema, out string messageSchema))

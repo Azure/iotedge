@@ -2,13 +2,19 @@
 
 use std::convert::TryFrom;
 
+#[cfg(not(test))]
+use aziot_identity_client_async::Client as IdentityClient;
+
+#[cfg(test)]
+use edgelet_test_utils::clients::IdentityClient;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
 {
-    client: std::sync::Arc<futures_util::lock::Mutex<aziot_identity_client_async::Client>>,
+    client: std::sync::Arc<futures_util::lock::Mutex<IdentityClient>>,
     pid: libc::pid_t,
-    _runtime: std::marker::PhantomData<M>,
+    runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -54,16 +60,14 @@ where
         Some(Route {
             client: service.identity.clone(),
             pid,
-            _runtime: std::marker::PhantomData,
+            runtime: service.runtime.clone(),
         })
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = ListIdentitiesResponse;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
-        edgelet_http::auth_agent(self.pid)?;
+    async fn get(self) -> http_common::server::RouteResponse {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let client = self.client.lock().await;
 
@@ -80,16 +84,15 @@ where
             }
         };
 
-        Ok((http::StatusCode::OK, ListIdentitiesResponse { identities }))
+        let res = ListIdentitiesResponse { identities };
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+        Ok(res)
     }
 
     type PostBody = CreateIdentityRequest;
-    type PostResponse = crate::identity::Identity;
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_agent(self.pid)?;
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
             Some(body) => body,
@@ -112,9 +115,10 @@ where
             }
         };
 
-        Ok((http::StatusCode::OK, Some(identity)))
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &identity);
+
+        Ok(res)
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

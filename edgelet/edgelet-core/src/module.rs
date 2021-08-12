@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::collections::BTreeMap;
 use std::default::Default;
 use std::fmt;
 use std::result::Result;
@@ -13,10 +12,10 @@ use failure::{Fail, ResultExt};
 use futures::Stream;
 use serde::{Deserialize, Serialize};
 
-use edgelet_utils::ensure_not_empty_with_context;
+use edgelet_settings::module::Settings as ModuleSpec;
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::{Error, ErrorKind, Result as EdgeletResult};
-use crate::settings::RuntimeSettings;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -55,7 +54,7 @@ pub struct ModuleRuntimeState {
     started_at: Option<DateTime<Utc>>,
     finished_at: Option<DateTime<Utc>>,
     image_id: Option<String>,
-    pid: Option<i32>,
+    pid: Option<i64>,
 }
 
 impl Default for ModuleRuntimeState {
@@ -127,145 +126,12 @@ impl ModuleRuntimeState {
         self
     }
 
-    pub fn pid(&self) -> Option<i32> {
+    pub fn pid(&self) -> Option<i64> {
         self.pid
     }
 
-    pub fn with_pid(mut self, pid: Option<i32>) -> Self {
+    pub fn with_pid(mut self, pid: Option<i64>) -> Self {
         self.pid = pid;
-        self
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ModuleSpec<T> {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub type_: String,
-    #[serde(default)]
-    #[serde(rename = "imagePullPolicy")]
-    pub image_pull_policy: ImagePullPolicy,
-    pub config: T,
-    #[serde(default)]
-    pub env: BTreeMap<String, String>,
-}
-
-impl<T> Clone for ModuleSpec<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        Self {
-            name: self.name.clone(),
-            type_: self.type_.clone(),
-            config: self.config.clone(),
-            env: self.env.clone(),
-            image_pull_policy: self.image_pull_policy,
-        }
-    }
-}
-
-/// In nested scenario, Agent image can be pulled from its parent.
-/// It is possible to specify the parent address using the keyword $upstream
-///
-/// Unfortunately, due to the particularly runtime-independent and generic
-/// nature of configurations, it's very difficult to do "late binding" of
-/// runtime specific configuration values, such as the the $upstream
-/// `parent_hostname` resolution, which can only be done _after_ fetching the
-/// `parent_hostname` value from the underlying aziot identity service.
-///
-/// As the name implies, this trait is a bodge that enables this functionality,
-/// and was added in the lead-up to 1.2 GA.
-///
-/// A proper rework of settings loading should be undertaken when there is more
-/// time, but for now, this will have to do...
-pub trait NestedEdgeBodge {
-    fn parent_hostname_resolve(&mut self, parent_hostname: &str);
-}
-
-impl<T> ModuleSpec<T>
-where
-    T: NestedEdgeBodge,
-{
-    pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
-        self.config.parent_hostname_resolve(parent_hostname);
-    }
-}
-
-impl<T> ModuleSpec<T> {
-    pub fn new(
-        name: String,
-        type_: String,
-        config: T,
-        env: BTreeMap<String, String>,
-        image_pull_policy: ImagePullPolicy,
-    ) -> EdgeletResult<Self> {
-        ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
-        ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
-
-        Ok(ModuleSpec {
-            name,
-            type_,
-            config,
-            env,
-            image_pull_policy,
-        })
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn with_name(mut self, name: String) -> Self {
-        self.name = name;
-        self
-    }
-
-    pub fn type_(&self) -> &str {
-        &self.type_
-    }
-
-    pub fn with_type_(mut self, type_: String) -> Self {
-        self.type_ = type_;
-        self
-    }
-
-    pub fn config(&self) -> &T {
-        &self.config
-    }
-
-    pub fn config_mut(&mut self) -> &mut T {
-        &mut self.config
-    }
-
-    pub fn with_config(mut self, config: T) -> Self {
-        self.config = config;
-        self
-    }
-
-    pub fn set_config(&mut self, config: T) {
-        self.config = config;
-    }
-
-    pub fn env(&self) -> &BTreeMap<String, String> {
-        &self.env
-    }
-
-    pub fn env_mut(&mut self) -> &mut BTreeMap<String, String> {
-        &mut self.env
-    }
-
-    pub fn with_env(mut self, env: BTreeMap<String, String>) -> Self {
-        self.env = env;
-        self
-    }
-
-    pub fn image_pull_policy(&self) -> ImagePullPolicy {
-        self.image_pull_policy
-    }
-
-    pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {
-        self.image_pull_policy = image_pull_policy;
         self
     }
 }
@@ -480,28 +346,6 @@ impl DiskInfo {
     }
 }
 
-#[derive(Debug)]
-pub struct ModuleTop {
-    /// Name of the module. Example: tempSensor
-    name: String,
-    /// A vector of process IDs (PIDs) representing a snapshot of all processes running inside the module.
-    process_ids: Vec<i32>,
-}
-
-impl ModuleTop {
-    pub fn new(name: String, process_ids: Vec<i32>) -> Self {
-        ModuleTop { name, process_ids }
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn process_ids(&self) -> &[i32] {
-        &self.process_ids
-    }
-}
-
 pub trait ProvisioningResult {
     fn device_id(&self) -> &str;
     fn hub_name(&self) -> &str;
@@ -510,22 +354,24 @@ pub trait ProvisioningResult {
 #[async_trait::async_trait]
 pub trait MakeModuleRuntime {
     type Config: Clone + Send;
-    type Settings: RuntimeSettings<Config = Self::Config>;
+    type Settings: RuntimeSettings<ModuleConfig = Self::Config>;
     type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
     type Error: Fail;
 
-    async fn make_runtime(settings: Self::Settings) -> Result<Self::ModuleRuntime, Self::Error>;
+    async fn make_runtime(settings: &Self::Settings) -> Result<Self::ModuleRuntime, Self::Error>;
 }
 
 #[async_trait::async_trait]
 pub trait ModuleRuntime: Sized {
     type Error: Fail;
 
-    type Config: Clone + Send;
+    type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
-    type Chunk: AsRef<[u8]>;
-    type Logs: Stream<Item = Self::Chunk>;
+    type Chunk: AsRef<[u8]> + Into<bytes::Bytes> + 'static;
+
+    // TODO: Remove failure and fix this error type.
+    type Logs: Stream<Item = Result<Self::Chunk, std::io::Error>> + Send + 'static;
 
     async fn create(&self, module: ModuleSpec<Self::Config>) -> Result<(), Self::Error>;
     async fn get(&self, id: &str) -> Result<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -539,9 +385,10 @@ pub trait ModuleRuntime: Sized {
     async fn list_with_details(
         &self,
     ) -> Result<Vec<(Self::Module, ModuleRuntimeState)>, Self::Error>;
-    async fn logs(&self, id: &str, options: &LogOptions) -> Result<Self::Logs, Self::Error>;
+    async fn logs(&self, id: &str, options: &LogOptions) -> Self::Logs;
     async fn remove_all(&self) -> Result<(), Self::Error>;
     async fn stop_all(&self, wait_before_kill: Option<Duration>) -> Result<(), Self::Error>;
+    async fn module_top(&self, id: &str) -> Result<Vec<i32>, Self::Error>;
 
     fn registry(&self) -> &Self::ModuleRegistry;
 }
@@ -597,7 +444,7 @@ pub enum RuntimeOperation {
     StopModule(String),
     SystemInfo,
     SystemResources,
-    TopModule(String),
+    TopModule(String, String),
 }
 
 impl fmt::Display for RuntimeOperation {
@@ -617,35 +464,9 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
             RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
-            RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ImagePullPolicy {
-    #[serde(rename = "on-create")]
-    OnCreate,
-    Never,
-}
-
-impl Default for ImagePullPolicy {
-    fn default() -> Self {
-        ImagePullPolicy::OnCreate
-    }
-}
-
-impl FromStr for ImagePullPolicy {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<ImagePullPolicy, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "on-create" => Ok(ImagePullPolicy::OnCreate),
-            "never" => Ok(ImagePullPolicy::Never),
-            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(
-                s.to_string(),
-            ))),
+            RuntimeOperation::TopModule(name, reason) => {
+                write!(f, "Could not top module {}.\n{}", name, reason)
+            }
         }
     }
 }

@@ -1,16 +1,15 @@
 [workspace]
 members = [
     "aziot-edged",
-    #"docker-rs",
+    "docker-rs",
     "edgelet-core",
     "edgelet-docker",
     "edgelet-http",
     "edgelet-http-mgmt",
     "edgelet-http-workload",
-    "edgelet-test-utils",
+    "edgelet-settings",
     "edgelet-utils",
     #"iotedge",
     #"management",
     "support-bundle",
-    #"systemd",
 ]

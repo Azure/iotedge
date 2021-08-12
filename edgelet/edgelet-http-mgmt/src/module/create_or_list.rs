@@ -8,15 +8,6 @@ where
     pid: libc::pid_t,
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub(crate) struct CreateModuleRequest {}
-
-#[derive(Debug, serde::Serialize)]
-pub(crate) struct CreateModuleResponse {}
-
-#[derive(Debug, serde::Serialize)]
-pub(crate) struct ListModulesResponse {}
-
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
@@ -50,22 +41,24 @@ where
     }
 
     type DeleteBody = serde::de::IgnoredAny;
-    type DeleteResponse = ();
 
-    type GetResponse = ListModulesResponse;
-    async fn get(self) -> http_common::server::RouteResponse<Self::GetResponse> {
+    async fn get(self) -> http_common::server::RouteResponse {
         let runtime = self.runtime.lock().await;
 
-        todo!()
+        let modules = runtime
+            .list_with_details()
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+        let res: edgelet_http::ListModulesResponse = modules.into();
+        let res = http_common::server::response::json(hyper::StatusCode::OK, &res);
+
+        Ok(res)
     }
 
-    type PostBody = CreateModuleRequest;
-    type PostResponse = CreateModuleResponse;
-    async fn post(
-        self,
-        body: Option<Self::PostBody>,
-    ) -> http_common::server::RouteResponse<Option<Self::PostResponse>> {
-        edgelet_http::auth_agent(self.pid)?;
+    type PostBody = ();
+    async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
+        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
         let body = match body {
             Some(body) => body,
@@ -80,5 +73,4 @@ where
     }
 
     type PutBody = serde::de::IgnoredAny;
-    type PutResponse = ();
 }

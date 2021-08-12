@@ -13,7 +13,7 @@ POST /device/reprovision?api-version={version}
 
 ### Response
 ```
-200 OK
+204 No Content
 ```
 
 Reprovisioning will cause `aziot-edged` to restart.

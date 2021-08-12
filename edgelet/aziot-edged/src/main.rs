@@ -6,12 +6,13 @@
 mod error;
 mod management;
 mod provision;
+mod watchdog;
 mod workload;
 
 use std::sync::atomic;
 
-// TODO: Remove this with parent_hostname_resolve
-use edgelet_core::RuntimeSettings;
+use edgelet_core::{MakeModuleRuntime, ModuleRuntime};
+use edgelet_settings::RuntimeSettings;
 
 use crate::error::Error as EdgedError;
 
@@ -39,9 +40,10 @@ async fn main() {
 }
 
 async fn run() -> Result<(), EdgedError> {
-    let settings = edgelet_docker::Settings::new()?;
+    let settings =
+        edgelet_settings::docker::Settings::new().map_err(|err| EdgedError::settings_err(err))?;
 
-    let cache_dir = std::path::Path::new(&settings.base.homedir).join("cache");
+    let cache_dir = std::path::Path::new(&settings.homedir()).join("cache");
     std::fs::create_dir_all(cache_dir.clone()).map_err(|err| {
         EdgedError::from_err(
             format!(
@@ -52,7 +54,17 @@ async fn run() -> Result<(), EdgedError> {
         )
     })?;
 
-    let device_info = provision::get_device_info(&settings, &cache_dir).await?;
+    let identity_client = provision::identity_client(&settings)?;
+    let device_info = provision::get_device_info(
+        &identity_client,
+        settings.auto_reprovisioning_mode(),
+        &cache_dir,
+    )
+    .await?;
+
+    let runtime = edgelet_docker::DockerModuleRuntime::make_runtime(&settings)
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to initialize module runtime", err))?;
 
     // Normally, aziot-edged will stop all modules when it shuts down. But if it crashed,
     // modules will continue to run. On Linux systems where aziot-edged is responsible for
@@ -62,22 +74,39 @@ async fn run() -> Result<(), EdgedError> {
     // begin to fail. Resilient modules should be able to deal with this, but we'll
     // restart all modules to ensure a clean start.
     log::info!("Stopping all modules...");
-    // TODO
+    runtime
+        .stop_all(Some(std::time::Duration::from_secs(30)))
+        .await
+        .map_err(|err| EdgedError::from_err("Failed to stop modules on startup", err))?;
     log::info!("All modules stopped");
 
-    provision::update_device_cache(&cache_dir, &device_info)?;
+    provision::update_device_cache(&cache_dir, &device_info, &runtime).await?;
 
-    // TODO: Rework settings so this isn't needed.
-    let mut settings = settings;
-    settings
-        .agent_mut()
-        .parent_hostname_resolve(&device_info.gateway_host);
+    // Resolve the parent hostname used to pull Edge Agent. This translates '$upstream' into the
+    // appropriate hostname.
+    let settings = settings.agent_upstream_resolve(&device_info.gateway_host);
 
-    let (sender, mut receiver) =
+    let (shutdown_tx, shutdown_rx) =
         tokio::sync::mpsc::unbounded_channel::<edgelet_core::ShutdownReason>();
 
+    // Keep track of running tasks to determine when all server tasks have shut down.
+    // Workload and management API each have one task, so start with 2 tasks total.
+    let tasks = atomic::AtomicUsize::new(2);
+    let tasks = std::sync::Arc::new(tasks);
+
+    // Start management and workload sockets.
+    let management_shutdown = management::start(
+        &settings,
+        runtime.clone(),
+        shutdown_tx.clone(),
+        tasks.clone(),
+    )
+    .await?;
+    let workload_shutdown =
+        workload::start(&settings, runtime.clone(), &device_info, tasks.clone()).await?;
+
     // Set the signal handler to listen for CTRL+C (SIGINT).
-    let sigint_sender = sender.clone();
+    let sigint_sender = shutdown_tx.clone();
     tokio::spawn(async move {
         tokio::signal::ctrl_c()
             .await
@@ -88,19 +117,48 @@ async fn run() -> Result<(), EdgedError> {
         let _ = sigint_sender.send(edgelet_core::ShutdownReason::SigInt);
     });
 
-    // Start management and workload sockets.
-    management::start(&settings, sender.clone()).await?;
-    let workload_shutdown = workload::start(&settings).await?;
+    // Run aziot-edged until the shutdown signal is received. This also runs the watchdog periodically.
+    let shutdown_reason =
+        watchdog::run_until_shutdown(settings, runtime, &identity_client, shutdown_rx).await?;
 
-    let shutdown = receiver.recv().await.expect("shutdown channel closed");
-    log::info!("{}", shutdown);
+    log::info!("Stopping management API...");
+    management_shutdown
+        .send(())
+        .expect("management API shutdown receiver was dropped");
 
     log::info!("Stopping workload API...");
     workload_shutdown
         .send(())
-        .expect("workload API receiver was dropped");
+        .expect("workload API shutdown receiver was dropped");
 
-    // TODO: make sure all mgmt and workload server tasks have exited
+    // Wait up to 10 seconds for all server tasks to exit.
+    let shutdown_timeout = std::time::Duration::from_secs(10);
+    let poll_period = std::time::Duration::from_millis(100);
+    let mut wait_time = std::time::Duration::from_millis(0);
+
+    loop {
+        let tasks = tasks.load(atomic::Ordering::Acquire);
+
+        if tasks == 0 {
+            break;
+        }
+
+        if wait_time >= shutdown_timeout {
+            log::warn!("{} task(s) have not exited in time for shutdown", tasks);
+
+            break;
+        }
+
+        tokio::time::sleep(poll_period).await;
+        wait_time += poll_period;
+    }
+
+    if let edgelet_core::ShutdownReason::Reprovision = shutdown_reason {
+        match provision::reprovision(&identity_client, &cache_dir).await {
+            Ok(()) => log::info!("Successfully reprovisioned"),
+            Err(err) => log::error!("Failed to reprovision: {}", err),
+        }
+    }
 
     Ok(())
 }

@@ -1,9 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-#![deny(rust_2018_idioms, warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+pub mod clients;
+pub mod route;
+pub mod runtime;
 
-pub mod cert;
-pub mod identity;
-pub mod module;
-pub mod server;
+mod settings;
+pub use settings::Settings;
+
+/// Generic test error. Most users of ModuleRuntime don't act on the error other
+/// than passing it up the call stack, so it's fine to return any error.
+fn test_error() -> std::io::Error {
+    std::io::Error::new(std::io::ErrorKind::Other, "test error")
+}

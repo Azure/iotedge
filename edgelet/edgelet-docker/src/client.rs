@@ -1,36 +1,26 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::ops::Deref;
-use std::sync::Arc;
+use bollard::{Docker, API_DEFAULT_VERSION};
+use url::Url;
 
-use hyper::client::connect::Connect;
-
-use docker::apis::client::APIClient;
-
-pub struct DockerClient<C: Connect> {
-    client: Arc<APIClient<C>>,
+pub struct DockerClient {
+    pub docker: Docker,
 }
 
-impl<C: Connect> DockerClient<C> {
-    pub fn new(client: APIClient<C>) -> Self {
-        DockerClient {
-            client: Arc::new(client),
-        }
+impl DockerClient {
+    pub async fn new(docker_uri: &Url) -> Result<Self, Box<dyn std::error::Error>> {
+        let docker = Docker::connect_with_local(docker_uri.as_str(), 120, API_DEFAULT_VERSION)?
+            .negotiate_version()
+            .await?;
+
+        Ok(DockerClient { docker })
     }
 }
 
-impl<C: Connect> Deref for DockerClient<C> {
-    type Target = APIClient<C>;
-
-    fn deref(&self) -> &APIClient<C> {
-        self.client.as_ref()
-    }
-}
-
-impl<C: Connect> Clone for DockerClient<C> {
+impl Clone for DockerClient {
     fn clone(&self) -> Self {
         DockerClient {
-            client: self.client.clone(),
+            docker: self.docker.clone(),
         }
     }
 }

@@ -17,17 +17,16 @@ pub async fn get_modules(runtime: &impl ModuleRuntime, include_ms_only: bool) ->
     // so it doesn't block forever on an unavailable socket.
     let list = tokio::time::timeout(std::time::Duration::from_secs(30), runtime.list());
 
-    match list.await {
-        Ok(Ok(modules)) => modules
+    if let Ok(Ok(modules)) = list.await {
+        modules
             .into_iter()
             .map(|module| module.name().to_owned())
             .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
-            .collect(),
-        _ => {
-            println!("Warning: Unable to call management socket. Module list not available.");
+            .collect()
+    } else {
+        println!("Warning: Unable to call management socket. Module list not available.");
 
-            Vec::new()
-        }
+        Vec::new()
     }
 }
 
@@ -41,13 +40,18 @@ pub async fn write_logs(
     writer: &mut (impl Write + Send),
 ) -> Result<(), Error> {
     // Collect Logs
-    let logs = runtime
-        .logs(module_name, options)
-        .await
-        .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))?;
+    let logs = runtime.logs(module_name, options).await;
 
     // Write all logs
-    let write = logs.map(|part| writer.write_all(part.as_ref()));
+    let write = logs.map(|part| {
+        let part = part.map_err(|err| {
+            println!("Warning: error gathering logs: {}", err);
+
+            std::io::Error::new(std::io::ErrorKind::Other, err.to_string())
+        })?;
+
+        writer.write_all(part.as_ref())
+    });
 
     // Extract errors
     write

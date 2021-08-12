@@ -15,12 +15,14 @@ log = "0.4"
 percent-encoding = "2"
 regex = "1"
 serde = "1"
-serde_json = "1.0"
+serde_json = "1"
 tokio = { version = "1", features = ["macros", "sync"] }
 url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
+edgelet-settings = { path = "../edgelet-settings" }
+support-bundle = { path = "../support-bundle" }
 
 aziot-identity-client-async = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
 aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
@@ -29,4 +31,6 @@ aziot-identity-common-http = { git = "https://github.com/Azure/iot-identity-serv
 http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
 
 [dev-dependencies]
+nix = "0.22"
+
 edgelet-test-utils = { path = "../edgelet-test-utils" }

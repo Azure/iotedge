@@ -62,7 +62,7 @@ namespace DevOpsLib
                     op = "add",
                     path = "/fields/System.AreaPath",
                     from = string.Empty,
-                    value = "One\\IoT\\Platform\\IoTEdge"
+                    value = "One\\IoT\\Platform and Devices\\IoTEdge"
                 },
                 new
                 {

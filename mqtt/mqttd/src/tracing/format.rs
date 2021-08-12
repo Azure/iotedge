@@ -225,9 +225,7 @@ where
             .and_then(|id| self.ctx.span(&id))
             .or_else(|| self.ctx.lookup_current());
 
-        let scope = span
-            .into_iter()
-            .flat_map(|span| span.from_root().chain(std::iter::once(span)));
+        let scope = span.into_iter().flat_map(|span| span.scope());
 
         for span in scope {
             write!(f, "{}", bold.paint(span.metadata().name()))?;

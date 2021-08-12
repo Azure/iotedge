@@ -7,18 +7,17 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
-chrono = "0.4"
-failure = "0.1"
+bytes = "1"
 futures = "0.3"
+futures-util = "0.3"
 http = "0.2"
-hyper = "0.14"
-mktemp = "0.4"
+nix = "0.22"
+openssl = "0.10"
 serde = "1"
-serde_derive = "1"
-serde_json = "1"
-tokio = { version = "1", features = ["rt"] }
-url = "2"
 
 edgelet-core = { path = "../edgelet-core" }
-edgelet-http = { path = "../edgelet-http" }
-http-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main", features = ["tokio1"] }
+edgelet-settings = { path = "../edgelet-settings" }
+
+aziot-key-client = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-key-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }
+aziot-identity-common = { git = "https://github.com/Azure/iot-identity-service", branch = "main" }

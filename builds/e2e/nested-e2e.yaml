@@ -2,6 +2,15 @@ trigger: none
 pr: none
 
 variables:
+  # A 'minimal' pipeline only runs one end-to-end test (TempSensor). This is useful for platforms or
+  # environments that are very similar to other platforms/environments in our matrix, Ubuntu 18.04
+  # with the 'docker-ce' package vs. Ubuntu 18.04 with the 'iotedge-moby' package vs. the same
+  # variations in Ubuntu 20.04. In these instances the platforms/environments are so similar that we
+  # don't reasonably expect to encounter differences--if we do, it would likely manifest during
+  # installation, or in running a very basic test. We don't need to repeat the entire test suite.
+  # The 'minimal' variable defaults to 'false'; we override it in specific jobs as needed.
+  minimal: false
+  verbose: false
   NugetSecurityAnalysisWarningLevel: warn
 
 resources:
@@ -9,17 +18,9 @@ resources:
   - pipeline: images
     source: 'Azure-IoT-Edge-Core Build Images'
     branch: 'master'
-    trigger:
-      branches:
-      - master
-      - release/*
   - pipeline: packages
     source: 'Azure-IoT-Edge-Core Edgelet Packages'
     branch: 'master'
-    trigger:
-      branches:
-      - master
-      - release/*
 
 stages:
 - stage: SetupVM
@@ -117,7 +118,6 @@ stages:
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - status -equals unlocked_$(Build.BuildId)
-        - $(agent.cleanIdentity)
     steps:
       - template: templates/nested-get-secrets.yaml
       - template: templates/unlock-test-agent.yaml
