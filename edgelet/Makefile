@@ -205,6 +205,9 @@ uninstall:
 clean:
 	rm -rf $(TARGET)
 
+test:
+	cargo test
+
 version:
 	@echo "deb version:  ${DEB_VERSION}"
 	@echo "deb revision: ${DEB_REVISION}"

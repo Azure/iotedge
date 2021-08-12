@@ -660,7 +660,6 @@ dependencies = [
  "chrono",
  "consistenttime",
  "edgelet-settings",
- "edgelet-utils",
  "failure",
  "futures 0.3.16",
  "hmac",

@@ -120,11 +120,7 @@ impl Module for DockerModule {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_top_response;
-
     use std::string::ToString;
-
-    use bollard::service::ContainerTopResponse;
 
     use docker::models::ContainerCreateBody;
 
@@ -191,89 +187,4 @@ mod tests {
     //         ("running", 0, ModuleStatus::Running),
     //     ]
     // }
-
-    #[test]
-    fn parse_top_response_returns_pid_array() {
-        let response = ContainerTopResponse {
-            titles: Some(vec!["PID".to_string()]),
-            processes: Some(vec![vec!["123".to_string()]]),
-        };
-
-        let pids = parse_top_response("test", &response);
-
-        assert_eq!(vec![123], pids.unwrap());
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_titles_is_missing() {
-        let response = ContainerTopResponse {
-            titles: None,
-            processes: Some(vec![vec!["123".to_string()]]),
-        };
-
-        let pids = parse_top_response("test", &response);
-
-        assert!(format!("{}", pids.unwrap_err()).contains("Expected 'Title' field"));
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_pid_title_is_missing() {
-        let response = ContainerTopResponse {
-            titles: Some(vec![]),
-            processes: Some(vec![vec!["123".to_string()]]),
-        };
-
-        let pids = parse_top_response("test", &response);
-
-        assert_contains(&format!("{}", pids.unwrap_err()), "Expected Title 'PID'");
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_processes_is_missing() {
-        let response = ContainerTopResponse {
-            titles: Some(vec!["PID".to_string()]),
-            processes: None,
-        };
-
-        let pids = parse_top_response("test", &response);
-
-        assert_contains(
-            &format!("{}", pids.unwrap_err()),
-            "Expected 'Processes' field",
-        );
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_missing() {
-        let response = ContainerTopResponse {
-            titles: Some(vec!["Command".to_string(), "PID".to_string()]),
-            processes: Some(vec![vec!["sh".to_string()]]),
-        };
-
-        let pids = parse_top_response("test", &response);
-
-        assert_contains(&format!("{}", pids.unwrap_err()), "PID index empty");
-    }
-
-    #[test]
-    fn parse_top_response_returns_error_when_process_pid_is_not_i64() {
-        let response = ContainerTopResponse {
-            titles: Some(vec!["PID".to_string()]),
-            processes: Some(vec![vec!["xyz".to_string()]]),
-        };
-
-        let pids = parse_top_response("test", &response);
-
-        assert_contains(
-            &format!("{}", pids.unwrap_err()),
-            "invalid digit found in string",
-        );
-    }
-
-    fn assert_contains(value: &str, expected_contents: &str) {
-        assert!(
-            value.contains(expected_contents),
-            format!(r#"Expected "{}" to contain "{}""#, value, expected_contents)
-        );
-    }
 }

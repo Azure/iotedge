@@ -79,7 +79,7 @@ impl IdentityClient {
         }
     }
 
-    pub async fn delete_identity(&self, module_name: &str) -> Result<(), std::io::Error> {
+    pub async fn delete_identity(&self, _module_name: &str) -> Result<(), std::io::Error> {
         if self.delete_identity_ok {
             Ok(())
         } else {
