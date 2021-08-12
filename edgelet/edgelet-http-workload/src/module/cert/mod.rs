@@ -7,11 +7,15 @@ pub(crate) mod server;
 use aziot_cert_client_async::Client as CertClient;
 #[cfg(not(test))]
 use aziot_key_client_async::Client as KeyClient;
+#[cfg(not(test))]
+use aziot_key_openssl_engine as KeyEngine;
 
 #[cfg(test)]
 use edgelet_test_utils::clients::CertClient;
 #[cfg(test)]
 use edgelet_test_utils::clients::KeyClient;
+#[cfg(test)]
+use edgelet_test_utils::clients::KeyEngine;
 
 #[derive(Debug, serde::Serialize)]
 #[serde(tag = "type")]
@@ -177,7 +181,7 @@ impl CertApi {
         let key_handle =
             std::ffi::CString::new(key_handle.0.clone()).expect("key handle contained null");
 
-        let mut engine = aziot_key_openssl_engine::load(key_client)
+        let mut engine = KeyEngine::load(key_client)
             .map_err(|_| edgelet_http::error::server_error("failed to load openssl key engine"))?;
 
         let private_key = engine
@@ -337,4 +341,129 @@ fn edge_ca_extensions(
     csr_extensions.push(basic_constraints)?;
 
     Ok(csr_extensions)
+}
+
+#[cfg(test)]
+mod tests {
+    /// Generates a self-signed cert for testing.
+    ///
+    /// The `customize` parameter is an optional function that can be used to
+    /// override the test defaults before the certificate is signed.
+    fn test_certificate(
+        customize: Option<fn(&mut openssl::x509::X509Builder)>,
+    ) -> openssl::x509::X509 {
+        let mut name = openssl::x509::X509Name::builder().unwrap();
+        name.append_entry_by_text("CN", "testCertificate").unwrap();
+        let name = name.build();
+
+        let (private_key, public_key) = super::new_keys().unwrap();
+
+        let mut cert = openssl::x509::X509::builder().unwrap();
+
+        cert.set_subject_name(&name).unwrap();
+        cert.set_issuer_name(&name).unwrap();
+        cert.set_pubkey(&public_key).unwrap();
+
+        let not_before = openssl::asn1::Asn1Time::from_unix(0).unwrap();
+        let not_after = openssl::asn1::Asn1Time::days_from_now(30).unwrap();
+
+        cert.set_not_before(&not_before).unwrap();
+        cert.set_not_after(&not_after).unwrap();
+
+        if let Some(customize) = customize {
+            customize(&mut cert);
+        }
+
+        cert.sign(&private_key, openssl::hash::MessageDigest::sha256())
+            .unwrap();
+
+        cert.build()
+    }
+
+    fn test_api() -> super::CertApi {
+        // Tests won't actually connect to keyd, so just put any URL in the key connector.
+        let key_connector = url::Url::parse("unix:///tmp/test.sock").unwrap();
+        let key_connector = http_common::Connector::new(&key_connector).unwrap();
+
+        let key_client = edgelet_test_utils::clients::KeyClient::default();
+        let key_client = std::sync::Arc::new(futures_util::lock::Mutex::new(key_client));
+
+        let cert_client = edgelet_test_utils::clients::CertClient::default();
+        let cert_client = std::sync::Arc::new(futures_util::lock::Mutex::new(cert_client));
+
+        super::CertApi {
+            key_connector,
+            key_client,
+            cert_client,
+
+            device_id: "test-device".to_string(),
+            edge_ca_cert: "test-device-cert".to_string(),
+            edge_ca_key: "test-device-key".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn edge_ca_renew() {
+        // Test data. Tuples contain a test certificate and whether the test should expect
+        // the cert to be renewed.
+        let test_certs = vec![
+            // Expired certificate.
+            (
+                test_certificate(Some(|cert| {
+                    let expired = openssl::asn1::Asn1Time::from_unix(1).unwrap();
+                    cert.set_not_after(&expired).unwrap();
+                })),
+                true,
+            ),
+            // Certificate that is near expiry.
+            (
+                test_certificate(Some(|cert| {
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap();
+
+                    // Certs within 5 mins of expiration should renew, so set an expiration
+                    // time 2 mins from now.
+                    let expiry_time = now.as_secs() + 120;
+                    let expiry_time: i64 = std::convert::TryInto::try_into(expiry_time).unwrap();
+
+                    let expiry_time = openssl::asn1::Asn1Time::from_unix(expiry_time).unwrap();
+                    cert.set_not_after(&expiry_time).unwrap();
+                })),
+                true,
+            ),
+            // Certificate that is not near expiry.
+            (test_certificate(None), false),
+        ];
+
+        for (cert, should_renew) in test_certs {
+            let api = test_api();
+            let cert = cert.to_pem().unwrap();
+
+            // Place test certificate in cert client.
+            {
+                let cert_client = api.cert_client.lock().await;
+                cert_client
+                    .create_cert(&api.edge_ca_cert, &cert, None)
+                    .await
+                    .unwrap();
+            }
+
+            let key_handle = aziot_key_common::KeyHandle(api.edge_ca_key.clone());
+            api.check_edge_ca(&key_handle).await.unwrap();
+
+            let new_cert = {
+                let cert_client = api.cert_client.lock().await;
+                cert_client.get_cert(&api.edge_ca_cert).await.unwrap()
+            };
+
+            // If the cert should have been renewed, check that the new cert is different.
+            // If the cert shouldn't have been renewed, check that it is unchanged.
+            if should_renew {
+                assert_ne!(new_cert, cert);
+            } else {
+                assert_eq!(new_cert, cert);
+            }
+        }
+    }
 }

@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+type Certs =
+    futures_util::lock::Mutex<std::cell::RefCell<std::collections::BTreeMap<String, Vec<u8>>>>;
+
 #[derive(Default)]
 pub struct CertClient {
-    pub certs: std::collections::BTreeMap<String, Vec<u8>>,
+    pub certs: Certs,
 }
 
 impl CertClient {
@@ -10,13 +13,26 @@ impl CertClient {
         &self,
         id: &str,
         csr: &[u8],
-        issuer: Option<(&str, &aziot_key_common::KeyHandle)>,
+        _issuer: Option<(&str, &aziot_key_common::KeyHandle)>,
     ) -> Result<Vec<u8>, std::io::Error> {
-        todo!()
+        // A real cert client would connect to certd and create the cert.
+        // This test client just places the provided CSR in the cert map so that
+        // the tester can check if the cert would be created.
+        let certs = self.certs.lock().await;
+        certs.replace_with(|certs| {
+            certs.insert(id.to_string(), csr.to_owned());
+
+            certs.to_owned()
+        });
+
+        Ok(csr.to_owned())
     }
 
     pub async fn get_cert(&self, id: &str) -> Result<Vec<u8>, std::io::Error> {
-        match self.certs.get(id) {
+        let certs = self.certs.lock().await;
+        let certs = certs.replace_with(|certs| certs.clone());
+
+        match certs.get(id) {
             Some(cert) => Ok(cert.clone()),
             None => Err(crate::test_error()),
         }

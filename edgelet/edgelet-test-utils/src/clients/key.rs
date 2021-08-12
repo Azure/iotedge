@@ -86,3 +86,69 @@ impl KeyClient {
         }
     }
 }
+
+pub struct KeyEngine {
+    pub keys: std::collections::BTreeMap<
+        String,
+        (
+            openssl::pkey::PKey<openssl::pkey::Private>,
+            openssl::pkey::PKey<openssl::pkey::Public>,
+        ),
+    >,
+}
+
+impl KeyEngine {
+    pub fn load(_client: std::sync::Arc<aziot_key_client::Client>) -> Result<Self, std::io::Error> {
+        Ok(KeyEngine {
+            keys: std::collections::BTreeMap::new(),
+        })
+    }
+
+    pub fn load_private_key(
+        &mut self,
+        key_handle: &std::ffi::CString,
+    ) -> Result<openssl::pkey::PKey<openssl::pkey::Private>, std::io::Error> {
+        let key_handle = key_handle.to_str().unwrap();
+
+        match self.keys.get(key_handle) {
+            Some((private_key, _)) => Ok(private_key.clone()),
+            None => Ok(self.create_keys(key_handle).0),
+        }
+    }
+
+    pub fn load_public_key(
+        &mut self,
+        key_handle: &std::ffi::CString,
+    ) -> Result<openssl::pkey::PKey<openssl::pkey::Public>, std::io::Error> {
+        let key_handle = key_handle.to_str().unwrap();
+
+        match self.keys.get(key_handle) {
+            Some((_, public_key)) => Ok(public_key.clone()),
+            None => Ok(self.create_keys(key_handle).1),
+        }
+    }
+
+    fn create_keys(
+        &mut self,
+        key_handle: &str,
+    ) -> (
+        openssl::pkey::PKey<openssl::pkey::Private>,
+        openssl::pkey::PKey<openssl::pkey::Public>,
+    ) {
+        let rsa = openssl::rsa::Rsa::generate(2048).unwrap();
+        let private_key = openssl::pkey::PKey::from_rsa(rsa).unwrap();
+
+        let public_key = private_key.public_key_to_pem().unwrap();
+        let public_key = openssl::pkey::PKey::public_key_from_pem(&public_key).unwrap();
+
+        assert!(self
+            .keys
+            .insert(
+                key_handle.to_string(),
+                (private_key.clone(), public_key.clone())
+            )
+            .is_none());
+
+        (private_key, public_key)
+    }
+}

@@ -818,13 +818,16 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "aziot-identity-common",
+ "aziot-key-client",
  "aziot-key-common",
  "bytes 1.0.1",
  "edgelet-core",
  "edgelet-settings",
  "futures 0.3.16",
+ "futures-util",
  "http 0.2.4",
  "nix 0.22.0",
+ "openssl",
  "serde",
 ]
 
