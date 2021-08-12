@@ -46,7 +46,7 @@ impl Settings {
                 let batch_id = Uuid::new_v4().to_string();
                 config.set("batch_id", Some(batch_id.clone()))?;
 
-                if let None = config.get::<Option<String>>("topic_suffix")? {
+                if config.get::<Option<String>>("topic_suffix")?.is_none() {
                     config.set("topic_suffix", Some(batch_id))?;
                 }
             }
