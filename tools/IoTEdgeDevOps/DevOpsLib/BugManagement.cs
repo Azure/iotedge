@@ -89,6 +89,12 @@ namespace DevOpsLib
                     op = "add",
                     path = "/fields/System.AssignedTo",
                     value = bugOwnerEmail
+                },
+                new
+                {
+                    op = "add",
+                    path = "/fields/System.Tags",
+                    value = "auto-pipeline-failed"
                 }
             };
 
@@ -127,7 +133,7 @@ namespace DevOpsLib
             }
 
             bugDescription += $"<div>`<div> Please address if the failure was caused by your changes. Otherwise please help to triage appropriately. ";
-            bugDescription += $"Reference the backup on-call report to match to an existing bug. If the bug does not exist yet, please create a new bug. After this is complete you can close this bug. Link to resource: <div> <a href=\"{BackupOnCallReportLink}\">Backup On-Call Reports</a> <div>`<div>";
+            bugDescription += $"Reference the backup on-call report to match to an existing bug. If the bug does not exist yet, please create a new bug and coordinate with backup on-call to confirm the bug gets added to the most recent backup on-call report. After this is complete you can close this bug. Link to resource: <div> <a href=\"{BackupOnCallReportLink}\">Backup On-Call Reports</a> <div>`<div>";
             bugDescription += $"Link to failing build:<div> <a href=\"{build.WebUri}\">Failing Build</a>";
 
             return bugDescription;

@@ -44,7 +44,6 @@ namespace DevOpsLib
             catch (FlurlHttpException e)
             {
                 string message = $"Failed making call to list user api: {e.Message}";
-                Console.ReadLine();
                 Console.WriteLine(message);
                 Console.WriteLine(e.Call.RequestBody);
                 Console.WriteLine(e.Call.Response.StatusCode);
