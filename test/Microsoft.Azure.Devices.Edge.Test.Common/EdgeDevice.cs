@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     await nestedEdgeConfig.ParentDeviceId.ForEachAsync(async p =>
                     {
                         Device parentDevice = await iotHub.GetDeviceIdentityAsync(p, token);
-                        device.ParentScopes = new[] { parentDevice.Scope };
+                        device.ParentScopes.Add(parentDevice.Scope);
                     });
                 }
 

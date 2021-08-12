@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
 
     public class EventHubReceiver
