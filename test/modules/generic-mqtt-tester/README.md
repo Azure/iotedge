@@ -17,6 +17,6 @@ Defaults can be seen here:
 |TEST_START_DELAY| Specifies the delay before the test logic starts running. Needed to give time for the environment to spin up and get everything ready.|
 |MESSAGE_FREQUENCY| Specifies the frequency of messages being sent from any initiator-based test scenario.|
 |MESSAGE_SIZE_IN_BYTES| Bytes in each message. All dummy data.|
-|TOPIC_SUFFIX | Specifies the suffix to be used for the initiate topic when publishing messages. Messages will be sent on `initiate/<topic_suffix>`.|
+|TOPIC_SUFFIX | Specifies the suffix to be used when publishing or subscribing. Messages will be sent and received on `initiate/<topic_suffix>`.|
 |MESSAGES_TO_SEND| Specifies the amount of messages that will be sent from any initiator-based test scenario before the test module shuts down.|
 
