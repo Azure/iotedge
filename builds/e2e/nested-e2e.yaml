@@ -1,6 +1,17 @@
 trigger: none
 pr: none
 
+# Nested E2E and Nested Connectivity share test agents.
+# Thus the schedules between master and release/1.2 branch are offset by 6 hours.
+# This will ensure that enough agents are avaiable to service all tests. 
+schedules:
+- cron: "0 6 * * *"
+  displayName: Daily morning build
+  branches:
+    include:
+    - master
+  always: true
+
 variables:
   NugetSecurityAnalysisWarningLevel: warn
 
