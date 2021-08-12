@@ -101,6 +101,8 @@ fn identity_cert_extensions(
 
 #[cfg(test)]
 mod tests {
+    use http_common::server::Route;
+
     use edgelet_test_utils::{test_route_err, test_route_ok};
 
     const TEST_PATH: &str = "/modules/testModule/certificate/identity";
@@ -124,5 +126,16 @@ mod tests {
 
         // Extra character at end of URI
         test_route_err!(&format!("{}a", TEST_PATH));
+    }
+
+    #[tokio::test]
+    async fn auth() {
+        async fn post(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            route.post(None).await
+        }
+
+        edgelet_test_utils::test_auth_caller!(TEST_PATH, "testModule", post);
     }
 }
