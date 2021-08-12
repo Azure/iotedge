@@ -27,6 +27,7 @@ pub(crate) struct SignRequest {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub(crate) struct SignResponse {
     digest: String,
 }
@@ -142,10 +143,12 @@ mod tests {
 
     use edgelet_test_utils::{test_route_err, test_route_ok};
 
+    const TEST_PATH: &str = "/modules/testModule/genid/1/sign";
+
     #[test]
     fn parse_uri() {
         // Valid URI
-        let route = test_route_ok!("/modules/testModule/genid/1/sign");
+        let route = test_route_ok!(TEST_PATH);
         assert_eq!("testModule", &route.module_id);
         assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
 
@@ -156,10 +159,10 @@ mod tests {
         test_route_err!("/modules/testModule/genid//sign");
 
         // Extra character at beginning of URI
-        test_route_err!("a/modules/testModule/genid/1/sign");
+        test_route_err!(&format!("a{}", TEST_PATH));
 
         // Extra character at end of URI
-        test_route_err!("/modules/testModule/genid/1/signa");
+        test_route_err!(&format!("{}a", TEST_PATH));
     }
 
     #[tokio::test]
@@ -174,10 +177,34 @@ mod tests {
             route.post(Some(body)).await
         }
 
-        edgelet_test_utils::test_auth_caller!(
-            "/modules/testModule/genid/1/sign",
-            "testModule",
-            post
-        );
+        edgelet_test_utils::test_auth_caller!(TEST_PATH, "testModule", post);
+    }
+
+    #[tokio::test]
+    async fn encoding() {
+        // Body is required
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(None).await.unwrap_err();
+        assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
+
+        // data must be base64-encoded
+        let body = super::SignRequest {
+            data: "~".to_string(),
+        };
+
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(Some(body)).await.unwrap_err();
+        assert_eq!(hyper::StatusCode::BAD_REQUEST, response.status_code);
+
+        // Response digest is base64-encoded
+        let body = super::SignRequest {
+            data: base64::encode("~"),
+        };
+
+        let route = test_route_ok!(TEST_PATH);
+        let response = route.post(Some(body)).await.unwrap();
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let response: super::SignResponse = serde_json::from_slice(&body).unwrap();
+        base64::decode(response.digest).unwrap();
     }
 }
