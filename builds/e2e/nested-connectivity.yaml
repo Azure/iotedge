@@ -5,12 +5,6 @@ pr: none
 # Thus the schedules are offset by 6 hours.
 # This will ensure that enough agents are avaiable to service all tests. 
 schedules:
-- cron: "0 0 * * *"
-  displayName: Daily midnight build
-  branches:
-    include:
-    - release/1.2
-  always: true
 - cron: "0 12 * * *"
   displayName: Daily noon build
   branches:
