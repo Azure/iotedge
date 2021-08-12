@@ -31,21 +31,11 @@ impl Default for IdentityClient {
 
 impl IdentityClient {
     pub async fn create_module_identity(
-        &mut self,
+        &self,
         module_name: &str,
     ) -> Result<Identity, std::io::Error> {
         if self.get_identity_ok {
-            let identity = test_identity(module_name);
-
-            if let Some(_) = self
-                .identities
-                .insert(module_name.to_string(), identity.clone())
-            {
-                // Identity already exists.
-                Err(crate::test_error())
-            } else {
-                Ok(identity)
-            }
+            Ok(test_identity(module_name))
         } else {
             Err(crate::test_error())
         }
@@ -89,10 +79,8 @@ impl IdentityClient {
         }
     }
 
-    pub async fn delete_identity(&mut self, module_name: &str) -> Result<(), std::io::Error> {
+    pub async fn delete_identity(&self, module_name: &str) -> Result<(), std::io::Error> {
         if self.delete_identity_ok {
-            self.identities.remove(module_name);
-
             Ok(())
         } else {
             Err(crate::test_error())
