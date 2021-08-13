@@ -9,8 +9,7 @@ steps:
     $test_type = '${{ parameters.test_type }}'
 
     # Filter out unstable tests.
-    $filter = 'Category!=Unstable'
-
+    $filter = 'Category!=Unstable&Category=ManifestSigning'
     if ('$(Agent.Name)'.Contains('centos'))
     {
       $filter += '&Category=CentOsSafe'

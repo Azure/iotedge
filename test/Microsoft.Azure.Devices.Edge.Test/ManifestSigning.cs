@@ -65,6 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
+        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsSuccessful()
         {
@@ -118,6 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.TestToken);
         }
 
+        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithBadRootCa()
         {
@@ -171,6 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.TestToken);
         }
 
+        [Category("ManifestSigning")]
         [Test]
         public async Task TestIfSignedDeploymentIsConfiguredWithNoRootCa()
         {
