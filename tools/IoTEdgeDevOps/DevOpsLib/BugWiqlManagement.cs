@@ -29,9 +29,9 @@ namespace DevOpsLib
         public async Task<int> GetBugsCountAsync(BugWiqlQuery bugQuery)
         {
             // TODO: need to think about how to handle unexpected exception during REST API call
-            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, this.accessSetting.Organization, this.accessSetting.Project, this.accessSetting.Team);
+            string requestPath = string.Format(WorkItemPathSegmentFormat, DevOpsAccessSetting.BaseUrl, DevOpsAccessSetting.AzureOrganization, DevOpsAccessSetting.AzureProject, DevOpsAccessSetting.IoTTeam);
             IFlurlRequest workItemQueryRequest = ((Url)requestPath)
-                .WithBasicAuth(string.Empty, this.accessSetting.PersonalAccessToken)
+                .WithBasicAuth(string.Empty, this.accessSetting.MsazurePAT)
                 .SetQueryParam("api-version", "5.1");
 
             JObject result;

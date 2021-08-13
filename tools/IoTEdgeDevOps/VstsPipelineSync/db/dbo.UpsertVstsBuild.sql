@@ -4,6 +4,7 @@
 	@DefinitionId int,
 	@DefinitionName varchar(100),
 	@SourceBranch varchar(100),
+	@SourceVersion varchar(100),
 	@SourceVersionDisplayUri varchar(500),
 	@WebUri varchar(500),
 	@Status varchar(20),
@@ -22,6 +23,7 @@ AS
 		SET BuildId = @BuildId,
 		    DefinitionName = @DefinitionName,
 		    SourceBranch = @SourceBranch,
+		    SourceVersion = @SourceVersion,
 			SourceVersionDisplayUri = @SourceVersionDisplayUri,
 			WebUri = @WebUri,
 			[Status] = @Status,
@@ -35,6 +37,6 @@ AS
 	END
 	ELSE
 	BEGIN
-		INSERT INTO dbo.VstsBuild(BuildId, BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, WasScheduled, InsertedAt, UpdatedAt)
-		VALUES (@BuildId, @BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @WasScheduled, @now, @now)
+		INSERT INTO dbo.VstsBuild(BuildId, BuildNumber, DefinitionId, DefinitionName, SourceBranch, SourceVersion, SourceVersionDisplayUri, WebUri, [Status], Result, QueueTime, StartTime, FinishTime, WasScheduled, InsertedAt, UpdatedAt)
+		VALUES (@BuildId, @BuildNumber, @DefinitionId, @DefinitionName, @SourceBranch, @SourceVersion, @SourceVersionDisplayUri, @WebUri, @Status, @Result, @QueueTime, @StartTime, @FinishTime, @WasScheduled, @now, @now)
 	END
