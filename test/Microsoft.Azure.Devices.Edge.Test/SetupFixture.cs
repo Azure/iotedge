@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             ("/etc/aziot/keyd/config.toml", "aziotks"),
             ("/etc/aziot/certd/config.toml", "aziotcs"),
             ("/etc/aziot/identityd/config.toml", "aziotid"),
-            ("/etc/aziot/tpmd/config.toml", "aziotts"),
+            ("/etc/aziot/tpmd/config.toml", "aziottpm"),
             ("/etc/aziot/edged/config.toml", "iotedge")
         };
 
