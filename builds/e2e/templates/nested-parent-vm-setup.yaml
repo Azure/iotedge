@@ -1,5 +1,8 @@
 parameters:
   upstream.protocol: 'amqp'
+  test.l4DeploymentFileName: ""
+  l3IpAddress: ''
+  test.trackingId: '' 
 
 jobs:
   - job: SetupVM_level5_${{ parameters['upstream.protocol'] }}
@@ -20,17 +23,17 @@ jobs:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - status -equals unlocked
+       - status -equals unlocked_$(Build.BuildId)_L5_${{ parameters['upstream.protocol'] }}
     steps:
      - template: nested-get-secrets.yaml
      - template: e2e-clean-directory.yaml            
-     - template: lock-test-agent.yaml
      - template: nested-get-root-ca.yaml       
      - template: nested-create-identity.yaml   
      - template: nested-agent-deploy.yaml
 
   - job: SetupVM_level4_${{ parameters['upstream.protocol'] }}
-    dependsOn: SetupVM_level5_${{ parameters['upstream.protocol'] }}
+    dependsOn:
+      - SetupVM_level5_${{ parameters['upstream.protocol'] }}
     displayName: SettingUp level 4 for ${{ parameters['upstream.protocol'] }}
     condition: succeeded()
     timeoutInMinutes: 180
@@ -40,20 +43,21 @@ jobs:
       artifactName: iotedged-ubuntu18.04-amd64
       parentName: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['deployIoTEdge.deviceName'] ]
       parentDeviceId: $[ dependencies.SetupVM_level5_${{ parameters['upstream.protocol'] }}.outputs['createIdentity.parentDeviceId'] ]
-      deploymentFile: "nestededge_middleLayerBaseDeployment_${{ parameters['upstream.protocol'] }}.json"
+      deploymentFile: "${{ parameters['test.l4DeploymentFileName'] }}"
       level: 4
       upstreamProtocol: ${{ parameters['upstream.protocol'] }}
+      l3IpAddress: ${{ parameters['l3IpAddress'] }}
+      trackingId: ${{ parameters['test.trackingId'] }}
     pool:
      name: $(pool.name)
      demands:
        - agent-group -equals $(agent.group)
        - Agent.OS -equals Linux
        - Agent.OSArchitecture -equals X64
-       - status -equals unlocked    
+       - status -equals unlocked_$(Build.BuildId)_L4_${{ parameters['upstream.protocol'] }}
     steps:
       - template: nested-get-secrets.yaml  
       - template: e2e-clean-directory.yaml                
-      - template: lock-test-agent.yaml
       - template: nested-get-root-ca.yaml         
       - template: nested-create-identity.yaml          
       - template: nested-agent-deploy.yaml
