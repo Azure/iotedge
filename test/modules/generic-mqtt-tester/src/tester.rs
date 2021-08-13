@@ -325,10 +325,7 @@ fn message_handler(
                 batch_id,
             ))))
         }
-        TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(
-            publish_handle,
-            settings.relay_topic()?,
-        )))),
+        TestScenario::Relay => Ok(Some(Box::new(RelayingMessageHandler::new(publish_handle)))),
         TestScenario::Initiate => Ok(None),
     }
 }

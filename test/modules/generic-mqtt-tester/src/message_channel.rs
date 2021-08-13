@@ -15,7 +15,10 @@ use mqtt3::{
 };
 use trc_client::{MessageTestResult, TrcClient};
 
-use crate::{parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle};
+use crate::{
+    parse_sequence_number, ExitedWork, MessageTesterError, ShutdownHandle, INITIATE_TOPIC_PREFIX,
+    RELAY_TOPIC_PREFIX,
+};
 
 /// Responsible for receiving publications and taking some action.
 #[async_trait]
@@ -94,15 +97,11 @@ impl MessageHandler for ReportResultMessageHandler {
 /// them back on the relay topic.
 pub struct RelayingMessageHandler {
     publish_handle: PublishHandle,
-    relay_topic: String,
 }
 
 impl RelayingMessageHandler {
-    pub fn new(publish_handle: PublishHandle, relay_topic: String) -> Self {
-        Self {
-            publish_handle,
-            relay_topic,
-        }
+    pub fn new(publish_handle: PublishHandle) -> Self {
+        Self { publish_handle }
     }
 }
 
@@ -119,8 +118,11 @@ impl MessageHandler for RelayingMessageHandler {
             received_publication.topic_name, sequence_number,
         );
 
+        let relay_topic = received_publication
+            .topic_name
+            .replace(INITIATE_TOPIC_PREFIX, RELAY_TOPIC_PREFIX);
         let new_publication = Publication {
-            topic_name: self.relay_topic.clone(),
+            topic_name: relay_topic,
             qos: QoS::ExactlyOnce,
             retain: true,
             payload: received_publication.payload,
