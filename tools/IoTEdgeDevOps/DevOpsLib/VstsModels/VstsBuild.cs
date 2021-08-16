@@ -2,6 +2,7 @@
 namespace DevOpsLib.VstsModels
 {
     using System;
+    using System.Collections.Generic;
     using Newtonsoft.Json;
 
     // Schema reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/build/builds/get?view=azure-devops-rest-5.1
@@ -19,6 +20,9 @@ namespace DevOpsLib.VstsModels
 
         [JsonProperty("sourceBranch")]
         public string SourceBranch { get; set; }
+
+        [JsonProperty("sourceVersion")]
+        public string SourceVersion { get; set; }
 
         [JsonProperty("_links.sourceVersionDisplayUri.href")]
         public Uri SourceVersionDisplayUri { get; set; }
@@ -50,6 +54,8 @@ namespace DevOpsLib.VstsModels
         public static VstsBuild CreateBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
             new VstsBuild
             {
+                BuildId = string.Empty,
+                SourceVersion = string.Empty,
                 DefinitionId = buildDefinitionId,
                 BuildNumber = string.Empty,
                 SourceBranch = sourceBranch,
@@ -111,7 +117,7 @@ namespace DevOpsLib.VstsModels
                 return false;
             }
 
-            return this.Equals((VstsBuild) obj);
+            return this.Equals((VstsBuild)obj);
         }
 
         public override int GetHashCode() => this.BuildNumber.GetHashCode();
