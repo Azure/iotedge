@@ -177,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             EventHubClient client = this.EventHubClient;
             int count = (await client.GetRuntimeInformationAsync()).PartitionCount;
             string partition = EventHubPartitionKeyResolver.ResolveToPartition(deviceId, count);
-            seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(5)); // substract 5 minutes to account for client/server drift
+            seekTime = seekTime.ToUniversalTime().Subtract(TimeSpan.FromMinutes(2)); // substract 2 minutes to account for client/server drift
             EventPosition position = EventPosition.FromEnqueuedTime(seekTime);
             PartitionReceiver receiver = client.CreateReceiver("$Default", partition, position);
 
