@@ -70,8 +70,6 @@ where
     type DeleteBody = serde::de::IgnoredAny;
 
     async fn get(self) -> http_common::server::RouteResponse {
-        edgelet_http::auth_agent(self.pid, &self.runtime).await?;
-
         let client = self.client.lock().await;
 
         let mut identities = vec![];
@@ -158,7 +156,6 @@ mod tests {
             route.post(Some(body)).await
         }
 
-        edgelet_test_utils::test_auth_agent!(super::PATH, super::Route::get);
         edgelet_test_utils::test_auth_agent!(super::PATH, post);
     }
 

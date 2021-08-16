@@ -89,3 +89,74 @@ where
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use http_common::server::Route;
+
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    const TEST_PATH: &str = "/identities/testModule";
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        let route = test_route_ok!(TEST_PATH);
+        assert_eq!("testModule", &route.module_id);
+        assert_eq!(nix::unistd::getpid().as_raw(), route.pid);
+
+        // Missing module ID
+        test_route_err!("/identities/");
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", TEST_PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}/", TEST_PATH));
+    }
+
+    #[tokio::test]
+    async fn auth() {
+        async fn delete(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            route.delete(None).await
+        }
+
+        async fn put(
+            route: super::Route<edgelet_test_utils::runtime::Runtime>,
+        ) -> http_common::server::RouteResponse {
+            route.put(serde::de::IgnoredAny).await
+        }
+
+        edgelet_test_utils::test_auth_agent!(TEST_PATH, delete);
+        edgelet_test_utils::test_auth_agent!(TEST_PATH, put);
+    }
+
+    #[tokio::test]
+    async fn update_delete() {
+        // The Identity Client needs to be persisted across API calls.
+        let client = edgelet_test_utils::clients::IdentityClient::default();
+        let client = std::sync::Arc::new(futures_util::lock::Mutex::new(client));
+
+        // Update Identity
+        let mut route = test_route_ok!(TEST_PATH);
+        route.client = client.clone();
+
+        let response = route.put(serde::de::IgnoredAny).await.unwrap();
+        let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let _response: crate::identity::Identity = serde_json::from_slice(&body).unwrap();
+
+        // Delete Identity
+        let mut route = test_route_ok!(TEST_PATH);
+        route.client = client.clone();
+
+        route.delete(None).await.unwrap();
+
+        // Update Identity should now fail because the Identity was deleted
+        let mut route = test_route_ok!(TEST_PATH);
+        route.client = client.clone();
+
+        route.put(serde::de::IgnoredAny).await.unwrap_err();
+    }
+}
