@@ -479,8 +479,8 @@ mod tests {
 
     use edgelet_settings::module::ImagePullPolicy;
 
-    use crate::module::ModuleStatus;
     use super::ModuleSpec;
+    use crate::module::ModuleStatus;
 
     fn get_inputs() -> Vec<(&'static str, ModuleStatus)> {
         vec![
@@ -516,7 +516,8 @@ mod tests {
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
     }
 
     #[test]
@@ -528,7 +529,8 @@ mod tests {
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
     }
 
     #[test]
@@ -540,7 +542,8 @@ mod tests {
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
     }
 
     #[test]
@@ -552,6 +555,7 @@ mod tests {
             10_i32,
             BTreeMap::new(),
             ImagePullPolicy::default(),
-        ).unwrap_err();
+        )
+        .unwrap_err();
     }
 }

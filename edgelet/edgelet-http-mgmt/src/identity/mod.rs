@@ -4,6 +4,7 @@ pub(super) mod create_or_list;
 pub(super) mod delete_or_update;
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize, PartialEq))]
 pub(crate) struct Identity {
     #[serde(rename = "moduleId")]
     module_id: String,
