@@ -35,4 +35,4 @@ url_serde = "0.2"
 tokio-uds = "0.2"
 
 [target.'cfg(windows)'.dependencies]
-tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git" }
+tokio-uds-windows = { git = "https://github.com/Azure/tokio-uds-windows.git", branch = "master" }
