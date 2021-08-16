@@ -1,11 +1,9 @@
 use anyhow::{Error, Result};
 use log::info;
-use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
+use percent_encoding::percent_encode;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
-define_encode_set! {
-    pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
-}
+use edgelet_client::IOTHUB_ENCODE_SET;
 
 pub struct TokenClient {
     device_id: String,
@@ -22,20 +20,17 @@ impl TokenClient {
         generation_id: String,
         iothub_hostname: String,
         work_load_api_client: edgelet_client::WorkloadClient,
-    ) -> Result<Self, Error> {
-        Ok(TokenClient {
+    ) -> Self {
+        TokenClient {
             device_id,
             module_id,
             generation_id,
             iothub_hostname,
             work_load_api_client,
-        })
+        }
     }
 
-    pub async fn get_new_sas_token(
-        &mut self,
-        expiration_date: &str,
-    ) -> Result<Option<String>, Error> {
+    pub async fn get_new_sas_token(&self, expiration_date: &str) -> Result<String, Error> {
         let audience = format!(
             "{}/devices/{}/modules/{}",
             self.iothub_hostname,
@@ -61,6 +56,6 @@ impl TokenClient {
 
         info!("Successfully generated new token");
 
-        Ok(Some(token))
+        Ok(token)
     }
 }

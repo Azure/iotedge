@@ -1,5 +1,5 @@
 #!/bin/bash
-#https://github.com/Azure/iotedge/blob/iiot/scripts/linux/cross-platform-rust-build.sh
+#https://github.com/Azure/iotedge/blob/master/scripts/linux/cross-platform-rust-build.sh
 ###############################################################################
 # This script builds a static binary of the api-proxy-module
 ###############################################################################
@@ -88,7 +88,7 @@ echo ${PROJECT_ROOT}
 
 if [[ "$ARCH" == "amd64" ]]; then
 set +e
-../../scripts/linux/cross-platform-rust-build.sh --os alpine --arch $ARCH --build-path edge-modules/api-proxy-module
+docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/api-proxy-module/Cargo.toml
 set -e
 
 cp -r ./templates/ ./docker/linux/amd64
