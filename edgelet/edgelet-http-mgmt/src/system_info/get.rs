@@ -7,6 +7,8 @@ where
     runtime: std::sync::Arc<futures_util::lock::Mutex<M>>,
 }
 
+const PATH: &str = "/systeminfo";
+
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
@@ -24,7 +26,7 @@ where
         _query: &[(std::borrow::Cow<'_, str>, std::borrow::Cow<'_, str>)],
         _extensions: &http::Extensions,
     ) -> Option<Self> {
-        if path != "/systeminfo" {
+        if path != PATH {
             return None;
         }
 
@@ -50,4 +52,21 @@ where
     type PostBody = serde::de::IgnoredAny;
 
     type PutBody = serde::de::IgnoredAny;
+}
+
+#[cfg(test)]
+mod tests {
+    use edgelet_test_utils::{test_route_err, test_route_ok};
+
+    #[test]
+    fn parse_uri() {
+        // Valid URI
+        test_route_ok!(super::PATH);
+
+        // Extra character at beginning of URI
+        test_route_err!(&format!("a{}", super::PATH));
+
+        // Extra character at end of URI
+        test_route_err!(&format!("{}a", super::PATH));
+    }
 }

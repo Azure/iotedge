@@ -86,35 +86,35 @@ where
         let mut log_options = edgelet_core::LogOptions::new();
 
         if let Some(follow) = &self.follow {
-            let follow = std::str::FromStr::from_str(&follow.to_lowercase())
+            let follow = std::str::FromStr::from_str(&follow)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: follow"))?;
 
             log_options = log_options.with_follow(follow);
         }
 
         if let Some(tail) = &self.tail {
-            let tail = std::str::FromStr::from_str(&tail.to_lowercase())
+            let tail = std::str::FromStr::from_str(&tail)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: tail"))?;
 
             log_options = log_options.with_tail(tail);
         }
 
         if let Some(since) = &self.since {
-            let since = edgelet_core::parse_since(&since.to_lowercase())
+            let since = edgelet_core::parse_since(&since)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: since"))?;
 
             log_options = log_options.with_since(since);
         }
 
         if let Some(until) = &self.until {
-            let until = edgelet_core::parse_since(&until.to_lowercase())
+            let until = edgelet_core::parse_since(&until)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: until"))?;
 
             log_options = log_options.with_until(until);
         }
 
         if let Some(timestamps) = &self.timestamps {
-            let timestamps = std::str::FromStr::from_str(&timestamps.to_lowercase())
+            let timestamps = std::str::FromStr::from_str(&timestamps)
                 .map_err(|_| edgelet_http::error::bad_request("invalid parameter: timestamps"))?;
 
             log_options = log_options.with_timestamps(timestamps);
@@ -164,21 +164,12 @@ mod tests {
             let log_options = route.log_options().unwrap();
             assert_eq!(false, get_key(&log_options));
 
-            // Valid value, all lowercase
+            // Valid value
             let route = test_route_ok!(uri, (key, "true"));
             let log_options = route.log_options().unwrap();
             assert_eq!(true, get_key(&log_options));
 
             let route = test_route_ok!(uri, (key, "false"));
-            let log_options = route.log_options().unwrap();
-            assert_eq!(false, get_key(&log_options));
-
-            // Value should be case-insensitive
-            let route = test_route_ok!(uri, (key, "TrUe"));
-            let log_options = route.log_options().unwrap();
-            assert_eq!(true, get_key(&log_options));
-
-            let route = test_route_ok!(uri, (key, "FaLsE"));
             let log_options = route.log_options().unwrap();
             assert_eq!(false, get_key(&log_options));
 
@@ -197,7 +188,7 @@ mod tests {
         let log_options = route.log_options().unwrap();
         assert_eq!(&edgelet_core::LogTail::default(), log_options.tail());
 
-        // Valid value, all lowercase
+        // Valid value
         let route = test_route_ok!(uri, ("tail", "all"));
         let log_options = route.log_options().unwrap();
         assert_eq!(&edgelet_core::LogTail::All, log_options.tail());
@@ -205,11 +196,6 @@ mod tests {
         let route = test_route_ok!(uri, ("tail", "5"));
         let log_options = route.log_options().unwrap();
         assert_eq!(&edgelet_core::LogTail::Num(5), log_options.tail());
-
-        // Value should be case-insensitive
-        let route = test_route_ok!(uri, ("tail", "AlL"));
-        let log_options = route.log_options().unwrap();
-        assert_eq!(&edgelet_core::LogTail::All, log_options.tail());
 
         // Invalid value
         let route = test_route_ok!(uri, ("tail", "invalid"));
@@ -252,12 +238,6 @@ mod tests {
             let route = test_route_ok!(uri, (key, "-5"));
             let log_options = route.log_options().unwrap();
             assert_eq!(-5, get_key(&log_options));
-
-            // Value should be case-insensitive. Time parsing is tested elsewhere, so just
-            // check that the parsed value is something positive.
-            let route = test_route_ok!(uri, (key, "5 HoUrS"));
-            let log_options = route.log_options().unwrap();
-            assert!(get_key(&log_options) > 0);
 
             // Invalid value
             let route = test_route_ok!(uri, (key, "invalid"));
