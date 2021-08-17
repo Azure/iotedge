@@ -188,15 +188,15 @@ where
 /// A proper rework of settings loading should be undertaken when there is more
 /// time, but for now, this will have to do...
 pub trait NestedEdgeBodge {
-    fn parent_hostname_resolve_image(&mut self, parent_hostname: &str);
+    fn parent_hostname_resolve(&mut self, parent_hostname: &str);
 }
 
 impl<T> ModuleSpec<T>
 where
     T: NestedEdgeBodge,
 {
-    pub fn parent_hostname_resolve_image(&mut self, parent_hostname: &str) {
-        self.config.parent_hostname_resolve_image(parent_hostname)
+    pub fn parent_hostname_resolve(&mut self, parent_hostname: &str) {
+        self.config.parent_hostname_resolve(parent_hostname);
     }
 }
 

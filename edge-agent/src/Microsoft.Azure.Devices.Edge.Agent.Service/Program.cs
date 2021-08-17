@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -120,6 +121,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
                 dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<global::Docker.DotNet.Models.AuthConfig>>() ?? new List<global::Docker.DotNet.Models.AuthConfig>();
+
+                NestedEdgeParentUriParser parser = new NestedEdgeParentUriParser();
+                dockerAuthConfig = dockerAuthConfig.Select(c =>
+                {
+                    c.Password = parser.ParseURI(c.Password).GetOrElse(c.Password);
+                    return c;
+                })
+                .ToList();
+
                 configRefreshFrequencySecs = configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             }
             catch (Exception ex)
