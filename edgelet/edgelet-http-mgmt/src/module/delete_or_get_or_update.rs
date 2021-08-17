@@ -102,7 +102,7 @@ where
         let details = if start {
             match runtime.start(&self.module).await {
                 Ok(()) => log::info!("Successfully started module {}", self.module),
-                Err(err) => log::warn!("Failed to start module {}", self.module),
+                Err(err) => log::warn!("Failed to start module {}: {}", self.module, err),
             }
 
             edgelet_http::ModuleDetails::from_spec(&body, edgelet_core::ModuleStatus::Running)

@@ -1,5 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::TryInto;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -12,7 +14,7 @@ where
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+    M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig> + Send + Sync,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -49,7 +51,7 @@ where
 
     type DeleteBody = serde::de::IgnoredAny;
 
-    type PostBody = serde::de::IgnoredAny;
+    type PostBody = edgelet_http::ModuleSpec;
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
@@ -60,9 +62,21 @@ where
             }
         };
 
+        if body.name() != &self.module {
+            return Err(edgelet_http::error::bad_request(
+                "module name in spec does not match URI",
+            ));
+        }
+
         let runtime = self.runtime.lock().await;
 
-        todo!()
+        let module: edgelet_http::DockerSpec = body
+            .try_into()
+            .map_err(|err| edgelet_http::error::server_error(err))?;
+
+        super::pull_image(&*runtime, &module).await?;
+
+        Ok(http_common::server::response::no_content())
     }
 
     type PutBody = serde::de::IgnoredAny;

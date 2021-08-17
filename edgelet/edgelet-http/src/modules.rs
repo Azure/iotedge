@@ -70,6 +70,12 @@ struct RuntimeStatus {
     description: Option<String>,
 }
 
+impl ModuleSpec {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 impl std::convert::TryInto<DockerSpec> for ModuleSpec {
     type Error = String;
 

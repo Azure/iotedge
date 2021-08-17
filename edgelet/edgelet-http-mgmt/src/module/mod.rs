@@ -22,6 +22,23 @@ where
         .try_into()
         .map_err(|err| edgelet_http::error::server_error(err))?;
 
+    pull_image(runtime, &module).await?;
+
+    runtime
+        .create(module)
+        .await
+        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+    Ok(())
+}
+
+async fn pull_image<M>(
+    runtime: &M,
+    module: &edgelet_http::DockerSpec,
+) -> Result<(), http_common::server::Error>
+where
+    M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig>,
+{
     match module.image_pull_policy() {
         edgelet_settings::module::ImagePullPolicy::OnCreate => {
             runtime
@@ -39,11 +56,6 @@ where
             )
         }
     }
-
-    runtime
-        .create(module)
-        .await
-        .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
 
     Ok(())
 }
