@@ -140,6 +140,13 @@ pub trait DockerApi {
         timestamps: bool,
         tail: &str,
     ) -> Result<hyper::Body>;
+
+    async fn network_create(
+        &self,
+        network_config: crate::models::NetworkConfig,
+    ) -> Result<crate::models::InlineResponse2011>;
+
+    async fn network_list(&self, filters: &str) -> Result<Vec<crate::models::Network>>;
 }
 
 #[async_trait::async_trait]
@@ -439,5 +446,39 @@ impl DockerApi for DockerApiClient {
                 status
             )))?
         }
+    }
+
+    async fn network_create(
+        &self,
+        network_config: crate::models::NetworkConfig,
+    ) -> Result<crate::models::InlineResponse2011> {
+        let method = hyper::Method::POST;
+
+        let uri_str = format!("/networks/create");
+        let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+
+        let result = self
+            .request(method, uri, Some(&network_config))
+            .await
+            .map_err(ApiError::with_context("Could not create network."))?;
+
+        Ok(result)
+    }
+
+    async fn network_list(&self, filters: &str) -> Result<Vec<crate::models::Network>> {
+        let method = hyper::Method::GET;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("filters", &filters.to_string())
+            .finish();
+        let uri_str = format!("/networks?{}", query);
+        let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+
+        let result = self
+            .request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not list networks."))?;
+
+        Ok(result)
     }
 }
