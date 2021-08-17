@@ -25,7 +25,8 @@ pushd "${EDGELET_ROOT}"
 
 # Cargo vendored dependencies should be downloaded by the AzureCLI task. Extract them now.
 echo "Vendoring Rust dependencies"
-cargo vendor
+bash -c 'sudo cargo vendor';
+
 
 # Configure Cargo to use vendored the deps
 mkdir .cargo
