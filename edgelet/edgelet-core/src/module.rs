@@ -367,7 +367,7 @@ pub trait ModuleRuntime: Sized {
 
     type Config: Clone + Send + serde::Serialize;
     type Module: Module<Config = Self::Config> + Send;
-    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
+    type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error> + Send + Sync;
     type Chunk: AsRef<[u8]> + Into<bytes::Bytes> + 'static;
 
     // TODO: Remove failure and fix this error type.

@@ -1,5 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::TryInto;
+
+use edgelet_core::ModuleRegistry;
+
 pub(crate) struct Route<M>
 where
     M: edgelet_core::ModuleRuntime + Send + Sync,
@@ -13,7 +17,7 @@ const PATH: &str = "/modules";
 #[async_trait::async_trait]
 impl<M> http_common::server::Route for Route<M>
 where
-    M: edgelet_core::ModuleRuntime + Send + Sync,
+    M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig> + Send + Sync,
 {
     type ApiVersion = edgelet_http::ApiVersion;
     fn api_version() -> &'static dyn http_common::DynRangeBounds<Self::ApiVersion> {
@@ -58,7 +62,7 @@ where
         Ok(res)
     }
 
-    type PostBody = ();
+    type PostBody = super::ModuleSpec;
     async fn post(self, body: Option<Self::PostBody>) -> http_common::server::RouteResponse {
         edgelet_http::auth_agent(self.pid, &self.runtime).await?;
 
@@ -69,9 +73,39 @@ where
             }
         };
 
+        let details = super::to_module_details(&body, edgelet_core::ModuleStatus::Stopped);
+        let module: super::DockerSpec = body
+            .try_into()
+            .map_err(|err| edgelet_http::error::server_error(err))?;
+
         let runtime = self.runtime.lock().await;
 
-        todo!()
+        match module.image_pull_policy() {
+            edgelet_settings::module::ImagePullPolicy::OnCreate => {
+                runtime
+                    .registry()
+                    .pull(module.config())
+                    .await
+                    .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+                log::debug!("Successfully pulled new image for module {}", module.name());
+            }
+            edgelet_settings::module::ImagePullPolicy::Never => {
+                log::debug!(
+                    "Skipped pulling image for module {} as per pull policy",
+                    module.name()
+                )
+            }
+        }
+
+        runtime
+            .create(module)
+            .await
+            .map_err(|err| edgelet_http::error::server_error(err.to_string()))?;
+
+        let res = http_common::server::response::json(hyper::StatusCode::CREATED, &details);
+
+        Ok(res)
     }
 
     type PutBody = serde::de::IgnoredAny;

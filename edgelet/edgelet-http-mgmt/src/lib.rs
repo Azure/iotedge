@@ -101,7 +101,7 @@ http_common::make_service! {
     service: Service<M>,
     { <M> }
     {
-        M: edgelet_core::ModuleRuntime + Send + Sync + 'static,
+        M: edgelet_core::ModuleRuntime<Config = edgelet_settings::DockerConfig> + Send + Sync + 'static,
     }
     api_version: edgelet_http::ApiVersion,
     routes: [
