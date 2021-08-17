@@ -10,17 +10,19 @@ use http_common::{request, Connector};
 use hyper::{Body, Client, Uri};
 
 use super::configuration::Configuration;
+use super::ApiError;
 
+#[derive(Clone)]
 pub struct DockerApiClient {
     client: Arc<Client<Connector, Body>>,
-    configuration: Configuration,
+    configuration: Arc<Configuration>,
 }
 
 impl DockerApiClient {
     pub fn new(client: Arc<Client<Connector, Body>>) -> Self {
         Self {
             client,
-            configuration: Configuration::new(),
+            configuration: Arc::new(Configuration::new()),
         }
     }
 
@@ -34,17 +36,36 @@ impl DockerApiClient {
         TRequest: serde::Serialize,
         TResponse: serde::de::DeserializeOwned,
     {
-        let headers = self
-            .configuration
-            .user_agent
-            .as_ref()
-            .map(|user_agent| [(hyper::header::USER_AGENT, user_agent)]);
+        self.request_with_headers(method, uri, Vec::new(), body)
+            .await
+    }
+
+    async fn request_with_headers<TRequest, TResponse>(
+        &self,
+        method: hyper::http::Method,
+        uri: Uri,
+        mut headers: Vec<(String, String)>,
+        body: Option<&TRequest>,
+    ) -> Result<TResponse, Box<dyn Error>>
+    where
+        TRequest: serde::Serialize,
+        TResponse: serde::de::DeserializeOwned,
+    {
+        if let Some(user_agent) = self.configuration.user_agent.as_ref() {
+            headers.push((hyper::header::USER_AGENT.to_string(), user_agent.clone()))
+        }
+
+        let headers = if !headers.is_empty() {
+            Some(headers)
+        } else {
+            None
+        };
 
         let response = request(
             &self.client,
             method,
             uri,
-            headers.as_ref().map(|h| -> &[_] { &*h }),
+            headers.as_ref().map(|h| -> &[_] { &*h }), // Convert Option<Vec> in to Option<&[]>
             body,
         )
         .await?;
@@ -55,6 +76,24 @@ impl DockerApiClient {
 #[async_trait::async_trait]
 pub trait DockerApi {
     async fn system_info(&self) -> Result<crate::models::SystemInfo, Box<dyn Error>>;
+
+    async fn image_create(
+        &self,
+        from_image: &str,
+        from_src: &str,
+        repo: &str,
+        tag: &str,
+        input_image: &str,
+        x_registry_auth: &str,
+        platform: &str,
+    ) -> Result<(), Box<dyn Error>>;
+
+    async fn image_delete(
+        &self,
+        name: &str,
+        force: bool,
+        noprune: bool,
+    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>, Box<dyn Error>>;
 
     async fn container_create(
         &self,
@@ -115,6 +154,60 @@ impl DockerApi for DockerApiClient {
         self.request(method, uri, None::<&()>).await
     }
 
+    async fn image_create(
+        &self,
+        from_image: &str,
+        from_src: &str,
+        repo: &str,
+        tag: &str,
+        input_image: &str,
+        x_registry_auth: &str,
+        platform: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let method = hyper::Method::POST;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("fromImage", &from_image.to_string())
+            .append_pair("fromSrc", &from_src.to_string())
+            .append_pair("repo", &repo.to_string())
+            .append_pair("tag", &tag.to_string())
+            .append_pair("platform", &platform.to_string())
+            .finish();
+        let uri_str = format!("/images/create?{}", query);
+        let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+
+        let headers = vec![("X-Registry-Auth".to_owned(), x_registry_auth.to_owned())];
+
+        self.request_with_headers(method, uri, headers, Some(&input_image))
+            .await
+            .map_err(ApiError::with_context("Could not create image."))?;
+
+        Ok(())
+    }
+
+    async fn image_delete(
+        &self,
+        name: &str,
+        force: bool,
+        noprune: bool,
+    ) -> Result<Vec<crate::models::ImageDeleteResponseItem>, Box<dyn Error>> {
+        let method = hyper::Method::DELETE;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("force", &force.to_string())
+            .append_pair("noprune", &noprune.to_string())
+            .finish();
+        let uri_str = format!("/images/{name}?{}", query, name = name);
+        let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
+
+        let result = self
+            .request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not delete image."))?;
+
+        Ok(result)
+    }
+
     async fn container_create(
         &self,
         body: crate::models::ContainerCreateBody,
@@ -128,7 +221,12 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/create?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, Some(&body)).await
+        let result = self
+            .request(method, uri, Some(&body))
+            .await
+            .map_err(ApiError::with_context("Could not create container."))?;
+
+        Ok(result)
     }
 
     async fn container_delete(
@@ -164,7 +262,11 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/restart?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        self.request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not delete container."))?;
+
+        Ok(())
     }
 
     async fn container_list(
@@ -185,7 +287,12 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/json?{}", query);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        let result = self
+            .request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not list containers."))?;
+
+        Ok(result)
     }
 
     async fn container_start(&self, id: &str, detach_keys: &str) -> Result<(), Box<dyn Error>> {
@@ -197,7 +304,11 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/start?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        self.request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not start container."))?;
+
+        Ok(())
     }
 
     async fn container_stats(
@@ -213,7 +324,12 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/stats?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        let result = self
+            .request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not collect container stats."))?;
+
+        Ok(result)
     }
 
     async fn container_stop(&self, id: &str, t: Option<i32>) -> Result<(), Box<dyn Error>> {
@@ -229,7 +345,11 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/stop?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        self.request(method, uri, None::<&()>)
+            .await
+            .map_err(ApiError::with_context("Could not stop container."))?;
+
+        Ok(())
     }
 
     async fn container_top(
@@ -245,7 +365,14 @@ impl DockerApi for DockerApiClient {
         let uri_str = format!("/containers/{id}/top?{}", query, id = id);
         let uri = (self.configuration.uri_composer)(&self.configuration.base_path, &uri_str)?;
 
-        self.request(method, uri, None::<&()>).await
+        let result =
+            self.request(method, uri, None::<&()>)
+                .await
+                .map_err(ApiError::with_context(
+                    "Could not list container processes.",
+                ))?;
+
+        Ok(result)
     }
 
     async fn container_logs(
@@ -298,7 +425,7 @@ impl DockerApi for DockerApiClient {
         if status.is_success() {
             Ok(body)
         } else {
-            Err(simple_error::SimpleError::new(format!(
+            Err(ApiError::with_message(format!(
                 "Bad status code: {}",
                 status
             )))?
